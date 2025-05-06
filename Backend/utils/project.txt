@@ -1,0 +1,17 @@
+mujhe ek pura software project banana hai mern stack technology hai main tumhe pura pura project samkhata hu tum mujhe uska pure detail me roadmap bana ke do ki chije kesi hogi backend me main kese banau kesa flow hoga technical language me bhi batao 
+
+
+mere pass mapdhay Pradesh ka polygens hai jisme mere pass division wise , perliemment wise, district wise and assembly wise polygens hai 
+maine upper example ke liye ek file attect ki hai 
+
+ab main mere project me chahta hu ki mere pass assembly ki 230 id password ho wo 230 id password se alag alag assembly open hogi or uss assembly ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi assembly ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+
+or sam mujhe division ki 9 id password ho wo 9 id password se alag alag division open hogi or uss division ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi division ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+
+or sam mujhe parliment ki 29 id password ho wo 29 id password se alag alag parliment open hogi or uss parliment ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi parliment ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+
+or sam mujhe District ki 55 id password ho wo 55 id password se alag alag District open hogi or uss District ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi District ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+
+or mujhe ek master admin bhi chahiye jo sabhi ko dekh sake or sabhi ka access ho uske pass
+
+ye sab mujhe backend banaan hai kese karu kya banau batao
