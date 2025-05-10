@@ -1,25 +1,19 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const ParliamentSchema = new mongoose.Schema({
-  name: {
+const ParliamentSchema = new Schema({
+  type: String,
+  features: [{
     type: String,
-    required: true,
-    unique: true,
-  },
-  pcCode: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  division: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Division',
-    required: true, 
-  },
-  districts: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'District',
-  }],
+    geometry: {
+      type: { type: String },
+      coordinates: [[[Number]]]
+    },
+    properties: {
+      Name: String,
+      // Add other parliament properties as needed
+    }
+  }]
 });
 
 module.exports = mongoose.model('Parliament', ParliamentSchema);

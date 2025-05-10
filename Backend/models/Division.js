@@ -1,28 +1,19 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const DivisionSchema = new mongoose.Schema({
-  name: {
+const DivisionSchema = new Schema({
+  type: String,
+  features: [{
     type: String,
-    required: true,
-    unique: true,
-  },
-  code: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  state: {
-    type: String,
-    required: true,
-  },
-  stateCode: {
-    type: String,
-    required: true,
-  },
-  districts: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'District',
-  }],
+    geometry: {
+      type: { type: String },
+      coordinates: [[[Number]]]
+    },
+    properties: {
+      Name: String,
+      // Add other division properties as needed
+    }
+  }]
 });
 
 module.exports = mongoose.model('Division', DivisionSchema);

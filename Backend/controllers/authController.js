@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const { generateToken } = require('../utils/jwt');
+const AssemblyMap = require('../models/AssemblyMap'); // Add this line
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -41,6 +42,7 @@ exports.register = async (req, res, next) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
+// Update your login function
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -65,6 +67,12 @@ exports.login = async (req, res, next) => {
     // Create token
     const token = generateToken(user._id);
 
+    // If user is assembly user, fetch the map data
+    let assemblyMap = null;
+    if (user.role === 'assembly') {
+      assemblyMap = await AssemblyMap.findOne({ assemblyId: user.regionId });
+    }
+
     res.status(200).json({
       success: true,
       token,
@@ -75,6 +83,7 @@ exports.login = async (req, res, next) => {
         regionId: user.regionId,
         regionModel: user.regionModel,
       },
+      assemblyMap: assemblyMap || undefined
     });
   } catch (err) {
     next(err);
@@ -87,10 +96,16 @@ exports.login = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
+    
+    let assemblyMap = null;
+    if (user.role === 'assembly') {
+      assemblyMap = await AssemblyMap.findOne({ assemblyId: user.regionId });
+    }
 
     res.status(200).json({
       success: true,
       user,
+      assemblyMap: assemblyMap || undefined
     });
   } catch (err) {
     next(err);

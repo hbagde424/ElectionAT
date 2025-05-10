@@ -1,31 +1,22 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const AssemblySchema = new mongoose.Schema({
-  name: {
+const AssemblySchema = new Schema({
+  type: String,
+  features: [{
     type: String,
-    required: true,
-    unique: true,
-  },
-  acNo: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  district: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'District',
-    required: true,
-  },
-  parliament: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Parliament',
-    required: true,
-  },
-  division: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Division',
-    required: true,
-  },
+    geometry: {
+      type: { type: String },
+      coordinates: [[[Number]]]
+    },
+    properties: {
+      Name: String,
+      District: String,
+      Division: String,
+      Parliament: String,
+      VS_Code: Number
+    }
+  }]
 });
 
 module.exports = mongoose.model('Assembly', AssemblySchema);
