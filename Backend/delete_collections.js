@@ -5,7 +5,7 @@ async function dropSelectedCollections() {
 
   try {
     await client.connect();
-    const db = client.db('election-map');
+    const db = client.db('electionAT');
 
     // जिन collections को बचाना है
     const keepCollections = ['assemblies', 'divisions', 'districts', 'parliaments', 'users'];

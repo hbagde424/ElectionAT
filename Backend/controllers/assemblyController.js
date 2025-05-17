@@ -1,100 +1,153 @@
-const Assembly = require('../models/Assembly');
+const Assembly = require('../models/assembly');
+const District = require('../models/district');
+const Division = require('../models/division');
+const Parliament = require('../models/parliament');
 
-// Helper to handle large JSON responses
-const sendJsonResponse = (res, data) => {
-  res.setHeader('Content-Type', 'application/json');
-  return res.status(200).send(JSON.stringify(data, null, 2));
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Assembly:
+ *       type: object
+ *       required:
+ *         - name
+ *         - type
+ *         - district_id
+ *         - division_id
+ *         - parliament_id
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: "Lucknow West"
+ *         type:
+ *           type: string
+ *           enum: [Urban, Rural, Mixed]
+ *           example: "Urban"
+ *         district_id:
+ *           type: string
+ *           format: objectId
+ *           example: "507f1f77bcf86cd799439011"
+ *         division_id:
+ *           type: string
+ *           format: objectId
+ *           example: "507f1f77bcf86cd799439012"
+ *         parliament_id:
+ *           type: string
+ *           format: objectId
+ *           example: "507f1f77bcf86cd799439013"
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-05-15T10:00:00Z"
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-05-15T10:00:00Z"
+ */
+
+// [Keep all your existing controller methods...]
+
+exports.createAssembly = async (req, res) => {
+  try {
+    // Check if all referenced entities exist
+    const [district, division, parliament] = await Promise.all([
+      District.findById(req.body.district_id),
+      Division.findById(req.body.division_id),
+      Parliament.findById(req.body.parliament_id)
+    ]);
+
+    if (!district) return res.status(404).json({ error: 'District not found' });
+    if (!division) return res.status(404).json({ error: 'Division not found' });
+    if (!parliament) return res.status(404).json({ error: 'Parliament not found' });
+
+    const assembly = new Assembly(req.body);
+    await assembly.save();
+    res.status(201).json(assembly);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
-// Helper error handler
-const handleError = (res, err) => {
-  console.error('Error:', err);
-  return res.status(500).json({ 
-    message: 'Server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-};
-
-// Get all assemblies (full data)
 exports.getAllAssemblies = async (req, res) => {
   try {
-    const assemblies = await Assembly.find({}, { _id: 0, __v: 0 }).lean();
-    return sendJsonResponse(res, assemblies);
+    const assemblies = await Assembly.find()
+      .populate('district_id')
+      .populate('division_id')
+      .populate('parliament_id');
+    res.json(assemblies);
   } catch (err) {
-    return handleError(res, err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Get assembly by VS_Code (full data)
-exports.getAssemblyByVSCode = async (req, res) => {
-  try {
-    const vsCode = parseInt(req.params.vs_code);
-    if (isNaN(vsCode)) {
-      return res.status(400).json({ message: 'Invalid VS Code' });
-    }
-
-    const assembly = await Assembly.findOne(
-      { 'features.properties.VS_Code': vsCode },
-      { _id: 0, __v: 0 }
-    ).lean();
-
-    if (!assembly) {
-      return res.status(404).json({ message: 'Assembly not found' });
-    }
-    
-    return sendJsonResponse(res, assembly);
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
-// Get assemblies by district (full data)
 exports.getAssembliesByDistrict = async (req, res) => {
   try {
-    const assemblies = await Assembly.find(
-      { 'features.properties.District': req.params.district },
-      { _id: 0, __v: 0 }
-    ).lean();
-    
-    if (!assemblies || assemblies.length === 0) {
-      return res.status(404).json({ message: 'No assemblies found for this district' });
-    }
-    
-    return sendJsonResponse(res, assemblies);
+    const assemblies = await Assembly.find({ district_id: req.params.districtId })
+      .populate('district_id')
+      .populate('division_id')
+      .populate('parliament_id');
+    res.json(assemblies);
   } catch (err) {
-    return handleError(res, err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Get assemblies within a geographic area (full data)
-exports.getAssembliesWithin = async (req, res) => {
+exports.getAssembliesByParliament = async (req, res) => {
   try {
-    const { longitude, latitude, radius } = req.query;
-    
-    if (!longitude || !latitude || !radius) {
-      return res.status(400).json({ message: 'Missing required query parameters' });
-    }
-
-    const assemblies = await Assembly.find(
-      {
-        'features.geometry': {
-          $geoWithin: {
-            $centerSphere: [
-              [parseFloat(longitude), parseFloat(latitude)],
-              parseFloat(radius) / 6378.1
-            ]
-          }
-        }
-      },
-      { _id: 0, __v: 0 }
-    ).lean();
-    
-    if (!assemblies || assemblies.length === 0) {
-      return res.status(404).json({ message: 'No assemblies found within the specified area' });
-    }
-    
-    return sendJsonResponse(res, assemblies);
+    const assemblies = await Assembly.find({ parliament_id: req.params.parliamentId })
+      .populate('district_id')
+      .populate('division_id')
+      .populate('parliament_id');
+    res.json(assemblies);
   } catch (err) {
-    return handleError(res, err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getAssemblyById = async (req, res) => {
+  try {
+    const assembly = await Assembly.findById(req.params.id)
+      .populate('district_id')
+      .populate('division_id')
+      .populate('parliament_id');
+    
+    if (!assembly) {
+      return res.status(404).json({ error: 'Assembly not found' });
+    }
+    res.json(assembly);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateAssembly = async (req, res) => {
+  try {
+    const assembly = await Assembly.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    )
+    .populate('district_id')
+    .populate('division_id')
+    .populate('parliament_id');
+    
+    if (!assembly) {
+      return res.status(404).json({ error: 'Assembly not found' });
+    }
+    res.json(assembly);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.deleteAssembly = async (req, res) => {
+  try {
+    const assembly = await Assembly.findByIdAndDelete(req.params.id);
+    if (!assembly) {
+      return res.status(404).json({ error: 'Assembly not found' });
+    }
+    res.json({ message: 'Assembly deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

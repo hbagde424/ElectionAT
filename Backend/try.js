@@ -5,8 +5,8 @@ async function importRawJSON() {
   const client = new MongoClient('mongodb://localhost:27017');
   try {
     await client.connect();
-    const db = client.db('election-map');
-    const collection = db.collection('parliaments');
+    const db = client.db('electionAT');
+    const collection = db.collection('districtpolygens');
     
     // पहले से मौजूद इंडेक्स ड्रॉप करें (यदि कोई error आता है तो ignore करें)
     try {
@@ -15,7 +15,7 @@ async function importRawJSON() {
       console.log('Index not found or already dropped');
     }
     
-    const folderPath = 'C:/Users/devel/Downloads/social_media/parliament';
+    const folderPath = 'C:/Users/devel/Downloads/social_media/district';
     const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.json'));
     
     for (const file of files) {

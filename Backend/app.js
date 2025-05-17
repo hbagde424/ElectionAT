@@ -9,10 +9,34 @@ const { specs, swaggerUi } = require('./config/swagger'); // Add this line
 // Route files
 const authRoutes = require('./routes/authRoutes');
 const mapRoutes = require('./routes/mapRoutes'); 
-const assemblyRoutes = require('./routes/assemblyRoutes'); 
-const districtRoutes = require('./routes/districtRoutes'); 
-const divisionRoutes = require('./routes/divisionRoutes'); 
-const parliamentRoutes = require('./routes/parliamentRoutes'); 
+// const assemblyRoutes = require('./routes/assemblypolygenRoutes'); 
+const districtpolygenRoutes = require('./routes/districtpolygenRoutes'); 
+// const divisionRoutes = require('./routes/divisionpolygenRoutes'); 
+// const parliamentRoutes = require('./routes/parliamentpolygenRoutes'); 
+// Import routes
+const stateRoutes = require('./routes/stateRoutes');
+const divisionRoutes = require('./routes/divisionRoutes');
+const parliamentRoutes = require('./routes/parliamentRoutes');
+const districtRoutes = require('./routes/districtRoutes');
+const assemblyRoutes = require('./routes/assemblyRoutes');
+const boothRoutes = require('./routes/boothRoutes');
+// const partyRoutes = require('./routes/partyRoutes');
+// const electionYearRoutes = require('./routes/electionYearRoutes');
+// const blockRoutes = require('./routes/blockRoutes');
+// const localDynamicsRoutes = require('./routes/localDynamicsRoutes');
+// const votingTrendsRoutes = require('./routes/votingTrendsRoutes');
+const boothDemographicsRoutes = require('./routes/boothDemographicsRoutes');
+const boothElectionStatsRoutes = require('./routes/boothElectionStatsRoutes');
+const boothPartyVoteShareRoutes = require('./routes/boothPartyVoteShareRoutes');
+const boothPartyPresenceRoutes = require('./routes/boothPartyPresenceRoutes');
+
+// Add these to your existing imports
+const boothVolunteersRoutes = require('./routes/boothVolunteersRoutes');
+const boothInfrastructureRoutes = require('./routes/boothInfrastructureRoutes');
+const votingTrendsRoutes = require('./routes/votingTrendsRoutes');
+const boothAdminRoutes = require('./routes/boothAdminRoutes');
+
+const blockRoutes = require('./routes/blockRoutes');
 
 // Connect to database
 connectDB();
@@ -46,11 +70,35 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Mount routers
 app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
-app.use('/api/assembly', assemblyRoutes);
-app.use('/api/district', districtRoutes);
-app.use('/api/division', divisionRoutes);
-app.use('/api/parliament', parliamentRoutes);
+app.use('/api/district', districtpolygenRoutes);
 
+app.use('/api/states', stateRoutes);
+app.use('/api/divisions', divisionRoutes);
+app.use('/api/parliaments', parliamentRoutes);
+app.use('/api/districts', districtRoutes); 
+app.use('/api/assemblies', assemblyRoutes);
+app.use('/api/booths', boothRoutes);
+// app.use('/api/parties', partyRoutes);
+// app.use('/api/election-years', electionYearRoutes);
+// app.use('/api/blocks', blockRoutes);
+// app.use('/api/local-dynamics', localDynamicsR outes);
+// app.use('/api/voting-trends', votingTrendsRoutes);
+// Add these to your existing route middleware
+app.use('/api/booth-demographics', boothDemographicsRoutes);
+app.use('/api/booth-election-stats', boothElectionStatsRoutes);
+app.use('/api/booth-vote-shares', boothPartyVoteShareRoutes);
+app.use('/api/booth-party-presence', boothPartyPresenceRoutes);
+
+app.use('/api/blocks', blockRoutes);
+
+
+
+
+// Add these to your route middleware
+app.use('/api/booth-volunteers', boothVolunteersRoutes);
+app.use('/api/booth-infrastructure', boothInfrastructureRoutes);
+app.use('/api/voting-trends', votingTrendsRoutes);
+app.use('/api/booth-admin', boothAdminRoutes);
 // Error handler
 app.use(errorHandler);
 
