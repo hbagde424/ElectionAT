@@ -11,7 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const mapRoutes = require('./routes/mapRoutes'); 
 // const assemblyRoutes = require('./routes/assemblypolygenRoutes'); 
 const districtpolygenRoutes = require('./routes/districtpolygenRoutes'); 
-// const divisionRoutes = require('./routes/divisionpolygenRoutes'); 
+const assembliesRoutes = require('./routes/assemblypolygenRoutes'); 
 // const parliamentRoutes = require('./routes/parliamentpolygenRoutes'); 
 // Import routes
 const stateRoutes = require('./routes/stateRoutes');
@@ -71,6 +71,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/district', districtpolygenRoutes);
+app.use('/api/assembly', assembliesRoutes);
 
 app.use('/api/states', stateRoutes);
 app.use('/api/divisions', divisionRoutes);

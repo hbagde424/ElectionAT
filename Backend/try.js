@@ -6,7 +6,7 @@ async function importRawJSON() {
   try {
     await client.connect();
     const db = client.db('electionAT');
-    const collection = db.collection('districtpolygens');
+    const collection = db.collection('parliamentpolygens');
     
     // पहले से मौजूद इंडेक्स ड्रॉप करें (यदि कोई error आता है तो ignore करें)
     try {
@@ -15,7 +15,7 @@ async function importRawJSON() {
       console.log('Index not found or already dropped');
     }
     
-    const folderPath = 'C:/Users/devel/Downloads/social_media/district';
+    const folderPath = 'C:/Users/devel/Downloads/social_media/parliament';
     const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.json'));
     
     for (const file of files) {
