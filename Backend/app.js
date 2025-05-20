@@ -10,8 +10,10 @@ const { specs, swaggerUi } = require('./config/swagger'); // Add this line
 const authRoutes = require('./routes/authRoutes');
 const mapRoutes = require('./routes/mapRoutes'); 
 // const assemblyRoutes = require('./routes/assemblypolygenRoutes'); 
-const districtpolygenRoutes = require('./routes/districtpolygenRoutes'); 
+const districtPolygonRoutes = require('./routes/districtpolygenRoutes'); 
+const divisionPolygonRoutes = require('./routes/divisionpolygenRoutes');
 const assembliesRoutes = require('./routes/assemblypolygenRoutes'); 
+const parliamentPolygonRoutes = require('./routes/parliamentpolygenRoutes');
 // const parliamentRoutes = require('./routes/parliamentpolygenRoutes'); 
 // Import routes
 const stateRoutes = require('./routes/stateRoutes');
@@ -70,12 +72,14 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Mount routers
 app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
-app.use('/api/district', districtpolygenRoutes);
+app.use('/api/district-polygons', districtPolygonRoutes);
+app.use('/api/division-polygons', divisionPolygonRoutes);
 app.use('/api/assembly', assembliesRoutes);
 
 app.use('/api/states', stateRoutes);
 app.use('/api/divisions', divisionRoutes);
 app.use('/api/parliaments', parliamentRoutes);
+app.use('/api/parliament-polygons', parliamentPolygonRoutes);
 app.use('/api/districts', districtRoutes); 
 app.use('/api/assemblies', assemblyRoutes);
 app.use('/api/booths', boothRoutes);

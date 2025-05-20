@@ -14,7 +14,7 @@ const authController = require('../middlewares/auth');
  * @swagger
  * /api/assembly:
  *   get:
- *     summary: Get all assemblies
+ *     summary: Get all assemblies polygen
  *     tags: [Assemblies]
  *     security:
  *       - bearerAuth: []
@@ -30,7 +30,7 @@ router.get('/',  assemblyController.getAllAssemblies);
  * @swagger
  * /api/assembly/vs_code/{vs_code}:
  *   get:
- *     summary: Get assembly by VS Code
+ *     summary: Get assembly polygen by VS Code 
  *     tags: [Assemblies]
  *     parameters:
  *       - in: path
@@ -51,7 +51,7 @@ router.get('/vs_code/:vs_code',  assemblyController.getAssemblyByVSCode);
  * @swagger
  * /api/Assembly/district/{district}:
  *   get:
- *     summary: Get assemblies by district
+ *     summary: Get assemblies polygens by district 
  *     tags: [Assemblies]
  *     parameters:
  *       - in: path
@@ -70,7 +70,7 @@ router.get('/district/:district', assemblyController.getAssembliesByDistrict);
  * @swagger
  * /api/assembly/within:
  *   get:
- *     summary: Get assemblies within geographic area
+ *     summary: Get assemblies polygens within geographic area
  *     tags: [Assemblies]
  *     parameters:
  *       - in: query
