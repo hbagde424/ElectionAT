@@ -1,19 +1,29 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
 
-const DivisionSchema = new Schema({
-  type: String,
-  features: [{
+const divisionSchema = new mongoose.Schema({
+  name: {
     type: String,
-    geometry: {
-      type: { type: String },
-      coordinates: [[[Number]]]
-    },
-    properties: {
-      Name: String,
-      // Add other division properties as needed
-    }
-  }]
+    required: true,
+    trim: true
+  },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: true
+  },
+  created_at: {
+    type: Date,
+    default: Date.now
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.model('Division', DivisionSchema);
+divisionSchema.pre('save', function(next) {
+  this.updated_at = Date.now();
+  next();
+});
+
+module.exports = mongoose.model('Division', divisionSchema);

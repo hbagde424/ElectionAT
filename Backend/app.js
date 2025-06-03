@@ -22,23 +22,38 @@ const parliamentRoutes = require('./routes/parliamentRoutes');
 const districtRoutes = require('./routes/districtRoutes');
 const assemblyRoutes = require('./routes/assemblyRoutes');
 const boothRoutes = require('./routes/boothRoutes');
-// const partyRoutes = require('./routes/partyRoutes');
+
 // const electionYearRoutes = require('./routes/electionYearRoutes');
 // const blockRoutes = require('./routes/blockRoutes');
 // const localDynamicsRoutes = require('./routes/localDynamicsRoutes');
 // const votingTrendsRoutes = require('./routes/votingTrendsRoutes');
+const localDynamicsRoutes = require('./routes/localDynamicsRoutes');
 const boothDemographicsRoutes = require('./routes/boothDemographicsRoutes');
 const boothElectionStatsRoutes = require('./routes/boothElectionStatsRoutes');
-const boothPartyVoteShareRoutes = require('./routes/boothPartyVoteShareRoutes');
-const boothPartyPresenceRoutes = require('./routes/boothPartyPresenceRoutes');
+const voteShareRoutes = require('./routes/boothPartyVoteShareRoutes');
+const partyPresenceRoutes = require('./routes/boothPartyPresenceRoutes');
+
+const candidateRoutes = require('./routes/candidateRoutes');
+
+
 
 // Add these to your existing imports
 const boothVolunteersRoutes = require('./routes/boothVolunteersRoutes');
 const boothInfrastructureRoutes = require('./routes/boothInfrastructureRoutes');
 const votingTrendsRoutes = require('./routes/votingTrendsRoutes');
 const boothAdminRoutes = require('./routes/boothAdminRoutes');
-
 const blockRoutes = require('./routes/blockRoutes');
+
+const partyRoutes = require('./routes/partyRoutes');
+const yearRoutes = require('./routes/yearRoutes');
+const winningPartyRoutes = require('./routes/winningPartyRoutes');
+// const surveyStatusRoutes = require('./routes/surveyStatusRoutes');
+const boothSurveyRoutes = require('./routes/boothSurveyRoutes');
+const localNewsRoutes = require('./routes/localNewsRoutes');
+const activePartyRoutes = require('./routes/activePartyRoutes');
+const accomplishedMLARoutes = require('./routes/accomplishedMLARoutes');
+
+const partyActivityRoutes = require('./routes/partyActivityRoutes');
 
 // Connect to database
 connectDB();
@@ -70,12 +85,13 @@ app.use(express.json({ limit: '50mb' })); // Add this line
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Mount routers
+app.use('/api/candidates', candidateRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/district-polygons', districtPolygonRoutes);
 app.use('/api/division-polygons', divisionPolygonRoutes);
 app.use('/api/assembly', assembliesRoutes);
-
+app.use('/api/local-dynamics', localDynamicsRoutes);
 app.use('/api/states', stateRoutes);
 app.use('/api/divisions', divisionRoutes);
 app.use('/api/parliaments', parliamentRoutes);
@@ -83,18 +99,26 @@ app.use('/api/parliament-polygons', parliamentPolygonRoutes);
 app.use('/api/districts', districtRoutes); 
 app.use('/api/assemblies', assemblyRoutes);
 app.use('/api/booths', boothRoutes);
-// app.use('/api/parties', partyRoutes);
+app.use('/api/parties', partyRoutes);
+app.use('/api/booth-surveys', boothSurveyRoutes);
+app.use('/api/local-news', localNewsRoutes);
+app.use('/api/active-parties', activePartyRoutes);
+app.use('/api/accomplished-mlas', accomplishedMLARoutes);
+
 // app.use('/api/election-years', electionYearRoutes);
 // app.use('/api/blocks', blockRoutes);
 // app.use('/api/local-dynamics', localDynamicsR outes);
 // app.use('/api/voting-trends', votingTrendsRoutes);
 // Add these to your existing route middleware
 app.use('/api/booth-demographics', boothDemographicsRoutes);
-app.use('/api/booth-election-stats', boothElectionStatsRoutes);
-app.use('/api/booth-vote-shares', boothPartyVoteShareRoutes);
-app.use('/api/booth-party-presence', boothPartyPresenceRoutes);
+app.use('/api/booth-stats', boothElectionStatsRoutes);
+app.use('/api/vote-shares', voteShareRoutes);
+app.use('/api/party-presence', partyPresenceRoutes);
+
+
 
 app.use('/api/blocks', blockRoutes);
+app.use('/api/years', yearRoutes);
 
 
 
@@ -104,6 +128,10 @@ app.use('/api/booth-volunteers', boothVolunteersRoutes);
 app.use('/api/booth-infrastructure', boothInfrastructureRoutes);
 app.use('/api/voting-trends', votingTrendsRoutes);
 app.use('/api/booth-admin', boothAdminRoutes);
+app.use('/api/winning-parties', winningPartyRoutes);
+// app.use('/api/survey-status', surveyStatusRoutes);
+
+app.use('/api/party-activities', partyActivityRoutes);
 // Error handler
 app.use(errorHandler);
 

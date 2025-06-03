@@ -1,28 +1,14 @@
-// const express = require('express');
-// const router = express.Router();
-// const stateController = require('../controllers/stateController');
-
-// // Create a new state
-// router.post('/', stateController.createState);
-
-// // Get all states
-// router.get('/', stateController.getAllStates);
-
-// // Get a single state by ID
-// router.get('/:id', stateController.getStateById);
-
-// // Update a state
-// router.put('/:id', stateController.updateState);
-
-// // Delete a state
-// router.delete('/:id', stateController.deleteState);
-
-// module.exports = router;
-
-
 const express = require('express');
+const {
+  getStates,
+  getStateById,
+  createState,
+  updateState,
+  deleteState
+} = require('../controllers/stateController');
+const { protect, authorize } = require('../middlewares/auth');
+
 const router = express.Router();
-const stateController = require('../controllers/stateController');
 
 /**
  * @swagger
@@ -34,58 +20,62 @@ const stateController = require('../controllers/stateController');
 /**
  * @swagger
  * /api/states:
- *   post:
- *     summary: Create a new state
- *     tags: [States]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/State'
- *     responses:
- *       201:
- *         description: State created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/State'
- *       400:
- *         description: Bad request
- */
-router.post('/', stateController.createState);
-
-/**
- * @swagger
- * /api/states:
  *   get:
  *     summary: Get all states
  *     tags: [States]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by state name
  *     responses:
  *       200:
- *         description: List of all states
+ *         description: List of states
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/State'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/State'
  */
-router.get('/', stateController.getAllStates);
+router.get('/', getStates);
 
 /**
  * @swagger
  * /api/states/{id}:
  *   get:
- *     summary: Get a state by ID
+ *     summary: Get single state
  *     tags: [States]
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: State ID
  *     responses:
  *       200:
  *         description: State data
@@ -96,21 +86,46 @@ router.get('/', stateController.getAllStates);
  *       404:
  *         description: State not found
  */
-router.get('/:id', stateController.getStateById);
+router.get('/:id', getStateById);
+
+/**
+ * @swagger
+ * /api/states:
+ *   post:
+ *     summary: Create new state
+ *     tags: [States]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/State'
+ *     responses:
+ *       201:
+ *         description: State created successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/', protect, authorize('admin'), createState);
 
 /**
  * @swagger
  * /api/states/{id}:
  *   put:
- *     summary: Update a state
+ *     summary: Update state
  *     tags: [States]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: State ID
  *     requestBody:
  *       required: true
  *       content:
@@ -119,37 +134,66 @@ router.get('/:id', stateController.getStateById);
  *             $ref: '#/components/schemas/State'
  *     responses:
  *       200:
- *         description: Updated state data
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/State'
+ *         description: State updated successfully
  *       400:
- *         description: Bad request
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: State not found
  */
-router.put('/:id', stateController.updateState);
+router.put('/:id', protect, authorize('admin'), updateState);
 
 /**
  * @swagger
  * /api/states/{id}:
  *   delete:
- *     summary: Delete a state
+ *     summary: Delete state
  *     tags: [States]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: State ID
  *     responses:
  *       200:
- *         description: State deleted successfully
+ *         description: State deleted
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: State not found
  */
-router.delete('/:id', stateController.deleteState);
+router.delete('/:id', protect, authorize('admin'), deleteState);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     State:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Name of the state
+ *           example: "California"
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Creation timestamp
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
 
 module.exports = router;

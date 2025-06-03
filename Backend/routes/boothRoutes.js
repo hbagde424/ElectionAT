@@ -1,186 +1,227 @@
-// const express = require('express');
-// const router = express.Router();
-// const boothController = require('../controllers/boothController');
-
-// // Create a new booth
-// router.post('/', boothController.createBooth);
-
-// // Get all booths
-// router.get('/', boothController.getAllBooths);
-
-// // Get booths by assembly ID
-// // router.get('/assembly/:assemblyId', boothController.getBoothsByAssembly);
-
-// // Get a single booth by ID
-// // router.get('/:id', boothController.getBoothById);
-
-// // Update a booth
-// // router.put('/:id', boothController.updateBooth);
-
-// // Delete a booth
-// // router.delete('/:id', boothController.deleteBooth);
-
-// module.exports = router;
-
-
-
 const express = require('express');
+const {
+  getDistricts,
+  getDistrictById,
+  createDistrict,
+  updateDistrict,
+  deleteDistrict,
+  getDistrictsByDivision
+} = require('../controllers/districtController');
+const { protect, authorize } = require('../middlewares/auth');
+
 const router = express.Router();
-const boothController = require('../controllers/boothController');
 
 /**
  * @swagger
  * tags:
- *   name: Booths
- *   description: Booth management
+ *   name: Districts
+ *   description: District management
  */
 
 /**
  * @swagger
- * /api/booths:
+ * /api/districts:
+ *   get:
+ *     summary: Get all districts
+ *     tags: [Districts]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Filter by division ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by district name
+ *     responses:
+ *       200:
+ *         description: List of districts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/District'
+ */
+router.get('/', getDistricts);
+
+/**
+ * @swagger
+ * /api/districts/division/{divisionId}:
+ *   get:
+ *     summary: Get districts by division
+ *     tags: [Districts]
+ *     parameters:
+ *       - in: path
+ *         name: divisionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of districts in the division
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/District'
+ */
+router.get('/division/:divisionId', getDistrictsByDivision);
+
+/**
+ * @swagger
+ * /api/districts/{id}:
+ *   get:
+ *     summary: Get single district
+ *     tags: [Districts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: District data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/District'
+ *       404:
+ *         description: District not found
+ */
+router.get('/:id', getDistrictById);
+
+/**
+ * @swagger
+ * /api/districts:
  *   post:
- *     summary: Create a new booth
- *     tags: [Booths]
+ *     summary: Create new district
+ *     tags: [Districts]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Booth'
+ *             $ref: '#/components/schemas/District'
  *     responses:
  *       201:
- *         description: Booth created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Booth'
+ *         description: District created successfully
  *       400:
- *         description: Bad request
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
  */
-router.post('/', boothController.createBooth);
+router.post('/', protect, authorize('admin'), createDistrict);
 
 /**
  * @swagger
- * /api/booths:
- *   get:
- *     summary: Get all booths
- *     tags: [Booths]
- *     responses:
- *       200:
- *         description: List of all booths
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Booth'
- */
-router.get('/', boothController.getAllBooths);
-
-/**
- * @swagger
- * /api/booths/assembly/{assemblyId}:
- *   get:
- *     summary: Get booths by assembly ID
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: assemblyId
- *         schema:
- *           type: string
- *         required: true
- *         description: Assembly ID
- *     responses:
- *       200:
- *         description: List of booths in the assembly
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Booth'
- *       404:
- *         description: No booths found for this assembly
- */
-// router.get('/assembly/:assemblyId', boothController.getBoothsByAssembly);
-
-/**
- * @swagger
- * /api/booths/{id}:
- *   get:
- *     summary: Get a booth by ID
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: Booth ID
- *     responses:
- *       200:
- *         description: Booth data
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Booth'
- *       404:
- *         description: Booth not found
- */
-// router.get('/:id', boothController.getBoothById);
-
-/**
- * @swagger
- * /api/booths/{id}:
+ * /api/districts/{id}:
  *   put:
- *     summary: Update a booth
- *     tags: [Booths]
+ *     summary: Update district
+ *     tags: [Districts]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: Booth ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Booth'
+ *             $ref: '#/components/schemas/District'
  *     responses:
  *       200:
- *         description: Updated booth data
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Booth'
+ *         description: District updated successfully
  *       400:
- *         description: Bad request
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
  *       404:
- *         description: Booth not found
+ *         description: District not found
  */
-// router.put('/:id', boothController.updateBooth);
+router.put('/:id', protect, authorize('admin'), updateDistrict);
 
 /**
  * @swagger
- * /api/booths/{id}:
+ * /api/districts/{id}:
  *   delete:
- *     summary: Delete a booth
- *     tags: [Booths]
+ *     summary: Delete district
+ *     tags: [Districts]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: Booth ID
  *     responses:
  *       200:
- *         description: Booth deleted successfully
+ *         description: District deleted
+ *       401:
+ *         description: Not authorized
  *       404:
- *         description: Booth not found
+ *         description: District not found
  */
-// router.delete('/:id', boothController.deleteBooth);
+router.delete('/:id', protect, authorize('admin'), deleteDistrict);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     District:
+ *       type: object
+ *       required:
+ *         - name
+ *         - division_id
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: District name
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament constituency
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
 
 module.exports = router;

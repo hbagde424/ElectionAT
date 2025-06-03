@@ -51,7 +51,7 @@ router.post('/', districtController.createDistrict);
  *               items:
  *                 $ref: '#/components/schemas/District'
  */
-router.get('/', districtController.getAllDistricts);
+router.get('/', districtController.getDistricts);
 
 /**
  * @swagger

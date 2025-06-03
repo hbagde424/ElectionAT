@@ -42,7 +42,7 @@ router.post('/', districtPolygenController.createDistrictPolygen);
  *     parameters:
  *       - in: query
  *         name: page
- *         schema:
+ *         schema: 
  *           type: integer
  *           default: 1
  *         description: Page number

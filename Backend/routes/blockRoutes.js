@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const blockController = require('../controllers/blockController');
+const { protect, authorize } = require('../middlewares/auth');
 
 /**
  * @swagger
@@ -170,7 +171,7 @@ const blockController = require('../controllers/blockController');
 router.post('/', blockController.createBlock);
 router.get('/', blockController.getAllBlocks);
 router.get('/assembly/:assemblyId', blockController.getBlocksByAssembly);
-router.get('/:id', blockController.getBlockById);
+router.get('/:id', protect, authorize, blockController.getBlockById);
 router.put('/:id', blockController.updateBlock);
 router.delete('/:id', blockController.deleteBlock);
 

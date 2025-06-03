@@ -2,21 +2,36 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const { generateToken } = require('../utils/jwt');
-const AssemblyMap = require('../models/AssemblyMap'); // Add this line
+const AssemblyMap = require('../models/AssemblyMap');
+
+// Toggle user active status
+exports.toggleUserStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.json({ message: `User is now ${user.isActive ? 'active' : 'deactive'}` });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, role, regionId, regionModel } = req.body;
+    const { email, password, role, regionIds, regionModel } = req.body;
 
     // Create user
     const user = await User.create({
       email,
       password,
       role,
-      regionId,
+      regionIds, // changed from regionId to regionIds
       regionModel,
     });
 
@@ -30,8 +45,9 @@ exports.register = async (req, res, next) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        regionId: user.regionId,
+        regionIds: user.regionIds, // changed from regionId to regionIds
         regionModel: user.regionModel,
+        isActive: user.isActive // added isActive field
       },
     });
   } catch (err) {
@@ -42,7 +58,6 @@ exports.register = async (req, res, next) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
-// Update your login function
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -58,6 +73,11 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({ success: false, message: 'User account is deactivated' });
+    }
+
     // Check if password matches
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -70,7 +90,7 @@ exports.login = async (req, res, next) => {
     // If user is assembly user, fetch the map data
     let assemblyMap = null;
     if (user.role === 'assembly') {
-      assemblyMap = await AssemblyMap.findOne({ assemblyId: user.regionId });
+      assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: user.regionIds } }); // updated to check in array
     }
 
     res.status(200).json({
@@ -80,8 +100,9 @@ exports.login = async (req, res, next) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        regionId: user.regionId,
+        regionIds: user.regionIds, // changed from regionId to regionIds
         regionModel: user.regionModel,
+        isActive: user.isActive // added isActive field
       },
       assemblyMap: assemblyMap || undefined
     });
@@ -99,12 +120,19 @@ exports.getMe = async (req, res, next) => {
     
     let assemblyMap = null;
     if (user.role === 'assembly') {
-      assemblyMap = await AssemblyMap.findOne({ assemblyId: user.regionId });
+      assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: user.regionIds } }); // updated to check in array
     }
 
     res.status(200).json({
       success: true,
-      user,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        regionIds: user.regionIds, // changed from regionId to regionIds
+        regionModel: user.regionModel,
+        isActive: user.isActive // added isActive field
+      },
       assemblyMap: assemblyMap || undefined
     });
   } catch (err) {

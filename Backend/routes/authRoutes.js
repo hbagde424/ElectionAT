@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login, getMe } = require('../controllers/authController');
+const { register, login, getMe, toggleUserStatus } = require('../controllers/authController');
 const { protect } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -36,12 +36,14 @@ const router = express.Router();
  *                 format: password
  *               role:
  *                 type: string
- *                 enum: ['master', 'division', 'parliament', 'district', 'assembly']
- *               regionId:
- *                 type: string
+ *                 enum: ['master', 'division', 'parliament', 'Block', 'assembly']
+ *               regionIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               regionModel:
  *                 type: string
- *                 enum: ['Division', 'Parliament', 'District', 'Assembly']
+ *                 enum: ['Division', 'Parliament', 'Block', 'Assembly']
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -95,5 +97,29 @@ router.post('/login', login);
  *         description: Unauthorized
  */
 router.get('/me', protect, getMe);
+
+/**
+ * @swagger
+ * /api/auth/toggle-status/{userId}:
+ *   put:
+ *     summary: Toggle user active status
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User status toggled successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.put('/toggle-status/:userId', protect, toggleUserStatus);
 
 module.exports = router;
