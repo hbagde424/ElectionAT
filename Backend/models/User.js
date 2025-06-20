@@ -13,38 +13,64 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['master', 'division', 'parliament', 'block', 'assembly'],
+    enum: ['SuperAdmin', 'Admin', 'Booth', 'Division', 'Parliament', 'Block', 'Assembly'],
     required: true,
   },
-  regionIds: [{  // Changed from regionId to regionIds (array)
+  accessLevel: {
+    type: String,
+    enum: ['editor', 'viewOnly'],
+    default: 'viewOnly',
+  },
+  regionIds: [{
     type: mongoose.Schema.Types.ObjectId,
     refPath: 'regionModel',
-    required: true
+    required: function () {
+      return this.role !== 'superAdmin'; // superAdmin may not need specific regions
+    }
   }],
   regionModel: {
     type: String,
-    enum: ['Division', 'Parliament', 'block', 'Assembly', 'master'],
-    required: true
-  },
+    enum: ['Division', 'Parliament', 'Block', 'Assembly', 'Booth'],
+    required: function () {
+      return this.role !== 'superAdmin';
+    }
+  }, 
   isActive: {
-    type: Boolean,
+    type: Boolean, 
     default: true,
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+  }
 });
 
-// ... (rest of the model remains the same)
-
-// Encrypt password before saving
+// Middleware: hash password before save
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
 });
 
-// Compare password
+// Middleware: update updatedAt before update
+UserSchema.pre('findOneAndUpdate', function (next) {
+  this.set({ updatedAt: new Date() });
+  next();
+});
+
+// Compare password method
 UserSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

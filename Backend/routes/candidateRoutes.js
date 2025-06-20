@@ -4,11 +4,12 @@ const {
   getCandidate,
   createCandidate,
   updateCandidate,
-  toggleCandidateStatus,
   deleteCandidate,
-  getCandidatesByassemblyAndYear
+  getCandidatesByAssembly,
+  getCandidatesByParty,
+  getCandidatesByCaste
 } = require('../controllers/candidateController');
-const { protect } = require('../middlewares/auth');
+const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -25,9 +26,46 @@ const router = express.Router();
  *   get:
  *     summary: Get all candidates
  *     tags: [Candidates]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for candidate names
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: party
+ *         schema:
+ *           type: string
+ *         description: Party ID to filter by
+ *       - in: query
+ *         name: caste
+ *         schema:
+ *           type: string
+ *           enum: [General, OBC, SC, ST, Other]
+ *         description: Caste to filter by
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Election year ID to filter by
  *     responses:
  *       200:
- *         description: List of all candidates
+ *         description: List of candidates
  *         content:
  *           application/json:
  *             schema:
@@ -36,6 +74,12 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
  *                   type: integer
  *                 data:
  *                   type: array
@@ -48,7 +92,7 @@ router.get('/', getCandidates);
  * @swagger
  * /api/candidates/{id}:
  *   get:
- *     summary: Get a single candidate
+ *     summary: Get single candidate
  *     tags: [Candidates]
  *     parameters:
  *       - in: path
@@ -72,7 +116,7 @@ router.get('/:id', getCandidate);
  * @swagger
  * /api/candidates:
  *   post:
- *     summary: Create a new candidate
+ *     summary: Create new candidate
  *     tags: [Candidates]
  *     security:
  *       - bearerAuth: []
@@ -87,14 +131,16 @@ router.get('/:id', getCandidate);
  *         description: Candidate created successfully
  *       400:
  *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
  */
-router.post('/', createCandidate);
+router.post('/', protect, authorize('admin'), createCandidate);
 
 /**
  * @swagger
  * /api/candidates/{id}:
  *   put:
- *     summary: Update a candidate
+ *     summary: Update candidate
  *     tags: [Candidates]
  *     security:
  *       - bearerAuth: []
@@ -115,38 +161,18 @@ router.post('/', createCandidate);
  *         description: Candidate updated successfully
  *       400:
  *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, updateCandidate);
-
-/**
- * @swagger
- * /api/candidates/toggle-status/{id}:
- *   put:
- *     summary: Toggle candidate active status
- *     tags: [Candidates]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Candidate status updated
- *       404:
- *         description: Candidate not found
- */
-router.put('/toggle-status/:id', protect, toggleCandidateStatus);
+router.put('/:id', protect, authorize('admin'), updateCandidate);
 
 /**
  * @swagger
  * /api/candidates/{id}:
  *   delete:
- *     summary: Delete a candidate
+ *     summary: Delete candidate
  *     tags: [Candidates]
  *     security:
  *       - bearerAuth: []
@@ -159,16 +185,18 @@ router.put('/toggle-status/:id', protect, toggleCandidateStatus);
  *     responses:
  *       200:
  *         description: Candidate deleted
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: Candidate not found
  */
-router.delete('/:id', protect, deleteCandidate);
+router.delete('/:id', protect, authorize('admin'), deleteCandidate);
 
 /**
  * @swagger
- * /api/candidates/assembly/{assemblyId}/year/{yearId}:
+ * /api/candidates/assembly/{assemblyId}:
  *   get:
- *     summary: Get candidates by assembly and year
+ *     summary: Get candidates by assembly
  *     tags: [Candidates]
  *     parameters:
  *       - in: path
@@ -176,14 +204,91 @@ router.delete('/:id', protect, deleteCandidate);
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Election year ID to filter by
+ *     responses:
+ *       200:
+ *         description: List of candidates for the assembly
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Candidate'
+ *       404:
+ *         description: Assembly not found
+ */
+router.get('/assembly/:assemblyId', getCandidatesByAssembly);
+
+/**
+ * @swagger
+ * /api/candidates/party/{partyId}:
+ *   get:
+ *     summary: Get candidates by party
+ *     tags: [Candidates]
+ *     parameters:
  *       - in: path
- *         name: yearId
+ *         name: partyId
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Election year ID to filter by
  *     responses:
  *       200:
- *         description: List of candidates
+ *         description: List of candidates for the party
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Candidate'
+ *       404:
+ *         description: Party not found
+ */
+router.get('/party/:partyId', getCandidatesByParty);
+
+/**
+ * @swagger
+ * /api/candidates/caste/{caste}:
+ *   get:
+ *     summary: Get candidates by caste
+ *     tags: [Candidates]
+ *     parameters:
+ *       - in: path
+ *         name: caste
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [General, OBC, SC, ST, Other]
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Election year ID to filter by
+ *     responses:
+ *       200:
+ *         description: List of candidates by caste
  *         content:
  *           application/json:
  *             schema:
@@ -198,7 +303,7 @@ router.delete('/:id', protect, deleteCandidate);
  *                   items:
  *                     $ref: '#/components/schemas/Candidate'
  */
-router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByassemblyAndYear);
+router.get('/caste/:caste', getCandidatesByCaste);
 
 /**
  * @swagger
@@ -212,47 +317,62 @@ router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByassemblyAndYear)
  *         - assembly
  *         - assemblyModel
  *         - election_year
+ *         - caste
  *       properties:
  *         name:
  *           type: string
  *           description: Candidate's full name
+ *           example: "John Doe"
  *         party:
  *           type: string
  *           description: Reference to Party
+ *           example: "507f1f77bcf86cd799439011"
  *         assembly:
  *           type: string
- *           description: Reference to assembly
+ *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439012"
  *         assemblyModel:
  *           type: string
- *           enum: ['Division', 'Parliament', 'Block', 'Assembly']
+ *           enum: [Division, Parliament, Block, Assembly]
  *           description: Type of assembly
+ *           example: "Assembly"
  *         election_year:
  *           type: string
- *           description: Reference to Year
+ *           description: Reference to Election Year
+ *           example: "507f1f77bcf86cd799439013"
+ *         caste:
+ *           type: string
+ *           enum: [General, OBC, SC, ST, Other]
+ *           description: Caste category
+ *           example: "OBC"
  *         votes:
  *           type: integer
  *           description: Number of votes received
- *           default: 0
+ *           example: 15000
  *         criminal_cases:
  *           type: integer
  *           description: Number of criminal cases
- *           default: 0
+ *           example: 2
  *         assets:
  *           type: string
- *           description: Details of assets
+ *           description: Declared assets
+ *           example: "₹5 crore"
  *         liabilities:
  *           type: string
- *           description: Details of liabilities
+ *           description: Declared liabilities
+ *           example: "₹50 lakh"
  *         education:
  *           type: string
- *           description: Educational qualifications
+ *           description: Educational qualification
+ *           example: "Post Graduate"
  *         photo:
  *           type: string
  *           description: URL to candidate's photo
+ *           example: "https://example.com/photos/john-doe.jpg"
  *         is_active:
  *           type: boolean
- *           description: Active status
- *           default: true
+ *           description: Whether the candidate is active
+ *           example: true
  *         created_at:
  *           type: string
  *           format: date-time
@@ -261,19 +381,6 @@ router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByassemblyAndYear)
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *       example:
- *         name: "John Doe"
- *         party: "507f1f77bcf86cd799439011"
- *         assembly: "607f1f77bcf86cd799439012"
- *         assemblyModel: "Assembly"
- *         election_year: "607f1f77bcf86cd799439013"
- *         votes: 15000
- *         criminal_cases: 2
- *         assets: "House, Car, Land"
- *         liabilities: "Bank loan"
- *         education: "MBA"
- *         photo: "https://example.com/photo.jpg"
- *         is_active: true
  *   securitySchemes:
  *     bearerAuth:
  *       type: http

@@ -1,158 +1,245 @@
-const BoothDemographics = require('../models/BoothDemographics');
+const BoothDemographics = require('../models/boothDemographics');
+const Booth = require('../models/booth');
+const Assembly = require('../models/assembly');
+const Parliament = require('../models/parliament');
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     BoothDemographics:
- *       type: object
- *       properties:
- *         _id:
- *           type: string
- *           example: "6823469b436f44ab6db31552"
- *         booth_id:
- *           type: string
- *           example: "6823469b436f44ab6db31550"
- *         total_population:
- *           type: number
- *           example: 1200
- *         total_electors:
- *           type: number
- *           example: 850
- *         male_electors:
- *           type: number
- *           example: 450
- *         female_electors:
- *           type: number
- *           example: 400
- *         other_electors:
- *           type: number
- *           example: 0
- *         age_18_25:
- *           type: number
- *           example: 200
- *         age_26_40:
- *           type: number
- *           example: 300
- *         age_41_60:
- *           type: number
- *           example: 250
- *         age_60_above:
- *           type: number
- *           example: 100
- *         sc_percent:
- *           type: number
- *           example: 20.5
- *         st_percent:
- *           type: number
- *           example: 5
- *         obc_percent:
- *           type: number
- *           example: 35
- *         general_percent:
- *           type: number
- *           example: 39.5
- *         literacy_rate:
- *           type: number
- *           example: 75.3
- *         religious_composition:
- *           type: object
- *           example: {"Hindu": 70, "Muslim": 25, "Others": 5}
- *         created_at:
- *           type: string
- *           format: date-time
- *         updated_at:
- *           type: string
- *           format: date-time
- *       example:
- *         _id: "6823469b436f44ab6db31552"
- *         booth_id: "6823469b436f44ab6db31550"
- *         total_population: 1200
- *         total_electors: 850
- *         male_electors: 450
- *         female_electors: 400
- *         other_electors: 0
- *         age_18_25: 200
- *         age_26_40: 300
- *         age_41_60: 250
- *         age_60_above: 100
- *         sc_percent: 20.5
- *         st_percent: 5
- *         obc_percent: 35
- *         general_percent: 39.5
- *         literacy_rate: 75.3
- *         religious_composition: {"Hindu": 70, "Muslim": 25, "Others": 5}
- *         created_at: "2025-05-13T18:48:19.446Z"
- *         updated_at: "2025-05-13T18:48:19.446Z"
- */
-
-exports.getAllBoothDemographics = async (req, res) => {
+// @desc    Get all booth demographics
+// @route   GET /api/booth-demographics
+// @access  Public
+exports.getBoothDemographics = async (req, res, next) => {
   try {
-    const demographics = await BoothDemographics.find().populate('booth_id');
-    res.json(demographics);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-exports.getBoothDemographicsById = async (req, res) => {
-  try {
-    const demographic = await BoothDemographics.findById(req.params.id).populate('booth_id');
-    if (!demographic) {
-      return res.status(404).json({ error: 'Booth demographics not found' });
+    // Build query
+    let query = BoothDemographics.find()
+      .populate('booth_id', 'booth_number name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('block_id', 'name');
+
+    // Filter by assembly
+    if (req.query.assembly) {
+      query = query.where('assembly_id').equals(req.query.assembly);
     }
-    res.json(demographic);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
-exports.getBoothDemographicsByBoothId = async (req, res) => {
-  try {
-    const demographic = await BoothDemographics.findOne({ booth_id: req.params.boothId }).populate('booth_id');
-    if (!demographic) {
-      return res.status(404).json({ error: 'Booth demographics not found for this booth' });
+    // Filter by parliament
+    if (req.query.parliament) {
+      query = query.where('parliament_id').equals(req.query.parliament);
     }
-    res.json(demographic);
+
+    const demographics = await query.skip(skip).limit(limit).exec();
+    const total = await BoothDemographics.countDocuments(query.getFilter());
+
+    res.status(200).json({
+      success: true,
+      count: demographics.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      data: demographics
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-exports.createBoothDemographics = async (req, res) => {
+// @desc    Get demographics by booth
+// @route   GET /api/booth-demographics/booth/:boothId
+// @access  Public
+exports.getDemographicsByBooth = async (req, res, next) => {
   try {
-    const newDemographics = new BoothDemographics(req.body);
-    const savedDemographics = await newDemographics.save();
-    res.status(201).json(savedDemographics);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-exports.updateBoothDemographics = async (req, res) => {
-  try {
-    const updatedDemographics = await BoothDemographics.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updatedDemographics) {
-      return res.status(404).json({ error: 'Booth demographics not found' });
+    // Verify booth exists
+    const booth = await Booth.findById(req.params.boothId);
+    if (!booth) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booth not found'
+      });
     }
-    res.json(updatedDemographics); 
+
+    const demographics = await BoothDemographics.findOne({ booth_id: req.params.boothId })
+      .populate('booth_id', 'booth_number name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('block_id', 'name');
+
+    if (!demographics) {
+      return res.status(404).json({
+        success: false,
+        message: 'Demographics data not found for this booth'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: demographics
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 };
 
-exports.deleteBoothDemographics = async (req, res) => {
+// @desc    Get demographics by assembly
+// @route   GET /api/booth-demographics/assembly/:assemblyId
+// @access  Public
+exports.getDemographicsByAssembly = async (req, res, next) => {
   try {
-    const deletedDemographics = await BoothDemographics.findByIdAndDelete(req.params.id);
-    if (!deletedDemographics) {
-      return res.status(404).json({ error: 'Booth demographics not found' });
+    // Verify assembly exists
+    const assembly = await Assembly.findById(req.params.assemblyId);
+    if (!assembly) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assembly not found'
+      });
     }
-    res.json({ message: 'Booth demographics deleted successfully' });
+
+    const demographics = await BoothDemographics.find({ assembly_id: req.params.assemblyId })
+      .populate('booth_id', 'booth_number name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('block_id', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: demographics.length,
+      data: demographics
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
+  }
+};
+
+// @desc    Get demographics by parliament
+// @route   GET /api/booth-demographics/parliament/:parliamentId
+// @access  Public
+exports.getDemographicsByParliament = async (req, res, next) => {
+  try {
+    // Verify parliament exists
+    const parliament = await Parliament.findById(req.params.parliamentId);
+    if (!parliament) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parliament not found'
+      });
+    }
+
+    const demographics = await BoothDemographics.find({ parliament_id: req.params.parliamentId })
+      .populate('booth_id', 'booth_number name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('block_id', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: demographics.length,
+      data: demographics
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Create booth demographics
+// @route   POST /api/booth-demographics
+// @access  Private (Admin only)
+exports.createBoothDemographics = async (req, res, next) => {
+  try {
+    // Verify booth exists
+    const booth = await Booth.findById(req.body.booth_id);
+    if (!booth) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booth not found'
+      });
+    }
+
+    // Check if demographics already exists for this booth
+    const existingDemographics = await BoothDemographics.findOne({ booth_id: req.body.booth_id });
+    if (existingDemographics) {
+      return res.status(400).json({
+        success: false,
+        message: 'Demographics already exists for this booth'
+      });
+    }
+
+    const demographics = await BoothDemographics.create(req.body);
+
+    res.status(201).json({
+      success: true,
+      data: demographics
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update booth demographics
+// @route   PUT /api/booth-demographics/:id
+// @access  Private (Admin only)
+exports.updateBoothDemographics = async (req, res, next) => {
+  try {
+    let demographics = await BoothDemographics.findById(req.params.id);
+
+    if (!demographics) {
+      return res.status(404).json({
+        success: false,
+        message: 'Demographics not found'
+      });
+    }
+
+    // Verify booth exists if being updated
+    if (req.body.booth_id) {
+      const booth = await Booth.findById(req.body.booth_id);
+      if (!booth) {
+        return res.status(400).json({
+          success: false,
+          message: 'Booth not found'
+        });
+      }
+    }
+
+    demographics = await BoothDemographics.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    })
+      .populate('booth_id', 'booth_number name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('block_id', 'name');
+
+    res.status(200).json({
+      success: true,
+      data: demographics
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Delete booth demographics
+// @route   DELETE /api/booth-demographics/:id
+// @access  Private (Admin only)
+exports.deleteBoothDemographics = async (req, res, next) => {
+  try {
+    const demographics = await BoothDemographics.findById(req.params.id);
+
+    if (!demographics) {
+      return res.status(404).json({
+        success: false,
+        message: 'Demographics not found'
+      });
+    }
+
+    await demographics.remove();
+
+    res.status(200).json({
+      success: true,
+      data: {}
+    });
+  } catch (err) {
+    next(err);
   }
 };

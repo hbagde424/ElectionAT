@@ -7,6 +7,9 @@ const {
   deleteVolunteer,
   getVolunteersByBooth,
   getVolunteersByParty,
+  getVolunteersByAssembly,
+  getVolunteersByParliament,
+  getVolunteersByBlock,
   getVolunteersByActivityLevel
 } = require('../controllers/boothVolunteersController');
 const { protect, authorize } = require('../middlewares/auth');
@@ -17,7 +20,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Booth Volunteers
- *   description: Party volunteers management at booth level
+ *   description: Party volunteers management at booth level with geographic hierarchy
  */
 
 /**
@@ -48,6 +51,21 @@ const router = express.Router();
  *           type: string
  *         description: Filter by party ID
  *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Filter by assembly constituency ID
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Filter by parliamentary constituency ID
+ *       - in: query
+ *         name: block
+ *         schema:
+ *           type: string
+ *         description: Filter by block ID
+ *       - in: query
  *         name: activity
  *         schema:
  *           type: string
@@ -60,7 +78,7 @@ const router = express.Router();
  *         description: Search by volunteer name
  *     responses:
  *       200:
- *         description: List of booth volunteers
+ *         description: List of booth volunteers with geographic hierarchy
  *         content:
  *           application/json:
  *             schema:
@@ -87,7 +105,7 @@ router.get('/', getVolunteers);
  * @swagger
  * /api/booth-volunteers/{id}:
  *   get:
- *     summary: Get single volunteer record
+ *     summary: Get single volunteer record with geographic hierarchy
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -97,7 +115,7 @@ router.get('/', getVolunteers);
  *           type: string
  *     responses:
  *       200:
- *         description: Volunteer data
+ *         description: Volunteer data with geographic references
  *         content:
  *           application/json:
  *             schema:
@@ -111,7 +129,7 @@ router.get('/:id', getVolunteerById);
  * @swagger
  * /api/booth-volunteers:
  *   post:
- *     summary: Create new volunteer record
+ *     summary: Create new volunteer record with automatic geographic hierarchy
  *     tags: [Booth Volunteers]
  *     security:
  *       - bearerAuth: []
@@ -123,19 +141,20 @@ router.get('/:id', getVolunteerById);
  *             $ref: '#/components/schemas/BoothVolunteer'
  *     responses:
  *       201:
- *         description: Volunteer created successfully
+ *         description: Volunteer created with geographic hierarchy
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'editor'), createVolunteer);
+router.post('/',  createVolunteer);
+// router.post('/', protect, authorize('admin', 'editor'), createVolunteer);
 
 /**
  * @swagger
  * /api/booth-volunteers/{id}:
  *   put:
- *     summary: Update volunteer record
+ *     summary: Update volunteer record (geographic hierarchy maintained)
  *     tags: [Booth Volunteers]
  *     security:
  *       - bearerAuth: []
@@ -191,7 +210,7 @@ router.delete('/:id', protect, authorize('admin'), deleteVolunteer);
  * @swagger
  * /api/booth-volunteers/booth/{boothId}:
  *   get:
- *     summary: Get volunteers by booth ID
+ *     summary: Get volunteers by booth ID with geographic hierarchy
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -201,7 +220,7 @@ router.delete('/:id', protect, authorize('admin'), deleteVolunteer);
  *           type: string
  *     responses:
  *       200:
- *         description: List of volunteers for the booth
+ *         description: List of volunteers for the booth with geographic references
  *         content:
  *           application/json:
  *             schema:
@@ -224,7 +243,7 @@ router.get('/booth/:boothId', getVolunteersByBooth);
  * @swagger
  * /api/booth-volunteers/party/{partyId}:
  *   get:
- *     summary: Get volunteers by party ID
+ *     summary: Get volunteers by party ID with geographic hierarchy
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -234,7 +253,7 @@ router.get('/booth/:boothId', getVolunteersByBooth);
  *           type: string
  *     responses:
  *       200:
- *         description: List of volunteers for the party
+ *         description: List of volunteers for the party with geographic references
  *         content:
  *           application/json:
  *             schema:
@@ -255,9 +274,108 @@ router.get('/party/:partyId', getVolunteersByParty);
 
 /**
  * @swagger
+ * /api/booth-volunteers/assembly/{assemblyId}:
+ *   get:
+ *     summary: Get volunteers by assembly constituency ID
+ *     tags: [Booth Volunteers]
+ *     parameters:
+ *       - in: path
+ *         name: assemblyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of volunteers for the assembly constituency
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothVolunteer'
+ *       404:
+ *         description: Assembly constituency not found
+ */
+router.get('/assembly/:assemblyId', getVolunteersByAssembly);
+
+/**
+ * @swagger
+ * /api/booth-volunteers/parliament/{parliamentId}:
+ *   get:
+ *     summary: Get volunteers by parliamentary constituency ID
+ *     tags: [Booth Volunteers]
+ *     parameters:
+ *       - in: path
+ *         name: parliamentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of volunteers for the parliamentary constituency
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothVolunteer'
+ *       404:
+ *         description: Parliamentary constituency not found
+ */
+router.get('/parliament/:parliamentId', getVolunteersByParliament);
+
+/**
+ * @swagger
+ * /api/booth-volunteers/block/{blockId}:
+ *   get:
+ *     summary: Get volunteers by block ID
+ *     tags: [Booth Volunteers]
+ *     parameters:
+ *       - in: path
+ *         name: blockId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of volunteers for the block
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothVolunteer'
+ *       404:
+ *         description: Block not found
+ */
+router.get('/block/:blockId', getVolunteersByBlock);
+
+/**
+ * @swagger
  * /api/booth-volunteers/activity/{activityLevel}:
  *   get:
- *     summary: Get volunteers by activity level
+ *     summary: Get volunteers by activity level with geographic hierarchy
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -294,6 +412,9 @@ router.get('/activity/:activityLevel', getVolunteersByActivityLevel);
  *       required:
  *         - booth_id
  *         - party_id
+ *         - assembly_id
+ *         - parliament_id
+ *         - block_id
  *         - name
  *         - phone
  *       properties:
@@ -305,6 +426,18 @@ router.get('/activity/:activityLevel', getVolunteersByActivityLevel);
  *           type: string
  *           description: Reference to Party
  *           example: "507f1f77bcf86cd799439012"
+ *         assembly_id:
+ *           type: string
+ *           description: Reference to Assembly Constituency
+ *           example: "507f1f77bcf86cd799439013"
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliamentary Constituency
+ *           example: "507f1f77bcf86cd799439014"
+ *         block_id:
+ *           type: string
+ *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439015"
  *         name:
  *           type: string
  *           description: Volunteer's full name

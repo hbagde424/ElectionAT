@@ -18,7 +18,7 @@ const boothSurveySchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'],
+    enum: ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'], 
     default: 'Pending'
   },
   remark: {
@@ -33,13 +33,14 @@ const boothSurveySchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+}); 
 
 // Update timestamp before saving
 boothSurveySchema.pre('save', function(next) {
   this.updated_at = Date.now();
   next();
 });
+
 
 // Indexes for faster queries
 boothSurveySchema.index({ booth_id: 1 });

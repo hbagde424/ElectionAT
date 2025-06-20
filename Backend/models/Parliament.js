@@ -11,6 +11,11 @@ const parliamentSchema = new mongoose.Schema({
     ref: 'Division',
     required: true
   },
+  election_year_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ElectionYear',
+    required: false // Change to true if this field is mandatory
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -21,7 +26,7 @@ const parliamentSchema = new mongoose.Schema({
   }
 });
 
-parliamentSchema.pre('save', function(next) {
+parliamentSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });

@@ -21,7 +21,7 @@ const partyActivitySchema = new mongoose.Schema({
       message: 'Invalid activity type'
     },
     required: [true, 'Activity type is required']
-  },
+  }, 
   title: {
     type: String,
     required: [true, 'Title is required'],
@@ -55,7 +55,7 @@ const partyActivitySchema = new mongoose.Schema({
   },
   media_coverage: {
     type: Boolean,
-    default: false
+    default: false 
   },
   created_at: {
     type: Date,
@@ -73,4 +73,4 @@ partyActivitySchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('PartyActivity', partyActivitySchema);
+module.exports = mongoose.model('PartyActivity', partyActivitySchema);  
