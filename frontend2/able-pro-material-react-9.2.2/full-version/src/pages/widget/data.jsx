@@ -38,12 +38,42 @@ import LatestOrder from 'sections/widget/data/LatestOrder';
 
 import IncomingRequests from 'sections/widget/data/IncomingRequests';
 import TotalRevenue from 'sections/widget/data/TotalRevenue';
+import WelcomeBanner from 'sections/dashboard/default/intro';
+// map
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import ChangeTheme from 'sections/maps/change-theme';
+import MainCard from 'components/MainCard';
+
+
+const mapConfiguration = {
+  mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
+  minZoom: 1
+};
+const MAPBOX_THEMES = {
+  light: 'mapbox://styles/mapbox/light-v10',
+  dark: 'mapbox://styles/mapbox/dark-v10',
+  streets: 'mapbox://styles/mapbox/streets-v11',
+  outdoors: 'mapbox://styles/mapbox/outdoors-v11',
+  satellite: 'mapbox://styles/mapbox/satellite-v9',
+  satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+};
+
 
 // ===========================|| WIDGET - DATA ||=========================== //
 
 export default function WidgetData() {
   return (
     <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <WelcomeBanner />
+      </Grid>
+      <Grid item xs={12}>
+        <MainCard title="Theme Variants">
+          <MapContainerStyled>
+            <ChangeTheme {...mapConfiguration} themes={MAPBOX_THEMES} />
+          </MapContainerStyled>
+        </MainCard>
+      </Grid>
       {/* row 1 */}
       <Grid item xs={12} md={6} lg={4}>
         <MyTask />

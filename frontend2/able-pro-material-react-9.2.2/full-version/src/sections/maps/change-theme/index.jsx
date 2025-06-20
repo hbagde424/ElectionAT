@@ -11,7 +11,7 @@ import MapControl from 'components/third-party/map/MapControl';
 // ==============================|| MAPBOX - THEME ||============================== //
 
 function ChangeTheme({ themes, ...other }) {
-  const [selectTheme, setSelectTheme] = useState('streets');
+  const [selectTheme, setSelectTheme] = useState('satellite');
   const handleChangeTheme = useCallback((value) => setSelectTheme(value), []);
 
   return (

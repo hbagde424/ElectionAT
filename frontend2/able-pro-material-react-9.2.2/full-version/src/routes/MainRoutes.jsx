@@ -128,6 +128,7 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 
 // render - sample page
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
+const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const Landing = Loadable(lazy(() => import('pages/landing')));
 const ContactUS = Loadable(lazy(() => import('pages/contact-us')));
 const PricingPage = Loadable(lazy(() => import('pages/extra-pages/price/price1')));
@@ -511,6 +512,11 @@ const MainRoutes = {
         {
           path: 'sample-page',
           element: <SamplePage />
+        },
+        ,
+        {
+          path: 'sample-try',
+          element: <SampleTry />
         },
         {
           path: 'price',
