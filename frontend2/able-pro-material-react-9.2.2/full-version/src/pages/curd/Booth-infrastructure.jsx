@@ -266,6 +266,11 @@ export default function CustomerListPage() {
         cell: ({ getValue }) => <PatternFormat displayType="text" format="+1 (###) ###-####" mask="_" defaultValue={getValue()} />
       },
       {
+        header: 'Contact',
+        accessorKey: 'contact',
+        cell: ({ getValue }) => <PatternFormat displayType="text" format="+1 (###) ###-####" mask="_" defaultValue={getValue()} />
+      },
+      {
         header: 'Age',
         accessorKey: 'age',
         meta: {
