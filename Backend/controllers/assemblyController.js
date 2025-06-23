@@ -1,4 +1,5 @@
 const Assembly = require('../models/assembly');
+const State = require('../models/state');
 const District = require('../models/district');
 const Division = require('../models/division');
 const Parliament = require('../models/parliament');
@@ -14,15 +15,32 @@ exports.getAssemblies = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Basic query
-    let query = Assembly.find({ is_active: true })
+    let query = Assembly.find()
+      .populate('state_id', 'name')
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
+      .populate('created_by', 'name')
       .sort({ name: 1 });
 
     // Search functionality
     if (req.query.search) {
       query = query.find({ $text: { $search: req.query.search } });
+    }
+
+    // Filter by type
+    if (req.query.type) {
+      query = query.where('type').equals(req.query.type);
+    }
+
+    // Filter by category
+    if (req.query.category) {
+      query = query.where('category').equals(req.query.category);
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('state_id').equals(req.query.state);
     }
 
     // Filter by district
@@ -38,16 +56,6 @@ exports.getAssemblies = async (req, res, next) => {
     // Filter by parliament
     if (req.query.parliament) {
       query = query.where('parliament_id').equals(req.query.parliament);
-    }
-
-    // Filter by type
-    if (req.query.type) {
-      query = query.where('type').equals(req.query.type);
-    }
-
-    // Filter by category
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
     }
 
     const assemblies = await query.skip(skip).limit(limit).exec();
@@ -72,11 +80,13 @@ exports.getAssemblies = async (req, res, next) => {
 exports.getAssembly = async (req, res, next) => {
   try {
     const assembly = await Assembly.findById(req.params.id)
+      .populate('state_id', 'name')
       .populate('district_id', 'name')
       .populate('division_id', 'name')
-      .populate('parliament_id', 'name');
+      .populate('parliament_id', 'name')
+      .populate('created_by', 'name');
 
-    if (!assembly || !assembly.is_active) {
+    if (!assembly) {
       return res.status(404).json({
         success: false,
         message: 'Assembly not found'
@@ -97,6 +107,15 @@ exports.getAssembly = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createAssembly = async (req, res, next) => {
   try {
+    // Verify state exists
+    const state = await State.findById(req.body.state_id);
+    if (!state) {
+      return res.status(400).json({
+        success: false,
+        message: 'State not found'
+      });
+    }
+
     // Verify district exists
     const district = await District.findById(req.body.district_id);
     if (!district) {
@@ -124,22 +143,32 @@ exports.createAssembly = async (req, res, next) => {
       });
     }
 
-    // Check for duplicate assembly name
-    const existingAssembly = await Assembly.findOne({ name: req.body.name });
-    if (existingAssembly) {
-      return res.status(400).json({
+    // Check if user exists in request
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Assembly with this name already exists'
+        message: 'Not authorized - user not identified'
       });
     }
 
-    const assembly = await Assembly.create(req.body);
+    const assemblyData = {
+      ...req.body,
+      created_by: req.user.id
+    };
+
+    const assembly = await Assembly.create(assemblyData);
 
     res.status(201).json({
       success: true,
       data: assembly
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assembly with this name already exists'
+      });
+    }
     next(err);
   }
 };
@@ -151,11 +180,22 @@ exports.updateAssembly = async (req, res, next) => {
   try {
     let assembly = await Assembly.findById(req.params.id);
 
-    if (!assembly || !assembly.is_active) {
+    if (!assembly) {
       return res.status(404).json({
         success: false,
         message: 'Assembly not found'
       });
+    }
+
+    // Verify state exists if being updated
+    if (req.body.state_id) {
+      const state = await State.findById(req.body.state_id);
+      if (!state) {
+        return res.status(400).json({
+          success: false,
+          message: 'State not found'
+        });
+      }
     }
 
     // Verify district exists if being updated
@@ -191,21 +231,11 @@ exports.updateAssembly = async (req, res, next) => {
       }
     }
 
-    // Check for duplicate assembly name if being updated
-    if (req.body.name && req.body.name !== assembly.name) {
-      const existingAssembly = await Assembly.findOne({ name: req.body.name });
-      if (existingAssembly) {
-        return res.status(400).json({
-          success: false,
-          message: 'Assembly with this name already exists'
-        });
-      }
-    }
-
     assembly = await Assembly.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     })
+      .populate('state_id', 'name')
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name');
@@ -215,6 +245,12 @@ exports.updateAssembly = async (req, res, next) => {
       data: assembly
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assembly with this name already exists'
+      });
+    }
     next(err);
   }
 };
@@ -226,16 +262,14 @@ exports.deleteAssembly = async (req, res, next) => {
   try {
     const assembly = await Assembly.findById(req.params.id);
 
-    if (!assembly || !assembly.is_active) {
+    if (!assembly) {
       return res.status(404).json({
         success: false,
         message: 'Assembly not found'
       });
     }
 
-    // Soft delete by setting is_active to false
-    assembly.is_active = false;
-    await assembly.save();
+    await assembly.remove();
 
     res.status(200).json({
       success: true,
@@ -246,39 +280,25 @@ exports.deleteAssembly = async (req, res, next) => {
   }
 };
 
-// @desc    Get assemblies by district
-// @route   GET /api/assemblies/district/:districtId
+// @desc    Get assemblies by parliament
+// @route   GET /api/assemblies/parliament/:parliamentId
 // @access  Public
-exports.getAssembliesByDistrict = async (req, res, next) => {
+exports.getAssembliesByParliament = async (req, res, next) => {
   try {
-    // Verify district exists
-    const district = await District.findById(req.params.districtId);
-    if (!district) {
+    // Verify parliament exists
+    const parliament = await Parliament.findById(req.params.parliamentId);
+    if (!parliament) {
       return res.status(404).json({
         success: false,
-        message: 'District not found'
+        message: 'Parliament not found'
       });
     }
 
-    let query = Assembly.find({ 
-      district_id: req.params.districtId,
-      is_active: true 
-    })
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .sort({ name: 1 });
-
-    // Filter by type if provided
-    if (req.query.type) {
-      query = query.where('type').equals(req.query.type);
-    }
-
-    // Filter by category if provided
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
-    }
-
-    const assemblies = await query.exec();
+    const assemblies = await Assembly.find({ parliament_id: req.params.parliamentId })
+      .sort({ name: 1 })
+      .populate('state_id', 'name')
+      .populate('district_id', 'name')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -304,147 +324,11 @@ exports.getAssembliesByDivision = async (req, res, next) => {
       });
     }
 
-    let query = Assembly.find({ 
-      division_id: req.params.divisionId,
-      is_active: true 
-    })
+    const assemblies = await Assembly.find({ division_id: req.params.divisionId })
+      .sort({ name: 1 })
+      .populate('state_id', 'name')
       .populate('district_id', 'name')
-      .populate('parliament_id', 'name')
-      .sort({ name: 1 });
-
-    // Filter by type if provided
-    if (req.query.type) {
-      query = query.where('type').equals(req.query.type);
-    }
-
-    // Filter by category if provided
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
-    }
-
-    const assemblies = await query.exec();
-
-    res.status(200).json({
-      success: true,
-      count: assemblies.length,
-      data: assemblies
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get assemblies by parliament
-// @route   GET /api/assemblies/parliament/:parliamentId
-// @access  Public
-exports.getAssembliesByParliament = async (req, res, next) => {
-  try {
-    // Verify parliament exists
-    const parliament = await Parliament.findById(req.params.parliamentId);
-    if (!parliament) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parliament not found'
-      });
-    }
-
-    let query = Assembly.find({ 
-      parliament_id: req.params.parliamentId,
-      is_active: true 
-    })
-      .populate('district_id', 'name')
-      .populate('division_id', 'name')
-      .sort({ name: 1 });
-
-    // Filter by type if provided
-    if (req.query.type) {
-      query = query.where('type').equals(req.query.type);
-    }
-
-    // Filter by category if provided
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
-    }
-
-    const assemblies = await query.exec();
-
-    res.status(200).json({
-      success: true,
-      count: assemblies.length,
-      data: assemblies
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get assemblies by type
-// @route   GET /api/assemblies/type/:type
-// @access  Public
-exports.getAssembliesByType = async (req, res, next) => {
-  try {
-    const validTypes = ['Urban', 'Rural', 'Mixed'];
-    if (!validTypes.includes(req.params.type)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid assembly type'
-      });
-    }
-
-    let query = Assembly.find({ 
-      type: req.params.type,
-      is_active: true 
-    })
-      .populate('district_id', 'name')
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .sort({ name: 1 });
-
-    // Filter by category if provided
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
-    }
-
-    const assemblies = await query.exec();
-
-    res.status(200).json({
-      success: true,
-      count: assemblies.length,
-      data: assemblies
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get assemblies by category
-// @route   GET /api/assemblies/category/:category
-// @access  Public
-exports.getAssembliesByCategory = async (req, res, next) => {
-  try {
-    const validCategories = ['General', 'Reserved', 'Special'];
-    if (!validCategories.includes(req.params.category)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid assembly category'
-      });
-    }
-
-    let query = Assembly.find({ 
-      category: req.params.category,
-      is_active: true 
-    })
-      .populate('district_id', 'name')
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .sort({ name: 1 });
-
-    // Filter by type if provided
-    if (req.query.type) {
-      query = query.where('type').equals(req.query.type);
-    }
-
-    const assemblies = await query.exec();
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,

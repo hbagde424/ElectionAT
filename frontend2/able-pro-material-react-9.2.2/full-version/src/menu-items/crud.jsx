@@ -36,7 +36,56 @@ const CURd = {
       type: 'item',
       url: '/Booth-infrastructure',
       icon: icons.CURd,
-    }
+    },
+    {
+      id: 'State',
+      title: <FormattedMessage id="state" />,
+      type: 'item',
+      url: '/state',
+      icon: icons.CURd,
+    },
+    {
+      id: 'division',
+      title: <FormattedMessage id="division" />,
+      type: 'item',
+      url: '/division',
+      icon: icons.CURd,
+    },
+    {
+      id: 'district',
+      title: <FormattedMessage id="district" />,
+      type: 'item',
+      url: '/district',
+      icon: icons.CURd,
+    },
+    {
+      id: 'assembly',
+      title: <FormattedMessage id="assembly" />,
+      type: 'item',
+      url: '/assembly',
+      icon: icons.CURd,
+    },
+    {
+      id: 'parliament',
+      title: <FormattedMessage id="parliament" />,
+      type: 'item',
+      url: '/parliament',
+      icon: icons.CURd,
+    },
+    {
+      id: 'block',
+      title: <FormattedMessage id="block" />,
+      type: 'item',
+      url: '/block',
+      icon: icons.CURd,
+    },
+    {
+      id: 'booth',
+      title: <FormattedMessage id="booth" />,
+      type: 'item',
+      url: '/booth',
+      icon: icons.CURd,
+    },
   ]
 };
 

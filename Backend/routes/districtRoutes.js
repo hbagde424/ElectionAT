@@ -1,6 +1,16 @@
 const express = require('express');
+const {
+  getDistricts,
+  getDistrict,
+  createDistrict,
+  updateDistrict,
+  deleteDistrict,
+  getDistrictsByState,
+  getDistrictsByDivision
+} = require('../controllers/districtController');
+const { protect, authorize } = require('../middlewares/auth');
+
 const router = express.Router();
-const districtController = require('../controllers/districtController');
 
 /**
  * @swagger
@@ -12,85 +22,82 @@ const districtController = require('../controllers/districtController');
 /**
  * @swagger
  * /api/districts:
- *   post:
- *     summary: Create a new district
- *     tags: [Districts]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/District'
- *     responses:
- *       201:
- *         description: District created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/District'
- *       400:
- *         description: Bad request
- *       404:
- *         description: Related entity (parliament or division) not found
- */
-router.post('/', districtController.createDistrict);
-
-/**
- * @swagger
- * /api/districts:
  *   get:
  *     summary: Get all districts
  *     tags: [Districts]
- *     responses:
- *       200:
- *         description: List of all districts
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/District'
- */
-router.get('/', districtController.getDistricts);
-
-/**
- * @swagger
- * /api/districts/division/{divisionId}:
- *   get:
- *     summary: Get districts by division ID
- *     tags: [Districts]
  *     parameters:
- *       - in: path
- *         name: divisionId
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: search
  *         schema:
  *           type: string
- *         required: true
- *         description: Division ID
+ *         description: Search term for district names
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
  *     responses:
  *       200:
- *         description: List of districts in the division
+ *         description: List of districts
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/District'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/District'
  */
-router.get('/division/:divisionId', districtController.getDistrictsByDivision);
+router.get('/', getDistricts);
 
 /**
  * @swagger
  * /api/districts/{id}:
  *   get:
- *     summary: Get a district by ID
+ *     summary: Get single district
  *     tags: [Districts]
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: District ID
  *     responses:
  *       200:
  *         description: District data
@@ -101,21 +108,46 @@ router.get('/division/:divisionId', districtController.getDistrictsByDivision);
  *       404:
  *         description: District not found
  */
-router.get('/:id', districtController.getDistrictById);
+router.get('/:id', getDistrict);
+
+/**
+ * @swagger
+ * /api/districts:
+ *   post:
+ *     summary: Create new district
+ *     tags: [Districts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/District'
+ *     responses:
+ *       201:
+ *         description: District created successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/', protect, authorize('admin'), createDistrict);
 
 /**
  * @swagger
  * /api/districts/{id}:
  *   put:
- *     summary: Update a district
+ *     summary: Update district
  *     tags: [Districts]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: District ID
  *     requestBody:
  *       required: true
  *       content:
@@ -124,37 +156,155 @@ router.get('/:id', districtController.getDistrictById);
  *             $ref: '#/components/schemas/District'
  *     responses:
  *       200:
- *         description: Updated district data
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/District'
+ *         description: District updated successfully
  *       400:
- *         description: Bad request
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: District not found
  */
-router.put('/:id', districtController.updateDistrict);
+router.put('/:id', protect, authorize('admin'), updateDistrict);
 
 /**
  * @swagger
  * /api/districts/{id}:
  *   delete:
- *     summary: Delete a district
+ *     summary: Delete district
  *     tags: [Districts]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: District ID
  *     responses:
  *       200:
- *         description: District deleted successfully
+ *         description: District deleted
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: District not found
  */
-router.delete('/:id', districtController.deleteDistrict);
+router.delete('/:id', protect, authorize('admin'), deleteDistrict);
+
+/**
+ * @swagger
+ * /api/districts/state/{stateId}:
+ *   get:
+ *     summary: Get districts by state
+ *     tags: [Districts]
+ *     parameters:
+ *       - in: path
+ *         name: stateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of districts for the state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/District'
+ *       404:
+ *         description: State not found
+ */
+router.get('/state/:stateId', getDistrictsByState);
+
+/**
+ * @swagger
+ * /api/districts/division/{divisionId}:
+ *   get:
+ *     summary: Get districts by division
+ *     tags: [Districts]
+ *     parameters:
+ *       - in: path
+ *         name: divisionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of districts for the division
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/District'
+ *       404:
+ *         description: Division not found
+ */
+router.get('/division/:divisionId', getDistrictsByDivision);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     District:
+ *       type: object
+ *       required:
+ *         - name
+ *         - state_id
+ *         - division_id
+ *         - created_by
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: District name
+ *           example: "Central District"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439011"
+ *         assembly_id:
+ *           type: string
+ *           description: Reference to Assembly (optional)
+ *           example: "507f1f77bcf86cd799439012"
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament (optional)
+ *           example: "507f1f77bcf86cd799439013"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439014"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Creation timestamp
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
 
 module.exports = router;

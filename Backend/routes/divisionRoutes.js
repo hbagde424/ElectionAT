@@ -15,7 +15,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Divisions
- *   description: Political divisions management
+ *   description: Division management
  */
 
 /**
@@ -36,20 +36,10 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Search term for division names
- *       - in: query
  *         name: state
  *         schema:
  *           type: string
  *         description: State ID to filter by
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
  *     responses:
  *       200:
  *         description: List of divisions
@@ -121,8 +111,9 @@ router.get('/:id', getDivision);
  *       401:
  *         description: Not authorized
  */
-router.post('/',  createDivision);
-// router.post('/', protect, authorize('admin'), createDivision);
+// router.post('/', createDivision);
+// router.post('/', protect, createDivision);
+router.post('/', protect, authorize('superAdmin'), createDivision);
 
 /**
  * @swagger
@@ -154,7 +145,7 @@ router.post('/',  createDivision);
  *       404:
  *         description: Division not found
  */
-router.put('/:id', protect, authorize('admin'), updateDivision);
+router.put('/:id', protect, authorize('superAdmin'), updateDivision);
 
 /**
  * @swagger
@@ -178,7 +169,7 @@ router.put('/:id', protect, authorize('admin'), updateDivision);
  *       404:
  *         description: Division not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteDivision);
+router.delete('/:id', protect, authorize('superAdmin'), deleteDivision);
 
 /**
  * @swagger
@@ -222,19 +213,20 @@ router.get('/state/:stateId', getDivisionsByState);
  *       required:
  *         - name
  *         - state_id
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
  *           description: Division name
- *           example: "North District"
+ *           example: "Northern Division"
  *         state_id:
  *           type: string
  *           description: Reference to State
  *           example: "507f1f77bcf86cd799439011"
- *         election_year_id:
+ *         created_by:
  *           type: string
- *           description: Reference to ElectionYear
- *           example: "607f1f77bcf86cd799439022"
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string
  *           format: date-time

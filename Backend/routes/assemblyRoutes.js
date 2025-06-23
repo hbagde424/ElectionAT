@@ -5,11 +5,8 @@ const {
   createAssembly,
   updateAssembly,
   deleteAssembly,
-  getAssembliesByDistrict,
-  getAssembliesByDivision,
   getAssembliesByParliament,
-  getAssembliesByType,
-  getAssembliesByCategory
+  getAssembliesByDivision
 } = require('../controllers/assemblyController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -19,7 +16,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Assemblies
- *   description: Assembly constituency management
+ *   description: Assembly management
  */
 
 /**
@@ -45,6 +42,23 @@ const router = express.Router();
  *           type: string
  *         description: Search term for assembly names
  *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [Urban, Rural, Mixed]
+ *         description: Filter by assembly type
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [General, Reserved, Special]
+ *         description: Filter by assembly category
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
  *         name: district
  *         schema:
  *           type: string
@@ -59,18 +73,6 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Parliament ID to filter by
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [Urban, Rural, Mixed]
- *         description: Type to filter by
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *           enum: [General, Reserved, Special]
- *         description: Category to filter by
  *     responses:
  *       200:
  *         description: List of assemblies
@@ -142,7 +144,7 @@ router.get('/:id', getAssembly);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createAssembly);
+router.post('/', protect, authorize('superAdmin'), createAssembly);
 
 /**
  * @swagger
@@ -174,7 +176,7 @@ router.post('/', protect, authorize('admin'), createAssembly);
  *       404:
  *         description: Assembly not found
  */
-router.put('/:id', protect, authorize('admin'), updateAssembly);
+router.put('/:id', protect, authorize('superAdmin'), updateAssembly);
 
 /**
  * @swagger
@@ -198,97 +200,7 @@ router.put('/:id', protect, authorize('admin'), updateAssembly);
  *       404:
  *         description: Assembly not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteAssembly);
-
-/**
- * @swagger
- * /api/assemblies/district/{districtId}:
- *   get:
- *     summary: Get assemblies by district
- *     tags: [Assemblies]
- *     parameters:
- *       - in: path
- *         name: districtId
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [Urban, Rural, Mixed]
- *         description: Type to filter by
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *           enum: [General, Reserved, Special]
- *         description: Category to filter by
- *     responses:
- *       200:
- *         description: List of assemblies in the district
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Assembly'
- *       404:
- *         description: District not found
- */
-router.get('/district/:districtId', getAssembliesByDistrict);
-
-/**
- * @swagger
- * /api/assemblies/division/{divisionId}:
- *   get:
- *     summary: Get assemblies by division
- *     tags: [Assemblies]
- *     parameters:
- *       - in: path
- *         name: divisionId
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [Urban, Rural, Mixed]
- *         description: Type to filter by
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *           enum: [General, Reserved, Special]
- *         description: Category to filter by
- *     responses:
- *       200:
- *         description: List of assemblies in the division
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Assembly'
- *       404:
- *         description: Division not found
- */
-router.get('/division/:divisionId', getAssembliesByDivision);
+router.delete('/:id', protect, authorize('superAdmin'), deleteAssembly);
 
 /**
  * @swagger
@@ -302,21 +214,9 @@ router.get('/division/:divisionId', getAssembliesByDivision);
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [Urban, Rural, Mixed]
- *         description: Type to filter by
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *           enum: [General, Reserved, Special]
- *         description: Category to filter by
  *     responses:
  *       200:
- *         description: List of assemblies in the parliament
+ *         description: List of assemblies for the parliament
  *         content:
  *           application/json:
  *             schema:
@@ -337,26 +237,19 @@ router.get('/parliament/:parliamentId', getAssembliesByParliament);
 
 /**
  * @swagger
- * /api/assemblies/type/{type}:
+ * /api/assemblies/division/{divisionId}:
  *   get:
- *     summary: Get assemblies by type
+ *     summary: Get assemblies by division
  *     tags: [Assemblies]
  *     parameters:
  *       - in: path
- *         name: type
+ *         name: divisionId
  *         required: true
  *         schema:
  *           type: string
- *           enum: [Urban, Rural, Mixed]
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *           enum: [General, Reserved, Special]
- *         description: Category to filter by
  *     responses:
  *       200:
- *         description: List of assemblies by type
+ *         description: List of assemblies for the division
  *         content:
  *           application/json:
  *             schema:
@@ -370,46 +263,10 @@ router.get('/parliament/:parliamentId', getAssembliesByParliament);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Assembly'
+ *       404:
+ *         description: Division not found
  */
-router.get('/type/:type', getAssembliesByType);
-
-/**
- * @swagger
- * /api/assemblies/category/{category}:
- *   get:
- *     summary: Get assemblies by category
- *     tags: [Assemblies]
- *     parameters:
- *       - in: path
- *         name: category
- *         required: true
- *         schema:
- *           type: string
- *           enum: [General, Reserved, Special]
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [Urban, Rural, Mixed]
- *         description: Type to filter by
- *     responses:
- *       200:
- *         description: List of assemblies by category
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Assembly'
- */
-router.get('/category/:category', getAssembliesByCategory);
+router.get('/division/:divisionId', getAssembliesByDivision);
 
 /**
  * @swagger
@@ -421,40 +278,46 @@ router.get('/category/:category', getAssembliesByCategory);
  *         - name
  *         - type
  *         - category
+ *         - state_id
  *         - district_id
  *         - division_id
  *         - parliament_id
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           description: Assembly constituency name
- *           example: "Lucknow West"
+ *           description: Assembly name
+ *           example: "42nd Assembly District"
  *         type:
  *           type: string
  *           enum: [Urban, Rural, Mixed]
- *           description: Type of assembly constituency
+ *           description: Type of assembly
  *           example: "Urban"
  *         category:
  *           type: string
  *           enum: [General, Reserved, Special]
- *           description: Category of assembly constituency
+ *           description: Category of assembly
  *           example: "General"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439011"
  *         district_id:
  *           type: string
  *           description: Reference to District
- *           example: "507f1f77bcf86cd799439011"
+ *           example: "507f1f77bcf86cd799439012"
  *         division_id:
  *           type: string
  *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439012"
+ *           example: "507f1f77bcf86cd799439013"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *           example: "507f1f77bcf86cd799439013"
- *         is_active:
- *           type: boolean
- *           description: Whether the assembly is active
- *           example: true
+ *           example: "507f1f77bcf86cd799439014"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string
  *           format: date-time

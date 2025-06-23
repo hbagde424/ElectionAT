@@ -11,10 +11,20 @@ const parliamentSchema = new mongoose.Schema({
     ref: 'Division',
     required: true
   },
-  election_year_id: {
+  state_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ElectionYear',
-    required: false // Change to true if this field is mandatory
+    ref: 'State',
+    required: true
+  },
+  assembly_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Assembly',
+    required: false // Make true if every parliament must map to one assembly
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // or 'Admin' depending on your auth model
+    required: true
   },
   created_at: {
     type: Date,

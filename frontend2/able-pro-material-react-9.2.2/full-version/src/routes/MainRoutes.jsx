@@ -131,6 +131,13 @@ const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')))
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
 const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
+const State = Loadable(lazy(() => import('pages/curd/state')));
+const Division = Loadable(lazy(() => import('pages/curd/division')));
+const District = Loadable(lazy(() => import('pages/curd/district')));
+const Assembly = Loadable(lazy(() => import('pages/curd/assembly')));
+const Parliament = Loadable(lazy(() => import('pages/curd/parliament')));
+const Block = Loadable(lazy(() => import('pages/curd/block')));
+const Booth = Loadable(lazy(() => import('pages/curd/booth')));
 const Landing = Loadable(lazy(() => import('pages/landing')));
 const ContactUS = Loadable(lazy(() => import('pages/contact-us')));
 const PricingPage = Loadable(lazy(() => import('pages/extra-pages/price/price1')));
@@ -527,6 +534,34 @@ const MainRoutes = {
         {
           path: 'Booth-infrastructure',
           element: <Boothinfrastracture />
+        },
+        {
+          path: 'state',
+          element: <State />
+        },
+        {
+          path: 'division',
+          element: <Division />
+        },
+        {
+          path: 'district',
+          element: <District />
+        },
+        {
+          path: 'assembly',
+          element: <Assembly />
+        },
+        {
+          path: 'parliament',
+          element: <Parliament />
+        },
+        {
+          path: 'block',
+          element: <Block />
+        },
+        {
+          path: 'booth',
+          element: <Booth />
         },
         {
           path: 'price',

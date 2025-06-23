@@ -117,7 +117,7 @@ export default function VolunteerListPage() {
 
   // Fetch volunteers from API
   useEffect(() => {
-    fetch('http://localhost:5000/api/booth-volunteers')
+    fetch('http://localhost:5000/api/states')
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -131,44 +131,9 @@ export default function VolunteerListPage() {
   const columns = useMemo(
     () => [
       {
-        header: 'Name',
+        header: 'name',
         accessorKey: 'name',
         cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
-      },
-      {
-        header: 'Role',
-        accessorKey: 'role',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Phone',
-        accessorKey: 'phone',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Email',
-        accessorKey: 'email',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Booth',
-        accessorKey: 'booth_id.name',
-        cell: ({ row }) => <Typography>{row.original.booth_id?.name}</Typography>
-      },
-      {
-        header: 'Party',
-        accessorKey: 'party_id.name',
-        cell: ({ row }) => <Typography>{row.original.party_id?.name}</Typography>
-      },
-      {
-        header: 'Area Responsibility',
-        accessorKey: 'area_responsibility',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Remarks',
-        accessorKey: 'remarks',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
       }
     ],
     []

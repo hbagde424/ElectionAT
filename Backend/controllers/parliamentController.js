@@ -1,7 +1,9 @@
 const Parliament = require('../models/parliament');
 const Division = require('../models/division');
+const State = require('../models/state');
+const Assembly = require('../models/assembly');
 
-// @desc    Get all parliamentary constituencies
+// @desc    Get all parliaments
 // @route   GET /api/parliaments
 // @access  Public
 exports.getParliaments = async (req, res, next) => {
@@ -13,7 +15,10 @@ exports.getParliaments = async (req, res, next) => {
 
     // Basic query
     let query = Parliament.find()
-      .populate('division_id', 'name code')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('created_by', 'name')
       .sort({ name: 1 });
 
     // Filter by division
@@ -21,9 +26,14 @@ exports.getParliaments = async (req, res, next) => {
       query = query.where('division_id').equals(req.query.division);
     }
 
-    // Search by name
-    if (req.query.search) {
-      query = query.where('name').regex(new RegExp(req.query.search, 'i'));
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('state_id').equals(req.query.state);
+    }
+
+    // Filter by assembly
+    if (req.query.assembly) {
+      query = query.where('assembly_id').equals(req.query.assembly);
     }
 
     const parliaments = await query.skip(skip).limit(limit).exec();
@@ -42,18 +52,21 @@ exports.getParliaments = async (req, res, next) => {
   }
 };
 
-// @desc    Get single parliamentary constituency
+// @desc    Get single parliament
 // @route   GET /api/parliaments/:id
 // @access  Public
-exports.getParliamentById = async (req, res, next) => {
+exports.getParliament = async (req, res, next) => {
   try {
     const parliament = await Parliament.findById(req.params.id)
-      .populate('division_id', 'name code');
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('created_by', 'name');
 
     if (!parliament) {
       return res.status(404).json({
         success: false,
-        message: 'Parliamentary constituency not found'
+        message: 'Parliament not found'
       });
     }
 
@@ -66,9 +79,9 @@ exports.getParliamentById = async (req, res, next) => {
   }
 };
 
-// @desc    Create new parliamentary constituency
+// @desc    Create parliament
 // @route   POST /api/parliaments
-// @access  Private (Admin)
+// @access  Private (Admin only)
 exports.createParliament = async (req, res, next) => {
   try {
     // Verify division exists
@@ -80,19 +93,40 @@ exports.createParliament = async (req, res, next) => {
       });
     }
 
-    // Check if parliament with same name already exists in this division
-    const existingParliament = await Parliament.findOne({
-      name: req.body.name,
-      division_id: req.body.division_id
-    });
-    if (existingParliament) {
+    // Verify state exists
+    const state = await State.findById(req.body.state_id);
+    if (!state) {
       return res.status(400).json({
         success: false,
-        message: 'Parliamentary constituency with this name already exists in the division'
+        message: 'State not found'
       });
     }
 
-    const parliament = await Parliament.create(req.body);
+    // Verify assembly exists if provided
+    if (req.body.assembly_id) {
+      const assembly = await Assembly.findById(req.body.assembly_id);
+      if (!assembly) {
+        return res.status(400).json({
+          success: false,
+          message: 'Assembly not found'
+        });
+      }
+    }
+
+    // Check if user exists in request
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized - user not identified'
+      });
+    }
+
+    const parliamentData = {
+      ...req.body,
+      created_by: req.user.id
+    };
+
+    const parliament = await Parliament.create(parliamentData);
 
     res.status(201).json({
       success: true,
@@ -103,9 +137,9 @@ exports.createParliament = async (req, res, next) => {
   }
 };
 
-// @desc    Update parliamentary constituency
+// @desc    Update parliament
 // @route   PUT /api/parliaments/:id
-// @access  Private (Admin)
+// @access  Private (Admin only)
 exports.updateParliament = async (req, res, next) => {
   try {
     let parliament = await Parliament.findById(req.params.id);
@@ -113,7 +147,7 @@ exports.updateParliament = async (req, res, next) => {
     if (!parliament) {
       return res.status(404).json({
         success: false,
-        message: 'Parliamentary constituency not found'
+        message: 'Parliament not found'
       });
     }
 
@@ -128,18 +162,24 @@ exports.updateParliament = async (req, res, next) => {
       }
     }
 
-    // Check if new name already exists in the division
-    if (req.body.name && (req.body.name !== parliament.name || 
-                         (req.body.division_id && req.body.division_id !== parliament.division_id.toString()))) {
-      const divisionId = req.body.division_id || parliament.division_id;
-      const existingParliament = await Parliament.findOne({
-        name: req.body.name,
-        division_id: divisionId
-      });
-      if (existingParliament && existingParliament._id.toString() !== req.params.id) {
+    // Verify state exists if being updated
+    if (req.body.state_id) {
+      const state = await State.findById(req.body.state_id);
+      if (!state) {
         return res.status(400).json({
           success: false,
-          message: 'Parliamentary constituency with this name already exists in the division'
+          message: 'State not found'
+        });
+      }
+    }
+
+    // Verify assembly exists if being updated
+    if (req.body.assembly_id) {
+      const assembly = await Assembly.findById(req.body.assembly_id);
+      if (!assembly) {
+        return res.status(400).json({
+          success: false,
+          message: 'Assembly not found'
         });
       }
     }
@@ -147,7 +187,10 @@ exports.updateParliament = async (req, res, next) => {
     parliament = await Parliament.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
-    }).populate('division_id');
+    })
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('assembly_id', 'name');
 
     res.status(200).json({
       success: true,
@@ -158,9 +201,9 @@ exports.updateParliament = async (req, res, next) => {
   }
 };
 
-// @desc    Delete parliamentary constituency
+// @desc    Delete parliament
 // @route   DELETE /api/parliaments/:id
-// @access  Private (Admin)
+// @access  Private (Admin only)
 exports.deleteParliament = async (req, res, next) => {
   try {
     const parliament = await Parliament.findById(req.params.id);
@@ -168,7 +211,7 @@ exports.deleteParliament = async (req, res, next) => {
     if (!parliament) {
       return res.status(404).json({
         success: false,
-        message: 'Parliamentary constituency not found'
+        message: 'Parliament not found'
       });
     }
 
@@ -183,7 +226,7 @@ exports.deleteParliament = async (req, res, next) => {
   }
 };
 
-// @desc    Get parliaments by division ID
+// @desc    Get parliaments by division
 // @route   GET /api/parliaments/division/:divisionId
 // @access  Public
 exports.getParliamentsByDivision = async (req, res, next) => {
@@ -198,7 +241,38 @@ exports.getParliamentsByDivision = async (req, res, next) => {
     }
 
     const parliaments = await Parliament.find({ division_id: req.params.divisionId })
-      .sort({ name: 1 });
+      .sort({ name: 1 })
+      .populate('state_id', 'name')
+      .populate('created_by', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: parliaments.length,
+      data: parliaments
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get parliaments by state
+// @route   GET /api/parliaments/state/:stateId
+// @access  Public
+exports.getParliamentsByState = async (req, res, next) => {
+  try {
+    // Verify state exists
+    const state = await State.findById(req.params.stateId);
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: 'State not found'
+      });
+    }
+
+    const parliaments = await Parliament.find({ state_id: req.params.stateId })
+      .sort({ name: 1 })
+      .populate('division_id', 'name')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,

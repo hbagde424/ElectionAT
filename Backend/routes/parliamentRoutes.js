@@ -1,11 +1,12 @@
 const express = require('express');
 const {
   getParliaments,
-  getParliamentById,
+  getParliament,
   createParliament,
   updateParliament,
   deleteParliament,
-  getParliamentsByDivision
+  getParliamentsByDivision,
+  getParliamentsByState
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -15,14 +16,14 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Parliaments
- *   description: Parliamentary constituency management
+ *   description: Parliament management
  */
 
 /**
  * @swagger
  * /api/parliaments:
  *   get:
- *     summary: Get all parliamentary constituencies
+ *     summary: Get all parliaments
  *     tags: [Parliaments]
  *     parameters:
  *       - in: query
@@ -39,15 +40,20 @@ const router = express.Router();
  *         name: division
  *         schema:
  *           type: string
- *         description: Filter by division ID
+ *         description: Division ID to filter by
  *       - in: query
- *         name: search
+ *         name: state
  *         schema:
  *           type: string
- *         description: Search by parliament name
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
  *     responses:
  *       200:
- *         description: List of parliamentary constituencies
+ *         description: List of parliaments
  *         content:
  *           application/json:
  *             schema:
@@ -74,7 +80,7 @@ router.get('/', getParliaments);
  * @swagger
  * /api/parliaments/{id}:
  *   get:
- *     summary: Get single parliamentary constituency
+ *     summary: Get single parliament
  *     tags: [Parliaments]
  *     parameters:
  *       - in: path
@@ -84,7 +90,7 @@ router.get('/', getParliaments);
  *           type: string
  *     responses:
  *       200:
- *         description: Parliamentary constituency data
+ *         description: Parliament data
  *         content:
  *           application/json:
  *             schema:
@@ -92,13 +98,13 @@ router.get('/', getParliaments);
  *       404:
  *         description: Parliament not found
  */
-router.get('/:id', getParliamentById);
+router.get('/:id', getParliament);
 
 /**
  * @swagger
  * /api/parliaments:
  *   post:
- *     summary: Create new parliamentary constituency
+ *     summary: Create new parliament
  *     tags: [Parliaments]
  *     security:
  *       - bearerAuth: []
@@ -116,14 +122,13 @@ router.get('/:id', getParliamentById);
  *       401:
  *         description: Not authorized
  */
-router.post('/',  createParliament);
-// router.post('/', protect, authorize('admin'), createParliament);
+router.post('/', protect, authorize('superAdmin'), createParliament);
 
 /**
  * @swagger
  * /api/parliaments/{id}:
  *   put:
- *     summary: Update parliamentary constituency
+ *     summary: Update parliament
  *     tags: [Parliaments]
  *     security:
  *       - bearerAuth: []
@@ -149,13 +154,13 @@ router.post('/',  createParliament);
  *       404:
  *         description: Parliament not found
  */
-router.put('/:id', protect, authorize('admin'), updateParliament);
+router.put('/:id', protect, authorize('superAdmin'), updateParliament);
 
 /**
  * @swagger
  * /api/parliaments/{id}:
  *   delete:
- *     summary: Delete parliamentary constituency
+ *     summary: Delete parliament
  *     tags: [Parliaments]
  *     security:
  *       - bearerAuth: []
@@ -173,13 +178,13 @@ router.put('/:id', protect, authorize('admin'), updateParliament);
  *       404:
  *         description: Parliament not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteParliament);
+router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
 
 /**
  * @swagger
  * /api/parliaments/division/{divisionId}:
  *   get:
- *     summary: Get parliaments by division ID
+ *     summary: Get parliaments by division
  *     tags: [Parliaments]
  *     parameters:
  *       - in: path
@@ -189,7 +194,7 @@ router.delete('/:id', protect, authorize('admin'), deleteParliament);
  *           type: string
  *     responses:
  *       200:
- *         description: List of parliamentary constituencies for the division
+ *         description: List of parliaments for the division
  *         content:
  *           application/json:
  *             schema:
@@ -210,6 +215,39 @@ router.get('/division/:divisionId', getParliamentsByDivision);
 
 /**
  * @swagger
+ * /api/parliaments/state/{stateId}:
+ *   get:
+ *     summary: Get parliaments by state
+ *     tags: [Parliaments]
+ *     parameters:
+ *       - in: path
+ *         name: stateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of parliaments for the state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Parliament'
+ *       404:
+ *         description: State not found
+ */
+router.get('/state/:stateId', getParliamentsByState);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     Parliament:
@@ -217,15 +255,29 @@ router.get('/division/:divisionId', getParliamentsByDivision);
  *       required:
  *         - name
  *         - division_id
+ *         - state_id
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           description: Name of the parliamentary constituency
- *           example: "Bangalore North"
+ *           description: Parliament name
+ *           example: "North West Parliament"
  *         division_id:
  *           type: string
  *           description: Reference to Division
  *           example: "507f1f77bcf86cd799439011"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439012"
+ *         assembly_id:
+ *           type: string
+ *           description: Reference to Assembly (optional)
+ *           example: "507f1f77bcf86cd799439013"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string
  *           format: date-time

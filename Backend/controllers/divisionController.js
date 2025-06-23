@@ -1,6 +1,5 @@
 const Division = require('../models/division');
 const State = require('../models/state');
-const ElectionYear = require('../models/ElectionYear');
 
 // @desc    Get all divisions
 // @route   GET /api/divisions
@@ -12,25 +11,15 @@ exports.getDivisions = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Basic query with population
+    // Basic query
     let query = Division.find()
       .populate('state_id', 'name')
-      .populate('election_year_id', 'year')
+      .populate('created_by', 'name')
       .sort({ name: 1 });
 
     // Filter by state
     if (req.query.state) {
       query = query.where('state_id').equals(req.query.state);
-    }
-
-    // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('election_year_id').equals(req.query.election_year);
-    }
-
-    // Search functionality
-    if (req.query.search) {
-      query = query.find({ name: { $regex: req.query.search, $options: 'i' } });
     }
 
     const divisions = await query.skip(skip).limit(limit).exec();
@@ -56,7 +45,7 @@ exports.getDivision = async (req, res, next) => {
   try {
     const division = await Division.findById(req.params.id)
       .populate('state_id', 'name')
-      .populate('election_year_id', 'year');
+      .populate('created_by', 'name');
 
     if (!division) {
       return res.status(404).json({
@@ -74,6 +63,8 @@ exports.getDivision = async (req, res, next) => {
   }
 };
 
+// controllers/divisionController.js
+
 // @desc    Create division
 // @route   POST /api/divisions
 // @access  Private (Admin only)
@@ -88,18 +79,20 @@ exports.createDivision = async (req, res, next) => {
       });
     }
 
-    // Verify election year exists if provided
-    if (req.body.election_year_id) {
-      const electionYear = await ElectionYear.findById(req.body.election_year_id);
-      if (!electionYear) {
-        return res.status(400).json({
-          success: false,
-          message: 'Election year not found'
-        });
-      }
+    // Check if user exists in request
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized - user not identified'
+      });
     }
 
-    const division = await Division.create(req.body);
+    const divisionData = {
+      ...req.body,
+      created_by: req.user.id // Set creator from authenticated user
+    };
+
+    const division = await Division.create(divisionData);
 
     res.status(201).json({
       success: true,
@@ -135,22 +128,10 @@ exports.updateDivision = async (req, res, next) => {
       }
     }
 
-    // Verify election year exists if being updated
-    if (req.body.election_year_id) {
-      const electionYear = await ElectionYear.findById(req.body.election_year_id);
-      if (!electionYear) {
-        return res.status(400).json({
-          success: false,
-          message: 'Election year not found'
-        });
-      }
-    }
-
     division = await Division.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
-    }).populate('state_id', 'name')
-      .populate('election_year_id', 'year');
+    }).populate('state_id', 'name');
 
     res.status(200).json({
       success: true,
@@ -201,9 +182,8 @@ exports.getDivisionsByState = async (req, res, next) => {
     }
 
     const divisions = await Division.find({ state_id: req.params.stateId })
-      .populate('state_id', 'name')
-      .populate('election_year_id', 'year')
-      .sort({ name: 1 });
+      .sort({ name: 1 })
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,

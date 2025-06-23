@@ -25,6 +25,11 @@ const assemblySchema = new mongoose.Schema({
     required: [true, 'Assembly category is required'],
     default: 'General'
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required']
+  },
   district_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'District',
@@ -40,10 +45,12 @@ const assemblySchema = new mongoose.Schema({
     ref: 'Parliament',
     required: [true, 'Parliament reference is required']
   },
-  is_active: {
-    type: Boolean,
-    default: true
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // or 'Admin'
+    required: [true, 'Creator reference is required']
   },
+
   created_at: {
     type: Date,
     default: Date.now
@@ -61,10 +68,10 @@ assemblySchema.pre('save', function(next) {
 });
 
 // Indexes for better performance
-assemblySchema.index({ name: 'text' }); // For text search on names
+assemblySchema.index({ name: 'text' });
 assemblySchema.index({ district_id: 1 });
 assemblySchema.index({ division_id: 1 });
 assemblySchema.index({ parliament_id: 1 });
-assemblySchema.index({ type: 1, category: 1 }); // For filtering by type and category
+assemblySchema.index({ type: 1, category: 1 });
 
 module.exports = mongoose.model('Assembly', assemblySchema);
