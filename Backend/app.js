@@ -43,6 +43,7 @@ const seedSuperAdmin = require('./utils/seedSuperAdmin')
 const regionCommitteeRoutes = require('./routes/regionCommitteeRoutes');
 const regionInchargeRoutes = require('./routes/regionInchargeRoutes');
 const hierarchyRoutes = require('./routes/hierarchyRoutes');
+const visitRoutes = require('./routes/visitRoutes');
 // Connect to database
 connectDB();
 seedSuperAdmin();
@@ -108,6 +109,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/region-committees', regionCommitteeRoutes);
 app.use('/api/region-incharges', regionInchargeRoutes);
 app.use('/api/hierarchy', hierarchyRoutes);
+app.use('/api/visits', visitRoutes);
 // Error handler
 app.use(errorHandler);
 

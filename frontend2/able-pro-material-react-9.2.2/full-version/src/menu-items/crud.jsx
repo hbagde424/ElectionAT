@@ -10,34 +10,34 @@ import { DocumentCode2 } from 'iconsax-react';
 
 // icons
 const icons = {
-  samplePage: DocumentCode2
+  CURd: DocumentCode2
 };
 
 // ==============================|| MENU ITEMS - SAMPLE PAGE ||============================== //
 
-const samplePage = {
-  id: 'sample-page',
-  title: <FormattedMessage id="sample-page" />,
+const CURd = {
+  id: 'CRUD',
+  title: <FormattedMessage id="CRUD" />,
   type: 'group',
   // url: '/sample-page',
-  icon: icons.samplePage,
+  icon: icons.CURd,
   children: [
     {
-      id: 'sample-page',
-      title: <FormattedMessage id="Create Admin" />,
+      id: 'booth-volunteer',
+      title: <FormattedMessage id="Booth Volunteer" />,
       type: 'item',
-      url: '/sample-page',
-        icon: icons.samplePage,
+      url: '/booth-volunteer',
+        icon: icons.CURd,
 
     },
     {
       id: 'sample-try',
-      title: <FormattedMessage id="Admin List" />,
+      title: <FormattedMessage id="Booth infrastructure" />,
       type: 'item',
-      url: '/sample-try',
-      icon: icons.samplePage,
+      url: '/Booth-infrastructure',
+      icon: icons.CURd,
     }
   ]
 };
 
-export default samplePage;
+export default CURd;

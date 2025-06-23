@@ -43,12 +43,21 @@ import WelcomeBanner from 'sections/dashboard/default/intro';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import ChangeTheme from 'sections/maps/change-theme';
 import MainCard from 'components/MainCard';
+// total incon
+import TotalIncome from 'sections/widget/chart/TotalIncome copy';
+
+import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
+
+import ApexMixedChart from 'sections/charts/apexchart/ApexMixedChart copy';
+
+
 
 
 const mapConfiguration = {
   mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
   minZoom: 1
 };
+
 const MAPBOX_THEMES = {
   light: 'mapbox://styles/mapbox/light-v10',
   dark: 'mapbox://styles/mapbox/dark-v10',
@@ -67,6 +76,7 @@ export default function WidgetData() {
       <Grid item xs={12}>
         <WelcomeBanner />
       </Grid>
+
       <Grid item xs={12}>
         <MainCard title="Theme Variants">
           <MapContainerStyled>
@@ -74,6 +84,24 @@ export default function WidgetData() {
           </MapContainerStyled>
         </MainCard>
       </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TotalIncome />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <MainCard title="Avrage Voter Turnout">
+          <ApexColumnChart />
+        </MainCard>
+      </Grid>
+
+      <Grid item xs={12} md={6} lg={8}>
+        <MainCard title="Votes Share Trends">
+          <ApexMixedChart />
+        </MainCard>
+      </Grid>
+
+
       {/* row 1 */}
       <Grid item xs={12} md={6} lg={4}>
         <MyTask />
