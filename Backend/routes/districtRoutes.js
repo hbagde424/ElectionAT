@@ -132,7 +132,8 @@ router.get('/:id', getDistrict);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createDistrict);
+router.post('/', protect, authorize('superAdmin'), createDistrict);
+// router.post('/', protect, authorize('admin'), createDistrict);
 
 /**
  * @swagger
@@ -164,7 +165,7 @@ router.post('/', protect, authorize('admin'), createDistrict);
  *       404:
  *         description: District not found
  */
-router.put('/:id', protect, authorize('admin'), updateDistrict);
+router.put('/:id', protect, authorize('superAdmin'), updateDistrict);
 
 /**
  * @swagger
@@ -188,7 +189,7 @@ router.put('/:id', protect, authorize('admin'), updateDistrict);
  *       404:
  *         description: District not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteDistrict);
+router.delete('/:id', protect, authorize('superAdmin'), deleteDistrict);
 
 /**
  * @swagger

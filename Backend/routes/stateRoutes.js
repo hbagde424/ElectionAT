@@ -110,7 +110,8 @@ router.get('/:id', getStateById);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createState);
+router.post('/', createState);
+// router.post('/', protect, authorize('admin'), createState);
 
 /**
  * @swagger
