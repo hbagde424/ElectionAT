@@ -6,7 +6,6 @@ const {
   updateBooth,
   deleteBooth,
   getBoothsByAssembly,
-  getBoothsByParliament,
   getBoothsByBlock
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
@@ -38,15 +37,40 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
- *         name: booth_number
+ *         name: search
  *         schema:
  *           type: string
- *         description: Filter by booth number
+ *         description: Search term for booth names or numbers
  *       - in: query
- *         name: assembly_id
+ *         name: block
  *         schema:
  *           type: string
- *         description: Filter by assembly constituency
+ *         description: Block ID to filter by
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: district
+ *         schema:
+ *           type: string
+ *         description: District ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
  *     responses:
  *       200:
  *         description: List of booths
@@ -58,6 +82,12 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
  *                   type: integer
  *                 data:
  *                   type: array
@@ -112,8 +142,7 @@ router.get('/:id', getBooth);
  *       401:
  *         description: Not authorized
  */
-router.post('/',  createBooth);
-// router.post('/', protect, authorize('admin'), createBooth);
+router.post('/', protect, authorize('superAdmin'), createBooth);
 
 /**
  * @swagger
@@ -145,7 +174,7 @@ router.post('/',  createBooth);
  *       404:
  *         description: Booth not found
  */
-router.put('/:id', protect, authorize('admin'), updateBooth);
+router.put('/:id', protect, authorize('superAdmin'), updateBooth);
 
 /**
  * @swagger
@@ -169,13 +198,13 @@ router.put('/:id', protect, authorize('admin'), updateBooth);
  *       404:
  *         description: Booth not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBooth);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBooth);
 
 /**
  * @swagger
  * /api/booths/assembly/{assemblyId}:
  *   get:
- *     summary: Get booths by assembly constituency
+ *     summary: Get booths by assembly
  *     tags: [Booths]
  *     parameters:
  *       - in: path
@@ -185,7 +214,7 @@ router.delete('/:id', protect, authorize('admin'), deleteBooth);
  *           type: string
  *     responses:
  *       200:
- *         description: List of booths in the assembly
+ *         description: List of booths for the assembly
  *         content:
  *           application/json:
  *             schema:
@@ -206,39 +235,6 @@ router.get('/assembly/:assemblyId', getBoothsByAssembly);
 
 /**
  * @swagger
- * /api/booths/parliament/{parliamentId}:
- *   get:
- *     summary: Get booths by parliament constituency
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: parliamentId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of booths in the parliament
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Booth'
- *       404:
- *         description: Parliament not found
- */
-router.get('/parliament/:parliamentId', getBoothsByParliament);
-
-/**
- * @swagger
  * /api/booths/block/{blockId}:
  *   get:
  *     summary: Get booths by block
@@ -251,7 +247,7 @@ router.get('/parliament/:parliamentId', getBoothsByParliament);
  *           type: string
  *     responses:
  *       200:
- *         description: List of booths in the block
+ *         description: List of booths for the block
  *         content:
  *           application/json:
  *             schema:
@@ -279,41 +275,76 @@ router.get('/block/:blockId', getBoothsByBlock);
  *       required:
  *         - name
  *         - booth_number
- *         - block_id
  *         - full_address
+ *         - block_id
  *         - assembly_id
  *         - parliament_id
+ *         - district_id
+ *         - division_id
+ *         - state_id
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           example: "Booth 123"
+ *           description: Booth name
+ *           example: "Main Polling Booth"
  *         booth_number:
  *           type: string
- *           example: "123"
+ *           description: Booth number/identifier
+ *           example: "B-42"
+ *         full_address:
+ *           type: string
+ *           description: Complete address of the booth
+ *           example: "123 Main St, City, State ZIP"
+ *         latitude:
+ *           type: number
+ *           description: GPS latitude coordinate
+ *           example: 40.7128
+ *         longitude:
+ *           type: number
+ *           description: GPS longitude coordinate
+ *           example: -74.0060
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *         full_address:
- *           type: string
- *           example: "123 Main St, District, State"
+ *           example: "507f1f77bcf86cd799439011"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439012"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *         latitude:
- *           type: number
- *           example: 28.6139
- *         longitude:
- *           type: number
- *           example: 77.2090
+ *           example: "507f1f77bcf86cd799439013"
+ *         district_id:
+ *           type: string
+ *           description: Reference to District
+ *           example: "507f1f77bcf86cd799439014"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439016"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string
  *           format: date-time
+ *           description: Creation timestamp
  *         updated_at:
  *           type: string
  *           format: date-time
+ *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;

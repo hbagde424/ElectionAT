@@ -11,13 +11,19 @@ const boothSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  full_address: {
+    type: String,
+    required: true
+  },
+  latitude: {
+    type: Number
+  },
+  longitude: {
+    type: Number
+  },
   block_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Block',
-    required: true
-  },
-  full_address: {
-    type: String,
     required: true
   },
   assembly_id: {
@@ -30,11 +36,25 @@ const boothSchema = new mongoose.Schema({
     ref: 'Parliament',
     required: true
   },
-  latitude: {
-    type: Number
+  district_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'District',
+    required: true
   },
-  longitude: {
-    type: Number
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: true
+  },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: true
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // or 'Admin'
+    required: true
   },
   created_at: {
     type: Date,
@@ -46,7 +66,7 @@ const boothSchema = new mongoose.Schema({
   }
 });
 
-boothSchema.pre('save', function(next) {
+boothSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
