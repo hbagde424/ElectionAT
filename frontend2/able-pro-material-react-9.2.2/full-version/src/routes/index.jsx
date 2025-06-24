@@ -5,6 +5,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import MainRoutes from './MainRoutes';
 import LoginRoutes from './LoginRoutes';
 import ComponentsRoutes from './ComponentsRoutes';
+import { Navigate } from 'react-router-dom';
 
 import { SimpleLayoutType } from 'config';
 import SimpleLayout from 'layout/Simple';
@@ -19,7 +20,7 @@ const router = createBrowserRouter(
   [
     {
       path: '/',
-      element: <SimpleLayout layout={SimpleLayoutType.LANDING} />,
+      element: <Navigate to="/login" replace />,
       children: [
         {
           index: true,
