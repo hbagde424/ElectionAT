@@ -27,7 +27,15 @@ const CURd = {
       title: <FormattedMessage id="Booth Volunteer" />,
       type: 'item',
       url: '/booth-volunteer',
-        icon: icons.CURd,
+      icon: icons.CURd,
+
+    },
+    {
+      id: 'add-volunteer',
+      title: <FormattedMessage id="Add Booth Volunteer" />,
+      type: 'item',
+      url: '/add-volunteer',
+      icon: icons.CURd,
 
     },
     {

@@ -81,14 +81,6 @@ export default function MainLayout() {
             <Outlet />
             <Footer />
           </Container>
-          <Link style={{ textDecoration: 'none' }} href={url} target="_blank">
-            <Button variant="contained" color="error" sx={{ zIndex: 1199, position: 'fixed', bottom: 50, right: 30 }}>
-              <ListItemIcon>
-                <ShoppingCart color={theme.palette.common.white} />
-              </ListItemIcon>
-              Buy Now
-            </Button>
-          </Link>
         </Box>
         <AddCustomer />
       </Box>

@@ -29,6 +29,8 @@ import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import EmptyReactTable from 'pages/tables/react-table/empty';
+import { useNavigate } from 'react-router-dom';
+import { Add } from 'iconsax-react';
 
 // ==============================|| REACT TABLE - PRODUCT LIST ||============================== //
 
@@ -36,6 +38,7 @@ function ReactTable({ data, columns }) {
   const theme = useTheme();
   const [sorting, setSorting] = useState([{ id: 'name', desc: false }]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const navigate = useNavigate();
 
   const table = useReactTable({
     data,
@@ -52,13 +55,28 @@ function ReactTable({ data, columns }) {
   });
 
   return (
+
     <MainCard content={false}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 3 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ p: 3 }}
+      >
         <DebouncedInput
           value={globalFilter ?? ''}
           onFilterChange={(value) => setGlobalFilter(String(value))}
           placeholder={`Search ${data.length} volunteers...`}
         />
+
+        {/* ✅ Correctly placed inside the Stack */}
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => navigate('/add-volunteer')}
+        >
+          Add Volunteer
+        </Button>
       </Stack>
 
       <ScrollX>
@@ -106,6 +124,7 @@ function ReactTable({ data, columns }) {
         </Box>
       </ScrollX>
     </MainCard>
+
   );
 }
 

@@ -130,6 +130,7 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
+const AddBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/AddVolunteerForm')));
 const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state')));
 const Division = Loadable(lazy(() => import('pages/curd/division')));
@@ -531,6 +532,12 @@ const MainRoutes = {
           path: 'booth-volunteer',
           element: <BoothVolunteer />
         },
+        {
+          path: 'add-volunteer',
+          element: <AddBoothVolunteer />
+        },
+
+
         {
           path: 'Booth-infrastructure',
           element: <Boothinfrastracture />
