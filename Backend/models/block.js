@@ -8,11 +8,6 @@ const blockSchema = new mongoose.Schema({
     maxlength: [100, 'Block name cannot exceed 100 characters'],
     unique: true
   },
-  assembly_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Assembly',
-    required: [true, 'Assembly reference is required']
-  },
   category: {
     type: String,
     enum: {
@@ -21,6 +16,31 @@ const blockSchema = new mongoose.Schema({
     },
     required: [true, 'Block category is required'],
     default: 'Urban'
+  },
+  assembly_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Assembly',
+    required: [true, 'Assembly reference is required']
+  },
+  parliament_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parliament',
+    required: true
+  },
+  district_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'District',
+    required: true
+  },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: true
+  },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: true
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
@@ -45,22 +65,14 @@ const blockSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp and updated_by before saving
-blockSchema.pre('save', function(next) {
+// Update timestamp before saving
+blockSchema.pre('save', function (next) {
   this.updated_at = Date.now();
-  
-  // If this is an update operation, set updated_by
-  if (this.isModified() && !this.isNew) {
-    // Assuming we have access to the user making the change
-    // In your controller, you'll need to set this value
-    // For example: block.updated_by = req.user.id
-  }
-  
   next();
 });
 
-// Indexes for better performance
-blockSchema.index({ name: 'text' }); // For text search on names
+// Indexes for search and filtering
+blockSchema.index({ name: 'text' });
 blockSchema.index({ assembly_id: 1 });
 blockSchema.index({ category: 1 });
 blockSchema.index({ is_active: 1 });

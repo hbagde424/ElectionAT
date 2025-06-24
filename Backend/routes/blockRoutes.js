@@ -6,7 +6,8 @@ const {
   updateBlock,
   deleteBlock,
   getBlocksByAssembly,
-  getBlocksByCategory
+  getBlocksByParliament,
+  toggleBlockActive
 } = require('../controllers/blockController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -42,16 +43,41 @@ const router = express.Router();
  *           type: string
  *         description: Search term for block names
  *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [Urban, Rural, Semi-Urban, Tribal]
+ *         description: Filter by block category
+ *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
  *         description: Assembly ID to filter by
  *       - in: query
- *         name: category
+ *         name: parliament
  *         schema:
  *           type: string
- *           enum: [Urban, Rural, Semi-Urban, Tribal]
- *         description: Category to filter by
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: district
+ *         schema:
+ *           type: string
+ *         description: District ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
  *     responses:
  *       200:
  *         description: List of blocks
@@ -123,7 +149,8 @@ router.get('/:id', getBlock);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('SuperAdmin', 'editor', 'SuperAdmin'), createBlock);
+router.post('/', protect, authorize('superAdmin'), createBlock);
+// router.post('/', protect, authorize('admin'), createBlock);
 
 /**
  * @swagger
@@ -155,7 +182,7 @@ router.post('/', protect, authorize('SuperAdmin', 'editor', 'SuperAdmin'), creat
  *       404:
  *         description: Block not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updateBlock);
+router.put('/:id', protect, authorize('admin'), updateBlock);
 
 /**
  * @swagger
@@ -193,15 +220,9 @@ router.delete('/:id', protect, authorize('admin'), deleteBlock);
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *           enum: [Urban, Rural, Semi-Urban, Tribal]
- *         description: Category to filter by
  *     responses:
  *       200:
- *         description: List of blocks in the assembly
+ *         description: List of blocks for the assembly
  *         content:
  *           application/json:
  *             schema:
@@ -222,25 +243,19 @@ router.get('/assembly/:assemblyId', getBlocksByAssembly);
 
 /**
  * @swagger
- * /api/blocks/category/{category}:
+ * /api/blocks/parliament/{parliamentId}:
  *   get:
- *     summary: Get blocks by category
+ *     summary: Get blocks by parliament
  *     tags: [Blocks]
  *     parameters:
  *       - in: path
- *         name: category
+ *         name: parliamentId
  *         required: true
  *         schema:
  *           type: string
- *           enum: [Urban, Rural, Semi-Urban, Tribal]
- *       - in: query
- *         name: assembly
- *         schema:
- *           type: string
- *         description: Assembly ID to filter by
  *     responses:
  *       200:
- *         description: List of blocks by category
+ *         description: List of blocks for the parliament
  *         content:
  *           application/json:
  *             schema:
@@ -254,8 +269,34 @@ router.get('/assembly/:assemblyId', getBlocksByAssembly);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Block'
+ *       404:
+ *         description: Parliament not found
  */
-router.get('/category/:category', getBlocksByCategory);
+router.get('/parliament/:parliamentId', getBlocksByParliament);
+
+/**
+ * @swagger
+ * /api/blocks/{id}/toggle-active:
+ *   patch:
+ *     summary: Toggle block active status
+ *     tags: [Blocks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Block active status toggled
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Block not found
+ */
+router.patch('/:id/toggle-active', protect, authorize('admin'), toggleBlockActive);
 
 /**
  * @swagger
@@ -265,34 +306,54 @@ router.get('/category/:category', getBlocksByCategory);
  *       type: object
  *       required:
  *         - name
- *         - assembly_id
  *         - category
+ *         - assembly_id
+ *         - parliament_id
+ *         - district_id
+ *         - division_id
+ *         - state_id
  *         - created_by
  *       properties:
  *         name:
  *           type: string
  *           description: Block name
- *           example: "Block A"
- *         assembly_id:
- *           type: string
- *           description: Reference to Assembly
- *           example: "507f1f77bcf86cd799439011"
+ *           example: "Central Block"
  *         category:
  *           type: string
  *           enum: [Urban, Rural, Semi-Urban, Tribal]
  *           description: Block category
  *           example: "Urban"
+ *         assembly_id:
+ *           type: string
+ *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439011"
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439012"
+ *         district_id:
+ *           type: string
+ *           description: Reference to District
+ *           example: "507f1f77bcf86cd799439013"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439014"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439015"
  *         created_by:
  *           type: string
- *           description: Reference to User who created the block
- *           example: "507f1f77bcf86cd799439012"
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         updated_by:
  *           type: string
- *           description: Reference to User who last updated the block
- *           example: "507f1f77bcf86cd799439013"
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439023"
  *         is_active:
  *           type: boolean
- *           description: Whether the block is active
+ *           description: Active status of the block
  *           example: true
  *         created_at:
  *           type: string

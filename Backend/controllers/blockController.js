@@ -1,6 +1,9 @@
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
-const User = require('../models/User');
+const Parliament = require('../models/parliament');
+const District = require('../models/district');
+const Division = require('../models/division');
+const State = require('../models/state');
 
 // @desc    Get all blocks
 // @route   GET /api/blocks
@@ -13,8 +16,12 @@ exports.getBlocks = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Basic query
-    let query = Block.find({ is_active: true })
+    let query = Block.find()
       .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('district_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
       .populate('created_by', 'name')
       .populate('updated_by', 'name')
       .sort({ name: 1 });
@@ -24,14 +31,39 @@ exports.getBlocks = async (req, res, next) => {
       query = query.find({ $text: { $search: req.query.search } });
     }
 
+    // Filter by category
+    if (req.query.category) {
+      query = query.where('category').equals(req.query.category);
+    }
+
     // Filter by assembly
     if (req.query.assembly) {
       query = query.where('assembly_id').equals(req.query.assembly);
     }
 
-    // Filter by category
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
+    // Filter by parliament
+    if (req.query.parliament) {
+      query = query.where('parliament_id').equals(req.query.parliament);
+    }
+
+    // Filter by district
+    if (req.query.district) {
+      query = query.where('district_id').equals(req.query.district);
+    }
+
+    // Filter by division
+    if (req.query.division) {
+      query = query.where('division_id').equals(req.query.division);
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('state_id').equals(req.query.state);
+    }
+
+    // Filter by active status
+    if (req.query.is_active !== undefined) {
+      query = query.where('is_active').equals(req.query.is_active === 'true');
     }
 
     const blocks = await query.skip(skip).limit(limit).exec();
@@ -57,10 +89,14 @@ exports.getBlock = async (req, res, next) => {
   try {
     const block = await Block.findById(req.params.id)
       .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('district_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
       .populate('created_by', 'name')
       .populate('updated_by', 'name');
 
-    if (!block || !block.is_active) {
+    if (!block) {
       return res.status(404).json({
         success: false,
         message: 'Block not found'
@@ -78,112 +114,130 @@ exports.getBlock = async (req, res, next) => {
 
 // @desc    Create block
 // @route   POST /api/blocks
-// @access  Private (Admin/Editor)
+// @access  Private (Admin only)
 exports.createBlock = async (req, res, next) => {
   try {
-    // Verify assembly exists
-    const assembly = await Assembly.findById(req.body.assembly_id);
-    if (!assembly || !assembly.is_active) {
-      return res.status(400).json({
+    // Verify all references exist
+    const [
+      assembly,
+      parliament,
+      district,
+      division,
+      state
+    ] = await Promise.all([
+      Assembly.findById(req.body.assembly_id),
+      Parliament.findById(req.body.parliament_id),
+      District.findById(req.body.district_id),
+      Division.findById(req.body.division_id),
+      State.findById(req.body.state_id)
+    ]);
+
+    if (!assembly) {
+      return res.status(400).json({ success: false, message: 'Assembly not found' });
+    }
+    if (!parliament) {
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
+    }
+    if (!district) {
+      return res.status(400).json({ success: false, message: 'District not found' });
+    }
+    if (!division) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
+    if (!state) {
+      return res.status(400).json({ success: false, message: 'State not found' });
+    }
+
+    // Check if user exists in request
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Assembly not found or inactive'
+        message: 'Not authorized - user not identified'
       });
     }
 
-    // Verify creator user exists
-    const creator = await User.findById(req.body.created_by);
-    if (!creator || !creator.is_active) {
-      return res.status(400).json({
-        success: false,
-        message: 'Creator user not found or inactive'
-      });
-    }
+    const blockData = {
+      ...req.body,
+      created_by: req.user.id
+    };
 
-    // Check for duplicate block name in the same assembly
-    const existingBlock = await Block.findOne({ 
-      name: req.body.name,
-      assembly_id: req.body.assembly_id 
-    });
-    
-    if (existingBlock) {
-      return res.status(400).json({
-        success: false,
-        message: 'Block with this name already exists in the specified assembly'
-      });
-    }
-
-    // Set created_by to current user if not provided
-    if (!req.body.created_by) {
-      req.body.created_by = req.user.id;
-    }
-
-    const block = await Block.create(req.body);
+    const block = await Block.create(blockData);
 
     res.status(201).json({
       success: true,
       data: block
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Block with this name already exists'
+      });
+    }
     next(err);
   }
 };
 
 // @desc    Update block
 // @route   PUT /api/blocks/:id
-// @access  Private (Admin/Editor)
+// @access  Private (Admin only)
 exports.updateBlock = async (req, res, next) => {
   try {
     let block = await Block.findById(req.params.id);
 
-    if (!block || !block.is_active) {
+    if (!block) {
       return res.status(404).json({
         success: false,
         message: 'Block not found'
       });
     }
 
-    // Verify assembly exists if being updated
-    if (req.body.assembly_id) {
-      const assembly = await Assembly.findById(req.body.assembly_id);
-      if (!assembly || !assembly.is_active) {
+    // Verify all references exist if being updated
+    const verificationPromises = [];
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.district_id) verificationPromises.push(District.findById(req.body.district_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'Assembly not found or inactive'
+          message: `${result.modelName} not found`
         });
       }
     }
 
-    // Check for duplicate block name in the same assembly if name is being updated
-    if (req.body.name && req.body.name !== block.name) {
-      const existingBlock = await Block.findOne({ 
-        name: req.body.name,
-        assembly_id: req.body.assembly_id || block.assembly_id
-      });
-      
-      if (existingBlock) {
-        return res.status(400).json({
-          success: false,
-          message: 'Block with this name already exists in the specified assembly'
-        });
-      }
-    }
+    // Set updated_by
+    const updateData = {
+      ...req.body,
+      updated_by: req.user.id
+    };
 
-    // Set updated_by to current user
-    req.body.updated_by = req.user.id;
-
-    block = await Block.findByIdAndUpdate(req.params.id, req.body, {
+    block = await Block.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     })
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('parliament_id', 'name')
+      .populate('district_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
 
     res.status(200).json({
       success: true,
       data: block
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Block with this name already exists'
+      });
+    }
     next(err);
   }
 };
@@ -195,17 +249,14 @@ exports.deleteBlock = async (req, res, next) => {
   try {
     const block = await Block.findById(req.params.id);
 
-    if (!block || !block.is_active) {
+    if (!block) {
       return res.status(404).json({
         success: false,
         message: 'Block not found'
       });
     }
 
-    // Soft delete by setting is_active to false
-    block.is_active = false;
-    block.updated_by = req.user.id;
-    await block.save();
+    await block.remove();
 
     res.status(200).json({
       success: true,
@@ -223,27 +274,17 @@ exports.getBlocksByAssembly = async (req, res, next) => {
   try {
     // Verify assembly exists
     const assembly = await Assembly.findById(req.params.assemblyId);
-    if (!assembly || !assembly.is_active) {
+    if (!assembly) {
       return res.status(404).json({
         success: false,
-        message: 'Assembly not found or inactive'
+        message: 'Assembly not found'
       });
     }
 
-    let query = Block.find({ 
-      assembly_id: req.params.assemblyId,
-      is_active: true 
-    })
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
-      .sort({ name: 1 });
-
-    // Filter by category if provided
-    if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
-    }
-
-    const blocks = await query.exec();
+    const blocks = await Block.find({ assembly_id: req.params.assemblyId })
+      .sort({ name: 1 })
+      .populate('parliament_id', 'name')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -255,39 +296,58 @@ exports.getBlocksByAssembly = async (req, res, next) => {
   }
 };
 
-// @desc    Get blocks by category
-// @route   GET /api/blocks/category/:category
+// @desc    Get blocks by parliament
+// @route   GET /api/blocks/parliament/:parliamentId
 // @access  Public
-exports.getBlocksByCategory = async (req, res, next) => {
+exports.getBlocksByParliament = async (req, res, next) => {
   try {
-    const validCategories = ['Urban', 'Rural', 'Semi-Urban', 'Tribal'];
-    if (!validCategories.includes(req.params.category)) {
-      return res.status(400).json({
+    // Verify parliament exists
+    const parliament = await Parliament.findById(req.params.parliamentId);
+    if (!parliament) {
+      return res.status(404).json({
         success: false,
-        message: 'Invalid block category'
+        message: 'Parliament not found'
       });
     }
 
-    let query = Block.find({ 
-      category: req.params.category,
-      is_active: true 
-    })
+    const blocks = await Block.find({ parliament_id: req.params.parliamentId })
+      .sort({ name: 1 })
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
-      .sort({ name: 1 });
-
-    // Filter by assembly if provided
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
-    }
-
-    const blocks = await query.exec();
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
       count: blocks.length,
       data: blocks
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Toggle block active status
+// @route   PATCH /api/blocks/:id/toggle-active
+// @access  Private (Admin only)
+exports.toggleBlockActive = async (req, res, next) => {
+  try {
+    let block = await Block.findById(req.params.id);
+
+    if (!block) {
+      return res.status(404).json({
+        success: false,
+        message: 'Block not found'
+      });
+    }
+
+    block.is_active = !block.is_active;
+    block.updated_by = req.user.id;
+    block.updated_at = Date.now();
+
+    await block.save();
+
+    res.status(200).json({
+      success: true,
+      data: block
     });
   } catch (err) {
     next(err);
