@@ -23,7 +23,7 @@ import {
   getPaginationRowModel,
   useReactTable
 } from '@tanstack/react-table';
-
+import { rankItem } from '@tanstack/match-sorter-utils';
 // project import
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
@@ -33,7 +33,9 @@ import { useNavigate } from 'react-router-dom';
 import { Add } from 'iconsax-react';
 
 // ==============================|| REACT TABLE - PRODUCT LIST ||============================== //
-
+function fuzzyFilter(row, columnId, value) {
+  return rankItem(row.getValue(columnId), value).passed;
+}
 function ReactTable({ data, columns }) {
   const theme = useTheme();
   const [sorting, setSorting] = useState([{ id: 'name', desc: false }]);
@@ -51,8 +53,11 @@ function ReactTable({ data, columns }) {
     onGlobalFilterChange: setGlobalFilter,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+    getPaginationRowModel: getPaginationRowModel(),
+    getGlobalFilteredRowModel: true, // enable global filtering
+    globalFilterFn: fuzzyFilter       // plug in the fuzzy search
   });
+
 
   return (
 
@@ -134,17 +139,224 @@ export default function VolunteerListPage() {
   const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch volunteers from API
+  // 🔧 Static fallback data
+  const staticData = [
+    {
+      _id: '1',
+      name: 'Amit Sharma',
+      role: 'Coordinator',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      booth_id: { name: 'Booth A' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 5',
+      remarks: 'Active'
+    },
+    {
+      _id: '2',
+      name: 'Sunita Verma',
+      role: 'Volunteer',
+      phone: '9123456780',
+      email: 'sunita@example.com',
+      booth_id: { name: 'Booth B' },
+      party_id: { name: 'INC' },
+      area_responsibility: 'Sector 12',
+      remarks: 'New'
+    },
+    {
+      _id: '3',
+      name: 'Raj Patel',
+      role: 'Coordinator',
+      phone: '9998887776',
+      email: 'raj@example.com',
+      booth_id: { name: 'Booth C' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 8',
+      remarks: 'Experienced'
+    },
+    {
+      _id: '1',
+      name: 'Amit Sharma',
+      role: 'Coordinator',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      booth_id: { name: 'Booth A' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 5',
+      remarks: 'Active'
+    },
+    {
+      _id: '2',
+      name: 'Sunita Verma',
+      role: 'Volunteer',
+      phone: '9123456780',
+      email: 'sunita@example.com',
+      booth_id: { name: 'Booth B' },
+      party_id: { name: 'INC' },
+      area_responsibility: 'Sector 12',
+      remarks: 'New'
+    },
+    {
+      _id: '3',
+      name: 'Raj Patel',
+      role: 'Coordinator',
+      phone: '9998887776',
+      email: 'raj@example.com',
+      booth_id: { name: 'Booth C' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 8',
+      remarks: 'Experienced'
+    },
+    {
+      _id: '1',
+      name: 'Amit Sharma',
+      role: 'Coordinator',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      booth_id: { name: 'Booth A' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 5',
+      remarks: 'Active'
+    },
+    {
+      _id: '2',
+      name: 'Sunita Verma',
+      role: 'Volunteer',
+      phone: '9123456780',
+      email: 'sunita@example.com',
+      booth_id: { name: 'Booth B' },
+      party_id: { name: 'INC' },
+      area_responsibility: 'Sector 12',
+      remarks: 'New'
+    },
+    {
+      _id: '3',
+      name: 'Raj Patel',
+      role: 'Coordinator',
+      phone: '9998887776',
+      email: 'raj@example.com',
+      booth_id: { name: 'Booth C' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 8',
+      remarks: 'Experienced'
+    },
+    {
+      _id: '1',
+      name: 'Amit Sharma',
+      role: 'Coordinator',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      booth_id: { name: 'Booth A' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 5',
+      remarks: 'Active'
+    },
+    {
+      _id: '2',
+      name: 'Sunita Verma',
+      role: 'Volunteer',
+      phone: '9123456780',
+      email: 'sunita@example.com',
+      booth_id: { name: 'Booth B' },
+      party_id: { name: 'INC' },
+      area_responsibility: 'Sector 12',
+      remarks: 'New'
+    },
+    {
+      _id: '3',
+      name: 'Raj Patel',
+      role: 'Coordinator',
+      phone: '9998887776',
+      email: 'raj@example.com',
+      booth_id: { name: 'Booth C' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 8',
+      remarks: 'Experienced'
+    },
+    {
+      _id: '1',
+      name: 'Amit Sharma',
+      role: 'Coordinator',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      booth_id: { name: 'Booth A' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 5',
+      remarks: 'Active'
+    },
+    {
+      _id: '2',
+      name: 'Sunita Verma',
+      role: 'Volunteer',
+      phone: '9123456780',
+      email: 'sunita@example.com',
+      booth_id: { name: 'Booth B' },
+      party_id: { name: 'INC' },
+      area_responsibility: 'Sector 12',
+      remarks: 'New'
+    },
+    {
+      _id: '3',
+      name: 'Raj Patel',
+      role: 'Coordinator',
+      phone: '9998887776',
+      email: 'raj@example.com',
+      booth_id: { name: 'Booth C' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 8',
+      remarks: 'Experienced'
+    },
+    {
+      _id: '1',
+      name: 'Amit Sharma',
+      role: 'Coordinator',
+      phone: '9876543210',
+      email: 'amit@example.com',
+      booth_id: { name: 'Booth A' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 5',
+      remarks: 'Active'
+    },
+    {
+      _id: '2',
+      name: 'Sunita Verma',
+      role: 'Volunteer',
+      phone: '9123456780',
+      email: 'sunita@example.com',
+      booth_id: { name: 'Booth B' },
+      party_id: { name: 'INC' },
+      area_responsibility: 'Sector 12',
+      remarks: 'New'
+    },
+    {
+      _id: '3',
+      name: 'Raj Patel',
+      role: 'Coordinator',
+      phone: '9998887776',
+      email: 'raj@example.com',
+      booth_id: { name: 'Booth C' },
+      party_id: { name: 'BJP' },
+      area_responsibility: 'Sector 8',
+      remarks: 'Experienced'
+    }
+  ];
+
+  // Fetch from API or use static data if fetch fails
   useEffect(() => {
     fetch('http://localhost:5000/api/booth-volunteers')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) {
-          setVolunteers(data.data || []);
+        if (data.success && data.data?.length) {
+          setVolunteers(data.data);
+        } else {
+          setVolunteers(staticData); // fallback
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setVolunteers(staticData); // fallback on error
+        setLoading(false);
+      });
   }, []);
 
   const columns = useMemo(
