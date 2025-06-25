@@ -3138,7 +3138,7 @@
   dependencies:
     tslib "^2.4.0"
 
-"@tanstack/match-sorter-utils@^8.15.1":
+"@tanstack/match-sorter-utils@^8.19.4":
   version "8.19.4"
   resolved "https://registry.npmjs.org/@tanstack/match-sorter-utils/-/match-sorter-utils-8.19.4.tgz"
   integrity sha512-Wo1iKt2b9OT7d+YGhvEPD3DXvPv2etTusIMhMUoG7fbhmxcXCtIjJDEygy91Y2JFlwGyjqiBPRozme7UD8hoqg==
