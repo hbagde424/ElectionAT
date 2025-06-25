@@ -29,6 +29,7 @@ import { fetcher } from 'utils/axios';
 
 // assets
 import { Eye, EyeSlash } from 'iconsax-react';
+import axios from 'axios';
 
 // ============================|| JWT - LOGIN ||============================ //
 
@@ -51,8 +52,8 @@ export default function AuthLogin({ forgot }) {
     <>
       <Formik
         initialValues={{
-          email: 'info@phoenixcoded.co',
-          password: '123456',
+          email: '',
+          password: '',
           submit: null
         }}
         validationSchema={Yup.object().shape({

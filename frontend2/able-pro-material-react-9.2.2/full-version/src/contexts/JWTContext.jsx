@@ -56,7 +56,7 @@ export const JWTProvider = ({ children }) => {
         const serviceToken = window.localStorage.getItem('serviceToken');
         if (serviceToken && verifyToken(serviceToken)) {
           setSession(serviceToken);
-          const response = await axios.get('/api/account/me');
+          const response = await axios.get('http://localhost:5000/api/me');
           const { user } = response.data;
 
           dispatch({
@@ -83,17 +83,26 @@ export const JWTProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const response = await axios.post('/api/account/login', { email, password });
-    const { serviceToken, user } = response.data;
-    setSession(serviceToken);
-    dispatch({
-      type: LOGIN,
-      payload: {
-        isLoggedIn: true,
-        user
-      }
-    });
+    try {
+      const response = await axios.post('http://localhost:5000/api/login', { email, password });
+
+      const { token, user } = response.data;
+
+      // Use existing `setSession()` function with the new token
+      setSession(token);
+
+      dispatch({
+        type: LOGIN,
+        payload: {
+          isLoggedIn: true,
+          user
+        }
+      });
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Login failed');
+    }
   };
+
 
   const register = async (email, password, firstName, lastName) => {
     // todo: this flow need to be recode as it not verified
@@ -132,7 +141,7 @@ export const JWTProvider = ({ children }) => {
     console.log('email - ', email);
   };
 
-  const updateProfile = () => {};
+  const updateProfile = () => { };
 
   if (state.isInitialized !== undefined && !state.isInitialized) {
     return <Loader />;
