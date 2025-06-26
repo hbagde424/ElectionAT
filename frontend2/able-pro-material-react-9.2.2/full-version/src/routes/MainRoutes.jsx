@@ -131,6 +131,7 @@ const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')))
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
 const AddBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/AddVolunteerForm')));
+const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state')));
 const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
@@ -558,7 +559,11 @@ const MainRoutes = {
           element: <AddBoothVolunteer />
         },
 
-
+        {
+          path: 'add-volunteer',
+          element: <EditBoothVolunteer />
+        },
+        
         {
           path: 'Booth-infrastructure',
           element: <Boothinfrastracture />

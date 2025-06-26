@@ -194,10 +194,28 @@ export default function VolunteerListPage() {
         header: 'Remarks',
         accessorKey: 'remarks',
         cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      },
+      {
+        header: 'Actions',
+        id: 'actions',
+        cell: ({ row }) => {
+          const navigate = useNavigate();
+          return (
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={() => navigate(`/edit-volunteer/${row.original._id}`)} // Ensure _id exists
+            >
+              Edit
+            </Button>
+          );
+        }
       }
     ],
     []
   );
+
 
   if (loading) return <EmptyReactTable />;
 
