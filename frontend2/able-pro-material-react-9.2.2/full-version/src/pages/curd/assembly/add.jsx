@@ -9,11 +9,13 @@ import {
     Select,
     FormControl
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JWTContext from 'contexts/JWTContext';
 
 export default function AddAssemblyForm() {
     const navigate = useNavigate();
+    const { user } = useContext(JWTContext);
     const [formData, setFormData] = useState({
         name: '',
         type: '',
@@ -22,31 +24,45 @@ export default function AddAssemblyForm() {
         district_id: '',
         division_id: '',
         parliament_id: '',
-        created_by: 'current_user_id' // Replace with actual user ID
+        created_by: user?._id || ''
     });
-    
+
     const [states, setStates] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Fetch all required data
+        const token = localStorage.getItem('serviceToken');
+
         Promise.all([
-            fetch('http://localhost:5000/api/states').then(res => res.json()),
-            fetch('http://localhost:5000/api/districts').then(res => res.json()),
-            fetch('http://localhost:5000/api/divisions').then(res => res.json()),
-            fetch('http://localhost:5000/api/parliaments').then(res => res.json())
+            fetch('http://localhost:5000/api/states', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.json()),
+            fetch('http://localhost:5000/api/districts', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.json()),
+            fetch('http://localhost:5000/api/divisions', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.json()),
+            fetch('http://localhost:5000/api/parliaments', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.json())
         ])
-        .then(([statesData, districtsData, divisionsData, parliamentsData]) => {
-            if (statesData.success) setStates(statesData.data || []);
-            if (districtsData.success) setDistricts(districtsData.data || []);
-            if (divisionsData.success) setDivisions(divisionsData.data || []);
-            if (parliamentsData.success) setParliaments(parliamentsData.data || []);
-            setLoading(false);
-        })
-        .catch(() => setLoading(false));
+            .then(([statesData, districtsData, divisionsData, parliamentsData]) => {
+                if (statesData.success) setStates(statesData.data || []);
+                if (districtsData.success) setDistricts(districtsData.data || []);
+                if (divisionsData.success) setDivisions(divisionsData.data || []);
+                if (parliamentsData.success) setParliaments(parliamentsData.data || []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Error loading data:', err);
+                setError('Failed to load required data');
+                setLoading(false);
+            });
     }, []);
 
     const handleChange = (e) => {
@@ -55,17 +71,28 @@ export default function AddAssemblyForm() {
 
     const handleSubmit = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
             const res = await fetch('http://localhost:5000/api/assemblies', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(formData)
             });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to add assembly');
+            }
+
             const data = await res.json();
             if (data.success) {
-                navigate('/assemblies');
+                navigate('/assembly-list');
             }
         } catch (err) {
             console.error('Failed to add assembly:', err);
+            setError(err.message);
         }
     };
 
@@ -80,11 +107,11 @@ export default function AddAssemblyForm() {
                 <Grid item xs={12} sm={6}>
                     <Stack spacing={1}>
                         <InputLabel>Assembly Name</InputLabel>
-                        <TextField 
-                            name="name" 
-                            value={formData.name} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            fullWidth
                             required
                         />
                     </Stack>

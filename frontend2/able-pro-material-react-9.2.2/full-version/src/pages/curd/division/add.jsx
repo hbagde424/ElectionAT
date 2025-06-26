@@ -9,30 +9,45 @@ import {
     Select,
     FormControl
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JWTContext from 'contexts/JWTContext'; // Import your JWT context
 
 export default function AddDivisionForm() {
     const navigate = useNavigate();
+    const { user } = useContext(JWTContext); // Get user from context
     const [formData, setFormData] = useState({
         name: '',
         state_id: '',
-        created_by: 'current_user_id' // This should be populated with actual logged-in user ID
+        created_by: user?._id || '' // Use actual logged-in user ID
     });
     const [states, setStates] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Fetch states for dropdown
-        fetch('http://localhost:5000/api/states')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setStates(data.data || []);
-                }
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        // Fetch states for dropdown with auth token
+        const token = localStorage.getItem('serviceToken');
+        fetch('http://localhost:5000/api/states', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch states');
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                setStates(data.data || []);
+            }
+            setLoading(false);
+        })
+        .catch(err => {
+            console.error('Error fetching states:', err);
+            setError(err.message);
+            setLoading(false);
+        });
     }, []);
 
     const handleChange = (e) => {
@@ -41,17 +56,28 @@ export default function AddDivisionForm() {
 
     const handleSubmit = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
             const res = await fetch('http://localhost:5000/api/divisions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(formData)
             });
+            
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to add division');
+            }
+            
             const data = await res.json();
             if (data.success) {
-                navigate('/divisions');
+                navigate('/division-list');
             }
         } catch (err) {
             console.error('Failed to add division:', err);
+            setError(err.message);
         }
     };
 
@@ -62,6 +88,13 @@ export default function AddDivisionForm() {
             <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
                 Add New Division
             </Typography>
+            
+            {error && (
+                <Typography color="error" sx={{ mb: 2 }}>
+                    Error: {error}
+                </Typography>
+            )}
+            
             <Grid container spacing={3}>
                 <Grid item xs={12} sm={6}>
                     <Stack spacing={1}>

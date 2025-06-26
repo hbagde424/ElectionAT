@@ -9,11 +9,13 @@ import {
     Select,
     FormControl
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JWTContext from 'contexts/JWTContext';
 
 export default function AddBoothForm() {
     const navigate = useNavigate();
+    const { user } = useContext(JWTContext);
     const [formData, setFormData] = useState({
         name: '',
         booth_number: '',
@@ -26,7 +28,7 @@ export default function AddBoothForm() {
         parliament_id: '',
         assembly_id: '',
         block_id: '',
-        created_by: 'current_user_id' // Replace with actual user ID
+        created_by: user?._id || ''
     });
     
     const [states, setStates] = useState([]);
@@ -36,14 +38,27 @@ export default function AddBoothForm() {
     const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // Fetch divisions when state changes
     useEffect(() => {
         if (formData.state_id) {
-            fetch(`http://localhost:5000/api/divisions?state=${formData.state_id}`)
-                .then(res => res.json())
+            const token = localStorage.getItem('serviceToken');
+            fetch(`http://localhost:5000/api/divisions?state=${formData.state_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch divisions');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) setDivisions(data.data || []);
+                })
+                .catch(err => {
+                    console.error('Error fetching divisions:', err);
+                    setError(err.message);
                 });
         }
     }, [formData.state_id]);
@@ -51,10 +66,22 @@ export default function AddBoothForm() {
     // Fetch districts when division changes
     useEffect(() => {
         if (formData.division_id) {
-            fetch(`http://localhost:5000/api/districts?division=${formData.division_id}`)
-                .then(res => res.json())
+            const token = localStorage.getItem('serviceToken');
+            fetch(`http://localhost:5000/api/districts?division=${formData.division_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch districts');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) setDistricts(data.data || []);
+                })
+                .catch(err => {
+                    console.error('Error fetching districts:', err);
+                    setError(err.message);
                 });
         }
     }, [formData.division_id]);
@@ -62,10 +89,22 @@ export default function AddBoothForm() {
     // Fetch parliaments when state changes
     useEffect(() => {
         if (formData.state_id) {
-            fetch(`http://localhost:5000/api/parliaments?state=${formData.state_id}`)
-                .then(res => res.json())
+            const token = localStorage.getItem('serviceToken');
+            fetch(`http://localhost:5000/api/parliaments?state=${formData.state_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch parliaments');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) setParliaments(data.data || []);
+                })
+                .catch(err => {
+                    console.error('Error fetching parliaments:', err);
+                    setError(err.message);
                 });
         }
     }, [formData.state_id]);
@@ -73,10 +112,22 @@ export default function AddBoothForm() {
     // Fetch assemblies when district changes
     useEffect(() => {
         if (formData.district_id) {
-            fetch(`http://localhost:5000/api/assemblies?district=${formData.district_id}`)
-                .then(res => res.json())
+            const token = localStorage.getItem('serviceToken');
+            fetch(`http://localhost:5000/api/assemblies?district=${formData.district_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch assemblies');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) setAssemblies(data.data || []);
+                })
+                .catch(err => {
+                    console.error('Error fetching assemblies:', err);
+                    setError(err.message);
                 });
         }
     }, [formData.district_id]);
@@ -84,23 +135,47 @@ export default function AddBoothForm() {
     // Fetch blocks when assembly changes
     useEffect(() => {
         if (formData.assembly_id) {
-            fetch(`http://localhost:5000/api/blocks?assembly=${formData.assembly_id}`)
-                .then(res => res.json())
+            const token = localStorage.getItem('serviceToken');
+            fetch(`http://localhost:5000/api/blocks?assembly=${formData.assembly_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch blocks');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) setBlocks(data.data || []);
+                })
+                .catch(err => {
+                    console.error('Error fetching blocks:', err);
+                    setError(err.message);
                 });
         }
     }, [formData.assembly_id]);
 
     // Initial data load
     useEffect(() => {
-        fetch('http://localhost:5000/api/states')
-            .then(res => res.json())
+        const token = localStorage.getItem('serviceToken');
+        fetch('http://localhost:5000/api/states', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch states');
+                return res.json();
+            })
             .then(data => {
                 if (data.success) setStates(data.data || []);
                 setLoading(false);
             })
-            .catch(() => setLoading(false));
+            .catch(err => {
+                console.error('Error fetching states:', err);
+                setError(err.message);
+                setLoading(false);
+            });
     }, []);
 
     const handleChange = (e) => {
@@ -109,17 +184,28 @@ export default function AddBoothForm() {
 
     const handleSubmit = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
             const res = await fetch('http://localhost:5000/api/booths', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(formData)
             });
+            
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to add booth');
+            }
+            
             const data = await res.json();
             if (data.success) {
                 navigate('/booths');
             }
         } catch (err) {
             console.error('Failed to add booth:', err);
+            setError(err.message);
         }
     };
 
@@ -130,6 +216,13 @@ export default function AddBoothForm() {
             <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
                 Add New Booth
             </Typography>
+            
+            {error && (
+                <Typography color="error" sx={{ mb: 2 }}>
+                    Error: {error}
+                </Typography>
+            )}
+            
             <Grid container spacing={3}>
                 <Grid item xs={12} sm={6}>
                     <Stack spacing={1}>

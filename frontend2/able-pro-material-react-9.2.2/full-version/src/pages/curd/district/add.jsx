@@ -9,18 +9,20 @@ import {
     Select,
     FormControl
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JWTContext from 'contexts/JWTContext';
 
 export default function AddDistrictForm() {
     const navigate = useNavigate();
+    const { user } = useContext(JWTContext);
     const [formData, setFormData] = useState({
         name: '',
         state_id: '',
         division_id: '',
         assembly_id: '',
         parliament_id: '',
-        created_by: 'current_user_id' // Replace with actual user ID
+        created_by: user?._id || ''
     });
     
     const [states, setStates] = useState([]);
@@ -28,14 +30,36 @@ export default function AddDistrictForm() {
     const [assemblies, setAssemblies] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Fetch all required data
+        const token = localStorage.getItem('serviceToken');
+        
         Promise.all([
-            fetch('http://localhost:5000/api/states').then(res => res.json()),
-            fetch('http://localhost:5000/api/divisions').then(res => res.json()),
-            fetch('http://localhost:5000/api/assemblies').then(res => res.json()),
-            fetch('http://localhost:5000/api/parliaments').then(res => res.json())
+            fetch('http://localhost:5000/api/states', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => {
+                if (!res.ok) throw new Error('Failed to fetch states');
+                return res.json();
+            }),
+            fetch('http://localhost:5000/api/divisions', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => {
+                if (!res.ok) throw new Error('Failed to fetch divisions');
+                return res.json();
+            }),
+            fetch('http://localhost:5000/api/assemblies', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => {
+                if (!res.ok) throw new Error('Failed to fetch assemblies');
+                return res.json();
+            }),
+            fetch('http://localhost:5000/api/parliaments', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => {
+                if (!res.ok) throw new Error('Failed to fetch parliaments');
+                return res.json();
+            })
         ])
         .then(([statesData, divisionsData, assembliesData, parliamentsData]) => {
             if (statesData.success) setStates(statesData.data || []);
@@ -44,7 +68,11 @@ export default function AddDistrictForm() {
             if (parliamentsData.success) setParliaments(parliamentsData.data || []);
             setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch(err => {
+            console.error('Error loading data:', err);
+            setError('Failed to load required data');
+            setLoading(false);
+        });
     }, []);
 
     const handleChange = (e) => {
@@ -53,17 +81,28 @@ export default function AddDistrictForm() {
 
     const handleSubmit = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
             const res = await fetch('http://localhost:5000/api/districts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(formData)
             });
+            
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to add district');
+            }
+            
             const data = await res.json();
             if (data.success) {
-                navigate('/districts');
+                navigate('/district-list');
             }
         } catch (err) {
             console.error('Failed to add district:', err);
+            setError(err.message);
         }
     };
 
@@ -74,6 +113,13 @@ export default function AddDistrictForm() {
             <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
                 Add New District
             </Typography>
+            
+            {error && (
+                <Typography color="error" sx={{ mb: 2 }}>
+                    Error: {error}
+                </Typography>
+            )}
+            
             <Grid container spacing={3}>
                 <Grid item xs={12} sm={6}>
                     <Stack spacing={1}>

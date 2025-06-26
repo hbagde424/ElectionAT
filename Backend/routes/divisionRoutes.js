@@ -112,8 +112,8 @@ router.get('/:id', getDivision);
  *         description: Not authorized
  */
 // router.post('/', createDivision);
-router.post('/', protect, createDivision);
-// router.post('/', protect, authorize('superAdmin'), createDivision);
+// router.post('/', protect, createDivision);
+router.post('/', protect, authorize('superAdmin'), createDivision);
 
 /**
  * @swagger

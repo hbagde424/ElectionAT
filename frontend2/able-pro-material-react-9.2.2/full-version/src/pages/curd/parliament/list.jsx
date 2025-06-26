@@ -143,11 +143,11 @@ export default function ParliamentListPage() {
         accessorKey: 'division_id.name',
         cell: ({ row }) => <Typography>{row.original.division_id?.name}</Typography>
       },
-      {
-        header: 'Assembly',
-        accessorKey: 'assembly_id.name',
-        cell: ({ row }) => <Typography>{row.original.assembly_id?.name || 'N/A'}</Typography>
-      },
+      // {
+      //   header: 'Assembly',
+      //   accessorKey: 'assembly_id.name',
+      //   cell: ({ row }) => <Typography>{row.original.assembly_id?.name || 'N/A'}</Typography>
+      // },
       {
         header: 'Created At',
         accessorKey: 'created_at',
