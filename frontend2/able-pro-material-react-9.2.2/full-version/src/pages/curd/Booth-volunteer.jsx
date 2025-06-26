@@ -11,91 +11,98 @@ import {
   Button,
   Stack,
   Box,
-  Typography
+  Typography,
+  Paper
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 // third-party
 import {
-  flexRender,
   getCoreRowModel,
   getSortedRowModel,
   getPaginationRowModel,
-  useReactTable
+  getFilteredRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFacetedMinMaxValues,
+  flexRender,
+  useReactTable,
+  sortingFns
 } from '@tanstack/react-table';
-import { rankItem } from '@tanstack/match-sorter-utils';
+import { rankItem, compareItems } from '@tanstack/match-sorter-utils';
+
 // project import
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { DebouncedInput, Filter, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { useNavigate } from 'react-router-dom';
 import { Add } from 'iconsax-react';
 
-// ==============================|| REACT TABLE - PRODUCT LIST ||============================== //
-function fuzzyFilter(row, columnId, value) {
-  return rankItem(row.getValue(columnId), value).passed;
-}
+// ==============================|| FILTER & SORT FUNCTIONS ||============================== //
+const fuzzyFilter = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value);
+  addMeta(itemRank);
+  return itemRank.passed;
+};
+
+const fuzzySort = (rowA, rowB, columnId) => {
+  let dir = 0;
+  if (rowA.columnFiltersMeta[columnId]) {
+    dir = compareItems(rowA.columnFiltersMeta[columnId], rowB.columnFiltersMeta[columnId]);
+  }
+  return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir;
+};
+
+// ==============================|| REACT TABLE COMPONENT ||============================== //
 function ReactTable({ data, columns }) {
   const theme = useTheme();
   const [sorting, setSorting] = useState([{ id: 'name', desc: false }]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const navigate = useNavigate();
+  const [columnFilters, setColumnFilters] = useState([]);
 
   const table = useReactTable({
     data,
     columns,
     state: {
       sorting,
-      globalFilter
+      globalFilter,
+      columnFilters
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    globalFilterFn: fuzzyFilter,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getGlobalFilteredRowModel: true, // enable global filtering
-    globalFilterFn: fuzzyFilter       // plug in the fuzzy search
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    getFacetedMinMaxValues: getFacetedMinMaxValues()
   });
 
-
   return (
-
     <MainCard content={false}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ p: 3 }}
-      >
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 3 }}>
         <DebouncedInput
           value={globalFilter ?? ''}
           onFilterChange={(value) => setGlobalFilter(String(value))}
           placeholder={`Search ${data.length} volunteers...`}
         />
-
-        {/* ✅ Correctly placed inside the Stack */}
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/add-volunteer')}
-        >
+        <Button variant="contained" startIcon={<Add />} onClick={() => useNavigate()('/add-volunteer')}>
           Add Volunteer
         </Button>
       </Stack>
 
       <ScrollX>
-        <TableContainer>
+        <TableContainer component={Paper}>
           <Table>
             <TableHead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableCell
-                      key={header.id}
-                      onClick={header.column.getToggleSortingHandler()}
-                      className="cursor-pointer prevent-select"
-                    >
+                    <TableCell key={header.id} onClick={header.column.getToggleSortingHandler()} sx={{ cursor: 'pointer' }}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
                         {header.column.getCanSort() && <HeaderSort column={header.column} />}
@@ -105,14 +112,36 @@ function ReactTable({ data, columns }) {
                 </TableRow>
               ))}
             </TableHead>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+
+            {/* Filter Row */}
+            <TableHead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={`filter-${headerGroup.id}`}>
+                  {headerGroup.headers.map((header) => (
+                    <TableCell key={header.id}>
+                      {header.column.getCanFilter() ? <Filter column={header.column} table={table} /> : null}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))}
+            </TableHead>
+
+            <TableBody>
+              {table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length}>
+                    <EmptyReactTable />
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -129,7 +158,6 @@ function ReactTable({ data, columns }) {
         </Box>
       </ScrollX>
     </MainCard>
-
   );
 }
 
@@ -139,31 +167,33 @@ export default function VolunteerListPage() {
   const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch volunteers from API
   useEffect(() => {
     fetch('http://localhost:5000/api/booth-volunteers')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) {
-          setVolunteers(data.data || []);
-        }
+        if (data.success) setVolunteers(data.data || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
+  const navigate = useNavigate();
 
   const columns = useMemo(
     () => [
       {
         header: 'Name',
         accessorKey: 'name',
-        cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+        cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>,
+        filterFn: fuzzyFilter,
+        sortingFn: fuzzySort
       },
       {
         header: 'Role',
         accessorKey: 'role',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+        cell: ({ getValue }) => <Typography>{getValue()}</Typography>,
+        filterFn: fuzzyFilter,
+        sortingFn: fuzzySort
       },
       {
         header: 'Phone',
@@ -198,26 +228,16 @@ export default function VolunteerListPage() {
       {
         header: 'Actions',
         id: 'actions',
-        cell: ({ row }) => {
-          const navigate = useNavigate();
-          return (
-            <Button
-              variant="outlined"
-              color="primary"
-              size="small"
-              onClick={() => navigate(`/edit-volunteer/${row.original._id}`)} // Ensure _id exists
-            >
-              Edit
-            </Button>
-          );
-        }
+        cell: ({ row }) => (
+          <Button variant="outlined" color="primary" size="small" onClick={() => navigate(`/edit-volunteer/${row.original._id}`)}>
+            Edit
+          </Button>
+        )
       }
     ],
-    []
+    [navigate]
   );
 
-
   if (loading) return <EmptyReactTable />;
-
   return <ReactTable data={volunteers} columns={columns} />;
 }
