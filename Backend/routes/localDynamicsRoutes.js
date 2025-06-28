@@ -104,7 +104,7 @@ router.get('/booth/:boothId', getLocalDynamicsByBooth);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'field-agent'), createLocalDynamics);
+router.post('/', protect, authorize('superAdmin', 'field-agent'), createLocalDynamics);
 
 /**
  * @swagger
@@ -136,7 +136,7 @@ router.post('/', protect, authorize('admin', 'field-agent'), createLocalDynamics
  *       404:
  *         description: Record not found
  */
-router.put('/:id', protect, authorize('admin', 'field-agent'), updateLocalDynamics);
+router.put('/:id', protect, authorize('superAdmin', 'field-agent'), updateLocalDynamics);
 
 /**
  * @swagger
@@ -160,7 +160,7 @@ router.put('/:id', protect, authorize('admin', 'field-agent'), updateLocalDynami
  *       404:
  *         description: Record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteLocalDynamics);
+router.delete('/:id', protect, authorize('superAdmin'), deleteLocalDynamics);
 
 /**
  * @swagger

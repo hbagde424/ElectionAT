@@ -33,7 +33,7 @@ const assemblySchema = new mongoose.Schema({
   district_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'District',
-    required: [true, 'District reference is required']
+    required: [false, 'District reference is required']
   },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,

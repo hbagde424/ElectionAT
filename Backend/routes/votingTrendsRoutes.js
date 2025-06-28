@@ -157,7 +157,7 @@ router.get('/:id', getVotingTrendById);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'editor'), createVotingTrend);
+router.post('/', protect, authorize('superAdmin', 'editor'), createVotingTrend);
 
 /**
  * @swagger
@@ -189,7 +189,7 @@ router.post('/', protect, authorize('admin', 'editor'), createVotingTrend);
  *       404:
  *         description: Voting trend not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updateVotingTrend);
+router.put('/:id', protect, authorize('superAdmin', 'editor'), updateVotingTrend);
 
 /**
  * @swagger
@@ -213,7 +213,7 @@ router.put('/:id', protect, authorize('admin', 'editor'), updateVotingTrend);
  *       404:
  *         description: Voting trend not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteVotingTrend);
+router.delete('/:id', protect, authorize('superAdmin'), deleteVotingTrend);
 
 /**
  * @swagger

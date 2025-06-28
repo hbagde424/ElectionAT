@@ -155,7 +155,7 @@ router.get('/:id', getPartyActivityById);
  *         description: Not authorized
  */
 router.post('/',  createPartyActivity);
-// router.post('/', protect, authorize('admin', 'editor'), createPartyActivity);
+// router.post('/', protect, authorize('superAdmin', 'editor'), createPartyActivity);
 
 /**
  * @swagger
@@ -187,7 +187,7 @@ router.post('/',  createPartyActivity);
  *       404:
  *         description: Activity not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updatePartyActivity);
+router.put('/:id', protect, authorize('superAdmin', 'editor'), updatePartyActivity);
 
 /**
  * @swagger
@@ -211,7 +211,7 @@ router.put('/:id', protect, authorize('admin', 'editor'), updatePartyActivity);
  *       404:
  *         description: Activity not found
  */
-router.delete('/:id', protect, authorize('admin'), deletePartyActivity);
+router.delete('/:id', protect, authorize('superAdmin'), deletePartyActivity);
 
 /**
  * @swagger

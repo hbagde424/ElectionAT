@@ -150,7 +150,7 @@ router.get('/:id', getBlock);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin'), createBlock);
-// router.post('/', protect, authorize('admin'), createBlock);
+// router.post('/', protect, authorize('superAdmin'), createBlock);
 
 /**
  * @swagger
@@ -182,7 +182,7 @@ router.post('/', protect, authorize('superAdmin'), createBlock);
  *       404:
  *         description: Block not found
  */
-router.put('/:id', protect, authorize('admin'), updateBlock);
+router.put('/:id', protect, authorize('superAdmin'), updateBlock);
 
 /**
  * @swagger
@@ -206,7 +206,7 @@ router.put('/:id', protect, authorize('admin'), updateBlock);
  *       404:
  *         description: Block not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBlock);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBlock);
 
 /**
  * @swagger
@@ -296,7 +296,7 @@ router.get('/parliament/:parliamentId', getBlocksByParliament);
  *       404:
  *         description: Block not found
  */
-router.patch('/:id/toggle-active', protect, authorize('admin'), toggleBlockActive);
+router.patch('/:id/toggle-active', protect, authorize('superAdmin'), toggleBlockActive);
 
 /**
  * @swagger

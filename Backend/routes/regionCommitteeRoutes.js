@@ -104,7 +104,7 @@ router.get('/:id', getRegionCommittee);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('Admin', 'SuperAdmin'), createRegionCommittee);
+router.post('/', protect, authorize('superAdmin', 'SuperAdmin'), createRegionCommittee);
 
 /**
  * @swagger
@@ -140,7 +140,7 @@ router.post('/', protect, authorize('Admin', 'SuperAdmin'), createRegionCommitte
  *       404:
  *         description: Committee not found
  */
-router.put('/:id', protect, authorize('Admin', 'SuperAdmin'), updateRegionCommittee);
+router.put('/:id', protect, authorize('superAdmin', 'SuperAdmin'), updateRegionCommittee);
 
 /**
  * @swagger
@@ -164,7 +164,7 @@ router.put('/:id', protect, authorize('Admin', 'SuperAdmin'), updateRegionCommit
  *       404:
  *         description: Committee not found
  */
-router.delete('/:id', protect, authorize('Admin', 'SuperAdmin'), deleteRegionCommittee);
+router.delete('/:id', protect, authorize('superAdmin', 'SuperAdmin'), deleteRegionCommittee);
 
 /**
  * @swagger

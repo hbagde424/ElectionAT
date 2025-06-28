@@ -134,7 +134,7 @@ router.get('/:id', getCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createCandidate);
+router.post('/', protect, authorize('superAdmin'), createCandidate);
 
 /**
  * @swagger
@@ -166,7 +166,7 @@ router.post('/', protect, authorize('admin'), createCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, authorize('admin'), updateCandidate);
+router.put('/:id', protect, authorize('superAdmin'), updateCandidate);
 
 /**
  * @swagger
@@ -190,7 +190,7 @@ router.put('/:id', protect, authorize('admin'), updateCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteCandidate);
+router.delete('/:id', protect, authorize('superAdmin'), deleteCandidate);
 
 /**
  * @swagger

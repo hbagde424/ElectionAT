@@ -117,7 +117,7 @@ router.get('/:id', getVoteShareById);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'editor'), createVoteShare);
+router.post('/', protect, authorize('superAdmin', 'editor'), createVoteShare);
 
 /**
  * @swagger
@@ -149,7 +149,7 @@ router.post('/', protect, authorize('admin', 'editor'), createVoteShare);
  *       404:
  *         description: Record not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updateVoteShare);
+router.put('/:id', protect, authorize('superAdmin', 'editor'), updateVoteShare);
 
 /**
  * @swagger
@@ -173,7 +173,7 @@ router.put('/:id', protect, authorize('admin', 'editor'), updateVoteShare);
  *       404:
  *         description: Record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteVoteShare);
+router.delete('/:id', protect, authorize('superAdmin'), deleteVoteShare);
 
 /**
  * @swagger

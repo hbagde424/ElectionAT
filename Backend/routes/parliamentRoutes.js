@@ -134,7 +134,7 @@ router.get('/:id', getParliament);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createParliament);
+router.post('/', protect, authorize('superAdmin'), createParliament);
 
 /**
  * @swagger
@@ -166,7 +166,7 @@ router.post('/', protect, authorize('admin'), createParliament);
  *       404:
  *         description: Parliament not found
  */
-router.put('/:id', protect, authorize('admin'), updateParliament);
+router.put('/:id', protect, authorize('superAdmin'), updateParliament);
 
 /**
  * @swagger
@@ -190,7 +190,7 @@ router.put('/:id', protect, authorize('admin'), updateParliament);
  *       404:
  *         description: Parliament not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteParliament);
+router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
 
 /**
  * @swagger

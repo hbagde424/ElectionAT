@@ -148,7 +148,7 @@ router.get('/:id', getVolunteerById);
  *         description: Not authorized
  */
 router.post('/',  createVolunteer);
-// router.post('/', protect, authorize('admin', 'editor'), createVolunteer);
+// router.post('/', protect, authorize('superAdmin', 'editor'), createVolunteer);
 
 /**
  * @swagger

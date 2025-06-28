@@ -117,13 +117,13 @@ exports.createAssembly = async (req, res, next) => {
     }
 
     // Verify district exists
-    const district = await District.findById(req.body.district_id);
-    if (!district) {
-      return res.status(400).json({
-        success: false,
-        message: 'District not found'
-      });
-    }
+    // const district = await District.findById(req.body.district_id);
+    // if (!district) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'District not found'
+    //   });
+    // }
 
     // Verify division exists
     const division = await Division.findById(req.body.division_id);

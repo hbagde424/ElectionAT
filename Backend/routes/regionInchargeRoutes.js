@@ -182,7 +182,7 @@ router.get('/role/:role', getInchargesByRole);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createRegionIncharge);
+router.post('/', protect, authorize('superAdmin'), createRegionIncharge);
 
 /**
  * @swagger
@@ -214,7 +214,7 @@ router.post('/', protect, authorize('admin'), createRegionIncharge);
  *       404:
  *         description: Region incharge not found
  */
-router.put('/:id', protect, authorize('admin'), updateRegionIncharge);
+router.put('/:id', protect, authorize('superAdmin'), updateRegionIncharge);
 
 /**
  * @swagger
@@ -238,7 +238,7 @@ router.put('/:id', protect, authorize('admin'), updateRegionIncharge);
  *       404:
  *         description: Region incharge not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteRegionIncharge);
+router.delete('/:id', protect, authorize('superAdmin'), deleteRegionIncharge);
 
 /**
  * @swagger

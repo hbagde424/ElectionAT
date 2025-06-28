@@ -123,7 +123,7 @@ router.get('/:id', getPartyPresenceById);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'editor'), createPartyPresence);
+router.post('/', protect, authorize('superAdmin', 'editor'), createPartyPresence);
 
 /**
  * @swagger
@@ -155,7 +155,7 @@ router.post('/', protect, authorize('admin', 'editor'), createPartyPresence);
  *       404:
  *         description: Record not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updatePartyPresence);
+router.put('/:id', protect, authorize('superAdmin', 'editor'), updatePartyPresence);
 
 /**
  * @swagger
@@ -179,7 +179,7 @@ router.put('/:id', protect, authorize('admin', 'editor'), updatePartyPresence);
  *       404:
  *         description: Record not found
  */
-router.delete('/:id', protect, authorize('admin'), deletePartyPresence);
+router.delete('/:id', protect, authorize('superAdmin'), deletePartyPresence);
 
 /**
  * @swagger

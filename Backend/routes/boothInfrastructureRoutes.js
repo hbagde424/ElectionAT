@@ -119,7 +119,7 @@ router.get('/:id', getBoothInfrastructure);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'editor'), createBoothInfrastructure);
+router.post('/', protect, authorize('superAdmin', 'editor'), createBoothInfrastructure);
 
 /**
  * @swagger
@@ -151,7 +151,7 @@ router.post('/', protect, authorize('admin', 'editor'), createBoothInfrastructur
  *       404:
  *         description: Record not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updateBoothInfrastructure);
+router.put('/:id', protect, authorize('superAdmin', 'editor'), updateBoothInfrastructure);
 
 /**
  * @swagger
@@ -175,7 +175,7 @@ router.put('/:id', protect, authorize('admin', 'editor'), updateBoothInfrastruct
  *       404:
  *         description: Record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothInfrastructure);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothInfrastructure);
 
 /**
  * @swagger

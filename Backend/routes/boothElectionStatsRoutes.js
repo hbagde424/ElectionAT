@@ -159,7 +159,7 @@ router.get('/:id', getBoothStatsById);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'data-entry'), createBoothStats);
+router.post('/', protect, authorize('superAdmin', 'data-entry'), createBoothStats);
 
 /**
  * @swagger
@@ -191,7 +191,7 @@ router.post('/', protect, authorize('admin', 'data-entry'), createBoothStats);
  *       404:
  *         description: Record not found
  */
-router.put('/:id', protect, authorize('admin', 'data-entry'), updateBoothStats);
+router.put('/:id', protect, authorize('superAdmin', 'data-entry'), updateBoothStats);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.put('/:id', protect, authorize('admin', 'data-entry'), updateBoothStats);
  *       404:
  *         description: Record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothStats);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothStats);
 
 /**
  * @swagger

@@ -209,7 +209,7 @@ router.post('/', createBoothDemographics);
  *       404:
  *         description: Demographics not found
  */
-router.put('/:id', protect, authorize('admin'), updateBoothDemographics);
+router.put('/:id', protect, authorize('superAdmin'), updateBoothDemographics);
 
 /**
  * @swagger
@@ -233,7 +233,7 @@ router.put('/:id', protect, authorize('admin'), updateBoothDemographics);
  *       404:
  *         description: Demographics not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothDemographics);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothDemographics);
 
 /**
  * @swagger

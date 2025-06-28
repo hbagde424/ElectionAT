@@ -133,7 +133,7 @@ router.get('/:id', getDistrict);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin'), createDistrict);
-// router.post('/', protect, authorize('admin'), createDistrict);
+// router.post('/', protect, authorize('superAdmin'), createDistrict);
 
 /**
  * @swagger

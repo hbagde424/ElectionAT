@@ -193,7 +193,7 @@ router.put('/:id', protect, authorize('surveyor', 'admin', 'editor'), updateBoot
  *       404:
  *         description: Survey not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothSurvey);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothSurvey);
 
 /**
  * @swagger

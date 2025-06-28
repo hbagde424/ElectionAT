@@ -180,7 +180,7 @@ router.put('/:id', protect, authorize('master'), updateActiveParty);
  *       404:
  *         description: Record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteActiveParty);
+router.delete('/:id', protect, authorize('superAdmin'), deleteActiveParty);
 
 /**
  * @swagger
@@ -238,7 +238,7 @@ router.get('/booth/:boothId', getActivePartiesByBooth);
  *       404:
  *         description: Record not found
  */
-router.patch('/:id/toggle', protect, authorize('admin'), toggleActiveStatus);
+router.patch('/:id/toggle', protect, authorize('superAdmin'), toggleActiveStatus);
 
 /**
  * @swagger

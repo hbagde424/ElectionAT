@@ -128,7 +128,7 @@ router.get('/:id', getLocalNewsItem);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createLocalNews);
+router.post('/', protect, authorize('superAdmin'), createLocalNews);
 
 /**
  * @swagger
@@ -160,7 +160,7 @@ router.post('/', protect, authorize('admin'), createLocalNews);
  *       404:
  *         description: News item not found
  */
-router.put('/:id', protect, authorize('admin'), updateLocalNews);
+router.put('/:id', protect, authorize('superAdmin'), updateLocalNews);
 
 /**
  * @swagger
@@ -184,7 +184,7 @@ router.put('/:id', protect, authorize('admin'), updateLocalNews);
  *       404:
  *         description: News item not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteLocalNews);
+router.delete('/:id', protect, authorize('superAdmin'), deleteLocalNews);
 
 /**
  * @swagger

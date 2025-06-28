@@ -110,8 +110,8 @@ router.get('/:id', getStateById);
  *       401:
  *         description: Not authorized
  */
-router.post('/', createState);
-// router.post('/', protect, authorize('admin'), createState);
+// router.post('/', createState);
+router.post('/', protect, authorize('superAdmin'), createState);
 
 /**
  * @swagger
@@ -143,7 +143,7 @@ router.post('/', createState);
  *       404:
  *         description: State not found
  */
-router.put('/:id', protect, authorize('admin'), updateState);
+router.put('/:id', protect, authorize('superAdmin'), updateState);
 
 /**
  * @swagger

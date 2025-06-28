@@ -130,7 +130,7 @@ router.get('/:id', getVisit);
  */
 // router.post('/', createVisit);
 router.post('/', protect,  createVisit);
-// router.post('/', protect, authorize('admin'), createVisit);
+// router.post('/', protect, authorize('superAdmin'), createVisit);
 
 /**
  * @swagger
@@ -162,7 +162,7 @@ router.post('/', protect,  createVisit);
  *       404:
  *         description: Visit not found
  */
-router.put('/:id', protect, authorize('admin'), updateVisit);
+router.put('/:id', protect, authorize('superAdmin'), updateVisit);
 
 /**
  * @swagger
@@ -186,7 +186,7 @@ router.put('/:id', protect, authorize('admin'), updateVisit);
  *       404:
  *         description: Visit not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteVisit);
+router.delete('/:id', protect, authorize('superAdmin'), deleteVisit);
 
 /**
  * @swagger
