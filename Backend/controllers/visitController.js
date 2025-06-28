@@ -192,7 +192,7 @@ exports.deleteVisit = async (req, res, next) => {
             });
         }
 
-        await visit.remove();
+        await visit.deleteOne();
 
         res.status(200).json({
             success: true,

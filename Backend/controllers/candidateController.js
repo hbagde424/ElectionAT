@@ -221,7 +221,7 @@ exports.deleteCandidate = async (req, res, next) => {
       });
     }
 
-    await candidate.remove();
+    await candidate.deleteOne();
 
     res.status(200).json({
       success: true,

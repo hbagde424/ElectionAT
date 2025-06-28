@@ -182,7 +182,7 @@ exports.deleteVoteShare = async (req, res, next) => {
       });
     }
 
-    await voteShare.remove();
+    await voteShare.deleteOne();
 
     res.status(200).json({
       success: true,

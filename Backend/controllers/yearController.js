@@ -143,7 +143,7 @@ exports.deleteYear = async (req, res, next) => {
       });
     }
 
-    await year.remove();
+    await year.deleteOne();
 
     res.status(200).json({
       success: true,

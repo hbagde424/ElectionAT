@@ -165,7 +165,7 @@ exports.deleteBoothInfrastructure = async (req, res, next) => {
       });
     }
 
-    await infrastructure.remove();
+    await infrastructure.deleteOne();
 
     res.status(200).json({
       success: true,

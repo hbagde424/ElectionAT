@@ -183,7 +183,7 @@ exports.deleteRegionCommittee = async (req, res, next) => {
       });
     }
 
-    await committee.remove();
+    await committee.deleteOne();
 
     res.status(200).json({
       success: true,

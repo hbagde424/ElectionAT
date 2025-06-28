@@ -135,7 +135,7 @@ exports.deleteState = async (req, res, next) => {
       });
     }
 
-    // Replace remove() with deleteOne()
+    // Replace deleteOne() with deleteOne()
     await state.deleteOne();
 
     res.status(200).json({

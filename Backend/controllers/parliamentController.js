@@ -216,7 +216,7 @@ exports.deleteParliament = async (req, res, next) => {
       });
     }
 
-    await parliament.remove();
+    await parliament.deleteOne();
 
     res.status(200).json({
       success: true,

@@ -133,7 +133,7 @@ exports.deleteLocalDynamics = async (req, res, next) => {
       });
     }
 
-    await record.remove();
+    await record.deleteOne();
 
     res.status(200).json({
       success: true,

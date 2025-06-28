@@ -246,7 +246,7 @@ exports.deleteRegionIncharge = async (req, res, next) => {
       });
     }
 
-    await incharge.remove();
+    await incharge.deleteOne();
 
     res.status(200).json({
       success: true,

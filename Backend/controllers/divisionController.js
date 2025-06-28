@@ -156,7 +156,7 @@ exports.deleteDivision = async (req, res, next) => {
       });
     }
 
-    await division.remove();
+    await division.deleteOne();
 
     res.status(200).json({
       success: true,

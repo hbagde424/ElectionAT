@@ -135,7 +135,7 @@ exports.deleteAccomplishedMLA = async (req, res, next) => {
       });
     }
 
-    await mla.remove();
+    await mla.deleteOne();
 
     res.status(200).json({
       success: true,

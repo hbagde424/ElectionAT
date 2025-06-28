@@ -202,7 +202,7 @@ exports.deleteBoothSurvey = async (req, res, next) => {
       });
     }
 
-    await survey.remove();
+    await survey.deleteOne();
 
     res.status(200).json({
       success: true,

@@ -154,7 +154,7 @@ exports.deleteLocalNews = async (req, res, next) => {
       });
     }
 
-    await newsItem.remove();
+    await newsItem.deleteOne();
 
     res.status(200).json({
       success: true,

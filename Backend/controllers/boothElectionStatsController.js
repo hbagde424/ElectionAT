@@ -218,7 +218,7 @@ exports.deleteBoothStats = async (req, res, next) => {
       });
     }
 
-    await stats.remove();
+    await stats.deleteOne();
 
     res.status(200).json({
       success: true,
