@@ -54,10 +54,22 @@ export default function VolunteerModal({ open, modalToggler, volunteer, refresh 
 
     useEffect(() => {
         if (volunteer) {
-            setFormData(volunteer);
+            setFormData({
+                name: volunteer.name || '',
+                role: volunteer.role || '',
+                phone: volunteer.phone || '',
+                email: volunteer.email || '',
+                booth_id: volunteer.booth_id?._id || '',
+                party_id: volunteer.party_id?._id || '',
+                assembly_id: volunteer.assembly_id?._id || '',
+                parliament_id: volunteer.parliament_id?._id || '',
+                block_id: volunteer.block_id?._id || '',
+                area_responsibility: volunteer.area_responsibility || '',
+                activity_level: volunteer.activity_level || 'Medium',
+                remarks: volunteer.remarks || ''
+            });
         } else {
-            setFormData((prev) => ({
-                ...prev,
+            setFormData({
                 name: '',
                 role: '',
                 phone: '',
@@ -70,9 +82,10 @@ export default function VolunteerModal({ open, modalToggler, volunteer, refresh 
                 area_responsibility: '',
                 activity_level: 'Medium',
                 remarks: ''
-            }));
+            });
         }
     }, [volunteer]);
+
 
     useEffect(() => {
         const booth = booths.find((b) => b._id === formData.booth_id);
