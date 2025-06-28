@@ -11,7 +11,7 @@ import CURd from './crud';
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [widget, applications, formsTables, chartsMap, samplePage, pages, support, CURd ]
+  items: [CURd , widget, applications, formsTables, chartsMap, samplePage, pages, support ]
 };
 
 export default menuItems;

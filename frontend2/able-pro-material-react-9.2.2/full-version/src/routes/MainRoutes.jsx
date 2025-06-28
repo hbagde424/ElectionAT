@@ -133,10 +133,10 @@ const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer'))
 const AddBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/AddVolunteerForm')));
 const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
-const State = Loadable(lazy(() => import('pages/curd/state')));
+const State = Loadable(lazy(() => import('pages/curd/state/state')));
 const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
 const Statelist = Loadable(lazy(() => import('pages/curd/state/list')));
-const Division = Loadable(lazy(() => import('pages/curd/division')));
+const Division = Loadable(lazy(() => import('pages/curd/division/division')));
 const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
 const Divisionlist = Loadable(lazy(() => import('pages/curd/division/list')));
 
@@ -156,11 +156,11 @@ const BoothAdd = Loadable(lazy(() => import('pages/curd/booth/add')));
 const BoothList = Loadable(lazy(() => import('pages/curd/booth/list')));
 
 
-const District = Loadable(lazy(() => import('pages/curd/district')));
-const Assembly = Loadable(lazy(() => import('pages/curd/assembly')));
-const Parliament = Loadable(lazy(() => import('pages/curd/parliament')));
-const Block = Loadable(lazy(() => import('pages/curd/block')));
-const Booth = Loadable(lazy(() => import('pages/curd/booth')));
+const District = Loadable(lazy(() => import('pages/curd/district/district')));
+const Assembly = Loadable(lazy(() => import('pages/curd/assembly/assembly')));
+const Parliament = Loadable(lazy(() => import('pages/curd/parliament/parliament')));
+const Block = Loadable(lazy(() => import('pages/curd/block/block')));
+const Booth = Loadable(lazy(() => import('pages/curd/booth/booth')));
 const Landing = Loadable(lazy(() => import('pages/landing')));
 const ContactUS = Loadable(lazy(() => import('pages/contact-us')));
 const PricingPage = Loadable(lazy(() => import('pages/extra-pages/price/price1')));
