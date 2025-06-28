@@ -269,7 +269,7 @@ exports.deleteAssembly = async (req, res, next) => {
       });
     }
 
-    await assembly.remove();
+    await assembly.deleteOne();
 
     res.status(200).json({
       success: true,

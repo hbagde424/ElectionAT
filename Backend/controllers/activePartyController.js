@@ -179,7 +179,7 @@ exports.deleteActiveParty = async (req, res, next) => {
       });
     }
 
-    await activeParty.remove();
+    await activeParty.deleteOne();
 
     res.status(200).json({
       success: true,

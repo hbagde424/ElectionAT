@@ -187,7 +187,7 @@ exports.deletePartyPresence = async (req, res, next) => {
       });
     }
 
-    await presence.remove();
+    await presence.deleteOne();
 
     res.status(200).json({
       success: true,

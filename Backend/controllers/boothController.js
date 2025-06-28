@@ -258,7 +258,7 @@ exports.deleteBooth = async (req, res, next) => {
       });
     }
 
-    await booth.remove();
+    await booth.deleteOne();
 
     res.status(200).json({
       success: true,

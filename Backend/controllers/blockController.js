@@ -256,7 +256,7 @@ exports.deleteBlock = async (req, res, next) => {
       });
     }
 
-    await block.remove();
+    await block.deleteOne();
 
     res.status(200).json({
       success: true,

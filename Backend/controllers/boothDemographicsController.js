@@ -233,7 +233,7 @@ exports.deleteBoothDemographics = async (req, res, next) => {
       });
     }
 
-    await demographics.remove();
+    await demographics.deleteOne();
 
     res.status(200).json({
       success: true,

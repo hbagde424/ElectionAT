@@ -373,7 +373,7 @@ exports.deleteVotingTrend = async (req, res, next) => {
       });
     }
 
-    await trend.remove();
+    await trend.deleteOne();
 
     res.status(200).json({
       success: true,

@@ -185,7 +185,7 @@ exports.deleteWinningParty = async (req, res, next) => {
       });
     }
 
-    await winningParty.remove();
+    await winningParty.deleteOne();
 
     res.status(200).json({
       success: true,

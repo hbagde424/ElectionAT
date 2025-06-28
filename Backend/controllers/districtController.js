@@ -251,7 +251,7 @@ exports.deleteDistrict = async (req, res, next) => {
       });
     }
 
-    await district.remove();
+    await district.deleteOne();
 
     res.status(200).json({
       success: true,

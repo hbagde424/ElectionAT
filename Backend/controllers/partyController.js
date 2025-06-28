@@ -124,7 +124,7 @@ exports.deleteParty = async (req, res, next) => {
       });
     }
 
-    await party.remove();
+    await party.deleteOne();
 
     res.status(200).json({
       success: true,

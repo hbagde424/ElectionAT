@@ -247,7 +247,7 @@ exports.deletePartyActivity = async (req, res, next) => {
       });
     }
 
-    await activity.remove();
+    await activity.deleteOne();
 
     res.status(200).json({
       success: true,
