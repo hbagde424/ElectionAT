@@ -5,8 +5,8 @@ const {
   createParliament,
   updateParliament,
   deleteParliament,
-  getParliamentsByDivision,
-  getParliamentsByState
+  getParliamentsByCategory,
+  getParliamentsByRegionalType
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -16,7 +16,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Parliaments
- *   description: Parliament management
+ *   description: Parliament constituency management
  */
 
 /**
@@ -37,20 +37,32 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
- *         name: division
+ *         name: search
  *         schema:
  *           type: string
- *         description: Division ID to filter by
+ *         description: Search term for parliament names
  *       - in: query
- *         name: state
+ *         name: state_id
  *         schema:
  *           type: string
  *         description: State ID to filter by
  *       - in: query
- *         name: assembly
+ *         name: division_id
  *         schema:
  *           type: string
- *         description: Assembly ID to filter by
+ *         description: Division ID to filter by
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [reserved, special, general]
+ *         description: Category to filter by
+ *       - in: query
+ *         name: regional_type
+ *         schema:
+ *           type: string
+ *           enum: [urban, rural, mixed]
+ *         description: Regional type to filter by
  *     responses:
  *       200:
  *         description: List of parliaments
@@ -122,7 +134,7 @@ router.get('/:id', getParliament);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createParliament);
+router.post('/', protect, authorize('admin'), createParliament);
 
 /**
  * @swagger
@@ -154,7 +166,7 @@ router.post('/', protect, authorize('superAdmin'), createParliament);
  *       404:
  *         description: Parliament not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateParliament);
+router.put('/:id', protect, authorize('admin'), updateParliament);
 
 /**
  * @swagger
@@ -178,23 +190,24 @@ router.put('/:id', protect, authorize('superAdmin'), updateParliament);
  *       404:
  *         description: Parliament not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
+router.delete('/:id', protect, authorize('admin'), deleteParliament);
 
 /**
  * @swagger
- * /api/parliaments/division/{divisionId}:
+ * /api/parliaments/category/{category}:
  *   get:
- *     summary: Get parliaments by division
+ *     summary: Get parliaments by category
  *     tags: [Parliaments]
  *     parameters:
  *       - in: path
- *         name: divisionId
+ *         name: category
  *         required: true
  *         schema:
  *           type: string
+ *           enum: [reserved, special, general]
  *     responses:
  *       200:
- *         description: List of parliaments for the division
+ *         description: List of parliaments in the specified category
  *         content:
  *           application/json:
  *             schema:
@@ -208,26 +221,25 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Parliament'
- *       404:
- *         description: Division not found
  */
-router.get('/division/:divisionId', getParliamentsByDivision);
+router.get('/category/:category', getParliamentsByCategory);
 
 /**
  * @swagger
- * /api/parliaments/state/{stateId}:
+ * /api/parliaments/regional/{type}:
  *   get:
- *     summary: Get parliaments by state
+ *     summary: Get parliaments by regional type
  *     tags: [Parliaments]
  *     parameters:
  *       - in: path
- *         name: stateId
+ *         name: type
  *         required: true
  *         schema:
  *           type: string
+ *           enum: [urban, rural, mixed]
  *     responses:
  *       200:
- *         description: List of parliaments for the state
+ *         description: List of parliaments of the specified regional type
  *         content:
  *           application/json:
  *             schema:
@@ -241,10 +253,8 @@ router.get('/division/:divisionId', getParliamentsByDivision);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Parliament'
- *       404:
- *         description: State not found
  */
-router.get('/state/:stateId', getParliamentsByState);
+router.get('/regional/:type', getParliamentsByRegionalType);
 
 /**
  * @swagger
@@ -256,12 +266,14 @@ router.get('/state/:stateId', getParliamentsByState);
  *         - name
  *         - division_id
  *         - state_id
+ *         - category
+ *         - regional_type
  *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           description: Parliament name
- *           example: "North West Parliament"
+ *           description: Parliament constituency name
+ *           example: "Bangalore South"
  *         division_id:
  *           type: string
  *           description: Reference to Division
@@ -274,10 +286,20 @@ router.get('/state/:stateId', getParliamentsByState);
  *           type: string
  *           description: Reference to Assembly (optional)
  *           example: "507f1f77bcf86cd799439013"
+ *         category:
+ *           type: string
+ *           enum: [reserved, special, general]
+ *           description: Parliament category
+ *           example: "general"
+ *         regional_type:
+ *           type: string
+ *           enum: [urban, rural, mixed]
+ *           description: Regional classification
+ *           example: "urban"
  *         created_by:
  *           type: string
- *           description: Reference to User who created
- *           example: "507f1f77bcf86cd799439022"
+ *           description: Reference to User who created this record
+ *           example: "507f1f77bcf86cd799439014"
  *         created_at:
  *           type: string
  *           format: date-time
