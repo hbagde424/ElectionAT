@@ -105,13 +105,17 @@ export default function VolunteerModal({ open, modalToggler, volunteer, refresh 
 
     const handleSubmit = async () => {
         const method = volunteer ? 'PUT' : 'POST';
+        const token = localStorage.getItem('serviceToken');
         const url = volunteer
             ? `http://localhost:5000/api/booth-volunteers/${volunteer._id}`
             : 'http://localhost:5000/api/booth-volunteers';
 
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify(formData)
         });
 
