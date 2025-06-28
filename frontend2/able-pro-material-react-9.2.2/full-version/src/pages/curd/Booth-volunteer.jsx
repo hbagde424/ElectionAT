@@ -37,11 +37,12 @@ export default function VolunteerListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   const fetchVolunteers = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`${BASE_URL}/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
         setVolunteers(json.data);
