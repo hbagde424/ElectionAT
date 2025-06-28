@@ -180,7 +180,7 @@ router.post('/',  createVolunteer);
  *       404:
  *         description: Volunteer not found
  */
-router.put('/:id', protect, authorize('admin', 'editor'), updateVolunteer);
+router.put('/:id', protect, authorize('superAdmin', 'editor'), updateVolunteer);
 
 /**
  * @swagger
@@ -204,7 +204,7 @@ router.put('/:id', protect, authorize('admin', 'editor'), updateVolunteer);
  *       404:
  *         description: Volunteer not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteVolunteer);
+router.delete('/:id', protect, authorize('superAdmin'), deleteVolunteer);
 
 /**
  * @swagger

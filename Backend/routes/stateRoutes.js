@@ -167,7 +167,7 @@ router.put('/:id', protect, authorize('admin'), updateState);
  *       404:
  *         description: State not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteState);
+router.delete('/:id', protect, authorize('superAdmin'), deleteState);
 
 /**
  * @swagger

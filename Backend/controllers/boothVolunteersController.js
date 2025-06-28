@@ -253,7 +253,7 @@ exports.updateVolunteer = async (req, res, next) => {
 
 // @desc    Delete volunteer record
 // @route   DELETE /api/booth-volunteers/:id
-// @access  Private (Admin)
+// @access  Private (superAdmin)
 exports.deleteVolunteer = async (req, res, next) => {
   try {
     const volunteer = await BoothVolunteers.findById(req.params.id);
@@ -265,7 +265,7 @@ exports.deleteVolunteer = async (req, res, next) => {
       });
     }
 
-    await volunteer.remove();
+    await volunteer.deleteOne();
 
     res.status(200).json({
       success: true,

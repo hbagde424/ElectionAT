@@ -135,7 +135,8 @@ exports.deleteState = async (req, res, next) => {
       });
     }
 
-    await state.remove();
+    // Replace remove() with deleteOne()
+    await state.deleteOne();
 
     res.status(200).json({
       success: true,
