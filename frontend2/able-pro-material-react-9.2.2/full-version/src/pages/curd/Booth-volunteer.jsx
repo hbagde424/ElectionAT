@@ -1,243 +1,254 @@
-import { useEffect, useMemo, useState } from 'react';
-
-// material-ui
+import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Stack,
-  Box,
-  Typography,
-  Paper
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Button, Stack, Box, Typography, Chip, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 
 // third-party
 import {
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFacetedMinMaxValues,
-  flexRender,
-  useReactTable,
-  sortingFns
+  getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
+  useReactTable, flexRender
 } from '@tanstack/react-table';
-import { rankItem, compareItems } from '@tanstack/match-sorter-utils';
 
-// project import
+// project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, Filter, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
-import { useNavigate } from 'react-router-dom';
-import { Add } from 'iconsax-react';
 
-// ==============================|| FILTER & SORT FUNCTIONS ||============================== //
-const fuzzyFilter = (row, columnId, value, addMeta) => {
-  const itemRank = rankItem(row.getValue(columnId), value);
-  addMeta(itemRank);
-  return itemRank.passed;
-};
-
-const fuzzySort = (rowA, rowB, columnId) => {
-  let dir = 0;
-  if (rowA.columnFiltersMeta[columnId]) {
-    dir = compareItems(rowA.columnFiltersMeta[columnId], rowB.columnFiltersMeta[columnId]);
-  }
-  return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir;
-};
-
-// ==============================|| REACT TABLE COMPONENT ||============================== //
-function ReactTable({ data, columns }) {
-  const theme = useTheme();
-  const [sorting, setSorting] = useState([{ id: 'name', desc: false }]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [columnFilters, setColumnFilters] = useState([]);
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-      globalFilter,
-      columnFilters
-    },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters,
-    globalFilterFn: fuzzyFilter,
-    getSortedRowModel: getSortedRowModel(),
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
-  });
-
-  return (
-    <MainCard content={false}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 3 }}>
-        <DebouncedInput
-          value={globalFilter ?? ''}
-          onFilterChange={(value) => setGlobalFilter(String(value))}
-          placeholder={`Search ${data.length} volunteers...`}
-        />
-        <Button variant="contained" startIcon={<Add />} onClick={() => useNavigate()('/add-volunteer')}>
-          Add Volunteer
-        </Button>
-      </Stack>
-
-      <ScrollX>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableCell key={header.id} onClick={header.column.getToggleSortingHandler()} sx={{ cursor: 'pointer' }}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
-                        {header.column.getCanSort() && <HeaderSort column={header.column} />}
-                      </Stack>
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHead>
-
-            {/* Filter Row */}
-            <TableHead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`}>
-                  {headerGroup.headers.map((header) => (
-                    <TableCell key={header.id}>
-                      {header.column.getCanFilter() ? <Filter column={header.column} table={table} /> : null}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHead>
-
-            <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length}>
-                    <EmptyReactTable />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box sx={{ p: 2 }}>
-          <TablePagination
-            {...{
-              setPageSize: table.setPageSize,
-              setPageIndex: table.setPageIndex,
-              getState: table.getState,
-              getPageCount: table.getPageCount
-            }}
-          />
-        </Box>
-      </ScrollX>
-    </MainCard>
-  );
-}
-
-// ==============================|| VOLUNTEER LIST PAGE ||============================== //
+// custom views and modals
+import VolunteerModal from 'pages/curd/volunteer/VolunteerModal';
+import AlertVolunteerDelete from 'pages/curd/volunteer/AlertVolunteerDelete';
+import VolunteerView from 'pages/curd/volunteer/VolunteerView';
+import { Tooltip } from '@mui/material';
 
 export default function VolunteerListPage() {
+  const theme = useTheme();
+
+  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+  const [volunteerDeleteId, setVolunteerDeleteId] = useState('');
   const [volunteers, setVolunteers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [pageCount, setPageCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
+  const fetchVolunteers = async (pageIndex, pageSize) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`);
+      const json = await res.json();
+      if (json.success) {
+        setVolunteers(json.data);
+        setPageCount(json.pages); // from API: total pages
+      }
+    } catch (error) {
+      console.error('Failed to fetch volunteers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/booth-volunteers')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setVolunteers(data.data || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    fetchVolunteers(pagination.pageIndex, pagination.pageSize);
+  }, [pagination.pageIndex, pagination.pageSize]);
 
-  const navigate = useNavigate();
 
-  const columns = useMemo(
-    () => [
-      {
-        header: 'Name',
-        accessorKey: 'name',
-        cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>,
-        filterFn: fuzzyFilter,
-        sortingFn: fuzzySort
-      },
-      {
-        header: 'Role',
-        accessorKey: 'role',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>,
-        filterFn: fuzzyFilter,
-        sortingFn: fuzzySort
-      },
-      {
-        header: 'Phone',
-        accessorKey: 'phone',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Email',
-        accessorKey: 'email',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Booth',
-        accessorKey: 'booth_id.name',
-        cell: ({ row }) => <Typography>{row.original.booth_id?.name}</Typography>
-      },
-      {
-        header: 'Party',
-        accessorKey: 'party_id.name',
-        cell: ({ row }) => <Typography>{row.original.party_id?.name}</Typography>
-      },
-      {
-        header: 'Area Responsibility',
-        accessorKey: 'area_responsibility',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Remarks',
-        accessorKey: 'remarks',
-        cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-      },
-      {
-        header: 'Actions',
-        id: 'actions',
-        cell: ({ row }) => (
-          <Button variant="outlined" color="primary" size="small" onClick={() => navigate(`/edit-volunteer/${row.original._id}`)}>
-            Edit
-          </Button>
-        )
+  const handleDeleteOpen = (id) => {
+    setVolunteerDeleteId(id);
+    setOpenDelete(true);
+  };
+
+  const handleDeleteClose = () => setOpenDelete(false);
+
+  const columns = useMemo(() => [
+    {
+      header: '#',
+      accessorKey: '_id',
+      cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+    },
+    {
+      header: 'Name',
+      accessorKey: 'name',
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+    },
+    {
+      header: 'Phone',
+      accessorKey: 'phone'
+    },
+    {
+      header: 'Email',
+      accessorKey: 'email'
+    },
+    {
+      header: 'Booth',
+      accessorKey: 'booth_id.name',
+      cell: ({ row }) => row.original.booth_id?.name
+    },
+    {
+      header: 'Party',
+      accessorKey: 'party_id.name',
+      cell: ({ row }) => row.original.party_id?.name
+    },
+    {
+      header: 'Area Responsibility',
+      accessorKey: 'area_responsibility'
+    },
+    {
+      header: 'Remarks',
+      accessorKey: 'remarks'
+    },
+    {
+      header: 'Actions',
+      meta: { className: 'cell-center' },
+      cell: ({ row }) => {
+        const isExpanded = row.getIsExpanded();
+        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
+        return (
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+            <Tooltip title="View">
+              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
+                {expandIcon}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit">
+              <IconButton
+                color="primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedVolunteer(row.original);
+                  setOpenModal(true);
+                }}
+              >
+                <Edit />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteOpen(row.original._id);
+                }}
+              >
+                <Trash />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        );
       }
-    ],
-    [navigate]
-  );
+    }
+  ], [theme]);
+
+  const table = useReactTable({
+    data: volunteers,
+    columns,
+    state: {
+      pagination
+    },
+    pageCount, // total pages from API
+    manualPagination: true,
+    onPaginationChange: setPagination,
+
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getRowCanExpand: () => true
+  });
+
 
   if (loading) return <EmptyReactTable />;
-  return <ReactTable data={volunteers} columns={columns} />;
+
+  return (
+    <>
+      <MainCard content={false}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
+          <DebouncedInput
+            value={table.getState().globalFilter || ''}
+            onFilterChange={(value) => table.setGlobalFilter(String(value))}
+            placeholder={`Search ${volunteers.length} volunteers...`}
+          />
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVolunteer(null); setOpenModal(true); }}>
+            Add Volunteer
+          </Button>
+        </Stack>
+
+        <ScrollX>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableCell
+                        key={header.id}
+                        onClick={header.column.getToggleSortingHandler()}
+                        sx={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
+                          {header.column.getCanSort() && <HeaderSort column={header.column} />}
+                        </Stack>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHead>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => (
+                  <Fragment key={row.id}>
+                    <TableRow>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {row.getIsExpanded() && (
+                      <TableRow>
+                        <TableCell colSpan={row.getVisibleCells().length}>
+                          <VolunteerView data={row.original} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Divider />
+          <Box sx={{ p: 2 }}>
+            <TablePagination
+              setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
+              setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
+              getState={table.getState}
+              getPageCount={() => pageCount}
+            />
+
+
+          </Box>
+        </ScrollX>
+      </MainCard>
+
+      <VolunteerModal
+        open={openModal}
+        modalToggler={setOpenModal}
+        volunteer={selectedVolunteer}
+        refresh={fetchVolunteers}
+      />
+
+      <AlertVolunteerDelete
+        id={volunteerDeleteId}
+        open={openDelete}
+        handleClose={handleDeleteClose}
+        refresh={fetchVolunteers}
+      />
+    </>
+  );
 }
