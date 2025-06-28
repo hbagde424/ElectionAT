@@ -3,8 +3,8 @@ import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
 export default function AlertVolunteerDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
-
-        const res = await fetch(`http://localhost:5000/api/booth-volunteers/${id}`, {
+        const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+        const res = await fetch(`${BASE_URL}/booth-volunteers/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
