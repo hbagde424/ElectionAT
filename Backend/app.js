@@ -44,6 +44,11 @@ const regionCommitteeRoutes = require('./routes/regionCommitteeRoutes');
 const regionInchargeRoutes = require('./routes/regionInchargeRoutes');
 const hierarchyRoutes = require('./routes/hierarchyRoutes');
 const visitRoutes = require('./routes/visitRoutes');
+const boothVotesRoutes = require('./routes/boothVotesRoutes');
+const blockVotesRoutes = require('./routes/blockVotesRoutes');
+const assemblyVotesRoutes = require('./routes/assemblyVotesRoutes');
+const parliamentVotesRoutes = require('./routes/parliamentVotesRoutes');
+const ElectionYearRoutes = require('./routes/electionYearRoutes');
 // Connect to database
 connectDB();
 seedSuperAdmin();
@@ -110,6 +115,12 @@ app.use('/api/region-committees', regionCommitteeRoutes);
 app.use('/api/region-incharges', regionInchargeRoutes);
 app.use('/api/hierarchy', hierarchyRoutes);
 app.use('/api/visits', visitRoutes);
+app.use('/api/booth-votes', boothVotesRoutes);
+app.use('/api/block-votes', blockVotesRoutes);
+app.use('/api/assembly-votes', assemblyVotesRoutes);
+app.use('/api/parliament-votes', parliamentVotesRoutes);
+app.use('/api/election-years', ElectionYearRoutes);
+
 // Error handler
 app.use(errorHandler);
 
