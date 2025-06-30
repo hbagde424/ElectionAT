@@ -130,30 +130,29 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
-const AddBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/AddVolunteerForm')));
-const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
-const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
+// const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
+// const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
-const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
-const Statelist = Loadable(lazy(() => import('pages/curd/state/list')));
+// const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
+// const Statelist = Loadable(lazy(() => import('pages/curd/state/list')));
 const Division = Loadable(lazy(() => import('pages/curd/division/division')));
-const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
-const Divisionlist = Loadable(lazy(() => import('pages/curd/division/list')));
+// const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
+// const Divisionlist = Loadable(lazy(() => import('pages/curd/division/list')));
 
-const DistrictAdd = Loadable(lazy(() => import('pages/curd/district/add')));
-const DistrictList = Loadable(lazy(() => import('pages/curd/district/list')));
+// const DistrictAdd = Loadable(lazy(() => import('pages/curd/district/add')));
+// const DistrictList = Loadable(lazy(() => import('pages/curd/district/list')));
 
-const AssemblyAdd = Loadable(lazy(() => import('pages/curd/assembly/add')));
-const AssemblyList = Loadable(lazy(() => import('pages/curd/assembly/list')));
+// const AssemblyAdd = Loadable(lazy(() => import('pages/curd/assembly/add')));
+// const AssemblyList = Loadable(lazy(() => import('pages/curd/assembly/list')));
 
-const ParliamentAdd = Loadable(lazy(() => import('pages/curd/parliament/add')));
-const ParliamentList = Loadable(lazy(() => import('pages/curd/parliament/list')));
+// const ParliamentAdd = Loadable(lazy(() => import('pages/curd/parliament/add')));
+// const ParliamentList = Loadable(lazy(() => import('pages/curd/parliament/list')));
 
-const BlockAdd = Loadable(lazy(() => import('pages/curd/block/add')));
-const BlockList = Loadable(lazy(() => import('pages/curd/block/list')));
+// const BlockAdd = Loadable(lazy(() => import('pages/curd/block/add')));
+// const BlockList = Loadable(lazy(() => import('pages/curd/block/list')));
 
-const BoothAdd = Loadable(lazy(() => import('pages/curd/booth/add')));
-const BoothList = Loadable(lazy(() => import('pages/curd/booth/list')));
+// const BoothAdd = Loadable(lazy(() => import('pages/curd/booth/add')));
+// const BoothList = Loadable(lazy(() => import('pages/curd/booth/list')));
 
 
 const District = Loadable(lazy(() => import('pages/curd/district/district')));
@@ -554,85 +553,85 @@ const MainRoutes = {
           path: 'booth-volunteer',
           element: <BoothVolunteer />
         },
-        {
-          path: 'add-volunteer',
-          element: <AddBoothVolunteer />
-        },
+        // {
+        //   path: 'add-volunteer',
+        //   element: <AddBoothVolunteer />
+        // },
 
-        {
-          path: 'add-volunteer',
-          element: <EditBoothVolunteer />
-        },
+        // {
+        //   path: 'add-volunteer',
+        //   element: <EditBoothVolunteer />
+        // },
         
-        {
-          path: 'Booth-infrastructure',
-          element: <Boothinfrastracture />
-        },
+        // {
+        //   path: 'Booth-infrastructure',
+        //   element: <Boothinfrastracture />
+        // },
         {
           path: 'state',
           element: <State />
         },
-        {
-          path: 'state-add',
-          element: <Stateadd />
-        },
-        {
-          path: 'state-list',
-          element: <Statelist />
-        },
+        // {
+        //   path: 'state-add',
+        //   element: <Stateadd />
+        // },
+        // {
+        //   path: 'state-list',
+        //   element: <Statelist />
+        // },
         {
           path: 'division',
           element: <Division />
         },
-        {
-          path: 'division-add',
-          element: <Divisionadd />
-        },
-        {
-          path: 'division-list',
-          element: <Divisionlist />
-        },
+        // {
+        //   path: 'division-add',
+        //   element: <Divisionadd />
+        // },
+        // {
+        //   path: 'division-list',
+        //   element: <Divisionlist />
+        // },
 
-        {
-          path: 'district-add',
-          element: <DistrictAdd />
-        },
-        {
-          path: 'district-list',
-          element: <DistrictList />
-        },
-        {
-          path: 'assembly-add',
-          element: <AssemblyAdd />
-        },
-        {
-          path: 'assembly-list',
-          element: <AssemblyList />
-        },
-        {
-          path: 'parliament-add',
-          element: <ParliamentAdd />
-        },
-        {
-          path: 'parliament-list',
-          element: <ParliamentList />
-        },
-        {
-          path: 'block-add',
-          element: <BlockAdd />
-        },
-        {
-          path: 'block-list',
-          element: <BlockList />
-        },
-        {
-          path: 'booth-add',
-          element: <BoothAdd />
-        },
-        {
-          path: 'booth-list',
-          element: <BoothList />
-        },
+        // {
+        //   path: 'district-add',
+        //   element: <DistrictAdd />
+        // },
+        // {
+        //   path: 'district-list',
+        //   element: <DistrictList />
+        // },
+        // {
+        //   path: 'assembly-add',
+        //   element: <AssemblyAdd />
+        // },
+        // {
+        //   path: 'assembly-list',
+        //   element: <AssemblyList />
+        // },
+        // {
+        //   path: 'parliament-add',
+        //   element: <ParliamentAdd />
+        // },
+        // {
+        //   path: 'parliament-list',
+        //   element: <ParliamentList />
+        // },
+        // {
+        //   path: 'block-add',
+        //   element: <BlockAdd />
+        // },
+        // {
+        //   path: 'block-list',
+        //   element: <BlockList />
+        // },
+        // {
+        //   path: 'booth-add',
+        //   element: <BoothAdd />
+        // },
+        // {
+        //   path: 'booth-list',
+        //   element: <BoothList />
+        // },
 
 
         {
