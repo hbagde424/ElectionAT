@@ -136,6 +136,10 @@ const State = Loadable(lazy(() => import('pages/curd/state/state')));
 // const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
 // const Statelist = Loadable(lazy(() => import('pages/curd/state/list')));
 const Division = Loadable(lazy(() => import('pages/curd/division/division')));
+const AssemblyVotes = Loadable(lazy(() => import('pages/curd/votes/AssemblyVotes/Assembly-votes')));
+const BoothVotes = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/Booth-votes')));
+const BlockVotes = Loadable(lazy(() => import('pages/curd/votes/BlockVotes/Block-votes')));
+const ParliamentVotes = Loadable(lazy(() => import('pages/curd/votes/ParliamentVotes/Parliament-votes')));
 // const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
 // const Divisionlist = Loadable(lazy(() => import('pages/curd/division/list')));
 
@@ -577,12 +581,30 @@ const MainRoutes = {
         // },
         // {
         //   path: 'state-list',
-        //   element: <Statelist />
+        //   element: <Statelist /> 
         // },
         {
           path: 'division',
           element: <Division />
         },
+                {
+          path: 'Assembly-Votes',
+          element: <AssemblyVotes />
+        },
+                        {
+          path: 'Booth-Votes',
+          element: <BoothVotes />
+        },
+                                {
+          path: 'Block-Votes',
+          element: <BlockVotes />
+        },
+                                        {
+          path: 'Parliament-Votes',
+          element: <ParliamentVotes />
+        },
+        
+        
         // {
         //   path: 'division-add',
         //   element: <Divisionadd />
