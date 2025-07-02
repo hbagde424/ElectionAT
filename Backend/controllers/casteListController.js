@@ -16,20 +16,25 @@ exports.getCasteLists = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Basic query
+    // Base query
     let query = CasteList.find()
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email')
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name')
       .sort({ caste: 1 });
 
     // Search functionality
     if (req.query.search) {
-      query = query.find({ $text: { $search: req.query.search } });
+      query = query.find({
+        $or: [
+          { caste: { $regex: req.query.search, $options: 'i' } },
+          { category: { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
     }
 
     // Filter by category
@@ -37,7 +42,7 @@ exports.getCasteLists = async (req, res, next) => {
       query = query.where('category').equals(req.query.category);
     }
 
-    // Filter by political divisions
+    // Filter by geographical hierarchy
     if (req.query.division) query = query.where('division_id').equals(req.query.division);
     if (req.query.parliament) query = query.where('parliament_id').equals(req.query.parliament);
     if (req.query.assembly) query = query.where('assembly_id').equals(req.query.assembly);
@@ -60,187 +65,136 @@ exports.getCasteLists = async (req, res, next) => {
   }
 };
 
-// @desc    Get single caste list entry
+// @desc    Get single caste list
 // @route   GET /api/caste-lists/:id
 // @access  Public
 exports.getCasteList = async (req, res, next) => {
   try {
-    const casteEntry = await CasteList.findById(req.params.id)
+    const casteList = await CasteList.findById(req.params.id)
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
+      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'name email')
       .populate('updated_by', 'name email');
 
-    if (!casteEntry) {
+    if (!casteList) {
       return res.status(404).json({
         success: false,
-        message: 'Caste list entry not found'
+        message: 'Caste list not found'
       });
     }
 
     res.status(200).json({
       success: true,
-      data: casteEntry
+      data: casteList
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Create caste list entry
+// @desc    Create caste list
 // @route   POST /api/caste-lists
 // @access  Private
 exports.createCasteList = async (req, res, next) => {
   try {
-    // Validate required fields
-    const requiredFields = [
-      'caste', 'division_id', 'parliament_id', 
-      'assembly_id', 'block_id', 'booth_id', 'created_by'
-    ];
-    
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Missing required fields: ${missingFields.join(', ')}`
-      });
-    }
-
     // Verify all references exist
     const [
-      division, parliament, assembly, block, booth, creator
+      division,
+      parliament,
+      assembly,
+      block,
+      booth
     ] = await Promise.all([
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
       Block.findById(req.body.block_id),
-      Booth.findById(req.body.booth_id),
-      User.findById(req.body.created_by)
+      Booth.findById(req.body.booth_id)
     ]);
 
-    // Create detailed error response
-    if (!division || !parliament || !assembly || !block || !booth || !creator) {
-      return res.status(400).json({
+    if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
+    if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
+    if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
+    if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
+    if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+
+    // Set created_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'One or more references are invalid',
-        details: {
-          division: !!division,
-          parliament: !!parliament,
-          assembly: !!assembly,
-          block: !!block,
-          booth: !!booth,
-          creator: !!creator
-        }
+        message: 'Not authorized - user not identified'
       });
     }
 
-    // Check if caste already exists in the same booth
-    const existingCaste = await CasteList.findOne({
-      caste: req.body.caste,
-      booth_id: req.body.booth_id
-    });
+    const casteListData = {
+      ...req.body,
+      created_by: req.user.id
+    };
 
-    if (existingCaste) {
-      return res.status(409).json({  // 409 Conflict is more appropriate
-        success: false,
-        message: 'This caste already exists for the specified booth',
-        data: {
-          existingEntry: {
-            _id: existingCaste._id,
-            createdAt: existingCaste.createdAt
-          }
-        }
-      });
-    }
-
-    // Create new caste entry
-    const casteEntry = await CasteList.create(req.body);
+    const casteList = await CasteList.create(casteListData);
 
     res.status(201).json({
       success: true,
-      data: casteEntry,
-      message: 'Caste entry created successfully'
+      data: casteList
     });
-
   } catch (err) {
-    // Handle specific MongoDB errors
-    if (err.name === 'ValidationError') {
+    if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Validation Error',
-        error: err.message
+        message: 'Caste with this name already exists in this booth'
       });
     }
-    
-    // Handle duplicate key errors
-    if (err.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'Duplicate entry detected',
-        error: err.message
-      });
-    }
-    
-    // Pass other errors to the error handler middleware
     next(err);
   }
 };
 
-// @desc    Update caste list entry
+// @desc    Update caste list
 // @route   PUT /api/caste-lists/:id
 // @access  Private
 exports.updateCasteList = async (req, res, next) => {
   try {
-    let casteEntry = await CasteList.findById(req.params.id);
+    let casteList = await CasteList.findById(req.params.id);
 
-    if (!casteEntry) {
+    if (!casteList) {
       return res.status(404).json({
         success: false,
-        message: 'Caste list entry not found'
+        message: 'Caste list not found'
       });
     }
 
-    // Verify all references exist if being updated
-    const referenceChecks = [];
-    if (req.body.division_id) referenceChecks.push(Division.findById(req.body.division_id));
-    if (req.body.parliament_id) referenceChecks.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.assembly_id) referenceChecks.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.block_id) referenceChecks.push(Block.findById(req.body.block_id));
-    if (req.body.booth_id) referenceChecks.push(Booth.findById(req.body.booth_id));
-    if (req.body.updated_by) referenceChecks.push(User.findById(req.body.updated_by));
+    // Verify references if being updated
+    const verificationPromises = [];
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
-    const results = await Promise.all(referenceChecks);
-    if (results.some(result => !result)) {
-      return res.status(400).json({
-        success: false,
-        message: 'One or more references are invalid'
-      });
-    }
-
-    // Check if caste already exists in the same booth (for another entry)
-    if (req.body.caste || req.body.booth_id) {
-      const caste = req.body.caste || casteEntry.caste;
-      const boothId = req.body.booth_id || casteEntry.booth_id;
-
-      const existingCaste = await CasteList.findOne({
-        _id: { $ne: req.params.id },
-        caste: caste,
-        booth_id: boothId
-      });
-
-      if (existingCaste) {
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'This caste already exists for the specified booth'
+          message: 'Invalid reference ID provided'
         });
       }
     }
 
-    casteEntry = await CasteList.findByIdAndUpdate(req.params.id, req.body, {
+    // Set updated_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized - user not identified'
+      });
+    }
+
+    req.body.updated_by = req.user.id;
+
+    casteList = await CasteList.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     })
@@ -248,34 +202,40 @@ exports.updateCasteList = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,
-      data: casteEntry
+      data: casteList
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Caste with this name already exists in this booth'
+      });
+    }
     next(err);
   }
 };
 
-// @desc    Delete caste list entry
+// @desc    Delete caste list
 // @route   DELETE /api/caste-lists/:id
 // @access  Private (Admin only)
 exports.deleteCasteList = async (req, res, next) => {
   try {
-    const casteEntry = await CasteList.findById(req.params.id);
+    const casteList = await CasteList.findById(req.params.id);
 
-    if (!casteEntry) {
+    if (!casteList) {
       return res.status(404).json({
         success: false,
-        message: 'Caste list entry not found'
+        message: 'Caste list not found'
       });
     }
 
-    await casteEntry.remove();
+    await casteList.deleteOne();
 
     res.status(200).json({
       success: true,
@@ -301,12 +261,8 @@ exports.getCasteListsByBooth = async (req, res, next) => {
     }
 
     const casteLists = await CasteList.find({ booth_id: req.params.boothId })
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('created_by', 'name email')
-      .sort({ category: 1, caste: 1 });
+      .sort({ category: 1, caste: 1 })
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -332,12 +288,9 @@ exports.getCasteListsByCategory = async (req, res, next) => {
     }
 
     const casteLists = await CasteList.find({ category: req.params.category })
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
-      .sort({ caste: 1 });
+      .sort({ caste: 1 })
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,

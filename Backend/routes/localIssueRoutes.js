@@ -40,19 +40,19 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for issue names
+ *         description: Search term for issue names, descriptions or departments
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [Reported, In Progress, Resolved, Rejected]
- *         description: Filter by status
+ *         description: Filter by issue status
  *       - in: query
  *         name: priority
  *         schema:
  *           type: string
  *           enum: [Low, Medium, High, Critical]
- *         description: Filter by priority
+ *         description: Filter by issue priority
  *       - in: query
  *         name: department
  *         schema:
@@ -62,32 +62,27 @@ const router = express.Router();
  *         name: division
  *         schema:
  *           type: string
- *         description: Division ID to filter by
+ *         description: Filter by division ID
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Parliament ID to filter by
+ *         description: Filter by parliament ID
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Assembly ID to filter by
+ *         description: Filter by assembly ID
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Block ID to filter by
+ *         description: Filter by block ID
  *       - in: query
  *         name: booth
  *         schema:
  *           type: string
- *         description: Booth ID to filter by
- *       - in: query
- *         name: creator
- *         schema:
- *           type: string
- *         description: Creator user ID to filter by
+ *         description: Filter by booth ID
  *     responses:
  *       200:
  *         description: List of local issues
@@ -215,7 +210,7 @@ router.put('/:id', protect, updateLocalIssue);
  *       404:
  *         description: Local issue not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteLocalIssue);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteLocalIssue);
 
 /**
  * @swagger
@@ -303,53 +298,41 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *         issue_name:
  *           type: string
  *           description: Name of the issue
- *           example: "Road Repair"
  *         department:
  *           type: string
- *           description: Department responsible
- *           example: "Public Works"
+ *           description: Department responsible for the issue
  *         description:
  *           type: string
  *           description: Detailed description of the issue
- *           example: "Potholes on Main Street need repair"
  *         status:
  *           type: string
  *           enum: [Reported, In Progress, Resolved, Rejected]
  *           description: Current status of the issue
- *           example: "Reported"
  *         priority:
  *           type: string
  *           enum: [Low, Medium, High, Critical]
  *           description: Priority level of the issue
- *           example: "High"
  *         division_id:
  *           type: string
  *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439011"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *           example: "507f1f77bcf86cd799439012"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
- *           example: "507f1f77bcf86cd799439013"
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439014"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439015"
  *         created_by:
  *           type: string
- *           description: User who created the record
- *           example: "507f1f77bcf86cd799439016"
+ *           description: Reference to User who created the record
  *         updated_by:
  *           type: string
- *           description: User who last updated the record
- *           example: "507f1f77bcf86cd799439017"
+ *           description: Reference to User who last updated the record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -358,11 +341,6 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;

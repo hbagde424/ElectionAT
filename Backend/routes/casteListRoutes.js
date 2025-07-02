@@ -40,38 +40,38 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for caste names
+ *         description: Search term for caste names or categories
  *       - in: query
  *         name: category
  *         schema:
  *           type: string
  *           enum: [SC, ST, OBC, General, Other]
- *         description: Filter by category
+ *         description: Filter by caste category
  *       - in: query
  *         name: division
  *         schema:
  *           type: string
- *         description: Division ID to filter by
+ *         description: Filter by division ID
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Parliament ID to filter by
+ *         description: Filter by parliament ID
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Assembly ID to filter by
+ *         description: Filter by assembly ID
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Block ID to filter by
+ *         description: Filter by block ID
  *       - in: query
  *         name: booth
  *         schema:
  *           type: string
- *         description: Booth ID to filter by
+ *         description: Filter by booth ID
  *     responses:
  *       200:
  *         description: List of caste lists
@@ -101,7 +101,7 @@ router.get('/', getCasteLists);
  * @swagger
  * /api/caste-lists/{id}:
  *   get:
- *     summary: Get single caste list entry
+ *     summary: Get single caste list
  *     tags: [Caste Lists]
  *     parameters:
  *       - in: path
@@ -111,13 +111,13 @@ router.get('/', getCasteLists);
  *           type: string
  *     responses:
  *       200:
- *         description: Caste list entry data
+ *         description: Caste list data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/CasteList'
  *       404:
- *         description: Caste list entry not found
+ *         description: Caste list not found
  */
 router.get('/:id', getCasteList);
 
@@ -125,7 +125,7 @@ router.get('/:id', getCasteList);
  * @swagger
  * /api/caste-lists:
  *   post:
- *     summary: Create new caste list entry
+ *     summary: Create new caste list
  *     tags: [Caste Lists]
  *     security:
  *       - bearerAuth: []
@@ -137,7 +137,7 @@ router.get('/:id', getCasteList);
  *             $ref: '#/components/schemas/CasteList'
  *     responses:
  *       201:
- *         description: Caste list entry created successfully
+ *         description: Caste list created successfully
  *       400:
  *         description: Invalid input data
  *       401:
@@ -149,7 +149,7 @@ router.post('/', protect, createCasteList);
  * @swagger
  * /api/caste-lists/{id}:
  *   put:
- *     summary: Update caste list entry
+ *     summary: Update caste list
  *     tags: [Caste Lists]
  *     security:
  *       - bearerAuth: []
@@ -167,13 +167,13 @@ router.post('/', protect, createCasteList);
  *             $ref: '#/components/schemas/CasteList'
  *     responses:
  *       200:
- *         description: Caste list entry updated successfully
+ *         description: Caste list updated successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Caste list entry not found
+ *         description: Caste list not found
  */
 router.put('/:id', protect, updateCasteList);
 
@@ -181,7 +181,7 @@ router.put('/:id', protect, updateCasteList);
  * @swagger
  * /api/caste-lists/{id}:
  *   delete:
- *     summary: Delete caste list entry
+ *     summary: Delete caste list
  *     tags: [Caste Lists]
  *     security:
  *       - bearerAuth: []
@@ -193,13 +193,13 @@ router.put('/:id', protect, updateCasteList);
  *           type: string
  *     responses:
  *       200:
- *         description: Caste list entry deleted
+ *         description: Caste list deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Caste list entry not found
+ *         description: Caste list not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteCasteList);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteCasteList);
 
 /**
  * @swagger
@@ -288,39 +288,30 @@ router.get('/category/:category', getCasteListsByCategory);
  *           type: string
  *           enum: [SC, ST, OBC, General, Other]
  *           description: Caste category
- *           example: "OBC"
  *         caste:
  *           type: string
  *           description: Caste name
- *           example: "Yadav"
  *         division_id:
  *           type: string
  *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439011"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *           example: "507f1f77bcf86cd799439012"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
- *           example: "507f1f77bcf86cd799439013"
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439014"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439015"
  *         created_by:
  *           type: string
- *           description: User who created the record
- *           example: "507f1f77bcf86cd799439016"
+ *           description: Reference to User who created the record
  *         updated_by:
  *           type: string
- *           description: User who last updated the record
- *           example: "507f1f77bcf86cd799439017"
+ *           description: Reference to User who last updated the record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -329,11 +320,6 @@ router.get('/category/:category', getCasteListsByCategory);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;

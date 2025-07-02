@@ -16,20 +16,26 @@ exports.getLocalIssues = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Basic query
+    // Base query
     let query = LocalIssue.find()
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email')
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name')
       .sort({ created_at: -1 });
 
     // Search functionality
     if (req.query.search) {
-      query = query.find({ $text: { $search: req.query.search } });
+      query = query.find({
+        $or: [
+          { issue_name: { $regex: req.query.search, $options: 'i' } },
+          { description: { $regex: req.query.search, $options: 'i' } },
+          { department: { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
     }
 
     // Filter by status
@@ -47,17 +53,12 @@ exports.getLocalIssues = async (req, res, next) => {
       query = query.where('department').equals(req.query.department);
     }
 
-    // Filter by political divisions
+    // Filter by geographical hierarchy
     if (req.query.division) query = query.where('division_id').equals(req.query.division);
     if (req.query.parliament) query = query.where('parliament_id').equals(req.query.parliament);
     if (req.query.assembly) query = query.where('assembly_id').equals(req.query.assembly);
     if (req.query.block) query = query.where('block_id').equals(req.query.block);
     if (req.query.booth) query = query.where('booth_id').equals(req.query.booth);
-
-    // Filter by creator
-    if (req.query.creator) {
-      query = query.where('created_by').equals(req.query.creator);
-    }
 
     const localIssues = await query.skip(skip).limit(limit).exec();
     const total = await LocalIssue.countDocuments(query.getFilter());
@@ -85,7 +86,7 @@ exports.getLocalIssue = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
+      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'name email')
       .populate('updated_by', 'name email');
 
@@ -112,24 +113,39 @@ exports.createLocalIssue = async (req, res, next) => {
   try {
     // Verify all references exist
     const [
-      division, parliament, assembly, block, booth, creator
+      division,
+      parliament,
+      assembly,
+      block,
+      booth
     ] = await Promise.all([
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
       Block.findById(req.body.block_id),
-      Booth.findById(req.body.booth_id),
-      User.findById(req.body.created_by)
+      Booth.findById(req.body.booth_id)
     ]);
 
-    if (!division || !parliament || !assembly || !block || !booth || !creator) {
-      return res.status(400).json({
+    if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
+    if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
+    if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
+    if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
+    if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+
+    // Set created_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'One or more references are invalid'
+        message: 'Not authorized - user not identified'
       });
     }
 
-    const localIssue = await LocalIssue.create(req.body);
+    const localIssueData = {
+      ...req.body,
+      created_by: req.user.id
+    };
+
+    const localIssue = await LocalIssue.create(localIssueData);
 
     res.status(201).json({
       success: true,
@@ -154,22 +170,34 @@ exports.updateLocalIssue = async (req, res, next) => {
       });
     }
 
-    // Verify all references exist if being updated
-    const referenceChecks = [];
-    if (req.body.division_id) referenceChecks.push(Division.findById(req.body.division_id));
-    if (req.body.parliament_id) referenceChecks.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.assembly_id) referenceChecks.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.block_id) referenceChecks.push(Block.findById(req.body.block_id));
-    if (req.body.booth_id) referenceChecks.push(Booth.findById(req.body.booth_id));
-    if (req.body.updated_by) referenceChecks.push(User.findById(req.body.updated_by));
+    // Verify references if being updated
+    const verificationPromises = [];
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
-    const results = await Promise.all(referenceChecks);
-    if (results.some(result => !result)) {
-      return res.status(400).json({
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reference ID provided'
+        });
+      }
+    }
+
+    // Set updated_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'One or more references are invalid'
+        message: 'Not authorized - user not identified'
       });
     }
+
+    req.body.updated_by = req.user.id;
 
     localIssue = await LocalIssue.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -179,9 +207,9 @@ exports.updateLocalIssue = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -206,7 +234,7 @@ exports.deleteLocalIssue = async (req, res, next) => {
       });
     }
 
-    await localIssue.remove();
+    await localIssue.deleteOne();
 
     res.status(200).json({
       success: true,
@@ -232,12 +260,8 @@ exports.getLocalIssuesByBooth = async (req, res, next) => {
     }
 
     const localIssues = await LocalIssue.find({ booth_id: req.params.boothId })
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('created_by', 'name email')
-      .sort({ created_at: -1 });
+      .sort({ priority: -1, created_at: -1 })
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -263,12 +287,9 @@ exports.getLocalIssuesByStatus = async (req, res, next) => {
     }
 
     const localIssues = await LocalIssue.find({ status: req.params.status })
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number name')
-      .sort({ priority: -1, created_at: -1 });
+      .sort({ priority: -1, created_at: -1 })
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,

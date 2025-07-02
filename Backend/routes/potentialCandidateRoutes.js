@@ -5,8 +5,8 @@ const {
   createPotentialCandidate,
   updatePotentialCandidate,
   deletePotentialCandidate,
-  getPotentialCandidatesByParty,
-  getPotentialCandidatesByConstituency
+  getPotentialCandidatesByConstituency,
+  getPotentialCandidatesByParty
 } = require('../controllers/potentialCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -16,7 +16,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Potential Candidates
- *   description: Potential election candidate management
+ *   description: Potential candidate management
  */
 
 /**
@@ -40,28 +40,28 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for candidate details
- *       - in: query
- *         name: party_id
- *         schema:
- *           type: string
- *         description: Party ID to filter by
- *       - in: query
- *         name: constituency_id
- *         schema:
- *           type: string
- *         description: Constituency ID to filter by
- *       - in: query
- *         name: election_year_id
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
+ *         description: Search term for candidate names, history, pros, cons or post details
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [active, inactive, under_review]
- *         description: Status to filter by
+ *         description: Filter by status
+ *       - in: query
+ *         name: party
+ *         schema:
+ *           type: string
+ *         description: Filter by party ID
+ *       - in: query
+ *         name: constituency
+ *         schema:
+ *           type: string
+ *         description: Filter by constituency ID
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Filter by election year ID
  *     responses:
  *       200:
  *         description: List of potential candidates
@@ -133,7 +133,7 @@ router.get('/:id', getPotentialCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createPotentialCandidate);
+router.post('/', protect, createPotentialCandidate);
 
 /**
  * @swagger
@@ -165,7 +165,7 @@ router.post('/', protect, authorize('superAdmin'), createPotentialCandidate);
  *       404:
  *         description: Potential candidate not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updatePotentialCandidate);
+router.put('/:id', protect, updatePotentialCandidate);
 
 /**
  * @swagger
@@ -189,38 +189,7 @@ router.put('/:id', protect, authorize('superAdmin'), updatePotentialCandidate);
  *       404:
  *         description: Potential candidate not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deletePotentialCandidate);
-
-/**
- * @swagger
- * /api/potential-candidates/party/{partyId}:
- *   get:
- *     summary: Get potential candidates by party
- *     tags: [Potential Candidates]
- *     parameters:
- *       - in: path
- *         name: partyId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of potential candidates for the party
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PotentialCandidate'
- */
-router.get('/party/:partyId', getPotentialCandidatesByParty);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePotentialCandidate);
 
 /**
  * @swagger
@@ -250,8 +219,43 @@ router.get('/party/:partyId', getPotentialCandidatesByParty);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/PotentialCandidate'
+ *       404:
+ *         description: Constituency not found
  */
 router.get('/constituency/:constituencyId', getPotentialCandidatesByConstituency);
+
+/**
+ * @swagger
+ * /api/potential-candidates/party/{partyId}:
+ *   get:
+ *     summary: Get potential candidates by party
+ *     tags: [Potential Candidates]
+ *     parameters:
+ *       - in: path
+ *         name: partyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of potential candidates for the party
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PotentialCandidate'
+ *       404:
+ *         description: Party not found
+ */
+router.get('/party/:partyId', getPotentialCandidatesByParty);
 
 /**
  * @swagger
@@ -263,73 +267,69 @@ router.get('/constituency/:constituencyId', getPotentialCandidatesByConstituency
  *         - name
  *         - party_id
  *         - constituency_id
+ *         - post_details.postname
+ *         - post_details.from_date
+ *         - post_details.to_date
+ *         - post_details.place
  *         - election_year_id
  *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           description: Candidate name
- *           example: "John Doe"
+ *           description: Name of the potential candidate
  *         party_id:
  *           type: string
  *           description: Reference to Party
- *           example: "507f1f77bcf86cd799439011"
  *         constituency_id:
  *           type: string
- *           description: Reference to Constituency
- *           example: "507f1f77bcf86cd799439012"
+ *           description: Reference to Assembly (constituency)
  *         history:
  *           type: string
- *           description: Candidate background and history
- *           example: "Former mayor with 10 years of experience"
+ *           description: Background history of the candidate
  *         post_details:
  *           type: object
  *           properties:
  *             postname:
  *               type: string
- *               example: "Mayor"
+ *               description: Name of the post held
  *             from_date:
  *               type: string
  *               format: date
- *               example: "2015-01-01"
+ *               description: Start date of the post
  *             to_date:
  *               type: string
  *               format: date
- *               example: "2020-01-01"
+ *               description: End date of the post
  *             place:
  *               type: string
- *               example: "New York City"
+ *               description: Location/place of the post
  *         pros:
  *           type: string
- *           description: Strengths of the candidate
- *           example: "Strong public speaker, popular among youth"
+ *           description: Positive aspects/advantages of the candidate
  *         cons:
  *           type: string
- *           description: Weaknesses of the candidate
- *           example: "Limited superAdministrative experience"
+ *           description: Negative aspects/disadvantages of the candidate
  *         election_year_id:
  *           type: string
- *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439013"
+ *           description: Reference to ElectionYear
  *         supporter_candidates:
  *           type: array
  *           items:
  *             type: string
- *           description: References to supporting candidates
- *           example: ["507f1f77bcf86cd799439014", "507f1f77bcf86cd799439015"]
+ *           description: Array of supporting candidate references
  *         image:
  *           type: string
- *           description: URL to candidate image
- *           example: "https://example.com/images/john-doe.jpg"
+ *           description: URL to candidate's image
  *         status:
  *           type: string
  *           enum: [active, inactive, under_review]
- *           description: Candidate status
- *           example: "active"
+ *           description: Current status of the potential candidate
  *         created_by:
  *           type: string
- *           description: Reference to User who created this record
- *           example: "507f1f77bcf86cd799439016"
+ *           description: Reference to User who created the record
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated the record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -338,11 +338,6 @@ router.get('/constituency/:constituencyId', getPotentialCandidatesByConstituency
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;

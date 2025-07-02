@@ -87,17 +87,17 @@ localIssueSchema.pre('save', function(next) {
 });
 
 // Indexes for better performance
-localIssueSchema.index({ issue_name: 'text' }); // For text search on issue names
-localIssueSchema.index({ status: 1 }); // For filtering by status
-localIssueSchema.index({ priority: 1 }); // For filtering by priority
-localIssueSchema.index({ department: 1 }); // For filtering by department
+localIssueSchema.index({ issue_name: 'text' });
+localIssueSchema.index({ status: 1 });
+localIssueSchema.index({ priority: 1 });
+localIssueSchema.index({ department: 1 });
 localIssueSchema.index({ 
   division_id: 1, 
   parliament_id: 1, 
   assembly_id: 1,
   block_id: 1,
   booth_id: 1
-}); // For hierarchical queries
+});
 
 // Virtual population
 localIssueSchema.virtual('division', {

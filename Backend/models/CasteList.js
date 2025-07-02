@@ -73,15 +73,15 @@ casteListSchema.pre('save', function(next) {
 });
 
 // Indexes for better performance
-casteListSchema.index({ caste: 'text' }); // For text search on caste names
-casteListSchema.index({ category: 1, caste: 1 }); // For filtering by category and caste
+casteListSchema.index({ caste: 'text' });
+casteListSchema.index({ category: 1, caste: 1 });
 casteListSchema.index({ 
   division_id: 1, 
   parliament_id: 1, 
   assembly_id: 1,
   block_id: 1,
   booth_id: 1
-}); // For hierarchical queries
+});
 
 // Virtual population
 casteListSchema.virtual('division', {
