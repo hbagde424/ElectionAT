@@ -130,6 +130,7 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
+const WinningPartiesList = Loadable(lazy(() => import('pages/curd/WinningPartiesList')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
@@ -565,6 +566,10 @@ const MainRoutes = {
           path: 'booth-volunteer',
           element: <BoothVolunteer />
         },
+        {
+          path: 'WinningPartiesList',
+          element: <WinningPartiesList />
+        },
 
         {
           path: 'state',
@@ -575,47 +580,47 @@ const MainRoutes = {
           path: 'division',
           element: <Division />
         },
-                {
+        {
           path: 'Assembly-Votes',
           element: <AssemblyVotes />
         },
-                        {
+        {
           path: 'Booth-Votes',
           element: <BoothVotes />
         },
-                                {
+        {
           path: 'Block-Votes',
           element: <BlockVotes />
         },
-                                        {
+        {
           path: 'Parliament-Votes',
           element: <ParliamentVotes />
         },
-                                                {
+        {
           path: 'Booth-Survey',
           element: <BoothSurvey />
         },
-                                                {
+        {
           path: 'Caste-List',
           element: <CastList />
         },
-                                                {
+        {
           path: 'Local-Issue',
           element: <LocalIssue />
         },
-                                                {
+        {
           path: 'Events',
           element: <Events />
         },
-                                                {
+        {
           path: 'Work-Status',
           element: <WorkStatus />
         },
-                                                {
+        {
           path: 'Pontentcal-Candidate',
           element: <PolentialCandidate />
         },
-        
+
 
 
 

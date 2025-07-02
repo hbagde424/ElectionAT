@@ -1,9 +1,9 @@
 import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
 
-export default function AlertVolunteerDelete({ id, open, handleClose, refresh }) {
+export default function AlertWinningPartyDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
-        const res = await fetch(`http://localhost:5000/api/booth-volunteers/${id}`, {
+        const res = await fetch(`http://localhost:5000/api/winning-parties/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ export default function AlertVolunteerDelete({ id, open, handleClose, refresh })
 
     return (
         <Dialog open={open} onClose={handleClose}>
-            <DialogTitle>Are you sure you want to delete this volunteer?</DialogTitle>
+            <DialogTitle>Are you sure you want to delete this winning party record?</DialogTitle>
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
                 <Button color="error" variant="contained" onClick={handleDelete}>
