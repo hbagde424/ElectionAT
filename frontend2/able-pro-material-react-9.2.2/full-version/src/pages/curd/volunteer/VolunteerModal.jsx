@@ -35,14 +35,13 @@ export default function VolunteerModal({ open, modalToggler, volunteer, refresh 
     const [assemblies, setAssemblies] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [blocks, setBlocks] = useState([]);
-    const BASE_URL = process.env.REACT_APP_API_BASE_URL;
     useEffect(() => {
         Promise.all([
-            fetch('${BASE_URL}/booths').then((res) => res.json()),
-            fetch('${BASE_URL}/parties').then((res) => res.json()),
-            fetch('${BASE_URL}/assemblies').then((res) => res.json()),
-            fetch('${BASE_URL}/parliaments').then((res) => res.json()),
-            fetch('${BASE_URL}/blocks').then((res) => res.json())
+            fetch('http://localhost:5000/api/booths').then((res) => res.json()),
+            fetch('http://localhost:5000/api/parties').then((res) => res.json()),
+            fetch('http://localhost:5000/api/assemblies').then((res) => res.json()),
+            fetch('http://localhost:5000/api/parliaments').then((res) => res.json()),
+            fetch('http://localhost:5000/api/blocks').then((res) => res.json())
         ]).then(([boothRes, partyRes, assemblyRes, parliamentRes, blockRes]) => {
             if (boothRes.success) setBooths(boothRes.data);
             if (partyRes.success) setParties(partyRes.data);
@@ -107,8 +106,8 @@ export default function VolunteerModal({ open, modalToggler, volunteer, refresh 
         const method = volunteer ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = volunteer
-            ? `${BASE_URL}/booth-volunteers/${volunteer._id}`
-            : '${BASE_URL}/booth-volunteers';
+            ? `http://localhost:5000/api/booth-volunteers/${volunteer._id}`
+            : 'http://localhost:5000/api/booth-volunteers';
 
         const res = await fetch(url, {
             method,

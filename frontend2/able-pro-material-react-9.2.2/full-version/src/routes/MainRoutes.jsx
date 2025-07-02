@@ -131,6 +131,7 @@ const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')))
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/WinningPartiesList')));
+const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
@@ -569,6 +570,10 @@ const MainRoutes = {
         {
           path: 'WinningPartiesList',
           element: <WinningPartiesList />
+        },
+        {
+          path: 'visits',
+          element: <VisitListPageList />
         },
 
         {
