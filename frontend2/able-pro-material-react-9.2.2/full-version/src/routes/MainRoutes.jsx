@@ -140,6 +140,14 @@ const AssemblyVotes = Loadable(lazy(() => import('pages/curd/votes/AssemblyVotes
 const BoothVotes = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/Booth-votes')));
 const BlockVotes = Loadable(lazy(() => import('pages/curd/votes/BlockVotes/Block-votes')));
 const ParliamentVotes = Loadable(lazy(() => import('pages/curd/votes/ParliamentVotes/Parliament-votes')));
+const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
+const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
+const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issue')));
+const Events = Loadable(lazy(() => import('pages/curd/events/events')));
+const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
+const PolentialCandidate = Loadable(lazy(() => import('pages/curd/potentical candidate/potentical')));
+
+
 // const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
 // const Divisionlist = Loadable(lazy(() => import('pages/curd/division/list')));
 
@@ -602,6 +610,30 @@ const MainRoutes = {
                                         {
           path: 'Parliament-Votes',
           element: <ParliamentVotes />
+        },
+                                                {
+          path: 'Booth-Survey',
+          element: <BoothSurvey />
+        },
+                                                {
+          path: 'Caste-List',
+          element: <CastList />
+        },
+                                                {
+          path: 'Local-Issue',
+          element: <LocalIssue />
+        },
+                                                {
+          path: 'Events',
+          element: <Events />
+        },
+                                                {
+          path: 'Work-Status',
+          element: <WorkStatus />
+        },
+                                                {
+          path: 'Pontentcal-Candidate',
+          element: <PolentialCandidate />
         },
         
         
