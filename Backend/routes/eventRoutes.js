@@ -1,13 +1,13 @@
 const express = require('express');
 const {
-  getBoothSurveys,
-  getBoothSurvey,
-  createBoothSurvey,
-  updateBoothSurvey,
-  deleteBoothSurvey,
-  getSurveysByBooth,
-  getSurveysBySurveyor
-} = require('../controllers/boothSurveyController');
+  getEvents,
+  getEvent,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEventsByBooth,
+  getEventsByType
+} = require('../controllers/eventController');
 const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -15,16 +15,16 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Booth Surveys
- *   description: Booth survey management
+ *   name: Events
+ *   description: Event management
  */
 
 /**
  * @swagger
- * /api/booth-surveys:
+ * /api/events:
  *   get:
- *     summary: Get all booth surveys
- *     tags: [Booth Surveys]
+ *     summary: Get all events
+ *     tags: [Events]
  *     parameters:
  *       - in: query
  *         name: page
@@ -40,57 +40,59 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for remarks or poll results
+ *         description: Search term for event details
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [event, campaign, activity]
+ *         description: Event type to filter by
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *         description: Filter by status (Pending, In Progress, Completed, Verified, Rejected)
+ *           enum: [done, incomplete, cancelled, postponed]
+ *         description: Status to filter by
  *       - in: query
- *         name: booth
+ *         name: division_id
  *         schema:
  *           type: string
- *         description: Filter by booth ID
+ *         description: Division ID to filter by
  *       - in: query
- *         name: surveyor
+ *         name: parliament_id
  *         schema:
  *           type: string
- *         description: Filter by surveyor user ID
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: assembly_id
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: block_id
+ *         schema:
+ *           type: string
+ *         description: Block ID to filter by
+ *       - in: query
+ *         name: booth_id
+ *         schema:
+ *           type: string
+ *         description: Booth ID to filter by
  *       - in: query
  *         name: startDate
  *         schema:
  *           type: string
  *           format: date
- *         description: Start date for date range filter
+ *         description: Start date for filtering
  *       - in: query
  *         name: endDate
  *         schema:
  *           type: string
  *           format: date
- *         description: End date for date range filter
- *       - in: query
- *         name: division
- *         schema:
- *           type: string
- *         description: Filter by division ID
- *       - in: query
- *         name: parliament
- *         schema:
- *           type: string
- *         description: Filter by parliament ID
- *       - in: query
- *         name: assembly
- *         schema:
- *           type: string
- *         description: Filter by assembly ID
- *       - in: query
- *         name: block
- *         schema:
- *           type: string
- *         description: Filter by block ID
+ *         description: End date for filtering
  *     responses:
  *       200:
- *         description: List of booth surveys
+ *         description: List of events
  *         content:
  *           application/json:
  *             schema:
@@ -109,16 +111,16 @@ const router = express.Router();
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothSurvey'
+ *                     $ref: '#/components/schemas/Event'
  */
-router.get('/', getBoothSurveys);
+router.get('/', getEvents);
 
 /**
  * @swagger
- * /api/booth-surveys/{id}:
+ * /api/events/{id}:
  *   get:
- *     summary: Get single booth survey
- *     tags: [Booth Surveys]
+ *     summary: Get single event
+ *     tags: [Events]
  *     parameters:
  *       - in: path
  *         name: id
@@ -127,22 +129,22 @@ router.get('/', getBoothSurveys);
  *           type: string
  *     responses:
  *       200:
- *         description: Booth survey data
+ *         description: Event data
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/BoothSurvey'
+ *               $ref: '#/components/schemas/Event'
  *       404:
- *         description: Booth survey not found
+ *         description: Event not found
  */
-router.get('/:id', protect , authorize('admin', 'superAdmin'), getBoothSurvey);
+router.get('/:id', getEvent);
 
 /**
  * @swagger
- * /api/booth-surveys:
+ * /api/events:
  *   post:
- *     summary: Create new booth survey
- *     tags: [Booth Surveys]
+ *     summary: Create new event
+ *     tags: [Events]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -150,23 +152,23 @@ router.get('/:id', protect , authorize('admin', 'superAdmin'), getBoothSurvey);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/BoothSurvey'
+ *             $ref: '#/components/schemas/Event'
  *     responses:
  *       201:
- *         description: Booth survey created successfully
+ *         description: Event created successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect,  authorize('admin', 'superAdmin'), createBoothSurvey);
+router.post('/', protect, authorize('superAdmin', 'organizer'), createEvent);
 
 /**
  * @swagger
- * /api/booth-surveys/{id}:
+ * /api/events/{id}:
  *   put:
- *     summary: Update booth survey
- *     tags: [Booth Surveys]
+ *     summary: Update event
+ *     tags: [Events]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -180,25 +182,25 @@ router.post('/', protect,  authorize('admin', 'superAdmin'), createBoothSurvey);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/BoothSurvey'
+ *             $ref: '#/components/schemas/Event'
  *     responses:
  *       200:
- *         description: Booth survey updated successfully
+ *         description: Event updated successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Booth survey not found
+ *         description: Event not found
  */
-router.put('/:id', protect,  authorize('admin', 'superAdmin'), updateBoothSurvey);
+router.put('/:id', protect, authorize('superAdmin', 'organizer'), updateEvent);
 
 /**
  * @swagger
- * /api/booth-surveys/{id}:
+ * /api/events/{id}:
  *   delete:
- *     summary: Delete booth survey
- *     tags: [Booth Surveys]
+ *     summary: Delete event
+ *     tags: [Events]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -209,20 +211,20 @@ router.put('/:id', protect,  authorize('admin', 'superAdmin'), updateBoothSurvey
  *           type: string
  *     responses:
  *       200:
- *         description: Booth survey deleted
+ *         description: Event deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Booth survey not found
+ *         description: Event not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothSurvey);
+router.delete('/:id', protect, authorize('superAdmin'), deleteEvent);
 
 /**
  * @swagger
- * /api/booth-surveys/booth/{boothId}:
+ * /api/events/booth/{boothId}:
  *   get:
- *     summary: Get surveys by booth
- *     tags: [Booth Surveys]
+ *     summary: Get events by booth
+ *     tags: [Events]
  *     parameters:
  *       - in: path
  *         name: boothId
@@ -231,7 +233,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothSurv
  *           type: string
  *     responses:
  *       200:
- *         description: List of surveys for the booth
+ *         description: List of events for the booth
  *         content:
  *           application/json:
  *             schema:
@@ -244,27 +246,28 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothSurv
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothSurvey'
+ *                     $ref: '#/components/schemas/Event'
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getSurveysByBooth);
+router.get('/booth/:boothId', getEventsByBooth);
 
 /**
  * @swagger
- * /api/booth-surveys/surveyor/{userId}:
+ * /api/events/type/{type}:
  *   get:
- *     summary: Get surveys by surveyor
- *     tags: [Booth Surveys]
+ *     summary: Get events by type
+ *     tags: [Events]
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: type
  *         required: true
  *         schema:
  *           type: string
+ *           enum: [event, campaign, activity]
  *     responses:
  *       200:
- *         description: List of surveys conducted by the surveyor
+ *         description: List of events of the specified type
  *         content:
  *           application/json:
  *             schema:
@@ -277,66 +280,88 @@ router.get('/booth/:boothId', getSurveysByBooth);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothSurvey'
- *       404:
- *         description: User not found
+ *                     $ref: '#/components/schemas/Event'
+ *       400:
+ *         description: Invalid event type
  */
-router.get('/surveyor/:userId', getSurveysBySurveyor);
+router.get('/type/:type', getEventsByType);
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     BoothSurvey:
+ *     Event:
  *       type: object
  *       required:
- *         - booth_id
- *         - survey_done_by
- *         - survey_date
+ *         - name
+ *         - type
  *         - division_id
  *         - parliament_id
  *         - assembly_id
  *         - block_id
+ *         - booth_id
  *         - created_by
  *       properties:
- *         booth_id:
+ *         name:
  *           type: string
- *           description: Reference to Booth
- *         survey_done_by:
+ *           description: Event name
+ *           example: "Campaign Rally"
+ *         type:
  *           type: string
- *           description: Reference to User who conducted the survey
- *         survey_date:
- *           type: string
- *           format: date-time
- *           description: Date when survey was conducted
+ *           enum: [event, campaign, activity]
+ *           description: Event type
+ *           example: "campaign"
  *         status:
  *           type: string
- *           enum: [Pending, In Progress, Completed, Verified, Rejected]
- *           description: Current status of the survey
- *         remark:
+ *           enum: [done, incomplete, cancelled, postponed]
+ *           description: Event status
+ *           example: "incomplete"
+ *         description:
  *           type: string
- *           description: Additional remarks about the survey
- *         poll_result:
+ *           description: Event description
+ *           example: "Annual campaign rally with key speakers"
+ *         start_date:
  *           type: string
- *           description: Summary of poll results
+ *           format: date-time
+ *           description: Event start date and time
+ *           example: "2023-06-15T10:00:00Z"
+ *         end_date:
+ *           type: string
+ *           format: date-time
+ *           description: Event end date and time
+ *           example: "2023-06-15T14:00:00Z"
+ *         location:
+ *           type: string
+ *           description: Event location
+ *           example: "Central Park, New York"
  *         division_id:
  *           type: string
  *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439011"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439012"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439013"
  *         block_id:
  *           type: string
  *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439014"
+ *         booth_id:
+ *           type: string
+ *           description: Reference to Booth
+ *           example: "507f1f77bcf86cd799439015"
  *         created_by:
  *           type: string
- *           description: Reference to User who created the record
+ *           description: Reference to User who created the event
+ *           example: "507f1f77bcf86cd799439016"
  *         updated_by:
  *           type: string
- *           description: Reference to User who last updated the record
+ *           description: Reference to User who last updated the event
+ *           example: "507f1f77bcf86cd799439017"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -345,6 +370,11 @@ router.get('/surveyor/:userId', getSurveysBySurveyor);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;

@@ -1,10 +1,14 @@
-const BoothSurvey = require('../models/boothSurvey');
+const BoothSurvey = require('../models/BoothSurvey');
 const Booth = require('../models/booth');
 const User = require('../models/User');
+const Division = require('../models/division');
+const Parliament = require('../models/parliament');
+const Assembly = require('../models/assembly');
+const Block = require('../models/block');
 
 // @desc    Get all booth surveys
 // @route   GET /api/booth-surveys
-// @access  Private
+// @access  Public
 exports.getBoothSurveys = async (req, res, next) => {
   try {
     // Pagination
@@ -12,11 +16,32 @@ exports.getBoothSurveys = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Basic query
+    // Base query
     let query = BoothSurvey.find()
-      .populate('booth_id', 'booth_number location')
-      .populate('survey_done_by', 'name email role')
+      .populate('booth_id', 'name booth_number')
+      .populate('survey_done_by', 'name email')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name')
       .sort({ survey_date: -1 });
+
+    // Search functionality
+    if (req.query.search) {
+      query = query.find({
+        $or: [
+          { remark: { $regex: req.query.search, $options: 'i' } },
+          { poll_result: { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
+    }
+
+    // Filter by status
+    if (req.query.status) {
+      query = query.where('status').equals(req.query.status);
+    }
 
     // Filter by booth
     if (req.query.booth) {
@@ -28,20 +53,16 @@ exports.getBoothSurveys = async (req, res, next) => {
       query = query.where('survey_done_by').equals(req.query.surveyor);
     }
 
-    // Filter by status
-    if (req.query.status) {
-      query = query.where('status').equals(req.query.status);
+    // Filter by date range
+    if (req.query.startDate && req.query.endDate) {
+      query = query.where('survey_date').gte(new Date(req.query.startDate)).lte(new Date(req.query.endDate));
     }
 
-    // Filter by date range
-    if (req.query.startDate) {
-      const startDate = new Date(req.query.startDate);
-      query = query.where('survey_date').gte(startDate);
-    }
-    if (req.query.endDate) {
-      const endDate = new Date(req.query.endDate);
-      query = query.where('survey_date').lte(endDate);
-    }
+    // Filter by geographical hierarchy
+    if (req.query.division) query = query.where('division_id').equals(req.query.division);
+    if (req.query.parliament) query = query.where('parliament_id').equals(req.query.parliament);
+    if (req.query.assembly) query = query.where('assembly_id').equals(req.query.assembly);
+    if (req.query.block) query = query.where('block_id').equals(req.query.block);
 
     const surveys = await query.skip(skip).limit(limit).exec();
     const total = await BoothSurvey.countDocuments(query.getFilter());
@@ -61,17 +82,23 @@ exports.getBoothSurveys = async (req, res, next) => {
 
 // @desc    Get single booth survey
 // @route   GET /api/booth-surveys/:id
-// @access  Private
-exports.getBoothSurveyById = async (req, res, next) => {
+// @access  Public
+exports.getBoothSurvey = async (req, res, next) => {
   try {
     const survey = await BoothSurvey.findById(req.params.id)
-      .populate('booth_id', 'booth_number location')
-      .populate('survey_done_by', 'name email role');
+      .populate('booth_id', 'name booth_number full_address')
+      .populate('survey_done_by', 'name email phone')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('created_by', 'name email')
+      .populate('updated_by', 'name email');
 
     if (!survey) {
       return res.status(404).json({
         success: false,
-        message: 'Survey not found'
+        message: 'Booth survey not found'
       });
     }
 
@@ -84,40 +111,49 @@ exports.getBoothSurveyById = async (req, res, next) => {
   }
 };
 
-// @desc    Create new booth survey
+// @desc    Create booth survey
 // @route   POST /api/booth-surveys
-// @access  Private (Surveyor, Admin, Editor)
+// @access  Private
 exports.createBoothSurvey = async (req, res, next) => {
   try {
-    // Verify booth exists
-    const booth = await Booth.findById(req.body.booth_id);
-    if (!booth) {
-      return res.status(400).json({
+    // Verify all references exist
+    const [
+      booth,
+      surveyor,
+      division,
+      parliament,
+      assembly,
+      block
+    ] = await Promise.all([
+      Booth.findById(req.body.booth_id),
+      User.findById(req.body.survey_done_by),
+      Division.findById(req.body.division_id),
+      Parliament.findById(req.body.parliament_id),
+      Assembly.findById(req.body.assembly_id),
+      Block.findById(req.body.block_id)
+    ]);
+
+    if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+    if (!surveyor) return res.status(400).json({ success: false, message: 'Surveyor not found' });
+    if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
+    if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
+    if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
+    if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
+
+    // Set created_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Booth not found'
+        message: 'Not authorized - user not identified'
       });
     }
 
-    // Verify surveyor exists
-    const surveyor = await User.findById(req.body.survey_done_by);
-    if (!surveyor) {
-      return res.status(400).json({
-        success: false,
-        message: 'Surveyor not found'
-      });
-    }
+    const surveyData = {
+      ...req.body,
+      created_by: req.user.id
+    };
 
-    // Check if user is creating survey for themselves unless admin/editor
-    // if (req.user.id !== req.body.survey_done_by && 
-    //     !req.user.roles.includes('admin') && 
-    //     !req.user.roles.includes('editor')) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'You can only create surveys for yourself'
-    //   });
-    // }
-
-    const survey = await BoothSurvey.create(req.body);
+    const survey = await BoothSurvey.create(surveyData);
 
     res.status(201).json({
       success: true,
@@ -130,7 +166,7 @@ exports.createBoothSurvey = async (req, res, next) => {
 
 // @desc    Update booth survey
 // @route   PUT /api/booth-surveys/:id
-// @access  Private (Surveyor, Admin, Editor)
+// @access  Private
 exports.updateBoothSurvey = async (req, res, next) => {
   try {
     let survey = await BoothSurvey.findById(req.params.id);
@@ -138,46 +174,52 @@ exports.updateBoothSurvey = async (req, res, next) => {
     if (!survey) {
       return res.status(404).json({
         success: false,
-        message: 'Survey not found'
+        message: 'Booth survey not found'
       });
     }
 
-    // Verify booth exists if being updated
-    if (req.body.booth_id) {
-      const booth = await Booth.findById(req.body.booth_id);
-      if (!booth) {
+    // Verify references if being updated
+    const verificationPromises = [];
+    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
+    if (req.body.survey_done_by) verificationPromises.push(User.findById(req.body.survey_done_by));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'Booth not found'
+          message: 'Invalid reference ID provided'
         });
       }
     }
 
-    // Verify surveyor exists if being updated
-    if (req.body.survey_done_by) {
-      const surveyor = await User.findById(req.body.survey_done_by);
-      if (!surveyor) {
-        return res.status(400).json({
-          success: false,
-          message: 'Surveyor not found'
-        });
-      }
-    }
-
-    // Check if user is updating their own survey unless admin/editor
-    if (survey.survey_done_by.toString() !== req.user.id && 
-        !req.user.roles.includes('admin') && 
-        !req.user.roles.includes('editor')) {
-      return res.status(403).json({
+    // Set updated_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'You can only update your own surveys'
+        message: 'Not authorized - user not identified'
       });
     }
+
+    req.body.updated_by = req.user.id;
 
     survey = await BoothSurvey.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
-    }).populate('booth_id survey_done_by');
+    })
+      .populate('booth_id', 'name booth_number')
+      .populate('survey_done_by', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -190,7 +232,7 @@ exports.updateBoothSurvey = async (req, res, next) => {
 
 // @desc    Delete booth survey
 // @route   DELETE /api/booth-surveys/:id
-// @access  Private (Admin)
+// @access  Private (Admin only)
 exports.deleteBoothSurvey = async (req, res, next) => {
   try {
     const survey = await BoothSurvey.findById(req.params.id);
@@ -198,7 +240,7 @@ exports.deleteBoothSurvey = async (req, res, next) => {
     if (!survey) {
       return res.status(404).json({
         success: false,
-        message: 'Survey not found'
+        message: 'Booth survey not found'
       });
     }
 
@@ -213,9 +255,9 @@ exports.deleteBoothSurvey = async (req, res, next) => {
   }
 };
 
-// @desc    Get surveys by booth ID
+// @desc    Get surveys by booth
 // @route   GET /api/booth-surveys/booth/:boothId
-// @access  Private
+// @access  Public
 exports.getSurveysByBooth = async (req, res, next) => {
   try {
     // Verify booth exists
@@ -228,8 +270,9 @@ exports.getSurveysByBooth = async (req, res, next) => {
     }
 
     const surveys = await BoothSurvey.find({ booth_id: req.params.boothId })
-      .populate('survey_done_by', 'name email role')
-      .sort({ survey_date: -1 });
+      .sort({ survey_date: -1 })
+      .populate('survey_done_by', 'name')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -241,51 +284,24 @@ exports.getSurveysByBooth = async (req, res, next) => {
   }
 };
 
-// @desc    Get surveys by surveyor ID
-// @route   GET /api/booth-surveys/surveyor/:surveyorId
-// @access  Private
+// @desc    Get surveys by surveyor
+// @route   GET /api/booth-surveys/surveyor/:userId
+// @access  Public
 exports.getSurveysBySurveyor = async (req, res, next) => {
   try {
-    // Verify surveyor exists
-    const surveyor = await User.findById(req.params.surveyorId);
-    if (!surveyor) {
+    // Verify user exists
+    const user = await User.findById(req.params.userId);
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Surveyor not found'
+        message: 'User not found'
       });
     }
 
-    const surveys = await BoothSurvey.find({ survey_done_by: req.params.surveyorId })
-      .populate('booth_id', 'booth_number location')
-      .sort({ survey_date: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: surveys.length,
-      data: surveys
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get surveys by status
-// @route   GET /api/booth-surveys/status/:status
-// @access  Private
-exports.getSurveysByStatus = async (req, res, next) => {
-  try {
-    const validStatuses = ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'];
-    if (!validStatuses.includes(req.params.status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status'
-      });
-    }
-
-    const surveys = await BoothSurvey.find({ status: req.params.status })
-      .populate('booth_id', 'booth_number location')
-      .populate('survey_done_by', 'name email role')
-      .sort({ survey_date: -1 });
+    const surveys = await BoothSurvey.find({ survey_done_by: req.params.userId })
+      .sort({ survey_date: -1 })
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,

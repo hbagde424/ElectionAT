@@ -49,6 +49,11 @@ const blockVotesRoutes = require('./routes/blockVotesRoutes');
 const assemblyVotesRoutes = require('./routes/assemblyVotesRoutes');
 const parliamentVotesRoutes = require('./routes/parliamentVotesRoutes');
 const ElectionYearRoutes = require('./routes/electionYearRoutes');
+const potentialCandidateRoutes = require('./routes/potentialCandidateRoutes');
+const workStatusRoutes = require('./routes/workStatusRoutes');
+const casteListRoutes = require('./routes/casteListRoutes');
+const localIssueRoutes = require('./routes/localIssueRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 // Connect to database
 connectDB();
 seedSuperAdmin();
@@ -120,7 +125,11 @@ app.use('/api/block-votes', blockVotesRoutes);
 app.use('/api/assembly-votes', assemblyVotesRoutes);
 app.use('/api/parliament-votes', parliamentVotesRoutes);
 app.use('/api/election-years', ElectionYearRoutes);
-
+app.use('/api/potential-candidates', potentialCandidateRoutes);
+app.use('/api/work-status', workStatusRoutes);
+app.use('/api/caste-lists', casteListRoutes);
+app.use('/api/local-issues', localIssueRoutes);
+app.use('/api/events', eventRoutes);
 // Error handler
 app.use(errorHandler);
 

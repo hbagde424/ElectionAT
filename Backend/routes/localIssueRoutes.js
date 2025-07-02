@@ -1,13 +1,13 @@
 const express = require('express');
 const {
-  getBoothSurveys,
-  getBoothSurvey,
-  createBoothSurvey,
-  updateBoothSurvey,
-  deleteBoothSurvey,
-  getSurveysByBooth,
-  getSurveysBySurveyor
-} = require('../controllers/boothSurveyController');
+  getLocalIssues,
+  getLocalIssue,
+  createLocalIssue,
+  updateLocalIssue,
+  deleteLocalIssue,
+  getLocalIssuesByBooth,
+  getLocalIssuesByStatus
+} = require('../controllers/localIssueController');
 const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -15,16 +15,16 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Booth Surveys
- *   description: Booth survey management
+ *   name: Local Issues
+ *   description: Local issue management
  */
 
 /**
  * @swagger
- * /api/booth-surveys:
+ * /api/local-issues:
  *   get:
- *     summary: Get all booth surveys
- *     tags: [Booth Surveys]
+ *     summary: Get all local issues
+ *     tags: [Local Issues]
  *     parameters:
  *       - in: query
  *         name: page
@@ -40,57 +40,57 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for remarks or poll results
+ *         description: Search term for issue names
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *         description: Filter by status (Pending, In Progress, Completed, Verified, Rejected)
+ *           enum: [Reported, In Progress, Resolved, Rejected]
+ *         description: Filter by status
  *       - in: query
- *         name: booth
+ *         name: priority
  *         schema:
  *           type: string
- *         description: Filter by booth ID
+ *           enum: [Low, Medium, High, Critical]
+ *         description: Filter by priority
  *       - in: query
- *         name: surveyor
+ *         name: department
  *         schema:
  *           type: string
- *         description: Filter by surveyor user ID
- *       - in: query
- *         name: startDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Start date for date range filter
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: End date for date range filter
+ *         description: Filter by department
  *       - in: query
  *         name: division
  *         schema:
  *           type: string
- *         description: Filter by division ID
+ *         description: Division ID to filter by
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Filter by parliament ID
+ *         description: Parliament ID to filter by
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Filter by assembly ID
+ *         description: Assembly ID to filter by
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Filter by block ID
+ *         description: Block ID to filter by
+ *       - in: query
+ *         name: booth
+ *         schema:
+ *           type: string
+ *         description: Booth ID to filter by
+ *       - in: query
+ *         name: creator
+ *         schema:
+ *           type: string
+ *         description: Creator user ID to filter by
  *     responses:
  *       200:
- *         description: List of booth surveys
+ *         description: List of local issues
  *         content:
  *           application/json:
  *             schema:
@@ -109,16 +109,16 @@ const router = express.Router();
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothSurvey'
+ *                     $ref: '#/components/schemas/LocalIssue'
  */
-router.get('/', getBoothSurveys);
+router.get('/', getLocalIssues);
 
 /**
  * @swagger
- * /api/booth-surveys/{id}:
+ * /api/local-issues/{id}:
  *   get:
- *     summary: Get single booth survey
- *     tags: [Booth Surveys]
+ *     summary: Get single local issue
+ *     tags: [Local Issues]
  *     parameters:
  *       - in: path
  *         name: id
@@ -127,22 +127,22 @@ router.get('/', getBoothSurveys);
  *           type: string
  *     responses:
  *       200:
- *         description: Booth survey data
+ *         description: Local issue data
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/BoothSurvey'
+ *               $ref: '#/components/schemas/LocalIssue'
  *       404:
- *         description: Booth survey not found
+ *         description: Local issue not found
  */
-router.get('/:id', protect , authorize('admin', 'superAdmin'), getBoothSurvey);
+router.get('/:id', getLocalIssue);
 
 /**
  * @swagger
- * /api/booth-surveys:
+ * /api/local-issues:
  *   post:
- *     summary: Create new booth survey
- *     tags: [Booth Surveys]
+ *     summary: Create new local issue
+ *     tags: [Local Issues]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -150,23 +150,23 @@ router.get('/:id', protect , authorize('admin', 'superAdmin'), getBoothSurvey);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/BoothSurvey'
+ *             $ref: '#/components/schemas/LocalIssue'
  *     responses:
  *       201:
- *         description: Booth survey created successfully
+ *         description: Local issue created successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect,  authorize('admin', 'superAdmin'), createBoothSurvey);
+router.post('/', protect, createLocalIssue);
 
 /**
  * @swagger
- * /api/booth-surveys/{id}:
+ * /api/local-issues/{id}:
  *   put:
- *     summary: Update booth survey
- *     tags: [Booth Surveys]
+ *     summary: Update local issue
+ *     tags: [Local Issues]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -180,25 +180,25 @@ router.post('/', protect,  authorize('admin', 'superAdmin'), createBoothSurvey);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/BoothSurvey'
+ *             $ref: '#/components/schemas/LocalIssue'
  *     responses:
  *       200:
- *         description: Booth survey updated successfully
+ *         description: Local issue updated successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Booth survey not found
+ *         description: Local issue not found
  */
-router.put('/:id', protect,  authorize('admin', 'superAdmin'), updateBoothSurvey);
+router.put('/:id', protect, updateLocalIssue);
 
 /**
  * @swagger
- * /api/booth-surveys/{id}:
+ * /api/local-issues/{id}:
  *   delete:
- *     summary: Delete booth survey
- *     tags: [Booth Surveys]
+ *     summary: Delete local issue
+ *     tags: [Local Issues]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -209,20 +209,20 @@ router.put('/:id', protect,  authorize('admin', 'superAdmin'), updateBoothSurvey
  *           type: string
  *     responses:
  *       200:
- *         description: Booth survey deleted
+ *         description: Local issue deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Booth survey not found
+ *         description: Local issue not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothSurvey);
+router.delete('/:id', protect, authorize('superAdmin'), deleteLocalIssue);
 
 /**
  * @swagger
- * /api/booth-surveys/booth/{boothId}:
+ * /api/local-issues/booth/{boothId}:
  *   get:
- *     summary: Get surveys by booth
- *     tags: [Booth Surveys]
+ *     summary: Get local issues by booth
+ *     tags: [Local Issues]
  *     parameters:
  *       - in: path
  *         name: boothId
@@ -231,7 +231,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothSurv
  *           type: string
  *     responses:
  *       200:
- *         description: List of surveys for the booth
+ *         description: List of local issues for the booth
  *         content:
  *           application/json:
  *             schema:
@@ -244,27 +244,28 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothSurv
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothSurvey'
+ *                     $ref: '#/components/schemas/LocalIssue'
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getSurveysByBooth);
+router.get('/booth/:boothId', getLocalIssuesByBooth);
 
 /**
  * @swagger
- * /api/booth-surveys/surveyor/{userId}:
+ * /api/local-issues/status/{status}:
  *   get:
- *     summary: Get surveys by surveyor
- *     tags: [Booth Surveys]
+ *     summary: Get local issues by status
+ *     tags: [Local Issues]
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: status
  *         required: true
  *         schema:
  *           type: string
+ *           enum: [Reported, In Progress, Resolved, Rejected]
  *     responses:
  *       200:
- *         description: List of surveys conducted by the surveyor
+ *         description: List of local issues with the specified status
  *         content:
  *           application/json:
  *             schema:
@@ -277,66 +278,78 @@ router.get('/booth/:boothId', getSurveysByBooth);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothSurvey'
- *       404:
- *         description: User not found
+ *                     $ref: '#/components/schemas/LocalIssue'
+ *       400:
+ *         description: Invalid status
  */
-router.get('/surveyor/:userId', getSurveysBySurveyor);
+router.get('/status/:status', getLocalIssuesByStatus);
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     BoothSurvey:
+ *     LocalIssue:
  *       type: object
  *       required:
- *         - booth_id
- *         - survey_done_by
- *         - survey_date
+ *         - issue_name
+ *         - department
  *         - division_id
  *         - parliament_id
  *         - assembly_id
  *         - block_id
+ *         - booth_id
  *         - created_by
  *       properties:
- *         booth_id:
+ *         issue_name:
  *           type: string
- *           description: Reference to Booth
- *         survey_done_by:
+ *           description: Name of the issue
+ *           example: "Road Repair"
+ *         department:
  *           type: string
- *           description: Reference to User who conducted the survey
- *         survey_date:
+ *           description: Department responsible
+ *           example: "Public Works"
+ *         description:
  *           type: string
- *           format: date-time
- *           description: Date when survey was conducted
+ *           description: Detailed description of the issue
+ *           example: "Potholes on Main Street need repair"
  *         status:
  *           type: string
- *           enum: [Pending, In Progress, Completed, Verified, Rejected]
- *           description: Current status of the survey
- *         remark:
+ *           enum: [Reported, In Progress, Resolved, Rejected]
+ *           description: Current status of the issue
+ *           example: "Reported"
+ *         priority:
  *           type: string
- *           description: Additional remarks about the survey
- *         poll_result:
- *           type: string
- *           description: Summary of poll results
+ *           enum: [Low, Medium, High, Critical]
+ *           description: Priority level of the issue
+ *           example: "High"
  *         division_id:
  *           type: string
  *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439011"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439012"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439013"
  *         block_id:
  *           type: string
  *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439014"
+ *         booth_id:
+ *           type: string
+ *           description: Reference to Booth
+ *           example: "507f1f77bcf86cd799439015"
  *         created_by:
  *           type: string
- *           description: Reference to User who created the record
+ *           description: User who created the record
+ *           example: "507f1f77bcf86cd799439016"
  *         updated_by:
  *           type: string
- *           description: Reference to User who last updated the record
+ *           description: User who last updated the record
+ *           example: "507f1f77bcf86cd799439017"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -345,6 +358,11 @@ router.get('/surveyor/:userId', getSurveysBySurveyor);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;
