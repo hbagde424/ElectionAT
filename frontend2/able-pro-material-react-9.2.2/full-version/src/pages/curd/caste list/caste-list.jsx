@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip
+  Button, Stack, Box, Typography, Divider, Chip, Avatar
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 
 // third-party
 import {
@@ -37,9 +37,18 @@ export default function CasteListPage() {
   const [assemblies, setAssemblies] = useState([]);
   const [blocks, setBlocks] = useState([]);
   const [booths, setBooths] = useState([]);
+  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
+  const categoryColors = {
+    'SC': 'error',
+    'ST': 'warning',
+    'OBC': 'info',
+    'General': 'success',
+    'Other': 'default'
+  };
 
   const fetchCasteLists = async (pageIndex, pageSize) => {
     setLoading(true);
@@ -59,12 +68,13 @@ export default function CasteListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
+      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, usersRes] = await Promise.all([
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
         fetch('http://localhost:5000/api/assemblies'),
         fetch('http://localhost:5000/api/blocks'),
-        fetch('http://localhost:5000/api/booths')
+        fetch('http://localhost:5000/api/booths'),
+        fetch('http://localhost:5000/api/users')
       ]);
 
       const divisionsJson = await divisionsRes.json();
@@ -72,12 +82,14 @@ export default function CasteListPage() {
       const assembliesJson = await assembliesRes.json();
       const blocksJson = await blocksRes.json();
       const boothsJson = await boothsRes.json();
+      const usersJson = await usersRes.json();
 
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
+      if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -95,20 +107,11 @@ export default function CasteListPage() {
 
   const handleDeleteClose = () => setOpenDelete(false);
 
-  const categoryColors = {
-    'SC': 'error',
-    'ST': 'warning',
-    'OBC': 'info',
-    'General': 'success',
-    'Other': 'primary'
-  };
-
   const columns = useMemo(() => [
     {
       header: '#',
       accessorKey: '_id',
-      cell: ({ row }) => <Typography>{row.index + 1}</Typography>,
-      size: 60
+      cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
       header: 'Category',
@@ -120,94 +123,49 @@ export default function CasteListPage() {
           size="small" 
           sx={{ minWidth: 80 }}
         />
-      ),
-      size: 100
+      )
     },
     {
       header: 'Caste',
       accessorKey: 'caste',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>,
-      size: 150
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
     },
     {
-      header: 'Division',
-      accessorKey: 'division_id',
+      header: 'Booth',
+      accessorKey: 'booth_id',
       cell: ({ getValue }) => (
         getValue() ? 
-          <Chip label={getValue().name} color="primary" size="small" /> : 
-          <Typography variant="caption">-</Typography>
-      ),
-      size: 150
-    },
-    {
-      header: 'Parliament',
-      accessorKey: 'parliament_id',
-      cell: ({ getValue }) => (
-        getValue() ? 
-          <Chip label={getValue().name} color="secondary" size="small" /> : 
-          <Typography variant="caption">-</Typography>
-      ),
-      size: 150
-    },
-    {
-      header: 'Assembly',
-      accessorKey: 'assembly_id',
-      cell: ({ getValue }) => (
-        getValue() ? 
-          <Chip label={getValue().name} color="info" size="small" /> : 
-          <Typography variant="caption">-</Typography>
-      ),
-      size: 150
+          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> : 
+          <Typography variant="caption">No booth</Typography>
+      )
     },
     {
       header: 'Block',
       accessorKey: 'block_id',
       cell: ({ getValue }) => (
         getValue() ? 
-          <Chip label={getValue().name} color="warning" size="small" /> : 
-          <Typography variant="caption">-</Typography>
-      ),
-      size: 150
+          <Chip label={getValue().name} color="primary" size="small" /> : 
+          <Typography variant="caption">No block</Typography>
+      )
     },
     {
-      header: 'Booth',
-      accessorKey: 'booth_id',
+      header: 'Created By',
+      accessorKey: 'created_by',
       cell: ({ getValue }) => (
-        getValue() ? (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Chip 
-              label={`${getValue().name}`} 
-              color="success" 
-              size="small" 
-            />
-            <Typography variant="caption" color="textSecondary">
-              (Booth: {getValue().booth_number})
-            </Typography>
-          </Stack>
-        ) : (
-          <Typography variant="caption">-</Typography>
-        )
-      ),
-      size: 180
-    },
-    {
-      header: 'Created At',
-      accessorKey: 'created_at',
-      cell: ({ getValue }) => (
-        <Typography variant="caption">
-          {new Date(getValue()).toLocaleDateString()}
-        </Typography>
-      ),
-      size: 120
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Avatar sx={{ width: 24, height: 24 }}>
+            <User size={16} />
+          </Avatar>
+          <Typography>{getValue()?.name || 'Unknown'}</Typography>
+        </Stack>
+      )
     },
     {
       header: 'Actions',
+      meta: { className: 'cell-center' },
       cell: ({ row }) => {
         const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded ? 
-          <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : 
-          <Eye />;
-        
+        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View">
@@ -240,8 +198,7 @@ export default function CasteListPage() {
             </Tooltip>
           </Stack>
         );
-      },
-      size: 120
+      }
     }
   ], [theme]);
 
@@ -270,7 +227,7 @@ export default function CasteListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${casteLists.length} caste lists...`}
+            placeholder={`Search ${casteLists.length} caste entries...`}
           />
           <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCaste(null); setOpenModal(true); }}>
             Add Caste
@@ -341,6 +298,7 @@ export default function CasteListPage() {
         assemblies={assemblies}
         blocks={blocks}
         booths={booths}
+        users={users}
         refresh={() => fetchCasteLists(pagination.pageIndex, pagination.pageSize)}
       />
 

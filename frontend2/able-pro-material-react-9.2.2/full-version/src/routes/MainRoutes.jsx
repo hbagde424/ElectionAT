@@ -565,32 +565,12 @@ const MainRoutes = {
           path: 'booth-volunteer',
           element: <BoothVolunteer />
         },
-        // {
-        //   path: 'add-volunteer',
-        //   element: <AddBoothVolunteer />
-        // },
 
-        // {
-        //   path: 'add-volunteer',
-        //   element: <EditBoothVolunteer />
-        // },
-        
-        // {
-        //   path: 'Booth-infrastructure',
-        //   element: <Boothinfrastracture />
-        // },
         {
           path: 'state',
           element: <State />
         },
-        // {
-        //   path: 'state-add',
-        //   element: <Stateadd />
-        // },
-        // {
-        //   path: 'state-list',
-        //   element: <Statelist /> 
-        // },
+
         {
           path: 'division',
           element: <Division />
@@ -636,56 +616,7 @@ const MainRoutes = {
           element: <PolentialCandidate />
         },
         
-        
-        // {
-        //   path: 'division-add',
-        //   element: <Divisionadd />
-        // },
-        // {
-        //   path: 'division-list',
-        //   element: <Divisionlist />
-        // },
 
-        // {
-        //   path: 'district-add',
-        //   element: <DistrictAdd />
-        // },
-        // {
-        //   path: 'district-list',
-        //   element: <DistrictList />
-        // },
-        // {
-        //   path: 'assembly-add',
-        //   element: <AssemblyAdd />
-        // },
-        // {
-        //   path: 'assembly-list',
-        //   element: <AssemblyList />
-        // },
-        // {
-        //   path: 'parliament-add',
-        //   element: <ParliamentAdd />
-        // },
-        // {
-        //   path: 'parliament-list',
-        //   element: <ParliamentList />
-        // },
-        // {
-        //   path: 'block-add',
-        //   element: <BlockAdd />
-        // },
-        // {
-        //   path: 'block-list',
-        //   element: <BlockList />
-        // },
-        // {
-        //   path: 'booth-add',
-        //   element: <BoothAdd />
-        // },
-        // {
-        //   path: 'booth-list',
-        //   element: <BoothList />
-        // },
 
 
         {

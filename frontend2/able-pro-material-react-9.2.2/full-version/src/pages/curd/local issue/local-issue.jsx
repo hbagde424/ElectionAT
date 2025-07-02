@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip
+  Button, Stack, Box, Typography, Divider, Chip, Avatar
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 
 // third-party
 import {
@@ -20,38 +20,53 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
 // custom views and modals
-import AssemblyModal from 'pages/curd/assembly/AssemblyModal';
-import AlertAssemblyDelete from 'pages/curd/assembly/AlertAssemblyDelete';
-import AssemblyView from 'pages/curd/assembly/AssemblyView';
+import LocalIssueModal from 'pages/curd/local issue/LocalModal';
+import AlertLocalIssueDelete from 'pages/curd/local issue/AlertLocalDelete';
+import LocalIssueView from 'pages/curd/local issue/LocalView';
 import { Tooltip } from '@mui/material';
 
-export default function AssemblyListPage() {
+export default function LocalIssueListPage() {
   const theme = useTheme();
-
-  const [selectedAssembly, setSelectedAssembly] = useState(null);
+  const [selectedIssue, setSelectedIssue] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [assemblyDeleteId, setAssemblyDeleteId] = useState('');
-  const [assemblies, setAssemblies] = useState([]);
-  const [states, setStates] = useState([]);
-  const [districts, setDistricts] = useState([]);
+  const [issueDeleteId, setIssueDeleteId] = useState('');
+  const [localIssues, setLocalIssues] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
+  const [assemblies, setAssemblies] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [booths, setBooths] = useState([]);
+  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
-  const fetchAssemblies = async (pageIndex, pageSize) => {
+  const statusColors = {
+    'Reported': 'default',
+    'In Progress': 'info',
+    'Resolved': 'success',
+    'Rejected': 'error'
+  };
+
+  const priorityColors = {
+    'Low': 'success',
+    'Medium': 'info',
+    'High': 'warning',
+    'Critical': 'error'
+  };
+
+  const fetchLocalIssues = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/assemblies?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/local-issues?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
-        setAssemblies(json.data);
+        setLocalIssues(json.data);
         setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch assemblies:', error);
+      console.error('Failed to fetch local issues:', error);
     } finally {
       setLoading(false);
     }
@@ -59,34 +74,40 @@ export default function AssemblyListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [statesRes, districtsRes, divisionsRes, parliamentsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/states'),
-        fetch('http://localhost:5000/api/districts'),
+      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, usersRes] = await Promise.all([
         fetch('http://localhost:5000/api/divisions'),
-        fetch('http://localhost:5000/api/parliaments')
+        fetch('http://localhost:5000/api/parliaments'),
+        fetch('http://localhost:5000/api/assemblies'),
+        fetch('http://localhost:5000/api/blocks'),
+        fetch('http://localhost:5000/api/booths'),
+        fetch('http://localhost:5000/api/users')
       ]);
 
-      const statesJson = await statesRes.json();
-      const districtsJson = await districtsRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
+      const assembliesJson = await assembliesRes.json();
+      const blocksJson = await blocksRes.json();
+      const boothsJson = await boothsRes.json();
+      const usersJson = await usersRes.json();
 
-      if (statesJson.success) setStates(statesJson.data);
-      if (districtsJson.success) setDistricts(districtsJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
+      if (assembliesJson.success) setAssemblies(assembliesJson.data);
+      if (blocksJson.success) setBlocks(blocksJson.data);
+      if (boothsJson.success) setBooths(boothsJson.data);
+      if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
   useEffect(() => {
-    fetchAssemblies(pagination.pageIndex, pagination.pageSize);
+    fetchLocalIssues(pagination.pageIndex, pagination.pageSize);
     fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
-    setAssemblyDeleteId(id);
+    setIssueDeleteId(id);
     setOpenDelete(true);
   };
 
@@ -99,45 +120,46 @@ export default function AssemblyListPage() {
       cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
-      header: 'Name',
-      accessorKey: 'name',
+      header: 'Issue Name',
+      accessorKey: 'issue_name',
       cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
     },
     {
-      header: 'Type',
-      accessorKey: 'type',
+      header: 'Department',
+      accessorKey: 'department',
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+    },
+    {
+      header: 'Status',
+      accessorKey: 'status',
       cell: ({ getValue }) => (
         <Chip 
           label={getValue()} 
-          color={
-            getValue() === 'Urban' ? 'primary' : 
-            getValue() === 'Rural' ? 'secondary' : 'default'
-          } 
+          color={statusColors[getValue()]} 
           size="small" 
+          sx={{ minWidth: 100 }}
         />
       )
     },
     {
-      header: 'Category',
-      accessorKey: 'category',
+      header: 'Priority',
+      accessorKey: 'priority',
       cell: ({ getValue }) => (
         <Chip 
           label={getValue()} 
-          color={
-            getValue() === 'General' ? 'info' : 
-            getValue() === 'Reserved' ? 'success' : 'warning'
-          } 
+          color={priorityColors[getValue()]} 
           size="small" 
+          sx={{ minWidth: 100 }}
         />
       )
     },
     {
-      header: 'State',
-      accessorKey: 'state_id',
+      header: 'Booth',
+      accessorKey: 'booth_id',
       cell: ({ getValue }) => (
         getValue() ? 
-          <Chip label={getValue().name} color="primary" size="small" /> : 
-          <Typography variant="caption">No state</Typography>
+          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> : 
+          <Typography variant="caption">No booth</Typography>
       )
     },
     {
@@ -158,7 +180,7 @@ export default function AssemblyListPage() {
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedAssembly(row.original);
+                  setSelectedIssue(row.original);
                   setOpenModal(true);
                 }}
               >
@@ -183,7 +205,7 @@ export default function AssemblyListPage() {
   ], [theme]);
 
   const table = useReactTable({
-    data: assemblies,
+    data: localIssues,
     columns,
     state: {
       pagination
@@ -207,10 +229,10 @@ export default function AssemblyListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${assemblies.length} assemblies...`}
+            placeholder={`Search ${localIssues.length} issues...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
-            Add Assembly
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedIssue(null); setOpenModal(true); }}>
+            Add Issue
           </Button>
         </Stack>
 
@@ -248,7 +270,7 @@ export default function AssemblyListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <AssemblyView data={row.original} />
+                          <LocalIssueView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -269,22 +291,24 @@ export default function AssemblyListPage() {
         </ScrollX>
       </MainCard>
 
-      <AssemblyModal
+      <LocalIssueModal
         open={openModal}
         modalToggler={setOpenModal}
-        assembly={selectedAssembly}
-        states={states}
-        districts={districts}
+        issue={selectedIssue}
         divisions={divisions}
         parliaments={parliaments}
-        refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+        assemblies={assemblies}
+        blocks={blocks}
+        booths={booths}
+        users={users}
+        refresh={() => fetchLocalIssues(pagination.pageIndex, pagination.pageSize)}
       />
 
-      <AlertAssemblyDelete
-        id={assemblyDeleteId}
+      <AlertLocalIssueDelete
+        id={issueDeleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+        refresh={() => fetchLocalIssues(pagination.pageIndex, pagination.pageSize)}
       />
     </>
   );

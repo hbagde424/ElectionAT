@@ -13,22 +13,27 @@ import {
     Grid
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { DatePicker } from '@mui/x-date-pickers';
 
-export default function CasteListModal({ 
+export default function EventModal({ 
     open, 
     modalToggler, 
-    caste, 
+    event, 
     divisions,
     parliaments,
     assemblies,
     blocks,
     booths,
-    users,
     refresh 
 }) {
     const [formData, setFormData] = useState({
-        category: 'General',
-        caste: '',
+        name: '',
+        type: 'event',
+        status: 'incomplete',
+        description: '',
+        start_date: new Date(),
+        end_date: new Date(),
+        location: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -42,20 +47,30 @@ export default function CasteListModal({
     const [filteredBooths, setFilteredBooths] = useState([]);
 
     useEffect(() => {
-        if (caste) {
+        if (event) {
             setFormData({
-                category: caste.category || 'General',
-                caste: caste.caste || '',
-                division_id: caste.division_id?._id || '',
-                parliament_id: caste.parliament_id?._id || '',
-                assembly_id: caste.assembly_id?._id || '',
-                block_id: caste.block_id?._id || '',
-                booth_id: caste.booth_id?._id || ''
+                name: event.name || '',
+                type: event.type || 'event',
+                status: event.status || 'incomplete',
+                description: event.description || '',
+                start_date: new Date(event.start_date) || new Date(),
+                end_date: new Date(event.end_date) || new Date(),
+                location: event.location || '',
+                division_id: event.division_id?._id || '',
+                parliament_id: event.parliament_id?._id || '',
+                assembly_id: event.assembly_id?._id || '',
+                block_id: event.block_id?._id || '',
+                booth_id: event.booth_id?._id || ''
             });
         } else {
             setFormData({
-                category: 'General',
-                caste: '',
+                name: '',
+                type: 'event',
+                status: 'incomplete',
+                description: '',
+                start_date: new Date(),
+                end_date: new Date(),
+                location: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
@@ -63,7 +78,7 @@ export default function CasteListModal({
                 booth_id: ''
             });
         }
-    }, [caste]);
+    }, [event]);
 
     // Filter parliaments by division
     useEffect(() => {
@@ -168,12 +183,22 @@ export default function CasteListModal({
         });
     };
 
+    const handleDateChange = (name, date) => {
+        setFormData(prev => ({ ...prev, [name]: date }));
+    };
+
     const handleSubmit = async () => {
-        const method = caste ? 'PUT' : 'POST';
+        const method = event ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
-        const url = caste
-            ? `http://localhost:5000/api/caste-lists/${caste._id}`
-            : 'http://localhost:5000/api/caste-lists';
+        const url = event
+            ? `http://localhost:5000/api/events/${event._id}`
+            : 'http://localhost:5000/api/events';
+
+        const payload = {
+            ...formData,
+            start_date: formData.start_date.toISOString(),
+            end_date: formData.end_date.toISOString()
+        };
 
         const res = await fetch(url, {
             method,
@@ -181,7 +206,7 @@ export default function CasteListModal({
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {
@@ -191,36 +216,18 @@ export default function CasteListModal({
     };
 
     return (
+        
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-            <DialogTitle>{caste ? 'Edit Caste Entry' : 'Add Caste Entry'}</DialogTitle>
+            <DialogTitle>{event ? 'Edit Event' : 'Add Event'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} mt={2}>
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Category</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="category"
-                                        value={formData.category}
-                                        onChange={handleChange}
-                                        required
-                                    >
-                                        <MenuItem value="SC">SC</MenuItem>
-                                        <MenuItem value="ST">ST</MenuItem>
-                                        <MenuItem value="OBC">OBC</MenuItem>
-                                        <MenuItem value="General">General</MenuItem>
-                                        <MenuItem value="Other">Other</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Caste Name</InputLabel>
+                                <InputLabel>Event Name</InputLabel>
                                 <TextField 
-                                    name="caste" 
-                                    value={formData.caste} 
+                                    name="name" 
+                                    value={formData.name} 
                                     onChange={handleChange} 
                                     fullWidth 
                                     required
@@ -228,7 +235,95 @@ export default function CasteListModal({
                                 />
                             </Stack>
                         </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Location</InputLabel>
+                                <TextField 
+                                    name="location" 
+                                    value={formData.location} 
+                                    onChange={handleChange} 
+                                    fullWidth 
+                                    required
+                                    inputProps={{ maxLength: 200 }}
+                                />
+                            </Stack>
+                        </Grid>
                     </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Type</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="type"
+                                        value={formData.type}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="event">Event</MenuItem>
+                                        <MenuItem value="campaign">Campaign</MenuItem>
+                                        <MenuItem value="activity">Activity</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Status</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="incomplete">Incomplete</MenuItem>
+                                        <MenuItem value="done">Done</MenuItem>
+                                        <MenuItem value="cancelled">Cancelled</MenuItem>
+                                        <MenuItem value="postponed">Postponed</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Start Date</InputLabel>
+                                <DatePicker
+                                    value={formData.start_date}
+                                    onChange={(date) => handleDateChange('start_date', date)}
+                                    renderInput={(params) => <TextField fullWidth {...params} />}
+                                />
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>End Date</InputLabel>
+                                <DatePicker
+                                    value={formData.end_date}
+                                    onChange={(date) => handleDateChange('end_date', date)}
+                                    renderInput={(params) => <TextField fullWidth {...params} />}
+                                    minDate={formData.start_date}
+                                />
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Stack spacing={1}>
+                        <InputLabel>Description</InputLabel>
+                        <TextField 
+                            name="description" 
+                            value={formData.description} 
+                            onChange={handleChange} 
+                            fullWidth 
+                            multiline
+                            rows={4}
+                            inputProps={{ maxLength: 500 }}
+                        />
+                    </Stack>
 
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
@@ -347,7 +442,7 @@ export default function CasteListModal({
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
                 <Button variant="contained" onClick={handleSubmit}>
-                    {caste ? 'Update' : 'Submit'}
+                    {event ? 'Update' : 'Submit'}
                 </Button>
             </DialogActions>
         </Dialog>

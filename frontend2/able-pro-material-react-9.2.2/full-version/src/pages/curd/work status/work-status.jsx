@@ -1,10 +1,13 @@
+
+
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip, LinearProgress
+  Button, Stack, Box, Typography, Divider, Chip, Link
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { DatePicker } from '@mui/x-date-pickers';
 
 // third-party
 import {
@@ -27,10 +30,10 @@ import { Tooltip } from '@mui/material';
 
 export default function WorkStatusListPage() {
   const theme = useTheme();
-  const [selectedWorkStatus, setSelectedWorkStatus] = useState(null);
+  const [selectedWork, setSelectedWork] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [workStatusDeleteId, setWorkStatusDeleteId] = useState('');
+  const [workDeleteId, setWorkDeleteId] = useState('');
   const [workStatuses, setWorkStatuses] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
@@ -41,10 +44,23 @@ export default function WorkStatusListPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
+  const statusColors = {
+    'Pending': 'default',
+    'In Progress': 'info',
+    'Completed': 'success',
+    'Halted': 'warning',
+    'Cancelled': 'error'
+  };
+
+  const fundSourceColors = {
+    'vidhayak nidhi': 'primary',
+    'swechcha nidhi': 'secondary'
+  };
+
   const fetchWorkStatuses = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/work-status?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/work-statuses?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
         setWorkStatuses(json.data);
@@ -89,225 +105,101 @@ export default function WorkStatusListPage() {
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
-    setWorkStatusDeleteId(id);
+    setWorkDeleteId(id);
     setOpenDelete(true);
   };
 
   const handleDeleteClose = () => setOpenDelete(false);
 
-  const statusColors = {
-    'Pending': 'default',
-    'In Progress': 'primary',
-    'Completed': 'success',
-    'Halted': 'warning',
-    'Cancelled': 'error'
-  };
-
   const columns = useMemo(() => [
-  {
-    header: '#',
-    accessorKey: '_id',
-    cell: ({ row }) => <Typography>{row.index + 1}</Typography>,
-    size: 60
-  },
-  {
-    header: 'Work Name',
-    accessorKey: 'work_name',
-    cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>,
-    size: 200
-  },
-  {
-    header: 'Department',
-    accessorKey: 'department',
-    cell: ({ getValue }) => <Typography>{getValue()}</Typography>,
-    size: 150
-  },
-  {
-    header: 'Status',
-    accessorKey: 'status',
-    cell: ({ getValue }) => (
-      <Chip 
-        label={getValue()} 
-        color={
-          getValue() === 'Completed' ? 'success' : 
-          getValue() === 'In Progress' ? 'primary' : 
-          getValue() === 'Halted' ? 'warning' : 
-          getValue() === 'Cancelled' ? 'error' : 'default'
-        } 
-        size="small" 
-        sx={{ minWidth: 100 }}
-      />
-    ),
-    size: 120
-  },
-  {
-    header: 'Approved Fund',
-    accessorKey: 'approved_fund',
-    cell: ({ getValue }) => (
-      <Typography fontWeight="500">
-        ₹{new Intl.NumberFormat('en-IN').format(getValue())}
-      </Typography>
-    ),
-    size: 120
-  },
-  {
-    header: 'Total Budget',
-    accessorKey: 'total_budget',
-    cell: ({ getValue }) => (
-      <Typography fontWeight="500">
-        ₹{new Intl.NumberFormat('en-IN').format(getValue())}
-      </Typography>
-    ),
-    size: 120
-  },
-  {
-    header: 'Progress',
-    accessorKey: 'progress',
-    cell: ({ row }) => {
-      const approved = row.original.approved_fund;
-      const total = row.original.total_budget;
-      const progress = Math.min(100, (approved / total) * 100);
-      
-      return (
-        <Stack spacing={1} sx={{ minWidth: 150 }}>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography variant="caption" color="textSecondary">
-              {progress.toFixed(1)}%
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              ₹{new Intl.NumberFormat('en-IN').format(approved)}/₹{new Intl.NumberFormat('en-IN').format(total)}
-            </Typography>
-          </Stack>
-          <LinearProgress 
-            variant="determinate" 
-            value={progress} 
-            color={
-              progress === 100 ? 'success' : 
-              progress > 70 ? 'primary' : 
-              progress > 30 ? 'warning' : 'error'
-            }
-            sx={{ height: 6 }}
-          />
-        </Stack>
-      );
+    {
+      header: '#',
+      accessorKey: '_id',
+      cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
-    size: 180
-  },
-  {
-    header: 'Falia',
-    accessorKey: 'falia',
-    cell: ({ getValue }) => (
-      <Typography noWrap sx={{ maxWidth: 150 }}>
-        {getValue() || '-'}
-      </Typography>
-    ),
-    size: 120
-  },
-  {
-    header: 'Division',
-    accessorKey: 'division_id',
-    cell: ({ getValue }) => (
-      getValue() ? 
-        <Chip label={getValue().name} color="primary" size="small" /> : 
-        <Typography variant="caption">-</Typography>
-    ),
-    size: 150
-  },
-  {
-    header: 'Parliament',
-    accessorKey: 'parliament_id',
-    cell: ({ getValue }) => (
-      getValue() ? 
-        <Chip label={getValue().name} color="secondary" size="small" /> : 
-        <Typography variant="caption">-</Typography>
-    ),
-    size: 150
-  },
-  {
-    header: 'Assembly',
-    accessorKey: 'assembly_id',
-    cell: ({ getValue }) => (
-      getValue() ? 
-        <Chip label={getValue().name} color="info" size="small" /> : 
-        <Typography variant="caption">-</Typography>
-    ),
-    size: 150
-  },
-  {
-    header: 'Block',
-    accessorKey: 'block_id',
-    cell: ({ getValue }) => (
-      getValue() ? 
-        <Chip label={getValue().name} color="warning" size="small" /> : 
-        <Typography variant="caption">-</Typography>
-    ),
-    size: 150
-  },
-  {
-    header: 'Booth',
-    accessorKey: 'booth_id',
-    cell: ({ getValue }) => (
-      getValue() ? (
-        <Stack direction="row" spacing={0.5} alignItems="center">
-          <Chip 
-            label={`${getValue().name}`} 
-            color="success" 
-            size="small" 
-          />
-          <Typography variant="caption" color="textSecondary">
-            (Booth: {getValue().booth_number})
-          </Typography>
-        </Stack>
-      ) : (
-        <Typography variant="caption">-</Typography>
+    {
+      header: 'Work Name',
+      accessorKey: 'work_name',
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+    },
+    {
+      header: 'Department',
+      accessorKey: 'department',
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+    },
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      cell: ({ getValue }) => (
+        <Chip 
+          label={getValue()} 
+          color={statusColors[getValue()]} 
+          size="small" 
+          sx={{ minWidth: 100 }}
+        />
       )
-    ),
-    size: 180
-  },
-  {
-    header: 'Actions',
-    cell: ({ row }) => {
-      const isExpanded = row.getIsExpanded();
-      const expandIcon = isExpanded ? 
-        <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : 
-        <Eye />;
-      
-      return (
-        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-          <Tooltip title="View">
-            <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-              {expandIcon}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton
-              color="primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedWorkStatus(row.original);
-                setOpenModal(true);
-              }}
-            >
-              <Edit />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              color="error"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteOpen(row.original._id);
-              }}
-            >
-              <Trash />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      );
     },
-    size: 120
-  }
-], [theme]);
+    {
+      header: 'Budget',
+      cell: ({ row }) => (
+        <Typography>
+          ₹{row.original.spent_amount.toLocaleString()} / ₹{row.original.total_budget.toLocaleString()}
+        </Typography>
+      )
+    },
+    {
+      header: 'Fund Source',
+      accessorKey: 'approved_fund_from',
+      cell: ({ getValue }) => (
+        <Chip 
+          label={getValue()} 
+          color={fundSourceColors[getValue()]} 
+          size="small" 
+          sx={{ textTransform: 'capitalize' }}
+        />
+      )
+    },
+    {
+      header: 'Actions',
+      meta: { className: 'cell-center' },
+      cell: ({ row }) => {
+        const isExpanded = row.getIsExpanded();
+        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
+        return (
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+            <Tooltip title="View">
+              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
+                {expandIcon}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit">
+              <IconButton
+                color="primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedWork(row.original);
+                  setOpenModal(true);
+                }}
+              >
+                <Edit />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteOpen(row.original._id);
+                }}
+              >
+                <Trash />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        );
+      }
+    }
+  ], [theme]);
 
   const table = useReactTable({
     data: workStatuses,
@@ -336,7 +228,7 @@ export default function WorkStatusListPage() {
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${workStatuses.length} work statuses...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedWorkStatus(null); setOpenModal(true); }}>
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedWork(null); setOpenModal(true); }}>
             Add Work Status
           </Button>
         </Stack>
@@ -399,7 +291,7 @@ export default function WorkStatusListPage() {
       <WorkStatusModal
         open={openModal}
         modalToggler={setOpenModal}
-        workStatus={selectedWorkStatus}
+        work={selectedWork}
         divisions={divisions}
         parliaments={parliaments}
         assemblies={assemblies}
@@ -409,7 +301,7 @@ export default function WorkStatusListPage() {
       />
 
       <AlertWorkStatusDelete
-        id={workStatusDeleteId}
+        id={workDeleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
         refresh={() => fetchWorkStatuses(pagination.pageIndex, pagination.pageSize)}

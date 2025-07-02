@@ -1,7 +1,10 @@
+
+
+
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip
+  Button, Stack, Box, Typography, Divider, Chip, Avatar
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -20,38 +23,36 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
 // custom views and modals
-import AssemblyModal from 'pages/curd/assembly/AssemblyModal';
-import AlertAssemblyDelete from 'pages/curd/assembly/AlertAssemblyDelete';
-import AssemblyView from 'pages/curd/assembly/AssemblyView';
+import PotentialCandidateModal from 'pages/curd/potentical candidate/PotentialCandidateModal';
+import AlertPotentialCandidateDelete from 'pages/curd/potentical candidate/AlertPotentialCandidateDelete';
+import PotentialCandidateView from 'pages/curd/potentical candidate/PotentialCandidateView';
 import { Tooltip } from '@mui/material';
 
-export default function AssemblyListPage() {
+export default function PotentialCandidateListPage() {
   const theme = useTheme();
-
-  const [selectedAssembly, setSelectedAssembly] = useState(null);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [assemblyDeleteId, setAssemblyDeleteId] = useState('');
+  const [deleteId, setDeleteId] = useState('');
+  const [candidates, setCandidates] = useState([]);
+  const [parties, setParties] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
-  const [states, setStates] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [divisions, setDivisions] = useState([]);
-  const [parliaments, setParliaments] = useState([]);
+  const [electionYears, setElectionYears] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
-  const fetchAssemblies = async (pageIndex, pageSize) => {
+  const fetchCandidates = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/assemblies?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/potential-candidates?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
-        setAssemblies(json.data);
+        setCandidates(json.data);
         setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch assemblies:', error);
+      console.error('Failed to fetch candidates:', error);
     } finally {
       setLoading(false);
     }
@@ -59,34 +60,33 @@ export default function AssemblyListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [statesRes, districtsRes, divisionsRes, parliamentsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/states'),
-        fetch('http://localhost:5000/api/districts'),
-        fetch('http://localhost:5000/api/divisions'),
-        fetch('http://localhost:5000/api/parliaments')
+      const [partiesRes, assembliesRes, electionYearsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/parties'),
+        fetch('http://localhost:5000/api/assemblies'),
+        fetch('http://localhost:5000/api/election-years')
       ]);
 
-      const statesJson = await statesRes.json();
-      const districtsJson = await districtsRes.json();
-      const divisionsJson = await divisionsRes.json();
-      const parliamentsJson = await parliamentsRes.json();
+      const partiesJson = await partiesRes.json();
+      const assembliesJson = await assembliesRes.json();
+      const electionYearsJson = await electionYearsRes.json();
 
-      if (statesJson.success) setStates(statesJson.data);
-      if (districtsJson.success) setDistricts(districtsJson.data);
-      if (divisionsJson.success) setDivisions(divisionsJson.data);
-      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
+      console.log('Election Years Data:', electionYearsJson); // Add this for debugging
+
+      if (partiesJson.success) setParties(partiesJson.data);
+      if (assembliesJson.success) setAssemblies(assembliesJson.data);
+      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
   useEffect(() => {
-    fetchAssemblies(pagination.pageIndex, pagination.pageSize);
+    fetchCandidates(pagination.pageIndex, pagination.pageSize);
     fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
-    setAssemblyDeleteId(id);
+    setDeleteId(id);
     setOpenDelete(true);
   };
 
@@ -99,46 +99,62 @@ export default function AssemblyListPage() {
       cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
-      header: 'Name',
+      header: 'Candidate',
       accessorKey: 'name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
-    },
-    {
-      header: 'Type',
-      accessorKey: 'type',
-      cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={
-            getValue() === 'Urban' ? 'primary' : 
-            getValue() === 'Rural' ? 'secondary' : 'default'
-          } 
-          size="small" 
-        />
+      cell: ({ row }) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          {row.original.image && (
+            <Avatar src={row.original.image} alt={row.original.name} sx={{ width: 40, height: 40 }} />
+          )}
+          <Typography variant="subtitle1">{row.original.name}</Typography>
+        </Stack>
       )
     },
     {
-      header: 'Category',
-      accessorKey: 'category',
+      header: 'Party',
+      accessorKey: 'party_id',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={
-            getValue() === 'General' ? 'info' : 
-            getValue() === 'Reserved' ? 'success' : 'warning'
-          } 
-          size="small" 
-        />
+        getValue() ?
+          <Chip label={getValue().name} color="primary" size="small" /> :
+          <Typography variant="caption">No party</Typography>
       )
     },
     {
-      header: 'State',
-      accessorKey: 'state_id',
+      header: 'Constituency',
+      accessorKey: 'constituency_id',
       cell: ({ getValue }) => (
-        getValue() ? 
-          <Chip label={getValue().name} color="primary" size="small" /> : 
-          <Typography variant="caption">No state</Typography>
+        getValue() ?
+          <Chip label={getValue().name} color="secondary" size="small" /> :
+          <Typography variant="caption">No constituency</Typography>
       )
+    },
+    {
+      header: 'Election Year',
+      accessorKey: 'election_year_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Typography>{getValue().year}</Typography> :
+          <Typography variant="caption">No year</Typography>
+      )
+    },
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      cell: ({ getValue }) => {
+        const status = getValue();
+        let color = 'default';
+        if (status === 'active') color = 'success';
+        if (status === 'inactive') color = 'error';
+        if (status === 'under_review') color = 'warning';
+
+        return (
+          <Chip
+            label={status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+            color={color}
+            size="small"
+          />
+        );
+      }
     },
     {
       header: 'Actions',
@@ -158,7 +174,7 @@ export default function AssemblyListPage() {
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedAssembly(row.original);
+                  setSelectedCandidate(row.original);
                   setOpenModal(true);
                 }}
               >
@@ -183,7 +199,7 @@ export default function AssemblyListPage() {
   ], [theme]);
 
   const table = useReactTable({
-    data: assemblies,
+    data: candidates,
     columns,
     state: {
       pagination
@@ -207,10 +223,10 @@ export default function AssemblyListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${assemblies.length} assemblies...`}
+            placeholder={`Search ${candidates.length} candidates...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
-            Add Assembly
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
+            Add Candidate
           </Button>
         </Stack>
 
@@ -248,7 +264,7 @@ export default function AssemblyListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <AssemblyView data={row.original} />
+                          <PotentialCandidateView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -269,22 +285,21 @@ export default function AssemblyListPage() {
         </ScrollX>
       </MainCard>
 
-      <AssemblyModal
+      <PotentialCandidateModal
         open={openModal}
         modalToggler={setOpenModal}
-        assembly={selectedAssembly}
-        states={states}
-        districts={districts}
-        divisions={divisions}
-        parliaments={parliaments}
-        refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+        candidate={selectedCandidate}
+        parties={parties}
+        assemblies={assemblies}
+        electionYears={electionYears} // Ensure this is passed
+        refresh={() => fetchCandidates(pagination.pageIndex, pagination.pageSize)}
       />
 
-      <AlertAssemblyDelete
-        id={assemblyDeleteId}
+      <AlertPotentialCandidateDelete
+        id={deleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+        refresh={() => fetchCandidates(pagination.pageIndex, pagination.pageSize)}
       />
     </>
   );

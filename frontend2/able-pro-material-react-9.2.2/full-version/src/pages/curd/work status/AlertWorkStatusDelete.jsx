@@ -4,7 +4,7 @@ export default function AlertWorkStatusDelete({ id, open, handleClose, refresh }
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
 
-        const res = await fetch(`http://localhost:5000/api/work-status/${id}`, {
+        const res = await fetch(`http://localhost:5000/api/work-statuses/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

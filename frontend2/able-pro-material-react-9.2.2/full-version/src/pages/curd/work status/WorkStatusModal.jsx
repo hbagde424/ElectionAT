@@ -11,16 +11,18 @@ import {
     MenuItem,
     FormControl,
     Grid,
-    FormHelperText
+    IconButton,
+    Typography,
+    Divider
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-
-const statusOptions = ['Pending', 'In Progress', 'Completed', 'Halted', 'Cancelled'];
+import { DatePicker } from '@mui/x-date-pickers';
+// import { Add, Delete } from '@mui/icons-material';
 
 export default function WorkStatusModal({ 
     open, 
     modalToggler, 
-    workStatus, 
+    work, 
     divisions,
     parliaments,
     assemblies,
@@ -32,57 +34,75 @@ export default function WorkStatusModal({
         work_name: '',
         department: '',
         status: 'Pending',
-        approved_fund: 0,
+        approved_fund_from: 'vidhayak nidhi',
         total_budget: 0,
+        spent_amount: 0,
         falia: '',
         description: '',
+        start_date: new Date(),
+        expected_end_date: new Date(),
+        actual_end_date: null,
         division_id: '',
         parliament_id: '',
         assembly_id: '',
         block_id: '',
-        booth_id: ''
+        booth_id: '',
+        documents: []
     });
 
-    const [errors, setErrors] = useState({});
+    const [newDocument, setNewDocument] = useState({
+        name: '',
+        url: ''
+    });
+
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
     useEffect(() => {
-        if (workStatus) {
+        if (work) {
             setFormData({
-                work_name: workStatus.work_name || '',
-                department: workStatus.department || '',
-                status: workStatus.status || 'Pending',
-                approved_fund: workStatus.approved_fund || 0,
-                total_budget: workStatus.total_budget || 0,
-                falia: workStatus.falia || '',
-                description: workStatus.description || '',
-                division_id: workStatus.division_id?._id || '',
-                parliament_id: workStatus.parliament_id?._id || '',
-                assembly_id: workStatus.assembly_id?._id || '',
-                block_id: workStatus.block_id?._id || '',
-                booth_id: workStatus.booth_id?._id || ''
+                work_name: work.work_name || '',
+                department: work.department || '',
+                status: work.status || 'Pending',
+                approved_fund_from: work.approved_fund_from || 'vidhayak nidhi',
+                total_budget: work.total_budget || 0,
+                spent_amount: work.spent_amount || 0,
+                falia: work.falia || '',
+                description: work.description || '',
+                start_date: new Date(work.start_date) || new Date(),
+                expected_end_date: new Date(work.expected_end_date) || new Date(),
+                actual_end_date: work.actual_end_date ? new Date(work.actual_end_date) : null,
+                division_id: work.division_id?._id || '',
+                parliament_id: work.parliament_id?._id || '',
+                assembly_id: work.assembly_id?._id || '',
+                block_id: work.block_id?._id || '',
+                booth_id: work.booth_id?._id || '',
+                documents: work.documents || []
             });
         } else {
             setFormData({
                 work_name: '',
                 department: '',
                 status: 'Pending',
-                approved_fund: 0,
+                approved_fund_from: 'vidhayak nidhi',
                 total_budget: 0,
+                spent_amount: 0,
                 falia: '',
                 description: '',
+                start_date: new Date(),
+                expected_end_date: new Date(),
+                actual_end_date: null,
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
                 block_id: '',
-                booth_id: ''
+                booth_id: '',
+                documents: []
             });
         }
-        setErrors({});
-    }, [workStatus]);
+    }, [work]);
 
     // Filter parliaments by division
     useEffect(() => {
@@ -149,7 +169,6 @@ export default function WorkStatusModal({
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => {
-            // Reset dependent fields when parent changes
             if (name === 'division_id') {
                 return { 
                     ...prev, 
@@ -188,33 +207,45 @@ export default function WorkStatusModal({
         });
     };
 
-    const validateForm = () => {
-        const newErrors = {};
-        if (!formData.work_name) newErrors.work_name = 'Work name is required';
-        if (!formData.department) newErrors.department = 'Department is required';
-        if (!formData.division_id) newErrors.division_id = 'Division is required';
-        if (!formData.parliament_id) newErrors.parliament_id = 'Parliament is required';
-        if (!formData.assembly_id) newErrors.assembly_id = 'Assembly is required';
-        if (!formData.block_id) newErrors.block_id = 'Block is required';
-        if (!formData.booth_id) newErrors.booth_id = 'Booth is required';
-        if (formData.approved_fund < 0) newErrors.approved_fund = 'Approved fund cannot be negative';
-        if (formData.total_budget < 0) newErrors.total_budget = 'Total budget cannot be negative';
-        if (formData.approved_fund > formData.total_budget) {
-            newErrors.approved_fund = 'Approved fund cannot exceed total budget';
-        }
+    const handleDateChange = (name, date) => {
+        setFormData(prev => ({ ...prev, [name]: date }));
+    };
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+    const handleDocumentChange = (e) => {
+        const { name, value } = e.target;
+        setNewDocument(prev => ({ ...prev, [name]: value }));
+    };
+
+    const addDocument = () => {
+        if (newDocument.name && newDocument.url) {
+            setFormData(prev => ({
+                ...prev,
+                documents: [...prev.documents, { ...newDocument, uploaded_at: new Date() }]
+            }));
+            setNewDocument({ name: '', url: '' });
+        }
+    };
+
+    const removeDocument = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            documents: prev.documents.filter((_, i) => i !== index)
+        }));
     };
 
     const handleSubmit = async () => {
-        if (!validateForm()) return;
-
-        const method = workStatus ? 'PUT' : 'POST';
+        const method = work ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
-        const url = workStatus
-            ? `http://localhost:5000/api/work-status/${workStatus._id}`
-            : 'http://localhost:5000/api/work-status';
+        const url = work
+            ? `http://localhost:5000/api/work-statuses/${work._id}`
+            : 'http://localhost:5000/api/work-statuses';
+
+        const payload = {
+            ...formData,
+            start_date: formData.start_date.toISOString(),
+            expected_end_date: formData.expected_end_date.toISOString(),
+            actual_end_date: formData.actual_end_date ? formData.actual_end_date.toISOString() : null
+        };
 
         const res = await fetch(url, {
             method,
@@ -222,47 +253,44 @@ export default function WorkStatusModal({
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {
             modalToggler(false);
             refresh();
-        } else {
-            const data = await res.json();
-            console.error('Operation failed:', data);
         }
     };
 
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-            <DialogTitle>{workStatus ? 'Edit Work Status' : 'Add Work Status'}</DialogTitle>
+            <DialogTitle>{work ? 'Edit Work Status' : 'Add Work Status'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} mt={2}>
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Work Name *</InputLabel>
+                                <InputLabel>Work Name</InputLabel>
                                 <TextField 
                                     name="work_name" 
                                     value={formData.work_name} 
                                     onChange={handleChange} 
                                     fullWidth 
-                                    error={!!errors.work_name}
-                                    helperText={errors.work_name}
+                                    required
+                                    inputProps={{ maxLength: 200 }}
                                 />
                             </Stack>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Department *</InputLabel>
+                                <InputLabel>Department</InputLabel>
                                 <TextField 
                                     name="department" 
                                     value={formData.department} 
                                     onChange={handleChange} 
                                     fullWidth 
-                                    error={!!errors.department}
-                                    helperText={errors.department}
+                                    required
+                                    inputProps={{ maxLength: 100 }}
                                 />
                             </Stack>
                         </Grid>
@@ -277,48 +305,34 @@ export default function WorkStatusModal({
                                         name="status"
                                         value={formData.status}
                                         onChange={handleChange}
+                                        required
                                     >
-                                        {statusOptions.map((status) => (
-                                            <MenuItem key={status} value={status}>
-                                                {status}
-                                            </MenuItem>
-                                        ))}
+                                        <MenuItem value="Pending">Pending</MenuItem>
+                                        <MenuItem value="In Progress">In Progress</MenuItem>
+                                        <MenuItem value="Completed">Completed</MenuItem>
+                                        <MenuItem value="Halted">Halted</MenuItem>
+                                        <MenuItem value="Cancelled">Cancelled</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Stack>
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
-                                <InputLabel>Approved Fund (₹) *</InputLabel>
-                                <TextField 
-                                    name="approved_fund" 
-                                    value={formData.approved_fund} 
-                                    onChange={handleChange} 
-                                    type="number"
-                                    fullWidth 
-                                    error={!!errors.approved_fund}
-                                    helperText={errors.approved_fund}
-                                />
+                                <InputLabel>Fund Source</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="approved_fund_from"
+                                        value={formData.approved_fund_from}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="vidhayak nidhi">Vidhayak Nidhi</MenuItem>
+                                        <MenuItem value="swechcha nidhi">Swechcha Nidhi</MenuItem>
+                                    </Select>
+                                </FormControl>
                             </Stack>
                         </Grid>
                         <Grid item xs={12} md={4}>
-                            <Stack spacing={1}>
-                                <InputLabel>Total Budget (₹) *</InputLabel>
-                                <TextField 
-                                    name="total_budget" 
-                                    value={formData.total_budget} 
-                                    onChange={handleChange} 
-                                    type="number"
-                                    fullWidth 
-                                    error={!!errors.total_budget}
-                                    helperText={errors.total_budget}
-                                />
-                            </Stack>
-                        </Grid>
-                    </Grid>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Falia</InputLabel>
                                 <TextField 
@@ -326,117 +340,84 @@ export default function WorkStatusModal({
                                     value={formData.falia} 
                                     onChange={handleChange} 
                                     fullWidth 
+                                    inputProps={{ maxLength: 200 }}
                                 />
                             </Stack>
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
-                                <InputLabel>Division *</InputLabel>
-                                <FormControl fullWidth error={!!errors.division_id}>
-                                    <Select
-                                        name="division_id"
-                                        value={formData.division_id}
-                                        onChange={handleChange}
-                                    >
-                                        <MenuItem value="">Select Division</MenuItem>
-                                        {divisions.map((division) => (
-                                            <MenuItem key={division._id} value={division._id}>
-                                                {division.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    {errors.division_id && <FormHelperText>{errors.division_id}</FormHelperText>}
-                                </FormControl>
+                                <InputLabel>Total Budget (₹)</InputLabel>
+                                <TextField 
+                                    name="total_budget" 
+                                    type="number"
+                                    value={formData.total_budget} 
+                                    onChange={handleChange} 
+                                    fullWidth 
+                                    required
+                                    inputProps={{ min: 0 }}
+                                />
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel>Spent Amount (₹)</InputLabel>
+                                <TextField 
+                                    name="spent_amount" 
+                                    type="number"
+                                    value={formData.spent_amount} 
+                                    onChange={handleChange} 
+                                    fullWidth 
+                                    inputProps={{ min: 0, max: formData.total_budget }}
+                                />
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel>Remaining (₹)</InputLabel>
+                                <TextField 
+                                    value={formData.total_budget - formData.spent_amount} 
+                                    fullWidth 
+                                    disabled
+                                />
                             </Stack>
                         </Grid>
                     </Grid>
 
                     <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
-                                <InputLabel>Parliament *</InputLabel>
-                                <FormControl fullWidth error={!!errors.parliament_id}>
-                                    <Select
-                                        name="parliament_id"
-                                        value={formData.parliament_id}
-                                        onChange={handleChange}
-                                        disabled={!formData.division_id}
-                                    >
-                                        <MenuItem value="">Select Parliament</MenuItem>
-                                        {filteredParliaments.map((parliament) => (
-                                            <MenuItem key={parliament._id} value={parliament._id}>
-                                                {parliament.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    {errors.parliament_id && <FormHelperText>{errors.parliament_id}</FormHelperText>}
-                                </FormControl>
+                                <InputLabel>Start Date</InputLabel>
+                                <DatePicker
+                                    value={formData.start_date}
+                                    onChange={(date) => handleDateChange('start_date', date)}
+                                    renderInput={(params) => <TextField fullWidth {...params} />}
+                                />
                             </Stack>
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
-                                <InputLabel>Assembly *</InputLabel>
-                                <FormControl fullWidth error={!!errors.assembly_id}>
-                                    <Select
-                                        name="assembly_id"
-                                        value={formData.assembly_id}
-                                        onChange={handleChange}
-                                        disabled={!formData.parliament_id}
-                                    >
-                                        <MenuItem value="">Select Assembly</MenuItem>
-                                        {filteredAssemblies.map((assembly) => (
-                                            <MenuItem key={assembly._id} value={assembly._id}>
-                                                {assembly.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    {errors.assembly_id && <FormHelperText>{errors.assembly_id}</FormHelperText>}
-                                </FormControl>
+                                <InputLabel>Expected End Date</InputLabel>
+                                <DatePicker
+                                    value={formData.expected_end_date}
+                                    onChange={(date) => handleDateChange('expected_end_date', date)}
+                                    renderInput={(params) => <TextField fullWidth {...params} />}
+                                    minDate={formData.start_date}
+                                />
                             </Stack>
                         </Grid>
-                    </Grid>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
-                                <InputLabel>Block *</InputLabel>
-                                <FormControl fullWidth error={!!errors.block_id}>
-                                    <Select
-                                        name="block_id"
-                                        value={formData.block_id}
-                                        onChange={handleChange}
-                                        disabled={!formData.assembly_id}
-                                    >
-                                        <MenuItem value="">Select Block</MenuItem>
-                                        {filteredBlocks.map((block) => (
-                                            <MenuItem key={block._id} value={block._id}>
-                                                {block.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    {errors.block_id && <FormHelperText>{errors.block_id}</FormHelperText>}
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Booth *</InputLabel>
-                                <FormControl fullWidth error={!!errors.booth_id}>
-                                    <Select
-                                        name="booth_id"
-                                        value={formData.booth_id}
-                                        onChange={handleChange}
-                                        disabled={!formData.block_id}
-                                    >
-                                        <MenuItem value="">Select Booth</MenuItem>
-                                        {filteredBooths.map((booth) => (
-                                            <MenuItem key={booth._id} value={booth._id}>
-                                                {booth.name} (Booth: {booth.booth_number})
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    {errors.booth_id && <FormHelperText>{errors.booth_id}</FormHelperText>}
-                                </FormControl>
+                                <InputLabel>Actual End Date</InputLabel>
+                                <DatePicker
+                                    value={formData.actual_end_date}
+                                    onChange={(date) => handleDateChange('actual_end_date', date)}
+                                    renderInput={(params) => <TextField fullWidth {...params} />}
+                                    minDate={formData.start_date}
+                                    disabled={formData.status !== 'Completed'}
+                                />
                             </Stack>
                         </Grid>
                     </Grid>
@@ -449,15 +430,177 @@ export default function WorkStatusModal({
                             onChange={handleChange} 
                             fullWidth 
                             multiline
-                            rows={3}
+                            rows={4}
+                            inputProps={{ maxLength: 1000 }}
                         />
                     </Stack>
+
+                    <Typography variant="h6">Documents</Typography>
+                    <Divider />
+
+                    {formData.documents.map((doc, index) => (
+                        <Stack key={index} direction="row" spacing={2} alignItems="center">
+                            <Typography sx={{ flex: 1 }}>{doc.name}</Typography>
+                            <Link href={doc.url} target="_blank" rel="noopener">View Document</Link>
+                            <IconButton color="error" onClick={() => removeDocument(index)}>
+                                {/* <Delete /> */}
+                            </IconButton>
+                        </Stack>
+                    ))}
+
+                    <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={5}>
+                            <TextField
+                                name="name"
+                                value={newDocument.name}
+                                onChange={handleDocumentChange}
+                                fullWidth
+                                placeholder="Document Name"
+                                inputProps={{ maxLength: 200 }}
+                            />
+                        </Grid>
+                        <Grid item xs={5}>
+                            <TextField
+                                name="url"
+                                value={newDocument.url}
+                                onChange={handleDocumentChange}
+                                fullWidth
+                                placeholder="Document URL"
+                            />
+                        </Grid>
+                        <Grid item xs={2}>
+                            <Button 
+                                variant="contained" 
+                                // startIcon={<Add />} 
+                                onClick={addDocument}
+                                disabled={!newDocument.name || !newDocument.url}
+                            >
+                                Add
+                            </Button>
+                        </Grid>
+                    </Grid>
+
+                    <Typography variant="h6">Location Details</Typography>
+                    <Divider />
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Division</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="division_id"
+                                        value={formData.division_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select Division</MenuItem>
+                                        {divisions.map((division) => (
+                                            <MenuItem key={division._id} value={division._id}>
+                                                {division.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Parliament</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="parliament_id"
+                                        value={formData.parliament_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.division_id}
+                                    >
+                                        <MenuItem value="">Select Parliament</MenuItem>
+                                        {filteredParliaments.map((parliament) => (
+                                            <MenuItem key={parliament._id} value={parliament._id}>
+                                                {parliament.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Assembly</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="assembly_id"
+                                        value={formData.assembly_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.parliament_id}
+                                    >
+                                        <MenuItem value="">Select Assembly</MenuItem>
+                                        {filteredAssemblies.map((assembly) => (
+                                            <MenuItem key={assembly._id} value={assembly._id}>
+                                                {assembly.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Block</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="block_id"
+                                        value={formData.block_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.assembly_id}
+                                    >
+                                        <MenuItem value="">Select Block</MenuItem>
+                                        {filteredBlocks.map((block) => (
+                                            <MenuItem key={block._id} value={block._id}>
+                                                {block.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <Stack spacing={1}>
+                                <InputLabel>Booth</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="booth_id"
+                                        value={formData.booth_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.block_id}
+                                    >
+                                        <MenuItem value="">Select Booth</MenuItem>
+                                        {filteredBooths.map((booth) => (
+                                            <MenuItem key={booth._id} value={booth._id}>
+                                                {booth.name} (Booth: {booth.booth_number})
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
                 <Button variant="contained" onClick={handleSubmit}>
-                    {workStatus ? 'Update' : 'Submit'}
+                    {work ? 'Update' : 'Submit'}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -1,40 +1,87 @@
 import { Stack, Typography, Divider, Chip, Grid } from '@mui/material';
 
-export default function CasteListView({ data }) {
+export default function EventView({ data }) {
     if (!data) return null;
 
-    const categoryColors = {
-        'SC': 'error',
-        'ST': 'warning',
-        'OBC': 'info',
-        'General': 'success',
-        'Other': 'default'
+    const typeColors = {
+        'event': 'primary',
+        'campaign': 'secondary',
+        'activity': 'info'
+    };
+
+    const statusColors = {
+        'done': 'success',
+        'incomplete': 'warning',
+        'cancelled': 'error',
+        'postponed': 'info'
     };
 
     return (
         <Stack spacing={2}>
-            <Typography variant="h6">Caste Details</Typography>
+            <Typography variant="h6">Event Details</Typography>
             <Divider />
             
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Category:</Typography>
+                        <Typography fontWeight="bold">Name:</Typography>
+                        <Typography>{data.name}</Typography>
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">Type:</Typography>
                         <Chip 
-                            label={data.category} 
-                            color={categoryColors[data.category]} 
+                            label={data.type} 
+                            color={typeColors[data.type]} 
                             size="small" 
-                            sx={{ width: 100 }}
+                            sx={{ textTransform: 'capitalize' }}
+                        />
+                    </Stack>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">Status:</Typography>
+                        <Chip 
+                            label={data.status} 
+                            color={statusColors[data.status]} 
+                            size="small" 
+                            sx={{ textTransform: 'capitalize' }}
                         />
                     </Stack>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Caste:</Typography>
-                        <Typography>{data.caste}</Typography>
+                        <Typography fontWeight="bold">Location:</Typography>
+                        <Typography>{data.location}</Typography>
                     </Stack>
                 </Grid>
             </Grid>
+
+            <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">Start Date:</Typography>
+                        <Typography>{new Date(data.start_date).toLocaleString()}</Typography>
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">End Date:</Typography>
+                        <Typography>{new Date(data.end_date).toLocaleString()}</Typography>
+                    </Stack>
+                </Grid>
+            </Grid>
+
+            {data.description && (
+                <Stack spacing={1}>
+                    <Typography fontWeight="bold">Description:</Typography>
+                    <Typography>{data.description}</Typography>
+                </Stack>
+            )}
 
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>

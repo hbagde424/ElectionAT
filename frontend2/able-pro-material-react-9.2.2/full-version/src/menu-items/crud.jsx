@@ -85,32 +85,74 @@ const CURd = {
       url: '/district',
       icon: icons.Category2,
     },
-     {
+    {
       id: 'Parliament-Votes',
       title: <FormattedMessage id="Parliament-Votes" />,
       type: 'item',
       url: '/Parliament-Votes',
       icon: icons.Category2,
     },
-      {
+    {
       id: 'Booth-votes',
       title: <FormattedMessage id="Booth-votes" />,
       type: 'item',
       url: '/Booth-votes',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Block-Votes',
       title: <FormattedMessage id="Block-Votes" />,
       type: 'item',
       url: '/Block-Votes',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Assembly-Votes',
       title: <FormattedMessage id="Assembly-Votes" />,
       type: 'item',
       url: '/Assembly-Votes',
+      icon: icons.Category2,
+    },
+        {
+      id: 'Pontentcal-Candidate',
+      title: <FormattedMessage id="Pontentcal-Candidate" />,
+      type: 'item',
+      url: '/Pontentcal-Candidate',
+      icon: icons.Category2,
+    },
+        {
+      id: 'Work-Status',
+      title: <FormattedMessage id="Work-Status" />,
+      type: 'item',
+      url: '/Work-Status',
+      icon: icons.Category2,
+    },
+        {
+      id: 'Events',
+      title: <FormattedMessage id="Events" />,
+      type: 'item',
+      url: '/Events',
+      icon: icons.Category2,
+    },
+        {
+      id: 'Local-Issue',
+      title: <FormattedMessage id="Local-Issue" />,
+      type: 'item',
+      url: '/Local-Issue',
+      icon: icons.Category2,
+    },
+        {
+      id: 'Caste-List',
+      title: <FormattedMessage id="Caste-List" />,
+      type: 'item',
+      url: '/Caste-List',
+      icon: icons.Category2,
+    },
+        {
+      id: 'Booth-Survey',
+      title: <FormattedMessage id="Booth-Survey" />,
+      type: 'item',
+      url: '/Booth-Survey',
       icon: icons.Category2,
     },
     // {

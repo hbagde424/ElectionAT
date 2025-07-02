@@ -5,6 +5,9 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { DatePicker } from '@mui/x-date-pickers';
+// import { LocalizationProvider } from '@mui/x-date-pickers';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 // third-party
 import {
@@ -20,38 +23,51 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
 // custom views and modals
-import AssemblyModal from 'pages/curd/assembly/AssemblyModal';
-import AlertAssemblyDelete from 'pages/curd/assembly/AlertAssemblyDelete';
-import AssemblyView from 'pages/curd/assembly/AssemblyView';
+import EventModal from 'pages/curd/events/EventModal';
+import AlertEventDelete from 'pages/curd/events/AlertEventDelete';
+import EventView from 'pages/curd/events/EventsView';
 import { Tooltip } from '@mui/material';
 
-export default function AssemblyListPage() {
+export default function EventListPage() {
   const theme = useTheme();
-
-  const [selectedAssembly, setSelectedAssembly] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [assemblyDeleteId, setAssemblyDeleteId] = useState('');
-  const [assemblies, setAssemblies] = useState([]);
-  const [states, setStates] = useState([]);
-  const [districts, setDistricts] = useState([]);
+  const [eventDeleteId, setEventDeleteId] = useState('');
+  const [events, setEvents] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
+  const [assemblies, setAssemblies] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [booths, setBooths] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
-  const fetchAssemblies = async (pageIndex, pageSize) => {
+  const typeColors = {
+    'event': 'primary',
+    'campaign': 'secondary',
+    'activity': 'info'
+  };
+
+  const statusColors = {
+    'done': 'success',
+    'incomplete': 'warning',
+    'cancelled': 'error',
+    'postponed': 'info'
+  };
+
+  const fetchEvents = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/assemblies?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/events?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
-        setAssemblies(json.data);
+        setEvents(json.data);
         setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch assemblies:', error);
+      console.error('Failed to fetch events:', error);
     } finally {
       setLoading(false);
     }
@@ -59,34 +75,37 @@ export default function AssemblyListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [statesRes, districtsRes, divisionsRes, parliamentsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/states'),
-        fetch('http://localhost:5000/api/districts'),
+      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
         fetch('http://localhost:5000/api/divisions'),
-        fetch('http://localhost:5000/api/parliaments')
+        fetch('http://localhost:5000/api/parliaments'),
+        fetch('http://localhost:5000/api/assemblies'),
+        fetch('http://localhost:5000/api/blocks'),
+        fetch('http://localhost:5000/api/booths')
       ]);
 
-      const statesJson = await statesRes.json();
-      const districtsJson = await districtsRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
+      const assembliesJson = await assembliesRes.json();
+      const blocksJson = await blocksRes.json();
+      const boothsJson = await boothsRes.json();
 
-      if (statesJson.success) setStates(statesJson.data);
-      if (districtsJson.success) setDistricts(districtsJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
+      if (assembliesJson.success) setAssemblies(assembliesJson.data);
+      if (blocksJson.success) setBlocks(blocksJson.data);
+      if (boothsJson.success) setBooths(boothsJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
   useEffect(() => {
-    fetchAssemblies(pagination.pageIndex, pagination.pageSize);
+    fetchEvents(pagination.pageIndex, pagination.pageSize);
     fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
-    setAssemblyDeleteId(id);
+    setEventDeleteId(id);
     setOpenDelete(true);
   };
 
@@ -109,36 +128,38 @@ export default function AssemblyListPage() {
       cell: ({ getValue }) => (
         <Chip 
           label={getValue()} 
-          color={
-            getValue() === 'Urban' ? 'primary' : 
-            getValue() === 'Rural' ? 'secondary' : 'default'
-          } 
+          color={typeColors[getValue()]} 
           size="small" 
+          sx={{ textTransform: 'capitalize' }}
         />
       )
     },
     {
-      header: 'Category',
-      accessorKey: 'category',
+      header: 'Status',
+      accessorKey: 'status',
       cell: ({ getValue }) => (
         <Chip 
           label={getValue()} 
-          color={
-            getValue() === 'General' ? 'info' : 
-            getValue() === 'Reserved' ? 'success' : 'warning'
-          } 
+          color={statusColors[getValue()]} 
           size="small" 
+          sx={{ textTransform: 'capitalize' }}
         />
       )
     },
     {
-      header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ? 
-          <Chip label={getValue().name} color="primary" size="small" /> : 
-          <Typography variant="caption">No state</Typography>
+      header: 'Dates',
+      accessorKey: 'start_date',
+      cell: ({ row }) => (
+        <Typography>
+          {new Date(row.original.start_date).toLocaleDateString()} - {' '}
+          {new Date(row.original.end_date).toLocaleDateString()}
+        </Typography>
       )
+    },
+    {
+      header: 'Location',
+      accessorKey: 'location',
+      cell: ({ getValue }) => <Typography noWrap>{getValue()}</Typography>
     },
     {
       header: 'Actions',
@@ -158,7 +179,7 @@ export default function AssemblyListPage() {
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedAssembly(row.original);
+                  setSelectedEvent(row.original);
                   setOpenModal(true);
                 }}
               >
@@ -183,7 +204,7 @@ export default function AssemblyListPage() {
   ], [theme]);
 
   const table = useReactTable({
-    data: assemblies,
+    data: events,
     columns,
     state: {
       pagination
@@ -207,10 +228,10 @@ export default function AssemblyListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${assemblies.length} assemblies...`}
+            placeholder={`Search ${events.length} events...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
-            Add Assembly
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedEvent(null); setOpenModal(true); }}>
+            Add Event
           </Button>
         </Stack>
 
@@ -248,7 +269,7 @@ export default function AssemblyListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <AssemblyView data={row.original} />
+                          <EventView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -269,22 +290,23 @@ export default function AssemblyListPage() {
         </ScrollX>
       </MainCard>
 
-      <AssemblyModal
+      <EventModal
         open={openModal}
         modalToggler={setOpenModal}
-        assembly={selectedAssembly}
-        states={states}
-        districts={districts}
+        event={selectedEvent}
         divisions={divisions}
         parliaments={parliaments}
-        refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+        assemblies={assemblies}
+        blocks={blocks}
+        booths={booths}
+        refresh={() => fetchEvents(pagination.pageIndex, pagination.pageSize)}
       />
 
-      <AlertAssemblyDelete
-        id={assemblyDeleteId}
+      <AlertEventDelete
+        id={eventDeleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+        refresh={() => fetchEvents(pagination.pageIndex, pagination.pageSize)}
       />
     </>
   );

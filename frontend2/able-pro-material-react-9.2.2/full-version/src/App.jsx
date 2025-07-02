@@ -10,7 +10,8 @@ import ScrollTop from 'components/ScrollTop';
 import Customization from 'components/Customization';
 import Snackbar from 'components/@extended/Snackbar';
 import Notistack from 'components/third-party/Notistack';
-
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 // auth-provider
 import { JWTProvider as AuthProvider } from 'contexts/JWTContext';
 // import { FirebaseProvider as AuthProvider } from 'contexts/FirebaseContext';
@@ -21,6 +22,7 @@ import { JWTProvider as AuthProvider } from 'contexts/JWTContext';
 
 export default function App() {
   return (
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
     <ThemeCustomization>
       <RTLLayout>
         <Locales>
@@ -38,5 +40,6 @@ export default function App() {
         </Locales>
       </RTLLayout>
     </ThemeCustomization>
+    </LocalizationProvider>
   );
 }

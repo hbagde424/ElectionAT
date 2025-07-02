@@ -1,40 +1,73 @@
 import { Stack, Typography, Divider, Chip, Grid } from '@mui/material';
 
-export default function CasteListView({ data }) {
+export default function LocalIssueView({ data }) {
     if (!data) return null;
 
-    const categoryColors = {
-        'SC': 'error',
-        'ST': 'warning',
-        'OBC': 'info',
-        'General': 'success',
-        'Other': 'default'
+    const statusColors = {
+        'Reported': 'default',
+        'In Progress': 'info',
+        'Resolved': 'success',
+        'Rejected': 'error'
+    };
+
+    const priorityColors = {
+        'Low': 'success',
+        'Medium': 'info',
+        'High': 'warning',
+        'Critical': 'error'
     };
 
     return (
         <Stack spacing={2}>
-            <Typography variant="h6">Caste Details</Typography>
+            <Typography variant="h6">Issue Details</Typography>
             <Divider />
             
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Category:</Typography>
+                        <Typography fontWeight="bold">Issue Name:</Typography>
+                        <Typography>{data.issue_name}</Typography>
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">Department:</Typography>
+                        <Typography>{data.department}</Typography>
+                    </Stack>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">Status:</Typography>
                         <Chip 
-                            label={data.category} 
-                            color={categoryColors[data.category]} 
+                            label={data.status} 
+                            color={statusColors[data.status]} 
                             size="small" 
-                            sx={{ width: 100 }}
+                            sx={{ width: 120 }}
                         />
                     </Stack>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Caste:</Typography>
-                        <Typography>{data.caste}</Typography>
+                        <Typography fontWeight="bold">Priority:</Typography>
+                        <Chip 
+                            label={data.priority} 
+                            color={priorityColors[data.priority]} 
+                            size="small" 
+                            sx={{ width: 120 }}
+                        />
                     </Stack>
                 </Grid>
             </Grid>
+
+            {data.description && (
+                <Stack spacing={1}>
+                    <Typography fontWeight="bold">Description:</Typography>
+                    <Typography>{data.description}</Typography>
+                </Stack>
+            )}
 
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
