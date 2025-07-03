@@ -1,15 +1,13 @@
 const express = require('express');
 const {
   getPartyActivities,
-  getPartyActivityById,
+  getPartyActivity,
   createPartyActivity,
   updatePartyActivity,
   deletePartyActivity,
-  getActivitiesByParty,
-  getActivitiesByAssembly,
-  getActivitiesByBooth,
-  getActivitiesByType,
-  getActivitiesByStatus
+  addMediaLink,
+  getPartyActivitiesByParty,
+  getPartyActivitiesByParliament
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -19,7 +17,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Party Activities
- *   description: Political party activity management
+ *   description: Party activity management
  */
 
 /**
@@ -40,10 +38,20 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for activity titles, descriptions or locations
+ *       - in: query
  *         name: party
  *         schema:
  *           type: string
  *         description: Filter by party ID
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Filter by parliament ID
  *       - in: query
  *         name: assembly
  *         schema:
@@ -55,7 +63,7 @@ const router = express.Router();
  *           type: string
  *         description: Filter by booth ID
  *       - in: query
- *         name: type
+ *         name: activity_type
  *         schema:
  *           type: string
  *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
@@ -65,24 +73,24 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           enum: [scheduled, completed, cancelled, postponed]
- *         description: Filter by activity status
+ *         description: Filter by status
  *       - in: query
  *         name: startDate
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter activities after this date
+ *         description: Filter by start date (greater than or equal)
  *       - in: query
  *         name: endDate
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter activities before this date
+ *         description: Filter by end date (less than or equal)
  *       - in: query
- *         name: mediaCoverage
+ *         name: media_coverage
  *         schema:
  *           type: boolean
- *         description: Filter by media coverage presence
+ *         description: Filter by media coverage
  *     responses:
  *       200:
  *         description: List of party activities
@@ -128,9 +136,9 @@ router.get('/', getPartyActivities);
  *             schema:
  *               $ref: '#/components/schemas/PartyActivity'
  *       404:
- *         description: Activity not found
+ *         description: Party activity not found
  */
-router.get('/:id', getPartyActivityById);
+router.get('/:id', getPartyActivity);
 
 /**
  * @swagger
@@ -148,14 +156,13 @@ router.get('/:id', getPartyActivityById);
  *             $ref: '#/components/schemas/PartyActivity'
  *     responses:
  *       201:
- *         description: Activity created successfully
+ *         description: Party activity created successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/',  createPartyActivity);
-// router.post('/', protect, authorize('superAdmin', 'editor'), createPartyActivity);
+router.post('/', protect, createPartyActivity);
 
 /**
  * @swagger
@@ -179,15 +186,15 @@ router.post('/',  createPartyActivity);
  *             $ref: '#/components/schemas/PartyActivity'
  *     responses:
  *       200:
- *         description: Activity updated successfully
+ *         description: Party activity updated successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Activity not found
+ *         description: Party activity not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'editor'), updatePartyActivity);
+router.put('/:id', protect, updatePartyActivity);
 
 /**
  * @swagger
@@ -205,19 +212,57 @@ router.put('/:id', protect, authorize('superAdmin', 'editor'), updatePartyActivi
  *           type: string
  *     responses:
  *       200:
- *         description: Activity deleted
+ *         description: Party activity deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Activity not found
+ *         description: Party activity not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deletePartyActivity);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePartyActivity);
+
+/**
+ * @swagger
+ * /api/party-activities/{id}/media:
+ *   post:
+ *     summary: Add media link to party activity
+ *     tags: [Party Activities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 description: URL to the media content
+ *             required:
+ *               - url
+ *     responses:
+ *       200:
+ *         description: Media link added successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Party activity not found
+ */
+router.post('/:id/media', protect, addMediaLink);
 
 /**
  * @swagger
  * /api/party-activities/party/{partyId}:
  *   get:
- *     summary: Get activities by party ID
+ *     summary: Get party activities by party
  *     tags: [Party Activities]
  *     parameters:
  *       - in: path
@@ -227,7 +272,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deletePartyActivity);
  *           type: string
  *     responses:
  *       200:
- *         description: List of activities for the party
+ *         description: List of party activities for the party
  *         content:
  *           application/json:
  *             schema:
@@ -244,23 +289,23 @@ router.delete('/:id', protect, authorize('superAdmin'), deletePartyActivity);
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', getActivitiesByParty);
+router.get('/party/:partyId', getPartyActivitiesByParty);
 
 /**
  * @swagger
- * /api/party-activities/assembly/{assemblyId}:
+ * /api/party-activities/parliament/{parliamentId}:
  *   get:
- *     summary: Get activities by assembly ID
+ *     summary: Get party activities by parliament
  *     tags: [Party Activities]
  *     parameters:
  *       - in: path
- *         name: assemblyId
+ *         name: parliamentId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: List of activities for the assembly
+ *         description: List of party activities for the parliament
  *         content:
  *           application/json:
  *             schema:
@@ -275,106 +320,9 @@ router.get('/party/:partyId', getActivitiesByParty);
  *                   items:
  *                     $ref: '#/components/schemas/PartyActivity'
  *       404:
- *         description: Assembly not found
+ *         description: Parliament not found
  */
-router.get('/assembly/:assemblyId', getActivitiesByAssembly);
-
-/**
- * @swagger
- * /api/party-activities/booth/{boothId}:
- *   get:
- *     summary: Get activities by booth ID
- *     tags: [Party Activities]
- *     parameters:
- *       - in: path
- *         name: boothId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of activities for the booth
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PartyActivity'
- *       404:
- *         description: Booth not found
- */
-router.get('/booth/:boothId', getActivitiesByBooth);
-
-/**
- * @swagger
- * /api/party-activities/type/{activityType}:
- *   get:
- *     summary: Get activities by type
- *     tags: [Party Activities]
- *     parameters:
- *       - in: path
- *         name: activityType
- *         required: true
- *         schema:
- *           type: string
- *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
- *     responses:
- *       200:
- *         description: List of activities of specified type
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PartyActivity'
- */
-router.get('/type/:activityType', getActivitiesByType);
-
-/**
- * @swagger
- * /api/party-activities/status/{status}:
- *   get:
- *     summary: Get activities by status
- *     tags: [Party Activities]
- *     parameters:
- *       - in: path
- *         name: status
- *         required: true
- *         schema:
- *           type: string
- *           enum: [scheduled, completed, cancelled, postponed]
- *     responses:
- *       200:
- *         description: List of activities with specified status
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PartyActivity'
- */
-router.get('/status/:status', getActivitiesByStatus);
+router.get('/parliament/:parliamentId', getPartyActivitiesByParliament);
 
 /**
  * @swagger
@@ -384,6 +332,7 @@ router.get('/status/:status', getActivitiesByStatus);
  *       type: object
  *       required:
  *         - party_id
+ *         - parliament_id
  *         - activity_type
  *         - title
  *         - activity_date
@@ -392,50 +341,57 @@ router.get('/status/:status', getActivitiesByStatus);
  *         party_id:
  *           type: string
  *           description: Reference to Party
- *           example: "507f1f77bcf86cd799439011"
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
- *           example: "507f1f77bcf86cd799439012"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439013"
  *         activity_type:
  *           type: string
  *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
- *           description: Type of political activity
- *           example: "rally"
+ *           description: Type of activity
  *         title:
  *           type: string
  *           description: Title of the activity
- *           example: "Election Rally in Downtown"
  *         description:
  *           type: string
- *           description: Detailed description of the activity
- *           example: "Annual election rally with party leaders"
+ *           description: Description of the activity
  *         activity_date:
  *           type: string
  *           format: date-time
  *           description: Date and time of the activity
- *           example: "2023-05-15T10:00:00Z"
+ *         end_date:
+ *           type: string
+ *           format: date-time
+ *           description: End date and time of the activity
+ *         location:
+ *           type: string
+ *           description: Location of the activity
  *         status:
  *           type: string
  *           enum: [scheduled, completed, cancelled, postponed]
  *           description: Current status of the activity
- *           example: "scheduled"
- *         created_by:
- *           type: string
- *           description: Reference to User who created the activity
- *           example: "507f1f77bcf86cd799439014"
  *         attendance_count:
- *           type: integer
+ *           type: number
  *           description: Number of attendees
- *           example: 5000
  *         media_coverage:
  *           type: boolean
- *           description: Whether the activity had media coverage
- *           example: true
+ *           description: Whether there was media coverage
+ *         media_links:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Links to media coverage
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created the record
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated the record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -444,11 +400,6 @@ router.get('/status/:status', getActivitiesByStatus);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;
