@@ -9,6 +9,7 @@ import SimpleLayout from 'layout/Simple';
 
 import { SimpleLayoutType } from 'config';
 import { loader as productsLoader, productLoader } from 'api/products';
+import { el } from 'date-fns/locale';
 
 // render - dashboard
 const DashboardDefault = Loadable(lazy(() => import('pages/dashboard/default')));
@@ -131,6 +132,7 @@ const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')))
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
 const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
+const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateListPage')));
 
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/WinningPartiesList')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
@@ -572,6 +574,10 @@ const MainRoutes = {
         {
           path: 'parties',
           element: <PartyListPage />
+        },
+        {
+          path: 'candidates',
+          element: <CandidateListPage />
         },
         {
           path: 'WinningPartiesList',
