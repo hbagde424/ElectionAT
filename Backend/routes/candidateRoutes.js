@@ -6,8 +6,7 @@ const {
   updateCandidate,
   deleteCandidate,
   getCandidatesByAssembly,
-  getCandidatesByParty,
-  getCandidatesByCaste
+  getCandidatesByParliament
 } = require('../controllers/candidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -43,26 +42,35 @@ const router = express.Router();
  *           type: string
  *         description: Search term for candidate names
  *       - in: query
- *         name: assembly
- *         schema:
- *           type: string
- *         description: Assembly ID to filter by
- *       - in: query
  *         name: party
  *         schema:
  *           type: string
  *         description: Party ID to filter by
  *       - in: query
- *         name: caste
+ *         name: assembly
  *         schema:
  *           type: string
- *           enum: [General, OBC, SC, ST, Other]
- *         description: Caste to filter by
+ *         description: Assembly ID to filter by
  *       - in: query
- *         name: election_year
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: year
  *         schema:
  *           type: string
  *         description: Election year ID to filter by
+ *       - in: query
+ *         name: caste
+ *         schema:
+ *           type: string
+ *         description: Caste to filter by
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
  *     responses:
  *       200:
  *         description: List of candidates
@@ -134,7 +142,7 @@ router.get('/:id', getCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createCandidate);
+router.post('/', protect, authorize('admin', 'superAdmin'), createCandidate);
 
 /**
  * @swagger
@@ -166,7 +174,7 @@ router.post('/', protect, authorize('superAdmin'), createCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateCandidate);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), updateCandidate);
 
 /**
  * @swagger
@@ -204,11 +212,6 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteCandidate);
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
  *     responses:
  *       200:
  *         description: List of candidates for the assembly
@@ -232,24 +235,19 @@ router.get('/assembly/:assemblyId', getCandidatesByAssembly);
 
 /**
  * @swagger
- * /api/candidates/party/{partyId}:
+ * /api/candidates/parliament/{parliamentId}:
  *   get:
- *     summary: Get candidates by party
+ *     summary: Get candidates by parliament
  *     tags: [Candidates]
  *     parameters:
  *       - in: path
- *         name: partyId
+ *         name: parliamentId
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
  *     responses:
  *       200:
- *         description: List of candidates for the party
+ *         description: List of candidates for the parliament
  *         content:
  *           application/json:
  *             schema:
@@ -264,46 +262,9 @@ router.get('/assembly/:assemblyId', getCandidatesByAssembly);
  *                   items:
  *                     $ref: '#/components/schemas/Candidate'
  *       404:
- *         description: Party not found
+ *         description: Parliament not found
  */
-router.get('/party/:partyId', getCandidatesByParty);
-
-/**
- * @swagger
- * /api/candidates/caste/{caste}:
- *   get:
- *     summary: Get candidates by caste
- *     tags: [Candidates]
- *     parameters:
- *       - in: path
- *         name: caste
- *         required: true
- *         schema:
- *           type: string
- *           enum: [General, OBC, SC, ST, Other]
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
- *     responses:
- *       200:
- *         description: List of candidates by caste
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Candidate'
- */
-router.get('/caste/:caste', getCandidatesByCaste);
+router.get('/parliament/:parliamentId', getCandidatesByParliament);
 
 /**
  * @swagger
@@ -313,66 +274,74 @@ router.get('/caste/:caste', getCandidatesByCaste);
  *       type: object
  *       required:
  *         - name
- *         - party
- *         - assembly
- *         - assemblyModel
+ *         - party_id
+ *         - assembly_id
+ *         - parliament_id
  *         - election_year
  *         - caste
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           description: Candidate's full name
+ *           description: Candidate name
  *           example: "John Doe"
- *         party:
+ *         party_id:
  *           type: string
  *           description: Reference to Party
  *           example: "507f1f77bcf86cd799439011"
- *         assembly:
+ *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439012"
- *         assemblyModel:
+ *         parliament_id:
  *           type: string
- *           enum: [Division, Parliament, Block, Assembly]
- *           description: Type of assembly
- *           example: "Assembly"
+ *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439013"
  *         election_year:
  *           type: string
  *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439013"
+ *           example: "507f1f77bcf86cd799439014"
  *         caste:
  *           type: string
  *           enum: [General, OBC, SC, ST, Other]
  *           description: Caste category
  *           example: "OBC"
  *         votes:
- *           type: integer
+ *           type: number
  *           description: Number of votes received
  *           example: 15000
  *         criminal_cases:
- *           type: integer
+ *           type: number
  *           description: Number of criminal cases
  *           example: 2
  *         assets:
  *           type: string
- *           description: Declared assets
- *           example: "₹5 crore"
+ *           description: Assets declaration
+ *           example: "₹5 crore property, ₹2 crore investments"
  *         liabilities:
  *           type: string
- *           description: Declared liabilities
- *           example: "₹50 lakh"
+ *           description: Liabilities declaration
+ *           example: "₹50 lakh loan"
  *         education:
  *           type: string
  *           description: Educational qualification
- *           example: "Post Graduate"
+ *           example: "MBA, Harvard University"
  *         photo:
  *           type: string
- *           description: URL to candidate's photo
+ *           description: URL to candidate photo
  *           example: "https://example.com/photos/john-doe.jpg"
  *         is_active:
  *           type: boolean
- *           description: Whether the candidate is active
- *           example: true
+ *           description: Active status
+ *           default: true
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time

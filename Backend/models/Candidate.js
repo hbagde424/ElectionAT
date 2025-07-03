@@ -7,25 +7,24 @@ const candidateSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
-  party: {
+  party_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Party',
     required: [true, 'Party reference is required']
   },
-  assembly: {
+  assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
-    refPath: 'assemblyModel',
+    ref: 'Assembly',
     required: [true, 'Assembly reference is required']
   },
-  assemblyModel: {
-    type: String,
-    required: [true, 'Assembly model type is required'],
-    enum: ['Division', 'Parliament', 'Block', 'Assembly'],
-    default: 'Assembly'
+  parliament_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parliament',
+    required: [true, 'Parliament reference is required']
   },
   election_year: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Year',
+    ref: 'ElectionYear',
     required: [true, 'Election year is required']
   },
   caste: {
@@ -70,6 +69,15 @@ const candidateSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -80,15 +88,18 @@ const candidateSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp before saving
+// Update timestamp and updated_by before saving
 candidateSchema.pre('save', function(next) {
   this.updated_at = Date.now();
+  if (this.isNew) {
+    this.updated_by = this.created_by;
+  }
   next();
 });
 
 // Indexes for better performance
-candidateSchema.index({ name: 'text' }); // For text search on names
-candidateSchema.index({ caste: 1 }); // For filtering by caste
-candidateSchema.index({ assembly: 1, election_year: 1, party: 1 }, { unique: true });
+candidateSchema.index({ name: 'text' });
+candidateSchema.index({ caste: 1 });
+candidateSchema.index({ assembly_id: 1, parliament_id: 1, election_year: 1, party_id: 1 }, { unique: true });
 
 module.exports = mongoose.model('Candidate', candidateSchema);
