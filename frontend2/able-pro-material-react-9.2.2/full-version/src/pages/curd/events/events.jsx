@@ -5,9 +5,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
-import { DatePicker } from '@mui/x-date-pickers';
-// import { LocalizationProvider } from '@mui/x-date-pickers';
-// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// Removed unused DatePicker import
 
 // third-party
 import {
@@ -126,10 +124,10 @@ export default function EventListPage() {
       header: 'Type',
       accessorKey: 'type',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={typeColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={typeColors[getValue()]}
+          size="small"
           sx={{ textTransform: 'capitalize' }}
         />
       )
@@ -138,10 +136,10 @@ export default function EventListPage() {
       header: 'Status',
       accessorKey: 'status',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={statusColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={statusColors[getValue()]}
+          size="small"
           sx={{ textTransform: 'capitalize' }}
         />
       )

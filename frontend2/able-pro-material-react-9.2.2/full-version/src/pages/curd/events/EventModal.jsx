@@ -13,18 +13,20 @@ import {
     Grid
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-export default function EventModal({ 
-    open, 
-    modalToggler, 
-    event, 
+export default function EventModal({
+    open,
+    modalToggler,
+    event,
     divisions,
     parliaments,
     assemblies,
     blocks,
     booths,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         name: '',
@@ -87,9 +89,9 @@ export default function EventModal({
             setFilteredParliaments(filtered);
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                parliament_id: '', 
+            setFormData(prev => ({
+                ...prev,
+                parliament_id: '',
                 assembly_id: '',
                 block_id: '',
                 booth_id: ''
@@ -104,8 +106,8 @@ export default function EventModal({
             setFilteredAssemblies(filtered);
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 assembly_id: '',
                 block_id: '',
                 booth_id: ''
@@ -120,8 +122,8 @@ export default function EventModal({
             setFilteredBlocks(filtered);
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 block_id: '',
                 booth_id: ''
             }));
@@ -135,8 +137,8 @@ export default function EventModal({
             setFilteredBooths(filtered);
         } else {
             setFilteredBooths([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 booth_id: ''
             }));
         }
@@ -146,36 +148,36 @@ export default function EventModal({
         const { name, value } = e.target;
         setFormData(prev => {
             if (name === 'division_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    parliament_id: '', 
+                return {
+                    ...prev,
+                    [name]: value,
+                    parliament_id: '',
                     assembly_id: '',
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'parliament_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     assembly_id: '',
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'assembly_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'block_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     booth_id: ''
                 };
             }
@@ -188,263 +190,271 @@ export default function EventModal({
     };
 
     const handleSubmit = async () => {
-        const method = event ? 'PUT' : 'POST';
-        const token = localStorage.getItem('serviceToken');
-        const url = event
-            ? `http://localhost:5000/api/events/${event._id}`
-            : 'http://localhost:5000/api/events';
+        try {
+            const method = event ? 'PUT' : 'POST';
+            const token = localStorage.getItem('serviceToken');
+            const url = event
+                ? `http://localhost:5000/api/events/${event._id}`
+                : 'http://localhost:5000/api/events';
 
-        const payload = {
-            ...formData,
-            start_date: formData.start_date.toISOString(),
-            end_date: formData.end_date.toISOString()
-        };
+            const payload = {
+                ...formData,
+                start_date: formData.start_date.toISOString(),
+                end_date: formData.end_date.toISOString()
+            };
 
-        const res = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
-        });
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
 
-        if (res.ok) {
-            modalToggler(false);
-            refresh();
+            if (res.ok) {
+                modalToggler(false);
+                refresh();
+            } else {
+                const errorData = await res.json();
+                console.error('Failed to save event:', errorData);
+            }
+        } catch (error) {
+            console.error('Error saving event:', error);
         }
     };
 
     return (
-        
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-            <DialogTitle>{event ? 'Edit Event' : 'Add Event'}</DialogTitle>
-            <DialogContent>
-                <Stack spacing={2} mt={2}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Event Name</InputLabel>
-                                <TextField 
-                                    name="name" 
-                                    value={formData.name} 
-                                    onChange={handleChange} 
-                                    fullWidth 
-                                    required
-                                    inputProps={{ maxLength: 100 }}
-                                />
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Location</InputLabel>
-                                <TextField 
-                                    name="location" 
-                                    value={formData.location} 
-                                    onChange={handleChange} 
-                                    fullWidth 
-                                    required
-                                    inputProps={{ maxLength: 200 }}
-                                />
-                            </Stack>
-                        </Grid>
-                    </Grid>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Type</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="type"
-                                        value={formData.type}
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
+                <DialogTitle>{event ? 'Edit Event' : 'Add Event'}</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} mt={2}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Event Name</InputLabel>
+                                    <TextField
+                                        name="name"
+                                        value={formData.name}
                                         onChange={handleChange}
+                                        fullWidth
                                         required
-                                    >
-                                        <MenuItem value="event">Event</MenuItem>
-                                        <MenuItem value="campaign">Campaign</MenuItem>
-                                        <MenuItem value="activity">Activity</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Status</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="status"
-                                        value={formData.status}
+                                        inputProps={{ maxLength: 100 }}
+                                    />
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Location</InputLabel>
+                                    <TextField
+                                        name="location"
+                                        value={formData.location}
                                         onChange={handleChange}
+                                        fullWidth
                                         required
-                                    >
-                                        <MenuItem value="incomplete">Incomplete</MenuItem>
-                                        <MenuItem value="done">Done</MenuItem>
-                                        <MenuItem value="cancelled">Cancelled</MenuItem>
-                                        <MenuItem value="postponed">Postponed</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Stack>
+                                        inputProps={{ maxLength: 200 }}
+                                    />
+                                </Stack>
+                            </Grid>
                         </Grid>
-                    </Grid>
 
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Start Date</InputLabel>
-                                <DatePicker
-                                    value={formData.start_date}
-                                    onChange={(date) => handleDateChange('start_date', date)}
-                                    renderInput={(params) => <TextField fullWidth {...params} />}
-                                />
-                            </Stack>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Type</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="type"
+                                            value={formData.type}
+                                            onChange={handleChange}
+                                            required
+                                        >
+                                            <MenuItem value="event">Event</MenuItem>
+                                            <MenuItem value="campaign">Campaign</MenuItem>
+                                            <MenuItem value="activity">Activity</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Status</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="status"
+                                            value={formData.status}
+                                            onChange={handleChange}
+                                            required
+                                        >
+                                            <MenuItem value="incomplete">Incomplete</MenuItem>
+                                            <MenuItem value="done">Done</MenuItem>
+                                            <MenuItem value="cancelled">Cancelled</MenuItem>
+                                            <MenuItem value="postponed">Postponed</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>End Date</InputLabel>
-                                <DatePicker
-                                    value={formData.end_date}
-                                    onChange={(date) => handleDateChange('end_date', date)}
-                                    renderInput={(params) => <TextField fullWidth {...params} />}
-                                    minDate={formData.start_date}
-                                />
-                            </Stack>
-                        </Grid>
-                    </Grid>
 
-                    <Stack spacing={1}>
-                        <InputLabel>Description</InputLabel>
-                        <TextField 
-                            name="description" 
-                            value={formData.description} 
-                            onChange={handleChange} 
-                            fullWidth 
-                            multiline
-                            rows={4}
-                            inputProps={{ maxLength: 500 }}
-                        />
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Start Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.start_date}
+                                        onChange={(date) => handleDateChange('start_date', date)}
+                                        slotProps={{ textField: { fullWidth: true } }}
+                                    />
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>End Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.end_date}
+                                        onChange={(date) => handleDateChange('end_date', date)}
+                                        slotProps={{ textField: { fullWidth: true } }}
+                                        minDate={formData.start_date}
+                                    />
+                                </Stack>
+                            </Grid>
+                        </Grid>
+
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <TextField
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                fullWidth
+                                multiline
+                                rows={4}
+                                inputProps={{ maxLength: 500 }}
+                            />
+                        </Stack>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Division</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="division_id"
+                                            value={formData.division_id}
+                                            onChange={handleChange}
+                                            required
+                                        >
+                                            <MenuItem value="">Select Division</MenuItem>
+                                            {divisions.map((division) => (
+                                                <MenuItem key={division._id} value={division._id}>
+                                                    {division.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Parliament</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="parliament_id"
+                                            value={formData.parliament_id}
+                                            onChange={handleChange}
+                                            required
+                                            disabled={!formData.division_id}
+                                        >
+                                            <MenuItem value="">Select Parliament</MenuItem>
+                                            {filteredParliaments.map((parliament) => (
+                                                <MenuItem key={parliament._id} value={parliament._id}>
+                                                    {parliament.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                        </Grid>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Assembly</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="assembly_id"
+                                            value={formData.assembly_id}
+                                            onChange={handleChange}
+                                            required
+                                            disabled={!formData.parliament_id}
+                                        >
+                                            <MenuItem value="">Select Assembly</MenuItem>
+                                            {filteredAssemblies.map((assembly) => (
+                                                <MenuItem key={assembly._id} value={assembly._id}>
+                                                    {assembly.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Block</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="block_id"
+                                            value={formData.block_id}
+                                            onChange={handleChange}
+                                            required
+                                            disabled={!formData.assembly_id}
+                                        >
+                                            <MenuItem value="">Select Block</MenuItem>
+                                            {filteredBlocks.map((block) => (
+                                                <MenuItem key={block._id} value={block._id}>
+                                                    {block.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                        </Grid>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Booth</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="booth_id"
+                                            value={formData.booth_id}
+                                            onChange={handleChange}
+                                            required
+                                            disabled={!formData.block_id}
+                                        >
+                                            <MenuItem value="">Select Booth</MenuItem>
+                                            {filteredBooths.map((booth) => (
+                                                <MenuItem key={booth._id} value={booth._id}>
+                                                    {booth.name} (Booth: {booth.booth_number})
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                        </Grid>
                     </Stack>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Division</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="division_id"
-                                        value={formData.division_id}
-                                        onChange={handleChange}
-                                        required
-                                    >
-                                        <MenuItem value="">Select Division</MenuItem>
-                                        {divisions.map((division) => (
-                                            <MenuItem key={division._id} value={division._id}>
-                                                {division.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Parliament</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="parliament_id"
-                                        value={formData.parliament_id}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={!formData.division_id}
-                                    >
-                                        <MenuItem value="">Select Parliament</MenuItem>
-                                        {filteredParliaments.map((parliament) => (
-                                            <MenuItem key={parliament._id} value={parliament._id}>
-                                                {parliament.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                    </Grid>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Assembly</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="assembly_id"
-                                        value={formData.assembly_id}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={!formData.parliament_id}
-                                    >
-                                        <MenuItem value="">Select Assembly</MenuItem>
-                                        {filteredAssemblies.map((assembly) => (
-                                            <MenuItem key={assembly._id} value={assembly._id}>
-                                                {assembly.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Block</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="block_id"
-                                        value={formData.block_id}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={!formData.assembly_id}
-                                    >
-                                        <MenuItem value="">Select Block</MenuItem>
-                                        {filteredBlocks.map((block) => (
-                                            <MenuItem key={block._id} value={block._id}>
-                                                {block.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                    </Grid>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12}>
-                            <Stack spacing={1}>
-                                <InputLabel>Booth</InputLabel>
-                                <FormControl fullWidth>
-                                    <Select
-                                        name="booth_id"
-                                        value={formData.booth_id}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={!formData.block_id}
-                                    >
-                                        <MenuItem value="">Select Booth</MenuItem>
-                                        {filteredBooths.map((booth) => (
-                                            <MenuItem key={booth._id} value={booth._id}>
-                                                {booth.name} (Booth: {booth.booth_number})
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Stack>
-                        </Grid>
-                    </Grid>
-                </Stack>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                    {event ? 'Update' : 'Submit'}
-                </Button>
-            </DialogActions>
-        </Dialog>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => modalToggler(false)}>Cancel</Button>
+                    <Button variant="contained" onClick={handleSubmit}>
+                        {event ? 'Update' : 'Submit'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </LocalizationProvider>
     );
 }
