@@ -130,6 +130,8 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
+const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
+
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/WinningPartiesList')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
@@ -568,6 +570,10 @@ const MainRoutes = {
           element: <BoothVolunteer />
         },
         {
+          path: 'parties',
+          element: <PartyListPage />
+        },
+        {
           path: 'WinningPartiesList',
           element: <WinningPartiesList />
         },
@@ -625,9 +631,6 @@ const MainRoutes = {
           path: 'Pontentcal-Candidate',
           element: <PolentialCandidate />
         },
-
-
-
 
         {
           path: 'district',
