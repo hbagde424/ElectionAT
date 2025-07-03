@@ -13,22 +13,25 @@ import {
     Grid,
     IconButton,
     Typography,
-    Divider
+    Divider,
+    Link
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { DatePicker } from '@mui/x-date-pickers';
-// import { Add, Delete } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { Add, Trash } from 'iconsax-react';
 
-export default function WorkStatusModal({ 
-    open, 
-    modalToggler, 
-    work, 
+export default function WorkStatusModal({
+    open,
+    modalToggler,
+    work,
     divisions,
     parliaments,
     assemblies,
     blocks,
     booths,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         work_name: '',
@@ -111,9 +114,9 @@ export default function WorkStatusModal({
             setFilteredParliaments(filtered);
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                parliament_id: '', 
+            setFormData(prev => ({
+                ...prev,
+                parliament_id: '',
                 assembly_id: '',
                 block_id: '',
                 booth_id: ''
@@ -128,8 +131,8 @@ export default function WorkStatusModal({
             setFilteredAssemblies(filtered);
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 assembly_id: '',
                 block_id: '',
                 booth_id: ''
@@ -144,8 +147,8 @@ export default function WorkStatusModal({
             setFilteredBlocks(filtered);
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 block_id: '',
                 booth_id: ''
             }));
@@ -159,8 +162,8 @@ export default function WorkStatusModal({
             setFilteredBooths(filtered);
         } else {
             setFilteredBooths([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 booth_id: ''
             }));
         }
@@ -170,36 +173,36 @@ export default function WorkStatusModal({
         const { name, value } = e.target;
         setFormData(prev => {
             if (name === 'division_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    parliament_id: '', 
+                return {
+                    ...prev,
+                    [name]: value,
+                    parliament_id: '',
                     assembly_id: '',
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'parliament_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     assembly_id: '',
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'assembly_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'block_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     booth_id: ''
                 };
             }
@@ -234,31 +237,38 @@ export default function WorkStatusModal({
     };
 
     const handleSubmit = async () => {
-        const method = work ? 'PUT' : 'POST';
-        const token = localStorage.getItem('serviceToken');
-        const url = work
-            ? `http://localhost:5000/api/work-statuses/${work._id}`
-            : 'http://localhost:5000/api/work-statuses';
+        try {
+            const method = work ? 'PUT' : 'POST';
+            const token = localStorage.getItem('serviceToken');
+            const url = work
+                ? `http://localhost:5000/api/work-statuses/${work._id}`
+                : 'http://localhost:5000/api/work-statuses';
 
-        const payload = {
-            ...formData,
-            start_date: formData.start_date.toISOString(),
-            expected_end_date: formData.expected_end_date.toISOString(),
-            actual_end_date: formData.actual_end_date ? formData.actual_end_date.toISOString() : null
-        };
+            const payload = {
+                ...formData,
+                start_date: formData.start_date.toISOString(),
+                expected_end_date: formData.expected_end_date.toISOString(),
+                actual_end_date: formData.actual_end_date ? formData.actual_end_date.toISOString() : null
+            };
 
-        const res = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
-        });
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
 
-        if (res.ok) {
-            modalToggler(false);
-            refresh();
+            if (res.ok) {
+                modalToggler(false);
+                refresh();
+            } else {
+                const errorData = await res.json();
+                console.error('Failed to save work status:', errorData);
+            }
+        } catch (error) {
+            console.error('Error saving work status:', error);
         }
     };
 
@@ -271,11 +281,11 @@ export default function WorkStatusModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Work Name</InputLabel>
-                                <TextField 
-                                    name="work_name" 
-                                    value={formData.work_name} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="work_name"
+                                    value={formData.work_name}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
                                     inputProps={{ maxLength: 200 }}
                                 />
@@ -284,11 +294,11 @@ export default function WorkStatusModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Department</InputLabel>
-                                <TextField 
-                                    name="department" 
-                                    value={formData.department} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="department"
+                                    value={formData.department}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
                                     inputProps={{ maxLength: 100 }}
                                 />
@@ -335,11 +345,11 @@ export default function WorkStatusModal({
                         <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
                                 <InputLabel>Falia</InputLabel>
-                                <TextField 
-                                    name="falia" 
-                                    value={formData.falia} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="falia"
+                                    value={formData.falia}
+                                    onChange={handleChange}
+                                    fullWidth
                                     inputProps={{ maxLength: 200 }}
                                 />
                             </Stack>
@@ -350,12 +360,12 @@ export default function WorkStatusModal({
                         <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
                                 <InputLabel>Total Budget (₹)</InputLabel>
-                                <TextField 
-                                    name="total_budget" 
+                                <TextField
+                                    name="total_budget"
                                     type="number"
-                                    value={formData.total_budget} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                    value={formData.total_budget}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
                                     inputProps={{ min: 0 }}
                                 />
@@ -364,12 +374,12 @@ export default function WorkStatusModal({
                         <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
                                 <InputLabel>Spent Amount (₹)</InputLabel>
-                                <TextField 
-                                    name="spent_amount" 
+                                <TextField
+                                    name="spent_amount"
                                     type="number"
-                                    value={formData.spent_amount} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                    value={formData.spent_amount}
+                                    onChange={handleChange}
+                                    fullWidth
                                     inputProps={{ min: 0, max: formData.total_budget }}
                                 />
                             </Stack>
@@ -377,58 +387,60 @@ export default function WorkStatusModal({
                         <Grid item xs={12} md={4}>
                             <Stack spacing={1}>
                                 <InputLabel>Remaining (₹)</InputLabel>
-                                <TextField 
-                                    value={formData.total_budget - formData.spent_amount} 
-                                    fullWidth 
+                                <TextField
+                                    value={formData.total_budget - formData.spent_amount}
+                                    fullWidth
                                     disabled
                                 />
                             </Stack>
                         </Grid>
                     </Grid>
 
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={4}>
-                            <Stack spacing={1}>
-                                <InputLabel>Start Date</InputLabel>
-                                <DatePicker
-                                    value={formData.start_date}
-                                    onChange={(date) => handleDateChange('start_date', date)}
-                                    renderInput={(params) => <TextField fullWidth {...params} />}
-                                />
-                            </Stack>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={4}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Start Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.start_date}
+                                        onChange={(date) => handleDateChange('start_date', date)}
+                                        slotProps={{ textField: { fullWidth: true } }}
+                                    />
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Expected End Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.expected_end_date}
+                                        onChange={(date) => handleDateChange('expected_end_date', date)}
+                                        slotProps={{ textField: { fullWidth: true } }}
+                                        minDate={formData.start_date}
+                                    />
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Actual End Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.actual_end_date}
+                                        onChange={(date) => handleDateChange('actual_end_date', date)}
+                                        slotProps={{ textField: { fullWidth: true } }}
+                                        minDate={formData.start_date}
+                                        disabled={formData.status !== 'Completed'}
+                                    />
+                                </Stack>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <Stack spacing={1}>
-                                <InputLabel>Expected End Date</InputLabel>
-                                <DatePicker
-                                    value={formData.expected_end_date}
-                                    onChange={(date) => handleDateChange('expected_end_date', date)}
-                                    renderInput={(params) => <TextField fullWidth {...params} />}
-                                    minDate={formData.start_date}
-                                />
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <Stack spacing={1}>
-                                <InputLabel>Actual End Date</InputLabel>
-                                <DatePicker
-                                    value={formData.actual_end_date}
-                                    onChange={(date) => handleDateChange('actual_end_date', date)}
-                                    renderInput={(params) => <TextField fullWidth {...params} />}
-                                    minDate={formData.start_date}
-                                    disabled={formData.status !== 'Completed'}
-                                />
-                            </Stack>
-                        </Grid>
-                    </Grid>
+                    </LocalizationProvider>
 
                     <Stack spacing={1}>
                         <InputLabel>Description</InputLabel>
-                        <TextField 
-                            name="description" 
-                            value={formData.description} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            fullWidth
                             multiline
                             rows={4}
                             inputProps={{ maxLength: 1000 }}
@@ -443,7 +455,7 @@ export default function WorkStatusModal({
                             <Typography sx={{ flex: 1 }}>{doc.name}</Typography>
                             <Link href={doc.url} target="_blank" rel="noopener">View Document</Link>
                             <IconButton color="error" onClick={() => removeDocument(index)}>
-                                {/* <Delete /> */}
+                                <Trash />
                             </IconButton>
                         </Stack>
                     ))}
@@ -469,9 +481,9 @@ export default function WorkStatusModal({
                             />
                         </Grid>
                         <Grid item xs={2}>
-                            <Button 
-                                variant="contained" 
-                                // startIcon={<Add />} 
+                            <Button
+                                variant="contained"
+                                startIcon={<Add />}
                                 onClick={addDocument}
                                 disabled={!newDocument.name || !newDocument.url}
                             >

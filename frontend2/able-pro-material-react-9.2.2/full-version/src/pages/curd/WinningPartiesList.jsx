@@ -87,8 +87,9 @@ export default function WinningPartyListPage() {
         },
         {
             header: 'Year',
-            accessorKey: 'year_id.name',
-            cell: ({ row }) => row.original.year_id?.name || row.original.year_id
+            accessorKey: 'year_id.year', // this is okay for sorting
+            cell: ({ row }) =>
+                row.original.year_id?.year?.toString() || row.original.year_id?._id || 'N/A'
         },
         {
             header: 'Votes',

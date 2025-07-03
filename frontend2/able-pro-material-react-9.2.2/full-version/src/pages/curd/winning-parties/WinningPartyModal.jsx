@@ -97,7 +97,7 @@ export default function WinningPartyModal({ open, modalToggler, party, refresh }
         }
     };
 
-    const renderSelect = (label, name, options) => (
+    const renderSelect = (label, name, options, labelKey = 'name') => (
         <Grid item xs={12} sm={6}>
             <Stack spacing={1}>
                 <InputLabel>{label}</InputLabel>
@@ -105,7 +105,7 @@ export default function WinningPartyModal({ open, modalToggler, party, refresh }
                     <Select name={name} value={formData[name]} onChange={handleChange}>
                         {options.map((option) => (
                             <MenuItem key={option._id} value={option._id}>
-                                {option.name}
+                                {option[labelKey]}
                             </MenuItem>
                         ))}
                     </Select>
@@ -123,7 +123,7 @@ export default function WinningPartyModal({ open, modalToggler, party, refresh }
                     {renderSelect('Assembly', 'assembly_id', assemblies)}
                     {renderSelect('Parliament', 'parliament_id', parliaments)}
                     {renderSelect('Party', 'party_id', parties)}
-                    {renderSelect('Year', 'year_id', years)}
+                    {renderSelect('Year', 'year_id', years, 'year')}
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>

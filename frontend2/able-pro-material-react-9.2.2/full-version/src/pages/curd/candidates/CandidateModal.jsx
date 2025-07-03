@@ -1,4 +1,3 @@
-// === CandidateModal.jsx ===
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl
@@ -20,6 +19,7 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
         photo: '',
         is_active: true
     });
+
     const [parties, setParties] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
     const [years, setYears] = useState([]);
@@ -32,9 +32,15 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
         ]).then(([partyRes, assemblyRes, yearRes]) => {
             if (partyRes.success) setParties(partyRes.data);
             if (assemblyRes.success) setAssemblies(assemblyRes.data);
-            if (yearRes.success) setYears(yearRes.data);
+
+            if (Array.isArray(yearRes)) {
+                setYears(yearRes);
+            } else if (yearRes.success && Array.isArray(yearRes.data)) {
+                setYears(yearRes.data);
+            }
         });
     }, []);
+
 
     useEffect(() => {
         if (candidate) {
@@ -98,41 +104,76 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
         }
     };
 
+    const renderTextField = (label, name) => (
+        <Grid item xs={12} sm={6} key={name}>
+            <Stack spacing={1}>
+                <InputLabel>{label}</InputLabel>
+                <TextField name={name} value={formData[name]} onChange={handleChange} fullWidth />
+            </Stack>
+        </Grid>
+    );
+
+    const renderSelect = (label, name, options, labelKey = 'name') => (
+        <Grid item xs={12} sm={6} key={name}>
+            <Stack spacing={1}>
+                <InputLabel>{label}</InputLabel>
+                <FormControl fullWidth>
+                    <Select name={name} value={formData[name]} onChange={handleChange}>
+                        {options.map((opt) => (
+                            <MenuItem key={opt._id} value={opt._id}>
+                                {opt[labelKey] || 'Unknown'}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Stack>
+        </Grid>
+    );
+
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{candidate ? 'Edit Candidate' : 'Add Candidate'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {[['Name', 'name'], ['Caste', 'caste'], ['Votes', 'votes'], ['Criminal Cases', 'criminal_cases'], ['Assets', 'assets'], ['Liabilities', 'liabilities'], ['Education', 'education'], ['Photo URL', 'photo']]
-                        .map(([label, name]) => (
-                            <Grid item xs={12} sm={6} key={name}>
-                                <Stack spacing={1}>
-                                    <InputLabel>{label}</InputLabel>
-                                    <TextField name={name} value={formData[name]} onChange={handleChange} fullWidth />
-                                </Stack>
-                            </Grid>
-                        ))}
+                    {[
+                        ['Name', 'name'],
+                        ['Caste', 'caste'],
+                        ['Votes', 'votes'],
+                        ['Criminal Cases', 'criminal_cases'],
+                        ['Assets', 'assets'],
+                        ['Liabilities', 'liabilities'],
+                        ['Education', 'education'],
+                        ['Photo URL', 'photo']
+                    ].map(([label, name]) => renderTextField(label, name))}
 
-                    {[{ label: 'Party', name: 'party', options: parties }, { label: 'Assembly', name: 'assembly', options: assemblies }, { label: 'Election Year', name: 'election_year', options: years }]
-                        .map(({ label, name, options }) => (
-                            <Grid item xs={12} sm={6} key={name}>
-                                <Stack spacing={1}>
-                                    <InputLabel>{label}</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select name={name} value={formData[name]} onChange={handleChange}>
-                                            {options.map((opt) => (
-                                                <MenuItem key={opt._id} value={opt._id}>{opt.name || opt.year}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                        ))}
+                    {renderSelect('Party', 'party', parties)}
+                    {renderSelect('Assembly', 'assembly', assemblies)}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Election Year</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="election_year"
+                                    value={formData.election_year}
+                                    onChange={handleChange}
+                                >
+                                    {years.map((opt) => (
+                                        <MenuItem key={opt._id} value={opt._id}>
+                                            {`${opt.year} (${opt.election_type})`}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>{candidate ? 'Update' : 'Submit'}</Button>
+                <Button variant="contained" onClick={handleSubmit}>
+                    {candidate ? 'Update' : 'Submit'}
+                </Button>
             </DialogActions>
         </Dialog>
     );

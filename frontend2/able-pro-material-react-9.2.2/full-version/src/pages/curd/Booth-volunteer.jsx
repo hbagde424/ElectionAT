@@ -1,67 +1,59 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Chip, Divider
+  Button, Stack, Box, Typography, Divider, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
-import { useNavigate } from 'react-router-dom';
 
-// third-party
 import {
   getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
   useReactTable, flexRender
 } from '@tanstack/react-table';
 
-// project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
-// custom views and modals
-import VolunteerModal from 'pages/curd/volunteer/VolunteerModal';
-import AlertVolunteerDelete from 'pages/curd/volunteer/AlertVolunteerDelete';
-import VolunteerView from 'pages/curd/volunteer/VolunteerView';
-import { Tooltip } from '@mui/material';
+import WinningPartyModal from 'pages/curd/winning-parties/WinningPartyModal';
+import AlertWinningPartyDelete from 'pages/curd/winning-parties/AlertWinningPartyDelete';
+import WinningPartyView from 'pages/curd/winning-parties/WinningPartyView';
 
-export default function VolunteerListPage() {
+export default function WinningPartyListPage() {
   const theme = useTheme();
-
-  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [selectedParty, setSelectedParty] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [volunteerDeleteId, setVolunteerDeleteId] = useState('');
-  const [volunteers, setVolunteers] = useState([]);
+  const [deleteId, setDeleteId] = useState('');
+  const [winningParties, setWinningParties] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-  const fetchVolunteers = async (pageIndex, pageSize) => {
+  const fetchWinningParties = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/winning-parties?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
-        setVolunteers(json.data);
-        setPageCount(json.pages); // from API: total pages
+        setWinningParties(json.data);
+        setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch volunteers:', error);
+      console.error('Failed to fetch winning parties:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVolunteers(pagination.pageIndex, pagination.pageSize);
+    fetchWinningParties(pagination.pageIndex, pagination.pageSize);
   }, [pagination.pageIndex, pagination.pageSize]);
 
-
   const handleDeleteOpen = (id) => {
-    setVolunteerDeleteId(id);
+    setDeleteId(id);
     setOpenDelete(true);
   };
 
@@ -74,35 +66,37 @@ export default function VolunteerListPage() {
       cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
-      header: 'Name',
-      accessorKey: 'name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      header: 'Candidate',
+      accessorKey: 'candidate_id.name',
+      cell: ({ row }) => row.original.candidate_id?.name || row.original.candidate_id
     },
     {
-      header: 'Phone',
-      accessorKey: 'phone'
+      header: 'Assembly',
+      accessorKey: 'assembly_id.name',
+      cell: ({ row }) => row.original.assembly_id?.name || row.original.assembly_id
     },
     {
-      header: 'Email',
-      accessorKey: 'email'
-    },
-    {
-      header: 'Booth',
-      accessorKey: 'booth_id.name',
-      cell: ({ row }) => row.original.booth_id?.name
+      header: 'Parliament',
+      accessorKey: 'parliament_id.name',
+      cell: ({ row }) => row.original.parliament_id?.name || row.original.parliament_id
     },
     {
       header: 'Party',
       accessorKey: 'party_id.name',
-      cell: ({ row }) => row.original.party_id?.name
+      cell: ({ row }) => row.original.party_id?.name || row.original.party_id
     },
     {
-      header: 'Area Responsibility',
-      accessorKey: 'area_responsibility'
+      header: 'Year',
+      accessorKey: 'year_id.name',
+      cell: ({ row }) => row.original.year_id?.name || row.original.__id
     },
     {
-      header: 'Remarks',
-      accessorKey: 'remarks'
+      header: 'Votes',
+      accessorKey: 'votes'
+    },
+    {
+      header: 'Margin',
+      accessorKey: 'margin'
     },
     {
       header: 'Actions',
@@ -122,7 +116,7 @@ export default function VolunteerListPage() {
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedVolunteer(row.original);
+                  setSelectedParty(row.original);
                   setOpenModal(true);
                 }}
               >
@@ -147,22 +141,20 @@ export default function VolunteerListPage() {
   ], [theme]);
 
   const table = useReactTable({
-    data: volunteers,
+    data: winningParties,
     columns,
     state: {
       pagination
     },
-    pageCount, // total pages from API
+    pageCount,
     manualPagination: true,
     onPaginationChange: setPagination,
-
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowCanExpand: () => true
   });
-
 
   if (loading) return <EmptyReactTable />;
 
@@ -173,10 +165,10 @@ export default function VolunteerListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${volunteers.length} volunteers...`}
+            placeholder={`Search ${winningParties.length} winning parties...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVolunteer(null); setOpenModal(true); }}>
-            Add Volunteer
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedParty(null); setOpenModal(true); }}>
+            Add Winning Party
           </Button>
         </Stack>
 
@@ -214,7 +206,7 @@ export default function VolunteerListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <VolunteerView data={row.original} />
+                          <WinningPartyView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -231,24 +223,22 @@ export default function VolunteerListPage() {
               getState={table.getState}
               getPageCount={() => pageCount}
             />
-
-
           </Box>
         </ScrollX>
       </MainCard>
 
-      <VolunteerModal
+      <WinningPartyModal
         open={openModal}
         modalToggler={setOpenModal}
-        volunteer={selectedVolunteer}
-        refresh={fetchVolunteers}
+        party={selectedParty}
+        refresh={fetchWinningParties}
       />
 
-      <AlertVolunteerDelete
-        id={volunteerDeleteId}
+      <AlertWinningPartyDelete
+        id={deleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={fetchVolunteers}
+        refresh={fetchWinningParties}
       />
     </>
   );

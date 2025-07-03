@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
-import { DatePicker } from '@mui/x-date-pickers';
+// Removed unused DatePicker import
 
 // third-party
 import {
@@ -131,10 +131,10 @@ export default function WorkStatusListPage() {
       header: 'Status',
       accessorKey: 'status',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={statusColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={statusColors[getValue()]}
+          size="small"
           sx={{ minWidth: 100 }}
         />
       )
@@ -151,10 +151,10 @@ export default function WorkStatusListPage() {
       header: 'Fund Source',
       accessorKey: 'approved_fund_from',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={fundSourceColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={fundSourceColors[getValue()]}
+          size="small"
           sx={{ textTransform: 'capitalize' }}
         />
       )
