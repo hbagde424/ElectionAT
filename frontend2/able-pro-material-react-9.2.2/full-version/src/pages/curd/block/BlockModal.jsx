@@ -12,20 +12,22 @@ import {
     FormControl,
     Switch,
     FormControlLabel,
-    Grid
+    Grid,
+    FormHelperText,
+    Alert
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-export default function BlockModal({ 
-    open, 
-    modalToggler, 
-    block, 
-    states, 
+export default function BlockModal({
+    open,
+    modalToggler,
+    block,
+    states,
     districts,
     divisions,
     assemblies,
     parliaments,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         name: '',
@@ -43,7 +45,87 @@ export default function BlockModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredDistricts, setFilteredDistricts] = useState([]);
 
+    // Validation states
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+
+    // Validation functions
+    const validateField = (name, value) => {
+        switch (name) {
+            case 'name':
+                if (!value || value.trim().length === 0) {
+                    return 'Block name is required';
+                }
+                if (value.trim().length < 2) {
+                    return 'Block name must be at least 2 characters long';
+                }
+                if (value.trim().length > 100) {
+                    return 'Block name must not exceed 100 characters';
+                }
+                if (!/^[a-zA-Z0-9\s\-\.]+$/.test(value.trim())) {
+                    return 'Block name can only contain letters, numbers, spaces, hyphens, and dots';
+                }
+                break;
+            case 'category':
+                if (!value) {
+                    return 'Category is required';
+                }
+                break;
+            case 'state_id':
+                if (!value) {
+                    return 'State selection is required';
+                }
+                break;
+            case 'division_id':
+                if (!value) {
+                    return 'Division selection is required';
+                }
+                break;
+            case 'parliament_id':
+                if (!value) {
+                    return 'Parliament selection is required';
+                }
+                break;
+            case 'assembly_id':
+                if (!value) {
+                    return 'Assembly selection is required';
+                }
+                break;
+            case 'district_id':
+                if (!value) {
+                    return 'District selection is required';
+                }
+                break;
+            default:
+                break;
+        }
+        return '';
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        // Validate all required fields
+        Object.keys(formData).forEach(key => {
+            if (key !== 'is_active') { // Skip boolean field
+                const error = validateField(key, formData[key]);
+                if (error) {
+                    newErrors[key] = error;
+                }
+            }
+        });
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     useEffect(() => {
+        // Clear errors and submit error when modal opens/closes
+        setErrors({});
+        setSubmitError('');
+        setIsSubmitting(false);
+
         if (block) {
             setFormData({
                 name: block.name || '',
@@ -67,7 +149,7 @@ export default function BlockModal({
                 is_active: true
             });
         }
-    }, [block]);
+    }, [block, open]);
 
     // Filter divisions by state
     useEffect(() => {
@@ -76,12 +158,12 @@ export default function BlockModal({
             setFilteredDivisions(filtered);
         } else {
             setFilteredDivisions([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                division_id: '', 
-                parliament_id: '', 
+            setFormData(prev => ({
+                ...prev,
+                division_id: '',
+                parliament_id: '',
                 assembly_id: '',
-                district_id: '' 
+                district_id: ''
             }));
         }
     }, [formData.state_id, divisions]);
@@ -93,11 +175,11 @@ export default function BlockModal({
             setFilteredParliaments(filtered);
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                parliament_id: '', 
+            setFormData(prev => ({
+                ...prev,
+                parliament_id: '',
                 assembly_id: '',
-                district_id: '' 
+                district_id: ''
             }));
         }
     }, [formData.division_id, parliaments]);
@@ -109,10 +191,10 @@ export default function BlockModal({
             setFilteredAssemblies(filtered);
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 assembly_id: '',
-                district_id: '' 
+                district_id: ''
             }));
         }
     }, [formData.parliament_id, assemblies]);
@@ -124,49 +206,83 @@ export default function BlockModal({
             setFilteredDistricts(filtered);
         } else {
             setFilteredDistricts([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                district_id: '' 
+            setFormData(prev => ({
+                ...prev,
+                district_id: ''
             }));
         }
     }, [formData.assembly_id, districts]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        // Clear field error when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+
+        // Clear submit error when user makes changes
+        if (submitError) {
+            setSubmitError('');
+        }
+
         setFormData(prev => {
             // Reset dependent fields when parent changes
             if (name === 'state_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    division_id: '', 
-                    parliament_id: '', 
+                // Clear errors for dependent fields
+                setErrors(prevErrors => ({
+                    ...prevErrors,
+                    division_id: '',
+                    parliament_id: '',
                     assembly_id: '',
-                    district_id: '' 
+                    district_id: ''
+                }));
+                return {
+                    ...prev,
+                    [name]: value,
+                    division_id: '',
+                    parliament_id: '',
+                    assembly_id: '',
+                    district_id: ''
                 };
             }
             if (name === 'division_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    parliament_id: '', 
+                setErrors(prevErrors => ({
+                    ...prevErrors,
+                    parliament_id: '',
                     assembly_id: '',
-                    district_id: '' 
+                    district_id: ''
+                }));
+                return {
+                    ...prev,
+                    [name]: value,
+                    parliament_id: '',
+                    assembly_id: '',
+                    district_id: ''
                 };
             }
             if (name === 'parliament_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                setErrors(prevErrors => ({
+                    ...prevErrors,
                     assembly_id: '',
-                    district_id: '' 
+                    district_id: ''
+                }));
+                return {
+                    ...prev,
+                    [name]: value,
+                    assembly_id: '',
+                    district_id: ''
                 };
             }
             if (name === 'assembly_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    district_id: '' 
+                setErrors(prevErrors => ({
+                    ...prevErrors,
+                    district_id: ''
+                }));
+                return {
+                    ...prev,
+                    [name]: value,
+                    district_id: ''
                 };
             }
             return { ...prev, [name]: value };
@@ -178,24 +294,54 @@ export default function BlockModal({
     };
 
     const handleSubmit = async () => {
-        const method = block ? 'PUT' : 'POST';
-        const token = localStorage.getItem('serviceToken');
-        const url = block
-            ? `http://localhost:5000/api/blocks/${block._id}`
-            : 'http://localhost:5000/api/blocks';
+        // Validate form before submission
+        if (!validateForm()) {
+            return;
+        }
 
-        const res = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(formData)
-        });
+        setIsSubmitting(true);
+        setSubmitError('');
 
-        if (res.ok) {
-            modalToggler(false);
-            refresh();
+        try {
+            const method = block ? 'PUT' : 'POST';
+            const token = localStorage.getItem('serviceToken');
+            const url = block
+                ? `http://localhost:5000/api/blocks/${block._id}`
+                : 'http://localhost:5000/api/blocks';
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (res.ok) {
+                modalToggler(false);
+                refresh();
+            } else {
+                const errorData = await res.json();
+
+                // Handle validation errors from server
+                if (res.status === 400 && errorData.errors) {
+                    const serverErrors = {};
+                    errorData.errors.forEach(error => {
+                        if (error.path) {
+                            serverErrors[error.path] = error.msg;
+                        }
+                    });
+                    setErrors(serverErrors);
+                } else {
+                    setSubmitError(errorData.message || 'Failed to save block. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('Error saving block:', error);
+            setSubmitError('Network error. Please check your connection and try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -204,23 +350,32 @@ export default function BlockModal({
             <DialogTitle>{block ? 'Edit Block' : 'Add Block'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} mt={2}>
+                    {submitError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {submitError}
+                        </Alert>
+                    )}
+
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Block Name</InputLabel>
-                                <TextField 
-                                    name="name" 
-                                    value={formData.name} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <InputLabel>Block Name *</InputLabel>
+                                <TextField
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
+                                    error={!!errors.name}
+                                    helperText={errors.name}
+                                    inputProps={{ maxLength: 100 }}
                                 />
                             </Stack>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Category</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel>Category *</InputLabel>
+                                <FormControl fullWidth error={!!errors.category}>
                                     <Select
                                         name="category"
                                         value={formData.category}
@@ -232,6 +387,9 @@ export default function BlockModal({
                                         <MenuItem value="Semi-Urban">Semi-Urban</MenuItem>
                                         <MenuItem value="Tribal">Tribal</MenuItem>
                                     </Select>
+                                    {errors.category && (
+                                        <FormHelperText>{errors.category}</FormHelperText>
+                                    )}
                                 </FormControl>
                             </Stack>
                         </Grid>
@@ -240,8 +398,8 @@ export default function BlockModal({
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>State</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel>State *</InputLabel>
+                                <FormControl fullWidth error={!!errors.state_id}>
                                     <Select
                                         name="state_id"
                                         value={formData.state_id}
@@ -255,13 +413,16 @@ export default function BlockModal({
                                             </MenuItem>
                                         ))}
                                     </Select>
+                                    {errors.state_id && (
+                                        <FormHelperText>{errors.state_id}</FormHelperText>
+                                    )}
                                 </FormControl>
                             </Stack>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Division</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel>Division *</InputLabel>
+                                <FormControl fullWidth error={!!errors.division_id}>
                                     <Select
                                         name="division_id"
                                         value={formData.division_id}
@@ -276,6 +437,9 @@ export default function BlockModal({
                                             </MenuItem>
                                         ))}
                                     </Select>
+                                    {errors.division_id && (
+                                        <FormHelperText>{errors.division_id}</FormHelperText>
+                                    )}
                                 </FormControl>
                             </Stack>
                         </Grid>
@@ -284,8 +448,8 @@ export default function BlockModal({
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Parliament</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel>Parliament *</InputLabel>
+                                <FormControl fullWidth error={!!errors.parliament_id}>
                                     <Select
                                         name="parliament_id"
                                         value={formData.parliament_id}
@@ -300,13 +464,16 @@ export default function BlockModal({
                                             </MenuItem>
                                         ))}
                                     </Select>
+                                    {errors.parliament_id && (
+                                        <FormHelperText>{errors.parliament_id}</FormHelperText>
+                                    )}
                                 </FormControl>
                             </Stack>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Assembly</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel>Assembly *</InputLabel>
+                                <FormControl fullWidth error={!!errors.assembly_id}>
                                     <Select
                                         name="assembly_id"
                                         value={formData.assembly_id}
@@ -321,6 +488,9 @@ export default function BlockModal({
                                             </MenuItem>
                                         ))}
                                     </Select>
+                                    {errors.assembly_id && (
+                                        <FormHelperText>{errors.assembly_id}</FormHelperText>
+                                    )}
                                 </FormControl>
                             </Stack>
                         </Grid>
@@ -329,8 +499,8 @@ export default function BlockModal({
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
-                                <InputLabel>District</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel>District *</InputLabel>
+                                <FormControl fullWidth error={!!errors.district_id}>
                                     <Select
                                         name="district_id"
                                         value={formData.district_id}
@@ -345,6 +515,9 @@ export default function BlockModal({
                                             </MenuItem>
                                         ))}
                                     </Select>
+                                    {errors.district_id && (
+                                        <FormHelperText>{errors.district_id}</FormHelperText>
+                                    )}
                                 </FormControl>
                             </Stack>
                         </Grid>
@@ -363,9 +536,18 @@ export default function BlockModal({
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                    {block ? 'Update' : 'Submit'}
+                <Button
+                    onClick={() => modalToggler(false)}
+                    disabled={isSubmitting}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? 'Saving...' : (block ? 'Update' : 'Submit')}
                 </Button>
             </DialogActions>
         </Dialog>
