@@ -21,6 +21,7 @@ export default function EventModal({
     open,
     modalToggler,
     event,
+    states,
     divisions,
     parliaments,
     assemblies,
@@ -36,6 +37,7 @@ export default function EventModal({
         start_date: new Date(),
         end_date: new Date(),
         location: '',
+        state_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -43,6 +45,7 @@ export default function EventModal({
         booth_id: ''
     });
 
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
@@ -58,6 +61,7 @@ export default function EventModal({
                 start_date: new Date(event.start_date) || new Date(),
                 end_date: new Date(event.end_date) || new Date(),
                 location: event.location || '',
+                state_id: event.state_id?._id || '',
                 division_id: event.division_id?._id || '',
                 parliament_id: event.parliament_id?._id || '',
                 assembly_id: event.assembly_id?._id || '',
@@ -73,6 +77,7 @@ export default function EventModal({
                 start_date: new Date(),
                 end_date: new Date(),
                 location: '',
+                state_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
@@ -81,6 +86,24 @@ export default function EventModal({
             });
         }
     }, [event]);
+
+    // Filter divisions by state
+    useEffect(() => {
+        if (formData.state_id) {
+            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+            setFilteredDivisions(filtered);
+        } else {
+            setFilteredDivisions([]);
+            setFormData(prev => ({
+                ...prev,
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+            }));
+        }
+    }, [formData.state_id, divisions]);
 
     // Filter parliaments by division
     useEffect(() => {
@@ -147,6 +170,17 @@ export default function EventModal({
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => {
+            if (name === 'state_id') {
+                return {
+                    ...prev,
+                    [name]: value,
+                    division_id: '',
+                    parliament_id: '',
+                    assembly_id: '',
+                    block_id: '',
+                    booth_id: ''
+                };
+            }
             if (name === 'division_id') {
                 return {
                     ...prev,
@@ -335,6 +369,29 @@ export default function EventModal({
                         </Stack>
 
                         <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel>State</InputLabel>
+                                    <FormControl fullWidth>
+                                        <Select
+                                            name="state_id"
+                                            value={formData.state_id}
+                                            onChange={handleChange}
+                                            required
+                                        >
+                                            <MenuItem value="">Select State</MenuItem>
+                                            {states.map((state) => (
+                                                <MenuItem key={state._id} value={state._id}>
+                                                    {state.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
+                            </Grid>
+                        </Grid>
+
+                        <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
                                     <InputLabel>Division</InputLabel>
@@ -344,9 +401,10 @@ export default function EventModal({
                                             value={formData.division_id}
                                             onChange={handleChange}
                                             required
+                                            disabled={!formData.state_id}
                                         >
                                             <MenuItem value="">Select Division</MenuItem>
-                                            {divisions.map((division) => (
+                                            {filteredDivisions.map((division) => (
                                                 <MenuItem key={division._id} value={division._id}>
                                                     {division.name}
                                                 </MenuItem>

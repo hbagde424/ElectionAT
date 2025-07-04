@@ -36,6 +36,11 @@ const router = express.Router();
  *         schema:
  *           type: integer
  *         description: Items per page
+  *       - in: query
+ *         name: state_id
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
  *       - in: query
  *         name: search
  *         schema:
@@ -334,6 +339,10 @@ router.get('/type/:type', getEventsByType);
  *           type: string
  *           description: Event location
  *           example: "Central Park, New York"
+ *          state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439010"
  *         division_id:
  *           type: string
  *           description: Reference to Division

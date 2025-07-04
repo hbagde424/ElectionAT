@@ -42,6 +42,11 @@ const eventSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Location cannot exceed 200 characters']
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required']
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
@@ -90,7 +95,7 @@ const eventSchema = new mongoose.Schema({
 });
 
 // Update timestamp before saving
-eventSchema.pre('save', function(next) {
+eventSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
@@ -101,6 +106,8 @@ eventSchema.index({ type: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ start_date: 1 });
 eventSchema.index({ end_date: 1 });
+// Add to indexes
+eventSchema.index({ state_id: 1 });
 eventSchema.index({ division_id: 1 });
 eventSchema.index({ parliament_id: 1 });
 eventSchema.index({ assembly_id: 1 });

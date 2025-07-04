@@ -84,25 +84,36 @@ export default function EventView({ data }) {
             )}
 
             <Grid container spacing={2}>
+                <Grid item xs={12}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">State:</Typography>
+                        {data.state_id ? (
+                            <Chip label={data.state_id.name} color="success" size="small" />
+                        ) : (
+                            <Typography variant="caption">No state</Typography>
+                        )}
+                    </Stack>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Booth:</Typography>
-                        {data.booth_id ? (
-                            <Typography>
-                                {data.booth_id.name} (Booth: {data.booth_id.booth_number})
-                            </Typography>
+                        <Typography fontWeight="bold">Division:</Typography>
+                        {data.division_id ? (
+                            <Chip label={data.division_id.name} color="warning" size="small" />
                         ) : (
-                            <Typography variant="caption">No booth</Typography>
+                            <Typography variant="caption">No division</Typography>
                         )}
                     </Stack>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Block:</Typography>
-                        {data.block_id ? (
-                            <Chip label={data.block_id.name} color="primary" size="small" />
+                        <Typography fontWeight="bold">Parliament:</Typography>
+                        {data.parliament_id ? (
+                            <Chip label={data.parliament_id.name} color="info" size="small" />
                         ) : (
-                            <Typography variant="caption">No block</Typography>
+                            <Typography variant="caption">No parliament</Typography>
                         )}
                     </Stack>
                 </Grid>
@@ -121,22 +132,24 @@ export default function EventView({ data }) {
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
-                        <Typography fontWeight="bold">Parliament:</Typography>
-                        {data.parliament_id ? (
-                            <Chip label={data.parliament_id.name} color="info" size="small" />
+                        <Typography fontWeight="bold">Block:</Typography>
+                        {data.block_id ? (
+                            <Chip label={data.block_id.name} color="primary" size="small" />
                         ) : (
-                            <Typography variant="caption">No parliament</Typography>
+                            <Typography variant="caption">No block</Typography>
                         )}
                     </Stack>
                 </Grid>
             </Grid>
 
             <Stack spacing={1}>
-                <Typography fontWeight="bold">Division:</Typography>
-                {data.division_id ? (
-                    <Chip label={data.division_id.name} color="warning" size="small" />
+                <Typography fontWeight="bold">Booth:</Typography>
+                {data.booth_id ? (
+                    <Typography>
+                        {data.booth_id.name} (Booth: {data.booth_id.booth_number})
+                    </Typography>
                 ) : (
-                    <Typography variant="caption">No division</Typography>
+                    <Typography variant="caption">No booth</Typography>
                 )}
             </Stack>
 

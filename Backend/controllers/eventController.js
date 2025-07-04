@@ -4,6 +4,7 @@ const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
+const State = require('../models/state');
 
 // @desc    Get all events
 // @route   GET /api/events
@@ -129,8 +130,9 @@ exports.createEvent = async (req, res, next) => {
   try {
     // Verify all references exist
     const [
-      division, parliament, assembly, block, booth
+      state, division, parliament, assembly, block, booth
     ] = await Promise.all([
+      State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
@@ -138,7 +140,7 @@ exports.createEvent = async (req, res, next) => {
       Booth.findById(req.body.booth_id)
     ]);
 
-    if (!division || !parliament || !assembly || !block || !booth) {
+    if (!state || !division || !parliament || !assembly || !block || !booth) {
       return res.status(400).json({
         success: false,
         message: 'One or more references are invalid'
@@ -182,11 +184,12 @@ exports.updateEvent = async (req, res, next) => {
     }
 
     // Verify all references exist if being updated
-    if (req.body.division_id || req.body.parliament_id || req.body.assembly_id || 
-        req.body.block_id || req.body.booth_id) {
+    if (req.body.state_id || req.body.division_id || req.body.parliament_id ||
+      req.body.assembly_id || req.body.block_id || req.body.booth_id) {
       const [
-        division, parliament, assembly, block, booth
+        state, division, parliament, assembly, block, booth
       ] = await Promise.all([
+        req.body.state_id ? State.findById(req.body.state_id) : Promise.resolve(true),
         req.body.division_id ? Division.findById(req.body.division_id) : Promise.resolve(true),
         req.body.parliament_id ? Parliament.findById(req.body.parliament_id) : Promise.resolve(true),
         req.body.assembly_id ? Assembly.findById(req.body.assembly_id) : Promise.resolve(true),
@@ -194,8 +197,8 @@ exports.updateEvent = async (req, res, next) => {
         req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(true)
       ]);
 
-      if (division === null || parliament === null || assembly === null || 
-          block === null || booth === null) {
+      if (state === null || division === null || parliament === null ||
+        assembly === null || block === null || booth === null) {
         return res.status(400).json({
           success: false,
           message: 'One or more references are invalid'
@@ -207,7 +210,7 @@ exports.updateEvent = async (req, res, next) => {
     if (req.body.start_date || req.body.end_date) {
       const startDate = req.body.start_date ? new Date(req.body.start_date) : event.start_date;
       const endDate = req.body.end_date ? new Date(req.body.end_date) : event.end_date;
-      
+
       if (startDate > endDate) {
         return res.status(400).json({
           success: false,
@@ -223,13 +226,14 @@ exports.updateEvent = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-    .populate('division_id', 'name')
-    .populate('parliament_id', 'name')
-    .populate('assembly_id', 'name')
-    .populate('block_id', 'name')
-    .populate('booth_id', 'booth_number')
-    .populate('created_by', 'name')
-    .populate('updated_by', 'name');
+    .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'booth_number')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,

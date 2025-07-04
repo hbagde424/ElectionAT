@@ -5,22 +5,17 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
-// Removed unused DatePicker import
+import { getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
+  useReactTable, flexRender } from '@tanstack/react-table';
 
-// third-party
-import {
-  getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
-  useReactTable, flexRender
-} from '@tanstack/react-table';
-
-// project imports
+// Components
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
-// custom views and modals
+// Custom components
 import EventModal from 'pages/curd/events/EventModal';
 import AlertEventDelete from 'pages/curd/events/AlertEventDelete';
 import EventView from 'pages/curd/events/EventsView';
@@ -33,6 +28,7 @@ export default function EventListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [eventDeleteId, setEventDeleteId] = useState('');
   const [events, setEvents] = useState([]);
+  const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
@@ -73,7 +69,8 @@ export default function EventListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
         fetch('http://localhost:5000/api/assemblies'),
@@ -81,12 +78,14 @@ export default function EventListPage() {
         fetch('http://localhost:5000/api/booths')
       ]);
 
+      const statesJson = await statesRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
       const assembliesJson = await assembliesRes.json();
       const blocksJson = await blocksRes.json();
       const boothsJson = await boothsRes.json();
 
+      if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
@@ -292,6 +291,7 @@ export default function EventListPage() {
         open={openModal}
         modalToggler={setOpenModal}
         event={selectedEvent}
+        states={states}
         divisions={divisions}
         parliaments={parliaments}
         assemblies={assemblies}
