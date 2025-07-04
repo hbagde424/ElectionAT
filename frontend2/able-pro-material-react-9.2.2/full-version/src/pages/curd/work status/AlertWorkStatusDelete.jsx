@@ -8,7 +8,7 @@ import {
     Stack,
     Box
 } from '@mui/material';
-import { Warning } from 'iconsax-react';
+import { Trash } from 'iconsax-react';
 
 export default function AlertWorkStatusDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
@@ -39,8 +39,8 @@ export default function AlertWorkStatusDelete({ id, open, handleClose, refresh }
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
             <DialogTitle>
                 <Stack direction="row" spacing={2} alignItems="center">
-                    <Box sx={{ color: 'warning.main' }}>
-                        <Warning size={24} />
+                    <Box sx={{ color: 'error.main' }}>
+                        <Trash size={24} />
                     </Box>
                     <Typography variant="h6">Confirm Delete</Typography>
                 </Stack>

@@ -33,6 +33,7 @@ export default function WorkStatusModal({
     booths,
     refresh
 }) {
+    console.log('parliaments', parliaments)
     const [formData, setFormData] = useState({
         work_name: '',
         department: '',

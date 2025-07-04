@@ -200,213 +200,211 @@ export default function LocalIssueModal({
     };
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-                <DialogTitle>{issue ? 'Edit Local Issue' : 'Add Local Issue'}</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} mt={2}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Issue Name</InputLabel>
-                                    <TextField
-                                        name="issue_name"
-                                        value={formData.issue_name}
+        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
+            <DialogTitle>{issue ? 'Edit Local Issue' : 'Add Local Issue'}</DialogTitle>
+            <DialogContent>
+                <Stack spacing={2} mt={2}>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Issue Name</InputLabel>
+                                <TextField
+                                    name="issue_name"
+                                    value={formData.issue_name}
+                                    onChange={handleChange}
+                                    fullWidth
+                                    required
+                                    inputProps={{ maxLength: 200 }}
+                                />
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Department</InputLabel>
+                                <TextField
+                                    name="department"
+                                    value={formData.department}
+                                    onChange={handleChange}
+                                    fullWidth
+                                    required
+                                    inputProps={{ maxLength: 100 }}
+                                />
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Status</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="status"
+                                        value={formData.status}
                                         onChange={handleChange}
-                                        fullWidth
                                         required
-                                        inputProps={{ maxLength: 200 }}
-                                    />
-                                </Stack>
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Department</InputLabel>
-                                    <TextField
-                                        name="department"
-                                        value={formData.department}
+                                    >
+                                        <MenuItem value="Reported">Reported</MenuItem>
+                                        <MenuItem value="In Progress">In Progress</MenuItem>
+                                        <MenuItem value="Resolved">Resolved</MenuItem>
+                                        <MenuItem value="Rejected">Rejected</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Priority</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="priority"
+                                        value={formData.priority}
                                         onChange={handleChange}
-                                        fullWidth
                                         required
-                                        inputProps={{ maxLength: 100 }}
-                                    />
-                                </Stack>
-                            </Grid>
+                                    >
+                                        <MenuItem value="Low">Low</MenuItem>
+                                        <MenuItem value="Medium">Medium</MenuItem>
+                                        <MenuItem value="High">High</MenuItem>
+                                        <MenuItem value="Critical">Critical</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
                         </Grid>
+                    </Grid>
 
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Status</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="status"
-                                            value={formData.status}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <MenuItem value="Reported">Reported</MenuItem>
-                                            <MenuItem value="In Progress">In Progress</MenuItem>
-                                            <MenuItem value="Resolved">Resolved</MenuItem>
-                                            <MenuItem value="Rejected">Rejected</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Priority</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="priority"
-                                            value={formData.priority}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <MenuItem value="Low">Low</MenuItem>
-                                            <MenuItem value="Medium">Medium</MenuItem>
-                                            <MenuItem value="High">High</MenuItem>
-                                            <MenuItem value="Critical">Critical</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                        </Grid>
-
-                        <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
-                            <TextField
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                fullWidth
-                                multiline
-                                rows={4}
-                                inputProps={{ maxLength: 1000 }}
-                            />
-                        </Stack>
-
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Division</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="division_id"
-                                            value={formData.division_id}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <MenuItem value="">Select Division</MenuItem>
-                                            {divisions.map((division) => (
-                                                <MenuItem key={division._id} value={division._id}>
-                                                    {division.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Parliament</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="parliament_id"
-                                            value={formData.parliament_id}
-                                            onChange={handleChange}
-                                            required
-                                            disabled={!formData.division_id}
-                                        >
-                                            <MenuItem value="">Select Parliament</MenuItem>
-                                            {filteredParliaments.map((parliament) => (
-                                                <MenuItem key={parliament._id} value={parliament._id}>
-                                                    {parliament.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                        </Grid>
-
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Assembly</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="assembly_id"
-                                            value={formData.assembly_id}
-                                            onChange={handleChange}
-                                            required
-                                            disabled={!formData.parliament_id}
-                                        >
-                                            <MenuItem value="">Select Assembly</MenuItem>
-                                            {filteredAssemblies.map((assembly) => (
-                                                <MenuItem key={assembly._id} value={assembly._id}>
-                                                    {assembly.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Block</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="block_id"
-                                            value={formData.block_id}
-                                            onChange={handleChange}
-                                            required
-                                            disabled={!formData.assembly_id}
-                                        >
-                                            <MenuItem value="">Select Block</MenuItem>
-                                            {filteredBlocks.map((block) => (
-                                                <MenuItem key={block._id} value={block._id}>
-                                                    {block.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                        </Grid>
-
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Booth</InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="booth_id"
-                                            value={formData.booth_id}
-                                            onChange={handleChange}
-                                            required
-                                            disabled={!formData.block_id}
-                                        >
-                                            <MenuItem value="">Select Booth</MenuItem>
-                                            {filteredBooths.map((booth) => (
-                                                <MenuItem key={booth._id} value={booth._id}>
-                                                    {booth.name} (Booth: {booth.booth_number})
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            </Grid>
-                        </Grid>
+                    <Stack spacing={1}>
+                        <InputLabel>Description</InputLabel>
+                        <TextField
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            fullWidth
+                            multiline
+                            rows={4}
+                            inputProps={{ maxLength: 1000 }}
+                        />
                     </Stack>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                    <Button variant="contained" onClick={handleSubmit}>
-                        {issue ? 'Update' : 'Submit'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </LocalizationProvider>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Division</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="division_id"
+                                        value={formData.division_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select Division</MenuItem>
+                                        {divisions.map((division) => (
+                                            <MenuItem key={division._id} value={division._id}>
+                                                {division.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Parliament</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="parliament_id"
+                                        value={formData.parliament_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.division_id}
+                                    >
+                                        <MenuItem value="">Select Parliament</MenuItem>
+                                        {filteredParliaments.map((parliament) => (
+                                            <MenuItem key={parliament._id} value={parliament._id}>
+                                                {parliament.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Assembly</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="assembly_id"
+                                        value={formData.assembly_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.parliament_id}
+                                    >
+                                        <MenuItem value="">Select Assembly</MenuItem>
+                                        {filteredAssemblies.map((assembly) => (
+                                            <MenuItem key={assembly._id} value={assembly._id}>
+                                                {assembly.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Block</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="block_id"
+                                        value={formData.block_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.assembly_id}
+                                    >
+                                        <MenuItem value="">Select Block</MenuItem>
+                                        {filteredBlocks.map((block) => (
+                                            <MenuItem key={block._id} value={block._id}>
+                                                {block.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <Stack spacing={1}>
+                                <InputLabel>Booth</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="booth_id"
+                                        value={formData.booth_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.block_id}
+                                    >
+                                        <MenuItem value="">Select Booth</MenuItem>
+                                        {filteredBooths.map((booth) => (
+                                            <MenuItem key={booth._id} value={booth._id}>
+                                                {booth.name} (Booth: {booth.booth_number})
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+                </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={() => modalToggler(false)}>Cancel</Button>
+                <Button variant="contained" onClick={handleSubmit}>
+                    {issue ? 'Update' : 'Submit'}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }
