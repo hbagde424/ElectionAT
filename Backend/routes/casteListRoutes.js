@@ -149,7 +149,7 @@ router.get('/:id', getCasteList);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createCasteList);
+router.post('/', protect, authorize('superAdmin'), createCasteList);
 
 /**
  * @swagger
@@ -181,7 +181,7 @@ router.post('/', protect, authorize('admin'), createCasteList);
  *       404:
  *         description: Caste list not found
  */
-router.put('/:id', protect, authorize('admin'), updateCasteList);
+router.put('/:id', protect, authorize('superAdmin'), updateCasteList);
 
 /**
  * @swagger
@@ -205,7 +205,7 @@ router.put('/:id', protect, authorize('admin'), updateCasteList);
  *       404:
  *         description: Caste list not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteCasteList);
+router.delete('/:id', protect, authorize('superAdmin'), deleteCasteList);
 
 /**
  * @swagger

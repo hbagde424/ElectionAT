@@ -159,7 +159,7 @@ router.get('/:id', getAssemblyVote);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createAssemblyVote);
+router.post('/', protect, authorize('superAdmin'), createAssemblyVote);
 
 /**
  * @swagger
@@ -191,7 +191,7 @@ router.post('/', protect, authorize('admin'), createAssemblyVote);
  *       404:
  *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('admin'), updateAssemblyVote);
+router.put('/:id', protect, authorize('superAdmin'), updateAssemblyVote);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.put('/:id', protect, authorize('admin'), updateAssemblyVote);
  *       404:
  *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteAssemblyVote);
+router.delete('/:id', protect, authorize('superAdmin'), deleteAssemblyVote);
 
 /**
  * @swagger

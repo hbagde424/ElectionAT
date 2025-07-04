@@ -122,7 +122,7 @@ router.get('/:id', getStatus);
  *         description: Not authorized
  */
 // router.post('/',  createStatus);
-router.post('/', protect, authorize('admin', 'superAdmin'), createStatus);
+router.post('/', protect, authorize('superAdmin', 'superAdmin'), createStatus);
 
 /**
  * @swagger
@@ -154,7 +154,7 @@ router.post('/', protect, authorize('admin', 'superAdmin'), createStatus);
  *       404:
  *         description: Status not found
  */
-router.put('/:id', protect, authorize('admin', 'superAdmin'), updateStatus);
+router.put('/:id', protect, authorize('superAdmin', 'superAdmin'), updateStatus);
 
 /**
  * @swagger
@@ -180,7 +180,7 @@ router.put('/:id', protect, authorize('admin', 'superAdmin'), updateStatus);
  *       404:
  *         description: Status not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteStatus);
+router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteStatus);
 
 /**
  * @swagger
@@ -206,7 +206,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteStatus);
  *       404:
  *         description: Status not found
  */
-router.patch('/:id/toggle-active', protect, authorize('admin', 'superAdmin'), toggleStatusActive);
+router.patch('/:id/toggle-active', protect, authorize('superAdmin', 'superAdmin'), toggleStatusActive);
 
 /**
  * @swagger

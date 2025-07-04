@@ -230,7 +230,7 @@ router.put('/:id', protect, updatePartyActivity);
  *       404:
  *         description: Party activity not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePartyActivity);
+router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deletePartyActivity);
 
 /**
  * @swagger

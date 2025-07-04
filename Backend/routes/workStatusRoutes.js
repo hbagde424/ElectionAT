@@ -177,7 +177,7 @@ router.get('/:id', getWorkStatus);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'superAdmin'), createWorkStatus);
+router.post('/', protect, authorize('superAdmin', 'superAdmin'), createWorkStatus);
 
 /**
  * @swagger
@@ -233,7 +233,7 @@ router.put('/:id', protect, updateWorkStatus);
  *       404:
  *         description: Work status not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteWorkStatus);
+router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteWorkStatus);
 
 /**
  * @swagger

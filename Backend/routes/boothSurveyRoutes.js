@@ -165,7 +165,7 @@ router.get('/:id', getBoothSurvey);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'surveyor'), createBoothSurvey);
+router.post('/', protect, authorize('superAdmin', 'surveyor'), createBoothSurvey);
 
 /**
  * @swagger
@@ -197,7 +197,7 @@ router.post('/', protect, authorize('admin', 'surveyor'), createBoothSurvey);
  *       404:
  *         description: Booth survey not found
  */
-router.put('/:id', protect, authorize('admin', 'surveyor'), updateBoothSurvey);
+router.put('/:id', protect, authorize('superAdmin', 'surveyor'), updateBoothSurvey);
 
 /**
  * @swagger
@@ -221,7 +221,7 @@ router.put('/:id', protect, authorize('admin', 'surveyor'), updateBoothSurvey);
  *       404:
  *         description: Booth survey not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothSurvey);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothSurvey);
 
 /**
  * @swagger

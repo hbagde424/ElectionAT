@@ -189,7 +189,7 @@ router.put('/:id', protect, updatePotentialCandidate);
  *       404:
  *         description: Potential candidate not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePotentialCandidate);
+router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deletePotentialCandidate);
 
 /**
  * @swagger

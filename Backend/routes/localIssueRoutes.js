@@ -215,7 +215,7 @@ router.put('/:id', protect, updateLocalIssue);
  *       404:
  *         description: Local issue not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteLocalIssue);
+router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteLocalIssue);
 
 /**
  * @swagger

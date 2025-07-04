@@ -154,7 +154,7 @@ router.get('/:id', getBoothVolunteer);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'coordinator'), createBoothVolunteer);
+router.post('/', protect, authorize('superAdmin', 'coordinator'), createBoothVolunteer);
 
 /**
  * @swagger
@@ -186,7 +186,7 @@ router.post('/', protect, authorize('admin', 'coordinator'), createBoothVoluntee
  *       404:
  *         description: Booth volunteer not found
  */
-router.put('/:id', protect, authorize('admin', 'coordinator'), updateBoothVolunteer);
+router.put('/:id', protect, authorize('superAdmin', 'coordinator'), updateBoothVolunteer);
 
 /**
  * @swagger
@@ -210,7 +210,7 @@ router.put('/:id', protect, authorize('admin', 'coordinator'), updateBoothVolunt
  *       404:
  *         description: Booth volunteer not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothVolunteer);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothVolunteer);
 
 /**
  * @swagger

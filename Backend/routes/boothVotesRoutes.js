@@ -159,7 +159,7 @@ router.get('/:id', getBoothVote);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createBoothVote);
+router.post('/', protect, authorize('superAdmin'), createBoothVote);
 
 /**
  * @swagger
@@ -191,7 +191,7 @@ router.post('/', protect, authorize('admin'), createBoothVote);
  *       404:
  *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('admin'), updateBoothVote);
+router.put('/:id', protect, authorize('superAdmin'), updateBoothVote);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.put('/:id', protect, authorize('admin'), updateBoothVote);
  *       404:
  *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBoothVote);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBoothVote);
 
 /**
  * @swagger

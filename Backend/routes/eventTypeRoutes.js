@@ -116,7 +116,7 @@ router.get('/:id', getEventType);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'superAdmin'), createEventType);
+router.post('/', protect, authorize('superAdmin', 'superAdmin'), createEventType);
 
 /**
  * @swagger
@@ -148,7 +148,7 @@ router.post('/', protect, authorize('admin', 'superAdmin'), createEventType);
  *       404:
  *         description: Event type not found
  */
-router.put('/:id', protect, authorize('admin', 'superAdmin'), updateEventType);
+router.put('/:id', protect, authorize('superAdmin', 'superAdmin'), updateEventType);
 
 /**
  * @swagger
@@ -172,7 +172,7 @@ router.put('/:id', protect, authorize('admin', 'superAdmin'), updateEventType);
  *       404:
  *         description: Event type not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteEventType);
+router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteEventType);
 
 /**
  * @swagger
@@ -196,7 +196,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteEventType
  *       404:
  *         description: Event type not found
  */
-router.patch('/:id/toggle-status', protect, authorize('admin', 'superAdmin'), toggleEventTypeStatus);
+router.patch('/:id/toggle-status', protect, authorize('superAdmin', 'superAdmin'), toggleEventTypeStatus);
 
 /**
  * @swagger

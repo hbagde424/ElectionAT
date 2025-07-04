@@ -159,7 +159,7 @@ router.get('/:id', getBlockVote);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createBlockVote);
+router.post('/', protect, authorize('superAdmin'), createBlockVote);
 
 /**
  * @swagger
@@ -191,7 +191,7 @@ router.post('/', protect, authorize('admin'), createBlockVote);
  *       404:
  *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('admin'), updateBlockVote);
+router.put('/:id', protect, authorize('superAdmin'), updateBlockVote);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.put('/:id', protect, authorize('admin'), updateBlockVote);
  *       404:
  *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteBlockVote);
+router.delete('/:id', protect, authorize('superAdmin'), deleteBlockVote);
 
 /**
  * @swagger

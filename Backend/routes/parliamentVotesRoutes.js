@@ -159,7 +159,7 @@ router.get('/:id', getParliamentVote);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin'), createParliamentVote);
+router.post('/', protect, authorize('superAdmin'), createParliamentVote);
 
 /**
  * @swagger
@@ -191,7 +191,7 @@ router.post('/', protect, authorize('admin'), createParliamentVote);
  *       404:
  *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('admin'), updateParliamentVote);
+router.put('/:id', protect, authorize('superAdmin'), updateParliamentVote);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.put('/:id', protect, authorize('admin'), updateParliamentVote);
  *       404:
  *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('admin'), deleteParliamentVote);
+router.delete('/:id', protect, authorize('superAdmin'), deleteParliamentVote);
 
 /**
  * @swagger
