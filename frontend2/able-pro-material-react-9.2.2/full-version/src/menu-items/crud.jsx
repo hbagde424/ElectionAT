@@ -113,216 +113,84 @@ const CURd = {
       url: '/Assembly-Votes',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Pontentcal-Candidate',
       title: <FormattedMessage id="Pontentcal-Candidate" />,
       type: 'item',
       url: '/Pontentcal-Candidate',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Work-Status',
       title: <FormattedMessage id="Work-Status" />,
       type: 'item',
       url: '/Work-Status',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Events',
       title: <FormattedMessage id="Events" />,
       type: 'item',
       url: '/Events',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Local-Issue',
       title: <FormattedMessage id="Local-Issue" />,
       type: 'item',
       url: '/Local-Issue',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Caste-List',
       title: <FormattedMessage id="Caste-List" />,
       type: 'item',
       url: '/Caste-List',
       icon: icons.Category2,
     },
-        {
+    {
       id: 'Booth-Survey',
       title: <FormattedMessage id="Booth-Survey" />,
       type: 'item',
       url: '/Booth-Survey',
       icon: icons.Category2,
     },
-    // {
-    //   id: 'add-volunteer',
-    //   title: <FormattedMessage id="Add Booth Volunteer" />,
-    //   type: 'item',
-    //   url: '/add-volunteer',
-    //   icon: icons.CURd,
-    // },
-    // {
-    //   id: 'sample-try',
-    //   title: <FormattedMessage id="Booth infrastructure" />,
-    //   type: 'item',
-    //   url: '/Booth-infrastructure',
-    //   icon: icons.CURd,
-    // },
-    // {
-    //   id: 'state-collapse',
-    //   title: <FormattedMessage id="State" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'state-add',
-    //       title: <FormattedMessage id="Add State" />,
-    //       type: 'item',
-    //       url: '/state-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'state-list',
-    //       title: <FormattedMessage id="State List" />,
-    //       type: 'item',
-    //       url: '/state-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // },
-    // {
-    //   id: 'division-collapse',
-    //   title: <FormattedMessage id="Division" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'division-add',
-    //       title: <FormattedMessage id="Add Division" />,
-    //       type: 'item',
-    //       url: '/division-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'division-list',
-    //       title: <FormattedMessage id="Division List" />,
-    //       type: 'item',
-    //       url: '/division-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // },
-    // {
-    //   id: 'district-collapse',
-    //   title: <FormattedMessage id="District" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'district-add',
-    //       title: <FormattedMessage id="Add District" />,
-    //       type: 'item',
-    //       url: '/district-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'district-list',
-    //       title: <FormattedMessage id="District List" />,
-    //       type: 'item',
-    //       url: '/district-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // },
-    // {
-    //   id: 'assembly-collapse',
-    //   title: <FormattedMessage id="Assembly" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'assembly-add',
-    //       title: <FormattedMessage id="Add Assembly" />,
-    //       type: 'item',
-    //       url: '/assembly-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'assembly-list',
-    //       title: <FormattedMessage id="Assembly List" />,
-    //       type: 'item',
-    //       url: '/assembly-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // },
-    // {
-    //   id: 'parliament-collapse',
-    //   title: <FormattedMessage id="Parliament" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'parliament-add',
-    //       title: <FormattedMessage id="Add Parliament" />,
-    //       type: 'item',
-    //       url: '/parliament-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'parliament-list',
-    //       title: <FormattedMessage id="Parliament List" />,
-    //       type: 'item',
-    //       url: '/parliament-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // },
-    // {
-    //   id: 'block-collapse',
-    //   title: <FormattedMessage id="Block" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'block-add',
-    //       title: <FormattedMessage id="Add Block" />,
-    //       type: 'item',
-    //       url: '/block-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'block-list',
-    //       title: <FormattedMessage id="Block List" />,
-    //       type: 'item',
-    //       url: '/block-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // },
-    // {
-    //   id: 'booth-collapse',
-    //   title: <FormattedMessage id="Booth" />,
-    //   type: 'collapse',
-    //   icon: icons.CURd,
-    //   children: [
-    //     {
-    //       id: 'booth-add',
-    //       title: <FormattedMessage id="Add Booth" />,
-    //       type: 'item',
-    //       url: '/booth-add',
-    //       breadcrumbs: false
-    //     },
-    //     {
-    //       id: 'booth-list',
-    //       title: <FormattedMessage id="Booth List" />,
-    //       type: 'item',
-    //       url: '/booth-list',
-    //       breadcrumbs: false
-    //     }
-    //   ]
-    // }
+        {
+      id: 'visits',
+      title: <FormattedMessage id="Visits" />,
+      type: 'item',
+      url: '/visits',
+      icon: icons.Category2,
+    },
+            {
+      id: 'WinningPartiesList',
+      title: <FormattedMessage id="Winning Parties List" />,
+      type: 'item',
+      url: '/WinningPartiesList',
+      icon: icons.Category2,
+    },
+                {
+      id: 'candidates',
+      title: <FormattedMessage id="Candidates" />,
+      type: 'item',
+      url: '/candidates',
+      icon: icons.Category2,
+    },
+                    {
+      id: 'parties',
+      title: <FormattedMessage id="Parties" />,
+      type: 'item',
+      url: '/parties',
+      icon: icons.Category2,
+    },
+                        {
+      id: 'party-activities',
+      title: <FormattedMessage id="party-activities" />,
+      type: 'item',
+      url: '/party-activities',
+      icon: icons.Category2,
+    },
+   
   ]
 
 
