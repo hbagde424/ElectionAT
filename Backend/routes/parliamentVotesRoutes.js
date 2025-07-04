@@ -6,12 +6,9 @@ const {
   updateParliamentVote,
   deleteParliamentVote,
   getVotesByParliament,
-  getVotesByAssembly,
-  getVotesByBlock,
-  getVotesByBooth,
   getVotesByCandidate,
-  getAggregatedVotesByCandidate,
-  getElectionResultsByParliament
+  getVotesByState,
+  getVotesByElectionYear
 } = require('../controllers/parliamentVotesController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -21,7 +18,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Parliament Votes
- *   description: Parliament constituency votes management
+ *   description: Parliament vote management
  */
 
 /**
@@ -42,10 +39,25 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: candidate
+ *         schema:
+ *           type: string
+ *         description: Candidate ID to filter by
+ *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
  *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
  *       - in: query
  *         name: assembly
  *         schema:
@@ -62,25 +74,20 @@ const router = express.Router();
  *           type: string
  *         description: Booth ID to filter by
  *       - in: query
- *         name: candidate
- *         schema:
- *           type: string
- *         description: Candidate ID to filter by
- *       - in: query
- *         name: election_year
+ *         name: year
  *         schema:
  *           type: string
  *         description: Election year ID to filter by
  *       - in: query
- *         name: sort
+ *         name: minVotes
  *         schema:
- *           type: string
- *         description: Sort by field (prefix with - for descending)
+ *           type: integer
+ *         description: Minimum votes threshold
  *       - in: query
- *         name: fields
+ *         name: maxVotes
  *         schema:
- *           type: string
- *         description: Comma separated list of fields to return
+ *           type: integer
+ *         description: Maximum votes threshold
  *     responses:
  *       200:
  *         description: List of parliament votes
@@ -126,7 +133,7 @@ router.get('/', getParliamentVotes);
  *             schema:
  *               $ref: '#/components/schemas/ParliamentVotes'
  *       404:
- *         description: Parliament vote record not found
+ *         description: Vote record not found
  */
 router.get('/:id', getParliamentVote);
 
@@ -146,13 +153,13 @@ router.get('/:id', getParliamentVote);
  *             $ref: '#/components/schemas/ParliamentVotes'
  *     responses:
  *       201:
- *         description: Parliament vote record created successfully
+ *         description: Vote record created successfully
  *       400:
- *         description: Invalid input data or duplicate record
+ *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createParliamentVote);
+router.post('/', protect, authorize('admin'), createParliamentVote);
 
 /**
  * @swagger
@@ -176,15 +183,15 @@ router.post('/', protect, authorize('superAdmin'), createParliamentVote);
  *             $ref: '#/components/schemas/ParliamentVotes'
  *     responses:
  *       200:
- *         description: Parliament vote record updated successfully
+ *         description: Vote record updated successfully
  *       400:
- *         description: Invalid input data or duplicate record
+ *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Parliament vote record not found
+ *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateParliamentVote);
+router.put('/:id', protect, authorize('admin'), updateParliamentVote);
 
 /**
  * @swagger
@@ -202,19 +209,19 @@ router.put('/:id', protect, authorize('superAdmin'), updateParliamentVote);
  *           type: string
  *     responses:
  *       200:
- *         description: Parliament vote record deleted
+ *         description: Vote record deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Parliament vote record not found
+ *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteParliamentVote);
+router.delete('/:id', protect, authorize('admin'), deleteParliamentVote);
 
 /**
  * @swagger
  * /api/parliament-votes/parliament/{parliamentId}:
  *   get:
- *     summary: Get votes by parliament constituency
+ *     summary: Get votes by parliament
  *     tags: [Parliament Votes]
  *     parameters:
  *       - in: path
@@ -224,7 +231,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParliamentVote);
  *           type: string
  *     responses:
  *       200:
- *         description: List of votes for the parliament constituency
+ *         description: List of votes for the parliament
  *         content:
  *           application/json:
  *             schema:
@@ -239,108 +246,9 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParliamentVote);
  *                   items:
  *                     $ref: '#/components/schemas/ParliamentVotes'
  *       404:
- *         description: Parliament constituency not found
+ *         description: Parliament not found
  */
 router.get('/parliament/:parliamentId', getVotesByParliament);
-
-/**
- * @swagger
- * /api/parliament-votes/assembly/{assemblyId}:
- *   get:
- *     summary: Get votes by assembly constituency
- *     tags: [Parliament Votes]
- *     parameters:
- *       - in: path
- *         name: assemblyId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of votes for the assembly constituency
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ParliamentVotes'
- *       404:
- *         description: Assembly constituency not found
- */
-router.get('/assembly/:assemblyId', getVotesByAssembly);
-
-/**
- * @swagger
- * /api/parliament-votes/block/{blockId}:
- *   get:
- *     summary: Get votes by block
- *     tags: [Parliament Votes]
- *     parameters:
- *       - in: path
- *         name: blockId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of votes for the block
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ParliamentVotes'
- *       404:
- *         description: Block not found
- */
-router.get('/block/:blockId', getVotesByBlock);
-
-/**
- * @swagger
- * /api/parliament-votes/booth/{boothId}:
- *   get:
- *     summary: Get votes by booth
- *     tags: [Parliament Votes]
- *     parameters:
- *       - in: path
- *         name: boothId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of votes for the booth
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ParliamentVotes'
- *       404:
- *         description: Booth not found
- */
-router.get('/booth/:boothId', getVotesByBooth);
 
 /**
  * @swagger
@@ -377,19 +285,19 @@ router.get('/candidate/:candidateId', getVotesByCandidate);
 
 /**
  * @swagger
- * /api/parliament-votes/candidate/{candidateId}/aggregated:
+ * /api/parliament-votes/state/{stateId}:
  *   get:
- *     summary: Get aggregated votes by parliament for a candidate
+ *     summary: Get votes by state
  *     tags: [Parliament Votes]
  *     parameters:
  *       - in: path
- *         name: candidateId
+ *         name: stateId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Aggregated vote totals by parliament for the candidate
+ *         description: List of votes in the state
  *         content:
  *           application/json:
  *             schema:
@@ -402,35 +310,19 @@ router.get('/candidate/:candidateId', getVotesByCandidate);
  *                 data:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       parliament_id:
- *                         type: string
- *                       parliament_name:
- *                         type: string
- *                       parliament_code:
- *                         type: string
- *                       total_votes:
- *                         type: number
- *                       assembly_count:
- *                         type: number
+ *                     $ref: '#/components/schemas/ParliamentVotes'
  *       404:
- *         description: Candidate not found
+ *         description: State not found
  */
-router.get('/candidate/:candidateId/aggregated', getAggregatedVotesByCandidate);
+router.get('/state/:stateId', getVotesByState);
 
 /**
  * @swagger
- * /api/parliament-votes/results/parliament/{parliamentId}/year/{yearId}:
+ * /api/parliament-votes/year/{yearId}:
  *   get:
- *     summary: Get election results by parliament constituency
+ *     summary: Get votes by election year
  *     tags: [Parliament Votes]
  *     parameters:
- *       - in: path
- *         name: parliamentId
- *         required: true
- *         schema:
- *           type: string
  *       - in: path
  *         name: yearId
  *         required: true
@@ -438,7 +330,7 @@ router.get('/candidate/:candidateId/aggregated', getAggregatedVotesByCandidate);
  *           type: string
  *     responses:
  *       200:
- *         description: Election results for the parliament constituency
+ *         description: List of votes for the election year
  *         content:
  *           application/json:
  *             schema:
@@ -448,29 +340,14 @@ router.get('/candidate/:candidateId/aggregated', getAggregatedVotesByCandidate);
  *                   type: boolean
  *                 count:
  *                   type: integer
- *                 total_votes:
- *                   type: number
  *                 data:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       candidate_id:
- *                         type: string
- *                       candidate_name:
- *                         type: string
- *                       candidate_party:
- *                         type: string
- *                       total_votes:
- *                         type: number
- *                       booth_count:
- *                         type: number
- *                       vote_percentage:
- *                         type: number
+ *                     $ref: '#/components/schemas/ParliamentVotes'
  *       404:
- *         description: Parliament constituency or election year not found
+ *         description: Election year not found
  */
-router.get('/results/parliament/:parliamentId/year/:yearId', getElectionResultsByParliament);
+router.get('/year/:yearId', getVotesByElectionYear);
 
 /**
  * @swagger
@@ -481,11 +358,14 @@ router.get('/results/parliament/:parliamentId/year/:yearId', getElectionResultsB
  *       required:
  *         - candidate_id
  *         - parliament_id
+ *         - state_id
+ *         - division_id
  *         - assembly_id
  *         - block_id
  *         - booth_id
  *         - total_votes
  *         - election_year_id
+ *         - created_by
  *       properties:
  *         candidate_id:
  *           type: string
@@ -493,28 +373,44 @@ router.get('/results/parliament/:parliamentId/year/:yearId', getElectionResultsB
  *           example: "507f1f77bcf86cd799439011"
  *         parliament_id:
  *           type: string
- *           description: Reference to Parliament Constituency
+ *           description: Reference to Parliament
  *           example: "507f1f77bcf86cd799439012"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439016"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
  *         assembly_id:
  *           type: string
- *           description: Reference to Assembly Constituency
+ *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439013"
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439014"
+ *           example: "507f1f77bcf86cd799439011"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439015"
+ *           example: "507f1f77bcf86cd799439010"
  *         total_votes:
- *           type: number
+ *           type: integer
  *           description: Total votes received
- *           example: 1500
+ *           example: 1250
  *         election_year_id:
  *           type: string
  *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439016"
+ *           example: "507f1f77bcf86cd799439020"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created the record
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated the record
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time

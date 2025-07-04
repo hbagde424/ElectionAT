@@ -59,6 +59,11 @@ const router = express.Router();
  *           type: string
  *         description: Filter by department
  *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter by state ID
+ *       - in: query
  *         name: division
  *         schema:
  *           type: string
@@ -288,6 +293,7 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *       required:
  *         - issue_name
  *         - department
+ *         - state_id
  *         - division_id
  *         - parliament_id
  *         - assembly_id
@@ -312,6 +318,9 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *           type: string
  *           enum: [Low, Medium, High, Critical]
  *           description: Priority level of the issue
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
  *         division_id:
  *           type: string
  *           description: Reference to Division

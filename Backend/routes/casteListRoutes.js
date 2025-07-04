@@ -6,6 +6,7 @@ const {
   updateCasteList,
   deleteCasteList,
   getCasteListsByBooth,
+  getCasteListsByState,
   getCasteListsByCategory
 } = require('../controllers/casteListController');
 const { protect, authorize } = require('../middlewares/auth');
@@ -48,30 +49,35 @@ const router = express.Router();
  *           enum: [SC, ST, OBC, General, Other]
  *         description: Filter by caste category
  *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
  *         name: division
  *         schema:
  *           type: string
- *         description: Filter by division ID
+ *         description: Division ID to filter by
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Filter by parliament ID
+ *         description: Parliament ID to filter by
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Filter by assembly ID
+ *         description: Assembly ID to filter by
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Filter by block ID
+ *         description: Block ID to filter by
  *       - in: query
  *         name: booth
  *         schema:
  *           type: string
- *         description: Filter by booth ID
+ *         description: Booth ID to filter by
  *     responses:
  *       200:
  *         description: List of caste lists
@@ -143,7 +149,7 @@ router.get('/:id', getCasteList);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, createCasteList);
+router.post('/', protect, authorize('admin'), createCasteList);
 
 /**
  * @swagger
@@ -175,7 +181,7 @@ router.post('/', protect, createCasteList);
  *       404:
  *         description: Caste list not found
  */
-router.put('/:id', protect, updateCasteList);
+router.put('/:id', protect, authorize('admin'), updateCasteList);
 
 /**
  * @swagger
@@ -199,7 +205,7 @@ router.put('/:id', protect, updateCasteList);
  *       404:
  *         description: Caste list not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteCasteList);
+router.delete('/:id', protect, authorize('admin'), deleteCasteList);
 
 /**
  * @swagger
@@ -236,6 +242,39 @@ router.get('/booth/:boothId', getCasteListsByBooth);
 
 /**
  * @swagger
+ * /api/caste-lists/state/{stateId}:
+ *   get:
+ *     summary: Get caste lists by state
+ *     tags: [Caste Lists]
+ *     parameters:
+ *       - in: path
+ *         name: stateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of caste lists in the state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CasteList'
+ *       404:
+ *         description: State not found
+ */
+router.get('/state/:stateId', getCasteListsByState);
+
+/**
+ * @swagger
  * /api/caste-lists/category/{category}:
  *   get:
  *     summary: Get caste lists by category
@@ -249,7 +288,7 @@ router.get('/booth/:boothId', getCasteListsByBooth);
  *           enum: [SC, ST, OBC, General, Other]
  *     responses:
  *       200:
- *         description: List of caste lists for the category
+ *         description: List of caste lists by category
  *         content:
  *           application/json:
  *             schema:
@@ -277,6 +316,7 @@ router.get('/category/:category', getCasteListsByCategory);
  *       required:
  *         - category
  *         - caste
+ *         - state_id
  *         - division_id
  *         - parliament_id
  *         - assembly_id
@@ -288,30 +328,43 @@ router.get('/category/:category', getCasteListsByCategory);
  *           type: string
  *           enum: [SC, ST, OBC, General, Other]
  *           description: Caste category
+ *           example: "OBC"
  *         caste:
  *           type: string
- *           description: Caste name
+ *           description: Name of the caste
+ *           example: "Yadav"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439016"
  *         division_id:
  *           type: string
  *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439013"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439012"
  *         block_id:
  *           type: string
  *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439011"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
+ *           example: "507f1f77bcf86cd799439010"
  *         created_by:
  *           type: string
  *           description: Reference to User who created the record
+ *           example: "507f1f77bcf86cd799439022"
  *         updated_by:
  *           type: string
  *           description: Reference to User who last updated the record
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -320,6 +373,11 @@ router.get('/category/:category', getCasteListsByCategory);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;

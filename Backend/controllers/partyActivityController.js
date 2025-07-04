@@ -1,7 +1,9 @@
 const PartyActivity = require('../models/partyActivity');
 const Party = require('../models/party');
+const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
+const Block = require('../models/block');
 const Booth = require('../models/booth');
 const User = require('../models/User');
 
@@ -18,8 +20,10 @@ exports.getPartyActivities = async (req, res, next) => {
     // Base query with population
     let query = PartyActivity.find()
       .populate('party_id', 'name symbol')
+      .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
       .populate('created_by', 'name')
       .populate('updated_by', 'name')
@@ -41,6 +45,11 @@ exports.getPartyActivities = async (req, res, next) => {
       query = query.where('party_id').equals(req.query.party);
     }
 
+    // Filter by division
+    if (req.query.division) {
+      query = query.where('division_id').equals(req.query.division);
+    }
+
     // Filter by parliament
     if (req.query.parliament) {
       query = query.where('parliament_id').equals(req.query.parliament);
@@ -49,6 +58,11 @@ exports.getPartyActivities = async (req, res, next) => {
     // Filter by assembly
     if (req.query.assembly) {
       query = query.where('assembly_id').equals(req.query.assembly);
+    }
+
+    // Filter by block
+    if (req.query.block) {
+      query = query.where('block_id').equals(req.query.block);
     }
 
     // Filter by booth
@@ -104,8 +118,10 @@ exports.getPartyActivity = async (req, res, next) => {
   try {
     const activity = await PartyActivity.findById(req.params.id)
       .populate('party_id', 'name symbol')
+      .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
       .populate('created_by', 'name email')
       .populate('updated_by', 'name email');
@@ -134,20 +150,30 @@ exports.createPartyActivity = async (req, res, next) => {
     // Verify all references exist
     const [
       party,
+      division,
       parliament,
       assembly,
+      block,
       booth
     ] = await Promise.all([
       Party.findById(req.body.party_id),
+      req.body.division_id ? Division.findById(req.body.division_id) : Promise.resolve(null),
       Parliament.findById(req.body.parliament_id),
       req.body.assembly_id ? Assembly.findById(req.body.assembly_id) : Promise.resolve(null),
+      req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null),
       req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null)
     ]);
 
     if (!party) return res.status(400).json({ success: false, message: 'Party not found' });
+    if (req.body.division_id && !division) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
     if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
     if (req.body.assembly_id && !assembly) {
       return res.status(400).json({ success: false, message: 'Assembly not found' });
+    }
+    if (req.body.block_id && !block) {
+      return res.status(400).json({ success: false, message: 'Block not found' });
     }
     if (req.body.booth_id && !booth) {
       return res.status(400).json({ success: false, message: 'Booth not found' });
@@ -200,21 +226,34 @@ exports.updatePartyActivity = async (req, res, next) => {
     }
 
     // Verify references if being updated
-    const verificationPromises = [];
-    if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
-    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
+    const verificationPromises = [
+      req.body.party_id ? Party.findById(req.body.party_id) : Promise.resolve(null),
+      req.body.division_id ? Division.findById(req.body.division_id) : Promise.resolve(null),
+      req.body.parliament_id ? Parliament.findById(req.body.parliament_id) : Promise.resolve(null),
+      req.body.assembly_id ? Assembly.findById(req.body.assembly_id) : Promise.resolve(null),
+      req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null),
+      req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null)
+    ];
 
     const verificationResults = await Promise.all(verificationPromises);
     
-    for (const result of verificationResults) {
-      if (!result) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid reference ID provided'
-        });
-      }
+    if (req.body.party_id && !verificationResults[0]) {
+      return res.status(400).json({ success: false, message: 'Party not found' });
+    }
+    if (req.body.division_id && !verificationResults[1]) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
+    if (req.body.parliament_id && !verificationResults[2]) {
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
+    }
+    if (req.body.assembly_id && !verificationResults[3]) {
+      return res.status(400).json({ success: false, message: 'Assembly not found' });
+    }
+    if (req.body.block_id && !verificationResults[4]) {
+      return res.status(400).json({ success: false, message: 'Block not found' });
+    }
+    if (req.body.booth_id && !verificationResults[5]) {
+      return res.status(400).json({ success: false, message: 'Booth not found' });
     }
 
     // Validate dates if being updated
@@ -245,8 +284,10 @@ exports.updatePartyActivity = async (req, res, next) => {
       runValidators: true
     })
       .populate('party_id', 'name')
+      .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
       .populate('created_by', 'name')
       .populate('updated_by', 'name');
@@ -353,9 +394,10 @@ exports.getPartyActivitiesByParty = async (req, res, next) => {
     }
 
     const activities = await PartyActivity.find({ party_id: req.params.partyId })
-      .sort({ activity_date: -1 })
+      .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
+      .sort({ activity_date: -1 })
       .populate('created_by', 'name');
 
     res.status(200).json({
@@ -383,9 +425,70 @@ exports.getPartyActivitiesByParliament = async (req, res, next) => {
     }
 
     const activities = await PartyActivity.find({ parliament_id: req.params.parliamentId })
+      .populate('party_id', 'name symbol')
+      .populate('division_id', 'name')
+      .populate('assembly_id', 'name')
       .sort({ activity_date: -1 })
+      .populate('created_by', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: activities.length,
+      data: activities
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get party activities by division
+// @route   GET /api/party-activities/division/:divisionId
+// @access  Public
+exports.getPartyActivitiesByDivision = async (req, res, next) => {
+  try {
+    // Verify division exists
+    const division = await Division.findById(req.params.divisionId);
+    if (!division) {
+      return res.status(404).json({
+        success: false,
+        message: 'Division not found'
+      });
+    }
+
+    const activities = await PartyActivity.find({ division_id: req.params.divisionId })
+      .populate('party_id', 'name symbol')
+      .populate('parliament_id', 'name')
+      .sort({ activity_date: -1 })
+      .populate('created_by', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: activities.length,
+      data: activities
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get party activities by block
+// @route   GET /api/party-activities/block/:blockId
+// @access  Public
+exports.getPartyActivitiesByBlock = async (req, res, next) => {
+  try {
+    // Verify block exists
+    const block = await Block.findById(req.params.blockId);
+    if (!block) {
+      return res.status(404).json({
+        success: false,
+        message: 'Block not found'
+      });
+    }
+
+    const activities = await PartyActivity.find({ block_id: req.params.blockId })
       .populate('party_id', 'name symbol')
       .populate('assembly_id', 'name')
+      .sort({ activity_date: -1 })
       .populate('created_by', 'name');
 
     res.status(200).json({

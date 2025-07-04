@@ -14,6 +14,12 @@ const casteListSchema = new mongoose.Schema({
     maxlength: [100, 'Caste name cannot exceed 100 characters'],
     index: true
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
@@ -76,6 +82,7 @@ casteListSchema.pre('save', function(next) {
 casteListSchema.index({ caste: 'text' });
 casteListSchema.index({ category: 1, caste: 1 });
 casteListSchema.index({ 
+  state_id: 1,
   division_id: 1, 
   parliament_id: 1, 
   assembly_id: 1,
@@ -84,6 +91,13 @@ casteListSchema.index({
 });
 
 // Virtual population
+casteListSchema.virtual('state', {
+  ref: 'State',
+  localField: 'state_id',
+  foreignField: '_id',
+  justOne: true
+});
+
 casteListSchema.virtual('division', {
   ref: 'Division',
   localField: 'division_id',

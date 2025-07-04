@@ -1,8 +1,13 @@
 const BlockVotes = require('../models/blockVotes');
 const Candidate = require('../models/Candidate');
+const State = require('../models/state');
+const Division = require('../models/division');
+const Parliament = require('../models/parliament');
+const Assembly = require('../models/assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
 const ElectionYear = require('../models/electionYear');
+const User = require('../models/User');
 
 // @desc    Get all block votes
 // @route   GET /api/block-votes
@@ -14,13 +19,44 @@ exports.getBlockVotes = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Basic query with population
+    // Basic query
     let query = BlockVotes.find()
-      .populate('candidate_id', 'name party')
-      .populate('block_id', 'name code')
-      .populate('booth_id', 'booth_number name')
-      .populate('election_year_id', 'year')
-      .sort({ updated_at: -1 });
+      .populate('candidate', 'name party')
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('parliament', 'name')
+      .populate('assembly', 'name')
+      .populate('block', 'name')
+      .populate('booth', 'name booth_number')
+      .populate('election_year', 'year')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name')
+      .sort({ total_votes: -1 });
+
+    // Filter by candidate
+    if (req.query.candidate) {
+      query = query.where('candidate_id').equals(req.query.candidate);
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('state_id').equals(req.query.state);
+    }
+
+    // Filter by division
+    if (req.query.division) {
+      query = query.where('division_id').equals(req.query.division);
+    }
+
+    // Filter by parliament
+    if (req.query.parliament) {
+      query = query.where('parliament_id').equals(req.query.parliament);
+    }
+
+    // Filter by assembly
+    if (req.query.assembly) {
+      query = query.where('assembly_id').equals(req.query.assembly);
+    }
 
     // Filter by block
     if (req.query.block) {
@@ -32,26 +68,31 @@ exports.getBlockVotes = async (req, res, next) => {
       query = query.where('booth_id').equals(req.query.booth);
     }
 
-    // Filter by candidate
-    if (req.query.candidate) {
-      query = query.where('candidate_id').equals(req.query.candidate);
-    }
-
     // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('election_year_id').equals(req.query.election_year);
+    if (req.query.year) {
+      query = query.where('election_year_id').equals(req.query.year);
     }
 
-    const blockVotes = await query.skip(skip).limit(limit).exec();
+    // Filter by minimum votes
+    if (req.query.minVotes) {
+      query = query.where('total_votes').gte(parseInt(req.query.minVotes));
+    }
+
+    // Filter by maximum votes
+    if (req.query.maxVotes) {
+      query = query.where('total_votes').lte(parseInt(req.query.maxVotes));
+    }
+
+    const votes = await query.skip(skip).limit(limit).exec();
     const total = await BlockVotes.countDocuments(query.getFilter());
 
     res.status(200).json({
       success: true,
-      count: blockVotes.length,
+      count: votes.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: blockVotes
+      data: votes
     });
   } catch (err) {
     next(err);
@@ -63,22 +104,28 @@ exports.getBlockVotes = async (req, res, next) => {
 // @access  Public
 exports.getBlockVote = async (req, res, next) => {
   try {
-    const blockVote = await BlockVotes.findById(req.params.id)
-      .populate('candidate_id', 'name party')
-      .populate('block_id', 'name code')
-      .populate('booth_id', 'booth_number name')
-      .populate('election_year_id', 'year');
+    const vote = await BlockVotes.findById(req.params.id)
+      .populate('candidate', 'name party')
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('parliament', 'name')
+      .populate('assembly', 'name')
+      .populate('block', 'name')
+      .populate('booth', 'name booth_number')
+      .populate('election_year', 'year')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
-    if (!blockVote) {
+    if (!vote) {
       return res.status(404).json({
         success: false,
-        message: 'Block vote record not found'
+        message: 'Vote record not found'
       });
     }
 
     res.status(200).json({
       success: true,
-      data: blockVote
+      data: vote
     });
   } catch (err) {
     next(err);
@@ -91,57 +138,75 @@ exports.getBlockVote = async (req, res, next) => {
 exports.createBlockVote = async (req, res, next) => {
   try {
     // Verify all references exist
-    const [candidate, block, booth, electionYear] = await Promise.all([
+    const [
+      candidate,
+      state,
+      division,
+      parliament,
+      assembly,
+      block,
+      booth,
+      electionYear
+    ] = await Promise.all([
       Candidate.findById(req.body.candidate_id),
+      State.findById(req.body.state_id),
+      Division.findById(req.body.division_id),
+      Parliament.findById(req.body.parliament_id),
+      Assembly.findById(req.body.assembly_id),
       Block.findById(req.body.block_id),
       Booth.findById(req.body.booth_id),
       ElectionYear.findById(req.body.election_year_id)
     ]);
 
     if (!candidate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Candidate not found'
-      });
+      return res.status(400).json({ success: false, message: 'Candidate not found' });
+    }
+    if (!state) {
+      return res.status(400).json({ success: false, message: 'State not found' });
+    }
+    if (!division) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
+    if (!parliament) {
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
+    }
+    if (!assembly) {
+      return res.status(400).json({ success: false, message: 'Assembly not found' });
     }
     if (!block) {
-      return res.status(400).json({
-        success: false,
-        message: 'Block not found'
-      });
+      return res.status(400).json({ success: false, message: 'Block not found' });
     }
     if (!booth) {
-      return res.status(400).json({
-        success: false,
-        message: 'Booth not found'
-      });
+      return res.status(400).json({ success: false, message: 'Booth not found' });
     }
     if (!electionYear) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: 'Election year not found' });
+    }
+
+    // Check if user exists in request
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Election year not found'
+        message: 'Not authorized - user not identified'
       });
     }
 
-    // Verify booth belongs to the specified block
-    if (booth.block_id.toString() !== req.body.block_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Booth does not belong to the specified block'
-      });
-    }
+    const voteData = {
+      ...req.body,
+      created_by: req.user.id
+    };
 
-    const blockVote = await BlockVotes.create(req.body);
+    const vote = await BlockVotes.create(voteData);
 
     res.status(201).json({
       success: true,
-      data: blockVote
+      data: vote
     });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Vote record already exists for this candidate-booth-block-year combination'
+        message: 'Vote record already exists for this candidate-booth-election year combination'
       });
     }
     next(err);
@@ -153,79 +218,64 @@ exports.createBlockVote = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateBlockVote = async (req, res, next) => {
   try {
-    let blockVote = await BlockVotes.findById(req.params.id);
+    let vote = await BlockVotes.findById(req.params.id);
 
-    if (!blockVote) {
+    if (!vote) {
       return res.status(404).json({
         success: false,
-        message: 'Block vote record not found'
+        message: 'Vote record not found'
       });
     }
 
-    // Verify references if being updated
-    if (req.body.candidate_id) {
-      const candidate = await Candidate.findById(req.body.candidate_id);
-      if (!candidate) {
+    // Verify all references exist if being updated
+    const verificationPromises = [];
+    if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
+    if (req.body.election_year_id) verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
+
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'Candidate not found'
-        });
-      }
-    }
-    if (req.body.block_id) {
-      const block = await Block.findById(req.body.block_id);
-      if (!block) {
-        return res.status(400).json({
-          success: false,
-          message: 'Block not found'
-        });
-      }
-    }
-    if (req.body.booth_id) {
-      const booth = await Booth.findById(req.body.booth_id);
-      if (!booth) {
-        return res.status(400).json({
-          success: false,
-          message: 'Booth not found'
-        });
-      }
-      // Verify booth belongs to block if either is being updated
-      const currentBlockId = req.body.block_id || blockVote.block_id.toString();
-      if (booth.block_id.toString() !== currentBlockId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Booth does not belong to the specified block'
-        });
-      }
-    }
-    if (req.body.election_year_id) {
-      const electionYear = await ElectionYear.findById(req.body.election_year_id);
-      if (!electionYear) {
-        return res.status(400).json({
-          success: false,
-          message: 'Election year not found'
+          message: 'Invalid reference ID provided'
         });
       }
     }
 
-    blockVote = await BlockVotes.findByIdAndUpdate(req.params.id, req.body, {
+    // Add updated_by info
+    req.body.updated_by = req.user.id;
+
+    vote = await BlockVotes.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     })
-    .populate('candidate_id', 'name party')
-    .populate('block_id', 'name code')
-    .populate('booth_id', 'booth_number name')
-    .populate('election_year_id', 'year');
+      .populate('candidate', 'name party')
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('parliament', 'name')
+      .populate('assembly', 'name')
+      .populate('block', 'name')
+      .populate('booth', 'name booth_number')
+      .populate('election_year', 'year')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,
-      data: blockVote
+      data: vote
     });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Vote record already exists for this candidate-booth-block-year combination'
+        message: 'Vote record already exists for this candidate-booth-election year combination'
       });
     }
     next(err);
@@ -237,16 +287,16 @@ exports.updateBlockVote = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.deleteBlockVote = async (req, res, next) => {
   try {
-    const blockVote = await BlockVotes.findById(req.params.id);
+    const vote = await BlockVotes.findById(req.params.id);
 
-    if (!blockVote) {
+    if (!vote) {
       return res.status(404).json({
         success: false,
-        message: 'Block vote record not found'
+        message: 'Vote record not found'
       });
     }
 
-    await blockVote.deleteOne();
+    await vote.deleteOne();
 
     res.status(200).json({
       success: true,
@@ -262,6 +312,7 @@ exports.deleteBlockVote = async (req, res, next) => {
 // @access  Public
 exports.getVotesByBlock = async (req, res, next) => {
   try {
+    // Verify block exists
     const block = await Block.findById(req.params.blockId);
     if (!block) {
       return res.status(404).json({
@@ -271,39 +322,10 @@ exports.getVotesByBlock = async (req, res, next) => {
     }
 
     const votes = await BlockVotes.find({ block_id: req.params.blockId })
-      .populate('candidate_id', 'name party')
-      .populate('booth_id', 'booth_number name')
-      .populate('election_year_id', 'year')
-      .sort({ total_votes: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: votes.length,
-      data: votes
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get votes by booth
-// @route   GET /api/block-votes/booth/:boothId
-// @access  Public
-exports.getVotesByBooth = async (req, res, next) => {
-  try {
-    const booth = await Booth.findById(req.params.boothId);
-    if (!booth) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booth not found'
-      });
-    }
-
-    const votes = await BlockVotes.find({ booth_id: req.params.boothId })
-      .populate('candidate_id', 'name party')
-      .populate('block_id', 'name code')
-      .populate('election_year_id', 'year')
-      .sort({ total_votes: -1 });
+      .sort({ total_votes: -1 })
+      .populate('candidate', 'name party')
+      .populate('booth', 'name booth_number')
+      .populate('election_year', 'year');
 
     res.status(200).json({
       success: true,
@@ -320,6 +342,7 @@ exports.getVotesByBooth = async (req, res, next) => {
 // @access  Public
 exports.getVotesByCandidate = async (req, res, next) => {
   try {
+    // Verify candidate exists
     const candidate = await Candidate.findById(req.params.candidateId);
     if (!candidate) {
       return res.status(404).json({
@@ -329,10 +352,9 @@ exports.getVotesByCandidate = async (req, res, next) => {
     }
 
     const votes = await BlockVotes.find({ candidate_id: req.params.candidateId })
-      .populate('block_id', 'name code')
-      .populate('booth_id', 'booth_number name')
-      .populate('election_year_id', 'year')
-      .sort({ total_votes: -1 });
+      .sort({ total_votes: -1 })
+      .populate('block', 'name')
+      .populate('election_year', 'year');
 
     res.status(200).json({
       success: true,
@@ -344,54 +366,60 @@ exports.getVotesByCandidate = async (req, res, next) => {
   }
 };
 
-// @desc    Get aggregated votes by block for a candidate
-// @route   GET /api/block-votes/candidate/:candidateId/aggregated
+// @desc    Get votes by state
+// @route   GET /api/block-votes/state/:stateId
 // @access  Public
-exports.getAggregatedVotesByCandidate = async (req, res, next) => {
+exports.getVotesByState = async (req, res, next) => {
   try {
-    const candidate = await Candidate.findById(req.params.candidateId);
-    if (!candidate) {
+    // Verify state exists
+    const state = await State.findById(req.params.stateId);
+    if (!state) {
       return res.status(404).json({
         success: false,
-        message: 'Candidate not found'
+        message: 'State not found'
       });
     }
 
-    const aggregation = await BlockVotes.aggregate([
-      { $match: { candidate_id: mongoose.Types.ObjectId(req.params.candidateId) } },
-      {
-        $group: {
-          _id: '$block_id',
-          total_votes: { $sum: '$total_votes' },
-          booth_count: { $sum: 1 }
-        }
-      },
-      {
-        $lookup: {
-          from: 'blocks',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'block'
-        }
-      },
-      { $unwind: '$block' },
-      {
-        $project: {
-          block_id: '$_id',
-          block_name: '$block.name',
-          block_code: '$block.code',
-          total_votes: 1,
-          booth_count: 1,
-          _id: 0
-        }
-      },
-      { $sort: { total_votes: -1 } }
-    ]);
+    const votes = await BlockVotes.find({ state_id: req.params.stateId })
+      .sort({ total_votes: -1 })
+      .populate('candidate', 'name party')
+      .populate('block', 'name')
+      .populate('election_year', 'year');
 
     res.status(200).json({
       success: true,
-      count: aggregation.length,
-      data: aggregation
+      count: votes.length,
+      data: votes
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get votes by election year
+// @route   GET /api/block-votes/year/:yearId
+// @access  Public
+exports.getVotesByElectionYear = async (req, res, next) => {
+  try {
+    // Verify election year exists
+    const year = await ElectionYear.findById(req.params.yearId);
+    if (!year) {
+      return res.status(404).json({
+        success: false,
+        message: 'Election year not found'
+      });
+    }
+
+    const votes = await BlockVotes.find({ election_year_id: req.params.yearId })
+      .sort({ total_votes: -1 })
+      .populate('candidate', 'name party')
+      .populate('block', 'name')
+      .populate('state', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: votes.length,
+      data: votes
     });
   } catch (err) {
     next(err);

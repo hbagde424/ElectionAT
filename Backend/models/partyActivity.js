@@ -7,6 +7,11 @@ const partyActivitySchema = new mongoose.Schema({
     required: [true, 'Party reference is required'],
     index: true
   },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    index: true
+  },
   parliament_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parliament',
@@ -16,6 +21,11 @@ const partyActivitySchema = new mongoose.Schema({
   assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assembly',
+    index: true
+  },
+  block_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Block',
     index: true
   },
   booth_id: {
@@ -126,6 +136,13 @@ partyActivitySchema.virtual('party', {
   justOne: true
 });
 
+partyActivitySchema.virtual('division', {
+  ref: 'Division',
+  localField: 'division_id',
+  foreignField: '_id',
+  justOne: true
+});
+
 partyActivitySchema.virtual('parliament', {
   ref: 'Parliament',
   localField: 'parliament_id',
@@ -136,6 +153,13 @@ partyActivitySchema.virtual('parliament', {
 partyActivitySchema.virtual('assembly', {
   ref: 'Assembly',
   localField: 'assembly_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+partyActivitySchema.virtual('block', {
+  ref: 'Block',
+  localField: 'block_id',
   foreignField: '_id',
   justOne: true
 });
@@ -165,7 +189,10 @@ partyActivitySchema.virtual('updater', {
 partyActivitySchema.index({ title: 'text', description: 'text', location: 'text' });
 partyActivitySchema.index({ 
   party_id: 1,
+  division_id: 1,
   parliament_id: 1,
+  assembly_id: 1,
+  block_id: 1,
   activity_type: 1,
   status: 1
 });

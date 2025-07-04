@@ -6,7 +6,9 @@ const {
   updateBoothVote,
   deleteBoothVote,
   getVotesByBooth,
-  getVotesByCandidate
+  getVotesByCandidate,
+  getVotesByState,
+  getVotesByElectionYear
 } = require('../controllers/boothVotesController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -16,7 +18,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Booth Votes
- *   description: Booth votes management
+ *   description: Booth vote management
  */
 
 /**
@@ -37,20 +39,55 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
- *         name: booth
- *         schema:
- *           type: string
- *         description: Booth ID to filter by
- *       - in: query
  *         name: candidate
  *         schema:
  *           type: string
  *         description: Candidate ID to filter by
  *       - in: query
- *         name: election_year
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: block
+ *         schema:
+ *           type: string
+ *         description: Block ID to filter by
+ *       - in: query
+ *         name: booth
+ *         schema:
+ *           type: string
+ *         description: Booth ID to filter by
+ *       - in: query
+ *         name: year
  *         schema:
  *           type: string
  *         description: Election year ID to filter by
+ *       - in: query
+ *         name: minVotes
+ *         schema:
+ *           type: integer
+ *         description: Minimum votes threshold
+ *       - in: query
+ *         name: maxVotes
+ *         schema:
+ *           type: integer
+ *         description: Maximum votes threshold
  *     responses:
  *       200:
  *         description: List of booth votes
@@ -96,7 +133,7 @@ router.get('/', getBoothVotes);
  *             schema:
  *               $ref: '#/components/schemas/BoothVotes'
  *       404:
- *         description: Booth vote record not found
+ *         description: Vote record not found
  */
 router.get('/:id', getBoothVote);
 
@@ -116,13 +153,13 @@ router.get('/:id', getBoothVote);
  *             $ref: '#/components/schemas/BoothVotes'
  *     responses:
  *       201:
- *         description: Booth vote record created successfully
+ *         description: Vote record created successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createBoothVote);
+router.post('/', protect, authorize('admin'), createBoothVote);
 
 /**
  * @swagger
@@ -146,15 +183,15 @@ router.post('/', protect, authorize('superAdmin'), createBoothVote);
  *             $ref: '#/components/schemas/BoothVotes'
  *     responses:
  *       200:
- *         description: Booth vote record updated successfully
+ *         description: Vote record updated successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Booth vote record not found
+ *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateBoothVote);
+router.put('/:id', protect, authorize('admin'), updateBoothVote);
 
 /**
  * @swagger
@@ -172,13 +209,13 @@ router.put('/:id', protect, authorize('superAdmin'), updateBoothVote);
  *           type: string
  *     responses:
  *       200:
- *         description: Booth vote record deleted
+ *         description: Vote record deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Booth vote record not found
+ *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteBoothVote);
+router.delete('/:id', protect, authorize('admin'), deleteBoothVote);
 
 /**
  * @swagger
@@ -248,32 +285,132 @@ router.get('/candidate/:candidateId', getVotesByCandidate);
 
 /**
  * @swagger
+ * /api/booth-votes/state/{stateId}:
+ *   get:
+ *     summary: Get votes by state
+ *     tags: [Booth Votes]
+ *     parameters:
+ *       - in: path
+ *         name: stateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of votes in the state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothVotes'
+ *       404:
+ *         description: State not found
+ */
+router.get('/state/:stateId', getVotesByState);
+
+/**
+ * @swagger
+ * /api/booth-votes/year/{yearId}:
+ *   get:
+ *     summary: Get votes by election year
+ *     tags: [Booth Votes]
+ *     parameters:
+ *       - in: path
+ *         name: yearId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of votes for the election year
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothVotes'
+ *       404:
+ *         description: Election year not found
+ */
+router.get('/year/:yearId', getVotesByElectionYear);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     BoothVotes:
  *       type: object
  *       required:
  *         - candidate_id
+ *         - state_id
+ *         - division_id
+ *         - parliament_id
+ *         - assembly_id
+ *         - block_id
  *         - booth_id
  *         - total_votes
  *         - election_year_id
+ *         - created_by
  *       properties:
  *         candidate_id:
  *           type: string
  *           description: Reference to Candidate
  *           example: "507f1f77bcf86cd799439011"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439016"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439013"
+ *         assembly_id:
+ *           type: string
+ *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439012"
+ *         block_id:
+ *           type: string
+ *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439011"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439012"
+ *           example: "507f1f77bcf86cd799439010"
  *         total_votes:
- *           type: number
+ *           type: integer
  *           description: Total votes received
- *           example: 1500
+ *           example: 1250
  *         election_year_id:
  *           type: string
  *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439013"
+ *           example: "507f1f77bcf86cd799439020"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created the record
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated the record
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time

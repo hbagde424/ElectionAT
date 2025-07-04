@@ -1,4 +1,5 @@
 const LocalIssue = require('../models/LocalIssue');
+const State = require('../models/state');
 const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
@@ -18,6 +19,7 @@ exports.getLocalIssues = async (req, res, next) => {
 
     // Base query
     let query = LocalIssue.find()
+      .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
@@ -54,6 +56,7 @@ exports.getLocalIssues = async (req, res, next) => {
     }
 
     // Filter by geographical hierarchy
+    if (req.query.state) query = query.where('state_id').equals(req.query.state);
     if (req.query.division) query = query.where('division_id').equals(req.query.division);
     if (req.query.parliament) query = query.where('parliament_id').equals(req.query.parliament);
     if (req.query.assembly) query = query.where('assembly_id').equals(req.query.assembly);
@@ -82,6 +85,7 @@ exports.getLocalIssues = async (req, res, next) => {
 exports.getLocalIssue = async (req, res, next) => {
   try {
     const localIssue = await LocalIssue.findById(req.params.id)
+      .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
@@ -113,12 +117,14 @@ exports.createLocalIssue = async (req, res, next) => {
   try {
     // Verify all references exist
     const [
+      state,
       division,
       parliament,
       assembly,
       block,
       booth
     ] = await Promise.all([
+      State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
@@ -126,11 +132,20 @@ exports.createLocalIssue = async (req, res, next) => {
       Booth.findById(req.body.booth_id)
     ]);
 
+    if (!state) return res.status(400).json({ success: false, message: 'State not found' });
     if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
     if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
     if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
     if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
     if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+
+    // Verify division belongs to state
+    if (division.state_id.toString() !== req.body.state_id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Division does not belong to selected state' 
+      });
+    }
 
     // Set created_by to current user
     if (!req.user || !req.user.id) {
@@ -172,6 +187,7 @@ exports.updateLocalIssue = async (req, res, next) => {
 
     // Verify references if being updated
     const verificationPromises = [];
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
@@ -185,6 +201,17 @@ exports.updateLocalIssue = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           message: 'Invalid reference ID provided'
+        });
+      }
+    }
+
+    // Verify division belongs to state if both are being updated
+    if (req.body.state_id && req.body.division_id) {
+      const division = await Division.findById(req.body.division_id);
+      if (division.state_id.toString() !== req.body.state_id) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Division does not belong to selected state' 
         });
       }
     }
@@ -203,6 +230,7 @@ exports.updateLocalIssue = async (req, res, next) => {
       new: true,
       runValidators: true
     })
+      .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
@@ -260,6 +288,7 @@ exports.getLocalIssuesByBooth = async (req, res, next) => {
     }
 
     const localIssues = await LocalIssue.find({ booth_id: req.params.boothId })
+      .populate('state_id', 'name')
       .sort({ priority: -1, created_at: -1 })
       .populate('created_by', 'name');
 
@@ -287,8 +316,9 @@ exports.getLocalIssuesByStatus = async (req, res, next) => {
     }
 
     const localIssues = await LocalIssue.find({ status: req.params.status })
-      .sort({ priority: -1, created_at: -1 })
+      .populate('state_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .sort({ priority: -1, created_at: -1 })
       .populate('created_by', 'name');
 
     res.status(200).json({

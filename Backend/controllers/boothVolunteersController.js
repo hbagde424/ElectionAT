@@ -1,14 +1,17 @@
 const BoothVolunteers = require('../models/boothVolunteers');
 const Booth = require('../models/booth');
 const Party = require('../models/party');
+const State = require('../models/state');
+const Division = require('../models/division');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
 const Block = require('../models/block');
+const User = require('../models/User');
 
-// @desc    Get all booth volunteers with geographic hierarchy
+// @desc    Get all booth volunteers
 // @route   GET /api/booth-volunteers
 // @access  Public
-exports.getVolunteers = async (req, res, next) => {
+exports.getBoothVolunteers = async (req, res, next) => {
   try {
     // Pagination
     const page = parseInt(req.query.page) || 1;
@@ -17,12 +20,27 @@ exports.getVolunteers = async (req, res, next) => {
 
     // Basic query
     let query = BoothVolunteers.find()
-      .populate('booth_id', 'booth_number location name full_address')
-      .populate('party_id', 'name abbreviation symbol founded_year abbreviation')
-      .populate('assembly_id', 'name number type')
-      .populate('parliament_id', 'name number')
-      .populate('block_id', 'name code')
-      .sort({ created_at: -1 });
+      .populate('booth', 'name booth_number')
+      .populate('party', 'name symbol')
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('assembly', 'name')
+      .populate('parliament', 'name')
+      .populate('block', 'name')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name')
+      .sort({ name: 1 });
+
+    // Search functionality
+    if (req.query.search) {
+      query = query.find({
+        $or: [
+          { name: { $regex: req.query.search, $options: 'i' } },
+          { phone: { $regex: req.query.search, $options: 'i' } },
+          { email: { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
+    }
 
     // Filter by booth
     if (req.query.booth) {
@@ -32,6 +50,16 @@ exports.getVolunteers = async (req, res, next) => {
     // Filter by party
     if (req.query.party) {
       query = query.where('party_id').equals(req.query.party);
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('state_id').equals(req.query.state);
+    }
+
+    // Filter by division
+    if (req.query.division) {
+      query = query.where('division_id').equals(req.query.division);
     }
 
     // Filter by assembly
@@ -54,11 +82,6 @@ exports.getVolunteers = async (req, res, next) => {
       query = query.where('activity_level').equals(req.query.activity);
     }
 
-    // Search by name
-    if (req.query.search) {
-      query = query.where('name').regex(new RegExp(req.query.search, 'i'));
-    }
-
     const volunteers = await query.skip(skip).limit(limit).exec();
     const total = await BoothVolunteers.countDocuments(query.getFilter());
 
@@ -75,22 +98,26 @@ exports.getVolunteers = async (req, res, next) => {
   }
 };
 
-// @desc    Get single volunteer record with geographic hierarchy
+// @desc    Get single booth volunteer
 // @route   GET /api/booth-volunteers/:id
 // @access  Public
-exports.getVolunteerById = async (req, res, next) => {
+exports.getBoothVolunteer = async (req, res, next) => {
   try {
     const volunteer = await BoothVolunteers.findById(req.params.id)
-      .populate('booth_id', 'booth_number location')
-      .populate('party_id', 'name abbreviation symbol')
-      .populate('assembly_id', 'name number')
-      .populate('parliament_id', 'name number')
-      .populate('block_id', 'name code');
+      .populate('booth', 'name booth_number')
+      .populate('party', 'name symbol')
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('assembly', 'name')
+      .populate('parliament', 'name')
+      .populate('block', 'name')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     if (!volunteer) {
       return res.status(404).json({
         success: false,
-        message: 'Volunteer not found'
+        message: 'Booth volunteer not found'
       });
     }
 
@@ -103,83 +130,93 @@ exports.getVolunteerById = async (req, res, next) => {
   }
 };
 
-// @desc    Create new volunteer record with geographic hierarchy
+// @desc    Create booth volunteer
 // @route   POST /api/booth-volunteers
-// @access  Private (Admin/Editor)
-exports.createVolunteer = async (req, res, next) => {
+// @access  Private (Admin/Coordinator)
+exports.createBoothVolunteer = async (req, res, next) => {
   try {
     // Verify all references exist
-    const [booth, party, assembly, parliament, block] = await Promise.all([
+    const [
+      booth,
+      party,
+      state,
+      division,
+      assembly,
+      parliament,
+      block
+    ] = await Promise.all([
       Booth.findById(req.body.booth_id),
       Party.findById(req.body.party_id),
+      State.findById(req.body.state_id),
+      Division.findById(req.body.division_id),
       Assembly.findById(req.body.assembly_id),
       Parliament.findById(req.body.parliament_id),
       Block.findById(req.body.block_id)
     ]);
 
     if (!booth) {
-      return res.status(400).json({
-        success: false,
-        message: 'Booth not found'
-      });
+      return res.status(400).json({ success: false, message: 'Booth not found' });
     }
     if (!party) {
-      return res.status(400).json({
-        success: false,
-        message: 'Party not found'
-      });
+      return res.status(400).json({ success: false, message: 'Party not found' });
+    }
+    if (!state) {
+      return res.status(400).json({ success: false, message: 'State not found' });
+    }
+    if (!division) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
     }
     if (!assembly) {
-      return res.status(400).json({
-        success: false,
-        message: 'Assembly constituency not found'
-      });
+      return res.status(400).json({ success: false, message: 'Assembly not found' });
     }
     if (!parliament) {
-      return res.status(400).json({
-        success: false,
-        message: 'Parliamentary constituency not found'
-      });
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
     }
     if (!block) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: 'Block not found' });
+    }
+
+    // Check if user exists in request
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Block not found'
+        message: 'Not authorized - user not identified'
       });
     }
 
-    // Check consistency between booth and geographic references
-    if (booth.assembly_id.toString() !== req.body.assembly_id ||
-        booth.parliament_id.toString() !== req.body.parliament_id ||
-        booth.block_id.toString() !== req.body.block_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Geographic references do not match the booth location'
-      });
-    }
+    const volunteerData = {
+      ...req.body,
+      created_by: req.user.id
+    };
 
-    const volunteer = await BoothVolunteers.create(req.body);
+    const volunteer = await BoothVolunteers.create(volunteerData);
 
     res.status(201).json({
       success: true,
       data: volunteer
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Volunteer with this phone number already exists for this booth'
+      });
+    }
     next(err);
   }
 };
 
-// @desc    Update volunteer record (geographic hierarchy maintained)
+// @desc    Update booth volunteer
 // @route   PUT /api/booth-volunteers/:id
-// @access  Private (Admin/Editor)
-exports.updateVolunteer = async (req, res, next) => {
+// @access  Private (Admin/Coordinator)
+exports.updateBoothVolunteer = async (req, res, next) => {
   try {
     let volunteer = await BoothVolunteers.findById(req.params.id);
 
     if (!volunteer) {
       return res.status(404).json({
         success: false,
-        message: 'Volunteer not found'
+        message: 'Booth volunteer not found'
       });
     }
 
@@ -187,81 +224,66 @@ exports.updateVolunteer = async (req, res, next) => {
     const verificationPromises = [];
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
     if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
 
-    const [booth, party, assembly, parliament, block] = await Promise.all(verificationPromises);
-
-    if (booth && !booth) {
-      return res.status(400).json({
-        success: false,
-        message: 'Booth not found'
-      });
-    }
-    if (party && !party) {
-      return res.status(400).json({
-        success: false,
-        message: 'Party not found'
-      });
-    }
-    if (assembly && !assembly) {
-      return res.status(400).json({
-        success: false,
-        message: 'Assembly constituency not found'
-      });
-    }
-    if (parliament && !parliament) {
-      return res.status(400).json({
-        success: false,
-        message: 'Parliamentary constituency not found'
-      });
-    }
-    if (block && !block) {
-      return res.status(400).json({
-        success: false,
-        message: 'Block not found'
-      });
-    }
-
-    // Check geographic consistency if booth is being updated
-    if (req.body.booth_id) {
-      const updatedBooth = booth || await Booth.findById(req.body.booth_id);
-      if (updatedBooth.assembly_id.toString() !== (req.body.assembly_id || volunteer.assembly_id.toString()) ||
-          updatedBooth.parliament_id.toString() !== (req.body.parliament_id || volunteer.parliament_id.toString()) ||
-          updatedBooth.block_id.toString() !== (req.body.block_id || volunteer.block_id.toString())) {
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'Geographic references do not match the updated booth location'
+          message: 'Invalid reference ID provided'
         });
       }
     }
 
+    // Add updated_by info
+    req.body.updated_by = req.user.id;
+
     volunteer = await BoothVolunteers.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
-    }).populate('booth_id party_id assembly_id parliament_id block_id');
+    })
+      .populate('booth', 'name booth_number')
+      .populate('party', 'name symbol')
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('assembly', 'name')
+      .populate('parliament', 'name')
+      .populate('block', 'name')
+      .populate('created_by', 'name')
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,
       data: volunteer
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Volunteer with this phone number already exists for this booth'
+      });
+    }
     next(err);
   }
 };
 
-// @desc    Delete volunteer record
+// @desc    Delete booth volunteer
 // @route   DELETE /api/booth-volunteers/:id
-// @access  Private (superAdmin)
-exports.deleteVolunteer = async (req, res, next) => {
+// @access  Private (Admin only)
+exports.deleteBoothVolunteer = async (req, res, next) => {
   try {
     const volunteer = await BoothVolunteers.findById(req.params.id);
 
     if (!volunteer) {
       return res.status(404).json({
         success: false,
-        message: 'Volunteer not found'
+        message: 'Booth volunteer not found'
       });
     }
 
@@ -276,7 +298,7 @@ exports.deleteVolunteer = async (req, res, next) => {
   }
 };
 
-// @desc    Get volunteers by booth ID with geographic hierarchy
+// @desc    Get volunteers by booth
 // @route   GET /api/booth-volunteers/booth/:boothId
 // @access  Public
 exports.getVolunteersByBooth = async (req, res, next) => {
@@ -291,11 +313,9 @@ exports.getVolunteersByBooth = async (req, res, next) => {
     }
 
     const volunteers = await BoothVolunteers.find({ booth_id: req.params.boothId })
-      .populate('party_id', 'name abbreviation symbol')
-      .populate('assembly_id', 'name number')
-      .populate('parliament_id', 'name number')
-      .populate('block_id', 'name code')
-      .sort({ created_at: -1 });
+      .sort({ name: 1 })
+      .populate('party', 'name symbol')
+      .populate('created_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -307,7 +327,7 @@ exports.getVolunteersByBooth = async (req, res, next) => {
   }
 };
 
-// @desc    Get volunteers by party ID with geographic hierarchy
+// @desc    Get volunteers by party
 // @route   GET /api/booth-volunteers/party/:partyId
 // @access  Public
 exports.getVolunteersByParty = async (req, res, next) => {
@@ -322,11 +342,9 @@ exports.getVolunteersByParty = async (req, res, next) => {
     }
 
     const volunteers = await BoothVolunteers.find({ party_id: req.params.partyId })
-      .populate('booth_id', 'booth_number location')
-      .populate('assembly_id', 'name number')
-      .populate('parliament_id', 'name number')
-      .populate('block_id', 'name code')
-      .sort({ created_at: -1 });
+      .sort({ name: 1 })
+      .populate('booth', 'name booth_number')
+      .populate('state', 'name');
 
     res.status(200).json({
       success: true,
@@ -338,121 +356,24 @@ exports.getVolunteersByParty = async (req, res, next) => {
   }
 };
 
-// @desc    Get volunteers by assembly constituency ID
-// @route   GET /api/booth-volunteers/assembly/:assemblyId
+// @desc    Get volunteers by state
+// @route   GET /api/booth-volunteers/state/:stateId
 // @access  Public
-exports.getVolunteersByAssembly = async (req, res, next) => {
+exports.getVolunteersByState = async (req, res, next) => {
   try {
-    // Verify assembly exists
-    const assembly = await Assembly.findById(req.params.assemblyId);
-    if (!assembly) {
+    // Verify state exists
+    const state = await State.findById(req.params.stateId);
+    if (!state) {
       return res.status(404).json({
         success: false,
-        message: 'Assembly constituency not found'
+        message: 'State not found'
       });
     }
 
-    const volunteers = await BoothVolunteers.find({ assembly_id: req.params.assemblyId })
-      .populate('booth_id', 'booth_number location')
-      .populate('party_id', 'name abbreviation symbol')
-      .populate('parliament_id', 'name number')
-      .populate('block_id', 'name code')
-      .sort({ created_at: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: volunteers.length,
-      data: volunteers
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get volunteers by parliamentary constituency ID
-// @route   GET /api/booth-volunteers/parliament/:parliamentId
-// @access  Public
-exports.getVolunteersByParliament = async (req, res, next) => {
-  try {
-    // Verify parliament exists
-    const parliament = await Parliament.findById(req.params.parliamentId);
-    if (!parliament) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parliamentary constituency not found'
-      });
-    }
-
-    const volunteers = await BoothVolunteers.find({ parliament_id: req.params.parliamentId })
-      .populate('booth_id', 'booth_number location')
-      .populate('party_id', 'name abbreviation symbol')
-      .populate('assembly_id', 'name number')
-      .populate('block_id', 'name code')
-      .sort({ created_at: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: volunteers.length,
-      data: volunteers
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get volunteers by block ID
-// @route   GET /api/booth-volunteers/block/:blockId
-// @access  Public
-exports.getVolunteersByBlock = async (req, res, next) => {
-  try {
-    // Verify block exists
-    const block = await Block.findById(req.params.blockId);
-    if (!block) {
-      return res.status(404).json({
-        success: false,
-        message: 'Block not found'
-      });
-    }
-
-    const volunteers = await BoothVolunteers.find({ block_id: req.params.blockId })
-      .populate('booth_id', 'booth_number location')
-      .populate('party_id', 'name abbreviation symbol')
-      .populate('assembly_id', 'name number')
-      .populate('parliament_id', 'name number')
-      .sort({ created_at: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: volunteers.length,
-      data: volunteers
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get volunteers by activity level with geographic hierarchy
-// @route   GET /api/booth-volunteers/activity/:activityLevel
-// @access  Public
-exports.getVolunteersByActivityLevel = async (req, res, next) => {
-  try {
-    const validLevels = ['High', 'Medium', 'Low'];
-    if (!validLevels.includes(req.params.activityLevel)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid activity level'
-      });
-    }
-
-    const volunteers = await BoothVolunteers.find({ 
-      activity_level: req.params.activityLevel 
-    })
-    .populate('booth_id', 'booth_number location')
-    .populate('party_id', 'name abbreviation symbol')
-    .populate('assembly_id', 'name number')
-    .populate('parliament_id', 'name number')
-    .populate('block_id', 'name code')
-    .sort({ created_at: -1 });
+    const volunteers = await BoothVolunteers.find({ state_id: req.params.stateId })
+      .sort({ name: 1 })
+      .populate('booth', 'name booth_number')
+      .populate('party', 'name symbol');
 
     res.status(200).json({
       success: true,

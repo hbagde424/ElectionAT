@@ -1,16 +1,13 @@
 const express = require('express');
 const {
-  getVolunteers,
-  getVolunteerById,
-  createVolunteer,
-  updateVolunteer,
-  deleteVolunteer,
+  getBoothVolunteers,
+  getBoothVolunteer,
+  createBoothVolunteer,
+  updateBoothVolunteer,
+  deleteBoothVolunteer,
   getVolunteersByBooth,
   getVolunteersByParty,
-  getVolunteersByAssembly,
-  getVolunteersByParliament,
-  getVolunteersByBlock,
-  getVolunteersByActivityLevel
+  getVolunteersByState
 } = require('../controllers/boothVolunteersController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -20,7 +17,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Booth Volunteers
- *   description: Party volunteers management at booth level with geographic hierarchy
+ *   description: Booth volunteer management
  */
 
 /**
@@ -41,44 +38,54 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for name, phone or email
+ *       - in: query
  *         name: booth
  *         schema:
  *           type: string
- *         description: Filter by booth ID
+ *         description: Booth ID to filter by
  *       - in: query
  *         name: party
  *         schema:
  *           type: string
- *         description: Filter by party ID
+ *         description: Party ID to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Filter by assembly constituency ID
+ *         description: Assembly ID to filter by
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Filter by parliamentary constituency ID
+ *         description: Parliament ID to filter by
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Filter by block ID
+ *         description: Block ID to filter by
  *       - in: query
  *         name: activity
  *         schema:
  *           type: string
  *           enum: [High, Medium, Low]
  *         description: Filter by activity level
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Search by volunteer name
  *     responses:
  *       200:
- *         description: List of booth volunteers with geographic hierarchy
+ *         description: List of booth volunteers
  *         content:
  *           application/json:
  *             schema:
@@ -99,13 +106,13 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothVolunteer'
  */
-router.get('/', getVolunteers);
+router.get('/', getBoothVolunteers);
 
 /**
  * @swagger
  * /api/booth-volunteers/{id}:
  *   get:
- *     summary: Get single volunteer record with geographic hierarchy
+ *     summary: Get single booth volunteer
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -115,21 +122,21 @@ router.get('/', getVolunteers);
  *           type: string
  *     responses:
  *       200:
- *         description: Volunteer data with geographic references
+ *         description: Booth volunteer data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/BoothVolunteer'
  *       404:
- *         description: Volunteer not found
+ *         description: Booth volunteer not found
  */
-router.get('/:id', getVolunteerById);
+router.get('/:id', getBoothVolunteer);
 
 /**
  * @swagger
  * /api/booth-volunteers:
  *   post:
- *     summary: Create new volunteer record with automatic geographic hierarchy
+ *     summary: Create new booth volunteer
  *     tags: [Booth Volunteers]
  *     security:
  *       - bearerAuth: []
@@ -141,20 +148,19 @@ router.get('/:id', getVolunteerById);
  *             $ref: '#/components/schemas/BoothVolunteer'
  *     responses:
  *       201:
- *         description: Volunteer created with geographic hierarchy
+ *         description: Booth volunteer created successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/',  createVolunteer);
-// router.post('/', protect, authorize('superAdmin', 'editor'), createVolunteer);
+router.post('/', protect, authorize('admin', 'coordinator'), createBoothVolunteer);
 
 /**
  * @swagger
  * /api/booth-volunteers/{id}:
  *   put:
- *     summary: Update volunteer record (geographic hierarchy maintained)
+ *     summary: Update booth volunteer
  *     tags: [Booth Volunteers]
  *     security:
  *       - bearerAuth: []
@@ -172,21 +178,21 @@ router.post('/',  createVolunteer);
  *             $ref: '#/components/schemas/BoothVolunteer'
  *     responses:
  *       200:
- *         description: Volunteer updated successfully
+ *         description: Booth volunteer updated successfully
  *       400:
  *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Volunteer not found
+ *         description: Booth volunteer not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'editor'), updateVolunteer);
+router.put('/:id', protect, authorize('admin', 'coordinator'), updateBoothVolunteer);
 
 /**
  * @swagger
  * /api/booth-volunteers/{id}:
  *   delete:
- *     summary: Delete volunteer record
+ *     summary: Delete booth volunteer
  *     tags: [Booth Volunteers]
  *     security:
  *       - bearerAuth: []
@@ -198,19 +204,19 @@ router.put('/:id', protect, authorize('superAdmin', 'editor'), updateVolunteer);
  *           type: string
  *     responses:
  *       200:
- *         description: Volunteer deleted
+ *         description: Booth volunteer deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Volunteer not found
+ *         description: Booth volunteer not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteVolunteer);
+router.delete('/:id', protect, authorize('admin'), deleteBoothVolunteer);
 
 /**
  * @swagger
  * /api/booth-volunteers/booth/{boothId}:
  *   get:
- *     summary: Get volunteers by booth ID with geographic hierarchy
+ *     summary: Get volunteers by booth
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -220,7 +226,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteVolunteer);
  *           type: string
  *     responses:
  *       200:
- *         description: List of volunteers for the booth with geographic references
+ *         description: List of volunteers for the booth
  *         content:
  *           application/json:
  *             schema:
@@ -243,7 +249,7 @@ router.get('/booth/:boothId', getVolunteersByBooth);
  * @swagger
  * /api/booth-volunteers/party/{partyId}:
  *   get:
- *     summary: Get volunteers by party ID with geographic hierarchy
+ *     summary: Get volunteers by party
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
@@ -253,7 +259,7 @@ router.get('/booth/:boothId', getVolunteersByBooth);
  *           type: string
  *     responses:
  *       200:
- *         description: List of volunteers for the party with geographic references
+ *         description: List of volunteers for the party
  *         content:
  *           application/json:
  *             schema:
@@ -274,19 +280,19 @@ router.get('/party/:partyId', getVolunteersByParty);
 
 /**
  * @swagger
- * /api/booth-volunteers/assembly/{assemblyId}:
+ * /api/booth-volunteers/state/{stateId}:
  *   get:
- *     summary: Get volunteers by assembly constituency ID
+ *     summary: Get volunteers by state
  *     tags: [Booth Volunteers]
  *     parameters:
  *       - in: path
- *         name: assemblyId
+ *         name: stateId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: List of volunteers for the assembly constituency
+ *         description: List of volunteers in the state
  *         content:
  *           application/json:
  *             schema:
@@ -301,107 +307,9 @@ router.get('/party/:partyId', getVolunteersByParty);
  *                   items:
  *                     $ref: '#/components/schemas/BoothVolunteer'
  *       404:
- *         description: Assembly constituency not found
+ *         description: State not found
  */
-router.get('/assembly/:assemblyId', getVolunteersByAssembly);
-
-/**
- * @swagger
- * /api/booth-volunteers/parliament/{parliamentId}:
- *   get:
- *     summary: Get volunteers by parliamentary constituency ID
- *     tags: [Booth Volunteers]
- *     parameters:
- *       - in: path
- *         name: parliamentId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of volunteers for the parliamentary constituency
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/BoothVolunteer'
- *       404:
- *         description: Parliamentary constituency not found
- */
-router.get('/parliament/:parliamentId', getVolunteersByParliament);
-
-/**
- * @swagger
- * /api/booth-volunteers/block/{blockId}:
- *   get:
- *     summary: Get volunteers by block ID
- *     tags: [Booth Volunteers]
- *     parameters:
- *       - in: path
- *         name: blockId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of volunteers for the block
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/BoothVolunteer'
- *       404:
- *         description: Block not found
- */
-router.get('/block/:blockId', getVolunteersByBlock);
-
-/**
- * @swagger
- * /api/booth-volunteers/activity/{activityLevel}:
- *   get:
- *     summary: Get volunteers by activity level with geographic hierarchy
- *     tags: [Booth Volunteers]
- *     parameters:
- *       - in: path
- *         name: activityLevel
- *         required: true
- *         schema:
- *           type: string
- *           enum: [High, Medium, Low]
- *     responses:
- *       200:
- *         description: List of volunteers with specified activity level
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/BoothVolunteer'
- */
-router.get('/activity/:activityLevel', getVolunteersByActivityLevel);
+router.get('/state/:stateId', getVolunteersByState);
 
 /**
  * @swagger
@@ -412,11 +320,14 @@ router.get('/activity/:activityLevel', getVolunteersByActivityLevel);
  *       required:
  *         - booth_id
  *         - party_id
+ *         - state_id
+ *         - division_id
  *         - assembly_id
  *         - parliament_id
  *         - block_id
  *         - name
  *         - phone
+ *         - created_by
  *       properties:
  *         booth_id:
  *           type: string
@@ -426,18 +337,26 @@ router.get('/activity/:activityLevel', getVolunteersByActivityLevel);
  *           type: string
  *           description: Reference to Party
  *           example: "507f1f77bcf86cd799439012"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439016"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
  *         assembly_id:
  *           type: string
- *           description: Reference to Assembly Constituency
+ *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439013"
  *         parliament_id:
  *           type: string
- *           description: Reference to Parliamentary Constituency
+ *           description: Reference to Parliament
  *           example: "507f1f77bcf86cd799439014"
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439015"
+ *           example: "507f1f77bcf86cd799439017"
  *         name:
  *           type: string
  *           description: Volunteer's full name
@@ -445,28 +364,36 @@ router.get('/activity/:activityLevel', getVolunteersByActivityLevel);
  *         role:
  *           type: string
  *           description: Volunteer's role
- *           example: "Polling Agent"
+ *           example: "Booth Manager"
  *         phone:
  *           type: string
  *           description: Volunteer's phone number
- *           example: "+1234567890"
+ *           example: "9876543210"
  *         email:
  *           type: string
  *           description: Volunteer's email address
  *           example: "john.doe@example.com"
  *         area_responsibility:
  *           type: string
- *           description: Area or responsibility assigned
- *           example: "North Sector"
+ *           description: Area of responsibility
+ *           example: "Ward 5, Sector 2"
  *         activity_level:
  *           type: string
  *           enum: [High, Medium, Low]
- *           description: Activity level of the volunteer
+ *           description: Activity level of volunteer
  *           example: "High"
  *         remarks:
  *           type: string
  *           description: Additional remarks
  *           example: "Very active during campaigns"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created the record
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated the record
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time

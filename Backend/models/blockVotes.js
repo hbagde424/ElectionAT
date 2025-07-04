@@ -7,6 +7,30 @@ const blockVotesSchema = new mongoose.Schema({
     required: [true, 'Candidate reference is required'],
     index: true
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: [true, 'Division reference is required'],
+    index: true
+  },
+  parliament_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parliament',
+    required: [true, 'Parliament reference is required'],
+    index: true
+  },
+  assembly_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Assembly',
+    required: [true, 'Assembly reference is required'],
+    index: true
+  },
   block_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Block',
@@ -34,6 +58,15 @@ const blockVotesSchema = new mongoose.Schema({
     required: [true, 'Election year reference is required'],
     index: true
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Creator reference is required']
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -42,6 +75,10 @@ const blockVotesSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Update timestamp before saving
@@ -53,12 +90,93 @@ blockVotesSchema.pre('save', function(next) {
 // Compound indexes for optimized queries
 blockVotesSchema.index({ block_id: 1, election_year_id: 1 });
 blockVotesSchema.index({ candidate_id: 1, election_year_id: 1 });
+blockVotesSchema.index({ state_id: 1, division_id: 1 });
+blockVotesSchema.index({ parliament_id: 1, assembly_id: 1 });
 blockVotesSchema.index({ booth_id: 1, block_id: 1, election_year_id: 1 });
 
 // Prevent duplicate votes for same candidate-booth-block-year combination
 blockVotesSchema.index(
-  { candidate_id: 1, booth_id: 1, block_id: 1, election_year_id: 1 }, 
-  { unique: true }
+  { 
+    candidate_id: 1, 
+    booth_id: 1, 
+    block_id: 1, 
+    election_year_id: 1 
+  }, 
+  { 
+    unique: true,
+    name: 'unique_block_vote_record'
+  }
 );
+
+// Virtual population for easier queries
+blockVotesSchema.virtual('candidate', {
+  ref: 'Candidate',
+  localField: 'candidate_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('state', {
+  ref: 'State',
+  localField: 'state_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('division', {
+  ref: 'Division',
+  localField: 'division_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('parliament', {
+  ref: 'Parliament',
+  localField: 'parliament_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('assembly', {
+  ref: 'Assembly',
+  localField: 'assembly_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('block', {
+  ref: 'Block',
+  localField: 'block_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('booth', {
+  ref: 'Booth',
+  localField: 'booth_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('election_year', {
+  ref: 'ElectionYear',
+  localField: 'election_year_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('creator', {
+  ref: 'User',
+  localField: 'created_by',
+  foreignField: '_id',
+  justOne: true
+});
+
+blockVotesSchema.virtual('updater', {
+  ref: 'User',
+  localField: 'updated_by',
+  foreignField: '_id',
+  justOne: true
+});
 
 module.exports = mongoose.model('BlockVotes', blockVotesSchema);

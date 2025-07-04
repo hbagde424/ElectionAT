@@ -28,6 +28,12 @@ const localIssueSchema = new mongoose.Schema({
     enum: ['Low', 'Medium', 'High', 'Critical'],
     default: 'Medium'
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
@@ -81,7 +87,7 @@ const localIssueSchema = new mongoose.Schema({
 });
 
 // Update timestamp before saving
-localIssueSchema.pre('save', function(next) {
+localIssueSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
@@ -91,15 +97,23 @@ localIssueSchema.index({ issue_name: 'text' });
 localIssueSchema.index({ status: 1 });
 localIssueSchema.index({ priority: 1 });
 localIssueSchema.index({ department: 1 });
-localIssueSchema.index({ 
-  division_id: 1, 
-  parliament_id: 1, 
+localIssueSchema.index({
+  state_id: 1,
+  division_id: 1,
+  parliament_id: 1,
   assembly_id: 1,
   block_id: 1,
   booth_id: 1
 });
 
 // Virtual population
+localIssueSchema.virtual('state', {
+  ref: 'State',
+  localField: 'state_id',
+  foreignField: '_id',
+  justOne: true
+});
+
 localIssueSchema.virtual('division', {
   ref: 'Division',
   localField: 'division_id',

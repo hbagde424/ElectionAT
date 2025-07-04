@@ -7,7 +7,9 @@ const {
   deletePartyActivity,
   addMediaLink,
   getPartyActivitiesByParty,
-  getPartyActivitiesByParliament
+  getPartyActivitiesByParliament,
+  getPartyActivitiesByDivision,
+  getPartyActivitiesByBlock
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -48,6 +50,11 @@ const router = express.Router();
  *           type: string
  *         description: Filter by party ID
  *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Filter by division ID
+ *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
@@ -57,6 +64,11 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Filter by assembly ID
+ *       - in: query
+ *         name: block
+ *         schema:
+ *           type: string
+ *         description: Filter by block ID
  *       - in: query
  *         name: booth
  *         schema:
@@ -326,6 +338,72 @@ router.get('/parliament/:parliamentId', getPartyActivitiesByParliament);
 
 /**
  * @swagger
+ * /api/party-activities/division/{divisionId}:
+ *   get:
+ *     summary: Get party activities by division
+ *     tags: [Party Activities]
+ *     parameters:
+ *       - in: path
+ *         name: divisionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of party activities for the division
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PartyActivity'
+ *       404:
+ *         description: Division not found
+ */
+router.get('/division/:divisionId', getPartyActivitiesByDivision);
+
+/**
+ * @swagger
+ * /api/party-activities/block/{blockId}:
+ *   get:
+ *     summary: Get party activities by block
+ *     tags: [Party Activities]
+ *     parameters:
+ *       - in: path
+ *         name: blockId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of party activities for the block
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PartyActivity'
+ *       404:
+ *         description: Block not found
+ */
+router.get('/block/:blockId', getPartyActivitiesByBlock);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     PartyActivity:
@@ -341,12 +419,18 @@ router.get('/parliament/:parliamentId', getPartyActivitiesByParliament);
  *         party_id:
  *           type: string
  *           description: Reference to Party
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *         block_id:
+ *           type: string
+ *           description: Reference to Block
  *         booth_id:
  *           type: string
  *           description: Reference to Booth

@@ -13,6 +13,18 @@ const parliamentVotesSchema = new mongoose.Schema({
     required: [true, 'Parliament constituency reference is required'],
     index: true
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: [true, 'Division reference is required'],
+    index: true
+  },
   assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assembly',
@@ -46,6 +58,15 @@ const parliamentVotesSchema = new mongoose.Schema({
     required: [true, 'Election year reference is required'],
     index: true
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Creator reference is required']
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -69,6 +90,7 @@ parliamentVotesSchema.pre('save', function(next) {
 // Compound indexes for optimized queries
 parliamentVotesSchema.index({ parliament_id: 1, election_year_id: 1 });
 parliamentVotesSchema.index({ candidate_id: 1, election_year_id: 1 });
+parliamentVotesSchema.index({ state_id: 1, division_id: 1 });
 parliamentVotesSchema.index({ assembly_id: 1, parliament_id: 1, election_year_id: 1 });
 
 // Prevent duplicate votes for same candidate-booth-block-assembly-parliament-year combination
@@ -102,6 +124,20 @@ parliamentVotesSchema.virtual('parliament', {
   justOne: true
 });
 
+parliamentVotesSchema.virtual('state', {
+  ref: 'State',
+  localField: 'state_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+parliamentVotesSchema.virtual('division', {
+  ref: 'Division',
+  localField: 'division_id',
+  foreignField: '_id',
+  justOne: true
+});
+
 parliamentVotesSchema.virtual('assembly', {
   ref: 'Assembly',
   localField: 'assembly_id',
@@ -126,6 +162,20 @@ parliamentVotesSchema.virtual('booth', {
 parliamentVotesSchema.virtual('election_year', {
   ref: 'ElectionYear',
   localField: 'election_year_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+parliamentVotesSchema.virtual('creator', {
+  ref: 'User',
+  localField: 'created_by',
+  foreignField: '_id',
+  justOne: true
+});
+
+parliamentVotesSchema.virtual('updater', {
+  ref: 'User',
+  localField: 'updated_by',
   foreignField: '_id',
   justOne: true
 });

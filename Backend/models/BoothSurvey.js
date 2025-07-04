@@ -34,6 +34,12 @@ const boothSurveySchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Poll result cannot exceed 200 characters']
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
@@ -90,6 +96,7 @@ boothSurveySchema.pre('save', function(next) {
 boothSurveySchema.index({ booth_id: 1, status: 1 });
 boothSurveySchema.index({ survey_done_by: 1, survey_date: -1 });
 boothSurveySchema.index({ 
+  state_id: 1,
   division_id: 1, 
   parliament_id: 1, 
   assembly_id: 1, 

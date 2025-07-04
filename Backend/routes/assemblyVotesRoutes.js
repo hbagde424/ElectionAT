@@ -6,11 +6,9 @@ const {
   updateAssemblyVote,
   deleteAssemblyVote,
   getVotesByAssembly,
-  getVotesByBlock,
-  getVotesByBooth,
   getVotesByCandidate,
-  getAggregatedVotesByCandidate,
-  getElectionResultsByAssembly
+  getVotesByState,
+  getVotesByElectionYear
 } = require('../controllers/assemblyVotesController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -20,7 +18,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Assembly Votes
- *   description: Assembly constituency votes management
+ *   description: Assembly vote management
  */
 
 /**
@@ -41,10 +39,30 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: candidate
+ *         schema:
+ *           type: string
+ *         description: Candidate ID to filter by
+ *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
  *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
  *       - in: query
  *         name: block
  *         schema:
@@ -56,25 +74,20 @@ const router = express.Router();
  *           type: string
  *         description: Booth ID to filter by
  *       - in: query
- *         name: candidate
- *         schema:
- *           type: string
- *         description: Candidate ID to filter by
- *       - in: query
- *         name: election_year
+ *         name: year
  *         schema:
  *           type: string
  *         description: Election year ID to filter by
  *       - in: query
- *         name: sort
+ *         name: minVotes
  *         schema:
- *           type: string
- *         description: Sort by field (prefix with - for descending)
+ *           type: integer
+ *         description: Minimum votes threshold
  *       - in: query
- *         name: fields
+ *         name: maxVotes
  *         schema:
- *           type: string
- *         description: Comma separated list of fields to return
+ *           type: integer
+ *         description: Maximum votes threshold
  *     responses:
  *       200:
  *         description: List of assembly votes
@@ -120,7 +133,7 @@ router.get('/', getAssemblyVotes);
  *             schema:
  *               $ref: '#/components/schemas/AssemblyVotes'
  *       404:
- *         description: Assembly vote record not found
+ *         description: Vote record not found
  */
 router.get('/:id', getAssemblyVote);
 
@@ -140,13 +153,13 @@ router.get('/:id', getAssemblyVote);
  *             $ref: '#/components/schemas/AssemblyVotes'
  *     responses:
  *       201:
- *         description: Assembly vote record created successfully
+ *         description: Vote record created successfully
  *       400:
- *         description: Invalid input data or duplicate record
+ *         description: Invalid input data
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createAssemblyVote);
+router.post('/', protect, authorize('admin'), createAssemblyVote);
 
 /**
  * @swagger
@@ -170,15 +183,15 @@ router.post('/', protect, authorize('superAdmin'), createAssemblyVote);
  *             $ref: '#/components/schemas/AssemblyVotes'
  *     responses:
  *       200:
- *         description: Assembly vote record updated successfully
+ *         description: Vote record updated successfully
  *       400:
- *         description: Invalid input data or duplicate record
+ *         description: Invalid input data
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Assembly vote record not found
+ *         description: Vote record not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateAssemblyVote);
+router.put('/:id', protect, authorize('admin'), updateAssemblyVote);
 
 /**
  * @swagger
@@ -196,19 +209,19 @@ router.put('/:id', protect, authorize('superAdmin'), updateAssemblyVote);
  *           type: string
  *     responses:
  *       200:
- *         description: Assembly vote record deleted
+ *         description: Vote record deleted
  *       401:
  *         description: Not authorized
  *       404:
- *         description: Assembly vote record not found
+ *         description: Vote record not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteAssemblyVote);
+router.delete('/:id', protect, authorize('admin'), deleteAssemblyVote);
 
 /**
  * @swagger
  * /api/assembly-votes/assembly/{assemblyId}:
  *   get:
- *     summary: Get votes by assembly constituency
+ *     summary: Get votes by assembly
  *     tags: [Assembly Votes]
  *     parameters:
  *       - in: path
@@ -218,7 +231,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteAssemblyVote);
  *           type: string
  *     responses:
  *       200:
- *         description: List of votes for the assembly constituency
+ *         description: List of votes for the assembly
  *         content:
  *           application/json:
  *             schema:
@@ -233,75 +246,9 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteAssemblyVote);
  *                   items:
  *                     $ref: '#/components/schemas/AssemblyVotes'
  *       404:
- *         description: Assembly constituency not found
+ *         description: Assembly not found
  */
 router.get('/assembly/:assemblyId', getVotesByAssembly);
-
-/**
- * @swagger
- * /api/assembly-votes/block/{blockId}:
- *   get:
- *     summary: Get votes by block
- *     tags: [Assembly Votes]
- *     parameters:
- *       - in: path
- *         name: blockId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of votes for the block
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/AssemblyVotes'
- *       404:
- *         description: Block not found
- */
-router.get('/block/:blockId', getVotesByBlock);
-
-/**
- * @swagger
- * /api/assembly-votes/booth/{boothId}:
- *   get:
- *     summary: Get votes by booth
- *     tags: [Assembly Votes]
- *     parameters:
- *       - in: path
- *         name: boothId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of votes for the booth
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/AssemblyVotes'
- *       404:
- *         description: Booth not found
- */
-router.get('/booth/:boothId', getVotesByBooth);
 
 /**
  * @swagger
@@ -338,19 +285,19 @@ router.get('/candidate/:candidateId', getVotesByCandidate);
 
 /**
  * @swagger
- * /api/assembly-votes/candidate/{candidateId}/aggregated:
+ * /api/assembly-votes/state/{stateId}:
  *   get:
- *     summary: Get aggregated votes by assembly for a candidate
+ *     summary: Get votes by state
  *     tags: [Assembly Votes]
  *     parameters:
  *       - in: path
- *         name: candidateId
+ *         name: stateId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Aggregated vote totals by assembly for the candidate
+ *         description: List of votes in the state
  *         content:
  *           application/json:
  *             schema:
@@ -363,35 +310,19 @@ router.get('/candidate/:candidateId', getVotesByCandidate);
  *                 data:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       assembly_id:
- *                         type: string
- *                       assembly_name:
- *                         type: string
- *                       assembly_code:
- *                         type: string
- *                       total_votes:
- *                         type: number
- *                       block_count:
- *                         type: number
+ *                     $ref: '#/components/schemas/AssemblyVotes'
  *       404:
- *         description: Candidate not found
+ *         description: State not found
  */
-router.get('/candidate/:candidateId/aggregated', getAggregatedVotesByCandidate);
+router.get('/state/:stateId', getVotesByState);
 
 /**
  * @swagger
- * /api/assembly-votes/results/assembly/{assemblyId}/year/{yearId}:
+ * /api/assembly-votes/year/{yearId}:
  *   get:
- *     summary: Get election results by assembly constituency
+ *     summary: Get votes by election year
  *     tags: [Assembly Votes]
  *     parameters:
- *       - in: path
- *         name: assemblyId
- *         required: true
- *         schema:
- *           type: string
  *       - in: path
  *         name: yearId
  *         required: true
@@ -399,7 +330,7 @@ router.get('/candidate/:candidateId/aggregated', getAggregatedVotesByCandidate);
  *           type: string
  *     responses:
  *       200:
- *         description: Election results for the assembly constituency
+ *         description: List of votes for the election year
  *         content:
  *           application/json:
  *             schema:
@@ -409,29 +340,14 @@ router.get('/candidate/:candidateId/aggregated', getAggregatedVotesByCandidate);
  *                   type: boolean
  *                 count:
  *                   type: integer
- *                 total_votes:
- *                   type: number
  *                 data:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       candidate_id:
- *                         type: string
- *                       candidate_name:
- *                         type: string
- *                       candidate_party:
- *                         type: string
- *                       total_votes:
- *                         type: number
- *                       booth_count:
- *                         type: number
- *                       vote_percentage:
- *                         type: number
+ *                     $ref: '#/components/schemas/AssemblyVotes'
  *       404:
- *         description: Assembly constituency or election year not found
+ *         description: Election year not found
  */
-router.get('/results/assembly/:assemblyId/year/:yearId', getElectionResultsByAssembly);
+router.get('/year/:yearId', getVotesByElectionYear);
 
 /**
  * @swagger
@@ -442,10 +358,14 @@ router.get('/results/assembly/:assemblyId/year/:yearId', getElectionResultsByAss
  *       required:
  *         - candidate_id
  *         - assembly_id
+ *         - state_id
+ *         - parliament_id
+ *         - division_id
  *         - block_id
  *         - booth_id
  *         - total_votes
  *         - election_year_id
+ *         - created_by
  *       properties:
  *         candidate_id:
  *           type: string
@@ -453,24 +373,44 @@ router.get('/results/assembly/:assemblyId/year/:yearId', getElectionResultsByAss
  *           example: "507f1f77bcf86cd799439011"
  *         assembly_id:
  *           type: string
- *           description: Reference to Assembly Constituency
+ *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439012"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439016"
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439013"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439013"
+ *           example: "507f1f77bcf86cd799439011"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439014"
+ *           example: "507f1f77bcf86cd799439010"
  *         total_votes:
- *           type: number
+ *           type: integer
  *           description: Total votes received
- *           example: 1500
+ *           example: 1250
  *         election_year_id:
  *           type: string
  *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439015"
+ *           example: "507f1f77bcf86cd799439020"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created the record
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated the record
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time
