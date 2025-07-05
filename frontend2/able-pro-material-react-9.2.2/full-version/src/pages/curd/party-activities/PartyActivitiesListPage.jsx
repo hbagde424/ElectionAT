@@ -28,6 +28,8 @@ export default function PartyActivitiesListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [partyActivityDeleteId, setPartyActivityDeleteId] = useState('');
     const [partyActivities, setPartyActivities] = useState([]);
+    const [divisions, setDivisions] = useState([]);
+    const [blocks, setBlocks] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -48,8 +50,26 @@ export default function PartyActivitiesListPage() {
         }
     };
 
+    const fetchReferenceData = async () => {
+        try {
+            const [divisionsRes, blocksRes] = await Promise.all([
+                fetch('http://localhost:5000/api/divisions'),
+                fetch('http://localhost:5000/api/blocks')
+            ]);
+
+            const divisionsJson = await divisionsRes.json();
+            const blocksJson = await blocksRes.json();
+
+            if (divisionsJson.success) setDivisions(divisionsJson.data);
+            if (blocksJson.success) setBlocks(blocksJson.data);
+        } catch (error) {
+            console.error('Failed to fetch reference data:', error);
+        }
+    };
+
     useEffect(() => {
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
+        fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize]);
 
     const handleDeleteOpen = (id) => {
@@ -93,11 +113,11 @@ export default function PartyActivitiesListPage() {
             header: 'Title',
             accessorKey: 'title',
             cell: ({ getValue }) => (
-                <Typography sx={{ 
-                    maxWidth: 200, 
-                    overflow: 'hidden', 
-                    textOverflow: 'ellipsis', 
-                    whiteSpace: 'nowrap' 
+                <Typography sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                 }}>
                     {getValue()}
                 </Typography>
@@ -107,9 +127,33 @@ export default function PartyActivitiesListPage() {
             header: 'Activity Type',
             accessorKey: 'activity_type',
             cell: ({ getValue }) => (
-                <Chip 
-                    label={getValue()?.toUpperCase() || 'N/A'} 
-                    size="small" 
+                <Chip
+                    label={getValue()?.toUpperCase() || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Division',
+            accessorKey: 'division_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Block',
+            accessorKey: 'block_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="primary"
+                    size="small"
                     variant="outlined"
                 />
             )
@@ -123,8 +167,8 @@ export default function PartyActivitiesListPage() {
             header: 'Status',
             accessorKey: 'status',
             cell: ({ getValue }) => (
-                <Chip 
-                    label={getValue()?.toUpperCase() || 'N/A'} 
+                <Chip
+                    label={getValue()?.toUpperCase() || 'N/A'}
                     color={getStatusColor(getValue())}
                     size="small"
                 />
@@ -143,8 +187,8 @@ export default function PartyActivitiesListPage() {
             header: 'Media Coverage',
             accessorKey: 'media_coverage',
             cell: ({ getValue }) => (
-                <Chip 
-                    label={getValue() ? 'Yes' : 'No'} 
+                <Chip
+                    label={getValue() ? 'Yes' : 'No'}
                     color={getValue() ? 'success' : 'default'}
                     size="small"
                 />
@@ -262,6 +306,8 @@ export default function PartyActivitiesListPage() {
                 open={openModal}
                 modalToggler={setOpenModal}
                 partyActivity={selectedPartyActivity}
+                divisions={divisions}
+                blocks={blocks}
                 refresh={() => fetchPartyActivities(pagination.pageIndex, pagination.pageSize)}
             />
 

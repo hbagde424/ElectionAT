@@ -51,20 +51,20 @@ export default function PartyActivitiesView({ data }) {
                 <Typography variant="h6">
                     {data.title}
                 </Typography>
-                <Chip 
-                    label={data.activity_type?.toUpperCase() || 'N/A'} 
-                    size="small" 
+                <Chip
+                    label={data.activity_type?.toUpperCase() || 'N/A'}
+                    size="small"
                     variant="outlined"
                 />
-                <Chip 
-                    label={data.status?.toUpperCase() || 'N/A'} 
+                <Chip
+                    label={data.status?.toUpperCase() || 'N/A'}
                     color={getStatusColor(data.status)}
                     size="small"
                 />
             </Stack>
-            
+
             <Divider sx={{ mb: 2 }} />
-            
+
             <Grid container spacing={3}>
                 {/* Left Column */}
                 <Grid item xs={12} md={6}>
@@ -109,8 +109,8 @@ export default function PartyActivitiesView({ data }) {
                                     Media Coverage
                                 </Typography>
                             </Stack>
-                            <Chip 
-                                label={data.media_coverage ? 'Yes' : 'No'} 
+                            <Chip
+                                label={data.media_coverage ? 'Yes' : 'No'}
                                 color={data.media_coverage ? 'success' : 'default'}
                                 size="small"
                             />
@@ -132,20 +132,24 @@ export default function PartyActivitiesView({ data }) {
 
                         <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Assembly ID
+                                Division
                             </Typography>
-                            <Typography variant="body1" fontFamily="monospace">
-                                {data.assembly_id || 'N/A'}
-                            </Typography>
+                            {data.division_id ? (
+                                <Chip label={data.division_id.name} color="warning" size="small" />
+                            ) : (
+                                <Typography variant="body1" color="text.secondary">N/A</Typography>
+                            )}
                         </Box>
 
                         <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Booth ID
+                                Block
                             </Typography>
-                            <Typography variant="body1" fontFamily="monospace">
-                                {data.booth_id || 'N/A'}
-                            </Typography>
+                            {data.block_id ? (
+                                <Chip label={data.block_id.name} color="primary" size="small" />
+                            ) : (
+                                <Typography variant="body1" color="text.secondary">N/A</Typography>
+                            )}
                         </Box>
 
                         <Box>

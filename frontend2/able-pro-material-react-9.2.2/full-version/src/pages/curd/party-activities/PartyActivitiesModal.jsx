@@ -9,9 +9,11 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-export default function PartyActivitiesModal({ open, modalToggler, partyActivity, refresh }) {
+export default function PartyActivitiesModal({ open, modalToggler, partyActivity, divisions, blocks, refresh }) {
     const [formData, setFormData] = useState({
         party_id: '',
+        division_id: '',
+        block_id: '',
         assembly_id: '',
         booth_id: '',
         activity_type: '',
@@ -24,8 +26,10 @@ export default function PartyActivitiesModal({ open, modalToggler, partyActivity
         media_coverage: false
     });
 
+    const [filteredBlocks, setFilteredBlocks] = useState([]);
+
     const activityTypes = [
-        'rally', 'meeting', 'campaign', 'door-to-door', 'public-address', 
+        'rally', 'meeting', 'campaign', 'door-to-door', 'public-address',
         'fundraiser', 'volunteer-training', 'community-outreach', 'debate', 'other'
     ];
 
@@ -37,6 +41,8 @@ export default function PartyActivitiesModal({ open, modalToggler, partyActivity
         if (partyActivity) {
             setFormData({
                 party_id: partyActivity.party_id || '',
+                division_id: partyActivity.division_id?._id || '',
+                block_id: partyActivity.block_id?._id || '',
                 assembly_id: partyActivity.assembly_id || '',
                 booth_id: partyActivity.booth_id || '',
                 activity_type: partyActivity.activity_type || '',
@@ -51,6 +57,8 @@ export default function PartyActivitiesModal({ open, modalToggler, partyActivity
         } else {
             setFormData({
                 party_id: '',
+                division_id: '',
+                block_id: '',
                 assembly_id: '',
                 booth_id: '',
                 activity_type: '',
@@ -65,11 +73,25 @@ export default function PartyActivitiesModal({ open, modalToggler, partyActivity
         }
     }, [partyActivity]);
 
+    // Filter blocks by division
+    useEffect(() => {
+        if (formData.division_id) {
+            const filtered = blocks.filter(block => block.division_id?._id === formData.division_id);
+            setFilteredBlocks(filtered);
+        } else {
+            setFilteredBlocks([]);
+            setFormData(prev => ({
+                ...prev,
+                block_id: ''
+            }));
+        }
+    }, [formData.division_id, blocks]);
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({ 
-            ...prev, 
-            [name]: type === 'checkbox' ? checked : value 
+        setFormData((prev) => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
         }));
     };
 
@@ -125,31 +147,48 @@ export default function PartyActivitiesModal({ open, modalToggler, partyActivity
                                 />
                             </Stack>
                         </Grid>
-                        
+
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Assembly ID</InputLabel>
-                                <TextField
-                                    name="assembly_id"
-                                    value={formData.assembly_id}
-                                    onChange={handleChange}
-                                    fullWidth
-                                    placeholder="Enter assembly ID"
-                                />
+                                <InputLabel>Division</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="division_id"
+                                        value={formData.division_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select Division</MenuItem>
+                                        {divisions.map((division) => (
+                                            <MenuItem key={division._id} value={division._id}>
+                                                {division.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
                             </Stack>
                         </Grid>
 
                         {/* Row 2 */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Booth ID</InputLabel>
-                                <TextField
-                                    name="booth_id"
-                                    value={formData.booth_id}
-                                    onChange={handleChange}
-                                    fullWidth
-                                    placeholder="Enter booth ID"
-                                />
+                                <InputLabel>Block</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="block_id"
+                                        value={formData.block_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.division_id}
+                                    >
+                                        <MenuItem value="">Select Block</MenuItem>
+                                        {filteredBlocks.map((block) => (
+                                            <MenuItem key={block._id} value={block._id}>
+                                                {block.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
                             </Stack>
                         </Grid>
 
@@ -225,14 +264,14 @@ export default function PartyActivitiesModal({ open, modalToggler, partyActivity
                                     >
                                         {statusOptions.map((status) => (
                                             <MenuItem key={status} value={status}>
-                                                <Chip 
-                                                    label={status.toUpperCase()} 
+                                                <Chip
+                                                    label={status.toUpperCase()}
                                                     size="small"
                                                     color={
                                                         status === 'scheduled' ? 'info' :
-                                                        status === 'ongoing' ? 'warning' :
-                                                        status === 'completed' ? 'success' :
-                                                        status === 'cancelled' ? 'error' : 'default'
+                                                            status === 'ongoing' ? 'warning' :
+                                                                status === 'completed' ? 'success' :
+                                                                    status === 'cancelled' ? 'error' : 'default'
                                                     }
                                                 />
                                             </MenuItem>
