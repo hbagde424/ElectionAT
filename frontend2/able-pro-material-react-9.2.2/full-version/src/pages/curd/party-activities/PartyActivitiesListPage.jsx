@@ -28,11 +28,54 @@ export default function PartyActivitiesListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [partyActivityDeleteId, setPartyActivityDeleteId] = useState('');
     const [partyActivities, setPartyActivities] = useState([]);
+    const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
+    const [parliaments, setParliaments] = useState([]);
+    const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
+    const [booths, setBooths] = useState([]);
+    const [parties, setParties] = useState([]);
+    const [users, setUsers] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
+    const fetchReferenceData = async () => {
+        try {
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes, usersRes] = await Promise.all([
+                fetch('http://localhost:5000/api/states'),
+                fetch('http://localhost:5000/api/divisions'),
+                fetch('http://localhost:5000/api/parliaments'),
+                fetch('http://localhost:5000/api/assemblies'),
+                fetch('http://localhost:5000/api/blocks'),
+                fetch('http://localhost:5000/api/booths'),
+                fetch('http://localhost:5000/api/parties'),
+                fetch('http://localhost:5000/api/users')
+            ]);
+
+            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, partiesData, usersData] = await Promise.all([
+                statesRes.json(),
+                divisionsRes.json(),
+                parliamentsRes.json(),
+                assembliesRes.json(),
+                blocksRes.json(),
+                boothsRes.json(),
+                partiesRes.json(),
+                usersRes.json()
+            ]);
+
+            if (statesData.success) setStates(statesData.data);
+            if (divisionsData.success) setDivisions(divisionsData.data);
+            if (parliamentsData.success) setParliaments(parliamentsData.data);
+            if (assembliesData.success) setAssemblies(assembliesData.data);
+            if (blocksData.success) setBlocks(blocksData.data);
+            if (boothsData.success) setBooths(boothsData.data);
+            if (partiesData.success) setParties(partiesData.data);
+            if (usersData.success) setUsers(usersData.data);
+        } catch (error) {
+            console.error('Failed to fetch reference data:', error);
+        }
+    };
 
     const fetchPartyActivities = async (pageIndex, pageSize) => {
         setLoading(true);
@@ -50,22 +93,7 @@ export default function PartyActivitiesListPage() {
         }
     };
 
-    const fetchReferenceData = async () => {
-        try {
-            const [divisionsRes, blocksRes] = await Promise.all([
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/blocks')
-            ]);
 
-            const divisionsJson = await divisionsRes.json();
-            const blocksJson = await blocksRes.json();
-
-            if (divisionsJson.success) setDivisions(divisionsJson.data);
-            if (blocksJson.success) setBlocks(blocksJson.data);
-        } catch (error) {
-            console.error('Failed to fetch reference data:', error);
-        }
-    };
 
     useEffect(() => {
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
@@ -306,8 +334,14 @@ export default function PartyActivitiesListPage() {
                 open={openModal}
                 modalToggler={setOpenModal}
                 partyActivity={selectedPartyActivity}
+                states={states}
                 divisions={divisions}
+                parliaments={parliaments}
+                assemblies={assemblies}
                 blocks={blocks}
+                booths={booths}
+                parties={parties}
+                users={users}
                 refresh={() => fetchPartyActivities(pagination.pageIndex, pagination.pageSize)}
             />
 
