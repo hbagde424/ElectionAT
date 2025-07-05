@@ -15,17 +15,18 @@ import {
 import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 
-export default function BoothSurveyModal({ 
-    open, 
-    modalToggler, 
-    survey, 
+export default function BoothSurveyModal({
+    open,
+    modalToggler,
+    survey,
     booths,
     users,
+    states,
     divisions,
     parliaments,
     assemblies,
     blocks,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         booth_id: '',
@@ -34,6 +35,7 @@ export default function BoothSurveyModal({
         status: 'Pending',
         remark: '',
         poll_result: '',
+        state_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -53,6 +55,7 @@ export default function BoothSurveyModal({
                 status: survey.status || 'Pending',
                 remark: survey.remark || '',
                 poll_result: survey.poll_result || '',
+                state_id: survey.state_id?._id || '',
                 division_id: survey.division_id?._id || '',
                 parliament_id: survey.parliament_id?._id || '',
                 assembly_id: survey.assembly_id?._id || '',
@@ -66,6 +69,7 @@ export default function BoothSurveyModal({
                 status: 'Pending',
                 remark: '',
                 poll_result: '',
+                state_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
@@ -81,9 +85,9 @@ export default function BoothSurveyModal({
             setFilteredParliaments(filtered);
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                parliament_id: '', 
+            setFormData(prev => ({
+                ...prev,
+                parliament_id: '',
                 assembly_id: '',
                 block_id: ''
             }));
@@ -97,8 +101,8 @@ export default function BoothSurveyModal({
             setFilteredAssemblies(filtered);
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 assembly_id: '',
                 block_id: ''
             }));
@@ -112,8 +116,8 @@ export default function BoothSurveyModal({
             setFilteredBlocks(filtered);
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 block_id: ''
             }));
         }
@@ -123,26 +127,26 @@ export default function BoothSurveyModal({
         const { name, value } = e.target;
         setFormData(prev => {
             if (name === 'division_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    parliament_id: '', 
+                return {
+                    ...prev,
+                    [name]: value,
+                    parliament_id: '',
                     assembly_id: '',
                     block_id: ''
                 };
             }
             if (name === 'parliament_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     assembly_id: '',
                     block_id: ''
                 };
             }
             if (name === 'assembly_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     block_id: ''
                 };
             }
@@ -264,6 +268,26 @@ export default function BoothSurveyModal({
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
+                                <InputLabel>State</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="state_id"
+                                        value={formData.state_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select State</MenuItem>
+                                        {states.map((state) => (
+                                            <MenuItem key={state._id} value={state._id}>
+                                                {state.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
                                 <InputLabel>Division</InputLabel>
                                 <FormControl fullWidth>
                                     <Select
@@ -282,6 +306,9 @@ export default function BoothSurveyModal({
                                 </FormControl>
                             </Stack>
                         </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Parliament</InputLabel>
@@ -352,11 +379,11 @@ export default function BoothSurveyModal({
 
                     <Stack spacing={1}>
                         <InputLabel>Poll Result</InputLabel>
-                        <TextField 
-                            name="poll_result" 
-                            value={formData.poll_result} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="poll_result"
+                            value={formData.poll_result}
+                            onChange={handleChange}
+                            fullWidth
                             multiline
                             rows={2}
                             inputProps={{ maxLength: 200 }}
@@ -365,11 +392,11 @@ export default function BoothSurveyModal({
 
                     <Stack spacing={1}>
                         <InputLabel>Remarks</InputLabel>
-                        <TextField 
-                            name="remark" 
-                            value={formData.remark} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="remark"
+                            value={formData.remark}
+                            onChange={handleChange}
+                            fullWidth
                             multiline
                             rows={3}
                             inputProps={{ maxLength: 500 }}

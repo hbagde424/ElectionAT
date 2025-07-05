@@ -16,7 +16,7 @@ export default function BoothSurveyView({ data }) {
         <Stack spacing={2}>
             <Typography variant="h6">Survey Details</Typography>
             <Divider />
-            
+
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
@@ -35,10 +35,10 @@ export default function BoothSurveyView({ data }) {
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
                         <Typography fontWeight="bold">Status:</Typography>
-                        <Chip 
-                            label={data.status} 
-                            color={statusColors[data.status]} 
-                            size="small" 
+                        <Chip
+                            label={data.status}
+                            color={statusColors[data.status]}
+                            size="small"
                             sx={{ width: 100 }}
                         />
                     </Stack>
@@ -57,6 +57,16 @@ export default function BoothSurveyView({ data }) {
             </Grid>
 
             <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">State:</Typography>
+                        {data.state_id ? (
+                            <Chip label={data.state_id.name} color="success" size="small" />
+                        ) : (
+                            <Typography variant="caption">No state</Typography>
+                        )}
+                    </Stack>
+                </Grid>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
                         <Typography fontWeight="bold">Division:</Typography>

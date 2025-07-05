@@ -34,6 +34,7 @@ export default function BoothSurveyListPage() {
   const [surveys, setSurveys] = useState([]);
   const [booths, setBooths] = useState([]);
   const [users, setUsers] = useState([]);
+  const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
@@ -68,9 +69,10 @@ export default function BoothSurveyListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [boothsRes, usersRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
+      const [boothsRes, usersRes, statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/users'),
+        fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
         fetch('http://localhost:5000/api/assemblies'),
@@ -79,6 +81,7 @@ export default function BoothSurveyListPage() {
 
       const boothsJson = await boothsRes.json();
       const usersJson = await usersRes.json();
+      const statesJson = await statesRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
       const assembliesJson = await assembliesRes.json();
@@ -86,6 +89,7 @@ export default function BoothSurveyListPage() {
 
       if (boothsJson.success) setBooths(boothsJson.data);
       if (usersJson.success) setUsers(usersJson.data);
+      if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
@@ -117,8 +121,8 @@ export default function BoothSurveyListPage() {
       header: 'Booth',
       accessorKey: 'booth_id',
       cell: ({ getValue }) => (
-        getValue() ? 
-          <Typography variant="subtitle1">{getValue().name} (Booth: {getValue().booth_number})</Typography> : 
+        getValue() ?
+          <Typography variant="subtitle1">{getValue().name} (Booth: {getValue().booth_number})</Typography> :
           <Typography variant="caption">No booth</Typography>
       )
     },
@@ -145,11 +149,23 @@ export default function BoothSurveyListPage() {
       header: 'Status',
       accessorKey: 'status',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={statusColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={statusColors[getValue()]}
+          size="small"
           sx={{ minWidth: 100 }}
+        />
+      )
+    },
+    {
+      header: 'State',
+      accessorKey: 'state_id',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()?.name || 'N/A'}
+          color="secondary"
+          size="small"
+          variant="outlined"
         />
       )
     },
@@ -288,6 +304,7 @@ export default function BoothSurveyListPage() {
         survey={selectedSurvey}
         booths={booths}
         users={users}
+        states={states}
         divisions={divisions}
         parliaments={parliaments}
         assemblies={assemblies}
