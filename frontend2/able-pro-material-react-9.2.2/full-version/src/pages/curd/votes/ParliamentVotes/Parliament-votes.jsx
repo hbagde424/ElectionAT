@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 
 // third-party
 import {
@@ -33,6 +33,12 @@ export default function ParliamentVotesListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [voteDeleteId, setVoteDeleteId] = useState('');
   const [votes, setVotes] = useState([]);
+  const [states, setStates] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [parliaments, setParliaments] = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [electionYears, setElectionYears] = useState([]);
+  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -53,8 +59,38 @@ export default function ParliamentVotesListPage() {
     }
   };
 
+  const fetchReferenceData = async () => {
+    try {
+      const [statesRes, divisionsRes, parliamentsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
+        fetch('http://localhost:5000/api/states'),
+        fetch('http://localhost:5000/api/divisions'),
+        fetch('http://localhost:5000/api/parliaments'),
+        fetch('http://localhost:5000/api/candidates'),
+        fetch('http://localhost:5000/api/election-years'),
+        fetch('http://localhost:5000/api/users')
+      ]);
+
+      const statesJson = await statesRes.json();
+      const divisionsJson = await divisionsRes.json();
+      const parliamentsJson = await parliamentsRes.json();
+      const candidatesJson = await candidatesRes.json();
+      const electionYearsJson = await electionYearsRes.json();
+      const usersJson = await usersRes.json();
+
+      if (statesJson.success) setStates(statesJson.data);
+      if (divisionsJson.success) setDivisions(divisionsJson.data);
+      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
+      if (candidatesJson.success) setCandidates(candidatesJson.data);
+      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (usersJson.success) setUsers(usersJson.data);
+    } catch (error) {
+      console.error('Failed to fetch reference data:', error);
+    }
+  };
+
   useEffect(() => {
     fetchVotes(pagination.pageIndex, pagination.pageSize);
+    fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
@@ -108,6 +144,36 @@ export default function ParliamentVotesListPage() {
       header: 'Election Year',
       accessorKey: 'election_year_id.year',
       cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+    },
+    {
+      header: 'State',
+      accessorKey: 'state_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
+          <Typography variant="caption">No state</Typography>
+      )
+    },
+    {
+      header: 'Division',
+      accessorKey: 'division_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="warning" size="small" /> :
+          <Typography variant="caption">No division</Typography>
+      )
+    },
+    {
+      header: 'Created By',
+      accessorKey: 'created_by',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Avatar sx={{ width: 24, height: 24 }}>
+            <User size={16} />
+          </Avatar>
+          <Typography>{getValue()?.name || 'Unknown'}</Typography>
+        </Stack>
+      )
     },
     {
       header: 'Actions',
@@ -242,6 +308,12 @@ export default function ParliamentVotesListPage() {
         open={openModal}
         modalToggler={setOpenModal}
         vote={selectedVote}
+        states={states}
+        divisions={divisions}
+        parliaments={parliaments}
+        candidates={candidates}
+        electionYears={electionYears}
+        users={users}
         refresh={() => fetchVotes(pagination.pageIndex, pagination.pageSize)}
       />
 

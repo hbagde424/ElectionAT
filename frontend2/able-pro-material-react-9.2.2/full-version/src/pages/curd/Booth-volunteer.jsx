@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 
 import {
   getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -17,39 +17,71 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
-import WinningPartyModal from 'pages/curd/winning-parties/WinningPartyModal';
-import AlertWinningPartyDelete from 'pages/curd/winning-parties/AlertWinningPartyDelete';
-import WinningPartyView from 'pages/curd/winning-parties/WinningPartyView';
+import VolunteerModal from 'pages/curd/volunteer/VolunteerModal';
+import AlertVolunteerDelete from 'pages/curd/volunteer/AlertVolunteerDelete';
+import VolunteerView from 'pages/curd/volunteer/VolunteerView';
 
-export default function WinningPartyListPage() {
+export default function BoothVolunteerListPage() {
   const theme = useTheme();
-  const [selectedParty, setSelectedParty] = useState(null);
+  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [deleteId, setDeleteId] = useState('');
-  const [winningParties, setWinningParties] = useState([]);
+  const [volunteers, setVolunteers] = useState([]);
+  const [states, setStates] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [booths, setBooths] = useState([]);
+  const [parties, setParties] = useState([]);
+  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
-  const fetchWinningParties = async (pageIndex, pageSize) => {
+  const fetchVolunteers = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/winning-parties?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
-        setWinningParties(json.data);
+        setVolunteers(json.data);
         setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch winning parties:', error);
+      console.error('Failed to fetch volunteers:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchReferenceData = async () => {
+    try {
+      const [statesRes, divisionsRes, boothsRes, partiesRes, usersRes] = await Promise.all([
+        fetch('http://localhost:5000/api/states'),
+        fetch('http://localhost:5000/api/divisions'),
+        fetch('http://localhost:5000/api/booths'),
+        fetch('http://localhost:5000/api/parties'),
+        fetch('http://localhost:5000/api/users')
+      ]);
+
+      const statesJson = await statesRes.json();
+      const divisionsJson = await divisionsRes.json();
+      const boothsJson = await boothsRes.json();
+      const partiesJson = await partiesRes.json();
+      const usersJson = await usersRes.json();
+
+      if (statesJson.success) setStates(statesJson.data);
+      if (divisionsJson.success) setDivisions(divisionsJson.data);
+      if (boothsJson.success) setBooths(boothsJson.data);
+      if (partiesJson.success) setParties(partiesJson.data);
+      if (usersJson.success) setUsers(usersJson.data);
+    } catch (error) {
+      console.error('Failed to fetch reference data:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchWinningParties(pagination.pageIndex, pagination.pageSize);
+    fetchVolunteers(pagination.pageIndex, pagination.pageSize);
+    fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
@@ -66,37 +98,67 @@ export default function WinningPartyListPage() {
       cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
-      header: 'Candidate',
-      accessorKey: 'candidate_id.name',
-      cell: ({ row }) => row.original.candidate_id?.name || row.original.candidate_id
+      header: 'Name',
+      accessorKey: 'name',
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
     },
     {
-      header: 'Assembly',
-      accessorKey: 'assembly_id.name',
-      cell: ({ row }) => row.original.assembly_id?.name || row.original.assembly_id
+      header: 'Role',
+      accessorKey: 'role',
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
     },
     {
-      header: 'Parliament',
-      accessorKey: 'parliament_id.name',
-      cell: ({ row }) => row.original.parliament_id?.name || row.original.parliament_id
+      header: 'Phone',
+      accessorKey: 'phone',
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+    },
+    {
+      header: 'State',
+      accessorKey: 'state_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
+          <Typography variant="caption">No state</Typography>
+      )
+    },
+    {
+      header: 'Division',
+      accessorKey: 'division_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="warning" size="small" /> :
+          <Typography variant="caption">No division</Typography>
+      )
+    },
+    {
+      header: 'Booth',
+      accessorKey: 'booth_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Typography>{getValue().name} (No: {getValue().booth_number})</Typography> :
+          <Typography variant="caption">No booth</Typography>
+      )
     },
     {
       header: 'Party',
-      accessorKey: 'party_id.name',
-      cell: ({ row }) => row.original.party_id?.name || row.original.party_id
+      accessorKey: 'party_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="primary" size="small" /> :
+          <Typography variant="caption">No party</Typography>
+      )
     },
     {
-      header: 'Year',
-      accessorKey: 'year_id.name',
-      cell: ({ row }) => row.original.year_id?.name || row.original.__id
-    },
-    {
-      header: 'Votes',
-      accessorKey: 'votes'
-    },
-    {
-      header: 'Margin',
-      accessorKey: 'margin'
+      header: 'Created By',
+      accessorKey: 'created_by',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Avatar sx={{ width: 24, height: 24 }}>
+            <User size={16} />
+          </Avatar>
+          <Typography>{getValue()?.name || 'Unknown'}</Typography>
+        </Stack>
+      )
     },
     {
       header: 'Actions',
@@ -116,7 +178,7 @@ export default function WinningPartyListPage() {
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedParty(row.original);
+                  setSelectedVolunteer(row.original);
                   setOpenModal(true);
                 }}
               >
@@ -141,7 +203,7 @@ export default function WinningPartyListPage() {
   ], [theme]);
 
   const table = useReactTable({
-    data: winningParties,
+    data: volunteers,
     columns,
     state: {
       pagination
@@ -165,10 +227,10 @@ export default function WinningPartyListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${winningParties.length} winning parties...`}
+            placeholder={`Search ${volunteers.length} volunteers...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedParty(null); setOpenModal(true); }}>
-            Add Winning Party
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVolunteer(null); setOpenModal(true); }}>
+            Add Volunteer
           </Button>
         </Stack>
 
@@ -206,7 +268,7 @@ export default function WinningPartyListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <WinningPartyView data={row.original} />
+                          <VolunteerView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -227,18 +289,23 @@ export default function WinningPartyListPage() {
         </ScrollX>
       </MainCard>
 
-      <WinningPartyModal
+      <VolunteerModal
         open={openModal}
         modalToggler={setOpenModal}
-        party={selectedParty}
-        refresh={fetchWinningParties}
+        volunteer={selectedVolunteer}
+        states={states}
+        divisions={divisions}
+        booths={booths}
+        parties={parties}
+        users={users}
+        refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}
       />
 
-      <AlertWinningPartyDelete
+      <AlertVolunteerDelete
         id={deleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={fetchWinningParties}
+        refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}
       />
     </>
   );

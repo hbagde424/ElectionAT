@@ -14,21 +14,23 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-export default function CasteListModal({ 
-    open, 
-    modalToggler, 
-    caste, 
+export default function CasteListModal({
+    open,
+    modalToggler,
+    caste,
+    states,
     divisions,
     parliaments,
     assemblies,
     blocks,
     booths,
     users,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         category: 'General',
         caste: '',
+        state_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -36,6 +38,7 @@ export default function CasteListModal({
         booth_id: ''
     });
 
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
@@ -46,6 +49,7 @@ export default function CasteListModal({
             setFormData({
                 category: caste.category || 'General',
                 caste: caste.caste || '',
+                state_id: caste.state_id?._id || '',
                 division_id: caste.division_id?._id || '',
                 parliament_id: caste.parliament_id?._id || '',
                 assembly_id: caste.assembly_id?._id || '',
@@ -56,6 +60,7 @@ export default function CasteListModal({
             setFormData({
                 category: 'General',
                 caste: '',
+                state_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
@@ -65,6 +70,24 @@ export default function CasteListModal({
         }
     }, [caste]);
 
+    // Filter divisions by state
+    useEffect(() => {
+        if (formData.state_id) {
+            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+            setFilteredDivisions(filtered);
+        } else {
+            setFilteredDivisions([]);
+            setFormData(prev => ({
+                ...prev,
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+            }));
+        }
+    }, [formData.state_id, divisions]);
+
     // Filter parliaments by division
     useEffect(() => {
         if (formData.division_id) {
@@ -72,9 +95,9 @@ export default function CasteListModal({
             setFilteredParliaments(filtered);
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                parliament_id: '', 
+            setFormData(prev => ({
+                ...prev,
+                parliament_id: '',
                 assembly_id: '',
                 block_id: '',
                 booth_id: ''
@@ -89,8 +112,8 @@ export default function CasteListModal({
             setFilteredAssemblies(filtered);
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 assembly_id: '',
                 block_id: '',
                 booth_id: ''
@@ -105,8 +128,8 @@ export default function CasteListModal({
             setFilteredBlocks(filtered);
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 block_id: '',
                 booth_id: ''
             }));
@@ -120,8 +143,8 @@ export default function CasteListModal({
             setFilteredBooths(filtered);
         } else {
             setFilteredBooths([]);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 booth_id: ''
             }));
         }
@@ -130,37 +153,48 @@ export default function CasteListModal({
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => {
+            if (name === 'state_id') {
+                return {
+                    ...prev,
+                    [name]: value,
+                    division_id: '',
+                    parliament_id: '',
+                    assembly_id: '',
+                    block_id: '',
+                    booth_id: ''
+                };
+            }
             if (name === 'division_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    parliament_id: '', 
+                return {
+                    ...prev,
+                    [name]: value,
+                    parliament_id: '',
                     assembly_id: '',
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'parliament_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     assembly_id: '',
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'assembly_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     block_id: '',
                     booth_id: ''
                 };
             }
             if (name === 'block_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     booth_id: ''
                 };
             }
@@ -218,11 +252,11 @@ export default function CasteListModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Caste Name</InputLabel>
-                                <TextField 
-                                    name="caste" 
-                                    value={formData.caste} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="caste"
+                                    value={formData.caste}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
                                     inputProps={{ maxLength: 100 }}
                                 />
@@ -233,6 +267,26 @@ export default function CasteListModal({
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
+                                <InputLabel>State</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="state_id"
+                                        value={formData.state_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select State</MenuItem>
+                                        {states.map((state) => (
+                                            <MenuItem key={state._id} value={state._id}>
+                                                {state.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
                                 <InputLabel>Division</InputLabel>
                                 <FormControl fullWidth>
                                     <Select
@@ -240,9 +294,10 @@ export default function CasteListModal({
                                         value={formData.division_id}
                                         onChange={handleChange}
                                         required
+                                        disabled={!formData.state_id}
                                     >
                                         <MenuItem value="">Select Division</MenuItem>
-                                        {divisions.map((division) => (
+                                        {filteredDivisions.map((division) => (
                                             <MenuItem key={division._id} value={division._id}>
                                                 {division.name}
                                             </MenuItem>

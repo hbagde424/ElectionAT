@@ -15,15 +15,15 @@ export default function CasteListView({ data }) {
         <Stack spacing={2}>
             <Typography variant="h6">Caste Details</Typography>
             <Divider />
-            
+
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
                         <Typography fontWeight="bold">Category:</Typography>
-                        <Chip 
-                            label={data.category} 
-                            color={categoryColors[data.category]} 
-                            size="small" 
+                        <Chip
+                            label={data.category}
+                            color={categoryColors[data.category]}
+                            size="small"
                             sx={{ width: 100 }}
                         />
                     </Stack>
@@ -83,6 +83,15 @@ export default function CasteListView({ data }) {
                     </Stack>
                 </Grid>
             </Grid>
+
+            <Stack spacing={1}>
+                <Typography fontWeight="bold">State:</Typography>
+                {data.state_id ? (
+                    <Chip label={data.state_id.name} color="success" size="small" />
+                ) : (
+                    <Typography variant="caption">No state</Typography>
+                )}
+            </Stack>
 
             <Stack spacing={1}>
                 <Typography fontWeight="bold">Division:</Typography>

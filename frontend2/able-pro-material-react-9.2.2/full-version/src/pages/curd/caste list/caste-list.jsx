@@ -32,6 +32,7 @@ export default function CasteListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [casteDeleteId, setCasteDeleteId] = useState('');
   const [casteLists, setCasteLists] = useState([]);
+  const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
@@ -68,7 +69,8 @@ export default function CasteListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, usersRes] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, usersRes] = await Promise.all([
+        fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
         fetch('http://localhost:5000/api/assemblies'),
@@ -77,6 +79,7 @@ export default function CasteListPage() {
         fetch('http://localhost:5000/api/users')
       ]);
 
+      const statesJson = await statesRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
       const assembliesJson = await assembliesRes.json();
@@ -84,6 +87,7 @@ export default function CasteListPage() {
       const boothsJson = await boothsRes.json();
       const usersJson = await usersRes.json();
 
+      if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
@@ -117,10 +121,10 @@ export default function CasteListPage() {
       header: 'Category',
       accessorKey: 'category',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={categoryColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={categoryColors[getValue()]}
+          size="small"
           sx={{ minWidth: 80 }}
         />
       )
@@ -134,8 +138,8 @@ export default function CasteListPage() {
       header: 'Booth',
       accessorKey: 'booth_id',
       cell: ({ getValue }) => (
-        getValue() ? 
-          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> : 
+        getValue() ?
+          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> :
           <Typography variant="caption">No booth</Typography>
       )
     },
@@ -143,8 +147,8 @@ export default function CasteListPage() {
       header: 'Block',
       accessorKey: 'block_id',
       cell: ({ getValue }) => (
-        getValue() ? 
-          <Chip label={getValue().name} color="primary" size="small" /> : 
+        getValue() ?
+          <Chip label={getValue().name} color="primary" size="small" /> :
           <Typography variant="caption">No block</Typography>
       )
     },
@@ -158,6 +162,15 @@ export default function CasteListPage() {
           </Avatar>
           <Typography>{getValue()?.name || 'Unknown'}</Typography>
         </Stack>
+      )
+    },
+    {
+      header: 'State',
+      accessorKey: 'state_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
+          <Typography variant="caption">No state</Typography>
       )
     },
     {
@@ -293,6 +306,7 @@ export default function CasteListPage() {
         open={openModal}
         modalToggler={setOpenModal}
         caste={selectedCaste}
+        states={states}
         divisions={divisions}
         parliaments={parliaments}
         assemblies={assemblies}
