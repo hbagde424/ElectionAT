@@ -56,6 +56,8 @@ const localIssueRoutes = require('./routes/localIssueRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const eventTypeRoutes = require('./routes/eventTypeRoutes');
 const statusRoutes = require('./routes/statusRoutes');
+const blockPolygonRoutes = require('./routes/blockPolygonRoutes');
+
 // Connect to database
 connectDB();
 seedSuperAdmin();
@@ -134,6 +136,8 @@ app.use('/api/local-issues', localIssueRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/event-types', eventTypeRoutes);
 app.use('/api/statuses', statusRoutes);
+// Add this with your other route middleware (usually after auth middleware)
+app.use('/api/block-polygons', blockPolygonRoutes);
 // Error handler
 app.use(errorHandler);
 
