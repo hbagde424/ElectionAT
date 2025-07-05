@@ -21,7 +21,7 @@ export default function LocalIssueView({ data }) {
         <Stack spacing={2}>
             <Typography variant="h6">Issue Details</Typography>
             <Divider />
-            
+
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
@@ -41,10 +41,10 @@ export default function LocalIssueView({ data }) {
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
                         <Typography fontWeight="bold">Status:</Typography>
-                        <Chip 
-                            label={data.status} 
-                            color={statusColors[data.status]} 
-                            size="small" 
+                        <Chip
+                            label={data.status}
+                            color={statusColors[data.status]}
+                            size="small"
                             sx={{ width: 120 }}
                         />
                     </Stack>
@@ -52,10 +52,10 @@ export default function LocalIssueView({ data }) {
                 <Grid item xs={12} md={6}>
                     <Stack spacing={1}>
                         <Typography fontWeight="bold">Priority:</Typography>
-                        <Chip 
-                            label={data.priority} 
-                            color={priorityColors[data.priority]} 
-                            size="small" 
+                        <Chip
+                            label={data.priority}
+                            color={priorityColors[data.priority]}
+                            size="small"
                             sx={{ width: 120 }}
                         />
                     </Stack>
@@ -68,6 +68,29 @@ export default function LocalIssueView({ data }) {
                     <Typography>{data.description}</Typography>
                 </Stack>
             )}
+
+            <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">State:</Typography>
+                        {data.state_id ? (
+                            <Chip label={data.state_id.name} color="info" size="small" />
+                        ) : (
+                            <Typography variant="caption">No state</Typography>
+                        )}
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={1}>
+                        <Typography fontWeight="bold">Division:</Typography>
+                        {data.division_id ? (
+                            <Chip label={data.division_id.name} color="warning" size="small" />
+                        ) : (
+                            <Typography variant="caption">No division</Typography>
+                        )}
+                    </Stack>
+                </Grid>
+            </Grid>
 
             <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>

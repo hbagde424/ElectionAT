@@ -18,6 +18,7 @@ export default function LocalIssueModal({
     open,
     modalToggler,
     issue,
+    states,
     divisions,
     parliaments,
     assemblies,
@@ -32,6 +33,7 @@ export default function LocalIssueModal({
         description: '',
         status: 'Reported',
         priority: 'Medium',
+        state_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -39,6 +41,7 @@ export default function LocalIssueModal({
         booth_id: ''
     });
 
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
@@ -52,6 +55,7 @@ export default function LocalIssueModal({
                 description: issue.description || '',
                 status: issue.status || 'Reported',
                 priority: issue.priority || 'Medium',
+                state_id: issue.state_id?._id || '',
                 division_id: issue.division_id?._id || '',
                 parliament_id: issue.parliament_id?._id || '',
                 assembly_id: issue.assembly_id?._id || '',
@@ -65,6 +69,7 @@ export default function LocalIssueModal({
                 description: '',
                 status: 'Reported',
                 priority: 'Medium',
+                state_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
@@ -73,6 +78,24 @@ export default function LocalIssueModal({
             });
         }
     }, [issue]);
+
+    // Filter divisions by state
+    useEffect(() => {
+        if (formData.state_id) {
+            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+            setFilteredDivisions(filtered);
+        } else {
+            setFilteredDivisions([]);
+            setFormData(prev => ({
+                ...prev,
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+            }));
+        }
+    }, [formData.state_id, divisions]);
 
     // Filter parliaments by division
     useEffect(() => {
@@ -288,6 +311,26 @@ export default function LocalIssueModal({
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
+                                <InputLabel>State</InputLabel>
+                                <FormControl fullWidth>
+                                    <Select
+                                        name="state_id"
+                                        value={formData.state_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select State</MenuItem>
+                                        {states.map((state) => (
+                                            <MenuItem key={state._id} value={state._id}>
+                                                {state.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
                                 <InputLabel>Division</InputLabel>
                                 <FormControl fullWidth>
                                     <Select
@@ -295,9 +338,10 @@ export default function LocalIssueModal({
                                         value={formData.division_id}
                                         onChange={handleChange}
                                         required
+                                        disabled={!formData.state_id}
                                     >
                                         <MenuItem value="">Select Division</MenuItem>
-                                        {divisions.map((division) => (
+                                        {filteredDivisions.map((division) => (
                                             <MenuItem key={division._id} value={division._id}>
                                                 {division.name}
                                             </MenuItem>
@@ -306,6 +350,9 @@ export default function LocalIssueModal({
                                 </FormControl>
                             </Stack>
                         </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Parliament</InputLabel>

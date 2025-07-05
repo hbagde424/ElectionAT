@@ -32,6 +32,7 @@ export default function LocalIssueListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [issueDeleteId, setIssueDeleteId] = useState('');
   const [localIssues, setLocalIssues] = useState([]);
+  const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
@@ -74,7 +75,8 @@ export default function LocalIssueListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, usersRes] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, usersRes] = await Promise.all([
+        fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
         fetch('http://localhost:5000/api/assemblies'),
@@ -83,6 +85,7 @@ export default function LocalIssueListPage() {
         fetch('http://localhost:5000/api/users')
       ]);
 
+      const statesJson = await statesRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
       const assembliesJson = await assembliesRes.json();
@@ -90,6 +93,7 @@ export default function LocalIssueListPage() {
       const boothsJson = await boothsRes.json();
       const usersJson = await usersRes.json();
 
+      if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
@@ -133,10 +137,10 @@ export default function LocalIssueListPage() {
       header: 'Status',
       accessorKey: 'status',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={statusColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={statusColors[getValue()]}
+          size="small"
           sx={{ minWidth: 100 }}
         />
       )
@@ -145,10 +149,10 @@ export default function LocalIssueListPage() {
       header: 'Priority',
       accessorKey: 'priority',
       cell: ({ getValue }) => (
-        <Chip 
-          label={getValue()} 
-          color={priorityColors[getValue()]} 
-          size="small" 
+        <Chip
+          label={getValue()}
+          color={priorityColors[getValue()]}
+          size="small"
           sx={{ minWidth: 100 }}
         />
       )
@@ -157,8 +161,8 @@ export default function LocalIssueListPage() {
       header: 'Booth',
       accessorKey: 'booth_id',
       cell: ({ getValue }) => (
-        getValue() ? 
-          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> : 
+        getValue() ?
+          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> :
           <Typography variant="caption">No booth</Typography>
       )
     },
@@ -295,6 +299,7 @@ export default function LocalIssueListPage() {
         open={openModal}
         modalToggler={setOpenModal}
         issue={selectedIssue}
+        states={states}
         divisions={divisions}
         parliaments={parliaments}
         assemblies={assemblies}
