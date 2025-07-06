@@ -13,15 +13,15 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-export default function DistrictModal({ 
-    open, 
-    modalToggler, 
-    district, 
-    states, 
+export default function DistrictModal({
+    open,
+    modalToggler,
+    district,
+    states,
     divisions,
     assemblies,
     parliaments,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         name: '',
@@ -35,14 +35,16 @@ export default function DistrictModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
 
+    const getId = (val) => typeof val === 'string' ? val : val?._id || '';
+
     useEffect(() => {
         if (district) {
             setFormData({
                 name: district.name || '',
-                state_id: district.state_id?._id || '',
-                division_id: district.division_id?._id || '',
-                assembly_id: district.assembly_id?._id || '',
-                parliament_id: district.parliament_id?._id || ''
+                state_id: getId(district.state_id),
+                division_id: getId(district.division_id),
+                assembly_id: getId(district.assembly_id),
+                parliament_id: getId(district.parliament_id)
             });
         } else {
             setFormData({
@@ -57,7 +59,7 @@ export default function DistrictModal({
 
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+            const filtered = divisions.filter(div => getId(div.state_id) === formData.state_id);
             setFilteredDivisions(filtered);
         } else {
             setFilteredDivisions([]);
@@ -67,10 +69,10 @@ export default function DistrictModal({
 
     useEffect(() => {
         if (formData.division_id) {
-            const filteredAssemblies = assemblies.filter(asm => asm.division_id?._id === formData.division_id);
-            const filteredParliaments = parliaments.filter(par => par.division_id?._id === formData.division_id);
-            setFilteredAssemblies(filteredAssemblies);
-            setFilteredParliaments(filteredParliaments);
+            const filteredAsm = assemblies.filter(asm => getId(asm.division_id) === formData.division_id);
+            const filteredPar = parliaments.filter(par => getId(par.division_id) === formData.division_id);
+            setFilteredAssemblies(filteredAsm);
+            setFilteredParliaments(filteredPar);
         } else {
             setFilteredAssemblies([]);
             setFilteredParliaments([]);
@@ -110,6 +112,8 @@ export default function DistrictModal({
         if (res.ok) {
             modalToggler(false);
             refresh();
+        } else {
+            console.error('Failed to save district');
         }
     };
 
@@ -120,11 +124,11 @@ export default function DistrictModal({
                 <Stack spacing={2} mt={2}>
                     <Stack spacing={1}>
                         <InputLabel>District Name</InputLabel>
-                        <TextField 
-                            name="name" 
-                            value={formData.name} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            fullWidth
                             required
                         />
                     </Stack>

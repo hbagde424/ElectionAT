@@ -23,6 +23,7 @@ export default function PartyActivitiesModal({
     users,
     refresh
 }) {
+    console.log('divisions', divisions);
     const [formData, setFormData] = useState({
         party_id: '',
         state_id: '',
@@ -112,7 +113,11 @@ export default function PartyActivitiesModal({
     // Cascading dropdown logic: State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions?.filter(division => division.state_id === formData.state_id) || [];
+            console.log('State changed to:', formData.state_id);
+            console.log('Divisions:', divisions);
+            const filtered = divisions?.filter(division =>
+                division.state_id && division.state_id._id === formData.state_id
+            ) || [];
             setFilteredDivisions(filtered);
 
             // Reset dependent fields if current selection is not valid
@@ -142,7 +147,11 @@ export default function PartyActivitiesModal({
     // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = parliaments?.filter(parliament => parliament.division_id === formData.division_id) || [];
+            console.log('Division changed to:', formData.division_id);
+            console.log('Parliaments:', parliaments);
+            const filtered = parliaments?.filter(parliament =>
+                parliament.division_id && parliament.division_id._id === formData.division_id
+            ) || [];
             setFilteredParliaments(filtered);
 
             if (formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
@@ -169,7 +178,11 @@ export default function PartyActivitiesModal({
     // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id) {
-            const filtered = assemblies?.filter(assembly => assembly.parliament_id === formData.parliament_id) || [];
+            console.log('Parliament changed to:', formData.parliament_id);
+            console.log('Assemblies:', assemblies);
+            const filtered = assemblies?.filter(
+                assembly => assembly.parliament_id && assembly.parliament_id._id === formData.parliament_id
+            ) || [];
             setFilteredAssemblies(filtered);
 
             if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
@@ -194,7 +207,9 @@ export default function PartyActivitiesModal({
     // Assembly -> Block
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = blocks?.filter(block => block.assembly_id === formData.assembly_id) || [];
+            const filtered = blocks?.filter(
+                block => block.assembly_id && block.assembly_id._id === formData.assembly_id
+            ) || [];
             setFilteredBlocks(filtered);
 
             if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
@@ -217,7 +232,11 @@ export default function PartyActivitiesModal({
     // Block -> Booth
     useEffect(() => {
         if (formData.block_id) {
-            const filtered = booths?.filter(booth => booth.block_id === formData.block_id) || [];
+            console.log('Block changed to:', formData.block_id);
+            console.log('Booths:', booths);
+            const filtered = booths?.filter(
+                booth => booth.block_id && booth.block_id._id === formData.block_id
+            ) || [];
             setFilteredBooths(filtered);
 
             if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {

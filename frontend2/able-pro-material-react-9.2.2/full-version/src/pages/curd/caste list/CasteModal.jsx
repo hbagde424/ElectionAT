@@ -24,7 +24,6 @@ export default function CasteListModal({
     assemblies,
     blocks,
     booths,
-    users,
     refresh
 }) {
     const [formData, setFormData] = useState({
@@ -43,7 +42,6 @@ export default function CasteListModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
-
     useEffect(() => {
         if (caste) {
             setFormData({
@@ -70,136 +68,51 @@ export default function CasteListModal({
         }
     }, [caste]);
 
-    // Filter divisions by state
+    // Dependent dropdowns logic
     useEffect(() => {
-        if (formData.state_id) {
-            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
-            setFilteredDivisions(filtered);
-        } else {
-            setFilteredDivisions([]);
-            setFormData(prev => ({
-                ...prev,
-                division_id: '',
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.state_id, divisions]);
+        const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+        setFilteredDivisions(filtered);
+        if (!formData.state_id) resetFields(['division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id']);
+    }, [formData.state_id]);
 
-    // Filter parliaments by division
     useEffect(() => {
-        if (formData.division_id) {
-            const filtered = parliaments.filter(par => par.division_id?._id === formData.division_id);
-            setFilteredParliaments(filtered);
-        } else {
-            setFilteredParliaments([]);
-            setFormData(prev => ({
-                ...prev,
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.division_id, parliaments]);
+        const filtered = parliaments.filter(par => par.division_id?._id === formData.division_id);
+        setFilteredParliaments(filtered);
+        if (!formData.division_id) resetFields(['parliament_id', 'assembly_id', 'block_id', 'booth_id']);
+    }, [formData.division_id]);
 
-    // Filter assemblies by parliament
     useEffect(() => {
-        if (formData.parliament_id) {
-            const filtered = assemblies.filter(asm => asm.parliament_id?._id === formData.parliament_id);
-            setFilteredAssemblies(filtered);
-        } else {
-            setFilteredAssemblies([]);
-            setFormData(prev => ({
-                ...prev,
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.parliament_id, assemblies]);
+        const filtered = assemblies.filter(asm => asm.parliament_id?._id === formData.parliament_id);
+        setFilteredAssemblies(filtered);
+        if (!formData.parliament_id) resetFields(['assembly_id', 'block_id', 'booth_id']);
+    }, [formData.parliament_id]);
 
-    // Filter blocks by assembly
     useEffect(() => {
-        if (formData.assembly_id) {
-            const filtered = blocks.filter(blk => blk.assembly_id?._id === formData.assembly_id);
-            setFilteredBlocks(filtered);
-        } else {
-            setFilteredBlocks([]);
-            setFormData(prev => ({
-                ...prev,
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.assembly_id, blocks]);
+        const filtered = blocks.filter(blk => blk.assembly_id?._id === formData.assembly_id);
+        setFilteredBlocks(filtered);
+        if (!formData.assembly_id) resetFields(['block_id', 'booth_id']);
+    }, [formData.assembly_id]);
 
-    // Filter booths by block
     useEffect(() => {
-        if (formData.block_id) {
-            const filtered = booths.filter(booth => booth.block_id?._id === formData.block_id);
-            setFilteredBooths(filtered);
-        } else {
-            setFilteredBooths([]);
-            setFormData(prev => ({
-                ...prev,
-                booth_id: ''
-            }));
-        }
-    }, [formData.block_id, booths]);
+        const filtered = booths.filter(booth => booth.block_id?._id === formData.block_id);
+        setFilteredBooths(filtered);
+        if (!formData.block_id) resetFields(['booth_id']);
+    }, [formData.block_id]);
+
+    const resetFields = (fields) => {
+        setFormData(prev => {
+            const updated = { ...prev };
+            fields.forEach(field => updated[field] = '');
+            return updated;
+        });
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => {
-            if (name === 'state_id') {
-                return {
-                    ...prev,
-                    [name]: value,
-                    division_id: '',
-                    parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                };
-            }
-            if (name === 'division_id') {
-                return {
-                    ...prev,
-                    [name]: value,
-                    parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                };
-            }
-            if (name === 'parliament_id') {
-                return {
-                    ...prev,
-                    [name]: value,
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                };
-            }
-            if (name === 'assembly_id') {
-                return {
-                    ...prev,
-                    [name]: value,
-                    block_id: '',
-                    booth_id: ''
-                };
-            }
-            if (name === 'block_id') {
-                return {
-                    ...prev,
-                    [name]: value,
-                    booth_id: ''
-                };
-            }
-            return { ...prev, [name]: value };
-        });
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleSubmit = async () => {
@@ -223,7 +136,6 @@ export default function CasteListModal({
             refresh();
         }
     };
-
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{caste ? 'Edit Caste Entry' : 'Add Caste Entry'}</DialogTitle>

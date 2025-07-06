@@ -92,11 +92,11 @@ export default function BlockModal({
                     return 'Assembly selection is required';
                 }
                 break;
-            case 'district_id':
-                if (!value) {
-                    return 'District selection is required';
-                }
-                break;
+            // case 'district_id':
+            //     if (!value) {
+            //         return 'District selection is required';
+            //     }
+            //     break;
             default:
                 break;
         }

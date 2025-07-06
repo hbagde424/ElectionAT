@@ -85,6 +85,7 @@ export default function AssemblyVotesListPage() {
       const boothsJson = await boothsRes.json();
       const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
+      console.log('electionYearsJson', electionYearsJson);
       const usersJson = await usersRes.json();
 
       if (statesJson.success) setStates(statesJson.data);
@@ -94,7 +95,7 @@ export default function AssemblyVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (electionYearsJson.success) setElectionYears(electionYearsJson);
       if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);

@@ -30,6 +30,7 @@ export default function AssemblyVotesModal({
   users,
   refresh
 }) {
+  console.log('years', electionYears);
   const [formData, setFormData] = useState({
     candidate_id: '',
     assembly_id: '',
@@ -56,7 +57,10 @@ export default function AssemblyVotesModal({
         assembly_id: vote.assembly_id?._id || '',
         block_id: vote.block_id?._id || '',
         booth_id: vote.booth_id?._id || '',
-        election_year_id: vote.election_year_id?._id || '',
+        election_year_id: typeof vote.election_year_id === 'object'
+          ? vote.election_year_id._id
+          : vote.election_year_id || '',
+
         state_id: vote.state_id?._id || '',
         division_id: vote.division_id?._id || '',
         parliament_id: vote.parliament_id?._id || '',
@@ -296,17 +300,19 @@ export default function AssemblyVotesModal({
             <InputLabel>Election Year</InputLabel>
             <Select
               name="election_year_id"
-              value={formData.election_year_id}
+              value={formData.election_year_id || ''}
               onChange={handleChange}
               label="Election Year"
               required
             >
+              <MenuItem value="">Select Election Year</MenuItem>
               {electionYears?.map((year) => (
                 <MenuItem key={year._id} value={year._id}>
                   {year.year}
                 </MenuItem>
               ))}
             </Select>
+
           </FormControl>
 
           <TextField

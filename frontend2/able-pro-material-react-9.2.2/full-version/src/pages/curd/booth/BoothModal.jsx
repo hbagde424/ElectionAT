@@ -14,17 +14,17 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-export default function BoothModal({ 
-    open, 
-    modalToggler, 
-    booth, 
-    states, 
+export default function BoothModal({
+    open,
+    modalToggler,
+    booth,
+    states,
     districts,
     divisions,
     assemblies,
     parliaments,
     blocks,
-    refresh 
+    refresh
 }) {
     const [formData, setFormData] = useState({
         name: '',
@@ -46,6 +46,9 @@ export default function BoothModal({
     const [filteredDistricts, setFilteredDistricts] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
 
+    // Utility to safely extract ID
+    const getId = (ref) => (typeof ref === 'string' ? ref : ref?._id || '');
+
     useEffect(() => {
         if (booth) {
             setFormData({
@@ -54,12 +57,12 @@ export default function BoothModal({
                 full_address: booth.full_address || '',
                 latitude: booth.latitude || '',
                 longitude: booth.longitude || '',
-                state_id: booth.state_id?._id || '',
-                division_id: booth.division_id?._id || '',
-                parliament_id: booth.parliament_id?._id || '',
-                assembly_id: booth.assembly_id?._id || '',
-                district_id: booth.district_id?._id || '',
-                block_id: booth.block_id?._id || ''
+                state_id: getId(booth.state_id),
+                division_id: getId(booth.division_id),
+                parliament_id: getId(booth.parliament_id),
+                assembly_id: getId(booth.assembly_id),
+                district_id: getId(booth.district_id),
+                block_id: getId(booth.block_id)
             });
         } else {
             setFormData({
@@ -78,136 +81,64 @@ export default function BoothModal({
         }
     }, [booth]);
 
-    // Filter divisions by state
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
-            setFilteredDivisions(filtered);
+            setFilteredDivisions(divisions.filter(div => getId(div.state_id) === formData.state_id));
         } else {
             setFilteredDivisions([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                division_id: '', 
-                parliament_id: '', 
-                assembly_id: '',
-                district_id: '',
-                block_id: ''
-            }));
         }
     }, [formData.state_id, divisions]);
 
-    // Filter parliaments by division
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = parliaments.filter(par => par.division_id?._id === formData.division_id);
-            setFilteredParliaments(filtered);
+            setFilteredParliaments(parliaments.filter(par => getId(par.division_id) === formData.division_id));
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                parliament_id: '', 
-                assembly_id: '',
-                district_id: '',
-                block_id: ''
-            }));
         }
     }, [formData.division_id, parliaments]);
 
-    // Filter assemblies by parliament
     useEffect(() => {
         if (formData.parliament_id) {
-            const filtered = assemblies.filter(asm => asm.parliament_id?._id === formData.parliament_id);
-            setFilteredAssemblies(filtered);
+            setFilteredAssemblies(assemblies.filter(asm => getId(asm.parliament_id) === formData.parliament_id));
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                assembly_id: '',
-                district_id: '',
-                block_id: ''
-            }));
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Filter districts by assembly
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = districts.filter(dist => dist.assembly_id?._id === formData.assembly_id);
-            setFilteredDistricts(filtered);
+            setFilteredDistricts(districts.filter(dist => getId(dist.assembly_id) === formData.assembly_id));
         } else {
             setFilteredDistricts([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                district_id: '',
-                block_id: ''
-            }));
         }
     }, [formData.assembly_id, districts]);
 
-    // Filter blocks by district
     useEffect(() => {
         if (formData.district_id) {
-            const filtered = blocks.filter(blk => blk.district_id?._id === formData.district_id);
-            setFilteredBlocks(filtered);
+            setFilteredBlocks(blocks.filter(blk => getId(blk.district_id) === formData.district_id));
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ 
-                ...prev, 
-                block_id: ''
-            }));
         }
     }, [formData.district_id, blocks]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => {
-            // Reset dependent fields when parent changes
-            if (name === 'state_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    division_id: '', 
-                    parliament_id: '', 
-                    assembly_id: '',
-                    district_id: '',
-                    block_id: ''
-                };
+            const resetFields = {
+                state_id: ['division_id', 'parliament_id', 'assembly_id', 'district_id', 'block_id'],
+                division_id: ['parliament_id', 'assembly_id', 'district_id', 'block_id'],
+                parliament_id: ['assembly_id', 'district_id', 'block_id'],
+                assembly_id: ['district_id', 'block_id'],
+                district_id: ['block_id']
+            };
+
+            let updatedForm = { ...prev, [name]: value };
+
+            if (resetFields[name]) {
+                resetFields[name].forEach(field => updatedForm[field] = '');
             }
-            if (name === 'division_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    parliament_id: '', 
-                    assembly_id: '',
-                    district_id: '',
-                    block_id: ''
-                };
-            }
-            if (name === 'parliament_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    assembly_id: '',
-                    district_id: '',
-                    block_id: ''
-                };
-            }
-            if (name === 'assembly_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    district_id: '',
-                    block_id: ''
-                };
-            }
-            if (name === 'district_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
-                    block_id: ''
-                };
-            }
-            return { ...prev, [name]: value };
+
+            return updatedForm;
         });
     };
 
@@ -242,11 +173,11 @@ export default function BoothModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Booth Name</InputLabel>
-                                <TextField 
-                                    name="name" 
-                                    value={formData.name} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
                                 />
                             </Stack>
@@ -254,11 +185,11 @@ export default function BoothModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Booth Number</InputLabel>
-                                <TextField 
-                                    name="booth_number" 
-                                    value={formData.booth_number} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="booth_number"
+                                    value={formData.booth_number}
+                                    onChange={handleChange}
+                                    fullWidth
                                     required
                                 />
                             </Stack>
@@ -267,11 +198,11 @@ export default function BoothModal({
 
                     <Stack spacing={1}>
                         <InputLabel>Full Address</InputLabel>
-                        <TextField 
-                            name="full_address" 
-                            value={formData.full_address} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="full_address"
+                            value={formData.full_address}
+                            onChange={handleChange}
+                            fullWidth
                             required
                             multiline
                             rows={3}
@@ -282,11 +213,11 @@ export default function BoothModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Latitude</InputLabel>
-                                <TextField 
-                                    name="latitude" 
-                                    value={formData.latitude} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="latitude"
+                                    value={formData.latitude}
+                                    onChange={handleChange}
+                                    fullWidth
                                     type="number"
                                 />
                             </Stack>
@@ -294,11 +225,11 @@ export default function BoothModal({
                         <Grid item xs={12} md={6}>
                             <Stack spacing={1}>
                                 <InputLabel>Longitude</InputLabel>
-                                <TextField 
-                                    name="longitude" 
-                                    value={formData.longitude} 
-                                    onChange={handleChange} 
-                                    fullWidth 
+                                <TextField
+                                    name="longitude"
+                                    value={formData.longitude}
+                                    onChange={handleChange}
+                                    fullWidth
                                     type="number"
                                 />
                             </Stack>
@@ -317,7 +248,7 @@ export default function BoothModal({
                                         required
                                     >
                                         <MenuItem value="">Select State</MenuItem>
-                                        {states.map((state) => (
+                                        {states.map(state => (
                                             <MenuItem key={state._id} value={state._id}>
                                                 {state.name}
                                             </MenuItem>
@@ -338,7 +269,7 @@ export default function BoothModal({
                                         disabled={!formData.state_id}
                                     >
                                         <MenuItem value="">Select Division</MenuItem>
-                                        {filteredDivisions.map((division) => (
+                                        {filteredDivisions.map(division => (
                                             <MenuItem key={division._id} value={division._id}>
                                                 {division.name}
                                             </MenuItem>
@@ -362,7 +293,7 @@ export default function BoothModal({
                                         disabled={!formData.division_id}
                                     >
                                         <MenuItem value="">Select Parliament</MenuItem>
-                                        {filteredParliaments.map((parliament) => (
+                                        {filteredParliaments.map(parliament => (
                                             <MenuItem key={parliament._id} value={parliament._id}>
                                                 {parliament.name}
                                             </MenuItem>
@@ -383,7 +314,7 @@ export default function BoothModal({
                                         disabled={!formData.parliament_id}
                                     >
                                         <MenuItem value="">Select Assembly</MenuItem>
-                                        {filteredAssemblies.map((assembly) => (
+                                        {filteredAssemblies.map(assembly => (
                                             <MenuItem key={assembly._id} value={assembly._id}>
                                                 {assembly.name}
                                             </MenuItem>
@@ -407,7 +338,7 @@ export default function BoothModal({
                                         disabled={!formData.assembly_id}
                                     >
                                         <MenuItem value="">Select District</MenuItem>
-                                        {filteredDistricts.map((district) => (
+                                        {filteredDistricts.map(district => (
                                             <MenuItem key={district._id} value={district._id}>
                                                 {district.name}
                                             </MenuItem>
@@ -428,7 +359,7 @@ export default function BoothModal({
                                         disabled={!formData.district_id}
                                     >
                                         <MenuItem value="">Select Block</MenuItem>
-                                        {filteredBlocks.map((block) => (
+                                        {filteredBlocks.map(block => (
                                             <MenuItem key={block._id} value={block._id}>
                                                 {block.name}
                                             </MenuItem>
