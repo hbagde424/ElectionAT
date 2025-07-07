@@ -69,9 +69,14 @@ export default function BoothSurveyListPage() {
 
   const fetchReferenceData = async () => {
     try {
+      const token = localStorage.getItem('serviceToken');
       const [boothsRes, usersRes, statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
         fetch('http://localhost:5000/api/booths'),
-        fetch('http://localhost:5000/api/users'),
+        fetch('http://localhost:5000/api/users', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }),
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
