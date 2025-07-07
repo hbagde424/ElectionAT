@@ -61,7 +61,7 @@ export default function BlockVotesListPage() {
       setLoading(false);
     }
   };
-
+  const token = localStorage.getItem('serviceToken');
   const fetchReferenceData = async () => {
     try {
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
@@ -73,7 +73,11 @@ export default function BlockVotesListPage() {
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/candidates'),
         fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users')
+        fetch('http://localhost:5000/api/users', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
       ]);
 
       const statesJson = await statesRes.json();
@@ -93,7 +97,7 @@ export default function BlockVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (electionYearsJson) setElectionYears(electionYearsJson);
       if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
@@ -120,20 +124,20 @@ export default function BlockVotesListPage() {
     },
     {
       header: 'Candidate',
-      accessorKey: 'candidate_id.name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      accessorKey: 'candidate',
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()?.name || '—'}</Typography>
     },
     {
       header: 'Block',
-      accessorKey: 'block_id.name',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'block',
+      cell: ({ getValue }) => <Typography>{getValue()?.name || '—'}</Typography>
     },
     {
       header: 'Booth',
-      accessorKey: 'booth_id.name',
-      cell: ({ row }) => (
+      accessorKey: 'booth',
+      cell: ({ getValue }) => (
         <Typography>
-          {row.original.booth_id.name} (No: {row.original.booth_id.booth_number})
+          {getValue()?.name || '—'} {getValue()?.booth_number ? `(No: ${getValue().booth_number})` : ''}
         </Typography>
       )
     },
@@ -144,43 +148,43 @@ export default function BlockVotesListPage() {
     },
     {
       header: 'Election Year',
-      accessorKey: 'election_year_id.year',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'election_year',
+      cell: ({ getValue }) => <Typography>{getValue()?.year || '—'}</Typography>
     },
     {
       header: 'State',
-      accessorKey: 'state_id',
+      accessorKey: 'state',
       cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
-          <Typography variant="caption">No state</Typography>
+        getValue()
+          ? <Chip label={getValue().name} color="success" size="small" variant="outlined" />
+          : <Typography variant="caption">No state</Typography>
       )
     },
     {
       header: 'Division',
-      accessorKey: 'division_id',
+      accessorKey: 'division',
       cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="warning" size="small" /> :
-          <Typography variant="caption">No division</Typography>
+        getValue()
+          ? <Chip label={getValue().name} color="warning" size="small" />
+          : <Typography variant="caption">No division</Typography>
       )
     },
     {
       header: 'Parliament',
-      accessorKey: 'parliament_id',
+      accessorKey: 'parliament',
       cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="info" size="small" /> :
-          <Typography variant="caption">No parliament</Typography>
+        getValue()
+          ? <Chip label={getValue().name} color="info" size="small" />
+          : <Typography variant="caption">No parliament</Typography>
       )
     },
     {
       header: 'Assembly',
-      accessorKey: 'assembly_id',
+      accessorKey: 'assembly',
       cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="secondary" size="small" /> :
-          <Typography variant="caption">No assembly</Typography>
+        getValue()
+          ? <Chip label={getValue().name} color="secondary" size="small" />
+          : <Typography variant="caption">No assembly</Typography>
       )
     },
     {
@@ -200,7 +204,9 @@ export default function BlockVotesListPage() {
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
         const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
+        const expandIcon = isExpanded
+          ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
+          : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View">
@@ -236,6 +242,7 @@ export default function BlockVotesListPage() {
       }
     }
   ], [theme]);
+
 
   const table = useReactTable({
     data: votes,

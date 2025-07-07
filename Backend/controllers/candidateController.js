@@ -187,7 +187,7 @@ exports.updateCandidate = async (req, res, next) => {
     if (req.body.election_year) verificationPromises.push(Year.findById(req.body.election_year));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({

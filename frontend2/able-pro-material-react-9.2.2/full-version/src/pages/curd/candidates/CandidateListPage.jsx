@@ -50,8 +50,8 @@ const CandidateListPage = () => {
     const columns = useMemo(() => [
         { header: '#', cell: ({ row }) => row.index + 1 },
         { header: 'Name', accessorKey: 'name' },
-        { header: 'Party', cell: ({ row }) => row.original.party?.name },
-        { header: 'Assembly', cell: ({ row }) => row.original.assembly?.name },
+        { header: 'Party', cell: ({ row }) => row.original.party_id?.name || 'N/A' },
+        { header: 'Assembly', cell: ({ row }) => row.original.assembly_id?.name || 'N/A' },
         { header: 'Votes', accessorKey: 'votes' },
         { header: 'Caste', accessorKey: 'caste' },
         {

@@ -85,7 +85,6 @@ export default function AssemblyVotesListPage() {
       const boothsJson = await boothsRes.json();
       const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
-      console.log('electionYearsJson', electionYearsJson);
       const usersJson = await usersRes.json();
 
       if (statesJson.success) setStates(statesJson.data);
@@ -95,7 +94,7 @@ export default function AssemblyVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson);
+      if (electionYearsJson) setElectionYears(electionYearsJson);
       if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
@@ -122,25 +121,25 @@ export default function AssemblyVotesListPage() {
     },
     {
       header: 'Candidate',
-      accessorKey: 'candidate_id.name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      accessorKey: 'candidate.name',
+      cell: ({ row }) => <Typography>{row.original?.candidate?.name || 'N/A'}</Typography>
     },
     {
       header: 'Assembly',
-      accessorKey: 'assembly_id.name',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'assembly.name',
+      cell: ({ row }) => <Typography>{row.original?.assembly?.name || 'N/A'}</Typography>
     },
     {
       header: 'Block',
-      accessorKey: 'block_id.name',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'block.name',
+      cell: ({ row }) => <Typography>{row.original?.block?.name || 'N/A'}</Typography>
     },
     {
       header: 'Booth',
-      accessorKey: 'booth_id.name',
+      accessorKey: 'booth.name',
       cell: ({ row }) => (
         <Typography>
-          {row.original.booth_id.name} (No: {row.original.booth_id.booth_number})
+          {row.original?.booth?.name || 'N/A'} (No: {row.original?.booth?.booth_number || 'N/A'})
         </Typography>
       )
     },
@@ -151,33 +150,33 @@ export default function AssemblyVotesListPage() {
     },
     {
       header: 'Election Year',
-      accessorKey: 'election_year_id.year',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'election_year.year',
+      cell: ({ row }) => <Typography>{row.original?.election_year?.year || 'N/A'}</Typography>
     },
     {
       header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
+      accessorKey: 'state.name',
+      cell: ({ row }) => (
+        row.original?.state ?
+          <Chip label={row.original.state.name} color="success" size="small" variant="outlined" /> :
           <Typography variant="caption">No state</Typography>
       )
     },
     {
       header: 'Division',
-      accessorKey: 'division_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="warning" size="small" /> :
+      accessorKey: 'division.name',
+      cell: ({ row }) => (
+        row.original?.division ?
+          <Chip label={row.original.division.name} color="warning" size="small" /> :
           <Typography variant="caption">No division</Typography>
       )
     },
     {
       header: 'Parliament',
-      accessorKey: 'parliament_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="info" size="small" /> :
+      accessorKey: 'parliament.name',
+      cell: ({ row }) => (
+        row.original?.parliament ?
+          <Chip label={row.original.parliament.name} color="info" size="small" /> :
           <Typography variant="caption">No parliament</Typography>
       )
     },

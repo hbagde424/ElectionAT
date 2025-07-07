@@ -1,29 +1,25 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip, Avatar
+  Button, Stack, Box, Typography, Divider, Chip, Avatar, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 
-// third-party
 import {
   getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
   useReactTable, flexRender
 } from '@tanstack/react-table';
 
-// project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
-// custom views and modals
 import CasteListModal from 'pages/curd/caste list/CasteModal';
 import AlertCasteListDelete from 'pages/curd/caste list/AlertCasteDelete';
 import CasteListView from 'pages/curd/caste list/CasteView';
-import { Tooltip } from '@mui/material';
 
 export default function CasteListPage() {
   const theme = useTheme();
@@ -109,8 +105,6 @@ export default function CasteListPage() {
     setOpenDelete(true);
   };
 
-  const handleDeleteClose = () => setOpenDelete(false);
-
   const columns = useMemo(() => [
     {
       header: '#',
@@ -121,12 +115,7 @@ export default function CasteListPage() {
       header: 'Category',
       accessorKey: 'category',
       cell: ({ getValue }) => (
-        <Chip
-          label={getValue()}
-          color={categoryColors[getValue()]}
-          size="small"
-          sx={{ minWidth: 80 }}
-        />
+        <Chip label={getValue()} color={categoryColors[getValue()] || 'default'} size="small" sx={{ minWidth: 80 }} />
       )
     },
     {
@@ -136,91 +125,63 @@ export default function CasteListPage() {
     },
     {
       header: 'Booth',
-      accessorKey: 'booth_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Typography>{getValue().name} (Booth: {getValue().booth_number})</Typography> :
-          <Typography variant="caption">No booth</Typography>
-      )
+      accessorKey: 'booth',
+      cell: ({ getValue }) => {
+        const booth = getValue();
+        return booth
+          ? <Typography>{booth.name} (Booth: {booth.booth_number})</Typography>
+          : <Typography variant="caption">No booth</Typography>;
+      }
     },
+
     {
       header: 'Block',
-      accessorKey: 'block_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="primary" size="small" /> :
-          <Typography variant="caption">No block</Typography>
-      )
-    },
+      accessorKey: 'block',
+      cell: ({ getValue }) => {
+        const block = getValue();
+        return block
+          ? <Chip label={block.name} color="primary" size="small" />
+          : <Typography variant="caption">No block</Typography>;
+      }
+    }
+    ,
+    {
+      header: 'State',
+      accessorKey: 'state',
+      cell: ({ getValue }) => {
+        const state = getValue();
+        return state
+          ? <Chip label={state.name} color="success" size="small" variant="outlined" />
+          : <Typography variant="caption">No state</Typography>;
+      }
+    }
+    ,
     {
       header: 'Created By',
       accessorKey: 'created_by',
       cell: ({ getValue }) => (
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ width: 24, height: 24 }}>
-            <User size={16} />
-          </Avatar>
+          <Avatar sx={{ width: 24, height: 24 }}><User size={16} /></Avatar>
           <Typography>{getValue()?.name || 'Unknown'}</Typography>
         </Stack>
       )
     },
     {
-      header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
-          <Typography variant="caption">No state</Typography>
-      )
-    },
-    {
       header: 'Actions',
-      meta: { className: 'cell-center' },
-      cell: ({ row }) => {
-        const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
-        return (
-          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View">
-              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                {expandIcon}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Edit">
-              <IconButton
-                color="primary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedCaste(row.original);
-                  setOpenModal(true);
-                }}
-              >
-                <Edit />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton
-                color="error"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteOpen(row.original._id);
-                }}
-              >
-                <Trash />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        );
-      }
+      cell: ({ row }) => (
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+          <Tooltip title="View"><IconButton color="secondary" onClick={row.getToggleExpandedHandler()}><Eye /></IconButton></Tooltip>
+          <Tooltip title="Edit"><IconButton color="primary" onClick={() => { setSelectedCaste(row.original); setOpenModal(true); }}><Edit /></IconButton></Tooltip>
+          <Tooltip title="Delete"><IconButton color="error" onClick={() => handleDeleteOpen(row.original._id)}><Trash /></IconButton></Tooltip>
+        </Stack>
+      )
     }
   ], [theme]);
 
   const table = useReactTable({
     data: casteLists,
     columns,
-    state: {
-      pagination
-    },
+    state: { pagination },
     pageCount,
     manualPagination: true,
     onPaginationChange: setPagination,
@@ -273,9 +234,7 @@ export default function CasteListPage() {
                   <Fragment key={row.id}>
                     <TableRow>
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                       ))}
                     </TableRow>
                     {row.getIsExpanded() && (
@@ -319,7 +278,7 @@ export default function CasteListPage() {
       <AlertCasteListDelete
         id={casteDeleteId}
         open={openDelete}
-        handleClose={handleDeleteClose}
+        handleClose={() => setOpenDelete(false)}
         refresh={() => fetchCasteLists(pagination.pageIndex, pagination.pageSize)}
       />
     </>

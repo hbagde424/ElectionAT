@@ -42,7 +42,7 @@ export default function PartyActivitiesListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes, usersRes] = await Promise.all([
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
@@ -52,8 +52,20 @@ export default function PartyActivitiesListPage() {
                 fetch('http://localhost:5000/api/parties'),
                 fetch('http://localhost:5000/api/users')
             ]);
+            const token = localStorage.getItem('serviceToken');
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, partiesData, usersData] = await Promise.all([
+            const [usersRes] = await Promise.all([
+                fetch('http://localhost:5000/api/users', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+            ]);
+
+            const usersData = await usersRes.json();
+            if (usersData.success) setUsers(usersData.data);
+
+            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, partiesData] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
@@ -71,7 +83,6 @@ export default function PartyActivitiesListPage() {
             if (blocksData.success) setBlocks(blocksData.data);
             if (boothsData.success) setBooths(boothsData.data);
             if (partiesData.success) setParties(partiesData.data);
-            if (usersData.success) setUsers(usersData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }

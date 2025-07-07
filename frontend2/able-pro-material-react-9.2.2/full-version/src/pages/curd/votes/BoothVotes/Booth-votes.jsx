@@ -64,6 +64,7 @@ export default function BoothVotesListPage() {
 
   const fetchReferenceData = async () => {
     try {
+      const token = localStorage.getItem('serviceToken');
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
@@ -73,7 +74,11 @@ export default function BoothVotesListPage() {
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/candidates'),
         fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users')
+        fetch('http://localhost:5000/api/users', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
       ]);
 
       const statesJson = await statesRes.json();
@@ -93,7 +98,7 @@ export default function BoothVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (electionYearsJson) setElectionYears(electionYearsJson);
       if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
@@ -120,17 +125,20 @@ export default function BoothVotesListPage() {
     },
     {
       header: 'Candidate',
-      accessorKey: 'candidate_id.name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      accessorKey: 'candidate',
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()?.name || '—'}</Typography>
     },
     {
       header: 'Booth',
-      accessorKey: 'booth_id.name',
-      cell: ({ row }) => (
-        <Typography>
-          {row.original.booth_id.name} (No: {row.original.booth_id.booth_number})
-        </Typography>
-      )
+      accessorKey: 'booth',
+      cell: ({ getValue }) => {
+        const booth = getValue();
+        return (
+          <Typography>
+            {booth?.name || '—'} {booth?.booth_number ? `(No: ${booth.booth_number})` : ''}
+          </Typography>
+        );
+      }
     },
     {
       header: 'Votes',
@@ -139,53 +147,48 @@ export default function BoothVotesListPage() {
     },
     {
       header: 'Election Year',
-      accessorKey: 'election_year_id.year',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'election_year',
+      cell: ({ getValue }) => <Typography>{getValue()?.year || '—'}</Typography>
     },
     {
       header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
-          <Typography variant="caption">No state</Typography>
-      )
+      accessorKey: 'state',
+      cell: ({ getValue }) =>
+        getValue()
+          ? <Chip label={getValue().name} color="success" size="small" variant="outlined" />
+          : <Typography variant="caption">No state</Typography>
     },
     {
       header: 'Division',
-      accessorKey: 'division_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="warning" size="small" /> :
-          <Typography variant="caption">No division</Typography>
-      )
+      accessorKey: 'division',
+      cell: ({ getValue }) =>
+        getValue()
+          ? <Chip label={getValue().name} color="warning" size="small" />
+          : <Typography variant="caption">No division</Typography>
     },
     {
       header: 'Parliament',
-      accessorKey: 'parliament_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="info" size="small" /> :
-          <Typography variant="caption">No parliament</Typography>
-      )
+      accessorKey: 'parliament',
+      cell: ({ getValue }) =>
+        getValue()
+          ? <Chip label={getValue().name} color="info" size="small" />
+          : <Typography variant="caption">No parliament</Typography>
     },
     {
       header: 'Assembly',
-      accessorKey: 'assembly_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="secondary" size="small" /> :
-          <Typography variant="caption">No assembly</Typography>
-      )
+      accessorKey: 'assembly',
+      cell: ({ getValue }) =>
+        getValue()
+          ? <Chip label={getValue().name} color="secondary" size="small" />
+          : <Typography variant="caption">No assembly</Typography>
     },
     {
       header: 'Block',
-      accessorKey: 'block_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="primary" size="small" /> :
-          <Typography variant="caption">No block</Typography>
-      )
+      accessorKey: 'block',
+      cell: ({ getValue }) =>
+        getValue()
+          ? <Chip label={getValue().name} color="primary" size="small" />
+          : <Typography variant="caption">No block</Typography>
     },
     {
       header: 'Created By',
@@ -204,7 +207,9 @@ export default function BoothVotesListPage() {
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
         const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
+        const expandIcon = isExpanded
+          ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
+          : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View">
@@ -240,6 +245,7 @@ export default function BoothVotesListPage() {
       }
     }
   ], [theme]);
+
 
   const table = useReactTable({
     data: votes,

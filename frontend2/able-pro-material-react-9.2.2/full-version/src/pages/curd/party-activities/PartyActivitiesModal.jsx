@@ -288,16 +288,20 @@ export default function PartyActivitiesModal({
             ? `http://localhost:5000/api/party-activities/${partyActivity._id}`
             : 'http://localhost:5000/api/party-activities';
 
-        // Add user tracking
         const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = user?.id || user?._id; // Adjust depending on your user object
 
-        // Format the data for submission
+        if (!userId) {
+            alert('User ID not found. Please log in again.');
+            return;
+        }
+
         const submitData = {
             ...formData,
             attendance_count: formData.attendance_count ? parseInt(formData.attendance_count) : 0,
             activity_date: formData.activity_date.toISOString(),
             end_date: formData.end_date ? formData.end_date.toISOString() : null,
-            ...(partyActivity ? { updated_by: user.id } : { created_by: user.id })
+            ...(partyActivity ? { updated_by: userId } : { created_by: userId })
         };
 
         try {
@@ -323,6 +327,7 @@ export default function PartyActivitiesModal({
             alert('An error occurred while saving the party activity.');
         }
     };
+
 
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns}>

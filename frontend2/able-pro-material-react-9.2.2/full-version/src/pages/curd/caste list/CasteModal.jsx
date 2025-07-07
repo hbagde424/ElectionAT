@@ -47,12 +47,12 @@ export default function CasteListModal({
             setFormData({
                 category: caste.category || 'General',
                 caste: caste.caste || '',
-                state_id: caste.state_id?._id || '',
-                division_id: caste.division_id?._id || '',
-                parliament_id: caste.parliament_id?._id || '',
-                assembly_id: caste.assembly_id?._id || '',
-                block_id: caste.block_id?._id || '',
-                booth_id: caste.booth_id?._id || ''
+                state_id: caste.state?._id || caste.state_id || '',
+                division_id: caste.division?._id || caste.division_id || '',
+                parliament_id: caste.parliament?._id || caste.parliament_id || '',
+                assembly_id: caste.assembly?._id || caste.assembly_id || '',
+                block_id: caste.block?._id || caste.block_id || '',
+                booth_id: caste.booth?._id || caste.booth_id || ''
             });
         } else {
             setFormData({
@@ -67,6 +67,7 @@ export default function CasteListModal({
             });
         }
     }, [caste]);
+
 
     // Dependent dropdowns logic
     useEffect(() => {

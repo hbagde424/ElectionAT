@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react';
 export default function CandidateModal({ open, modalToggler, candidate, refresh }) {
     const [formData, setFormData] = useState({
         name: '',
-        party: '',
-        assembly: '',
+        party_id: '',
+        assembly_id: '',
         election_year: '',
         caste: '',
         votes: '',
@@ -23,15 +23,17 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
     const [parties, setParties] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
     const [years, setYears] = useState([]);
-
+    const [parliaments, setParliaments] = useState([]);
     useEffect(() => {
         Promise.all([
             fetch('http://localhost:5000/api/parties').then(res => res.json()),
             fetch('http://localhost:5000/api/assemblies').then(res => res.json()),
-            fetch('http://localhost:5000/api/election-years').then(res => res.json())
-        ]).then(([partyRes, assemblyRes, yearRes]) => {
+            fetch('http://localhost:5000/api/election-years').then(res => res.json()),
+            fetch('http://localhost:5000/api/parliaments').then(res => res.json())
+        ]).then(([partyRes, assemblyRes, yearRes, parliamentRes]) => {
             if (partyRes.success) setParties(partyRes.data);
             if (assemblyRes.success) setAssemblies(assemblyRes.data);
+            if (parliamentRes.success) setParliaments(parliamentRes.data);
 
             if (Array.isArray(yearRes)) {
                 setYears(yearRes);
@@ -42,13 +44,15 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
     }, []);
 
 
+
     useEffect(() => {
         if (candidate) {
             setFormData({
                 name: candidate.name || '',
-                party: candidate.party?._id || '',
-                assembly: candidate.assembly?._id || '',
-                election_year: candidate.election_year?._id || '',
+                party_id: candidate.party_id?._id || candidate.party_id || '',
+                assembly_id: candidate.assembly_id?._id || candidate.assembly_id || '',
+                parliament_id: candidate.parliament_id?._id || candidate.parliament_id || '',
+                election_year: candidate.election_year?._id || candidate.election_year || '',
                 caste: candidate.caste || '',
                 votes: candidate.votes || '',
                 criminal_cases: candidate.criminal_cases || '',
@@ -56,14 +60,17 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
                 liabilities: candidate.liabilities || '',
                 education: candidate.education || '',
                 photo: candidate.photo || '',
-                is_active: candidate.is_active
+                is_active: candidate.is_active ?? true
             });
+
+
         } else {
             setFormData({
                 name: '',
-                party: '',
-                assembly: '',
+                party_id: '',
+                assembly_id: '',
                 election_year: '',
+                parliament_id: '',
                 caste: '',
                 votes: '',
                 criminal_cases: '',
@@ -146,8 +153,9 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
                         ['Photo URL', 'photo']
                     ].map(([label, name]) => renderTextField(label, name))}
 
-                    {renderSelect('Party', 'party', parties)}
-                    {renderSelect('Assembly', 'assembly', assemblies)}
+                    {renderSelect('Party', 'party_id', parties)}
+                    {renderSelect('Assembly', 'assembly_id', assemblies)}
+                    {renderSelect('Parliament', 'parliament_id', parliaments)}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Election Year</InputLabel>
