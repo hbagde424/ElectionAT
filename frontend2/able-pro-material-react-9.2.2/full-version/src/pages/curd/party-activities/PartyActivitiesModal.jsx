@@ -23,7 +23,7 @@ export default function PartyActivitiesModal({
     users,
     refresh
 }) {
-    console.log('divisions', divisions);
+    console.log('partie111s', parties);
     const [formData, setFormData] = useState({
         party_id: '',
         state_id: '',

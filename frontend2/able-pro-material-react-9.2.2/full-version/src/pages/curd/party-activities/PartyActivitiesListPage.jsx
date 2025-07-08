@@ -49,9 +49,11 @@ export default function PartyActivitiesListPage() {
                 fetch('http://localhost:5000/api/assemblies'),
                 fetch('http://localhost:5000/api/blocks'),
                 fetch('http://localhost:5000/api/booths'),
-                fetch('http://localhost:5000/api/parties'),
-                fetch('http://localhost:5000/api/users')
+                fetch('http://localhost:5000/api/parties')
             ]);
+
+            console.log('partiesRes', partiesRes);
+
             const token = localStorage.getItem('serviceToken');
 
             const [usersRes] = await Promise.all([
@@ -72,9 +74,9 @@ export default function PartyActivitiesListPage() {
                 assembliesRes.json(),
                 blocksRes.json(),
                 boothsRes.json(),
-                partiesRes.json(),
-                usersRes.json()
+                partiesRes.json()
             ]);
+
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
@@ -83,10 +85,13 @@ export default function PartyActivitiesListPage() {
             if (blocksData.success) setBlocks(blocksData.data);
             if (boothsData.success) setBooths(boothsData.data);
             if (partiesData.success) setParties(partiesData.data);
+
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
     };
+
+
 
     const fetchPartyActivities = async (pageIndex, pageSize) => {
         setLoading(true);
