@@ -22,6 +22,9 @@ export default function ParliamentVotesModal({
   states,
   divisions,
   parliaments,
+  assemblies,
+  blocks,
+  booths,
   candidates,
   electionYears,
   users,
@@ -45,17 +48,26 @@ export default function ParliamentVotesModal({
 
   useEffect(() => {
     if (vote) {
-      setFormData({
-        candidate_id: vote.candidate_id?._id || '',
-        parliament_id: vote.parliament_id?._id || '',
-        assembly_id: vote.assembly_id?._id || '',
-        block_id: vote.block_id?._id || '',
-        booth_id: vote.booth_id?._id || '',
-        election_year_id: vote.election_year_id?._id || '',
-        state_id: vote.state_id?._id || '',
-        division_id: vote.division_id?._id || '',
+      const newForm = {
+        candidate_id: vote.candidate?._id || vote.candidate_id || '',
+        parliament_id: vote.parliament?._id || vote.parliament_id || '',
+        assembly_id: vote.assembly?._id || vote.assembly_id || '',
+        block_id: vote.block?._id || vote.block_id || '',
+        booth_id: vote.booth?._id || vote.booth_id || '',
+        election_year_id: vote.election_year?._id || vote.election_year_id || '',
+        state_id: vote.state?._id || vote.state_id || '',
+        division_id: vote.division?._id || vote.division_id || '',
         total_votes: vote.total_votes || 0
-      });
+      };
+
+      setFormData(newForm);
+
+      // Prepopulate filtered dropdowns
+      const divs = divisions?.filter(d => d.state_id?._id === newForm.state_id) || [];
+      const pars = parliaments?.filter(p => p.division_id?._id === newForm.division_id) || [];
+
+      setFilteredDivisions(divs);
+      setFilteredParliaments(pars);
     } else {
       setFormData({
         candidate_id: '',
@@ -68,29 +80,42 @@ export default function ParliamentVotesModal({
         division_id: '',
         total_votes: 0
       });
-    }
-  }, [vote]);
-
-  // Cascading dropdown effects
-  useEffect(() => {
-    if (formData.state_id) {
-      const filtered = divisions?.filter(division => division.state_id?._id === formData.state_id) || [];
-      setFilteredDivisions(filtered);
-    } else {
       setFilteredDivisions([]);
-    }
-    setFormData(prev => ({ ...prev, division_id: '', parliament_id: '' }));
-  }, [formData.state_id, divisions]);
-
-  useEffect(() => {
-    if (formData.division_id) {
-      const filtered = parliaments?.filter(parliament => parliament.division_id?._id === formData.division_id) || [];
-      setFilteredParliaments(filtered);
-    } else {
       setFilteredParliaments([]);
     }
-    setFormData(prev => ({ ...prev, parliament_id: '' }));
+  }, [vote, divisions, parliaments]);
+
+
+
+  useEffect(() => {
+    const filtered = divisions?.filter((division) =>
+      (typeof division.state_id === 'string'
+        ? division.state_id
+        : division.state_id?._id) === formData.state_id
+    ) || [];
+
+    setFilteredDivisions(filtered);
+
+    if (!filtered.find((d) => d._id === formData.division_id)) {
+      setFormData((prev) => ({ ...prev, division_id: '', parliament_id: '' }));
+    }
+  }, [formData.state_id, divisions]);
+
+
+  useEffect(() => {
+    const filtered = parliaments?.filter((parliament) =>
+      (typeof parliament.division_id === 'string'
+        ? parliament.division_id
+        : parliament.division_id?._id) === formData.division_id
+    ) || [];
+
+    setFilteredParliaments(filtered);
+
+    if (!filtered.find((p) => p._id === formData.parliament_id)) {
+      setFormData((prev) => ({ ...prev, parliament_id: '' }));
+    }
   }, [formData.division_id, parliaments]);
+
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));

@@ -39,6 +39,9 @@ export default function ParliamentVotesListPage() {
   const [candidates, setCandidates] = useState([]);
   const [electionYears, setElectionYears] = useState([]);
   const [users, setUsers] = useState([]);
+  const [assemblies, setAssemblies] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [booths, setBooths] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -61,13 +64,16 @@ export default function ParliamentVotesListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [statesRes, divisionsRes, parliamentsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, candidatesRes, electionYearsRes, usersRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
         fetch('http://localhost:5000/api/candidates'),
         fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users')
+        fetch('http://localhost:5000/api/users'),
+        fetch('http://localhost:5000/api/assemblies'),
+        fetch('http://localhost:5000/api/blocks'),
+        fetch('http://localhost:5000/api/booths')
       ]);
 
       const statesJson = await statesRes.json();
@@ -76,13 +82,19 @@ export default function ParliamentVotesListPage() {
       const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
       const usersJson = await usersRes.json();
+      const assembliesJson = await assembliesRes.json();
+      const blocksJson = await blocksRes.json();
+      const boothsJson = await boothsRes.json();
 
       if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (electionYearsJson) setElectionYears(electionYearsJson);
       if (usersJson.success) setUsers(usersJson.data);
+      if (assembliesJson.success) setAssemblies(assembliesJson.data);
+      if (blocksJson.success) setBlocks(blocksJson.data);
+      if (boothsJson.success) setBooths(boothsJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -108,30 +120,30 @@ export default function ParliamentVotesListPage() {
     },
     {
       header: 'Candidate',
-      accessorKey: 'candidate_id.name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      accessorKey: 'candidate',
+      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()?.name || 'Unknown'}</Typography>
     },
     {
       header: 'Parliament',
-      accessorKey: 'parliament_id.name',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'parliament',
+      cell: ({ getValue }) => <Typography>{getValue()?.name || 'Unknown'}</Typography>
     },
     {
       header: 'Assembly',
-      accessorKey: 'assembly_id.name',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'assembly',
+      cell: ({ getValue }) => <Typography>{getValue()?.name || 'Unknown'}</Typography>
     },
     {
       header: 'Block',
-      accessorKey: 'block_id.name',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'block',
+      cell: ({ getValue }) => <Typography>{getValue()?.name || 'Unknown'}</Typography>
     },
     {
       header: 'Booth',
-      accessorKey: 'booth_id.name',
+      accessorKey: 'booth',
       cell: ({ row }) => (
         <Typography>
-          {row.original.booth_id.name} (No: {row.original.booth_id.booth_number})
+          {row.original.booth?.name || 'Unknown'} (No: {row.original.booth?.booth_number || 'N/A'})
         </Typography>
       )
     },
@@ -142,26 +154,28 @@ export default function ParliamentVotesListPage() {
     },
     {
       header: 'Election Year',
-      accessorKey: 'election_year_id.year',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      accessorKey: 'election_year',
+      cell: ({ getValue }) => <Typography>{getValue()?.year || 'Unknown'}</Typography>
     },
     {
       header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
+      accessorKey: 'state',
+      cell: ({ getValue }) =>
+        getValue() ? (
+          <Chip label={getValue().name} color="success" size="small" variant="outlined" />
+        ) : (
           <Typography variant="caption">No state</Typography>
-      )
+        )
     },
     {
       header: 'Division',
-      accessorKey: 'division_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="warning" size="small" /> :
+      accessorKey: 'division',
+      cell: ({ getValue }) =>
+        getValue() ? (
+          <Chip label={getValue().name} color="warning" size="small" />
+        ) : (
           <Typography variant="caption">No division</Typography>
-      )
+        )
     },
     {
       header: 'Created By',
@@ -216,6 +230,7 @@ export default function ParliamentVotesListPage() {
       }
     }
   ], [theme]);
+
 
   const table = useReactTable({
     data: votes,
@@ -311,6 +326,9 @@ export default function ParliamentVotesListPage() {
         states={states}
         divisions={divisions}
         parliaments={parliaments}
+        assemblies={assemblies}
+        blocks={blocks}
+        booths={booths}
         candidates={candidates}
         electionYears={electionYears}
         users={users}
