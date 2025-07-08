@@ -87,10 +87,11 @@ export default function VolunteerModal({
     // Cascading dropdown logic for State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions?.filter(division => division.state_id === formData.state_id) || [];
+            const filtered = divisions?.filter(
+                division => (division.state_id?._id || division.state_id) === formData.state_id
+            ) || [];
             setFilteredDivisions(filtered);
 
-            // Reset division if it's not in the filtered list
             if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
                 setFormData(prev => ({ ...prev, division_id: '' }));
             }
@@ -100,13 +101,15 @@ export default function VolunteerModal({
         }
     }, [formData.state_id, divisions]);
 
+
     // Filter booths based on division
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = booths?.filter(booth => booth.division_id === formData.division_id) || [];
+            const filtered = booths?.filter(
+                booth => (booth.division_id?._id || booth.division_id) === formData.division_id
+            ) || [];
             setFilteredBooths(filtered);
 
-            // Reset booth if it's not in the filtered list
             if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
                 setFormData(prev => ({ ...prev, booth_id: '' }));
             }
@@ -115,6 +118,7 @@ export default function VolunteerModal({
             setFormData(prev => ({ ...prev, booth_id: '' }));
         }
     }, [formData.division_id, booths]);
+
 
     const handleChange = (e) => {
         setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
