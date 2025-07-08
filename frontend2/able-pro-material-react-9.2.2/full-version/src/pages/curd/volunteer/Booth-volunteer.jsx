@@ -1,38 +1,46 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Tooltip
+  Button, Stack, Box, Typography, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 
+// third-party
 import {
   getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
   useReactTable, flexRender
 } from '@tanstack/react-table';
 
+// project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
-import VolunteerModal from 'pages/curd/volunteer/VolunteerModal';
-import AlertVolunteerDelete from 'pages/curd/volunteer/AlertVolunteerDelete';
-import VolunteerView from 'pages/curd/volunteer/VolunteerView';
+// custom views and modals
+import BoothVolunteerModal from 'pages/curd/volunteer/VolunteerModal';
+import AlertBoothVolunteerDelete from 'pages/curd/volunteer/AlertVolunteerDelete';
+import BoothVolunteerView from 'pages/curd/volunteer/VolunteerView';
+import { Tooltip } from '@mui/material';
 
 export default function BoothVolunteerListPage() {
   const theme = useTheme();
+
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [deleteId, setDeleteId] = useState('');
+  const [volunteerDeleteId, setVolunteerDeleteId] = useState('');
   const [volunteers, setVolunteers] = useState([]);
   const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [parliaments, setParliaments] = useState([]);
+  const [assemblies, setAssemblies] = useState([]);
+  const [blocks, setBlocks] = useState([]);
   const [booths, setBooths] = useState([]);
   const [parties, setParties] = useState([]);
-  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -47,7 +55,7 @@ export default function BoothVolunteerListPage() {
         setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch volunteers:', error);
+      console.error('Failed to fetch booth volunteers:', error);
     } finally {
       setLoading(false);
     }
@@ -55,25 +63,31 @@ export default function BoothVolunteerListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [statesRes, divisionsRes, boothsRes, partiesRes, usersRes] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
+        fetch('http://localhost:5000/api/parliaments'),
+        fetch('http://localhost:5000/api/assemblies'),
+        fetch('http://localhost:5000/api/blocks'),
         fetch('http://localhost:5000/api/booths'),
-        fetch('http://localhost:5000/api/parties'),
-        fetch('http://localhost:5000/api/users')
+        fetch('http://localhost:5000/api/parties')
       ]);
 
       const statesJson = await statesRes.json();
       const divisionsJson = await divisionsRes.json();
+      const parliamentsJson = await parliamentsRes.json();
+      const assembliesJson = await assembliesRes.json();
+      const blocksJson = await blocksRes.json();
       const boothsJson = await boothsRes.json();
       const partiesJson = await partiesRes.json();
-      const usersJson = await usersRes.json();
 
       if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
+      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
+      if (assembliesJson.success) setAssemblies(assembliesJson.data);
+      if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (partiesJson.success) setParties(partiesJson.data);
-      if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -85,7 +99,7 @@ export default function BoothVolunteerListPage() {
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
-    setDeleteId(id);
+    setVolunteerDeleteId(id);
     setOpenDelete(true);
   };
 
@@ -103,49 +117,45 @@ export default function BoothVolunteerListPage() {
       cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
     },
     {
-      header: 'Role',
-      accessorKey: 'role',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
-    },
-    {
       header: 'Phone',
       accessorKey: 'phone',
       cell: ({ getValue }) => <Typography>{getValue()}</Typography>
     },
     {
-      header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
-          <Typography variant="caption">No state</Typography>
-      )
-    },
-    {
-      header: 'Division',
-      accessorKey: 'division_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="warning" size="small" /> :
-          <Typography variant="caption">No division</Typography>
-      )
+      header: 'Role',
+      accessorKey: 'role',
+      cell: ({ getValue }) => <Typography>{getValue() || 'N/A'}</Typography>
     },
     {
       header: 'Booth',
-      accessorKey: 'booth_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Typography>{getValue().name} (No: {getValue().booth_number})</Typography> :
-          <Typography variant="caption">No booth</Typography>
+      accessorKey: 'booth.name',
+      cell: ({ row }) => (
+        <Typography>
+          {row.original?.booth?.name || 'N/A'} (No: {row.original?.booth?.booth_number || 'N/A'})
+        </Typography>
       )
     },
     {
       header: 'Party',
-      accessorKey: 'party_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="primary" size="small" /> :
+      accessorKey: 'party.name',
+      cell: ({ row }) => (
+        row.original?.party ?
+          <Chip label={row.original.party.name} color="primary" size="small" /> :
           <Typography variant="caption">No party</Typography>
+      )
+    },
+    {
+      header: 'Activity Level',
+      accessorKey: 'activity_level',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()}
+          color={
+            getValue() === 'High' ? 'success' :
+            getValue() === 'Medium' ? 'warning' : 'error'
+          }
+          size="small"
+        />
       )
     },
     {
@@ -268,7 +278,7 @@ export default function BoothVolunteerListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <VolunteerView data={row.original} />
+                          <BoothVolunteerView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -289,20 +299,22 @@ export default function BoothVolunteerListPage() {
         </ScrollX>
       </MainCard>
 
-      <VolunteerModal
+      <BoothVolunteerModal
         open={openModal}
         modalToggler={setOpenModal}
         volunteer={selectedVolunteer}
         states={states}
         divisions={divisions}
+        parliaments={parliaments}
+        assemblies={assemblies}
+        blocks={blocks}
         booths={booths}
         parties={parties}
-        users={users}
         refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}
       />
 
-      <AlertVolunteerDelete
-        id={deleteId}
+      <AlertBoothVolunteerDelete
+        id={volunteerDeleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
         refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}

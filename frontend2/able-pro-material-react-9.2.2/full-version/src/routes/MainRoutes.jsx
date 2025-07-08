@@ -130,7 +130,7 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 // render - sample page
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
-const BoothVolunteer = Loadable(lazy(() => import('pages/curd/Booth-volunteer')));
+const BoothVolunteer = Loadable(lazy(() => import('pages/curd/volunteer/Booth-volunteer')));
 const LocalDynamics = Loadable(lazy(() => import('pages/curd/local-dynamics/LocalDynamicsListPage')));
 const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
 const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateListPage')));
