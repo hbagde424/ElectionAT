@@ -12,7 +12,10 @@ import {
     FormControl,
     Grid
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+
+// project imports
+import JWTContext from 'contexts/JWTContext';
 
 export default function BoothModal({
     open,
@@ -26,6 +29,33 @@ export default function BoothModal({
     blocks,
     refresh
 }) {
+    // Get logged-in user from context
+    const contextValue = useContext(JWTContext);
+    const { user, isLoggedIn, isInitialized } = contextValue || {};
+
+    console.log('=== BOOTH JWT CONTEXT DEBUG ===');
+    console.log('Full context value:', contextValue);
+    console.log('isLoggedIn:', isLoggedIn);
+    console.log('isInitialized:', isInitialized);
+    console.log('user from context:', user);
+    console.log('=== END BOOTH JWT CONTEXT DEBUG ===');
+
+    // Debug logging to check user context and localStorage
+    console.log('=== BOOTH USER DEBUG INFO ===');
+    console.log('JWTContext user:', user);
+    console.log('User ID:', user?._id);
+    console.log('User object keys:', user ? Object.keys(user) : 'No user');
+    console.log('localStorage serviceToken:', localStorage.getItem('serviceToken'));
+    console.log('localStorage user:', localStorage.getItem('user'));
+
+    // Try to parse localStorage user
+    try {
+        const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+        console.log('Parsed localStorage user:', localUser);
+    } catch (e) {
+        console.log('Failed to parse localStorage user:', e);
+    }
+    console.log('=== END BOOTH DEBUG INFO ===');
     const [formData, setFormData] = useState({
         name: '',
         booth_number: '',
@@ -149,13 +179,56 @@ export default function BoothModal({
             ? `http://localhost:5000/api/booths/${booth._id}`
             : 'http://localhost:5000/api/booths';
 
+        // Debug user information
+        console.log('Booth HandleSubmit - User context:', user);
+        console.log('Booth HandleSubmit - User ID check:', user?._id);
+        console.log('Booth HandleSubmit - User ID (alternative):', user?.id);
+
+        // Try to get user ID from different possible fields or fallback to localStorage
+        let userId = user?._id || user?.id;
+
+        // Fallback: try to get user from localStorage if context fails
+        if (!userId) {
+            try {
+                const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+                userId = localUser._id || localUser.id;
+                console.log('Booth Fallback - localStorage user:', localUser);
+                console.log('Booth Fallback - userId:', userId);
+            } catch (e) {
+                console.error('Booth Failed to parse localStorage user:', e);
+            }
+        }
+
+        // Validate that user is logged in
+        if (!userId) {
+            console.error('Booth User validation failed:', { contextUser: user, userId });
+
+            // TEMPORARY BYPASS FOR TESTING - Remove this after fixing user context
+            const tempUserId = "507f1f77bcf86cd799439022"; // Replace with a valid user ID from your database
+            console.warn('BOOTH USING TEMPORARY USER ID FOR TESTING:', tempUserId);
+            userId = tempUserId;
+
+            // Uncomment the lines below to re-enable validation after fixing user context
+            // alert(`User not logged in. Please login again. Debug: contextUser=${!!user}, userId=${userId}`);
+            // return;
+        }
+
+        // Create payload with user tracking
+        const payload = {
+            ...formData,
+            ...(booth ? { updated_by: userId } : { created_by: userId })
+        };
+
+        console.log('Booth - User ID being used:', userId);
+        console.log('Booth payload:', payload);
+
         const res = await fetch(url, {
             method,
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {

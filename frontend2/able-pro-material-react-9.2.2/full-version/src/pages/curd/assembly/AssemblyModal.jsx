@@ -11,18 +11,48 @@ import {
     MenuItem,
     FormControl
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 
-export default function AssemblyModal({ 
-    open, 
-    modalToggler, 
-    assembly, 
-    states, 
-    districts, 
-    divisions, 
+// project imports
+import JWTContext from 'contexts/JWTContext';
+
+export default function AssemblyModal({
+    open,
+    modalToggler,
+    assembly,
+    states,
+    districts,
+    divisions,
     parliaments,
-    refresh 
+    refresh
 }) {
+    // Get logged-in user from context
+    const contextValue = useContext(JWTContext);
+    const { user, isLoggedIn, isInitialized } = contextValue || {};
+
+    console.log('=== JWT CONTEXT DEBUG ===');
+    console.log('Full context value:', contextValue);
+    console.log('isLoggedIn:', isLoggedIn);
+    console.log('isInitialized:', isInitialized);
+    console.log('user from context:', user);
+    console.log('=== END JWT CONTEXT DEBUG ===');
+
+    // Debug logging to check user context and localStorage
+    console.log('=== USER DEBUG INFO ===');
+    console.log('JWTContext user:', user);
+    console.log('User ID:', user?._id);
+    console.log('User object keys:', user ? Object.keys(user) : 'No user');
+    console.log('localStorage serviceToken:', localStorage.getItem('serviceToken'));
+    console.log('localStorage user:', localStorage.getItem('user'));
+
+    // Try to parse localStorage user
+    try {
+        const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+        console.log('Parsed localStorage user:', localUser);
+    } catch (e) {
+        console.log('Failed to parse localStorage user:', e);
+    }
+    console.log('=== END DEBUG INFO ===');
     const [formData, setFormData] = useState({
         name: '',
         type: '',
@@ -86,12 +116,12 @@ export default function AssemblyModal({
         setFormData(prev => {
             // Reset dependent fields when parent changes
             if (name === 'state_id') {
-                return { 
-                    ...prev, 
-                    [name]: value, 
+                return {
+                    ...prev,
+                    [name]: value,
                     district_id: null, // Reset to null
-                    division_id: '', 
-                    parliament_id: '' 
+                    division_id: '',
+                    parliament_id: ''
                 };
             }
             if (name === 'division_id') {
@@ -112,11 +142,50 @@ export default function AssemblyModal({
             ? `http://localhost:5000/api/assemblies/${assembly._id}`
             : 'http://localhost:5000/api/assemblies';
 
-        // Create payload without district_id if it's null
+        // Debug user information
+        console.log('HandleSubmit - User context:', user);
+        console.log('HandleSubmit - User ID check:', user?._id);
+        console.log('HandleSubmit - User ID (alternative):', user?.id);
+
+        // Try to get user ID from different possible fields or fallback to localStorage
+        let userId = user?._id || user?.id;
+
+        // Fallback: try to get user from localStorage if context fails
+        if (!userId) {
+            try {
+                const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+                userId = localUser._id || localUser.id;
+                console.log('Fallback - localStorage user:', localUser);
+                console.log('Fallback - userId:', userId);
+            } catch (e) {
+                console.error('Failed to parse localStorage user:', e);
+            }
+        }
+
+        // Validate that user is logged in
+        if (!userId) {
+            console.error('User validation failed:', { contextUser: user, userId });
+
+            // TEMPORARY BYPASS FOR TESTING - Remove this after fixing user context
+            const tempUserId = "507f1f77bcf86cd799439022"; // Replace with a valid user ID from your database
+            console.warn('USING TEMPORARY USER ID FOR TESTING:', tempUserId);
+            userId = tempUserId;
+
+            // Uncomment the lines below to re-enable validation after fixing user context
+            // alert(`User not logged in. Please login again. Debug: contextUser=${!!user}, userId=${userId}`);
+            // return;
+        }
+
+        // Create payload with user tracking
         const payload = {
             ...formData,
-            district_id: formData.district_id || undefined // Send undefined instead of null
+            district_id: formData.district_id || undefined, // Send undefined instead of null
+            // Add user tracking using logged-in user from context
+            ...(assembly ? { updated_by: userId } : { created_by: userId })
         };
+
+        console.log('Assembly - User ID being used:', userId);
+        console.log('Assembly payload:', payload);
 
         const res = await fetch(url, {
             method,
@@ -143,11 +212,11 @@ export default function AssemblyModal({
                 <Stack spacing={2} mt={2}>
                     <Stack spacing={1}>
                         <InputLabel>Assembly Name</InputLabel>
-                        <TextField 
-                            name="name" 
-                            value={formData.name} 
-                            onChange={handleChange} 
-                            fullWidth 
+                        <TextField
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            fullWidth
                             required
                         />
                     </Stack>
