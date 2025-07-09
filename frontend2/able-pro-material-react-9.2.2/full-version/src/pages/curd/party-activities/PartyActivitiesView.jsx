@@ -48,9 +48,7 @@ export default function PartyActivitiesView({ data }) {
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                <Typography variant="h6">
-                    {data.title}
-                </Typography>
+                <Typography variant="h6">{data.title || 'Untitled Activity'}</Typography>
                 <Chip
                     label={data.activity_type?.toUpperCase() || 'N/A'}
                     size="small"
@@ -115,6 +113,15 @@ export default function PartyActivitiesView({ data }) {
                                 size="small"
                             />
                         </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Location
+                            </Typography>
+                            <Typography variant="body1">
+                                {data.location || 'N/A'}
+                            </Typography>
+                        </Box>
                     </Stack>
                 </Grid>
 
@@ -123,10 +130,10 @@ export default function PartyActivitiesView({ data }) {
                     <Stack spacing={2}>
                         <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Party ID
+                                Party
                             </Typography>
-                            <Typography variant="body1" fontFamily="monospace">
-                                {data.party_id || 'N/A'}
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.party_id?.name || 'N/A'}
                             </Typography>
                         </Box>
 
@@ -134,22 +141,59 @@ export default function PartyActivitiesView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                 Division
                             </Typography>
-                            {data.division_id ? (
-                                <Chip label={data.division_id.name} color="warning" size="small" />
-                            ) : (
-                                <Typography variant="body1" color="text.secondary">N/A</Typography>
-                            )}
+                            <Chip
+                                label={data.division_id?.name || 'N/A'}
+                                color="warning"
+                                size="small"
+                            />
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Parliament
+                            </Typography>
+                            <Chip
+                                label={data.parliament_id?.name || 'N/A'}
+                                color="secondary"
+                                size="small"
+                            />
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Assembly
+                            </Typography>
+                            <Chip
+                                label={data.assembly_id?.name || 'N/A'}
+                                color="info"
+                                size="small"
+                            />
                         </Box>
 
                         <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                 Block
                             </Typography>
-                            {data.block_id ? (
-                                <Chip label={data.block_id.name} color="primary" size="small" />
-                            ) : (
-                                <Typography variant="body1" color="text.secondary">N/A</Typography>
-                            )}
+                            <Chip
+                                label={data.block_id?.name || 'N/A'}
+                                color="primary"
+                                size="small"
+                            />
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Booth
+                            </Typography>
+                            <Chip
+                                label={
+                                    data.booth_id
+                                        ? `${data.booth_id.name} (${data.booth_id.booth_number})`
+                                        : 'N/A'
+                                }
+                                color="success"
+                                size="small"
+                            />
                         </Box>
 
                         <Box>
@@ -157,7 +201,7 @@ export default function PartyActivitiesView({ data }) {
                                 Created By
                             </Typography>
                             <Typography variant="body1" fontFamily="monospace">
-                                {data.created_by || 'N/A'}
+                                {data.created_by?._id || 'N/A'}
                             </Typography>
                         </Box>
 
