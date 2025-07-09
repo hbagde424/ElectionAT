@@ -25,8 +25,8 @@ exports.getLocalIssues = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ created_at: -1 });
 
     // Search functionality
@@ -91,8 +91,8 @@ exports.getLocalIssue = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
+      .populate('created_by', 'username email')
+      .populate('updated_by', 'username email');
 
     if (!localIssue) {
       return res.status(404).json({
@@ -236,8 +236,8 @@ exports.updateLocalIssue = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -290,7 +290,7 @@ exports.getLocalIssuesByBooth = async (req, res, next) => {
     const localIssues = await LocalIssue.find({ booth_id: req.params.boothId })
       .populate('state_id', 'name')
       .sort({ priority: -1, created_at: -1 })
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -319,7 +319,7 @@ exports.getLocalIssuesByStatus = async (req, res, next) => {
       .populate('state_id', 'name')
       .populate('booth_id', 'name booth_number')
       .sort({ priority: -1, created_at: -1 })
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

@@ -1,78 +1,104 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const UserSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: [true, 'Username is required'],
+    trim: true,
+    maxlength: [100, 'Username cannot exceed 100 characters'],
+    unique: true
+  },
+  mobile: {
+    type: String,
+    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'],
+    required: [true, 'Mobile number is required'],
+    unique: true,
+    trim: true
+  },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Email is required'],
     unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
-    required: true,
+    required: [true, 'Password is required'],
+    minlength: [6, 'Password must be at least 6 characters'],
+    select: false
   },
   role: {
     type: String,
-    enum: ['SuperAdmin', 'Admin', 'Booth', 'Division', 'Parliament', 'Block', 'Assembly'],
-    required: true,
+    enum: ['superAdmin', 'State', 'Admin', 'Booth', 'Division', 'Parliament', 'Block', 'Assembly'],
+    required: [true, 'Role is required']
   },
-  accessLevel: {
-    type: String,
-    enum: ['editor', 'viewOnly'],
-    default: 'viewOnly',
-  },
-  regionIds: [{
+  state_ids: [{
     type: mongoose.Schema.Types.ObjectId,
-    refPath: 'regionModel',
-    required: function () {
-      return this.role !== 'superAdmin'; // superAdmin may not need specific regions
-    }
+    ref: 'State'
   }],
-  regionModel: {
-    type: String,
-    enum: ['Division', 'Parliament', 'Block', 'Assembly', 'Booth'],
-    required: function () {
-      return this.role !== 'superAdmin';
-    }
-  }, 
+  division_ids: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division'
+  }],
+  parliament_ids: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parliament'
+  }],
+  assembly_ids: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Assembly'
+  }],
+  block_ids: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Block'
+  }],
+  booth_ids: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Booth'
+  }],
   isActive: {
-    type: Boolean, 
-    default: true,
+    type: Boolean,
+    default: true
   },
-  createdBy: {
+  created_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User'
   },
-  updatedBy: {
+  updated_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User'
   },
-  createdAt: {
+  created_at: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
-  updatedAt: {
+  updated_at: {
     type: Date,
+    default: Date.now
   }
 });
 
-// Middleware: hash password before save
-UserSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) {
+    return next();
   }
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// Middleware: update updatedAt before update
-UserSchema.pre('findOneAndUpdate', function (next) {
-  this.set({ updatedAt: new Date() });
+// Update timestamp on update
+userSchema.pre('findOneAndUpdate', function(next) {
+  this.set({ updated_at: Date.now() });
   next();
 });
 
-// Compare password method
-UserSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+// Method to compare passwords
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', userSchema);

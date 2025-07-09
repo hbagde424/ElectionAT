@@ -18,7 +18,7 @@ exports.getParliaments = async (req, res, next) => {
       .populate('state_id', 'name code')
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name email')
+      .populate('created_by', 'username email')
       .sort({ name: 1 });
 
     // Filter by category
@@ -71,7 +71,7 @@ exports.getParliament = async (req, res, next) => {
       .populate('state_id', 'name code')
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name email');
+      .populate('created_by', 'username email');
 
     if (!parliament) {
       return res.status(404).json({
@@ -191,7 +191,7 @@ exports.updateParliament = async (req, res, next) => {
     .populate('state_id', 'name code')
     .populate('division_id', 'name')
     .populate('assembly_id', 'name')
-    .populate('created_by', 'name email');
+    .populate('created_by', 'username email');
 
     res.status(200).json({
       success: true,

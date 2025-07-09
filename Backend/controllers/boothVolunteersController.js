@@ -27,8 +27,8 @@ exports.getBoothVolunteers = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('parliament', 'name')
       .populate('block', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ name: 1 });
 
     // Search functionality
@@ -111,8 +111,8 @@ exports.getBoothVolunteer = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('parliament', 'name')
       .populate('block', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!volunteer) {
       return res.status(404).json({
@@ -255,8 +255,8 @@ exports.updateBoothVolunteer = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('parliament', 'name')
       .populate('block', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -315,7 +315,7 @@ exports.getVolunteersByBooth = async (req, res, next) => {
     const volunteers = await BoothVolunteers.find({ booth_id: req.params.boothId })
       .sort({ name: 1 })
       .populate('party', 'name symbol')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

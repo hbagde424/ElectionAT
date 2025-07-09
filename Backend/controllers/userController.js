@@ -1,124 +1,92 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const State = require('../models/state');
 const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
-// const Master = require('../models/Master');
+const Booth = require('../models/booth');
+
+// Generate JWT token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || '30d'
+  });
+};
 
 // @desc    Register user
 // @route   POST /api/users/register
-// @access  Public (for first superAdmin) or Private (for subsequent registrations)
+// @access  Private (Admin/SuperAdmin)
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, role, accessLevel, regionIds, regionModel } = req.body;
-
-        const superAdminExists = await User.exists({ role: 'SuperAdmin' });
-    
-    // If superAdmin exists, require authentication
-    if (superAdminExists && !req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized to register users'
-      });
-    }
-    
-    // If superAdmin exists and user is not superAdmin, deny access
-    if (superAdminExists && req.user.role !== 'SuperAdmin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only SuperAdmin can register users'
-      });
-    }
+    const { username, mobile, email, password, role } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ $or: [{ email }, { mobile }, { username }] });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists'
+        message: 'User with this email, mobile or username already exists'
       });
     }
 
-    // For superAdmin registration, skip region validation
-    if (role !== 'superAdmin') {
-      if (!regionModel || !regionIds || regionIds.length === 0) {
+    // Verify references based on role
+    let verificationPromises = [];
+    
+    if (role === 'State' && req.body.state_ids) {
+      verificationPromises.push(State.find({ _id: { $in: req.body.state_ids }}));
+    }
+    if (role === 'Division' && req.body.division_ids) {
+      verificationPromises.push(Division.find({ _id: { $in: req.body.division_ids }}));
+    }
+    if (role === 'Parliament' && req.body.parliament_ids) {
+      verificationPromises.push(Parliament.find({ _id: { $in: req.body.parliament_ids }}));
+    }
+    if (role === 'Block' && req.body.block_ids) {
+      verificationPromises.push(Block.find({ _id: { $in: req.body.block_ids }}));
+    }
+    if (role === 'Assembly' && req.body.assembly_ids) {
+      verificationPromises.push(Assembly.find({ _id: { $in: req.body.assembly_ids }}));
+    }
+    if (role === 'Booth' && req.body.booth_ids) {
+      verificationPromises.push(Booth.find({ _id: { $in: req.body.booth_ids }}));
+    }
+
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result || result.length !== req.body[`${role.toLowerCase()}_ids`]?.length) {
         return res.status(400).json({
           success: false,
-          message: 'Region information is required for this role'
-        });
-      }
-
-      let RegionModel;
-      switch (regionModel) {
-        case 'Division':
-          RegionModel = Division;
-          break;
-        case 'Parliament':
-          RegionModel = Parliament;
-          break;
-        case 'Block':
-          RegionModel = Block;
-          break;
-        case 'Assembly':
-          RegionModel = Assembly;
-          break;
-        case 'master':
-          RegionModel = Master;
-          break;
-        default:
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid region model'
-          });
-      }
-
-      const regions = await RegionModel.find({ _id: { $in: regionIds } });
-      if (regions.length !== regionIds.length) {
-        return res.status(400).json({
-          success: false,
-          message: 'One or more region IDs are invalid'
+          message: 'One or more referenced IDs are invalid'
         });
       }
     }
 
-    // Create user data object
     const userData = {
-      email,
-      password,
-      role,
-      accessLevel: role === 'superAdmin' ? 'editor' : accessLevel || 'viewOnly'
+      ...req.body,
+      created_by: req.user.id
     };
 
-    // Only add region info if not superAdmin
-    if (role !== 'superAdmin') {
-      userData.regionIds = regionIds;
-      userData.regionModel = regionModel;
-    }
-
-    // Add createdBy if available (from authenticated user)
-    if (req.user) {
-      userData.createdBy = req.user.id;
-    }
-
-    // Create user
     const user = await User.create(userData);
-
-    // Create token
-    const token = generateToken(user._id);
 
     res.status(201).json({
       success: true,
-      token,
       data: {
         id: user._id,
+        username: user.username,
         email: user.email,
-        role: user.role,
-        accessLevel: user.accessLevel
+        role: user.role
       }
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate field value entered'
+      });
+    }
     next(err);
   }
 };
@@ -128,43 +96,31 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    // Validate email & password
-    if (!email || !password) {
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password'
+        message: 'Please provide username and password'
       });
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) {
+    const user = await User.findOne({ $or: [{ username }, { email: username }, { mobile: username }] }).select('+password');
+    
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
 
-    // Check if user is active
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Account is disabled'
+        message: 'Account is disabled. Please contact admin.'
       });
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Create token
     const token = generateToken(user._id);
 
     res.status(200).json({
@@ -172,9 +128,9 @@ exports.login = async (req, res, next) => {
       token,
       data: {
         id: user._id,
+        username: user.username,
         email: user.email,
-        role: user.role,
-        accessLevel: user.accessLevel
+        role: user.role
       }
     });
   } catch (err) {
@@ -182,14 +138,20 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// @desc    Get current logged in user
+// @desc    Get current user
 // @route   GET /api/users/me
 // @access  Private
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id)
       .select('-password')
-      .populate('regionIds', 'name');
+      .populate('state_ids', 'name')
+      .populate('division_ids', 'name')
+      .populate('parliament_ids', 'name')
+      .populate('assembly_ids', 'name')
+      .populate('block_ids', 'name')
+      .populate('booth_ids', 'name booth_number')
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -206,11 +168,11 @@ exports.getMe = async (req, res, next) => {
 exports.updateMe = async (req, res, next) => {
   try {
     const fieldsToUpdate = {
-      email: req.body.email,
-      accessLevel: req.body.accessLevel
+      username: req.body.username,
+      mobile: req.body.mobile,
+      email: req.body.email
     };
 
-    // Only allow password update if provided
     if (req.body.password) {
       fieldsToUpdate.password = req.body.password;
     }
@@ -231,23 +193,55 @@ exports.updateMe = async (req, res, next) => {
 
 // @desc    Get all users
 // @route   GET /api/users
-// @access  Private (Admin/SuperAdmin only)
+// @access  Private (Admin/SuperAdmin)
 exports.getUsers = async (req, res, next) => {
   try {
-    // Only superAdmin can see all users, others see only their created users
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     let query = {};
-    if (req.user.role !== 'superAdmin') {
-      query = { createdBy: req.user.id };
+    
+    // Non-superAdmins can only see users they created
+    if (req.user.role !== 'SuperAdmin') {
+      query.created_by = req.user.id;
+    }
+
+    // Search functionality
+    if (req.query.search) {
+      query.$or = [
+        { username: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } },
+        { mobile: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+
+    // Filter by role
+    if (req.query.role) {
+      query.role = req.query.role;
     }
 
     const users = await User.find(query)
       .select('-password')
-      .populate('createdBy', 'email')
-      .populate('regionIds', 'name');
+      .populate('state_ids', 'name')
+      .populate('division_ids', 'name')
+      .populate('parliament_ids', 'name')
+      .populate('assembly_ids', 'name')
+      .populate('block_ids', 'name')
+      .populate('booth_ids', 'name booth_number')
+      .populate('created_by', 'username')
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(query);
 
     res.status(200).json({
       success: true,
       count: users.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
       data: users
     });
   } catch (err) {
@@ -257,20 +251,25 @@ exports.getUsers = async (req, res, next) => {
 
 // @desc    Get single user
 // @route   GET /api/users/:id
-// @access  Private (Admin/SuperAdmin only)
+// @access  Private (Admin/SuperAdmin)
 exports.getUser = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
     
-    // Non-superAdmins can only see their created users
-    if (req.user.role !== 'superAdmin') {
-      query.createdBy = req.user.id;
+    // Non-superAdmins can only see users they created
+    if (req.user.role !== 'SuperAdmin') {
+      query.created_by = req.user.id;
     }
 
     const user = await User.findOne(query)
       .select('-password')
-      .populate('createdBy', 'email')
-      .populate('regionIds', 'name');
+      .populate('state_ids', 'name')
+      .populate('division_ids', 'name')
+      .populate('parliament_ids', 'name')
+      .populate('assembly_ids', 'name')
+      .populate('block_ids', 'name')
+      .populate('booth_ids', 'name booth_number')
+      .populate('created_by', 'username');
 
     if (!user) {
       return res.status(404).json({
@@ -290,17 +289,16 @@ exports.getUser = async (req, res, next) => {
 
 // @desc    Update user
 // @route   PUT /api/users/:id
-// @access  Private (Admin/SuperAdmin only)
+// @access  Private (Admin/SuperAdmin)
 exports.updateUser = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
     
-    // Non-superAdmins can only update their created users
-    if (req.user.role !== 'superAdmin') {
-      query.createdBy = req.user.id;
+    // Non-superAdmins can only update users they created
+    if (req.user.role !== 'SuperAdmin') {
+      query.created_by = req.user.id;
     }
 
-    // Find user first to check permissions
     const existingUser = await User.findOne(query);
     if (!existingUser) {
       return res.status(404).json({
@@ -309,16 +307,37 @@ exports.updateUser = async (req, res, next) => {
       });
     }
 
-    // Prepare update data
+    // Verify references if being updated
+    if (req.body.role || req.body[`${req.body.role?.toLowerCase()}_ids`]) {
+      const role = req.body.role || existingUser.role;
+      const ids = req.body[`${role.toLowerCase()}_ids`] || existingUser[`${role.toLowerCase()}_ids`];
+      
+      let Model;
+      switch (role) {
+        case 'State': Model = State; break;
+        case 'Division': Model = Division; break;
+        case 'Parliament': Model = Parliament; break;
+        case 'Block': Model = Block; break;
+        case 'Assembly': Model = Assembly; break;
+        case 'Booth': Model = Booth; break;
+        default: break;
+      }
+
+      if (Model && ids) {
+        const refs = await Model.find({ _id: { $in: ids } });
+        if (refs.length !== ids.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'One or more referenced IDs are invalid'
+          });
+        }
+      }
+    }
+
     const updateData = {
       ...req.body,
-      updatedBy: req.user.id
+      updated_by: req.user.id
     };
-
-    // Remove password if not being updated
-    if (!req.body.password) {
-      delete updateData.password;
-    }
 
     const user = await User.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
@@ -330,20 +349,26 @@ exports.updateUser = async (req, res, next) => {
       data: user
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate field value entered'
+      });
+    }
     next(err);
   }
 };
 
 // @desc    Delete user
 // @route   DELETE /api/users/:id
-// @access  Private (Admin/SuperAdmin only)
+// @access  Private (Admin/SuperAdmin)
 exports.deleteUser = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
     
-    // Non-superAdmins can only delete their created users
-    if (req.user.role !== 'superAdmin') {
-      query.createdBy = req.user.id;
+    // Non-superAdmins can only delete users they created
+    if (req.user.role !== 'SuperAdmin') {
+      query.created_by = req.user.id;
     }
 
     const user = await User.findOne(query);
@@ -375,14 +400,14 @@ exports.deleteUser = async (req, res, next) => {
 
 // @desc    Toggle user active status
 // @route   PUT /api/users/:id/toggle-active
-// @access  Private (Admin/SuperAdmin only)
+// @access  Private (Admin/SuperAdmin)
 exports.toggleActive = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
     
-    // Non-superAdmins can only toggle their created users
-    if (req.user.role !== 'superAdmin') {
-      query.createdBy = req.user.id;
+    // Non-superAdmins can only toggle users they created
+    if (req.user.role !== 'SuperAdmin') {
+      query.created_by = req.user.id;
     }
 
     const user = await User.findOne(query);
@@ -402,7 +427,7 @@ exports.toggleActive = async (req, res, next) => {
     }
 
     user.isActive = !user.isActive;
-    user.updatedBy = req.user.id;
+    user.updated_by = req.user.id;
     await user.save();
 
     res.status(200).json({
@@ -415,11 +440,4 @@ exports.toggleActive = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-// Generate JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d'
-  });
 };

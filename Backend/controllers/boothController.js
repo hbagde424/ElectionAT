@@ -24,7 +24,7 @@ exports.getBooths = async (req, res, next) => {
       .populate('district_id', 'name') // Removed 'division_id' from here
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('created_by', 'name')
+      .populate('created_by', 'username')
       .sort({ booth_number: 1 });
 
     // Search functionality
@@ -95,7 +95,7 @@ exports.getBooth = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     if (!booth) {
       return res.status(404).json({
@@ -286,7 +286,7 @@ exports.getBoothsByAssembly = async (req, res, next) => {
     const booths = await Booth.find({ assembly_id: req.params.assemblyId })
       .sort({ booth_number: 1 })
       .populate('block_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -315,7 +315,7 @@ exports.getBoothsByBlock = async (req, res, next) => {
     const booths = await Booth.find({ block_id: req.params.blockId })
       .sort({ booth_number: 1 })
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

@@ -25,8 +25,8 @@ exports.getCasteLists = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ caste: 1 });
 
     // Search functionality
@@ -102,8 +102,8 @@ exports.getCasteList = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!casteList) {
       return res.status(404).json({
@@ -239,8 +239,8 @@ exports.updateCasteList = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -299,7 +299,7 @@ exports.getCasteListsByBooth = async (req, res, next) => {
     const casteLists = await CasteList.find({ booth_id: req.params.boothId })
       .sort({ category: 1, caste: 1 })
       .populate('state', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

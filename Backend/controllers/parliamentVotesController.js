@@ -29,8 +29,8 @@ exports.getParliamentVotes = async (req, res, next) => {
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
       .populate('election_year', 'year')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ total_votes: -1 });
 
     // Filter by candidate
@@ -113,8 +113,8 @@ exports.getParliamentVote = async (req, res, next) => {
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
       .populate('election_year', 'year')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!vote) {
       return res.status(404).json({
@@ -264,8 +264,8 @@ exports.updateParliamentVote = async (req, res, next) => {
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
       .populate('election_year', 'year')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,

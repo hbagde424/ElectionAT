@@ -23,8 +23,8 @@ exports.getWorkStatuses = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ start_date: -1 });
 
     // Search functionality
@@ -107,8 +107,8 @@ exports.getWorkStatus = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
+      .populate('created_by', 'username email')
+      .populate('updated_by', 'username email');
 
     if (!workStatus) {
       return res.status(404).json({
@@ -271,8 +271,8 @@ exports.updateWorkStatus = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -381,7 +381,7 @@ exports.getWorkStatusesByBooth = async (req, res, next) => {
       .sort({ status: 1, start_date: -1 })
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -410,7 +410,7 @@ exports.getWorkStatusesByStatus = async (req, res, next) => {
       .sort({ start_date: -1 })
       .populate('booth_id', 'name booth_number')
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

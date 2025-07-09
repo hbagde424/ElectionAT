@@ -26,8 +26,8 @@ exports.getBoothSurveys = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ survey_date: -1 });
 
     // Search functionality
@@ -115,8 +115,8 @@ exports.getBoothSurvey = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!survey) {
       return res.status(404).json({
@@ -253,8 +253,8 @@ exports.updateBoothSurvey = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -307,7 +307,7 @@ exports.getSurveysByBooth = async (req, res, next) => {
     const surveys = await BoothSurvey.find({ booth_id: req.params.boothId })
       .sort({ survey_date: -1 })
       .populate('survey_done_by', 'name email')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

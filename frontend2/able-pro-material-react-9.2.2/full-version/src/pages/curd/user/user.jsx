@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip, Switch
+  Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Button, Stack, Box, Typography, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 
 // third-party
 import {
@@ -20,34 +21,40 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
 // custom views and modals
-import DivisionModal from 'pages/curd/division/DivisionModal';
-import AlertDivisionDelete from 'pages/curd/division/AlertDivisionDelete';
-import DivisionView from 'pages/curd/division/DivisionView';
+import UserModal from 'pages/curd/user/UserModal';
+import AlertUserDelete from 'pages/curd/user/AlertUserDelete';
+import UserView from 'pages/curd/user/UserView';
 import { Tooltip } from '@mui/material';
 
-export default function DivisionListPage() {
+export default function UserListPage() {
   const theme = useTheme();
-  const [selectedDivision, setSelectedDivision] = useState(null);
+
+  const [selectedUser, setSelectedUser] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [divisionDeleteId, setDivisionDeleteId] = useState('');
-  const [divisions, setDivisions] = useState([]);
+  const [userDeleteId, setUserDeleteId] = useState('');
+  const [users, setUsers] = useState([]);
   const [states, setStates] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [parliaments, setParliaments] = useState([]);
+  const [assemblies, setAssemblies] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [booths, setBooths] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
-  const fetchDivisions = async (pageIndex, pageSize) => {
+  const fetchUsers = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/divisions?page=${pageIndex + 1}&limit=${pageSize}`);
+      const res = await fetch(`http://localhost:5000/api/users?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
-        setDivisions(json.data);
+        setUsers(json.data);
         setPageCount(json.pages);
       }
     } catch (error) {
-      console.error('Failed to fetch divisions:', error);
+      console.error('Failed to fetch users:', error);
     } finally {
       setLoading(false);
     }
@@ -55,41 +62,40 @@ export default function DivisionListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const statesRes = await fetch('http://localhost:5000/api/states');
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/states'),
+        fetch('http://localhost:5000/api/divisions'),
+        fetch('http://localhost:5000/api/parliaments'),
+        fetch('http://localhost:5000/api/assemblies'),
+        fetch('http://localhost:5000/api/blocks'),
+        fetch('http://localhost:5000/api/booths')
+      ]);
+
       const statesJson = await statesRes.json();
+      const divisionsJson = await divisionsRes.json();
+      const parliamentsJson = await parliamentsRes.json();
+      const assembliesJson = await assembliesRes.json();
+      const blocksJson = await blocksRes.json();
+      const boothsJson = await boothsRes.json();
+
       if (statesJson.success) setStates(statesJson.data);
+      if (divisionsJson.success) setDivisions(divisionsJson.data);
+      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
+      if (assembliesJson.success) setAssemblies(assembliesJson.data);
+      if (blocksJson.success) setBlocks(blocksJson.data);
+      if (boothsJson.success) setBooths(boothsJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
-  const toggleDivisionStatus = async (id, currentStatus) => {
-    try {
-      const token = localStorage.getItem('serviceToken');
-      const res = await fetch(`http://localhost:5000/api/divisions/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ is_active: !currentStatus })
-      });
-
-      if (res.ok) {
-        fetchDivisions(pagination.pageIndex, pagination.pageSize);
-      }
-    } catch (error) {
-      console.error('Failed to toggle division status:', error);
-    }
-  };
-
   useEffect(() => {
-    fetchDivisions(pagination.pageIndex, pagination.pageSize);
+    fetchUsers(pagination.pageIndex, pagination.pageSize);
     fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
-    setDivisionDeleteId(id);
+    setUserDeleteId(id);
     setOpenDelete(true);
   };
 
@@ -102,68 +108,42 @@ export default function DivisionListPage() {
       cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
-      header: 'Name',
-      accessorKey: 'name',
+      header: 'Username',
+      accessorKey: 'username',
       cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
     },
     {
-      header: 'Code',
-      accessorKey: 'division_code',
-      cell: ({ getValue }) => <Chip label={getValue()} color="info" size="small" />
+      header: 'Mobile',
+      accessorKey: 'mobile',
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
     },
     {
-      header: 'State',
-      accessorKey: 'state_id',
-      cell: ({ getValue }) => (
-        getValue() ?
-          <Chip label={getValue().name} color="primary" size="small" /> :
-          <Typography variant="caption">No state</Typography>
-      )
+      header: 'Email',
+      accessorKey: 'email',
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
     },
     {
-      header: 'Created By',
-      accessorKey: 'created_by',
+      header: 'Role',
+      accessorKey: 'role',
       cell: ({ getValue }) => (
-        <Typography variant="subtitle2">
-          {getValue()?.username || 'System'}
-        </Typography>
-      )
-    },
-    {
-      header: 'Updated By',
-      accessorKey: 'updated_by',
-      cell: ({ getValue }) => (
-        <Typography variant="subtitle2">
-          {getValue()?.username || 'System'}
-        </Typography>
-      )
-    },
-    {
-      header: 'Created At',
-      accessorKey: 'created_at',
-      cell: ({ getValue }) => (
-        <Typography>
-          {new Date(getValue()).toLocaleString()}
-        </Typography>
-      )
-    },
-    {
-      header: 'Updated At',
-      accessorKey: 'updated_at',
-      cell: ({ getValue }) => (
-        <Typography>
-          {new Date(getValue()).toLocaleString()}
-        </Typography>
+        <Chip
+          label={getValue()}
+          color={
+            getValue() === 'superAdmin' ? 'error' :
+            getValue() === 'Admin' ? 'warning' : 'primary'
+          }
+          size="small"
+        />
       )
     },
     {
       header: 'Status',
-      accessorKey: 'is_active',
-      cell: ({ row }) => (
-        <Switch
-          checked={row.original.is_active}
-          onChange={() => toggleDivisionStatus(row.original._id, row.original.is_active)}
-          color="success"
+      accessorKey: 'isActive',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue() ? 'Active' : 'Inactive'}
+          color={getValue() ? 'success' : 'error'}
+          size="small"
         />
       )
     },
@@ -185,7 +165,7 @@ export default function DivisionListPage() {
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedDivision(row.original);
+                  setSelectedUser(row.original);
                   setOpenModal(true);
                 }}
               >
@@ -210,7 +190,7 @@ export default function DivisionListPage() {
   ], [theme]);
 
   const table = useReactTable({
-    data: divisions,
+    data: users,
     columns,
     state: {
       pagination
@@ -234,10 +214,10 @@ export default function DivisionListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${divisions.length} divisions...`}
+            placeholder={`Search ${users.length} users...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedDivision(null); setOpenModal(true); }}>
-            Add Division
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedUser(null); setOpenModal(true); }}>
+            Add User
           </Button>
         </Stack>
 
@@ -275,7 +255,7 @@ export default function DivisionListPage() {
                     {row.getIsExpanded() && (
                       <TableRow>
                         <TableCell colSpan={row.getVisibleCells().length}>
-                          <DivisionView data={row.original} />
+                          <UserView data={row.original} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -296,19 +276,24 @@ export default function DivisionListPage() {
         </ScrollX>
       </MainCard>
 
-      <DivisionModal
+      <UserModal
         open={openModal}
         modalToggler={setOpenModal}
-        division={selectedDivision}
+        user={selectedUser}
         states={states}
-        refresh={() => fetchDivisions(pagination.pageIndex, pagination.pageSize)}
+        divisions={divisions}
+        parliaments={parliaments}
+        assemblies={assemblies}
+        blocks={blocks}
+        booths={booths}
+        refresh={() => fetchUsers(pagination.pageIndex, pagination.pageSize)}
       />
 
-      <AlertDivisionDelete
-        id={divisionDeleteId}
+      <AlertUserDelete
+        id={userDeleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={() => fetchDivisions(pagination.pageIndex, pagination.pageSize)}
+        refresh={() => fetchUsers(pagination.pageIndex, pagination.pageSize)}
       />
     </>
   );

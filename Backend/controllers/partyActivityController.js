@@ -25,8 +25,8 @@ exports.getPartyActivities = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ activity_date: -1 });
 
     // Search functionality
@@ -123,8 +123,8 @@ exports.getPartyActivity = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
+      .populate('created_by', 'username email')
+      .populate('updated_by', 'username email');
 
     if (!activity) {
       return res.status(404).json({
@@ -289,8 +289,8 @@ exports.updatePartyActivity = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -398,7 +398,7 @@ exports.getPartyActivitiesByParty = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .sort({ activity_date: -1 })
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -429,7 +429,7 @@ exports.getPartyActivitiesByParliament = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
       .sort({ activity_date: -1 })
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -459,7 +459,7 @@ exports.getPartyActivitiesByDivision = async (req, res, next) => {
       .populate('party_id', 'name symbol')
       .populate('parliament_id', 'name')
       .sort({ activity_date: -1 })
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -489,7 +489,7 @@ exports.getPartyActivitiesByBlock = async (req, res, next) => {
       .populate('party_id', 'name symbol')
       .populate('assembly_id', 'name')
       .sort({ activity_date: -1 })
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

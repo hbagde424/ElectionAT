@@ -23,8 +23,8 @@ exports.getEvents = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ start_date: -1 });
 
     // Search functionality
@@ -104,8 +104,8 @@ exports.getEvent = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!event) {
       return res.status(404).json({
@@ -232,8 +232,8 @@ exports.updateEvent = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'booth_number')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,

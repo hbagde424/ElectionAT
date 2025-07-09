@@ -1,10 +1,10 @@
 import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
 
-export default function AlertBoothVotesDelete({ id, open, handleClose, refresh }) {
+export default function AlertUserDelete({ id, open, handleClose, refresh }) {
   const handleDelete = async () => {
     const token = localStorage.getItem('serviceToken');
 
-    const res = await fetch(`http://localhost:5000/api/booth-votes/${id}`, {
+    const res = await fetch(`http://localhost:5000/api/users/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ export default function AlertBoothVotesDelete({ id, open, handleClose, refresh }
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Are you sure you want to delete these booth votes?</DialogTitle>
+      <DialogTitle>Are you sure you want to delete this user?</DialogTitle>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button color="error" variant="contained" onClick={handleDelete}>

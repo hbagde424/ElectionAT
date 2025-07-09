@@ -36,6 +36,11 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for division names or codes
+ *       - in: query
  *         name: state
  *         schema:
  *           type: string
@@ -111,8 +116,6 @@ router.get('/:id', getDivision);
  *       401:
  *         description: Not authorized
  */
-// router.post('/', createDivision);
-// router.post('/', protect, createDivision);
 router.post('/', protect, authorize('superAdmin'), createDivision);
 
 /**
@@ -212,6 +215,7 @@ router.get('/state/:stateId', getDivisionsByState);
  *       type: object
  *       required:
  *         - name
+ *         - division_code
  *         - state_id
  *         - created_by
  *       properties:
@@ -219,14 +223,22 @@ router.get('/state/:stateId', getDivisionsByState);
  *           type: string
  *           description: Division name
  *           example: "Northern Division"
+ *         division_code:
+ *           type: string
+ *           description: Unique division code
+ *           example: "ND-01"
  *         state_id:
  *           type: string
  *           description: Reference to State
- *           example: "507f1f77bcf86cd799439011"
+ *           example: "507f1f77bcf86cd799439016"
  *         created_by:
  *           type: string
  *           description: Reference to User who created
  *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time

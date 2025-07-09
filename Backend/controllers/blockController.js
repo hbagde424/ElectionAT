@@ -22,8 +22,8 @@ exports.getBlocks = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ name: 1 });
 
     // Search functionality
@@ -93,8 +93,8 @@ exports.getBlock = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!block) {
       return res.status(404).json({
@@ -284,7 +284,7 @@ exports.getBlocksByAssembly = async (req, res, next) => {
     const blocks = await Block.find({ assembly_id: req.params.assemblyId })
       .sort({ name: 1 })
       .populate('parliament_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -313,7 +313,7 @@ exports.getBlocksByParliament = async (req, res, next) => {
     const blocks = await Block.find({ parliament_id: req.params.parliamentId })
       .sort({ name: 1 })
       .populate('assembly_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

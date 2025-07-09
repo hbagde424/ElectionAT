@@ -20,8 +20,8 @@ exports.getCandidates = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
       .populate('election_year', 'year')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ name: 1 });
 
     // Search functionality
@@ -89,8 +89,8 @@ exports.getCandidate = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
       .populate('election_year', 'year')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!candidate) {
       return res.status(404).json({
@@ -214,8 +214,8 @@ exports.updateCandidate = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
       .populate('election_year', 'year')
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -276,7 +276,7 @@ exports.getCandidatesByAssembly = async (req, res, next) => {
       .populate('party_id', 'name symbol')
       .populate('parliament_id', 'name')
       .populate('election_year', 'year')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -307,7 +307,7 @@ exports.getCandidatesByParliament = async (req, res, next) => {
       .populate('party_id', 'name symbol')
       .populate('assembly_id', 'name')
       .populate('election_year', 'year')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

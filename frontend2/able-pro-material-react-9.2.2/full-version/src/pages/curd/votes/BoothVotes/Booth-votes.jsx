@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 
 // third-party
 import {
@@ -41,7 +42,6 @@ export default function BoothVotesListPage() {
   const [booths, setBooths] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [electionYears, setElectionYears] = useState([]);
-  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -64,8 +64,16 @@ export default function BoothVotesListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const token = localStorage.getItem('serviceToken');
-      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
+      const [
+        statesRes, 
+        divisionsRes, 
+        parliamentsRes, 
+        assembliesRes, 
+        blocksRes, 
+        boothsRes, 
+        candidatesRes,
+        electionYearsRes
+      ] = await Promise.all([
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
@@ -73,12 +81,7 @@ export default function BoothVotesListPage() {
         fetch('http://localhost:5000/api/blocks'),
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/candidates'),
-        fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
+        fetch('http://localhost:5000/api/election-years')
       ]);
 
       const statesJson = await statesRes.json();
@@ -89,7 +92,6 @@ export default function BoothVotesListPage() {
       const boothsJson = await boothsRes.json();
       const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
-      const usersJson = await usersRes.json();
 
       if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
@@ -98,8 +100,7 @@ export default function BoothVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson) setElectionYears(electionYearsJson);
-      if (usersJson.success) setUsers(usersJson.data);
+      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -125,70 +126,56 @@ export default function BoothVotesListPage() {
     },
     {
       header: 'Candidate',
-      accessorKey: 'candidate',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()?.name || '—'}</Typography>
+      accessorKey: 'candidate.name',
+      cell: ({ row }) => (
+        <Typography variant="subtitle1">
+          {row.original?.candidate?.name || 'N/A'}
+          {row.original?.candidate?.party && (
+            <Typography variant="caption" display="block">
+              {row.original.candidate.party.name}
+            </Typography>
+          )}
+        </Typography>
+      )
     },
     {
       header: 'Booth',
-      accessorKey: 'booth',
-      cell: ({ getValue }) => {
-        const booth = getValue();
-        return (
-          <Typography>
-            {booth?.name || '—'} {booth?.booth_number ? `(No: ${booth.booth_number})` : ''}
-          </Typography>
-        );
-      }
+      accessorKey: 'booth.name',
+      cell: ({ row }) => (
+        <Typography>
+          {row.original?.booth?.name || 'N/A'} (No: {row.original?.booth?.booth_number || 'N/A'})
+        </Typography>
+      )
     },
     {
       header: 'Votes',
       accessorKey: 'total_votes',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue().toLocaleString()}
+          color="primary"
+          size="small"
+          variant="outlined"
+        />
+      )
     },
     {
       header: 'Election Year',
-      accessorKey: 'election_year',
-      cell: ({ getValue }) => <Typography>{getValue()?.year || '—'}</Typography>
+      accessorKey: 'election_year.year',
+      cell: ({ row }) => (
+        <Typography>{row.original?.election_year?.year || 'N/A'}</Typography>
+      )
     },
     {
-      header: 'State',
-      accessorKey: 'state',
-      cell: ({ getValue }) =>
-        getValue()
-          ? <Chip label={getValue().name} color="success" size="small" variant="outlined" />
-          : <Typography variant="caption">No state</Typography>
-    },
-    {
-      header: 'Division',
-      accessorKey: 'division',
-      cell: ({ getValue }) =>
-        getValue()
-          ? <Chip label={getValue().name} color="warning" size="small" />
-          : <Typography variant="caption">No division</Typography>
-    },
-    {
-      header: 'Parliament',
-      accessorKey: 'parliament',
-      cell: ({ getValue }) =>
-        getValue()
-          ? <Chip label={getValue().name} color="info" size="small" />
-          : <Typography variant="caption">No parliament</Typography>
-    },
-    {
-      header: 'Assembly',
-      accessorKey: 'assembly',
-      cell: ({ getValue }) =>
-        getValue()
-          ? <Chip label={getValue().name} color="secondary" size="small" />
-          : <Typography variant="caption">No assembly</Typography>
-    },
-    {
-      header: 'Block',
-      accessorKey: 'block',
-      cell: ({ getValue }) =>
-        getValue()
-          ? <Chip label={getValue().name} color="primary" size="small" />
-          : <Typography variant="caption">No block</Typography>
+      header: 'Location',
+      accessorKey: 'location',
+      cell: ({ row }) => (
+        <Stack direction="column" spacing={0.5}>
+          <Typography variant="caption">{row.original?.state?.name || 'N/A'}</Typography>
+          <Typography variant="caption">{row.original?.division?.name || 'N/A'}</Typography>
+          <Typography variant="caption">{row.original?.parliament?.name || 'N/A'}</Typography>
+        </Stack>
+      )
     },
     {
       header: 'Created By',
@@ -207,9 +194,7 @@ export default function BoothVotesListPage() {
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
         const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded
-          ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-          : <Eye />;
+        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View">
@@ -246,7 +231,6 @@ export default function BoothVotesListPage() {
     }
   ], [theme]);
 
-
   const table = useReactTable({
     data: votes,
     columns,
@@ -275,7 +259,7 @@ export default function BoothVotesListPage() {
             placeholder={`Search ${votes.length} votes...`}
           />
           <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
-            Add Booth Vote
+            Add Booth Votes
           </Button>
         </Stack>
 
@@ -337,7 +321,7 @@ export default function BoothVotesListPage() {
       <BoothVotesModal
         open={openModal}
         modalToggler={setOpenModal}
-        vote={selectedVote}
+        voteData={selectedVote}
         states={states}
         divisions={divisions}
         parliaments={parliaments}
@@ -346,7 +330,6 @@ export default function BoothVotesListPage() {
         booths={booths}
         candidates={candidates}
         electionYears={electionYears}
-        users={users}
         refresh={() => fetchVotes(pagination.pageIndex, pagination.pageSize)}
       />
 

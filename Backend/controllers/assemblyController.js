@@ -20,7 +20,7 @@ exports.getAssemblies = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('created_by', 'name')
+      .populate('created_by', 'username')
       .sort({ name: 1 });
 
     // Search functionality
@@ -84,7 +84,7 @@ exports.getAssembly = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     if (!assembly) {
       return res.status(404).json({
@@ -298,7 +298,7 @@ exports.getAssembliesByParliament = async (req, res, next) => {
       .sort({ name: 1 })
       .populate('state_id', 'name')
       .populate('district_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -328,7 +328,7 @@ exports.getAssembliesByDivision = async (req, res, next) => {
       .sort({ name: 1 })
       .populate('state_id', 'name')
       .populate('district_id', 'name')
-      .populate('created_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

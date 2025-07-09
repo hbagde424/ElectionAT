@@ -13,8 +13,8 @@ exports.getEventTypes = async (req, res, next) => {
 
     // Base query
     let query = EventType.find()
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
       .sort({ name: 1 });
 
     // Search functionality
@@ -55,8 +55,8 @@ exports.getEventTypes = async (req, res, next) => {
 exports.getEventType = async (req, res, next) => {
   try {
     const eventType = await EventType.findById(req.params.id)
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
+      .populate('created_by', 'username email')
+      .populate('updated_by', 'username email');
 
     if (!eventType) {
       return res.status(404).json({
@@ -137,8 +137,8 @@ exports.updateEventType = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-      .populate('created_by', 'name')
-      .populate('updated_by', 'name');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,

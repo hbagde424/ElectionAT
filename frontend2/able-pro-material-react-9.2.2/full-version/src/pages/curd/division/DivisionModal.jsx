@@ -9,168 +9,289 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    FormControl
+    FormControl,
+    Switch,
+    FormControlLabel,
+    Grid,
+    FormHelperText,
+    Alert
 } from '@mui/material';
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState } from 'react';
 
-// project imports
-import JWTContext from 'contexts/JWTContext';
-
-export default function DivisionModal({ open, modalToggler, division, states, refresh }) {
-    // Get logged-in user from context
-    const contextValue = useContext(JWTContext);
-    const { user, isLoggedIn, isInitialized } = contextValue || {};
-
-    console.log('=== DIVISION JWT CONTEXT DEBUG ===');
-    console.log('Full context value:', contextValue);
-    console.log('isLoggedIn:', isLoggedIn);
-    console.log('isInitialized:', isInitialized);
-    console.log('user from context:', user);
-    console.log('=== END DIVISION JWT CONTEXT DEBUG ===');
-
-    // Debug logging to check user context and localStorage
-    console.log('=== DIVISION USER DEBUG INFO ===');
-    console.log('JWTContext user:', user);
-    console.log('User ID:', user?._id);
-    console.log('User object keys:', user ? Object.keys(user) : 'No user');
-    console.log('localStorage serviceToken:', localStorage.getItem('serviceToken'));
-    console.log('localStorage user:', localStorage.getItem('user'));
-
-    // Try to parse localStorage user
-    try {
-        const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-        console.log('Parsed localStorage user:', localUser);
-    } catch (e) {
-        console.log('Failed to parse localStorage user:', e);
-    }
-    console.log('=== END DIVISION DEBUG INFO ===');
+export default function DivisionModal({
+    open,
+    modalToggler,
+    division,
+    states,
+    refresh
+}) {
     const [formData, setFormData] = useState({
         name: '',
-        state_id: ''
+        division_code: '',
+        state_id: '',
+        is_active: true
     });
 
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+
+    const validateField = (name, value) => {
+        switch (name) {
+            case 'name':
+                if (!value || value.trim().length === 0) {
+                    return 'Division name is required';
+                }
+                if (value.trim().length < 2) {
+                    return 'Division name must be at least 2 characters long';
+                }
+                if (value.trim().length > 100) {
+                    return 'Division name must not exceed 100 characters';
+                }
+                if (!/^[a-zA-Z0-9\s\-\.]+$/.test(value.trim())) {
+                    return 'Division name can only contain letters, numbers, spaces, hyphens, and dots';
+                }
+                break;
+            case 'division_code':
+                if (!value) {
+                    return 'Division code is required';
+                }
+                if (value.length > 20) {
+                    return 'Division code must not exceed 20 characters';
+                }
+                if (!/^[A-Z0-9]+$/.test(value)) {
+                    return 'Division code must be uppercase alphanumeric';
+                }
+                break;
+            case 'state_id':
+                if (!value) {
+                    return 'State selection is required';
+                }
+                break;
+            default:
+                break;
+        }
+        return '';
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        Object.keys(formData).forEach(key => {
+            if (key !== 'is_active') {
+                const error = validateField(key, formData[key]);
+                if (error) {
+                    newErrors[key] = error;
+                }
+            }
+        });
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     useEffect(() => {
+        setErrors({});
+        setSubmitError('');
+        setIsSubmitting(false);
+
         if (division) {
             setFormData({
                 name: division.name || '',
-                state_id: division.state_id?._id || ''
+                division_code: division.division_code || '',
+                state_id: division.state_id?._id || '',
+                is_active: division.is_active || true
             });
         } else {
             setFormData({
                 name: '',
-                state_id: ''
+                division_code: '',
+                state_id: '',
+                is_active: true
             });
         }
-    }, [division]);
+    }, [division, open]);
 
     const handleChange = (e) => {
-        setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+
+        if (submitError) {
+            setSubmitError('');
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            [name]: name === 'division_code' ? value.toUpperCase() : value
+        }));
+    };
+
+    const handleStatusChange = (e) => {
+        setFormData(prev => ({ ...prev, is_active: e.target.checked }));
     };
 
     const handleSubmit = async () => {
-        const method = division ? 'PUT' : 'POST';
-        const token = localStorage.getItem('serviceToken');
-        const url = division
-            ? `http://localhost:5000/api/divisions/${division._id}`
-            : 'http://localhost:5000/api/divisions';
+        if (!validateForm()) {
+            return;
+        }
 
-        // Debug user information
-        console.log('Division HandleSubmit - User context:', user);
-        console.log('Division HandleSubmit - User ID check:', user?._id);
-        console.log('Division HandleSubmit - User ID (alternative):', user?.id);
+        setIsSubmitting(true);
+        setSubmitError('');
 
-        // Try to get user ID from different possible fields or fallback to localStorage
-        let userId = user?._id || user?.id;
+        try {
+            const method = division ? 'PUT' : 'POST';
+            const token = localStorage.getItem('serviceToken');
+            const user = JSON.parse(localStorage.getItem('user'));
+            const url = division
+                ? `http://localhost:5000/api/divisions/${division._id}`
+                : 'http://localhost:5000/api/divisions';
 
-        // Fallback: try to get user from localStorage if context fails
-        if (!userId) {
-            try {
-                const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-                userId = localUser._id || localUser.id;
-                console.log('Division Fallback - localStorage user:', localUser);
-                console.log('Division Fallback - userId:', userId);
-            } catch (e) {
-                console.error('Division Failed to parse localStorage user:', e);
+            // Prepare the data to send
+            const dataToSend = {
+                name: formData.name.trim(),
+                division_code: formData.division_code,
+                state_id: formData.state_id,
+                is_active: formData.is_active,
+                updated_by: user._id
+            };
+
+            // Only include created_by for new records
+            if (!division) {
+                dataToSend.created_by = user._id;
             }
-        }
 
-        // Validate that user is logged in
-        if (!userId) {
-            console.error('Division User validation failed:', { contextUser: user, userId });
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(dataToSend)
+            });
 
-            // TEMPORARY BYPASS FOR TESTING - Remove this after fixing user context
-            const tempUserId = "507f1f77bcf86cd799439022"; // Replace with a valid user ID from your database
-            console.warn('DIVISION USING TEMPORARY USER ID FOR TESTING:', tempUserId);
-            userId = tempUserId;
-
-            // Uncomment the lines below to re-enable validation after fixing user context
-            // alert(`User not logged in. Please login again. Debug: contextUser=${!!user}, userId=${userId}`);
-            // return;
-        }
-
-        // Create payload with user tracking
-        const payload = {
-            ...formData,
-            ...(division ? { updated_by: userId } : { created_by: userId })
-        };
-
-        console.log('Division - User ID being used:', userId);
-        console.log('Division payload:', payload);
-
-        const res = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            modalToggler(false);
-            refresh();
+            if (res.ok) {
+                modalToggler(false);
+                refresh();
+            } else {
+                const errorData = await res.json();
+                if (res.status === 400 && errorData.errors) {
+                    const serverErrors = {};
+                    errorData.errors.forEach(error => {
+                        if (error.path) {
+                            serverErrors[error.path] = error.msg;
+                        }
+                    });
+                    setErrors(serverErrors);
+                } else {
+                    setSubmitError(errorData.message || 'Failed to save division. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('Error saving division:', error);
+            setSubmitError('Network error. Please check your connection and try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
+        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{division ? 'Edit Division' : 'Add Division'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} mt={2}>
-                    <Stack spacing={1}>
-                        <InputLabel>Division Name</InputLabel>
-                        <TextField
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            fullWidth
-                            required
-                        />
-                    </Stack>
-                    <Stack spacing={1}>
-                        <InputLabel>State</InputLabel>
-                        <FormControl fullWidth>
-                            <Select
-                                name="state_id"
-                                value={formData.state_id}
-                                onChange={handleChange}
-                                required
-                            >
-                                <MenuItem value="">Select State</MenuItem>
-                                {states.map((state) => (
-                                    <MenuItem key={state._id} value={state._id}>
-                                        {state.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Stack>
+                    {submitError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {submitError}
+                        </Alert>
+                    )}
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Division Name *</InputLabel>
+                                <TextField
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    fullWidth
+                                    required
+                                    error={!!errors.name}
+                                    helperText={errors.name}
+                                    inputProps={{ maxLength: 100 }}
+                                />
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={1}>
+                                <InputLabel>Division Code *</InputLabel>
+                                <TextField
+                                    name="division_code"
+                                    value={formData.division_code}
+                                    onChange={handleChange}
+                                    fullWidth
+                                    required
+                                    error={!!errors.division_code}
+                                    helperText={errors.division_code}
+                                    inputProps={{ maxLength: 20 }}
+                                />
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <Stack spacing={1}>
+                                <InputLabel>State *</InputLabel>
+                                <FormControl fullWidth error={!!errors.state_id}>
+                                    <Select
+                                        name="state_id"
+                                        value={formData.state_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select State</MenuItem>
+                                        {states.map((state) => (
+                                            <MenuItem key={state._id} value={state._id}>
+                                                {state.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                    {errors.state_id && (
+                                        <FormHelperText>{errors.state_id}</FormHelperText>
+                                    )}
+                                </FormControl>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={formData.is_active}
+                                onChange={handleStatusChange}
+                                color="success"
+                            />
+                        }
+                        label="Active Status"
+                    />
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                    {division ? 'Update' : 'Submit'}
+                <Button
+                    onClick={() => modalToggler(false)}
+                    disabled={isSubmitting}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? 'Saving...' : (division ? 'Update' : 'Submit')}
                 </Button>
             </DialogActions>
         </Dialog>
