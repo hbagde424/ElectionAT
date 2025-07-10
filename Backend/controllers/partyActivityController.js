@@ -5,7 +5,6 @@ const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
-const User = require('../models/User');
 
 // @desc    Get all party activities
 // @route   GET /api/party-activities
@@ -17,16 +16,16 @@ exports.getPartyActivities = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Base query with population
+    // Basic query
     let query = PartyActivity.find()
-      .populate('party_id', 'name symbol')
+      .populate('party_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
-      .populate('updated_by', 'username')
+      .populate('updated_by', 'name')
       .sort({ activity_date: -1 });
 
     // Search functionality
@@ -45,31 +44,6 @@ exports.getPartyActivities = async (req, res, next) => {
       query = query.where('party_id').equals(req.query.party);
     }
 
-    // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
-    }
-
-    // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
-    }
-
-    // Filter by assembly
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
-    }
-
-    // Filter by block
-    if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
-    }
-
-    // Filter by booth
-    if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
-    }
-
     // Filter by activity type
     if (req.query.activity_type) {
       query = query.where('activity_type').equals(req.query.activity_type);
@@ -81,18 +55,30 @@ exports.getPartyActivities = async (req, res, next) => {
     }
 
     // Filter by date range
-    if (req.query.startDate && req.query.endDate) {
-      query = query.where('activity_date').gte(new Date(req.query.startDate))
-                   .where('activity_date').lte(new Date(req.query.endDate));
-    } else if (req.query.startDate) {
-      query = query.where('activity_date').gte(new Date(req.query.startDate));
-    } else if (req.query.endDate) {
-      query = query.where('activity_date').lte(new Date(req.query.endDate));
+    if (req.query.start_date && req.query.end_date) {
+      query = query.where('activity_date').gte(new Date(req.query.start_date))
+                   .lte(new Date(req.query.end_date));
+    } else if (req.query.start_date) {
+      query = query.where('activity_date').gte(new Date(req.query.start_date));
+    } else if (req.query.end_date) {
+      query = query.where('activity_date').lte(new Date(req.query.end_date));
     }
 
-    // Filter by media coverage
-    if (req.query.media_coverage) {
-      query = query.where('media_coverage').equals(req.query.media_coverage === 'true');
+    // Filter by geographical hierarchy
+    if (req.query.division) {
+      query = query.where('division_id').equals(req.query.division);
+    }
+    if (req.query.parliament) {
+      query = query.where('parliament_id').equals(req.query.parliament);
+    }
+    if (req.query.assembly) {
+      query = query.where('assembly_id').equals(req.query.assembly);
+    }
+    if (req.query.block) {
+      query = query.where('block_id').equals(req.query.block);
+    }
+    if (req.query.booth) {
+      query = query.where('booth_id').equals(req.query.booth);
     }
 
     const activities = await query.skip(skip).limit(limit).exec();
@@ -117,14 +103,14 @@ exports.getPartyActivities = async (req, res, next) => {
 exports.getPartyActivity = async (req, res, next) => {
   try {
     const activity = await PartyActivity.findById(req.params.id)
-      .populate('party_id', 'name symbol')
+      .populate('party_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'username email')
-      .populate('updated_by', 'username email');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'name');
 
     if (!activity) {
       return res.status(404).json({
@@ -144,7 +130,7 @@ exports.getPartyActivity = async (req, res, next) => {
 
 // @desc    Create party activity
 // @route   POST /api/party-activities
-// @access  Private
+// @access  Private (Admin only)
 exports.createPartyActivity = async (req, res, next) => {
   try {
     // Verify all references exist
@@ -164,11 +150,15 @@ exports.createPartyActivity = async (req, res, next) => {
       req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null)
     ]);
 
-    if (!party) return res.status(400).json({ success: false, message: 'Party not found' });
+    if (!party) {
+      return res.status(400).json({ success: false, message: 'Party not found' });
+    }
     if (req.body.division_id && !division) {
       return res.status(400).json({ success: false, message: 'Division not found' });
     }
-    if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
+    if (!parliament) {
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
+    }
     if (req.body.assembly_id && !assembly) {
       return res.status(400).json({ success: false, message: 'Assembly not found' });
     }
@@ -179,15 +169,7 @@ exports.createPartyActivity = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Booth not found' });
     }
 
-    // Validate end date if provided
-    if (req.body.end_date && new Date(req.body.end_date) < new Date(req.body.activity_date)) {
-      return res.status(400).json({
-        success: false,
-        message: 'End date must be after activity date'
-      });
-    }
-
-    // Set created_by to current user
+    // Check if user exists in request
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -213,7 +195,7 @@ exports.createPartyActivity = async (req, res, next) => {
 
 // @desc    Update party activity
 // @route   PUT /api/party-activities/:id
-// @access  Private
+// @access  Private (Admin only)
 exports.updatePartyActivity = async (req, res, next) => {
   try {
     let activity = await PartyActivity.findById(req.params.id);
@@ -225,58 +207,27 @@ exports.updatePartyActivity = async (req, res, next) => {
       });
     }
 
-    // Verify references if being updated
-    const verificationPromises = [
-      req.body.party_id ? Party.findById(req.body.party_id) : Promise.resolve(null),
-      req.body.division_id ? Division.findById(req.body.division_id) : Promise.resolve(null),
-      req.body.parliament_id ? Parliament.findById(req.body.parliament_id) : Promise.resolve(null),
-      req.body.assembly_id ? Assembly.findById(req.body.assembly_id) : Promise.resolve(null),
-      req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null),
-      req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null)
-    ];
+    // Verify all references exist if being updated
+    const verificationPromises = [];
+    if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
     
-    if (req.body.party_id && !verificationResults[0]) {
-      return res.status(400).json({ success: false, message: 'Party not found' });
-    }
-    if (req.body.division_id && !verificationResults[1]) {
-      return res.status(400).json({ success: false, message: 'Division not found' });
-    }
-    if (req.body.parliament_id && !verificationResults[2]) {
-      return res.status(400).json({ success: false, message: 'Parliament not found' });
-    }
-    if (req.body.assembly_id && !verificationResults[3]) {
-      return res.status(400).json({ success: false, message: 'Assembly not found' });
-    }
-    if (req.body.block_id && !verificationResults[4]) {
-      return res.status(400).json({ success: false, message: 'Block not found' });
-    }
-    if (req.body.booth_id && !verificationResults[5]) {
-      return res.status(400).json({ success: false, message: 'Booth not found' });
-    }
-
-    // Validate dates if being updated
-    if (req.body.activity_date || req.body.end_date) {
-      const activityDate = req.body.activity_date ? new Date(req.body.activity_date) : activity.activity_date;
-      const endDate = req.body.end_date ? new Date(req.body.end_date) : activity.end_date;
-      
-      if (endDate && endDate < activityDate) {
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'End date must be after activity date'
+          message: 'Referenced document not found'
         });
       }
     }
 
-    // Set updated_by to current user
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-
+    // Set updated_by
     req.body.updated_by = req.user.id;
 
     activity = await PartyActivity.findByIdAndUpdate(req.params.id, req.body, {
@@ -290,7 +241,7 @@ exports.updatePartyActivity = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
-      .populate('updated_by', 'username');
+      .populate('updated_by', 'name');
 
     res.status(200).json({
       success: true,
@@ -326,59 +277,6 @@ exports.deletePartyActivity = async (req, res, next) => {
   }
 };
 
-// @desc    Add media link to party activity
-// @route   POST /api/party-activities/:id/media
-// @access  Private
-exports.addMediaLink = async (req, res, next) => {
-  try {
-    const activity = await PartyActivity.findById(req.params.id);
-
-    if (!activity) {
-      return res.status(404).json({
-        success: false,
-        message: 'Party activity not found'
-      });
-    }
-
-    if (!req.body.url) {
-      return res.status(400).json({
-        success: false,
-        message: 'Media URL is required'
-      });
-    }
-
-    // Validate URL format
-    const urlRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
-    if (!urlRegex.test(req.body.url)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid media URL format'
-      });
-    }
-
-    activity.media_links.push(req.body.url);
-    activity.media_coverage = true;
-
-    // Set updated_by to current user
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-
-    activity.updated_by = req.user.id;
-    await activity.save();
-
-    res.status(200).json({
-      success: true,
-      data: activity
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 // @desc    Get party activities by party
 // @route   GET /api/party-activities/party/:partyId
 // @access  Public
@@ -394,10 +292,12 @@ exports.getPartyActivitiesByParty = async (req, res, next) => {
     }
 
     const activities = await PartyActivity.find({ party_id: req.params.partyId })
+      .sort({ activity_date: -1 })
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .sort({ activity_date: -1 })
+      .populate('block_id', 'name')
+      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username');
 
     res.status(200).json({
@@ -410,86 +310,26 @@ exports.getPartyActivitiesByParty = async (req, res, next) => {
   }
 };
 
-// @desc    Get party activities by parliament
-// @route   GET /api/party-activities/parliament/:parliamentId
+// @desc    Get upcoming party activities
+// @route   GET /api/party-activities/upcoming
 // @access  Public
-exports.getPartyActivitiesByParliament = async (req, res, next) => {
+exports.getUpcomingPartyActivities = async (req, res, next) => {
   try {
-    // Verify parliament exists
-    const parliament = await Parliament.findById(req.params.parliamentId);
-    if (!parliament) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parliament not found'
-      });
-    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const activities = await PartyActivity.find({ parliament_id: req.params.parliamentId })
-      .populate('party_id', 'name symbol')
-      .populate('division_id', 'name')
-      .populate('assembly_id', 'name')
-      .sort({ activity_date: -1 })
-      .populate('created_by', 'username');
-
-    res.status(200).json({
-      success: true,
-      count: activities.length,
-      data: activities
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get party activities by division
-// @route   GET /api/party-activities/division/:divisionId
-// @access  Public
-exports.getPartyActivitiesByDivision = async (req, res, next) => {
-  try {
-    // Verify division exists
-    const division = await Division.findById(req.params.divisionId);
-    if (!division) {
-      return res.status(404).json({
-        success: false,
-        message: 'Division not found'
-      });
-    }
-
-    const activities = await PartyActivity.find({ division_id: req.params.divisionId })
-      .populate('party_id', 'name symbol')
-      .populate('parliament_id', 'name')
-      .sort({ activity_date: -1 })
-      .populate('created_by', 'username');
-
-    res.status(200).json({
-      success: true,
-      count: activities.length,
-      data: activities
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get party activities by block
-// @route   GET /api/party-activities/block/:blockId
-// @access  Public
-exports.getPartyActivitiesByBlock = async (req, res, next) => {
-  try {
-    // Verify block exists
-    const block = await Block.findById(req.params.blockId);
-    if (!block) {
-      return res.status(404).json({
-        success: false,
-        message: 'Block not found'
-      });
-    }
-
-    const activities = await PartyActivity.find({ block_id: req.params.blockId })
-      .populate('party_id', 'name symbol')
-      .populate('assembly_id', 'name')
-      .sort({ activity_date: -1 })
-      .populate('created_by', 'username');
+    const activities = await PartyActivity.find({ 
+      activity_date: { $gte: today },
+      status: 'scheduled'
+    })
+    .sort({ activity_date: 1 })
+    .populate('party_id', 'name')
+    .populate('division_id', 'name')
+    .populate('parliament_id', 'name')
+    .populate('assembly_id', 'name')
+    .populate('block_id', 'name')
+    .populate('booth_id', 'name booth_number')
+    .limit(10);
 
     res.status(200).json({
       success: true,

@@ -62,8 +62,10 @@ const partyActivitySchema = new mongoose.Schema({
   end_date: {
     type: Date,
     validate: {
-      validator: function(value) {
-        return !value || value >= this.activity_date;
+      validator: function (value) {
+        // During updates, this.activity_date might not be available
+        const activityDate = this.activity_date || this.getUpdate().$set.activity_date;
+        return !value || !activityDate || new Date(value) >= new Date(activityDate);
       },
       message: 'End date must be after activity date'
     }
@@ -94,7 +96,7 @@ const partyActivitySchema = new mongoose.Schema({
     type: String,
     trim: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(v);
       },
       message: props => `${props.value} is not a valid URL!`
@@ -123,7 +125,7 @@ const partyActivitySchema = new mongoose.Schema({
 });
 
 // Update timestamp before saving
-partyActivitySchema.pre('save', function(next) {
+partyActivitySchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
@@ -187,7 +189,7 @@ partyActivitySchema.virtual('updater', {
 
 // Indexes for better performance
 partyActivitySchema.index({ title: 'text', description: 'text', location: 'text' });
-partyActivitySchema.index({ 
+partyActivitySchema.index({
   party_id: 1,
   division_id: 1,
   parliament_id: 1,

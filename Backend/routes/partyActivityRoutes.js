@@ -5,11 +5,8 @@ const {
   createPartyActivity,
   updatePartyActivity,
   deletePartyActivity,
-  addMediaLink,
   getPartyActivitiesByParty,
-  getPartyActivitiesByParliament,
-  getPartyActivitiesByDivision,
-  getPartyActivitiesByBlock
+  getUpcomingPartyActivities
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -19,7 +16,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Party Activities
- *   description: Party activity management
+ *   description: Political party activity management
  */
 
 /**
@@ -43,66 +40,61 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for activity titles, descriptions or locations
+ *         description: Search term for activity title, description or location
  *       - in: query
  *         name: party
  *         schema:
  *           type: string
- *         description: Filter by party ID
- *       - in: query
- *         name: division
- *         schema:
- *           type: string
- *         description: Filter by division ID
- *       - in: query
- *         name: parliament
- *         schema:
- *           type: string
- *         description: Filter by parliament ID
- *       - in: query
- *         name: assembly
- *         schema:
- *           type: string
- *         description: Filter by assembly ID
- *       - in: query
- *         name: block
- *         schema:
- *           type: string
- *         description: Filter by block ID
- *       - in: query
- *         name: booth
- *         schema:
- *           type: string
- *         description: Filter by booth ID
+ *         description: Party ID to filter by
  *       - in: query
  *         name: activity_type
  *         schema:
  *           type: string
  *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
- *         description: Filter by activity type
+ *         description: Activity type to filter by
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [scheduled, completed, cancelled, postponed]
- *         description: Filter by status
+ *         description: Status to filter by
  *       - in: query
- *         name: startDate
+ *         name: start_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter by start date (greater than or equal)
+ *         description: Start date for date range filter
  *       - in: query
- *         name: endDate
+ *         name: end_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter by end date (less than or equal)
+ *         description: End date for date range filter
  *       - in: query
- *         name: media_coverage
+ *         name: division
  *         schema:
- *           type: boolean
- *         description: Filter by media coverage
+ *           type: string
+ *         description: Division ID to filter by
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID to filter by
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID to filter by
+ *       - in: query
+ *         name: block
+ *         schema:
+ *           type: string
+ *         description: Block ID to filter by
+ *       - in: query
+ *         name: booth
+ *         schema:
+ *           type: string
+ *         description: Booth ID to filter by
  *     responses:
  *       200:
  *         description: List of party activities
@@ -174,7 +166,7 @@ router.get('/:id', getPartyActivity);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, createPartyActivity);
+router.post('/', protect, authorize('admin', 'superAdmin'), createPartyActivity);
 
 /**
  * @swagger
@@ -206,7 +198,7 @@ router.post('/', protect, createPartyActivity);
  *       404:
  *         description: Party activity not found
  */
-router.put('/:id', protect, updatePartyActivity);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), updatePartyActivity);
 
 /**
  * @swagger
@@ -230,45 +222,7 @@ router.put('/:id', protect, updatePartyActivity);
  *       404:
  *         description: Party activity not found
  */
-router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deletePartyActivity);
-
-/**
- * @swagger
- * /api/party-activities/{id}/media:
- *   post:
- *     summary: Add media link to party activity
- *     tags: [Party Activities]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               url:
- *                 type: string
- *                 description: URL to the media content
- *             required:
- *               - url
- *     responses:
- *       200:
- *         description: Media link added successfully
- *       400:
- *         description: Invalid input data
- *       401:
- *         description: Not authorized
- *       404:
- *         description: Party activity not found
- */
-router.post('/:id/media', protect, addMediaLink);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePartyActivity);
 
 /**
  * @swagger
@@ -284,7 +238,7 @@ router.post('/:id/media', protect, addMediaLink);
  *           type: string
  *     responses:
  *       200:
- *         description: List of party activities for the party
+ *         description: List of party activities for the specified party
  *         content:
  *           application/json:
  *             schema:
@@ -305,19 +259,13 @@ router.get('/party/:partyId', getPartyActivitiesByParty);
 
 /**
  * @swagger
- * /api/party-activities/parliament/{parliamentId}:
+ * /api/party-activities/upcoming:
  *   get:
- *     summary: Get party activities by parliament
+ *     summary: Get upcoming party activities
  *     tags: [Party Activities]
- *     parameters:
- *       - in: path
- *         name: parliamentId
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
- *         description: List of party activities for the parliament
+ *         description: List of upcoming party activities
  *         content:
  *           application/json:
  *             schema:
@@ -331,76 +279,8 @@ router.get('/party/:partyId', getPartyActivitiesByParty);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/PartyActivity'
- *       404:
- *         description: Parliament not found
  */
-router.get('/parliament/:parliamentId', getPartyActivitiesByParliament);
-
-/**
- * @swagger
- * /api/party-activities/division/{divisionId}:
- *   get:
- *     summary: Get party activities by division
- *     tags: [Party Activities]
- *     parameters:
- *       - in: path
- *         name: divisionId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of party activities for the division
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PartyActivity'
- *       404:
- *         description: Division not found
- */
-router.get('/division/:divisionId', getPartyActivitiesByDivision);
-
-/**
- * @swagger
- * /api/party-activities/block/{blockId}:
- *   get:
- *     summary: Get party activities by block
- *     tags: [Party Activities]
- *     parameters:
- *       - in: path
- *         name: blockId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of party activities for the block
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PartyActivity'
- *       404:
- *         description: Block not found
- */
-router.get('/block/:blockId', getPartyActivitiesByBlock);
+router.get('/upcoming', getUpcomingPartyActivities);
 
 /**
  * @swagger
@@ -419,63 +299,82 @@ router.get('/block/:blockId', getPartyActivitiesByBlock);
  *         party_id:
  *           type: string
  *           description: Reference to Party
+ *           example: "507f1f77bcf86cd799439011"
  *         division_id:
  *           type: string
  *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439012"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439013"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439014"
  *         block_id:
  *           type: string
  *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439015"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
+ *           example: "507f1f77bcf86cd799439016"
  *         activity_type:
  *           type: string
  *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
  *           description: Type of activity
+ *           example: "rally"
  *         title:
  *           type: string
  *           description: Title of the activity
+ *           example: "Election Campaign Kickoff"
  *         description:
  *           type: string
- *           description: Description of the activity
+ *           description: Detailed description of the activity
+ *           example: "Annual election campaign kickoff with party leaders"
  *         activity_date:
  *           type: string
  *           format: date-time
- *           description: Date and time of the activity
+ *           description: Scheduled date and time of the activity
+ *           example: "2023-05-15T10:00:00Z"
  *         end_date:
  *           type: string
  *           format: date-time
  *           description: End date and time of the activity
+ *           example: "2023-05-15T14:00:00Z"
  *         location:
  *           type: string
- *           description: Location of the activity
+ *           description: Physical location of the activity
+ *           example: "Central Park, Main Stage"
  *         status:
  *           type: string
  *           enum: [scheduled, completed, cancelled, postponed]
  *           description: Current status of the activity
+ *           example: "scheduled"
  *         attendance_count:
- *           type: number
+ *           type: integer
  *           description: Number of attendees
+ *           example: 500
  *         media_coverage:
  *           type: boolean
- *           description: Whether there was media coverage
+ *           description: Whether the event had media coverage
+ *           example: true
  *         media_links:
  *           type: array
  *           items:
  *             type: string
+ *             format: uri
  *           description: Links to media coverage
+ *           example: ["https://example.com/news/event-coverage"]
  *         created_by:
  *           type: string
- *           description: Reference to User who created the record
+ *           description: Reference to User who created the activity
+ *           example: "507f1f77bcf86cd799439022"
  *         updated_by:
  *           type: string
- *           description: Reference to User who last updated the record
+ *           description: Reference to User who last updated the activity
+ *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -484,6 +383,11 @@ router.get('/block/:blockId', getPartyActivitiesByBlock);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;
