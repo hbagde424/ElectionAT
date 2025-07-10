@@ -179,12 +179,48 @@ export default function PartyActivitiesListPage() {
             )
         },
         {
+            header: 'State',
+            accessorKey: 'state_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
             header: 'Division',
             accessorKey: 'division_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
                     color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Parliament',
+            accessorKey: 'parliament_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="secondary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Assembly',
+            accessorKey: 'assembly_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="info"
                     size="small"
                     variant="outlined"
                 />
@@ -203,9 +239,40 @@ export default function PartyActivitiesListPage() {
             )
         },
         {
+            header: 'Booth',
+            accessorKey: 'booth_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() ? `${getValue().name} (${getValue().booth_number})` : 'N/A'}
+                    color="success"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
             header: 'Activity Date',
             accessorKey: 'activity_date',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'End Date',
+            accessorKey: 'end_date',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Location',
+            accessorKey: 'location',
+            cell: ({ getValue }) => <Typography>{getValue() || 'N/A'}</Typography>
         },
         {
             header: 'Status',
@@ -237,6 +304,50 @@ export default function PartyActivitiesListPage() {
                     size="small"
                 />
             )
+        },
+        {
+            header: 'Media Links',
+            accessorKey: 'media_links',
+            cell: ({ getValue }) => (
+                Array.isArray(getValue()) && getValue().length > 0
+                    ? getValue().map((link, idx) => (
+                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>{link}</a>
+                    ))
+                    : 'N/A'
+            )
+        },
+        {
+            header: 'Created By',
+            accessorKey: 'created_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Updated By',
+            accessorKey: 'updated_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Created At',
+            accessorKey: 'created_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'ID',
+            accessorKey: '_id',
+            cell: ({ getValue }) => <Typography sx={{ fontSize: 12 }}>{getValue()}</Typography>
         },
         {
             header: 'Actions',

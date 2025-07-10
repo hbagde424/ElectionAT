@@ -75,6 +75,7 @@ export default function PartyActivitiesModal({
         media_links: []
         // Note: created_by and updated_by are handled separately in handleSubmit
     });
+    const [submitted, setSubmitted] = useState(false);
 
     // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -93,15 +94,19 @@ export default function PartyActivitiesModal({
     ];
 
     useEffect(() => {
-        if (partyActivity) {
+        if (partyActivity && Array.isArray(states) && states.length > 0) {
+            const state_id = partyActivity.state_id?._id?.toString() || partyActivity.state_id?.toString() || '';
+            const division_id = partyActivity.division_id?._id?.toString() || partyActivity.division_id?.toString() || '';
+            console.log('DEBUG: Setting formData.state_id:', state_id);
+            console.log('DEBUG: Setting formData.division_id:', division_id);
             setFormData({
-                party_id: partyActivity.party_id?._id || '',
-                state_id: partyActivity.state_id?._id || '',
-                division_id: partyActivity.division_id?._id || '',
-                parliament_id: partyActivity.parliament_id?._id || '',
-                assembly_id: partyActivity.assembly_id?._id || '',
-                block_id: partyActivity.block_id?._id || '',
-                booth_id: partyActivity.booth_id?._id || '',
+                party_id: partyActivity.party_id?._id?.toString() || partyActivity.party_id?.toString() || '',
+                state_id,
+                division_id,
+                parliament_id: partyActivity.parliament_id?._id?.toString() || partyActivity.parliament_id?.toString() || '',
+                assembly_id: partyActivity.assembly_id?._id?.toString() || partyActivity.assembly_id?.toString() || '',
+                block_id: partyActivity.block_id?._id?.toString() || partyActivity.block_id?.toString() || '',
+                booth_id: partyActivity.booth_id?._id?.toString() || partyActivity.booth_id?.toString() || '',
                 activity_type: partyActivity.activity_type || '',
                 title: partyActivity.title || '',
                 description: partyActivity.description || '',
@@ -114,7 +119,7 @@ export default function PartyActivitiesModal({
                 media_links: partyActivity.media_links || []
                 // Note: created_by and updated_by are handled separately in handleSubmit
             });
-        } else {
+        } else if (!partyActivity) {
             setFormData({
                 party_id: '',
                 state_id: '',
@@ -136,7 +141,11 @@ export default function PartyActivitiesModal({
                 // Note: created_by and updated_by are handled separately in handleSubmit
             });
         }
-    }, [partyActivity]);
+    }, [partyActivity, states]);
+
+    // Add debug logs before rendering dropdowns
+    console.log('DEBUG: formData.state_id', formData.state_id, 'states', states);
+    console.log('DEBUG: formData.division_id', formData.division_id, 'filteredDivisions', filteredDivisions);
 
     // Cascading dropdown logic: State -> Division
     useEffect(() => {
@@ -357,6 +366,19 @@ export default function PartyActivitiesModal({
     };
 
     const handleSubmit = async () => {
+        setSubmitted(true);
+        // Validation: check all required fields
+        const requiredFields = [
+            'party_id', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id',
+            'activity_type', 'title', 'description', 'activity_date', 'end_date', 'location', 'status', 'attendance_count'
+        ];
+        for (const field of requiredFields) {
+            if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
+                // Do not alert, just show errors in UI
+                return;
+            }
+        }
+
         const method = partyActivity ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = partyActivity
@@ -464,8 +486,8 @@ export default function PartyActivitiesModal({
                         {/* Row 1: Party and State */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Party</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Party</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.party_id}>
                                     <Select
                                         name="party_id"
                                         value={formData.party_id}
@@ -483,10 +505,11 @@ export default function PartyActivitiesModal({
                             </Stack>
                         </Grid>
 
+
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>State</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>State</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.state_id}>
                                     <Select
                                         name="state_id"
                                         value={formData.state_id}
@@ -504,11 +527,12 @@ export default function PartyActivitiesModal({
                             </Stack>
                         </Grid>
 
+
                         {/* Row 2: Division and Parliament */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Division</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Division</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.division_id}>
                                     <Select
                                         name="division_id"
                                         value={formData.division_id}
@@ -529,8 +553,8 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Parliament</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Parliament</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                     <Select
                                         name="parliament_id"
                                         value={formData.parliament_id}
@@ -552,12 +576,13 @@ export default function PartyActivitiesModal({
                         {/* Row 3: Assembly and Block */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Assembly</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Assembly</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                     <Select
                                         name="assembly_id"
                                         value={formData.assembly_id}
                                         onChange={handleChange}
+                                        required
                                         disabled={!formData.parliament_id}
                                     >
                                         <MenuItem value="">Select Assembly</MenuItem>
@@ -573,12 +598,13 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Block</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Block</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.block_id}>
                                     <Select
                                         name="block_id"
                                         value={formData.block_id}
                                         onChange={handleChange}
+                                        required
                                         disabled={!formData.assembly_id}
                                     >
                                         <MenuItem value="">Select Block</MenuItem>
@@ -595,12 +621,13 @@ export default function PartyActivitiesModal({
                         {/* Row 4: Booth and Activity Type */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Booth</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Booth</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.booth_id}>
                                     <Select
                                         name="booth_id"
                                         value={formData.booth_id}
                                         onChange={handleChange}
+                                        required
                                         disabled={!formData.block_id}
                                     >
                                         <MenuItem value="">Select Booth</MenuItem>
@@ -616,8 +643,8 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Activity Type</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Activity Type</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.activity_type}>
                                     <Select
                                         name="activity_type"
                                         value={formData.activity_type}
@@ -638,13 +665,15 @@ export default function PartyActivitiesModal({
                         {/* Row 5: Title and Location */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Title</InputLabel>
+                                <InputLabel required>Title</InputLabel>
                                 <TextField
                                     name="title"
                                     value={formData.title}
                                     onChange={handleChange}
                                     fullWidth
                                     required
+                                    error={submitted && !formData.title}
+                                    helperText={submitted && !formData.title ? 'Title is required' : ''}
                                     placeholder="Enter activity title"
                                 />
                             </Stack>
@@ -652,12 +681,15 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Location</InputLabel>
+                                <InputLabel required>Location</InputLabel>
                                 <TextField
                                     name="location"
                                     value={formData.location}
                                     onChange={handleChange}
                                     fullWidth
+                                    required
+                                    error={submitted && !formData.location}
+                                    helperText={submitted && !formData.location ? 'Location is required' : ''}
                                     placeholder="Enter activity location"
                                 />
                             </Stack>
@@ -666,7 +698,7 @@ export default function PartyActivitiesModal({
                         {/* Row 6: Description */}
                         <Grid item xs={12}>
                             <Stack spacing={1}>
-                                <InputLabel>Description</InputLabel>
+                                <InputLabel required>Description</InputLabel>
                                 <TextField
                                     name="description"
                                     value={formData.description}
@@ -674,6 +706,9 @@ export default function PartyActivitiesModal({
                                     fullWidth
                                     multiline
                                     rows={3}
+                                    required
+                                    error={submitted && !formData.description}
+                                    helperText={submitted && !formData.description ? 'Description is required' : ''}
                                     placeholder="Enter activity description"
                                 />
                             </Stack>
@@ -682,22 +717,22 @@ export default function PartyActivitiesModal({
                         {/* Row 7: Activity Dates */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Activity Start Date & Time</InputLabel>
+                                <InputLabel required>Activity Start Date & Time</InputLabel>
                                 <DateTimePicker
                                     value={formData.activity_date}
                                     onChange={handleDateChange}
-                                    renderInput={(params) => <TextField {...params} fullWidth />}
+                                    renderInput={(params) => <TextField {...params} fullWidth required error={submitted && !formData.activity_date} helperText={submitted && !formData.activity_date ? 'Start date is required' : ''} />}
                                 />
                             </Stack>
                         </Grid>
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Activity End Date & Time</InputLabel>
+                                <InputLabel required>Activity End Date & Time</InputLabel>
                                 <DateTimePicker
                                     value={formData.end_date}
                                     onChange={handleEndDateChange}
-                                    renderInput={(params) => <TextField {...params} fullWidth />}
+                                    renderInput={(params) => <TextField {...params} fullWidth required error={submitted && !formData.end_date} helperText={submitted && !formData.end_date ? 'End date is required' : ''} />}
                                     minDateTime={formData.activity_date}
                                 />
                             </Stack>
@@ -706,8 +741,8 @@ export default function PartyActivitiesModal({
                         {/* Row 8: Status and Attendance */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Status</InputLabel>
-                                <FormControl fullWidth>
+                                <InputLabel required>Status</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.status}>
                                     <Select
                                         name="status"
                                         value={formData.status}
@@ -735,13 +770,16 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel>Attendance Count</InputLabel>
+                                <InputLabel required>Attendance Count</InputLabel>
                                 <TextField
                                     name="attendance_count"
                                     type="number"
                                     value={formData.attendance_count}
                                     onChange={handleChange}
                                     fullWidth
+                                    required
+                                    error={submitted && !formData.attendance_count}
+                                    helperText={submitted && !formData.attendance_count ? 'Attendance count is required' : ''}
                                     placeholder="Enter expected/actual attendance"
                                 />
                             </Stack>

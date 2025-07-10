@@ -1,5 +1,5 @@
 // PartyActivitiesView.jsx
-import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
+import { Stack, Typography, Divider, Grid, Box, Chip, Link } from '@mui/material';
 import { CalendarTick, People, Video } from 'iconsax-react';
 
 export default function PartyActivitiesView({ data }) {
@@ -65,7 +65,7 @@ export default function PartyActivitiesView({ data }) {
 
             <Grid container spacing={3}>
                 {/* Left Column */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Stack spacing={2}>
                         <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -85,6 +85,18 @@ export default function PartyActivitiesView({ data }) {
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
                                 {formatDateTime(data.activity_date)}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <CalendarTick size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Activity End Date & Time
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {formatDateTime(data.end_date)}
                             </Typography>
                         </Box>
 
@@ -114,6 +126,21 @@ export default function PartyActivitiesView({ data }) {
                             />
                         </Box>
 
+                        {Array.isArray(data.media_links) && data.media_links.length > 0 && (
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    Media Links
+                                </Typography>
+                                <Stack spacing={1}>
+                                    {data.media_links.map((link, index) => (
+                                        <Link key={index} href={link} target="_blank" rel="noopener" underline="hover">
+                                            {link}
+                                        </Link>
+                                    ))}
+                                </Stack>
+                            </Box>
+                        )}
+
                         <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                 Location
@@ -122,109 +149,72 @@ export default function PartyActivitiesView({ data }) {
                                 {data.location || 'N/A'}
                             </Typography>
                         </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Activity ID
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {data._id || data.id || 'N/A'}
+                            </Typography>
+                        </Box>
                     </Stack>
                 </Grid>
 
-                {/* Right Column */}
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={2}>
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Party
-                            </Typography>
-                            <Typography variant="body1" fontWeight="medium">
-                                {data.party_id?.name || 'N/A'}
-                            </Typography>
-                        </Box>
+                {/* Right Column: 5 values per row, equal width */}
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Party</Typography>
+                            <Typography variant="body1" fontWeight="medium">{data.party_id?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                            <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                            <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                            <Chip label={data.parliament_id?.name || 'N/A'} color="secondary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                            <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
+                        </Grid>
 
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Division
-                            </Typography>
-                            <Chip
-                                label={data.division_id?.name || 'N/A'}
-                                color="warning"
-                                size="small"
-                            />
-                        </Box>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
+                            <Chip label={data.block_id?.name || 'N/A'} color="primary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                            <Chip label={data.booth_id ? `${data.booth_id.name} (${data.booth_id.booth_number})` : 'N/A'} color="success" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
+                            <Chip label={data.status?.toUpperCase() || 'N/A'} color={getStatusColor(data.status)} size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Created By</Typography>
+                            <Typography variant="body1">{data.created_by?.username || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Updated By</Typography>
+                            <Typography variant="body1">{data.updated_by?.username || 'N/A'}</Typography>
+                        </Grid>
 
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Parliament
-                            </Typography>
-                            <Chip
-                                label={data.parliament_id?.name || 'N/A'}
-                                color="secondary"
-                                size="small"
-                            />
-                        </Box>
-
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Assembly
-                            </Typography>
-                            <Chip
-                                label={data.assembly_id?.name || 'N/A'}
-                                color="info"
-                                size="small"
-                            />
-                        </Box>
-
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Block
-                            </Typography>
-                            <Chip
-                                label={data.block_id?.name || 'N/A'}
-                                color="primary"
-                                size="small"
-                            />
-                        </Box>
-
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Booth
-                            </Typography>
-                            <Chip
-                                label={
-                                    data.booth_id
-                                        ? `${data.booth_id.name} (${data.booth_id.booth_number})`
-                                        : 'N/A'
-                                }
-                                color="success"
-                                size="small"
-                            />
-                        </Box>
-
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Created By
-                            </Typography>
-                            <Typography variant="body1" fontFamily="monospace">
-                                {data.created_by?._id || 'N/A'}
-                            </Typography>
-                        </Box>
-
-                        <Divider />
-
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Created At
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {formatDate(data.created_at)}
-                            </Typography>
-                        </Box>
-
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Last Updated
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {formatDate(data.updated_at)}
-                            </Typography>
-                        </Box>
-                    </Stack>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Created At</Typography>
+                            <Typography variant="body2" color="text.secondary">{formatDate(data.created_at)}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Last Updated</Typography>
+                            <Typography variant="body2" color="text.secondary">{formatDate(data.updated_at)}</Typography>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Grid>
         </Box>
