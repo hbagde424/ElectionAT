@@ -7,6 +7,12 @@ const partyActivitySchema = new mongoose.Schema({
     required: [true, 'Party reference is required'],
     index: true
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
@@ -63,7 +69,6 @@ const partyActivitySchema = new mongoose.Schema({
     type: Date,
     validate: {
       validator: function (value) {
-        // During updates, this.activity_date might not be available
         const activityDate = this.activity_date || this.getUpdate().$set.activity_date;
         return !value || !activityDate || new Date(value) >= new Date(activityDate);
       },
@@ -138,6 +143,13 @@ partyActivitySchema.virtual('party', {
   justOne: true
 });
 
+partyActivitySchema.virtual('state', {
+  ref: 'State',
+  localField: 'state_id',
+  foreignField: '_id',
+  justOne: true
+});
+
 partyActivitySchema.virtual('division', {
   ref: 'Division',
   localField: 'division_id',
@@ -191,6 +203,7 @@ partyActivitySchema.virtual('updater', {
 partyActivitySchema.index({ title: 'text', description: 'text', location: 'text' });
 partyActivitySchema.index({
   party_id: 1,
+  state_id: 1,
   division_id: 1,
   parliament_id: 1,
   assembly_id: 1,

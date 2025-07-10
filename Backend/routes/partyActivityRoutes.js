@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 const {
   getPartyActivities,
   getPartyActivity,
@@ -10,7 +11,93 @@ const {
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
 
-const router = express.Router();
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     PartyActivity:
+ *       type: object
+ *       required:
+ *         - party_id
+ *         - state_id
+ *         - parliament_id
+ *         - activity_type
+ *         - title
+ *         - activity_date
+ *         - created_by
+ *       properties:
+ *         party_id:
+ *           type: string
+ *           description: Reference to Party
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *         parliament_id:
+ *           type: string
+ *           description: Reference to Parliament
+ *         assembly_id:
+ *           type: string
+ *           description: Reference to Assembly
+ *         block_id:
+ *           type: string
+ *           description: Reference to Block
+ *         booth_id:
+ *           type: string
+ *           description: Reference to Booth
+ *         activity_type:
+ *           type: string
+ *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
+ *         title:
+ *           type: string
+ *           maxLength: 200
+ *         description:
+ *           type: string
+ *           maxLength: 1000
+ *         activity_date:
+ *           type: string
+ *           format: date-time
+ *         end_date:
+ *           type: string
+ *           format: date-time
+ *         location:
+ *           type: string
+ *           maxLength: 200
+ *         status:
+ *           type: string
+ *           enum: [scheduled, completed, cancelled, postponed]
+ *           default: scheduled
+ *         attendance_count:
+ *           type: integer
+ *           minimum: 0
+ *         media_coverage:
+ *           type: boolean
+ *           default: false
+ *         media_links:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uri
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who updated
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
 
 /**
  * @swagger
@@ -30,71 +117,64 @@ const router = express.Router();
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number
+ *           default: 1
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Items per page
+ *           default: 10
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for activity title, description or location
  *       - in: query
  *         name: party
  *         schema:
  *           type: string
- *         description: Party ID to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: activity_type
  *         schema:
  *           type: string
  *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
- *         description: Activity type to filter by
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [scheduled, completed, cancelled, postponed]
- *         description: Status to filter by
  *       - in: query
  *         name: start_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Start date for date range filter
  *       - in: query
  *         name: end_date
  *         schema:
  *           type: string
  *           format: date
- *         description: End date for date range filter
  *       - in: query
  *         name: division
  *         schema:
  *           type: string
- *         description: Division ID to filter by
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Parliament ID to filter by
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Assembly ID to filter by
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Block ID to filter by
  *       - in: query
  *         name: booth
  *         schema:
  *           type: string
- *         description: Booth ID to filter by
  *     responses:
  *       200:
  *         description: List of party activities
@@ -238,7 +318,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePartyActi
  *           type: string
  *     responses:
  *       200:
- *         description: List of party activities for the specified party
+ *         description: List of party activities
  *         content:
  *           application/json:
  *             schema:
@@ -265,7 +345,7 @@ router.get('/party/:partyId', getPartyActivitiesByParty);
  *     tags: [Party Activities]
  *     responses:
  *       200:
- *         description: List of upcoming party activities
+ *         description: List of upcoming activities
  *         content:
  *           application/json:
  *             schema:
@@ -281,113 +361,5 @@ router.get('/party/:partyId', getPartyActivitiesByParty);
  *                     $ref: '#/components/schemas/PartyActivity'
  */
 router.get('/upcoming', getUpcomingPartyActivities);
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     PartyActivity:
- *       type: object
- *       required:
- *         - party_id
- *         - parliament_id
- *         - activity_type
- *         - title
- *         - activity_date
- *         - created_by
- *       properties:
- *         party_id:
- *           type: string
- *           description: Reference to Party
- *           example: "507f1f77bcf86cd799439011"
- *         division_id:
- *           type: string
- *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439012"
- *         parliament_id:
- *           type: string
- *           description: Reference to Parliament
- *           example: "507f1f77bcf86cd799439013"
- *         assembly_id:
- *           type: string
- *           description: Reference to Assembly
- *           example: "507f1f77bcf86cd799439014"
- *         block_id:
- *           type: string
- *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439015"
- *         booth_id:
- *           type: string
- *           description: Reference to Booth
- *           example: "507f1f77bcf86cd799439016"
- *         activity_type:
- *           type: string
- *           enum: [rally, sabha, meeting, campaign, door_to_door, press_conference]
- *           description: Type of activity
- *           example: "rally"
- *         title:
- *           type: string
- *           description: Title of the activity
- *           example: "Election Campaign Kickoff"
- *         description:
- *           type: string
- *           description: Detailed description of the activity
- *           example: "Annual election campaign kickoff with party leaders"
- *         activity_date:
- *           type: string
- *           format: date-time
- *           description: Scheduled date and time of the activity
- *           example: "2023-05-15T10:00:00Z"
- *         end_date:
- *           type: string
- *           format: date-time
- *           description: End date and time of the activity
- *           example: "2023-05-15T14:00:00Z"
- *         location:
- *           type: string
- *           description: Physical location of the activity
- *           example: "Central Park, Main Stage"
- *         status:
- *           type: string
- *           enum: [scheduled, completed, cancelled, postponed]
- *           description: Current status of the activity
- *           example: "scheduled"
- *         attendance_count:
- *           type: integer
- *           description: Number of attendees
- *           example: 500
- *         media_coverage:
- *           type: boolean
- *           description: Whether the event had media coverage
- *           example: true
- *         media_links:
- *           type: array
- *           items:
- *             type: string
- *             format: uri
- *           description: Links to media coverage
- *           example: ["https://example.com/news/event-coverage"]
- *         created_by:
- *           type: string
- *           description: Reference to User who created the activity
- *           example: "507f1f77bcf86cd799439022"
- *         updated_by:
- *           type: string
- *           description: Reference to User who last updated the activity
- *           example: "507f1f77bcf86cd799439022"
- *         created_at:
- *           type: string
- *           format: date-time
- *           description: Creation timestamp
- *         updated_at:
- *           type: string
- *           format: date-time
- *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
- */
 
 module.exports = router;
