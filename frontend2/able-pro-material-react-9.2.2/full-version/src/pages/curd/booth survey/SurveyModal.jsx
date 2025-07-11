@@ -224,7 +224,7 @@ export default function BoothSurveyModal({
                                         <MenuItem value="">Select Surveyor</MenuItem>
                                         {users.map((user) => (
                                             <MenuItem key={user._id} value={user._id}>
-                                                {user.name}
+                                                {user.username}
                                             </MenuItem>
                                         ))}
                                     </Select>

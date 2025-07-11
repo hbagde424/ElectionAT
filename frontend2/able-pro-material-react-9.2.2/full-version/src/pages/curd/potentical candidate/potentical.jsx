@@ -4,10 +4,10 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip, Avatar
+  Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload } from 'iconsax-react';
 
 // third-party
 import {
@@ -41,18 +41,23 @@ export default function PotentialCandidateListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [error, setError] = useState('');
 
   const fetchCandidates = async (pageIndex, pageSize) => {
     setLoading(true);
+    setError('');
     try {
       const res = await fetch(`http://localhost:5000/api/potential-candidates?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
         setCandidates(json.data);
         setPageCount(json.pages);
+      } else {
+        setError('Failed to fetch potential candidates');
       }
     } catch (error) {
       console.error('Failed to fetch candidates:', error);
+      setError('Failed to fetch potential candidates');
     } finally {
       setLoading(false);
     }
@@ -70,11 +75,9 @@ export default function PotentialCandidateListPage() {
       const assembliesJson = await assembliesRes.json();
       const electionYearsJson = await electionYearsRes.json();
 
-      console.log('Election Years Data:', electionYearsJson); // Add this for debugging
-
       if (partiesJson.success) setParties(partiesJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (electionYearsJson) setElectionYears(electionYearsJson);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -92,11 +95,79 @@ export default function PotentialCandidateListPage() {
 
   const handleDeleteClose = () => setOpenDelete(false);
 
+  const handleCSVDownload = () => {
+    if (candidates.length === 0) return;
+
+    const headers = [
+      'Name',
+      'Party',
+      'Constituency',
+      'Election Year',
+      'Post Name',
+      'Place',
+      'From Date',
+      'To Date',
+      'Political History',
+      'Pros',
+      'Cons',
+      'Supporters Count',
+      'Status',
+      'Created By',
+      'Created At',
+      'Updated At'
+    ];
+
+    const csvData = candidates.map(candidate => [
+      candidate.name || '',
+      candidate.party_id?.name || '',
+      candidate.constituency_id?.name || '',
+      candidate.election_year_id?.year || '',
+      candidate.post_details?.postname || '',
+      candidate.post_details?.place || '',
+      candidate.post_details?.from_date ? new Date(candidate.post_details.from_date).toLocaleDateString() : '',
+      candidate.post_details?.to_date ? new Date(candidate.post_details.to_date).toLocaleDateString() : '',
+      candidate.history || '',
+      candidate.pros || '',
+      candidate.cons || '',
+      candidate.supporter_candidates?.length || 0,
+      candidate.status || '',
+      candidate.created_by?.username || '',
+      candidate.created_at ? new Date(candidate.created_at).toLocaleString() : '',
+      candidate.updated_at ? new Date(candidate.updated_at).toLocaleString() : ''
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `potential-candidates-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const columns = useMemo(() => [
     {
       header: '#',
       accessorKey: '_id',
-      cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+      cell: ({ row }) => <Typography variant="body2" color="text.secondary">{row.index + 1}</Typography>
     },
     {
       header: 'Candidate',
@@ -104,9 +175,16 @@ export default function PotentialCandidateListPage() {
       cell: ({ row }) => (
         <Stack direction="row" spacing={1} alignItems="center">
           {row.original.image && (
-            <Avatar src={row.original.image} alt={row.original.name} sx={{ width: 40, height: 40 }} />
+            <Avatar src={row.original.image} alt={row.original.name} sx={{ width: 40, height: 40 }}>
+              <User size={20} />
+            </Avatar>
           )}
-          <Typography variant="subtitle1">{row.original.name}</Typography>
+          <Box>
+            <Typography variant="subtitle1" fontWeight="medium">{row.original.name || 'Untitled'}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              ID: {row.original._id?.slice(-8)}
+            </Typography>
+          </Box>
         </Stack>
       )
     },
@@ -115,8 +193,8 @@ export default function PotentialCandidateListPage() {
       accessorKey: 'party_id',
       cell: ({ getValue }) => (
         getValue() ?
-          <Chip label={getValue().name} color="primary" size="small" /> :
-          <Typography variant="caption">No party</Typography>
+          <Chip label={getValue().name} color="primary" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No party</Typography>
       )
     },
     {
@@ -124,8 +202,8 @@ export default function PotentialCandidateListPage() {
       accessorKey: 'constituency_id',
       cell: ({ getValue }) => (
         getValue() ?
-          <Chip label={getValue().name} color="secondary" size="small" /> :
-          <Typography variant="caption">No constituency</Typography>
+          <Chip label={getValue().name} color="secondary" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No constituency</Typography>
       )
     },
     {
@@ -133,9 +211,107 @@ export default function PotentialCandidateListPage() {
       accessorKey: 'election_year_id',
       cell: ({ getValue }) => (
         getValue() ?
-          <Typography>{getValue().year}</Typography> :
-          <Typography variant="caption">No year</Typography>
+          <Chip label={getValue().year} color="info" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No year</Typography>
       )
+    },
+    {
+      header: 'Post Details',
+      accessorKey: 'post_details',
+      cell: ({ getValue }) => {
+        const postDetails = getValue();
+        if (!postDetails) return <Typography variant="caption" color="text.secondary">No post details</Typography>;
+
+        return (
+          <Box>
+            <Typography variant="body2" fontWeight="medium">{postDetails.postname || 'N/A'}</Typography>
+            <Typography variant="caption" color="text.secondary">{postDetails.place || 'N/A'}</Typography>
+            <Typography variant="caption" display="block" color="text.secondary">
+              {postDetails.from_date ? new Date(postDetails.from_date).toLocaleDateString() : 'N/A'} - {postDetails.to_date ? new Date(postDetails.to_date).toLocaleDateString() : 'N/A'}
+            </Typography>
+          </Box>
+        );
+      }
+    },
+    {
+      header: 'Political History',
+      accessorKey: 'history',
+      cell: ({ getValue }) => {
+        const history = getValue();
+        return (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 200,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {history || 'No history'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Pros',
+      accessorKey: 'pros',
+      cell: ({ getValue }) => {
+        const pros = getValue();
+        return (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 150,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              color: 'success.main'
+            }}
+          >
+            {pros || 'No pros'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Cons',
+      accessorKey: 'cons',
+      cell: ({ getValue }) => {
+        const cons = getValue();
+        return (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 150,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              color: 'error.main'
+            }}
+          >
+            {cons || 'No cons'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Supporters',
+      accessorKey: 'supporter_candidates',
+      cell: ({ getValue }) => {
+        const supporters = getValue();
+        if (!supporters || supporters.length === 0) {
+          return <Typography variant="caption" color="text.secondary">No supporters</Typography>;
+        }
+        return (
+          <Chip
+            label={`${supporters.length} supporter${supporters.length > 1 ? 's' : ''}`}
+            color="warning"
+            size="small"
+            variant="outlined"
+          />
+        );
+      }
     },
     {
       header: 'Status',
@@ -157,6 +333,29 @@ export default function PotentialCandidateListPage() {
       }
     },
     {
+      header: 'Created By',
+      accessorKey: 'created_by',
+      cell: ({ getValue }) => {
+        const createdBy = getValue();
+        return (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <User size={14} />
+            <Typography variant="caption">{createdBy?.username || 'Unknown'}</Typography>
+          </Stack>
+        );
+      }
+    },
+    {
+      header: 'Created',
+      accessorKey: 'created_at',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <CalendarTick size={14} />
+          <Typography variant="caption">{formatDateTime(getValue())}</Typography>
+        </Stack>
+      )
+    },
+    {
       header: 'Actions',
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
@@ -164,12 +363,12 @@ export default function PotentialCandidateListPage() {
         const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View">
+            <Tooltip title="View Details">
               <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
                 {expandIcon}
               </IconButton>
             </Tooltip>
-            <Tooltip title="Edit">
+            <Tooltip title="Edit Candidate">
               <IconButton
                 color="primary"
                 onClick={(e) => {
@@ -181,7 +380,7 @@ export default function PotentialCandidateListPage() {
                 <Edit />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete">
+            <Tooltip title="Delete Candidate">
               <IconButton
                 color="error"
                 onClick={(e) => {
@@ -219,15 +418,31 @@ export default function PotentialCandidateListPage() {
   return (
     <>
       <MainCard content={false}>
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${candidates.length} candidates...`}
+            placeholder={`Search ${candidates.length} potential candidates...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
-            Add Candidate
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<DocumentDownload />}
+              onClick={handleCSVDownload}
+              disabled={candidates.length === 0}
+            >
+              Export CSV
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
+              Add Candidate
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>

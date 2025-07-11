@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider
@@ -12,6 +12,7 @@ import {
   getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
   useReactTable, flexRender
 } from '@tanstack/react-table';
+import { CSVLink } from 'react-csv';
 
 // project imports
 import MainCard from 'components/MainCard';
@@ -41,14 +42,17 @@ export default function BoothVolunteerListPage() {
   const [blocks, setBlocks] = useState([]);
   const [booths, setBooths] = useState([]);
   const [parties, setParties] = useState([]);
+  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [globalFilter, setGlobalFilter] = useState('');
 
-  const fetchVolunteers = async (pageIndex, pageSize) => {
+  const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '') => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`);
+      const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+      const res = await fetch(`http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}${query}`);
       const json = await res.json();
       if (json.success) {
         setVolunteers(json.data);
@@ -73,30 +77,45 @@ export default function BoothVolunteerListPage() {
         fetch('http://localhost:5000/api/parties')
       ]);
 
-      const statesJson = await statesRes.json();
-      const divisionsJson = await divisionsRes.json();
-      const parliamentsJson = await parliamentsRes.json();
-      const assembliesJson = await assembliesRes.json();
-      const blocksJson = await blocksRes.json();
-      const boothsJson = await boothsRes.json();
-      const partiesJson = await partiesRes.json();
+      const token = localStorage.getItem('serviceToken');
 
-      if (statesJson.success) setStates(statesJson.data);
-      if (divisionsJson.success) setDivisions(divisionsJson.data);
-      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
-      if (assembliesJson.success) setAssemblies(assembliesJson.data);
-      if (blocksJson.success) setBlocks(blocksJson.data);
-      if (boothsJson.success) setBooths(boothsJson.data);
-      if (partiesJson.success) setParties(partiesJson.data);
+      const [usersRes] = await Promise.all([
+        fetch('http://localhost:5000/api/users', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+      ]);
+
+      const usersData = await usersRes.json();
+      if (usersData.success) setUsers(usersData.data);
+
+      const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, partiesData] = await Promise.all([
+        statesRes.json(),
+        divisionsRes.json(),
+        parliamentsRes.json(),
+        assembliesRes.json(),
+        blocksRes.json(),
+        boothsRes.json(),
+        partiesRes.json()
+      ]);
+
+      if (statesData.success) setStates(statesData.data);
+      if (divisionsData.success) setDivisions(divisionsData.data);
+      if (parliamentsData.success) setParliaments(parliamentsData.data);
+      if (assembliesData.success) setAssemblies(assembliesData.data);
+      if (blocksData.success) setBlocks(blocksData.data);
+      if (boothsData.success) setBooths(boothsData.data);
+      if (partiesData.success) setParties(partiesData.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
   useEffect(() => {
-    fetchVolunteers(pagination.pageIndex, pagination.pageSize);
+    fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter);
     fetchReferenceData();
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
   const handleDeleteOpen = (id) => {
     setVolunteerDeleteId(id);
@@ -104,6 +123,15 @@ export default function BoothVolunteerListPage() {
   };
 
   const handleDeleteClose = () => setOpenDelete(false);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   const columns = useMemo(() => [
     {
@@ -114,7 +142,16 @@ export default function BoothVolunteerListPage() {
     {
       header: 'Name',
       accessorKey: 'name',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue()}
+        </Typography>
+      )
     },
     {
       header: 'Phone',
@@ -122,26 +159,42 @@ export default function BoothVolunteerListPage() {
       cell: ({ getValue }) => <Typography>{getValue()}</Typography>
     },
     {
-      header: 'Role',
-      accessorKey: 'role',
-      cell: ({ getValue }) => <Typography>{getValue() || 'N/A'}</Typography>
-    },
-    {
-      header: 'Booth',
-      accessorKey: 'booth.name',
-      cell: ({ row }) => (
-        <Typography>
-          {row.original?.booth?.name || 'N/A'} (No: {row.original?.booth?.booth_number || 'N/A'})
+      header: 'Email',
+      accessorKey: 'email',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue() || 'N/A'}
         </Typography>
       )
     },
     {
-      header: 'Party',
-      accessorKey: 'party.name',
-      cell: ({ row }) => (
-        row.original?.party ?
-          <Chip label={row.original.party.name} color="primary" size="small" /> :
-          <Typography variant="caption">No party</Typography>
+      header: 'Role',
+      accessorKey: 'role',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue() || 'N/A'}
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Area Responsibility',
+      accessorKey: 'area_responsibility',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue() || 'N/A'}
+        </Typography>
       )
     },
     {
@@ -152,10 +205,105 @@ export default function BoothVolunteerListPage() {
           label={getValue()}
           color={
             getValue() === 'High' ? 'success' :
-            getValue() === 'Medium' ? 'warning' : 'error'
+              getValue() === 'Medium' ? 'warning' : 'error'
           }
           size="small"
         />
+      )
+    },
+    {
+      header: 'State',
+      accessorKey: 'state',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()?.name || 'N/A'}
+          color="primary"
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Division',
+      accessorKey: 'division',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()?.name || 'N/A'}
+          color="warning"
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Parliament',
+      accessorKey: 'parliament',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()?.name || 'N/A'}
+          color="secondary"
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Assembly',
+      accessorKey: 'assembly',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()?.name || 'N/A'}
+          color="info"
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Block',
+      accessorKey: 'block',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue()?.name || 'N/A'}
+          color="primary"
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Booth',
+      accessorKey: 'booth',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue() ? `${getValue().name} (${getValue().booth_number})` : 'N/A'}
+          color="success"
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      header: 'Party',
+      accessorKey: 'party',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name || 'N/A'} color="primary" size="small" /> :
+          <Typography variant="caption">No party</Typography>
+      )
+    },
+    {
+      header: 'Remarks',
+      accessorKey: 'remarks',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue() || 'N/A'}
+        </Typography>
       )
     },
     {
@@ -166,9 +314,28 @@ export default function BoothVolunteerListPage() {
           <Avatar sx={{ width: 24, height: 24 }}>
             <User size={16} />
           </Avatar>
-          <Typography>{getValue()?.name || 'Unknown'}</Typography>
+          <Typography>{getValue()?.username || 'Unknown'}</Typography>
         </Stack>
       )
+    },
+    {
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => (
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
+      )
+    },
+    {
+      header: 'Created At',
+      accessorKey: 'created_at',
+      cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+    },
+    {
+      header: 'Updated At',
+      accessorKey: 'updated_at',
+      cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
     },
     {
       header: 'Actions',
@@ -215,18 +382,66 @@ export default function BoothVolunteerListPage() {
   const table = useReactTable({
     data: volunteers,
     columns,
-    state: {
-      pagination
-    },
+    state: { pagination, globalFilter },
     pageCount,
     manualPagination: true,
     onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowCanExpand: () => true
   });
+
+  // Helper to fetch all volunteers for CSV
+  const fetchAllVolunteersForCsv = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/booth-volunteers?all=true');
+      const json = await res.json();
+      if (json.success) {
+        return json.data;
+      }
+    } catch (error) {
+      console.error('Failed to fetch all volunteers for CSV:', error);
+    }
+    return [];
+  };
+
+  const [csvData, setCsvData] = useState([]);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const csvLinkRef = useRef();
+
+  const handleDownloadCsv = async () => {
+    setCsvLoading(true);
+    const allData = await fetchAllVolunteersForCsv();
+    setCsvData(allData.map(item => ({
+      Name: item.name,
+      Phone: item.phone,
+      Email: item.email || '',
+      Role: item.role || '',
+      'Area Responsibility': item.area_responsibility || '',
+      'Activity Level': item.activity_level,
+      State: item.state?.name || '',
+      Division: item.division?.name || '',
+      Parliament: item.parliament?.name || '',
+      Assembly: item.assembly?.name || '',
+      Block: item.block?.name || '',
+      Booth: item.booth ? `${item.booth.name} (${item.booth.booth_number})` : '',
+      Party: item.party?.name || '',
+      Remarks: item.remarks || '',
+      'Created By': item.created_by?.username || '',
+      'Updated By': item.updated_by?.username || '',
+      'Created At': item.created_at,
+      'Updated At': item.updated_at
+    })));
+    setCsvLoading(false);
+    setTimeout(() => {
+      if (csvLinkRef.current) {
+        csvLinkRef.current.link.click();
+      }
+    }, 100);
+  };
 
   if (loading) return <EmptyReactTable />;
 
@@ -235,13 +450,24 @@ export default function BoothVolunteerListPage() {
       <MainCard content={false}>
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
           <DebouncedInput
-            value={table.getState().globalFilter || ''}
-            onFilterChange={(value) => table.setGlobalFilter(String(value))}
+            value={globalFilter}
+            onFilterChange={setGlobalFilter}
             placeholder={`Search ${volunteers.length} volunteers...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVolunteer(null); setOpenModal(true); }}>
-            Add Volunteer
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <CSVLink
+              data={csvData}
+              filename="booth_volunteers_all.csv"
+              style={{ display: 'none' }}
+              ref={csvLinkRef}
+            />
+            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+              {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVolunteer(null); setOpenModal(true); }}>
+              Add Volunteer
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>
@@ -310,6 +536,7 @@ export default function BoothVolunteerListPage() {
         blocks={blocks}
         booths={booths}
         parties={parties}
+        users={users}
         refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}
       />
 

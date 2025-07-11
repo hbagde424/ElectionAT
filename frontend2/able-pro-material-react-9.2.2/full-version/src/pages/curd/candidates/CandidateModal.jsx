@@ -4,7 +4,19 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-export default function CandidateModal({ open, modalToggler, candidate, refresh }) {
+export default function CandidateModal({
+    open,
+    modalToggler,
+    candidate,
+    states,
+    divisions,
+    parliaments,
+    assemblies,
+    parties,
+    electionYears,
+    users,
+    refresh
+}) {
     const [formData, setFormData] = useState({
         name: '',
         party_id: '',
@@ -20,28 +32,11 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
         is_active: true
     });
 
-    const [parties, setParties] = useState([]);
-    const [assemblies, setAssemblies] = useState([]);
-    const [years, setYears] = useState([]);
-    const [parliaments, setParliaments] = useState([]);
-    useEffect(() => {
-        Promise.all([
-            fetch('http://localhost:5000/api/parties').then(res => res.json()),
-            fetch('http://localhost:5000/api/assemblies').then(res => res.json()),
-            fetch('http://localhost:5000/api/election-years').then(res => res.json()),
-            fetch('http://localhost:5000/api/parliaments').then(res => res.json())
-        ]).then(([partyRes, assemblyRes, yearRes, parliamentRes]) => {
-            if (partyRes.success) setParties(partyRes.data);
-            if (assemblyRes.success) setAssemblies(assemblyRes.data);
-            if (parliamentRes.success) setParliaments(parliamentRes.data);
-
-            if (Array.isArray(yearRes)) {
-                setYears(yearRes);
-            } else if (yearRes.success && Array.isArray(yearRes.data)) {
-                setYears(yearRes.data);
-            }
-        });
-    }, []);
+    // Use props instead of fetching data
+    const partiesList = parties || [];
+    const assembliesList = assemblies || [];
+    const electionYearsList = electionYears || [];
+    const parliamentsList = parliaments || [];
 
 
 
@@ -153,9 +148,9 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
                         ['Photo URL', 'photo']
                     ].map(([label, name]) => renderTextField(label, name))}
 
-                    {renderSelect('Party', 'party_id', parties)}
-                    {renderSelect('Assembly', 'assembly_id', assemblies)}
-                    {renderSelect('Parliament', 'parliament_id', parliaments)}
+                    {renderSelect('Party', 'party_id', partiesList)}
+                    {renderSelect('Assembly', 'assembly_id', assembliesList)}
+                    {renderSelect('Parliament', 'parliament_id', parliamentsList)}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Election Year</InputLabel>
@@ -165,7 +160,7 @@ export default function CandidateModal({ open, modalToggler, candidate, refresh 
                                     value={formData.election_year}
                                     onChange={handleChange}
                                 >
-                                    {years.map((opt) => (
+                                    {electionYearsList.map((opt) => (
                                         <MenuItem key={opt._id} value={opt._id}>
                                             {`${opt.year} (${opt.election_type})`}
                                         </MenuItem>

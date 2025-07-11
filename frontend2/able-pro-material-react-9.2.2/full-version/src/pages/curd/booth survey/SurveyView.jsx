@@ -1,5 +1,5 @@
-import { Stack, Typography, Divider, Chip, Avatar, Grid } from '@mui/material';
-import { User } from 'iconsax-react';
+import { Stack, Typography, Divider, Chip, Avatar, Grid, Box } from '@mui/material';
+import { User, CalendarTick, MessageText1, Award, Buildings2 } from 'iconsax-react';
 
 export default function BoothSurveyView({ data }) {
     if (!data) return null;
@@ -12,119 +12,239 @@ export default function BoothSurveyView({ data }) {
         'Rejected': 'error'
     };
 
+    const formatDateTime = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+
     return (
-        <Stack spacing={2}>
-            <Typography variant="h6">Survey Details</Typography>
-            <Divider />
+        <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+                <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main' }}>
+                    <Buildings2 size={32} />
+                </Avatar>
+                <Box>
+                    <Typography variant="h6">Booth Survey - {data._id?.slice(-8)}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {data.booth_id?.name || 'No Booth'} • {data.state_id?.name || 'No State'}
+                    </Typography>
+                </Box>
+                <Chip
+                    label={data.status || 'Unknown'}
+                    color={statusColors[data.status] || 'default'}
+                    size="small"
+                />
+            </Stack>
 
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Booth:</Typography>
-                        <Typography>
-                            {data.booth_id?.name || 'Unknown'} (Booth: {data.booth_id?.booth_number || 'N/A'})
-                        </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            <Grid container spacing={3}>
+                {/* Left Column - Survey Information */}
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Stack spacing={2}>
+                        <Typography variant="h6" color="primary">Survey Information</Typography>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                                {data.booth_id ? (
+                                    <Box>
+                                        <Typography variant="body1" fontWeight="medium">{data.booth_id.name}</Typography>
+                                        <Typography variant="caption" color="text.secondary">Booth: {data.booth_id.booth_number}</Typography>
+                                    </Box>
+                                ) : (
+                                    <Typography variant="caption">No booth assigned</Typography>
+                                )}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Surveyor</Typography>
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                    <Avatar sx={{ width: 24, height: 24 }}>
+                                        <User size={16} />
+                                    </Avatar>
+                                    <Typography variant="body2">{data.survey_done_by?.email || 'Unknown'}</Typography>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Survey Date</Typography>
+                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                    <CalendarTick size={16} />
+                                    <Typography variant="body2">{formatDate(data.survey_date)}</Typography>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
+                                <Chip
+                                    label={data.status || 'Unknown'}
+                                    color={statusColors[data.status] || 'default'}
+                                    size="small"
+                                />
+                            </Grid>
+                        </Grid>
                     </Stack>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Survey Date:</Typography>
-                        <Typography>{new Date(data.survey_date).toLocaleDateString()}</Typography>
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Status:</Typography>
-                        <Chip
-                            label={data.status}
-                            color={statusColors[data.status]}
-                            size="small"
-                            sx={{ width: 100 }}
-                        />
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Surveyor:</Typography>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                            <Avatar sx={{ width: 24, height: 24 }}>
-                                <User size={16} />
-                            </Avatar>
-                            <Typography>{data.survey_done_by?.name || 'Unknown'}</Typography>
-                        </Stack>
+
+                {/* Right Column - Administrative Information */}
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Stack spacing={2}>
+                        <Typography variant="h6" color="primary">Administrative Information</Typography>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                                {data.state_id ? (
+                                    <Chip label={data.state_id.name} color="secondary" size="small" />
+                                ) : (
+                                    <Typography variant="caption">No state assigned</Typography>
+                                )}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                                {data.division_id ? (
+                                    <Chip label={data.division_id.name} color="info" size="small" />
+                                ) : (
+                                    <Typography variant="caption">No division assigned</Typography>
+                                )}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                                {data.parliament_id ? (
+                                    <Chip label={data.parliament_id.name} color="warning" size="small" />
+                                ) : (
+                                    <Typography variant="caption">No parliament assigned</Typography>
+                                )}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                                {data.assembly_id ? (
+                                    <Chip label={data.assembly_id.name} color="success" size="small" />
+                                ) : (
+                                    <Typography variant="caption">No assembly assigned</Typography>
+                                )}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
+                                {data.block_id ? (
+                                    <Chip label={data.block_id.name} color="error" size="small" />
+                                ) : (
+                                    <Typography variant="caption">No block assigned</Typography>
+                                )}
+                            </Grid>
+                        </Grid>
                     </Stack>
                 </Grid>
             </Grid>
 
-            <Grid container spacing={2}>
+            <Divider sx={{ my: 2 }} />
+
+            {/* Survey Results Section */}
+            <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">State:</Typography>
-                        {data.state_id ? (
-                            <Chip label={data.state_id.name} color="success" size="small" />
+                    <Stack spacing={2}>
+                        <Typography variant="h6" color="primary">Survey Results</Typography>
+
+                        {data.poll_result ? (
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Poll Result</Typography>
+                                <Typography variant="body1" sx={{
+                                    p: 2,
+                                    bgcolor: 'info.50',
+                                    borderRadius: 1,
+                                    minHeight: 60,
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                    {data.poll_result}
+                                </Typography>
+                            </Box>
                         ) : (
-                            <Typography variant="caption">No state</Typography>
+                            <Typography variant="body2" color="text.secondary">No poll results available</Typography>
                         )}
                     </Stack>
                 </Grid>
+
                 <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Division:</Typography>
-                        {data.division_id ? (
-                            <Chip label={data.division_id.name} color="primary" size="small" />
+                    <Stack spacing={2}>
+                        <Typography variant="h6" color="primary">Remarks</Typography>
+
+                        {data.remark ? (
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Survey Remarks</Typography>
+                                <Typography variant="body1" sx={{
+                                    p: 2,
+                                    bgcolor: 'grey.50',
+                                    borderRadius: 1,
+                                    minHeight: 60,
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                    {data.remark}
+                                </Typography>
+                            </Box>
                         ) : (
-                            <Typography variant="caption">No division</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Parliament:</Typography>
-                        {data.parliament_id ? (
-                            <Chip label={data.parliament_id.name} color="secondary" size="small" />
-                        ) : (
-                            <Typography variant="caption">No parliament</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Assembly:</Typography>
-                        {data.assembly_id ? (
-                            <Chip label={data.assembly_id.name} color="info" size="small" />
-                        ) : (
-                            <Typography variant="caption">No assembly</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Block:</Typography>
-                        {data.block_id ? (
-                            <Chip label={data.block_id.name} color="warning" size="small" />
-                        ) : (
-                            <Typography variant="caption">No block</Typography>
+                            <Typography variant="body2" color="text.secondary">No remarks available</Typography>
                         )}
                     </Stack>
                 </Grid>
             </Grid>
 
-            {data.poll_result && (
-                <Stack spacing={1}>
-                    <Typography fontWeight="bold">Poll Result:</Typography>
-                    <Typography>{data.poll_result}</Typography>
-                </Stack>
-            )}
+            <Divider sx={{ my: 2 }} />
 
-            {data.remark && (
-                <Stack spacing={1}>
-                    <Typography fontWeight="bold">Remarks:</Typography>
-                    <Typography>{data.remark}</Typography>
-                </Stack>
-            )}
-
-            <Typography variant="body2">Created At: {new Date(data.created_at).toLocaleString()}</Typography>
-            <Typography variant="body2">Updated At: {new Date(data.updated_at).toLocaleString()}</Typography>
-        </Stack>
+            {/* Metadata Section */}
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                        <User size={16} />
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                            <Typography variant="body2">{data.created_by?.username || 'Unknown'}</Typography>
+                        </Box>
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                        <User size={16} />
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                            <Typography variant="body2">{data.updated_by?.username || 'N/A'}</Typography>
+                        </Box>
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                        <CalendarTick size={16} />
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                            <Typography variant="body2">{formatDateTime(data.created_at)}</Typography>
+                        </Box>
+                    </Stack>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                        <CalendarTick size={16} />
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                            <Typography variant="body2">{formatDateTime(data.updated_at)}</Typography>
+                        </Box>
+                    </Stack>
+                </Grid>
+            </Grid>
+        </Box>
     );
 }

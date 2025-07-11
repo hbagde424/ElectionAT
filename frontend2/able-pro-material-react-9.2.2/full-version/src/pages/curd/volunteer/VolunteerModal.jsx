@@ -28,6 +28,7 @@ export default function BoothVolunteerModal({
   blocks,
   booths,
   parties,
+  users,
   refresh
 }) {
   // Form state
@@ -128,7 +129,7 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = divisions.filter(div => 
+    const filtered = divisions.filter(div =>
       getID(div.state_id) === formData.state_id
     );
     setFilteredDivisions(filtered);
@@ -148,7 +149,7 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = parliaments.filter(par => 
+    const filtered = parliaments.filter(par =>
       getID(par.division_id) === formData.division_id
     );
     setFilteredParliaments(filtered);
@@ -167,7 +168,7 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = assemblies.filter(asm => 
+    const filtered = assemblies.filter(asm =>
       getID(asm.parliament_id) === formData.parliament_id
     );
     setFilteredAssemblies(filtered);
@@ -185,7 +186,7 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = blocks.filter(blk => 
+    const filtered = blocks.filter(blk =>
       getID(blk.assembly_id) === formData.assembly_id
     );
     setFilteredBlocks(filtered);
@@ -202,7 +203,7 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = booths.filter(booth => 
+    const filtered = booths.filter(booth =>
       getID(booth.block_id) === formData.block_id
     );
     setFilteredBooths(filtered);
@@ -220,7 +221,7 @@ export default function BoothVolunteerModal({
         if (!/^[0-9]{10}$/.test(value)) return 'Invalid phone number (10 digits required)';
         break;
       case 'email':
-        if (value && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value)) 
+        if (value && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value))
           return 'Invalid email format';
         break;
       case 'booth_id':
@@ -242,7 +243,7 @@ export default function BoothVolunteerModal({
   const validateForm = () => {
     const newErrors = {};
     const requiredFields = ['name', 'phone', 'booth_id', 'party_id', 'state_id'];
-    
+
     requiredFields.forEach(field => {
       const error = validateField(field, formData[field]);
       if (error) newErrors[field] = error;
@@ -255,7 +256,7 @@ export default function BoothVolunteerModal({
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -263,7 +264,7 @@ export default function BoothVolunteerModal({
 
     setFormData(prev => {
       const updates = { [name]: value };
-      
+
       if (name === 'state_id') {
         updates.division_id = '';
         updates.parliament_id = '';
@@ -285,7 +286,7 @@ export default function BoothVolunteerModal({
       } else if (name === 'block_id') {
         updates.booth_id = '';
       }
-      
+
       return { ...prev, ...updates };
     });
   };
@@ -462,10 +463,10 @@ export default function BoothVolunteerModal({
                 {errors.party_id && <FormHelperText>{errors.party_id}</FormHelperText>}
               </FormControl>
             </Grid>
-            
+
           </Grid>
 
-           <Grid container spacing={2}>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.state_id}>
                 <InputLabel>State *</InputLabel>

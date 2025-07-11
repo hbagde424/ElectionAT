@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip, Avatar
+  Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
+import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload, MessageText1 } from 'iconsax-react';
 
 // third-party
 import {
@@ -42,6 +42,7 @@ export default function BoothSurveyListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [error, setError] = useState('');
 
   const statusColors = {
     'Pending': 'default',
@@ -53,15 +54,19 @@ export default function BoothSurveyListPage() {
 
   const fetchSurveys = async (pageIndex, pageSize) => {
     setLoading(true);
+    setError('');
     try {
       const res = await fetch(`http://localhost:5000/api/booth-surveys?page=${pageIndex + 1}&limit=${pageSize}`);
       const json = await res.json();
       if (json.success) {
         setSurveys(json.data);
         setPageCount(json.pages);
+      } else {
+        setError('Failed to fetch booth surveys');
       }
     } catch (error) {
       console.error('Failed to fetch surveys:', error);
+      setError('Failed to fetch booth surveys');
     } finally {
       setLoading(false);
     }
@@ -116,19 +121,99 @@ export default function BoothSurveyListPage() {
 
   const handleDeleteClose = () => setOpenDelete(false);
 
+  const handleCSVDownload = () => {
+    if (surveys.length === 0) return;
+
+    const headers = [
+      'Survey ID',
+      'Booth',
+      'Surveyor',
+      'Survey Date',
+      'Status',
+      'Remark',
+      'Poll Result',
+      'State',
+      'Division',
+      'Parliament',
+      'Assembly',
+      'Block',
+      'Created By',
+      'Updated By',
+      'Created At',
+      'Updated At'
+    ];
+
+    const csvData = surveys.map(survey => [
+      survey._id?.slice(-8) || '',
+      survey.booth_id?.name || 'No booth',
+      survey.survey_done_by?.email || 'Unknown',
+      survey.survey_date ? new Date(survey.survey_date).toLocaleDateString() : '',
+      survey.status || '',
+      survey.remark || '',
+      survey.poll_result || '',
+      survey.state_id?.name || '',
+      survey.division_id?.name || '',
+      survey.parliament_id?.name || '',
+      survey.assembly_id?.name || '',
+      survey.block_id?.name || '',
+      survey.created_by?.username || '',
+      survey.updated_by?.username || '',
+      survey.created_at ? new Date(survey.created_at).toLocaleString() : '',
+      survey.updated_at ? new Date(survey.updated_at).toLocaleString() : ''
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `booth-surveys-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const columns = useMemo(() => [
     {
       header: '#',
       accessorKey: '_id',
-      cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+      cell: ({ row }) => <Typography variant="body2" color="text.secondary">{row.index + 1}</Typography>
+    },
+    {
+      header: 'Survey ID',
+      accessorKey: '_id',
+      cell: ({ getValue }) => (
+        <Typography variant="body2" fontWeight="medium" color="primary.main">
+          {getValue()?.slice(-8)}
+        </Typography>
+      )
     },
     {
       header: 'Booth',
       accessorKey: 'booth_id',
       cell: ({ getValue }) => (
         getValue() ?
-          <Typography variant="subtitle1">{getValue().name} (Booth: {getValue().booth_number})</Typography> :
-          <Typography variant="caption">No booth</Typography>
+          <Box>
+            <Typography variant="body2" fontWeight="medium">{getValue().name}</Typography>
+            <Typography variant="caption" color="text.secondary">Booth: {getValue().booth_number}</Typography>
+          </Box> :
+          <Typography variant="caption" color="text.secondary">No booth assigned</Typography>
       )
     },
     {
@@ -139,7 +224,10 @@ export default function BoothSurveyListPage() {
           <Avatar sx={{ width: 24, height: 24 }}>
             <User size={16} />
           </Avatar>
-          <Typography>{getValue()?.name || 'Unknown'}</Typography>
+          <Box>
+            <Typography variant="body2" fontWeight="medium">{getValue()?.email || 'Unknown'}</Typography>
+            <Typography variant="caption" color="text.secondary">Surveyor</Typography>
+          </Box>
         </Stack>
       )
     },
@@ -147,7 +235,10 @@ export default function BoothSurveyListPage() {
       header: 'Survey Date',
       accessorKey: 'survey_date',
       cell: ({ getValue }) => (
-        <Typography>{new Date(getValue()).toLocaleDateString()}</Typography>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <CalendarTick size={14} />
+          <Typography variant="body2">{new Date(getValue()).toLocaleDateString()}</Typography>
+        </Stack>
       )
     },
     {
@@ -163,15 +254,125 @@ export default function BoothSurveyListPage() {
       )
     },
     {
+      header: 'Remark',
+      accessorKey: 'remark',
+      cell: ({ getValue }) => {
+        const remark = getValue();
+        return (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 200,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {remark || 'No remark'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Poll Result',
+      accessorKey: 'poll_result',
+      cell: ({ getValue }) => {
+        const pollResult = getValue();
+        return (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 250,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              color: 'info.main'
+            }}
+          >
+            {pollResult || 'No poll result'}
+          </Typography>
+        );
+      }
+    },
+    {
       header: 'State',
       accessorKey: 'state_id',
       cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="secondary"
-          size="small"
-          variant="outlined"
-        />
+        getValue() ?
+          <Chip label={getValue().name} color="secondary" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No state</Typography>
+      )
+    },
+    {
+      header: 'Division',
+      accessorKey: 'division_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="info" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No division</Typography>
+      )
+    },
+    {
+      header: 'Parliament',
+      accessorKey: 'parliament_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="warning" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No parliament</Typography>
+      )
+    },
+    {
+      header: 'Assembly',
+      accessorKey: 'assembly_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="success" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No assembly</Typography>
+      )
+    },
+    {
+      header: 'Block',
+      accessorKey: 'block_id',
+      cell: ({ getValue }) => (
+        getValue() ?
+          <Chip label={getValue().name} color="error" size="small" variant="outlined" /> :
+          <Typography variant="caption" color="text.secondary">No block</Typography>
+      )
+    },
+    {
+      header: 'Created By',
+      accessorKey: 'created_by',
+      cell: ({ getValue }) => {
+        const createdBy = getValue();
+        return (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <User size={14} />
+            <Typography variant="caption">{createdBy?.username || 'Unknown'}</Typography>
+          </Stack>
+        );
+      }
+    },
+    {
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => {
+        const updatedBy = getValue();
+        return (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <User size={14} />
+            <Typography variant="caption">{updatedBy?.username || 'Unknown'}</Typography>
+          </Stack>
+        );
+      }
+    },
+    {
+      header: 'Created',
+      accessorKey: 'created_at',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <CalendarTick size={14} />
+          <Typography variant="caption">{formatDateTime(getValue())}</Typography>
+        </Stack>
       )
     },
     {
@@ -182,12 +383,12 @@ export default function BoothSurveyListPage() {
         const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View">
+            <Tooltip title="View Details">
               <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
                 {expandIcon}
               </IconButton>
             </Tooltip>
-            <Tooltip title="Edit">
+            <Tooltip title="Edit Survey">
               <IconButton
                 color="primary"
                 onClick={(e) => {
@@ -199,7 +400,7 @@ export default function BoothSurveyListPage() {
                 <Edit />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete">
+            <Tooltip title="Delete Survey">
               <IconButton
                 color="error"
                 onClick={(e) => {
@@ -237,15 +438,31 @@ export default function BoothSurveyListPage() {
   return (
     <>
       <MainCard content={false}>
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${surveys.length} surveys...`}
+            placeholder={`Search ${surveys.length} booth surveys...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedSurvey(null); setOpenModal(true); }}>
-            Add Survey
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<DocumentDownload />}
+              onClick={handleCSVDownload}
+              disabled={surveys.length === 0}
+            >
+              Export CSV
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedSurvey(null); setOpenModal(true); }}>
+              Add Survey
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>
