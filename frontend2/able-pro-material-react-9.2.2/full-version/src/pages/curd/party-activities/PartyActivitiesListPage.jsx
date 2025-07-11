@@ -1,5 +1,5 @@
 // PartyActivitiesListPage.jsx
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip
@@ -15,6 +15,7 @@ import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
+import { CSVLink } from 'react-csv';
 
 import PartyActivitiesModal from './PartyActivitiesModal';
 import AlertPartyActivitiesDelete from './AlertPartyActivitiesDelete';
@@ -397,6 +398,57 @@ export default function PartyActivitiesListPage() {
         getRowCanExpand: () => true
     });
 
+    // Helper to fetch all party activities for CSV
+    const fetchAllPartyActivitiesForCsv = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/api/party-activities?all=true');
+            const json = await res.json();
+            if (json.success) {
+                return json.data;
+            }
+        } catch (error) {
+            console.error('Failed to fetch all party activities for CSV:', error);
+        }
+        return [];
+    };
+
+    const [csvData, setCsvData] = useState([]);
+    const [csvLoading, setCsvLoading] = useState(false);
+    const csvLinkRef = useRef();
+
+    const handleDownloadCsv = async () => {
+        setCsvLoading(true);
+        const allData = await fetchAllPartyActivitiesForCsv();
+        setCsvData(allData.map(item => ({
+            Title: item.title,
+            'Activity Type': item.activity_type,
+            State: item.state_id?.name || '',
+            Division: item.division_id?.name || '',
+            Parliament: item.parliament_id?.name || '',
+            Assembly: item.assembly_id?.name || '',
+            Block: item.block_id?.name || '',
+            Booth: item.booth_id ? `${item.booth_id.name} (${item.booth_id.booth_number})` : '',
+            Description: item.description,
+            'Activity Date': item.activity_date,
+            'End Date': item.end_date,
+            Location: item.location,
+            Status: item.status,
+            Attendance: item.attendance_count,
+            'Media Coverage': item.media_coverage ? 'Yes' : 'No',
+            'Media Links': Array.isArray(item.media_links) ? item.media_links.join(', ') : '',
+            'Created By': item.created_by?.username || '',
+            'Updated By': item.updated_by?.username || '',
+            'Created At': item.created_at,
+            'Updated At': item.updated_at
+        })));
+        setCsvLoading(false);
+        setTimeout(() => {
+            if (csvLinkRef.current) {
+                csvLinkRef.current.link.click();
+            }
+        }, 100);
+    };
+
     if (loading) return <EmptyReactTable />;
 
     return (
@@ -408,9 +460,20 @@ export default function PartyActivitiesListPage() {
                         onFilterChange={setGlobalFilter}
                         placeholder={`Search ${partyActivities.length} party activities...`}
                     />
-                    <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedPartyActivity(null); setOpenModal(true); }}>
-                        Add Party Activity
-                    </Button>
+                    <Stack direction="row" spacing={1}>
+                        <CSVLink
+                            data={csvData}
+                            filename="party_activities_all.csv"
+                            style={{ display: 'none' }}
+                            ref={csvLinkRef}
+                        />
+                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                        </Button>
+                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedPartyActivity(null); setOpenModal(true); }}>
+                            Add Party Activity
+                        </Button>
+                    </Stack>
                 </Stack>
 
                 <ScrollX>
