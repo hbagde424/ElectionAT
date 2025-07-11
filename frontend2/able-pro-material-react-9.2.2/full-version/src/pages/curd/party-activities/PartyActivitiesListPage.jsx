@@ -39,6 +39,7 @@ export default function PartyActivitiesListPage() {
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [globalFilter, setGlobalFilter] = useState('');
 
     const fetchReferenceData = async () => {
         try {
@@ -93,10 +94,11 @@ export default function PartyActivitiesListPage() {
 
 
 
-    const fetchPartyActivities = async (pageIndex, pageSize) => {
+    const fetchPartyActivities = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/party-activities?page=${pageIndex + 1}&limit=${pageSize}`);
+            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            const res = await fetch(`http://localhost:5000/api/party-activities?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setPartyActivities(json.data);
@@ -112,9 +114,9 @@ export default function PartyActivitiesListPage() {
 
 
     useEffect(() => {
-        fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
+        fetchPartyActivities(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     const handleDeleteOpen = (id) => {
         setPartyActivityDeleteId(id);
@@ -383,10 +385,11 @@ export default function PartyActivitiesListPage() {
     const table = useReactTable({
         data: partyActivities,
         columns,
-        state: { pagination },
+        state: { pagination, globalFilter },
         pageCount,
         manualPagination: true,
         onPaginationChange: setPagination,
+        onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -401,8 +404,8 @@ export default function PartyActivitiesListPage() {
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
-                        value={table.getState().globalFilter || ''}
-                        onFilterChange={(value) => table.setGlobalFilter(String(value))}
+                        value={globalFilter}
+                        onFilterChange={setGlobalFilter}
                         placeholder={`Search ${partyActivities.length} party activities...`}
                     />
                     <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedPartyActivity(null); setOpenModal(true); }}>
