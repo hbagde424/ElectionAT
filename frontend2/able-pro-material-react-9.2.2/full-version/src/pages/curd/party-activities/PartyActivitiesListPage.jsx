@@ -311,7 +311,7 @@ export default function PartyActivitiesListPage() {
             cell: ({ getValue }) => (
                 Array.isArray(getValue()) && getValue().length > 0
                     ? getValue().map((link, idx) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>{link}</a>
+                        <img key={idx} src={link} alt={`media-link-${idx}`} style={{ maxWidth: '100px', display: 'block', marginBottom: '4px' }} />
                     ))
                     : 'N/A'
             )
@@ -337,18 +337,26 @@ export default function PartyActivitiesListPage() {
         {
             header: 'Created At',
             accessorKey: 'created_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+            cell: ({ getValue }) => {
+                const value = getValue();
+                if (!value) return <Typography>N/A</Typography>;
+                const date = new Date(value);
+                const formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                return <Typography>{formatted}</Typography>;
+            }
         },
         {
             header: 'Updated At',
             accessorKey: 'updated_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+            cell: ({ getValue }) => {
+                const value = getValue();
+                if (!value) return <Typography>N/A</Typography>;
+                const date = new Date(value);
+                const formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                return <Typography>{formatted}</Typography>;
+            }
         },
-        {
-            header: 'ID',
-            accessorKey: '_id',
-            cell: ({ getValue }) => <Typography sx={{ fontSize: 12 }}>{getValue()}</Typography>
-        },
+
         {
             header: 'Actions',
             meta: { className: 'cell-center' },

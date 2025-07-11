@@ -502,6 +502,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.party_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Party is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -524,6 +527,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.state_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>State is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -548,6 +554,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.division_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Division is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -570,6 +579,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.parliament_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Parliament is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -593,6 +605,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.assembly_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Assembly is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -615,6 +630,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.block_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Block is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -638,6 +656,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.booth_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Booth is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -659,6 +680,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.activity_type && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Activity Type is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
@@ -765,6 +789,9 @@ export default function PartyActivitiesModal({
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {submitted && !formData.status && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Status is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 
