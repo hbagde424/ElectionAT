@@ -1,4 +1,3 @@
-// ParliamentVotesModal.js
 import {
   Dialog,
   DialogTitle,
@@ -13,7 +12,6 @@ import {
   FormControl
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useFetch } from 'hooks/useFetch';
 
 export default function ParliamentVotesModal({
   open,
@@ -33,89 +31,109 @@ export default function ParliamentVotesModal({
   const [formData, setFormData] = useState({
     candidate_id: '',
     parliament_id: '',
+    state_id: '',
+    division_id: '',
     assembly_id: '',
     block_id: '',
     booth_id: '',
     election_year_id: '',
-    state_id: '',
-    division_id: '',
     total_votes: 0
   });
 
-  // Filtered data based on selections
   const [filteredDivisions, setFilteredDivisions] = useState([]);
   const [filteredParliaments, setFilteredParliaments] = useState([]);
+  const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+  const [filteredBlocks, setFilteredBlocks] = useState([]);
+  const [filteredBooths, setFilteredBooths] = useState([]);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     if (vote) {
-      const newForm = {
-        candidate_id: vote.candidate?._id || vote.candidate_id || '',
-        parliament_id: vote.parliament?._id || vote.parliament_id || '',
-        assembly_id: vote.assembly?._id || vote.assembly_id || '',
-        block_id: vote.block?._id || vote.block_id || '',
-        booth_id: vote.booth?._id || vote.booth_id || '',
-        election_year_id: vote.election_year?._id || vote.election_year_id || '',
-        state_id: vote.state?._id || vote.state_id || '',
-        division_id: vote.division?._id || vote.division_id || '',
+      setIsEditMode(true);
+      setFormData({
+        candidate_id: vote.candidate?._id || '',
+        parliament_id: vote.parliament?._id || '',
+        state_id: vote.state?._id || '',
+        division_id: vote.division?._id || '',
+        assembly_id: vote.assembly?._id || '',
+        block_id: vote.block?._id || '',
+        booth_id: vote.booth?._id || '',
+        election_year_id: vote.election_year?._id || '',
         total_votes: vote.total_votes || 0
-      };
-
-      setFormData(newForm);
-
-      // Prepopulate filtered dropdowns
-      const divs = divisions?.filter(d => d.state_id?._id === newForm.state_id) || [];
-      const pars = parliaments?.filter(p => p.division_id?._id === newForm.division_id) || [];
-
-      setFilteredDivisions(divs);
-      setFilteredParliaments(pars);
+      });
     } else {
+      setIsEditMode(false);
       setFormData({
         candidate_id: '',
         parliament_id: '',
+        state_id: '',
+        division_id: '',
         assembly_id: '',
         block_id: '',
         booth_id: '',
         election_year_id: '',
-        state_id: '',
-        division_id: '',
         total_votes: 0
       });
-      setFilteredDivisions([]);
-      setFilteredParliaments([]);
     }
-  }, [vote, divisions, parliaments]);
+  }, [vote]);
 
-
-
+  // Cascading dropdown effects
   useEffect(() => {
-    const filtered = divisions?.filter((division) =>
-      (typeof division.state_id === 'string'
-        ? division.state_id
-        : division.state_id?._id) === formData.state_id
-    ) || [];
-
-    setFilteredDivisions(filtered);
-
-    if (!filtered.find((d) => d._id === formData.division_id)) {
-      setFormData((prev) => ({ ...prev, division_id: '', parliament_id: '' }));
+    if (formData.state_id) {
+      const filtered = divisions?.filter(division => division.state_id?._id === formData.state_id) || [];
+      setFilteredDivisions(filtered);
+    } else {
+      setFilteredDivisions([]);
+    }
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
     }
   }, [formData.state_id, divisions]);
 
-
   useEffect(() => {
-    const filtered = parliaments?.filter((parliament) =>
-      (typeof parliament.division_id === 'string'
-        ? parliament.division_id
-        : parliament.division_id?._id) === formData.division_id
-    ) || [];
-
-    setFilteredParliaments(filtered);
-
-    if (!filtered.find((p) => p._id === formData.parliament_id)) {
-      setFormData((prev) => ({ ...prev, parliament_id: '' }));
+    if (formData.division_id) {
+      const filtered = parliaments?.filter(parliament => parliament.division_id?._id === formData.division_id) || [];
+      setFilteredParliaments(filtered);
+    } else {
+      setFilteredParliaments([]);
+    }
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
     }
   }, [formData.division_id, parliaments]);
 
+  useEffect(() => {
+    if (formData.parliament_id) {
+      const filtered = assemblies?.filter(assembly => assembly.parliament_id?._id === formData.parliament_id) || [];
+      setFilteredAssemblies(filtered);
+    } else {
+      setFilteredAssemblies([]);
+    }
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
+    }
+  }, [formData.parliament_id, assemblies]);
+
+  useEffect(() => {
+    if (formData.assembly_id) {
+      const filtered = blocks?.filter(block => block.assembly_id?._id === formData.assembly_id) || [];
+      setFilteredBlocks(filtered);
+    } else {
+      setFilteredBlocks([]);
+    }
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
+    }
+  }, [formData.assembly_id, blocks]);
+
+  useEffect(() => {
+    if (formData.block_id) {
+      const filtered = booths?.filter(booth => booth.block_id?._id === formData.block_id) || [];
+      setFilteredBooths(filtered);
+    } else {
+      setFilteredBooths([]);
+    }
+  }, [formData.block_id, booths]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -124,11 +142,11 @@ export default function ParliamentVotesModal({
   const handleSubmit = async () => {
     const method = vote ? 'PUT' : 'POST';
     const token = localStorage.getItem('serviceToken');
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const url = vote
       ? `http://localhost:5000/api/parliament-votes/${vote._id}`
       : 'http://localhost:5000/api/parliament-votes';
 
+    const currentUser = JSON.parse(localStorage.getItem('user'));
     const submitData = {
       ...formData,
       ...(vote ? { updated_by: currentUser?._id } : { created_by: currentUser?._id })
@@ -150,8 +168,8 @@ export default function ParliamentVotesModal({
   };
 
   return (
-    <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-      <DialogTitle>{vote ? 'Edit Parliament Vote' : 'Add Parliament Vote'}</DialogTitle>
+    <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
+      <DialogTitle>{vote ? 'Edit Parliament Vote Record' : 'Add Parliament Vote Record'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} mt={2}>
           <FormControl fullWidth>
@@ -208,6 +226,60 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
+            <InputLabel>Assembly</InputLabel>
+            <Select
+              name="assembly_id"
+              value={formData.assembly_id}
+              onChange={handleChange}
+              label="Assembly"
+              required
+              disabled={!formData.parliament_id}
+            >
+              {filteredAssemblies?.map((assembly) => (
+                <MenuItem key={assembly._id} value={assembly._id}>
+                  {assembly.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Block</InputLabel>
+            <Select
+              name="block_id"
+              value={formData.block_id}
+              onChange={handleChange}
+              label="Block"
+              required
+              disabled={!formData.assembly_id}
+            >
+              {filteredBlocks?.map((block) => (
+                <MenuItem key={block._id} value={block._id}>
+                  {block.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Booth</InputLabel>
+            <Select
+              name="booth_id"
+              value={formData.booth_id}
+              onChange={handleChange}
+              label="Booth"
+              required
+              disabled={!formData.block_id}
+            >
+              {filteredBooths?.map((booth) => (
+                <MenuItem key={booth._id} value={booth._id}>
+                  {booth.name} (No: {booth.booth_number})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
             <InputLabel>Candidate</InputLabel>
             <Select
               name="candidate_id"
@@ -224,68 +296,16 @@ export default function ParliamentVotesModal({
             </Select>
           </FormControl>
 
-
-
-          <FormControl fullWidth>
-            <InputLabel>Assembly</InputLabel>
-            <Select
-              name="assembly_id"
-              value={formData.assembly_id}
-              onChange={handleChange}
-              label="Assembly"
-              required
-            >
-              {assemblies?.map((assembly) => (
-                <MenuItem key={assembly._id} value={assembly._id}>
-                  {assembly.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth>
-            <InputLabel>Block</InputLabel>
-            <Select
-              name="block_id"
-              value={formData.block_id}
-              onChange={handleChange}
-              label="Block"
-              required
-            >
-              {blocks?.map((block) => (
-                <MenuItem key={block._id} value={block._id}>
-                  {block.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth>
-            <InputLabel>Booth</InputLabel>
-            <Select
-              name="booth_id"
-              value={formData.booth_id}
-              onChange={handleChange}
-              label="Booth"
-              required
-            >
-              {booths?.map((booth) => (
-                <MenuItem key={booth._id} value={booth._id}>
-                  {booth.name} (No: {booth.booth_number})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
           <FormControl fullWidth>
             <InputLabel>Election Year</InputLabel>
             <Select
               name="election_year_id"
-              value={formData.election_year_id}
+              value={formData.election_year_id || ''}
               onChange={handleChange}
               label="Election Year"
               required
             >
+              <MenuItem value="">Select Election Year</MenuItem>
               {electionYears?.map((year) => (
                 <MenuItem key={year._id} value={year._id}>
                   {year.year}

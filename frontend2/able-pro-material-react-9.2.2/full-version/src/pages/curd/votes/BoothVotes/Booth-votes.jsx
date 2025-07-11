@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider
@@ -6,6 +6,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
+import { CSVLink } from 'react-csv';
 
 // third-party
 import {
@@ -28,7 +29,9 @@ import { Tooltip } from '@mui/material';
 
 export default function BoothVotesListPage() {
   const theme = useTheme();
-
+  const csvLinkRef = useRef();
+  const [csvData, setCsvData] = useState([]);
+  const [csvLoading, setCsvLoading] = useState(false);
   const [selectedVote, setSelectedVote] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -42,6 +45,7 @@ export default function BoothVotesListPage() {
   const [booths, setBooths] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [electionYears, setElectionYears] = useState([]);
+  const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -62,18 +66,52 @@ export default function BoothVotesListPage() {
     }
   };
 
+  const fetchAllVotesForCsv = async () => {
+    setCsvLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/booth-votes?all=true');
+      const json = await res.json();
+      if (json.success) {
+        return json.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch all votes for CSV:', error);
+      return [];
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+
+  const handleDownloadCsv = async () => {
+    const allData = await fetchAllVotesForCsv();
+    const formattedData = allData.map(item => ({
+      'Candidate': item.candidate?.name || 'N/A',
+      'Booth': `${item.booth?.name || 'N/A'} (No: ${item.booth?.booth_number || 'N/A'})`,
+      'Block': item.block?.name || 'N/A',
+      'Assembly': item.assembly?.name || 'N/A',
+      'Votes': item.total_votes,
+      'Election Year': item.election_year?.year || 'N/A',
+      'State': item.state?.name || 'N/A',
+      'Division': item.division?.name || 'N/A',
+      'Parliament': item.parliament?.name || 'N/A',
+      'Created By': item.created_by?.username || 'N/A',
+      'Updated By': item.updated_by?.username || 'N/A',
+      'Created At': new Date(item.created_at).toLocaleString(),
+      'Updated At': new Date(item.updated_at).toLocaleString()
+    }));
+    setCsvData(formattedData);
+    
+    setTimeout(() => {
+      if (csvLinkRef.current) {
+        csvLinkRef.current.link.click();
+      }
+    }, 100);
+  };
+
   const fetchReferenceData = async () => {
     try {
-      const [
-        statesRes, 
-        divisionsRes, 
-        parliamentsRes, 
-        assembliesRes, 
-        blocksRes, 
-        boothsRes, 
-        candidatesRes,
-        electionYearsRes
-      ] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
@@ -81,7 +119,8 @@ export default function BoothVotesListPage() {
         fetch('http://localhost:5000/api/blocks'),
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/candidates'),
-        fetch('http://localhost:5000/api/election-years')
+        fetch('http://localhost:5000/api/election-years'),
+        fetch('http://localhost:5000/api/users')
       ]);
 
       const statesJson = await statesRes.json();
@@ -92,6 +131,7 @@ export default function BoothVotesListPage() {
       const boothsJson = await boothsRes.json();
       const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
+      const usersJson = await usersRes.json();
 
       if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
@@ -100,7 +140,8 @@ export default function BoothVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson.success) setElectionYears(electionYearsJson.data);
+      if (electionYearsJson) setElectionYears(electionYearsJson);
+      if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -127,16 +168,7 @@ export default function BoothVotesListPage() {
     {
       header: 'Candidate',
       accessorKey: 'candidate.name',
-      cell: ({ row }) => (
-        <Typography variant="subtitle1">
-          {row.original?.candidate?.name || 'N/A'}
-          {row.original?.candidate?.party && (
-            <Typography variant="caption" display="block">
-              {row.original.candidate.party.name}
-            </Typography>
-          )}
-        </Typography>
-      )
+      cell: ({ row }) => <Typography>{row.original?.candidate?.name || 'N/A'}</Typography>
     },
     {
       header: 'Booth',
@@ -148,46 +180,74 @@ export default function BoothVotesListPage() {
       )
     },
     {
+      header: 'Block',
+      accessorKey: 'block.name',
+      cell: ({ row }) => <Typography>{row.original?.block?.name || 'N/A'}</Typography>
+    },
+    {
+      header: 'Assembly',
+      accessorKey: 'assembly.name',
+      cell: ({ row }) => <Typography>{row.original?.assembly?.name || 'N/A'}</Typography>
+    },
+    {
       header: 'Votes',
       accessorKey: 'total_votes',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue().toLocaleString()}
-          color="primary"
-          size="small"
-          variant="outlined"
-        />
-      )
+      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
     },
     {
       header: 'Election Year',
       accessorKey: 'election_year.year',
+      cell: ({ row }) => <Typography>{row.original?.election_year?.year || 'N/A'}</Typography>
+    },
+    {
+      header: 'State',
+      accessorKey: 'state.name',
       cell: ({ row }) => (
-        <Typography>{row.original?.election_year?.year || 'N/A'}</Typography>
+        row.original?.state ?
+          <Chip label={row.original.state.name} color="success" size="small" variant="outlined" /> :
+          <Typography variant="caption">No state</Typography>
       )
     },
     {
-      header: 'Location',
-      accessorKey: 'location',
+      header: 'Division',
+      accessorKey: 'division.name',
       cell: ({ row }) => (
-        <Stack direction="column" spacing={0.5}>
-          <Typography variant="caption">{row.original?.state?.name || 'N/A'}</Typography>
-          <Typography variant="caption">{row.original?.division?.name || 'N/A'}</Typography>
-          <Typography variant="caption">{row.original?.parliament?.name || 'N/A'}</Typography>
-        </Stack>
+        row.original?.division ?
+          <Chip label={row.original.division.name} color="warning" size="small" /> :
+          <Typography variant="caption">No division</Typography>
+      )
+    },
+    {
+      header: 'Parliament',
+      accessorKey: 'parliament.name',
+      cell: ({ row }) => (
+        row.original?.parliament ?
+          <Chip label={row.original.parliament.name} color="info" size="small" /> :
+          <Typography variant="caption">No parliament</Typography>
       )
     },
     {
       header: 'Created By',
       accessorKey: 'created_by',
       cell: ({ getValue }) => (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ width: 24, height: 24 }}>
-            <User size={16} />
-          </Avatar>
-          <Typography>{getValue()?.name || 'Unknown'}</Typography>
-        </Stack>
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
       )
+    },
+    {
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => (
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
+      )
+    },
+    {
+      header: 'Created At',
+      accessorKey: 'created_at',
+      cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
     },
     {
       header: 'Actions',
@@ -258,9 +318,24 @@ export default function BoothVotesListPage() {
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${votes.length} votes...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
-            Add Booth Votes
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <CSVLink
+              data={csvData}
+              filename="booth_votes.csv"
+              style={{ display: 'none' }}
+              ref={csvLinkRef}
+            />
+            <Button 
+              variant="outlined" 
+              onClick={handleDownloadCsv} 
+              disabled={csvLoading}
+            >
+              {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
+              Add Booth Vote Record
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>
@@ -321,7 +396,7 @@ export default function BoothVotesListPage() {
       <BoothVotesModal
         open={openModal}
         modalToggler={setOpenModal}
-        voteData={selectedVote}
+        vote={selectedVote}
         states={states}
         divisions={divisions}
         parliaments={parliaments}
@@ -330,6 +405,7 @@ export default function BoothVotesListPage() {
         booths={booths}
         candidates={candidates}
         electionYears={electionYears}
+        users={users}
         refresh={() => fetchVotes(pagination.pageIndex, pagination.pageSize)}
       />
 

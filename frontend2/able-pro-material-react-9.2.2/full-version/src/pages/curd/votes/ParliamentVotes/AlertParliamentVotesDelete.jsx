@@ -1,4 +1,3 @@
-// AlertParliamentVotesDelete.js
 import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
 
 export default function AlertParliamentVotesDelete({ id, open, handleClose, refresh }) {

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
+import { CSVLink } from 'react-csv';
 
 // third-party
 import {
@@ -27,7 +29,9 @@ import { Tooltip } from '@mui/material';
 
 export default function BlockVotesListPage() {
   const theme = useTheme();
-
+  const csvLinkRef = useRef();
+  const [csvData, setCsvData] = useState([]);
+  const [csvLoading, setCsvLoading] = useState(false);
   const [selectedVote, setSelectedVote] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -61,7 +65,50 @@ export default function BlockVotesListPage() {
       setLoading(false);
     }
   };
-  const token = localStorage.getItem('serviceToken');
+
+  const fetchAllVotesForCsv = async () => {
+    setCsvLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/block-votes?all=true');
+      const json = await res.json();
+      if (json.success) {
+        return json.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch all votes for CSV:', error);
+      return [];
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+
+  const handleDownloadCsv = async () => {
+    const allData = await fetchAllVotesForCsv();
+    const formattedData = allData.map(item => ({
+      'Candidate': item.candidate?.name || 'N/A',
+      'Block': item.block?.name || 'N/A',
+      'Booth': `${item.booth?.name || 'N/A'} (No: ${item.booth?.booth_number || 'N/A'})`,
+      'Votes': item.total_votes,
+      'Election Year': item.election_year?.year || 'N/A',
+      'State': item.state?.name || 'N/A',
+      'Division': item.division?.name || 'N/A',
+      'Parliament': item.parliament?.name || 'N/A',
+      'Assembly': item.assembly?.name || 'N/A',
+      'Created By': item.created_by?.username || 'N/A',
+      'Updated By': item.updated_by?.username || 'N/A',
+      'Created At': new Date(item.created_at).toLocaleString(),
+      'Updated At': new Date(item.updated_at).toLocaleString()
+    }));
+    setCsvData(formattedData);
+    
+    setTimeout(() => {
+      if (csvLinkRef.current) {
+        csvLinkRef.current.link.click();
+      }
+    }, 100);
+  };
+
   const fetchReferenceData = async () => {
     try {
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
@@ -73,11 +120,7 @@ export default function BlockVotesListPage() {
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/candidates'),
         fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
+        fetch('http://localhost:5000/api/users')
       ]);
 
       const statesJson = await statesRes.json();
@@ -124,20 +167,20 @@ export default function BlockVotesListPage() {
     },
     {
       header: 'Candidate',
-      accessorKey: 'candidate',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()?.name || '—'}</Typography>
+      accessorKey: 'candidate.name',
+      cell: ({ row }) => <Typography>{row.original?.candidate?.name || 'N/A'}</Typography>
     },
     {
       header: 'Block',
-      accessorKey: 'block',
-      cell: ({ getValue }) => <Typography>{getValue()?.name || '—'}</Typography>
+      accessorKey: 'block.name',
+      cell: ({ row }) => <Typography>{row.original?.block?.name || 'N/A'}</Typography>
     },
     {
       header: 'Booth',
-      accessorKey: 'booth',
-      cell: ({ getValue }) => (
+      accessorKey: 'booth.name',
+      cell: ({ row }) => (
         <Typography>
-          {getValue()?.name || '—'} {getValue()?.booth_number ? `(No: ${getValue().booth_number})` : ''}
+          {row.original?.booth?.name || 'N/A'} (No: {row.original?.booth?.booth_number || 'N/A'})
         </Typography>
       )
     },
@@ -148,65 +191,70 @@ export default function BlockVotesListPage() {
     },
     {
       header: 'Election Year',
-      accessorKey: 'election_year',
-      cell: ({ getValue }) => <Typography>{getValue()?.year || '—'}</Typography>
+      accessorKey: 'election_year.year',
+      cell: ({ row }) => <Typography>{row.original?.election_year?.year || 'N/A'}</Typography>
     },
     {
       header: 'State',
-      accessorKey: 'state',
-      cell: ({ getValue }) => (
-        getValue()
-          ? <Chip label={getValue().name} color="success" size="small" variant="outlined" />
-          : <Typography variant="caption">No state</Typography>
+      accessorKey: 'state.name',
+      cell: ({ row }) => (
+        row.original?.state ?
+          <Chip label={row.original.state.name} color="success" size="small" variant="outlined" /> :
+          <Typography variant="caption">No state</Typography>
       )
     },
     {
       header: 'Division',
-      accessorKey: 'division',
-      cell: ({ getValue }) => (
-        getValue()
-          ? <Chip label={getValue().name} color="warning" size="small" />
-          : <Typography variant="caption">No division</Typography>
+      accessorKey: 'division.name',
+      cell: ({ row }) => (
+        row.original?.division ?
+          <Chip label={row.original.division.name} color="warning" size="small" /> :
+          <Typography variant="caption">No division</Typography>
       )
     },
     {
       header: 'Parliament',
-      accessorKey: 'parliament',
-      cell: ({ getValue }) => (
-        getValue()
-          ? <Chip label={getValue().name} color="info" size="small" />
-          : <Typography variant="caption">No parliament</Typography>
+      accessorKey: 'parliament.name',
+      cell: ({ row }) => (
+        row.original?.parliament ?
+          <Chip label={row.original.parliament.name} color="info" size="small" /> :
+          <Typography variant="caption">No parliament</Typography>
       )
     },
     {
       header: 'Assembly',
-      accessorKey: 'assembly',
-      cell: ({ getValue }) => (
-        getValue()
-          ? <Chip label={getValue().name} color="secondary" size="small" />
-          : <Typography variant="caption">No assembly</Typography>
-      )
+      accessorKey: 'assembly.name',
+      cell: ({ row }) => <Typography>{row.original?.assembly?.name || 'N/A'}</Typography>
     },
     {
       header: 'Created By',
       accessorKey: 'created_by',
       cell: ({ getValue }) => (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ width: 24, height: 24 }}>
-            <User size={16} />
-          </Avatar>
-          <Typography>{getValue()?.name || 'Unknown'}</Typography>
-        </Stack>
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
       )
+    },
+    {
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => (
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
+      )
+    },
+    {
+      header: 'Created At',
+      accessorKey: 'created_at',
+      cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
     },
     {
       header: 'Actions',
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
         const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded
-          ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-          : <Eye />;
+        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View">
@@ -243,7 +291,6 @@ export default function BlockVotesListPage() {
     }
   ], [theme]);
 
-
   const table = useReactTable({
     data: votes,
     columns,
@@ -271,9 +318,24 @@ export default function BlockVotesListPage() {
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${votes.length} votes...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
-            Add Block Vote
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <CSVLink
+              data={csvData}
+              filename="block_votes.csv"
+              style={{ display: 'none' }}
+              ref={csvLinkRef}
+            />
+            <Button 
+              variant="outlined" 
+              onClick={handleDownloadCsv} 
+              disabled={csvLoading}
+            >
+              {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
+              Add Block Vote Record
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>

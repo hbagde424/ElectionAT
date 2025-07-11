@@ -10,7 +10,31 @@ export default function ParliamentVotesView({ data }) {
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Candidate:</Typography>
-        <Typography>{data.candidate?.name || 'Unknown'}</Typography>
+        <Typography>{data.candidate?.name || 'N/A'}</Typography>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography fontWeight="bold">Parliament:</Typography>
+        {data.parliament ? (
+          <Chip label={data.parliament.name} color="primary" size="small" />
+        ) : (
+          <Typography variant="caption">No parliament</Typography>
+        )}
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography fontWeight="bold">Booth:</Typography>
+        <Typography>{data.booth?.name || 'N/A'} (No: {data.booth?.booth_number || 'N/A'})</Typography>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography fontWeight="bold">Block:</Typography>
+        <Typography>{data.block?.name || 'N/A'}</Typography>
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography fontWeight="bold">Assembly:</Typography>
+        <Typography>{data.assembly?.name || 'N/A'}</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
@@ -32,30 +56,8 @@ export default function ParliamentVotesView({ data }) {
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
-        <Typography fontWeight="bold">Parliament:</Typography>
-        <Typography>{data.parliament?.name || 'Unknown'}</Typography>
-      </Stack>
-
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Typography fontWeight="bold">Assembly:</Typography>
-        <Typography>{data.assembly?.name || 'Unknown'}</Typography>
-      </Stack>
-
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Typography fontWeight="bold">Block:</Typography>
-        <Typography>{data.block?.name || 'Unknown'}</Typography>
-      </Stack>
-
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Typography fontWeight="bold">Booth:</Typography>
-        <Typography>
-          {data.booth?.name || 'Unknown'} (No: {data.booth?.booth_number || 'N/A'})
-        </Typography>
-      </Stack>
-
-      <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Election Year:</Typography>
-        <Typography>{data.election_year?.year || 'Unknown'}</Typography>
+        <Typography>{data.election_year?.year || 'N/A'}</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
@@ -66,13 +68,13 @@ export default function ParliamentVotesView({ data }) {
       <Divider />
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Created By:</Typography>
-        <Typography>{data.created_by?.name || 'Unknown'}</Typography>
+        <Typography>{data.created_by?.username || 'Unknown'}</Typography>
       </Stack>
 
       {data.updated_by && (
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography fontWeight="bold">Updated By:</Typography>
-          <Typography>{data.updated_by?.name || 'Unknown'}</Typography>
+          <Typography>{data.updated_by?.username || 'Unknown'}</Typography>
         </Stack>
       )}
 

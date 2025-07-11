@@ -1,9 +1,9 @@
-import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogActions, Button, DialogContent, Typography, Stack, Chip } from '@mui/material';
+import { Warning2 } from 'iconsax-react';
 
-export default function AlertBlockDelete({ id, open, handleClose, refresh }) {
+export default function AlertBlocksDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
-
         const res = await fetch(`http://localhost:5000/api/blocks/${id}`, {
             method: 'DELETE',
             headers: {
@@ -15,19 +15,36 @@ export default function AlertBlockDelete({ id, open, handleClose, refresh }) {
         if (res.ok) {
             handleClose();
             refresh();
-        } else {
-            const data = await res.json();
-            console.error('Delete failed:', data);
         }
     };
 
     return (
-        <Dialog open={open} onClose={handleClose}>
-            <DialogTitle>Are you sure you want to delete this block?</DialogTitle>
-            <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+            <DialogTitle>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                    <Warning2 size="24" color="#f44336" />
+                    <Typography variant="h6">Delete Block</Typography>
+                </Stack>
+            </DialogTitle>
+            <DialogContent>
+                <Stack spacing={2}>
+                    <Typography>
+                        Are you sure you want to delete this block? This action cannot be undone.
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                        <Chip label="Warning" color="error" size="small" />
+                        <Typography variant="body2" color="text.secondary">
+                            All associated data including booths and related information will be permanently removed.
+                        </Typography>
+                    </Stack>
+                </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={handleClose} variant="outlined">
+                    Cancel
+                </Button>
                 <Button color="error" variant="contained" onClick={handleDelete}>
-                    Delete
+                    Delete Block
                 </Button>
             </DialogActions>
         </Dialog>

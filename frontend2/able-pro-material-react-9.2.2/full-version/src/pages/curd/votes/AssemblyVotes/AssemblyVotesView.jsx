@@ -69,13 +69,13 @@ export default function AssemblyVotesView({ data }) {
       <Divider />
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Created By:</Typography>
-        <Typography>{data.created_by?.name || 'Unknown'}</Typography>
+        <Typography>{data.created_by?.username || 'Unknown'}</Typography>
       </Stack>
 
       {data.updated_by && (
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography fontWeight="bold">Updated By:</Typography>
-          <Typography>{data.updated_by?.name || 'Unknown'}</Typography>
+          <Typography>{data.updated_by?.username || 'Unknown'}</Typography>
         </Stack>
       )}
 

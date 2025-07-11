@@ -1,4 +1,3 @@
-// AlertBlockVotesDelete.js
 import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
 
 export default function AlertBlockVotesDelete({ id, open, handleClose, refresh }) {

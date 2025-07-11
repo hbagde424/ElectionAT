@@ -1,4 +1,3 @@
-// BlockVotesView.js
 import { Stack, Typography, Divider, Chip } from '@mui/material';
 
 export default function BlockVotesView({ data }) {
@@ -11,13 +10,13 @@ export default function BlockVotesView({ data }) {
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Candidate:</Typography>
-        <Typography>{data.candidate_id?.name}</Typography>
+        <Typography>{data.candidate?.name || 'N/A'}</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">State:</Typography>
-        {data.state_id ? (
-          <Chip label={data.state_id.name} color="success" size="small" variant="outlined" />
+        {data.state ? (
+          <Chip label={data.state.name} color="success" size="small" variant="outlined" />
         ) : (
           <Typography variant="caption">No state</Typography>
         )}
@@ -25,8 +24,8 @@ export default function BlockVotesView({ data }) {
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Division:</Typography>
-        {data.division_id ? (
-          <Chip label={data.division_id.name} color="warning" size="small" />
+        {data.division ? (
+          <Chip label={data.division.name} color="warning" size="small" />
         ) : (
           <Typography variant="caption">No division</Typography>
         )}
@@ -34,8 +33,8 @@ export default function BlockVotesView({ data }) {
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Parliament:</Typography>
-        {data.parliament_id ? (
-          <Chip label={data.parliament_id.name} color="info" size="small" />
+        {data.parliament ? (
+          <Chip label={data.parliament.name} color="info" size="small" />
         ) : (
           <Typography variant="caption">No parliament</Typography>
         )}
@@ -43,26 +42,22 @@ export default function BlockVotesView({ data }) {
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Assembly:</Typography>
-        {data.assembly_id ? (
-          <Chip label={data.assembly_id.name} color="secondary" size="small" />
-        ) : (
-          <Typography variant="caption">No assembly</Typography>
-        )}
+        <Typography>{data.assembly?.name || 'N/A'}</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Block:</Typography>
-        <Typography>{data.block_id?.name}</Typography>
+        <Typography>{data.block?.name || 'N/A'}</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Booth:</Typography>
-        <Typography>{data.booth_id.name} (No: {data.booth_id.booth_number})</Typography>
+        <Typography>{data.booth?.name || 'N/A'} (No: {data.booth?.booth_number || 'N/A'})</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Election Year:</Typography>
-        <Typography>{data.election_year_id.year}</Typography>
+        <Typography>{data.election_year?.year || 'N/A'}</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
@@ -73,13 +68,13 @@ export default function BlockVotesView({ data }) {
       <Divider />
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography fontWeight="bold">Created By:</Typography>
-        <Typography>{data.created_by?.name || 'Unknown'}</Typography>
+        <Typography>{data.created_by?.username || 'Unknown'}</Typography>
       </Stack>
 
       {data.updated_by && (
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography fontWeight="bold">Updated By:</Typography>
-          <Typography>{data.updated_by?.name || 'Unknown'}</Typography>
+          <Typography>{data.updated_by?.username || 'Unknown'}</Typography>
         </Stack>
       )}
 

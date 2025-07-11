@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider
@@ -6,6 +6,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
+import { CSVLink } from 'react-csv'; // Add this import
 
 // third-party
 import {
@@ -28,7 +29,9 @@ import { Tooltip } from '@mui/material';
 
 export default function AssemblyVotesListPage() {
   const theme = useTheme();
-
+  const csvLinkRef = useRef(); // Create a ref for CSVLink
+  const [csvData, setCsvData] = useState([]); // State for CSV data
+  const [csvLoading, setCsvLoading] = useState(false); // Loading state for CSV
   const [selectedVote, setSelectedVote] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -61,6 +64,49 @@ export default function AssemblyVotesListPage() {
     } finally {
       setLoading(false);
     }
+  };
+  const fetchAllVotesForCsv = async () => {
+    setCsvLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/assembly-votes?all=true');
+      const json = await res.json();
+      if (json.success) {
+        return json.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch all votes for CSV:', error);
+      return [];
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+  // Add this function to handle CSV download
+  const handleDownloadCsv = async () => {
+    const allData = await fetchAllVotesForCsv();
+    const formattedData = allData.map(item => ({
+      'Candidate': item.candidate?.name || 'N/A',
+      'Assembly': item.assembly?.name || 'N/A',
+      'Block': item.block?.name || 'N/A',
+      'Booth': `${item.booth?.name || 'N/A'} (No: ${item.booth?.booth_number || 'N/A'})`,
+      'Votes': item.total_votes,
+      'Election Year': item.election_year?.year || 'N/A',
+      'State': item.state?.name || 'N/A',
+      'Division': item.division?.name || 'N/A',
+      'Parliament': item.parliament?.name || 'N/A',
+      'Created By': item.created_by?.username || 'N/A',
+      'Updated By': item.updated_by?.username || 'N/A',
+      'Created At': new Date(item.created_at).toLocaleString(),
+      'Updated At': new Date(item.updated_at).toLocaleString()
+    }));
+    setCsvData(formattedData);
+    
+    // Trigger download after a small delay to ensure state is updated
+    setTimeout(() => {
+      if (csvLinkRef.current) {
+        csvLinkRef.current.link.click();
+      }
+    }, 100);
   };
 
   const fetchReferenceData = async () => {
@@ -184,12 +230,18 @@ export default function AssemblyVotesListPage() {
       header: 'Created By',
       accessorKey: 'created_by',
       cell: ({ getValue }) => (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ width: 24, height: 24 }}>
-            <User size={16} />
-          </Avatar>
-          <Typography>{getValue()?.name || 'Unknown'}</Typography>
-        </Stack>
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
+      )
+    },
+    {
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => (
+        <Typography>
+          {getValue()?.username || 'N/A'}
+        </Typography>
       )
     },
     {
@@ -266,9 +318,25 @@ export default function AssemblyVotesListPage() {
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${votes.length} votes...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
-            Add Vote Record
-          </Button>
+          <Stack direction="row" spacing={1}>
+            {/* Add CSV download button and hidden CSVLink */}
+            <CSVLink
+              data={csvData}
+              filename="assembly_votes.csv"
+              style={{ display: 'none' }}
+              ref={csvLinkRef}
+            />
+            <Button 
+              variant="outlined" 
+              onClick={handleDownloadCsv} 
+              disabled={csvLoading}
+            >
+              {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
+              Add Vote Record
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>

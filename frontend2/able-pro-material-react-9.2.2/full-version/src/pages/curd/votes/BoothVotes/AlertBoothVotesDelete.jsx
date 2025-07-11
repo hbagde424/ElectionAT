@@ -23,7 +23,7 @@ export default function AlertBoothVotesDelete({ id, open, handleClose, refresh }
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Are you sure you want to delete these booth votes?</DialogTitle>
+      <DialogTitle>Are you sure you want to delete this booth vote record?</DialogTitle>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button color="error" variant="contained" onClick={handleDelete}>

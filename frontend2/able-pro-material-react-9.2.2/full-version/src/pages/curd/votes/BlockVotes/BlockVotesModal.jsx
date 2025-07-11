@@ -1,4 +1,3 @@
-// BlockVotesModal.js
 import {
   Dialog,
   DialogTitle,
@@ -31,13 +30,13 @@ export default function BlockVotesModal({
 }) {
   const [formData, setFormData] = useState({
     candidate_id: '',
+    assembly_id: '',
     block_id: '',
     booth_id: '',
     election_year_id: '',
     state_id: '',
     division_id: '',
     parliament_id: '',
-    assembly_id: '',
     total_votes: 0
   });
 
@@ -47,34 +46,49 @@ export default function BlockVotesModal({
   const [filteredAssemblies, setFilteredAssemblies] = useState([]);
   const [filteredBlocks, setFilteredBlocks] = useState([]);
   const [filteredBooths, setFilteredBooths] = useState([]);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     if (vote) {
+      setIsEditMode(true);
       setFormData({
-        candidate_id: vote.candidate_id?._id || '',
-        block_id: vote.block_id?._id || '',
-        booth_id: vote.booth_id?._id || '',
-        election_year_id: vote.election_year_id?._id || '',
-        state_id: vote.state_id?._id || '',
-        division_id: vote.division_id?._id || '',
-        parliament_id: vote.parliament_id?._id || '',
-        assembly_id: vote.assembly_id?._id || '',
+        candidate_id: vote.candidate?._id || '',
+        assembly_id: vote.assembly?._id || '',
+        block_id: vote.block?._id || '',
+        booth_id: vote.booth?._id || '',
+        election_year_id: vote.election_year?._id || '',
+        state_id: vote.state?._id || '',
+        division_id: vote.division?._id || '',
+        parliament_id: vote.parliament?._id || '',
         total_votes: vote.total_votes || 0
       });
     } else {
+      setIsEditMode(false);
       setFormData({
         candidate_id: '',
+        assembly_id: '',
         block_id: '',
         booth_id: '',
         election_year_id: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
-        assembly_id: '',
         total_votes: 0
       });
     }
   }, [vote]);
+
+  useEffect(() => {
+    if (isEditMode && states.length && divisions.length && parliaments.length && assemblies.length && blocks.length && booths.length) {
+      const { state_id, division_id, parliament_id, assembly_id, block_id } = formData;
+
+      setFilteredDivisions(divisions.filter(d => d.state_id?._id === state_id));
+      setFilteredParliaments(parliaments.filter(p => p.division_id?._id === division_id));
+      setFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === parliament_id));
+      setFilteredBlocks(blocks.filter(b => b.assembly_id?._id === assembly_id));
+      setFilteredBooths(booths.filter(bt => bt.block_id?._id === block_id));
+    }
+  }, [isEditMode, formData.state_id, formData.division_id, formData.parliament_id, formData.assembly_id, formData.block_id, states, divisions, parliaments, assemblies, blocks, booths]);
 
   // Cascading dropdown effects
   useEffect(() => {
@@ -84,7 +98,9 @@ export default function BlockVotesModal({
     } else {
       setFilteredDivisions([]);
     }
-    setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
+    }
   }, [formData.state_id, divisions]);
 
   useEffect(() => {
@@ -94,7 +110,9 @@ export default function BlockVotesModal({
     } else {
       setFilteredParliaments([]);
     }
-    setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
+    }
   }, [formData.division_id, parliaments]);
 
   useEffect(() => {
@@ -104,7 +122,9 @@ export default function BlockVotesModal({
     } else {
       setFilteredAssemblies([]);
     }
-    setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
+    }
   }, [formData.parliament_id, assemblies]);
 
   useEffect(() => {
@@ -114,7 +134,9 @@ export default function BlockVotesModal({
     } else {
       setFilteredBlocks([]);
     }
-    setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
+    if (!isEditMode) {
+      setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
+    }
   }, [formData.assembly_id, blocks]);
 
   useEffect(() => {
@@ -124,7 +146,6 @@ export default function BlockVotesModal({
     } else {
       setFilteredBooths([]);
     }
-    setFormData(prev => ({ ...prev, booth_id: '' }));
   }, [formData.block_id, booths]);
 
   const handleChange = (e) => {
@@ -134,11 +155,11 @@ export default function BlockVotesModal({
   const handleSubmit = async () => {
     const method = vote ? 'PUT' : 'POST';
     const token = localStorage.getItem('serviceToken');
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const url = vote
       ? `http://localhost:5000/api/block-votes/${vote._id}`
       : 'http://localhost:5000/api/block-votes';
 
+    const currentUser = JSON.parse(localStorage.getItem('user'));
     const submitData = {
       ...formData,
       ...(vote ? { updated_by: currentUser?._id } : { created_by: currentUser?._id })
@@ -161,7 +182,7 @@ export default function BlockVotesModal({
 
   return (
     <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
-      <DialogTitle>{vote ? 'Edit Block Vote' : 'Add Block Vote'}</DialogTitle>
+      <DialogTitle>{vote ? 'Edit Block Vote Record' : 'Add Block Vote Record'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} mt={2}>
           <FormControl fullWidth>
@@ -288,17 +309,16 @@ export default function BlockVotesModal({
             </Select>
           </FormControl>
 
-
-
           <FormControl fullWidth>
             <InputLabel>Election Year</InputLabel>
             <Select
               name="election_year_id"
-              value={formData.election_year_id}
+              value={formData.election_year_id || ''}
               onChange={handleChange}
               label="Election Year"
               required
             >
+              <MenuItem value="">Select Election Year</MenuItem>
               {electionYears?.map((year) => (
                 <MenuItem key={year._id} value={year._id}>
                   {year.year}
