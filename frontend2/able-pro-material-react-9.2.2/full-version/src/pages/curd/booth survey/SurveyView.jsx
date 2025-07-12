@@ -1,5 +1,5 @@
-import { Stack, Typography, Divider, Chip, Avatar, Grid, Box } from '@mui/material';
-import { User, CalendarTick, MessageText1, Award, Buildings2 } from 'iconsax-react';
+import { Stack, Typography, Divider, Chip, Avatar, Grid, Box, Paper } from '@mui/material';
+import { User, CalendarTick, MessageText1, Award, Buildings2, Location } from 'iconsax-react';
 
 export default function BoothSurveyView({ data }) {
     if (!data) return null;
@@ -33,6 +33,16 @@ export default function BoothSurveyView({ data }) {
         });
     };
 
+    // Create hierarchy breadcrumb
+    const hierarchy = [
+        { label: 'State', data: data.state_id, color: 'secondary' },
+        { label: 'Division', data: data.division_id, color: 'info' },
+        { label: 'Parliament', data: data.parliament_id, color: 'warning' },
+        { label: 'Assembly', data: data.assembly_id, color: 'success' },
+        { label: 'Block', data: data.block_id, color: 'error' },
+        { label: 'Booth', data: data.booth_id, color: 'primary' }
+    ].filter(item => item.data);
+
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
@@ -53,6 +63,31 @@ export default function BoothSurveyView({ data }) {
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
+
+            {/* Hierarchy Breadcrumb */}
+            {hierarchy.length > 0 && (
+                <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+                    <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                        <Location size={16} />
+                        <Typography variant="subtitle2" color="text.secondary">Administrative Hierarchy</Typography>
+                    </Stack>
+                    <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                        {hierarchy.map((item, index) => (
+                            <Stack key={item.label} direction="row" alignItems="center" spacing={0.5}>
+                                <Chip
+                                    label={`${item.label}: ${item.data.name}`}
+                                    color={item.color}
+                                    size="small"
+                                    variant="outlined"
+                                />
+                                {index < hierarchy.length - 1 && (
+                                    <Typography variant="caption" color="text.secondary">→</Typography>
+                                )}
+                            </Stack>
+                        ))}
+                    </Stack>
+                </Paper>
+            )}
 
             <Grid container spacing={3}>
                 {/* Left Column - Survey Information */}
