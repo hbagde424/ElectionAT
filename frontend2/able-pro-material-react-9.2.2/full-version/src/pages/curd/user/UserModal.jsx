@@ -16,7 +16,8 @@ import {
   CircularProgress,
   Autocomplete,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Chip
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
@@ -106,90 +107,14 @@ export default function UserModal({
     return typeof item === 'object' ? item._id : item;
   };
 
+  // Always show all divisions, parliaments, assemblies, blocks, and booths
   useEffect(() => {
-    if (formData.state_ids.length > 0) {
-      const filtered = divisions.filter(div => 
-        formData.state_ids.includes(getID(div.state_id))
-      );
-      setFilteredDivisions(filtered);
-    } else {
-      setFilteredDivisions([]);
-      setFormData(prev => ({
-        ...prev,
-        division_ids: [],
-        parliament_ids: [],
-        assembly_ids: [],
-        block_ids: [],
-        booth_ids: []
-      }));
-    }
-  }, [formData.state_ids, divisions]);
-
-  useEffect(() => {
-    if (formData.division_ids.length > 0) {
-      const filtered = parliaments.filter(par => 
-        formData.division_ids.includes(getID(par.division_id))
-      );
-      setFilteredParliaments(filtered);
-    } else {
-      setFilteredParliaments([]);
-      setFormData(prev => ({
-        ...prev,
-        parliament_ids: [],
-        assembly_ids: [],
-        block_ids: [],
-        booth_ids: []
-      }));
-    }
-  }, [formData.division_ids, parliaments]);
-
-  useEffect(() => {
-    if (formData.parliament_ids.length > 0) {
-      const filtered = assemblies.filter(asm => 
-        formData.parliament_ids.includes(getID(asm.parliament_id))
-      );
-      setFilteredAssemblies(filtered);
-    } else {
-      setFilteredAssemblies([]);
-      setFormData(prev => ({
-        ...prev,
-        assembly_ids: [],
-        block_ids: [],
-        booth_ids: []
-      }));
-    }
-  }, [formData.parliament_ids, assemblies]);
-
-  useEffect(() => {
-    if (formData.assembly_ids.length > 0) {
-      const filtered = blocks.filter(blk => 
-        formData.assembly_ids.includes(getID(blk.assembly_id))
-      );
-      setFilteredBlocks(filtered);
-    } else {
-      setFilteredBlocks([]);
-      setFormData(prev => ({
-        ...prev,
-        block_ids: [],
-        booth_ids: []
-      }));
-    }
-  }, [formData.assembly_ids, blocks]);
-
-  useEffect(() => {
-    if (formData.block_ids.length > 0) {
-      const filtered = booths.filter(booth => 
-        formData.block_ids.includes(getID(booth.block_id))
-      );
-      setFilteredBooths(filtered);
-    } else {
-      setFilteredBooths([]);
-      setFormData(prev => ({
-        ...prev,
-        booth_ids: []
-      }));
-    }
-  }, [formData.block_ids, booths]);
+    setFilteredDivisions(divisions);
+    setFilteredParliaments(parliaments);
+    setFilteredAssemblies(assemblies);
+    setFilteredBlocks(blocks);
+    setFilteredBooths(booths);
+  }, [divisions, parliaments, assemblies, blocks, booths]);
 
   const validateField = (name, value) => {
     switch (name) {
@@ -216,30 +141,6 @@ export default function UserModal({
       case 'role':
         if (!value) return 'Role is required';
         break;
-      case 'state_ids':
-        if (['State', 'Division', 'Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role) && value.length === 0)
-          return 'At least one state must be selected';
-        break;
-      case 'division_ids':
-        if (['Division', 'Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role) && value.length === 0)
-          return 'At least one division must be selected';
-        break;
-      case 'parliament_ids':
-        if (['Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role) && value.length === 0)
-          return 'At least one parliament must be selected';
-        break;
-      case 'assembly_ids':
-        if (['Assembly', 'Block', 'Booth'].includes(formData.role) && value.length === 0)
-          return 'At least one assembly must be selected';
-        break;
-      case 'block_ids':
-        if (['Block', 'Booth'].includes(formData.role) && value.length === 0)
-          return 'At least one block must be selected';
-        break;
-      case 'booth_ids':
-        if (formData.role === 'Booth' && value.length === 0)
-          return 'At least one booth must be selected';
-        break;
       default:
         break;
     }
@@ -249,9 +150,7 @@ export default function UserModal({
   const validateForm = () => {
     const newErrors = {};
     const fieldsToValidate = [
-      'username', 'mobile', 'email', 'role', 
-      'state_ids', 'division_ids', 'parliament_ids', 
-      'assembly_ids', 'block_ids', 'booth_ids'
+      'username', 'mobile', 'email', 'role'
     ];
 
     if (!user) {
@@ -275,21 +174,7 @@ export default function UserModal({
     }
     if (submitError) setSubmitError('');
 
-    setFormData(prev => {
-      const updates = { [name]: value };
-      
-      // Clear dependent fields when role changes
-      if (name === 'role') {
-        updates.state_ids = [];
-        updates.division_ids = [];
-        updates.parliament_ids = [];
-        updates.assembly_ids = [];
-        updates.block_ids = [];
-        updates.booth_ids = [];
-      }
-      
-      return { ...prev, ...updates };
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleMultiSelectChange = (name, value) => {
@@ -298,34 +183,12 @@ export default function UserModal({
     }
     if (submitError) setSubmitError('');
 
-    setFormData(prev => {
-      const updates = { [name]: value };
-      
-      // Clear dependent fields when parent selection changes
-      if (name === 'state_ids') {
-        updates.division_ids = [];
-        updates.parliament_ids = [];
-        updates.assembly_ids = [];
-        updates.block_ids = [];
-        updates.booth_ids = [];
-      } else if (name === 'division_ids') {
-        updates.parliament_ids = [];
-        updates.assembly_ids = [];
-        updates.block_ids = [];
-        updates.booth_ids = [];
-      } else if (name === 'parliament_ids') {
-        updates.assembly_ids = [];
-        updates.block_ids = [];
-        updates.booth_ids = [];
-      } else if (name === 'assembly_ids') {
-        updates.block_ids = [];
-        updates.booth_ids = [];
-      } else if (name === 'block_ids') {
-        updates.booth_ids = [];
-      }
-      
-      return { ...prev, ...updates };
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectAll = (name, options) => {
+    const allIds = options.map(option => option._id);
+    setFormData(prev => ({ ...prev, [name]: allIds }));
   };
 
   const handleSubmit = async () => {
@@ -383,6 +246,50 @@ export default function UserModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderAutocomplete = (name, label, options, selectedIds, allLabel) => {
+    const selectedOptions = options.filter(option => selectedIds.includes(option._id));
+    
+    return (
+      <Stack direction="column" spacing={1}>
+        <Autocomplete
+          multiple
+          options={options}
+          getOptionLabel={(option) => option.name}
+          value={selectedOptions}
+          onChange={(e, newValue) => handleMultiSelectChange(name, newValue.map(v => v._id))}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={label}
+              error={!!errors[name]}
+              helperText={errors[name]}
+            />
+          )}
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => (
+              <Chip
+                {...getTagProps({ index })}
+                key={option._id}
+                label={option.name}
+                size="small"
+              />
+            ))
+          }
+        />
+        {options.length > 0 && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => handleSelectAll(name, options)}
+            disabled={selectedIds.length === options.length}
+          >
+            Select {allLabel || 'All'}
+          </Button>
+        )}
+      </Stack>
+    );
   };
 
   return (
@@ -499,119 +406,13 @@ export default function UserModal({
             label="Active User"
           />
 
-          {['State', 'Division', 'Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role) && (
-            <Autocomplete
-              multiple
-              options={states}
-              getOptionLabel={(option) => option.name}
-              value={states.filter(state => formData.state_ids.includes(state._id))}
-              onChange={(e, newValue) => handleMultiSelectChange('state_ids', newValue.map(v => v._id))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="States *"
-                  error={!!errors.state_ids}
-                  helperText={errors.state_ids}
-                />
-              )}
-              disabled={!['State', 'Division', 'Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role)}
-            />
-          )}
-
-          {['Division', 'Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role) && (
-            <Autocomplete
-              multiple
-              options={filteredDivisions}
-              getOptionLabel={(option) => option.name}
-              value={filteredDivisions.filter(div => formData.division_ids.includes(div._id))}
-              onChange={(e, newValue) => handleMultiSelectChange('division_ids', newValue.map(v => v._id))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Divisions *"
-                  error={!!errors.division_ids}
-                  helperText={errors.division_ids}
-                />
-              )}
-              disabled={formData.state_ids.length === 0}
-            />
-          )}
-
-          {['Parliament', 'Assembly', 'Block', 'Booth'].includes(formData.role) && (
-            <Autocomplete
-              multiple
-              options={filteredParliaments}
-              getOptionLabel={(option) => option.name}
-              value={filteredParliaments.filter(par => formData.parliament_ids.includes(par._id))}
-              onChange={(e, newValue) => handleMultiSelectChange('parliament_ids', newValue.map(v => v._id))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Parliaments *"
-                  error={!!errors.parliament_ids}
-                  helperText={errors.parliament_ids}
-                />
-              )}
-              disabled={formData.division_ids.length === 0}
-            />
-          )}
-
-          {['Assembly', 'Block', 'Booth'].includes(formData.role) && (
-            <Autocomplete
-              multiple
-              options={filteredAssemblies}
-              getOptionLabel={(option) => option.name}
-              value={filteredAssemblies.filter(asm => formData.assembly_ids.includes(asm._id))}
-              onChange={(e, newValue) => handleMultiSelectChange('assembly_ids', newValue.map(v => v._id))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Assemblies *"
-                  error={!!errors.assembly_ids}
-                  helperText={errors.assembly_ids}
-                />
-              )}
-              disabled={formData.parliament_ids.length === 0}
-            />
-          )}
-
-          {['Block', 'Booth'].includes(formData.role) && (
-            <Autocomplete
-              multiple
-              options={filteredBlocks}
-              getOptionLabel={(option) => option.name}
-              value={filteredBlocks.filter(blk => formData.block_ids.includes(blk._id))}
-              onChange={(e, newValue) => handleMultiSelectChange('block_ids', newValue.map(v => v._id))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Blocks *"
-                  error={!!errors.block_ids}
-                  helperText={errors.block_ids}
-                />
-              )}
-              disabled={formData.assembly_ids.length === 0}
-            />
-          )}
-
-          {formData.role === 'Booth' && (
-            <Autocomplete
-              multiple
-              options={filteredBooths}
-              getOptionLabel={(option) => `${option.name} (No: ${option.booth_number})`}
-              value={filteredBooths.filter(booth => formData.booth_ids.includes(booth._id))}
-              onChange={(e, newValue) => handleMultiSelectChange('booth_ids', newValue.map(v => v._id))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Booths *"
-                  error={!!errors.booth_ids}
-                  helperText={errors.booth_ids}
-                />
-              )}
-              disabled={formData.block_ids.length === 0}
-            />
-          )}
+          {/* Always show all geographical selectors */}
+          {renderAutocomplete('state_ids', 'States', states, formData.state_ids, 'All States')}
+          {renderAutocomplete('division_ids', 'Divisions', filteredDivisions, formData.division_ids, 'All Divisions')}
+          {renderAutocomplete('parliament_ids', 'Parliaments', filteredParliaments, formData.parliament_ids, 'All Parliaments')}
+          {renderAutocomplete('assembly_ids', 'Assemblies', filteredAssemblies, formData.assembly_ids, 'All Assemblies')}
+          {renderAutocomplete('block_ids', 'Blocks', filteredBlocks, formData.block_ids, 'All Blocks')}
+          {renderAutocomplete('booth_ids', 'Booths', filteredBooths, formData.booth_ids, 'All Booths')}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
