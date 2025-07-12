@@ -52,11 +52,6 @@ export default function UserModal({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [filteredDivisions, setFilteredDivisions] = useState([]);
-  const [filteredParliaments, setFilteredParliaments] = useState([]);
-  const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-  const [filteredBlocks, setFilteredBlocks] = useState([]);
-  const [filteredBooths, setFilteredBooths] = useState([]);
 
   useEffect(() => {
     if (!open) return;
@@ -69,12 +64,12 @@ export default function UserModal({
         password: '',
         confirmPassword: '',
         role: user.role || '',
-        state_ids: user.state_ids || [],
-        division_ids: user.division_ids || [],
-        parliament_ids: user.parliament_ids || [],
-        assembly_ids: user.assembly_ids || [],
-        block_ids: user.block_ids || [],
-        booth_ids: user.booth_ids || [],
+        state_ids: (user.state_ids || []).map(item => typeof item === 'object' ? item._id : item),
+        division_ids: (user.division_ids || []).map(item => typeof item === 'object' ? item._id : item),
+        parliament_ids: (user.parliament_ids || []).map(item => typeof item === 'object' ? item._id : item),
+        assembly_ids: (user.assembly_ids || []).map(item => typeof item === 'object' ? item._id : item),
+        block_ids: (user.block_ids || []).map(item => typeof item === 'object' ? item._id : item),
+        booth_ids: (user.booth_ids || []).map(item => typeof item === 'object' ? item._id : item),
         isActive: user.isActive
       });
     } else {
@@ -94,27 +89,12 @@ export default function UserModal({
         isActive: true
       });
     }
-
-    setFilteredDivisions([]);
-    setFilteredParliaments([]);
-    setFilteredAssemblies([]);
-    setFilteredBlocks([]);
-    setFilteredBooths([]);
   }, [open, user]);
 
   const getID = (item) => {
     if (!item) return '';
     return typeof item === 'object' ? item._id : item;
   };
-
-  // Always show all divisions, parliaments, assemblies, blocks, and booths
-  useEffect(() => {
-    setFilteredDivisions(divisions);
-    setFilteredParliaments(parliaments);
-    setFilteredAssemblies(assemblies);
-    setFilteredBlocks(blocks);
-    setFilteredBooths(booths);
-  }, [divisions, parliaments, assemblies, blocks, booths]);
 
   const validateField = (name, value) => {
     switch (name) {
@@ -128,7 +108,7 @@ export default function UserModal({
         break;
       case 'email':
         if (!value) return 'Email is required';
-        if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value)) 
+        if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value))
           return 'Invalid email format';
         break;
       case 'password':
@@ -168,7 +148,7 @@ export default function UserModal({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -250,7 +230,7 @@ export default function UserModal({
 
   const renderAutocomplete = (name, label, options, selectedIds, allLabel) => {
     const selectedOptions = options.filter(option => selectedIds.includes(option._id));
-    
+
     return (
       <Stack direction="column" spacing={1}>
         <Autocomplete
@@ -258,7 +238,10 @@ export default function UserModal({
           options={options}
           getOptionLabel={(option) => option.name}
           value={selectedOptions}
-          onChange={(e, newValue) => handleMultiSelectChange(name, newValue.map(v => v._id))}
+          onChange={(e, newValue) => {
+            const newIds = newValue.map(v => v._id);
+            handleMultiSelectChange(name, newIds);
+          }}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -283,7 +266,7 @@ export default function UserModal({
             variant="outlined"
             size="small"
             onClick={() => handleSelectAll(name, options)}
-            disabled={selectedIds.length === options.length}
+            disabled={selectedOptions.length === options.length}
           >
             Select {allLabel || 'All'}
           </Button>
@@ -406,13 +389,13 @@ export default function UserModal({
             label="Active User"
           />
 
-          {/* Always show all geographical selectors */}
+          {/* All geographical selectors - no hierarchical filtering */}
           {renderAutocomplete('state_ids', 'States', states, formData.state_ids, 'All States')}
-          {renderAutocomplete('division_ids', 'Divisions', filteredDivisions, formData.division_ids, 'All Divisions')}
-          {renderAutocomplete('parliament_ids', 'Parliaments', filteredParliaments, formData.parliament_ids, 'All Parliaments')}
-          {renderAutocomplete('assembly_ids', 'Assemblies', filteredAssemblies, formData.assembly_ids, 'All Assemblies')}
-          {renderAutocomplete('block_ids', 'Blocks', filteredBlocks, formData.block_ids, 'All Blocks')}
-          {renderAutocomplete('booth_ids', 'Booths', filteredBooths, formData.booth_ids, 'All Booths')}
+          {renderAutocomplete('division_ids', 'Divisions', divisions, formData.division_ids, 'All Divisions')}
+          {renderAutocomplete('parliament_ids', 'Parliaments', parliaments, formData.parliament_ids, 'All Parliaments')}
+          {renderAutocomplete('assembly_ids', 'Assemblies', assemblies, formData.assembly_ids, 'All Assemblies')}
+          {renderAutocomplete('block_ids', 'Blocks', blocks, formData.block_ids, 'All Blocks')}
+          {renderAutocomplete('booth_ids', 'Booths', booths, formData.booth_ids, 'All Booths')}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

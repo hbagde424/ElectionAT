@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider
@@ -12,6 +12,7 @@ import {
   getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
   useReactTable, flexRender
 } from '@tanstack/react-table';
+import { CSVLink } from 'react-csv';
 
 // project imports
 import MainCard from 'components/MainCard';
@@ -43,11 +44,18 @@ export default function UserListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [globalFilter, setGlobalFilter] = useState('');
 
-  const fetchUsers = async (pageIndex, pageSize) => {
+  const fetchUsers = async (pageIndex, pageSize, globalFilter = '') => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/users?page=${pageIndex + 1}&limit=${pageSize}`);
+      const token = localStorage.getItem('serviceToken');
+      const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+      const res = await fetch(`http://localhost:5000/api/users?page=${pageIndex + 1}&limit=${pageSize}${query}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const json = await res.json();
       if (json.success) {
         setUsers(json.data);
@@ -71,28 +79,30 @@ export default function UserListPage() {
         fetch('http://localhost:5000/api/booths')
       ]);
 
-      const statesJson = await statesRes.json();
-      const divisionsJson = await divisionsRes.json();
-      const parliamentsJson = await parliamentsRes.json();
-      const assembliesJson = await assembliesRes.json();
-      const blocksJson = await blocksRes.json();
-      const boothsJson = await boothsRes.json();
+      const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
+        statesRes.json(),
+        divisionsRes.json(),
+        parliamentsRes.json(),
+        assembliesRes.json(),
+        blocksRes.json(),
+        boothsRes.json()
+      ]);
 
-      if (statesJson.success) setStates(statesJson.data);
-      if (divisionsJson.success) setDivisions(divisionsJson.data);
-      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
-      if (assembliesJson.success) setAssemblies(assembliesJson.data);
-      if (blocksJson.success) setBlocks(blocksJson.data);
-      if (boothsJson.success) setBooths(boothsJson.data);
+      if (statesData.success) setStates(statesData.data);
+      if (divisionsData.success) setDivisions(divisionsData.data);
+      if (parliamentsData.success) setParliaments(parliamentsData.data);
+      if (assembliesData.success) setAssemblies(assembliesData.data);
+      if (blocksData.success) setBlocks(blocksData.data);
+      if (boothsData.success) setBooths(boothsData.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
   useEffect(() => {
-    fetchUsers(pagination.pageIndex, pagination.pageSize);
+    fetchUsers(pagination.pageIndex, pagination.pageSize, globalFilter);
     fetchReferenceData();
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
   const handleDeleteOpen = (id) => {
     setUserDeleteId(id);
@@ -100,6 +110,20 @@ export default function UserListPage() {
   };
 
   const handleDeleteClose = () => setOpenDelete(false);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatArray = (items) => {
+    if (!items || items.length === 0) return 'None';
+    return items.map(item => item.name).join(', ');
+  };
 
   const columns = useMemo(() => [
     {
@@ -110,7 +134,16 @@ export default function UserListPage() {
     {
       header: 'Username',
       accessorKey: 'username',
-      cell: ({ getValue }) => <Typography variant="subtitle1">{getValue()}</Typography>
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue()}
+        </Typography>
+      )
     },
     {
       header: 'Mobile',
@@ -120,7 +153,16 @@ export default function UserListPage() {
     {
       header: 'Email',
       accessorKey: 'email',
-      cell: ({ getValue }) => <Typography>{getValue()}</Typography>
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue() || 'N/A'}
+        </Typography>
+      )
     },
     {
       header: 'Role',
@@ -130,7 +172,7 @@ export default function UserListPage() {
           label={getValue()}
           color={
             getValue() === 'superAdmin' ? 'error' :
-            getValue() === 'Admin' ? 'warning' : 'primary'
+              getValue() === 'Admin' ? 'warning' : 'primary'
           }
           size="small"
         />
@@ -146,6 +188,112 @@ export default function UserListPage() {
           size="small"
         />
       )
+    },
+    {
+      header: 'States',
+      accessorKey: 'state_ids',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatArray(getValue())}
+        </Typography>
+      )
+    },
+    {
+      header: 'Divisions',
+      accessorKey: 'division_ids',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatArray(getValue())}
+        </Typography>
+      )
+    },
+    {
+      header: 'Parliaments',
+      accessorKey: 'parliament_ids',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatArray(getValue())}
+        </Typography>
+      )
+    },
+    {
+      header: 'Assemblies',
+      accessorKey: 'assembly_ids',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatArray(getValue())}
+        </Typography>
+      )
+    },
+    {
+      header: 'Blocks',
+      accessorKey: 'block_ids',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatArray(getValue())}
+        </Typography>
+      )
+    },
+    {
+      header: 'Booths',
+      accessorKey: 'booth_ids',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatArray(getValue())}
+        </Typography>
+      )
+    },
+    {
+      header: 'Created By',
+      accessorKey: 'created_by',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Avatar sx={{ width: 24, height: 24 }}>
+            <User size={16} />
+          </Avatar>
+          <Typography>{getValue()?.username || 'Unknown'}</Typography>
+        </Stack>
+      )
+    },
+    {
+      header: 'Created At',
+      accessorKey: 'created_at',
+      cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+    },
+    {
+      header: 'Updated At',
+      accessorKey: 'updated_at',
+      cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
     },
     {
       header: 'Actions',
@@ -192,18 +340,67 @@ export default function UserListPage() {
   const table = useReactTable({
     data: users,
     columns,
-    state: {
-      pagination
-    },
+    state: { pagination, globalFilter },
     pageCount,
     manualPagination: true,
     onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowCanExpand: () => true
   });
+
+  // Helper to fetch all users for CSV
+  const fetchAllUsersForCsv = async () => {
+    try {
+      const token = localStorage.getItem('serviceToken');
+      const res = await fetch('http://localhost:5000/api/users?all=true', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const json = await res.json();
+      if (json.success) {
+        return json.data;
+      }
+    } catch (error) {
+      console.error('Failed to fetch all users for CSV:', error);
+    }
+    return [];
+  };
+
+  const [csvData, setCsvData] = useState([]);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const csvLinkRef = useRef();
+
+  const handleDownloadCsv = async () => {
+    setCsvLoading(true);
+    const allData = await fetchAllUsersForCsv();
+    setCsvData(allData.map(item => ({
+      Username: item.username,
+      Mobile: item.mobile,
+      Email: item.email || '',
+      Role: item.role,
+      Status: item.isActive ? 'Active' : 'Inactive',
+      States: formatArray(item.state_ids),
+      Divisions: formatArray(item.division_ids),
+      Parliaments: formatArray(item.parliament_ids),
+      Assemblies: formatArray(item.assembly_ids),
+      Blocks: formatArray(item.block_ids),
+      Booths: formatArray(item.booth_ids),
+      'Created By': item.created_by?.username || '',
+      'Created At': item.created_at,
+      'Updated At': item.updated_at
+    })));
+    setCsvLoading(false);
+    setTimeout(() => {
+      if (csvLinkRef.current) {
+        csvLinkRef.current.link.click();
+      }
+    }, 100);
+  };
 
   if (loading) return <EmptyReactTable />;
 
@@ -212,13 +409,24 @@ export default function UserListPage() {
       <MainCard content={false}>
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
           <DebouncedInput
-            value={table.getState().globalFilter || ''}
-            onFilterChange={(value) => table.setGlobalFilter(String(value))}
+            value={globalFilter}
+            onFilterChange={setGlobalFilter}
             placeholder={`Search ${users.length} users...`}
           />
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedUser(null); setOpenModal(true); }}>
-            Add User
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <CSVLink
+              data={csvData}
+              filename="users_all.csv"
+              style={{ display: 'none' }}
+              ref={csvLinkRef}
+            />
+            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+              {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedUser(null); setOpenModal(true); }}>
+              Add User
+            </Button>
+          </Stack>
         </Stack>
 
         <ScrollX>
