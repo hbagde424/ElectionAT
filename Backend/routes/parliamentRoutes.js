@@ -269,6 +269,7 @@ router.get('/regional/:type', getParliamentsByRegionalType);
  *         - category
  *         - regional_type
  *         - created_by
+ *         - updated_by
  *       properties:
  *         name:
  *           type: string
@@ -300,6 +301,10 @@ router.get('/regional/:type', getParliamentsByRegionalType);
  *           type: string
  *           description: Reference to User who created this record
  *           example: "507f1f77bcf86cd799439014"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated this record
+ *           example: "507f1f77bcf86cd799439015"
  *         created_at:
  *           type: string
  *           format: date-time

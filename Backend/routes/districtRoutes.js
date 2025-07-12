@@ -268,6 +268,7 @@ router.get('/division/:divisionId', getDistrictsByDivision);
  *         - state_id
  *         - division_id
  *         - created_by
+ *         - updated_by
  *       properties:
  *         name:
  *           type: string
@@ -290,6 +291,10 @@ router.get('/division/:divisionId', getDistrictsByDivision);
  *           description: Reference to Division
  *           example: "507f1f77bcf86cd799439014"
  *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
  *           type: string
  *           description: Reference to User who created
  *           example: "507f1f77bcf86cd799439022"

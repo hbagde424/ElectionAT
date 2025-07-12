@@ -6,7 +6,7 @@ const {
   updateParty,
   deleteParty
 } = require('../controllers/partyController');
-const { protect } = require('../middlewares/auth');
+const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -85,8 +85,10 @@ router.get('/:id', getParty);
  *         description: Party created successfully
  *       400:
  *         description: Party already exists
+ *       401:
+ *         description: Not authorized
  */
-router.post('/', createParty);
+router.post('/', protect, authorize('admin', 'superAdmin'), createParty);
 
 /**
  * @swagger
@@ -113,10 +115,12 @@ router.post('/', createParty);
  *         description: Party updated successfully
  *       400:
  *         description: Party with this name already exists
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: Party not found
  */
-router.put('/:id',  updateParty);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), updateParty);
 
 /**
  * @swagger
@@ -135,10 +139,12 @@ router.put('/:id',  updateParty);
  *     responses:
  *       200:
  *         description: Party deleted successfully
+ *       401:
+ *         description: Not authorized
  *       404:
  *         description: Party not found
  */
-router.delete('/:id',  deleteParty);
+router.delete('/:id', protect, authorize('superAdmin'), deleteParty);
 
 /**
  * @swagger
@@ -149,6 +155,7 @@ router.delete('/:id',  deleteParty);
  *       required:
  *         - name
  *         - abbreviation
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
@@ -162,6 +169,12 @@ router.delete('/:id',  deleteParty);
  *         founded_year:
  *           type: integer
  *           description: Year the party was founded
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created this record
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated this record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -175,6 +188,8 @@ router.delete('/:id',  deleteParty);
  *         abbreviation: "INC"
  *         symbol: "Hand"
  *         founded_year: 1885
+ *         created_by: "507f1f77bcf86cd799439011"
+ *         updated_by: "507f1f77bcf86cd799439012"
  *         created_at: "2023-01-01T00:00:00.000Z"
  *         updated_at: "2023-01-01T00:00:00.000Z"
  *   securitySchemes:

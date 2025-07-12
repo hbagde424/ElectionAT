@@ -19,6 +19,7 @@ exports.getParliaments = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
       .populate('created_by', 'username email')
+      .populate('updated_by', 'username email')
       .sort({ name: 1 });
 
     // Filter by category
@@ -71,7 +72,8 @@ exports.getParliament = async (req, res, next) => {
       .populate('state_id', 'name code')
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('created_by', 'username email');
+      .populate('created_by', 'username email')
+      .populate('updated_by', 'username email'); 
 
     if (!parliament) {
       return res.status(404).json({
@@ -184,6 +186,12 @@ exports.updateParliament = async (req, res, next) => {
       }
     }
 
+     // Set updated_by from authenticated user
+    req.body.updated_by = req.user.id;
+
+    // Set user in locals for pre-save hook
+    parliament._locals = { user: req.user };
+
     parliament = await Parliament.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
@@ -191,7 +199,8 @@ exports.updateParliament = async (req, res, next) => {
     .populate('state_id', 'name code')
     .populate('division_id', 'name')
     .populate('assembly_id', 'name')
-    .populate('created_by', 'username email');
+    .populate('created_by', 'username email')
+    .populate('updated_by', 'username email'); // Add population of updated_by
 
     res.status(200).json({
       success: true,

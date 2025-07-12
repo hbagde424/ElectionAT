@@ -50,6 +50,11 @@ const assemblySchema = new mongoose.Schema({
     ref: 'User', // or 'Admin'
     required: [true, 'Creator reference is required']
   },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
 
   created_at: {
     type: Date,
@@ -64,6 +69,9 @@ const assemblySchema = new mongoose.Schema({
 // Update timestamp before saving
 assemblySchema.pre('save', function(next) {
   this.updated_at = Date.now();
+  if (this.isModified()) {
+    this.updated_by = this._locals?.user?.id; // Will be set from controller
+  }
   next();
 });
 
