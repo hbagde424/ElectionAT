@@ -273,6 +273,7 @@ router.get('/party/:partyId', getPotentialCandidatesByParty);
  *         - post_details.place
  *         - election_year_id
  *         - created_by
+ *         - upated_by
  *       properties:
  *         name:
  *           type: string

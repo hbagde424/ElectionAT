@@ -1,4 +1,4 @@
-const PotentialCandidate = require('../models/potentialCandidate');
+const PotentialCandidate = require('../models/PotentialCandidate');
 const Party = require('../models/party');
 const Assembly = require('../models/assembly');
 const ElectionYear = require('../models/electionYear');
@@ -140,7 +140,8 @@ exports.createPotentialCandidate = async (req, res, next) => {
 
     const candidateData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+      updated_by: req.user.id
     };
 
     const candidate = await PotentialCandidate.create(candidateData);
@@ -267,7 +268,8 @@ exports.getPotentialCandidatesByConstituency = async (req, res, next) => {
       .sort({ name: 1 })
       .populate('party_id', 'name symbol')
       .populate('election_year_id', 'year')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -297,7 +299,9 @@ exports.getPotentialCandidatesByParty = async (req, res, next) => {
       .sort({ name: 1 })
       .populate('constituency_id', 'name')
       .populate('election_year_id', 'year')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
+
 
     res.status(200).json({
       success: true,
