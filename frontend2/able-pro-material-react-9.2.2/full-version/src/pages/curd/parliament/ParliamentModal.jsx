@@ -1,238 +1,294 @@
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Stack,
-    TextField,
-    InputLabel,
-    Select,
-    MenuItem,
-    FormControl
+    Dialog, DialogTitle, DialogContent, DialogActions, Button,
+    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
+    Chip, Box
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import JWTContext from 'contexts/JWTContext';
 
-export default function ParliamentModal({ 
-    open, 
-    modalToggler, 
-    parliament, 
-    states, 
-    divisions, 
+export default function ParliamentModal({
+    open,
+    modalToggler,
+    parliament,
+    states,
+    divisions,
     assemblies,
-    refresh 
+    refresh
 }) {
+    const contextValue = useContext(JWTContext);
+    const { user } = contextValue || {};
+
     const [formData, setFormData] = useState({
         name: '',
+        category: 'general',
+        regional_type: 'urban',
         state_id: '',
         division_id: '',
-        assembly_id: null, // Changed to null to handle empty value
-        category: '',
-        regional_type: ''
+        assembly_id: ''
     });
-
+    const [submitted, setSubmitted] = useState(false);
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+
+    const categoryOptions = ['general', 'reserved', 'special'];
+    const regionalTypeOptions = ['urban', 'rural', 'mixed'];
 
     useEffect(() => {
         if (parliament) {
             setFormData({
                 name: parliament.name || '',
-                state_id: parliament.state_id?._id || '',
-                division_id: parliament.division_id?._id || '',
-                assembly_id: parliament.assembly_id?._id || null, // Handle null for empty value
-                category: parliament.category || '',
-                regional_type: parliament.regional_type || ''
+                category: parliament.category || 'general',
+                regional_type: parliament.regional_type || 'urban',
+                state_id: parliament.state_id?._id?.toString() || parliament.state_id?.toString() || '',
+                division_id: parliament.division_id?._id?.toString() || parliament.division_id?.toString() || '',
+                assembly_id: parliament.assembly_id?._id?.toString() || parliament.assembly_id?.toString() || ''
             });
         } else {
             setFormData({
                 name: '',
+                category: 'general',
+                regional_type: 'urban',
                 state_id: '',
                 division_id: '',
-                assembly_id: null, // Initialize as null
-                category: '',
-                regional_type: ''
+                assembly_id: ''
             });
         }
     }, [parliament]);
 
+    // State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+            const filtered = divisions?.filter(division => {
+                const divisionStateId = division.state_id?._id || division.state_id;
+                return divisionStateId === formData.state_id;
+            }) || [];
             setFilteredDivisions(filtered);
+
+            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    division_id: '',
+                    assembly_id: ''
+                }));
+            }
         } else {
             setFilteredDivisions([]);
-            setFormData(prev => ({ ...prev, division_id: '', assembly_id: null }));
+            setFormData(prev => ({
+                ...prev,
+                division_id: '',
+                assembly_id: ''
+            }));
         }
     }, [formData.state_id, divisions]);
 
+    // Division -> Assembly
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = assemblies.filter(asm => asm.division_id?._id === formData.division_id);
+            const filtered = assemblies?.filter(assembly => {
+                const assemblyDivisionId = assembly.division_id?._id || assembly.division_id;
+                return assemblyDivisionId === formData.division_id;
+            }) || [];
             setFilteredAssemblies(filtered);
+
+            if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    assembly_id: ''
+                }));
+            }
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({ ...prev, assembly_id: null }));
+            setFormData(prev => ({
+                ...prev,
+                assembly_id: ''
+            }));
         }
     }, [formData.division_id, assemblies]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => {
-            // Reset dependent fields when parent changes
-            if (name === 'state_id') {
-                return { ...prev, [name]: value, division_id: '', assembly_id: null };
-            }
-            if (name === 'division_id') {
-                return { ...prev, [name]: value, assembly_id: null };
-            }
-            // Handle empty assembly_id selection
-            if (name === 'assembly_id') {
-                return { ...prev, [name]: value === '' ? null : value };
-            }
-            return { ...prev, [name]: value };
-        });
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleSubmit = async () => {
+        setSubmitted(true);
+        const requiredFields = ['name', 'category', 'regional_type', 'state_id', 'division_id'];
+        for (const field of requiredFields) {
+            if (!formData[field]) return;
+        }
+
         const method = parliament ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
-        const url = parliament
+        const url = parliament 
             ? `http://localhost:5000/api/parliaments/${parliament._id}`
             : 'http://localhost:5000/api/parliaments';
 
-        // Create payload without assembly_id if it's null
-        const payload = {
+        let userId = user?._id || user?.id;
+        if (!userId) {
+            try {
+                const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+                userId = localUser._id || localUser.id;
+            } catch (e) {
+                console.error('Failed to parse user from localStorage:', e);
+            }
+        }
+
+        const submitData = {
             ...formData,
-            assembly_id: formData.assembly_id || undefined // Send undefined instead of null
+            ...(parliament ? { updated_by: userId } : { created_by: userId })
         };
 
-        const res = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
-        });
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(submitData)
+            });
 
-        if (res.ok) {
-            modalToggler(false);
-            refresh();
-        } else {
-            const errorData = await res.json();
-            console.error('Submission failed:', errorData);
+            if (res.ok) {
+                modalToggler(false);
+                refresh();
+            } else {
+                const errorData = await res.json();
+                console.error('Failed to submit parliament:', errorData);
+                alert('Failed to save parliament. Please check the form data.');
+            }
+        } catch (error) {
+            console.error('Error submitting parliament:', error);
+            alert('An error occurred while saving the parliament.');
         }
     };
 
     return (
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
+        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{parliament ? 'Edit Parliament' : 'Add Parliament'}</DialogTitle>
             <DialogContent>
-                <Stack spacing={2} mt={2}>
-                    <Stack spacing={1}>
-                        <InputLabel>Parliament Name</InputLabel>
-                        <TextField 
-                            name="name" 
-                            value={formData.name} 
-                            onChange={handleChange} 
-                            fullWidth 
-                            required
-                        />
-                    </Stack>
-
-                    <Stack spacing={1}>
-                        <InputLabel>State</InputLabel>
-                        <FormControl fullWidth>
-                            <Select
-                                name="state_id"
-                                value={formData.state_id}
+                <Grid container spacing={2} mt={1}>
+                    {/* Row 1: Name */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Parliament Name</InputLabel>
+                            <TextField
+                                name="name"
+                                value={formData.name}
                                 onChange={handleChange}
+                                fullWidth
                                 required
-                            >
-                                <MenuItem value="">Select State</MenuItem>
-                                {states.map((state) => (
-                                    <MenuItem key={state._id} value={state._id}>
-                                        {state.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Stack>
+                                error={submitted && !formData.name}
+                                helperText={submitted && !formData.name ? 'Name is required' : ''}
+                            />
+                        </Stack>
+                    </Grid>
 
-                    <Stack spacing={1}>
-                        <InputLabel>Division</InputLabel>
-                        <FormControl fullWidth>
-                            <Select
-                                name="division_id"
-                                value={formData.division_id}
-                                onChange={handleChange}
-                                required
-                                disabled={!formData.state_id}
-                            >
-                                <MenuItem value="">Select Division</MenuItem>
-                                {filteredDivisions.map((division) => (
-                                    <MenuItem key={division._id} value={division._id}>
-                                        {division.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Stack>
+                    {/* Row 2: Category and Regional Type */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Category</InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.category}>
+                                <Select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleChange}
+                                >
+                                    {categoryOptions.map(option => (
+                                        <MenuItem key={option} value={option}>
+                                            {option.charAt(0).toUpperCase() + option.slice(1)}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
 
-                    {/* <Stack spacing={1}>
-                        <InputLabel>Assembly (Optional)</InputLabel>
-                        <FormControl fullWidth>
-                            <Select
-                                name="assembly_id"
-                                value={formData.assembly_id || ''} // Handle null value
-                                onChange={handleChange}
-                                disabled={!formData.division_id}
-                            >
-                                <MenuItem value="">Select Assembly (Optional)</MenuItem>
-                                {filteredAssemblies.map((assembly) => (
-                                    <MenuItem key={assembly._id} value={assembly._id}>
-                                        {assembly.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Stack> */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Regional Type</InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.regional_type}>
+                                <Select
+                                    name="regional_type"
+                                    value={formData.regional_type}
+                                    onChange={handleChange}
+                                >
+                                    {regionalTypeOptions.map(option => (
+                                        <MenuItem key={option} value={option}>
+                                            {option.charAt(0).toUpperCase() + option.slice(1)}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
 
-                    <Stack spacing={1}>
-                        <InputLabel>Category</InputLabel>
-                        <FormControl fullWidth>
-                            <Select
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                required
-                            >
-                                <MenuItem value="">Select Category</MenuItem>
-                                <MenuItem value="reserved">Reserved</MenuItem>
-                                <MenuItem value="special">Special</MenuItem>
-                                <MenuItem value="general">General</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Stack>
+                    {/* Row 3: State and Division */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>State</InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.state_id}>
+                                <Select
+                                    name="state_id"
+                                    value={formData.state_id}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="">Select State</MenuItem>
+                                    {states?.map(state => (
+                                        <MenuItem key={state._id} value={state._id}>
+                                            {state.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
 
-                    <Stack spacing={1}>
-                        <InputLabel>Regional Type</InputLabel>
-                        <FormControl fullWidth>
-                            <Select
-                                name="regional_type"
-                                value={formData.regional_type}
-                                onChange={handleChange}
-                                required
-                            >
-                                <MenuItem value="">Select Regional Type</MenuItem>
-                                <MenuItem value="urban">Urban</MenuItem>
-                                <MenuItem value="rural">Rural</MenuItem>
-                                <MenuItem value="mixed">Mixed</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Stack>
-                </Stack>
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Division</InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.division_id}>
+                                <Select
+                                    name="division_id"
+                                    value={formData.division_id}
+                                    onChange={handleChange}
+                                    disabled={!formData.state_id}
+                                >
+                                    <MenuItem value="">Select Division</MenuItem>
+                                    {filteredDivisions.map(division => (
+                                        <MenuItem key={division._id} value={division._id}>
+                                            {division.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 4: Assembly (Optional) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Assembly (Optional)</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="assembly_id"
+                                    value={formData.assembly_id}
+                                    onChange={handleChange}
+                                    disabled={!formData.division_id}
+                                >
+                                    <MenuItem value="">Select Assembly (Optional)</MenuItem>
+                                    {filteredAssemblies.map(assembly => (
+                                        <MenuItem key={assembly._id} value={assembly._id}>
+                                            {assembly.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+                </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>

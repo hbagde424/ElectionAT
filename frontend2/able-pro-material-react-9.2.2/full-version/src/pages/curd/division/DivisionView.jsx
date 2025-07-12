@@ -1,54 +1,121 @@
-import { Stack, Typography, Divider, Chip, Switch } from '@mui/material';
+import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
+import { CalendarTick, User } from 'iconsax-react';
 
 export default function DivisionView({ data }) {
     if (!data) return null;
 
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
     return (
-        <Stack spacing={2}>
-            <Typography variant="h6">{data.name}</Typography>
-            <Divider />
-            
-            <Stack direction="row" spacing={1} alignItems="center">
-                <Typography>Code:</Typography>
-                <Chip label={data.division_code} color="info" size="small" />
+        <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+                <Typography variant="h6">{data.name || 'Untitled Division'}</Typography>
+                <Chip
+                    label={data.division_code || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+                <Chip
+                    label={data.is_active ? 'ACTIVE' : 'INACTIVE'}
+                    color={data.is_active ? 'success' : 'error'}
+                    size="small"
+                />
             </Stack>
 
-            <Stack direction="row" spacing={1} alignItems="center">
-                <Typography>State:</Typography>
-                {data.state_id ? (
-                    <Chip label={data.state_id.name} color="primary" size="small" />
-                ) : (
-                    <Typography variant="caption">No state assigned</Typography>
-                )}
-            </Stack>
+            <Divider sx={{ mb: 2 }} />
 
-            <Stack direction="row" spacing={1} alignItems="center">
-                <Typography>Status:</Typography>
-                <Switch checked={data.is_active} disabled color="success" />
-                <Typography>{data.is_active ? 'Active' : 'Inactive'}</Typography>
-            </Stack>
+            <Grid container spacing={3}>
+                {/* Left Column */}
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Stack spacing={2}>
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <User size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Created By
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.created_by?.username || 'N/A'}
+                            </Typography>
+                        </Box>
 
-            <Stack direction="row" spacing={2}>
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Created By:</Typography>
-          <Typography>{data.created_by?.username || 'System'}</Typography>
-        </Stack>
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Created At:</Typography>
-          <Typography>{new Date(data.created_at).toLocaleString()}</Typography>
-        </Stack>
-      </Stack>
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <CalendarTick size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Created At
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {formatDate(data.created_at)}
+                            </Typography>
+                        </Box>
 
-      <Stack direction="row" spacing={2}>
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Updated By:</Typography>
-          <Typography>{data.updated_by?.username || 'System'}</Typography>
-        </Stack>
-        <Stack spacing={0.5}>
-          <Typography variant="subtitle2">Updated At:</Typography>
-          <Typography>{new Date(data.updated_at).toLocaleString()}</Typography>
-        </Stack>
-      </Stack>
-        </Stack>
+                        {data.updated_by && (
+                            <Box>
+                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                    <User size="16" />
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Updated By
+                                    </Typography>
+                                </Stack>
+                                <Typography variant="body1" fontWeight="medium">
+                                    {data.updated_by?.username || 'N/A'}
+                                </Typography>
+                            </Box>
+                        )}
+
+                        {data.updated_at && (
+                            <Box>
+                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                    <CalendarTick size="16" />
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Last Updated
+                                    </Typography>
+                                </Stack>
+                                <Typography variant="body1" fontWeight="medium">
+                                    {formatDate(data.updated_at)}
+                                </Typography>
+                            </Box>
+                        )}
+                    </Stack>
+                </Grid>
+
+                {/* Right Column */}
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                            <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division Code</Typography>
+                            <Chip label={data.division_code || 'N/A'} color="warning" size="small" />
+                        </Grid>
+                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
+                            <Chip label={data.is_active ? 'ACTIVE' : 'INACTIVE'} color={data.is_active ? 'success' : 'error'} size="small" />
+                        </Grid> */}
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division ID</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {data._id || data.id || 'N/A'}
+                            </Typography>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Box>
     );
 }
