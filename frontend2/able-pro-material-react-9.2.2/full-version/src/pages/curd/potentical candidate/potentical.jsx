@@ -114,6 +114,7 @@ export default function PotentialCandidateListPage() {
       'Status',
       'Created By',
       'Created At',
+      'Updated By',
       'Updated At'
     ];
 
@@ -133,6 +134,7 @@ export default function PotentialCandidateListPage() {
       candidate.status || '',
       candidate.created_by?.username || '',
       candidate.created_at ? new Date(candidate.created_at).toLocaleString() : '',
+      candidate.updated_by?.username || '',
       candidate.updated_at ? new Date(candidate.updated_at).toLocaleString() : ''
     ]);
 
@@ -348,6 +350,29 @@ export default function PotentialCandidateListPage() {
     {
       header: 'Created',
       accessorKey: 'created_at',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <CalendarTick size={14} />
+          <Typography variant="caption">{formatDateTime(getValue())}</Typography>
+        </Stack>
+      )
+    },
+    {
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => {
+        const createdBy = getValue();
+        return (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <User size={14} />
+            <Typography variant="caption">{createdBy?.username || 'Unknown'}</Typography>
+          </Stack>
+        );
+      }
+    },
+    {
+      header: 'Updated',
+      accessorKey: 'updated_at',
       cell: ({ getValue }) => (
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <CalendarTick size={14} />
