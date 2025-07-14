@@ -4,6 +4,7 @@ const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
 const Division = require('../models/Division');
+const State = require('../models/state');
 
 // @desc    Get all visits
 // @route   GET /api/visits
@@ -15,16 +16,17 @@ exports.getVisits = async (req, res, next) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-
         // Basic query
         let query = Visit.find({})
-            .populate('booth_id')        // Populate entire booth document
-            .populate('block_id')        // Populate entire block document
-            .populate('assembly_id')     // Populate entire assembly document
-            .populate('parliament_id')   // Populate entire parliament document
-            .populate('division_id')     // Populate entire division document
+            .populate('booth_id', 'name')
+            .populate('block_id', 'name')
+            .populate('assembly_id', 'name')
+            .populate('parliament_id', 'name')
+            .populate('division_id', 'name')
+            .populate('state_id', 'name')
+            .populate('created_by', 'username email')
+            .populate('updated_by', 'username email')
             .sort({ date: -1 });
-
 
         // Search functionality
         if (req.query.search) {
@@ -72,7 +74,10 @@ exports.getVisit = async (req, res, next) => {
             .populate('block_id', 'name')
             .populate('assembly_id', 'name')
             .populate('parliament_id', 'name')
-            .populate('division_id', 'name');
+            .populate('division_id', 'name')
+            .populate('state_id', 'name')
+            .populate('created_by', 'username email')
+            .populate('updated_by', 'username email');
 
         if (!visit) {
             return res.status(404).json({
@@ -97,12 +102,14 @@ exports.createVisit = async (req, res, next) => {
     try {
         // Verify all references exist
         const [
+            state,
             booth,
             block,
             assembly,
             parliament,
             division
         ] = await Promise.all([
+            State.findById(req.body.state_id),
             Booth.findById(req.body.booth_id),
             Block.findById(req.body.block_id),
             Assembly.findById(req.body.assembly_id),
@@ -110,12 +117,16 @@ exports.createVisit = async (req, res, next) => {
             Division.findById(req.body.division_id)
         ]);
 
-        if (!booth || !block || !assembly || !parliament || !division) {
+        if (!state || !booth || !block || !assembly || !parliament || !division) {
             return res.status(400).json({
                 success: false,
                 message: 'One or more references not found'
             });
         }
+
+        // Set created_by and updated_by to current user
+        req.body.created_by = req.user.id;
+        req.body.updated_by = req.user.id;
 
         const visit = await Visit.create(req.body);
 
@@ -144,6 +155,7 @@ exports.updateVisit = async (req, res, next) => {
 
         // Verify references if being updated
         const references = {};
+        if (req.body.state_id) references.state = await State.findById(req.body.state_id);
         if (req.body.booth_id) references.booth = await Booth.findById(req.body.booth_id);
         if (req.body.block_id) references.block = await Block.findById(req.body.block_id);
         if (req.body.assembly_id) references.assembly = await Assembly.findById(req.body.assembly_id);
@@ -159,6 +171,9 @@ exports.updateVisit = async (req, res, next) => {
             }
         }
 
+        // Set updated_by to current user
+        req.body.updated_by = req.user.id;
+
         visit = await Visit.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
@@ -167,7 +182,10 @@ exports.updateVisit = async (req, res, next) => {
             .populate('block_id', 'name')
             .populate('assembly_id', 'name')
             .populate('parliament_id', 'name')
-            .populate('division_id', 'name');
+            .populate('division_id', 'name')
+            .populate('state_id', 'name')
+            .populate('created_by', 'username email')
+            .populate('updated_by', 'username email');
 
         res.status(200).json({
             success: true,
@@ -222,7 +240,10 @@ exports.getVisitsByBooth = async (req, res, next) => {
             .populate('block_id', 'name')
             .populate('assembly_id', 'name')
             .populate('parliament_id', 'name')
-            .populate('division_id', 'name');
+            .populate('division_id', 'name')
+            .populate('state_id', 'name')
+            .populate('created_by', 'username email')
+            .populate('updated_by', 'username email');
 
         res.status(200).json({
             success: true,

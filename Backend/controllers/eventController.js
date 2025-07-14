@@ -1,5 +1,5 @@
 const Event = require('../models/Event');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');

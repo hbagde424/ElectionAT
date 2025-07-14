@@ -357,6 +357,7 @@ router.get('/status/:status', getWorkStatusesByStatus);
  *         - total_budget
  *         - start_date
  *         - expected_end_date
+ *         - state_id
  *         - division_id
  *         - parliament_id
  *         - assembly_id
@@ -402,6 +403,9 @@ router.get('/status/:status', getWorkStatusesByStatus);
  *           type: string
  *           format: date
  *           description: Actual work completion date
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
  *         division_id:
  *           type: string
  *           description: Reference to Division

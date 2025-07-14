@@ -214,10 +214,15 @@ router.get('/parliament/:parliamentId', getWinningPartiesByParliament);
  *         - candidate_id
  *         - assembly_id
  *         - parliament_id
+ *         - state_id
+ *         - division_id
+ *         - block_id
+ *         - booth_id
  *         - party_id
  *         - year_id
  *         - votes
  *         - margin
+ *         - created_by
  *       properties:
  *         candidate_id:
  *           type: string
@@ -228,6 +233,18 @@ router.get('/parliament/:parliamentId', getWinningPartiesByParliament);
  *         parliament_id:
  *           type: string
  *           description: Reference to parliament constituency
+ *         state_id:
+ *           type: string
+ *           description: Reference to state
+ *         division_id:
+ *           type: string
+ *           description: Reference to division
+ *         block_id:
+ *           type: string
+ *           description: Reference to block
+ *         booth_id:
+ *           type: string
+ *           description: Reference to booth
  *         party_id:
  *           type: string
  *           description: Reference to winning party
@@ -240,6 +257,12 @@ router.get('/parliament/:parliamentId', getWinningPartiesByParliament);
  *         margin:
  *           type: integer
  *           description: Victory margin
+ *         created_by:
+ *           type: string
+ *           description: User who created the record
+ *         updated_by:
+ *           type: string
+ *           description: User who last updated the record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -252,15 +275,16 @@ router.get('/parliament/:parliamentId', getWinningPartiesByParliament);
  *         candidate_id: "507f1f77bcf86cd799439011"
  *         assembly_id: "507f1f77bcf86cd799439012"
  *         parliament_id: "507f1f77bcf86cd799439013"
+ *         state_id: "507f1f77bcf86cd799439016"
+ *         division_id: "507f1f77bcf86cd799439017"
+ *         block_id: "507f1f77bcf86cd799439018"
+ *         booth_id: "507f1f77bcf86cd799439019"
  *         party_id: "507f1f77bcf86cd799439014"
  *         year_id: "507f1f77bcf86cd799439015"
  *         votes: 75000
  *         margin: 12500
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
+ *         created_by: "507f1f77bcf86cd799439020"
+ *         updated_by: "507f1f77bcf86cd799439020"
  */
 
 module.exports = router;

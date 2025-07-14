@@ -228,6 +228,7 @@ router.get('/booth/:boothId', getVisitsByBooth);
  *     Visit:
  *       type: object
  *       required:
+ *         - state_id
  *         - booth_id
  *         - block_id
  *         - assembly_id
@@ -236,7 +237,11 @@ router.get('/booth/:boothId', getVisitsByBooth);
  *         - person_name
  *         - post
  *         - date
+ *         - created_by
  *       properties:
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
@@ -271,6 +276,12 @@ router.get('/booth/:boothId', getVisitsByBooth);
  *         remark:
  *           type: string
  *           description: Additional remarks
+ *         created_by:
+ *           type: string
+ *           description: User who created the visit record
+ *         updated_by:
+ *           type: string
+ *           description: User who last updated the visit record
  *         created_at:
  *           type: string
  *           format: date-time
@@ -279,11 +290,6 @@ router.get('/booth/:boothId', getVisitsByBooth);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;

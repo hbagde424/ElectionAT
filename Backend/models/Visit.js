@@ -1,16 +1,16 @@
 const mongoose = require('mongoose');
 
 const visitSchema = new mongoose.Schema({
-  booth_id: {
+  state_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Booth',
-    required: [true, 'Booth reference is required'],
+    ref: 'State',
+    required: [true, 'State reference is required'],
     index: true
   },
-  block_id: {
+  division_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Block',
-    required: [true, 'Block reference is required'],
+    ref: 'Division',
+    required: [true, 'Division reference is required'],
     index: true
   },
   assembly_id: {
@@ -25,10 +25,16 @@ const visitSchema = new mongoose.Schema({
     required: [true, 'Parliament reference is required'],
     index: true
   },
-  division_id: {
+  block_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Division',
-    required: [true, 'Division reference is required'],
+    ref: 'Block',
+    required: [true, 'Block reference is required'],
+    index: true
+  },
+  booth_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Booth',
+    required: [true, 'Booth reference is required'],
     index: true
   },
   person_name: {
@@ -57,6 +63,15 @@ const visitSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Remark cannot exceed 500 characters']
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -67,9 +82,12 @@ const visitSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp before saving
+// Update timestamp and updated_by before saving
 visitSchema.pre('save', function(next) {
   this.updated_at = Date.now();
+  if (this.isNew) {
+    this.created_at = this.updated_at;
+  }
   next();
 });
 

@@ -4,6 +4,10 @@ const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
 const Party = require('../models/party');
 const Year = require('../models/Year');
+const State = require('../models/state');
+const Division = require('../models/Division');
+const Block = require('../models/block');
+const Booth = require('../models/booth');
 
 // @desc    Get all winning party records
 // @route   GET /api/winning-parties
@@ -14,8 +18,14 @@ exports.getWinningParties = async (req, res, next) => {
       .populate('candidate_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'booth_number name')
       .populate('party_id', 'name abbreviation symbol')
       .populate('year_id', 'year')
+      .populate('created_by', 'name email')
+      .populate('updated_by', 'name email')
       .sort({ year_id: -1 });
 
     res.status(200).json({
@@ -37,8 +47,14 @@ exports.getWinningParty = async (req, res, next) => {
       .populate('candidate_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'booth_number name')
       .populate('party_id', 'name abbreviation symbol')
-      .populate('year_id', 'year');
+      .populate('year_id', 'year')
+      .populate('created_by', 'name email')
+      .populate('updated_by', 'name email');
 
     if (!winningParty) {
       return res.status(404).json({
@@ -61,13 +77,37 @@ exports.getWinningParty = async (req, res, next) => {
 // @access  Private
 exports.createWinningParty = async (req, res, next) => {
   try {
-    const { candidate_id, assembly_id, parliament_id, party_id, year_id } = req.body;
+    const { 
+      candidate_id, 
+      assembly_id, 
+      parliament_id, 
+      state_id,
+      division_id,
+      block_id,
+      booth_id,
+      party_id, 
+      year_id 
+    } = req.body;
 
     // Check if all references exist
-    const [candidate, assembly, parliament, party, year] = await Promise.all([
+    const [
+      candidate, 
+      assembly, 
+      parliament, 
+      state,
+      division,
+      block,
+      booth,
+      party, 
+      year
+    ] = await Promise.all([
       Candidate.findById(candidate_id),
       Assembly.findById(assembly_id),
       Parliament.findById(parliament_id),
+      State.findById(state_id),
+      Division.findById(division_id),
+      Block.findById(block_id),
+      Booth.findById(booth_id),
       Party.findById(party_id),
       Year.findById(year_id)
     ]);
@@ -84,12 +124,30 @@ exports.createWinningParty = async (req, res, next) => {
         message: 'Assembly does not exist'
       });
     }
-    // if (!parliament) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'Parliament does not exist'
-    //   });
-    // }
+    if (!state) {
+      return res.status(400).json({
+        success: false,
+        message: 'State does not exist'
+      });
+    }
+    if (!division) {
+      return res.status(400).json({
+        success: false,
+        message: 'Division does not exist'
+      });
+    }
+    if (!block) {
+      return res.status(400).json({
+        success: false,
+        message: 'Block does not exist'
+      });
+    }
+    if (!booth) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booth does not exist'
+      });
+    }
     if (!party) {
       return res.status(400).json({
         success: false,
@@ -118,6 +176,10 @@ exports.createWinningParty = async (req, res, next) => {
       });
     }
 
+    // Set created_by and updated_by to current user
+    req.body.created_by = req.user.id;
+    req.body.updated_by = req.user.id;
+
     const winningParty = await WinningParty.create(req.body);
 
     res.status(201).json({
@@ -145,12 +207,16 @@ exports.updateWinningParty = async (req, res, next) => {
 
     // Prevent changing critical references
     if (req.body.candidate_id || req.body.assembly_id || 
-        req.body.parliament_id || req.body.party_id || req.body.year_id) {
+        req.body.parliament_id || req.body.party_id || req.body.year_id ||
+        req.body.state_id || req.body.division_id || req.body.block_id || req.body.booth_id) {
       return res.status(400).json({
         success: false,
-        message: 'Candidate, constituency or year references cannot be changed'
+        message: 'Candidate, constituency, location or year references cannot be changed'
       });
     }
+
+    // Set updated_by to current user
+    req.body.updated_by = req.user.id;
 
     winningParty = await WinningParty.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -159,8 +225,14 @@ exports.updateWinningParty = async (req, res, next) => {
       .populate('candidate_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'booth_number name')
       .populate('party_id', 'name abbreviation symbol')
-      .populate('year_id', 'year');
+      .populate('year_id', 'year')
+      .populate('created_by', 'name email')
+      .populate('updated_by', 'name email');
 
     res.status(200).json({
       success: true,
@@ -205,6 +277,10 @@ exports.getWinningPartiesByAssembly = async (req, res, next) => {
       .populate('candidate_id', 'name')
       .populate('party_id', 'name abbreviation symbol')
       .populate('year_id', 'year')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'booth_number name')
       .sort({ year_id: -1 })
       .limit(4);
 
@@ -227,6 +303,10 @@ exports.getWinningPartiesByParliament = async (req, res, next) => {
       .populate('candidate_id', 'name')
       .populate('party_id', 'name abbreviation symbol')
       .populate('year_id', 'year')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'booth_number name')
       .sort({ year_id: -1 })
       .limit(4);
 
