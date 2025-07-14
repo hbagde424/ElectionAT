@@ -1,4 +1,5 @@
-import { Dialog, DialogTitle, DialogActions, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogActions, Button, DialogContent, Typography, Stack, Chip } from '@mui/material';
+import { Warning2 } from 'iconsax-react';
 
 export default function AlertWinningPartyDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
@@ -13,20 +14,37 @@ export default function AlertWinningPartyDelete({ id, open, handleClose, refresh
 
         if (res.ok) {
             handleClose();
-            refresh(); // Refresh the list
-        } else {
-            const data = await res.json();
-            console.error('Delete failed:', data);
+            refresh();
         }
     };
 
     return (
-        <Dialog open={open} onClose={handleClose}>
-            <DialogTitle>Are you sure you want to delete this winning party record?</DialogTitle>
-            <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+            <DialogTitle>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                    <Warning2 size="24" color="#f44336" />
+                    <Typography variant="h6">Delete Winning Party Record</Typography>
+                </Stack>
+            </DialogTitle>
+            <DialogContent>
+                <Stack spacing={2}>
+                    <Typography>
+                        Are you sure you want to delete this winning party record? This action cannot be undone.
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                        <Chip label="Warning" color="error" size="small" />
+                        <Typography variant="body2" color="text.secondary">
+                            This record will be permanently removed from the system.
+                        </Typography>
+                    </Stack>
+                </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={handleClose} variant="outlined">
+                    Cancel
+                </Button>
                 <Button color="error" variant="contained" onClick={handleDelete}>
-                    Delete
+                    Delete Record
                 </Button>
             </DialogActions>
         </Dialog>

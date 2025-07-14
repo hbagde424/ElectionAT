@@ -135,7 +135,7 @@ const LocalDynamics = Loadable(lazy(() => import('pages/curd/local-dynamics/Loca
 const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
 const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateListPage')));
 const PartyActivitiesList = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesListPage')));
-const WinningPartiesList = Loadable(lazy(() => import('pages/curd/WinningPartiesList')));
+const WinningPartiesList = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesList')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
