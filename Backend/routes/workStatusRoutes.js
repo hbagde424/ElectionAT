@@ -5,9 +5,10 @@ const {
   createWorkStatus,
   updateWorkStatus,
   deleteWorkStatus,
-  addDocument,
   getWorkStatusesByBooth,
-  getWorkStatusesByStatus
+  getWorkStatusesByBlock,
+  getWorkStatusesByAssembly,
+  getWorkStatusStatistics
 } = require('../controllers/workStatusController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -16,16 +17,16 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Work Statuses
+ *   name: Work Status
  *   description: Work status management
  */
 
 /**
  * @swagger
- * /api/work-statuses:
+ * /api/work-status:
  *   get:
  *     summary: Get all work statuses
- *     tags: [Work Statuses]
+ *     tags: [Work Status]
  *     parameters:
  *       - in: query
  *         name: page
@@ -41,7 +42,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for work names, descriptions or falia
+ *         description: Search term for work name, description, or falia
  *       - in: query
  *         name: status
  *         schema:
@@ -60,52 +61,59 @@ const router = express.Router();
  *           enum: [vidhayak nidhi, swechcha nidhi]
  *         description: Filter by approved fund source
  *       - in: query
- *         name: startDate
+ *         name: state
  *         schema:
  *           type: string
- *           format: date
- *         description: Filter by start date (greater than or equal)
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter by end date (less than or equal)
- *       - in: query
- *         name: minBudget
- *         schema:
- *           type: number
- *         description: Filter by minimum budget
- *       - in: query
- *         name: maxBudget
- *         schema:
- *           type: number
- *         description: Filter by maximum budget
+ *         description: State ID to filter by
  *       - in: query
  *         name: division
  *         schema:
  *           type: string
- *         description: Filter by division ID
+ *         description: Division ID to filter by
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Filter by parliament ID
+ *         description: Parliament ID to filter by
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Filter by assembly ID
+ *         description: Assembly ID to filter by
  *       - in: query
  *         name: block
  *         schema:
  *           type: string
- *         description: Filter by block ID
+ *         description: Block ID to filter by
  *       - in: query
  *         name: booth
  *         schema:
  *           type: string
- *         description: Filter by booth ID
+ *         description: Booth ID to filter by
+ *       - in: query
+ *         name: start_date_from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date from
+ *       - in: query
+ *         name: start_date_to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by start date to
+ *       - in: query
+ *         name: end_date_from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by expected end date from
+ *       - in: query
+ *         name: end_date_to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by expected end date to
  *     responses:
  *       200:
  *         description: List of work statuses
@@ -133,10 +141,42 @@ router.get('/', getWorkStatuses);
 
 /**
  * @swagger
- * /api/work-statuses/{id}:
+ * /api/work-status/statistics:
+ *   get:
+ *     summary: Get work status statistics
+ *     tags: [Work Status]
+ *     responses:
+ *       200:
+ *         description: Work status statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       status:
+ *                         type: string
+ *                       count:
+ *                         type: integer
+ *                       totalBudget:
+ *                         type: number
+ *                       totalSpent:
+ *                         type: number
+ */
+router.get('/statistics', getWorkStatusStatistics);
+
+/**
+ * @swagger
+ * /api/work-status/{id}:
  *   get:
  *     summary: Get single work status
- *     tags: [Work Statuses]
+ *     tags: [Work Status]
  *     parameters:
  *       - in: path
  *         name: id
@@ -157,10 +197,10 @@ router.get('/:id', getWorkStatus);
 
 /**
  * @swagger
- * /api/work-statuses:
+ * /api/work-status:
  *   post:
  *     summary: Create new work status
- *     tags: [Work Statuses]
+ *     tags: [Work Status]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -177,14 +217,14 @@ router.get('/:id', getWorkStatus);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin', 'superAdmin'), createWorkStatus);
+router.post('/', protect, authorize('admin', 'superAdmin'), createWorkStatus);
 
 /**
  * @swagger
- * /api/work-statuses/{id}:
+ * /api/work-status/{id}:
  *   put:
  *     summary: Update work status
- *     tags: [Work Statuses]
+ *     tags: [Work Status]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -209,14 +249,14 @@ router.post('/', protect, authorize('superAdmin', 'superAdmin'), createWorkStatu
  *       404:
  *         description: Work status not found
  */
-router.put('/:id', protect, updateWorkStatus);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), updateWorkStatus);
 
 /**
  * @swagger
- * /api/work-statuses/{id}:
+ * /api/work-status/{id}:
  *   delete:
  *     summary: Delete work status
- *     tags: [Work Statuses]
+ *     tags: [Work Status]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -233,56 +273,14 @@ router.put('/:id', protect, updateWorkStatus);
  *       404:
  *         description: Work status not found
  */
-router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteWorkStatus);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteWorkStatus);
 
 /**
  * @swagger
- * /api/work-statuses/{id}/documents:
- *   post:
- *     summary: Add document to work status
- *     tags: [Work Statuses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 description: Name of the document
- *               url:
- *                 type: string
- *                 description: URL to the document
- *             required:
- *               - name
- *               - url
- *     responses:
- *       200:
- *         description: Document added successfully
- *       400:
- *         description: Invalid input data
- *       401:
- *         description: Not authorized
- *       404:
- *         description: Work status not found
- */
-router.post('/:id/documents', protect, addDocument);
-
-/**
- * @swagger
- * /api/work-statuses/booth/{boothId}:
+ * /api/work-status/booth/{boothId}:
  *   get:
  *     summary: Get work statuses by booth
- *     tags: [Work Statuses]
+ *     tags: [Work Status]
  *     parameters:
  *       - in: path
  *         name: boothId
@@ -312,20 +310,19 @@ router.get('/booth/:boothId', getWorkStatusesByBooth);
 
 /**
  * @swagger
- * /api/work-statuses/status/{status}:
+ * /api/work-status/block/{blockId}:
  *   get:
- *     summary: Get work statuses by status
- *     tags: [Work Statuses]
+ *     summary: Get work statuses by block
+ *     tags: [Work Status]
  *     parameters:
  *       - in: path
- *         name: status
+ *         name: blockId
  *         required: true
  *         schema:
  *           type: string
- *           enum: [Pending, In Progress, Completed, Halted, Cancelled]
  *     responses:
  *       200:
- *         description: List of work statuses with the specified status
+ *         description: List of work statuses for the block
  *         content:
  *           application/json:
  *             schema:
@@ -339,10 +336,43 @@ router.get('/booth/:boothId', getWorkStatusesByBooth);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/WorkStatus'
- *       400:
- *         description: Invalid status
+ *       404:
+ *         description: Block not found
  */
-router.get('/status/:status', getWorkStatusesByStatus);
+router.get('/block/:blockId', getWorkStatusesByBlock);
+
+/**
+ * @swagger
+ * /api/work-status/assembly/{assemblyId}:
+ *   get:
+ *     summary: Get work statuses by assembly
+ *     tags: [Work Status]
+ *     parameters:
+ *       - in: path
+ *         name: assemblyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of work statuses for the assembly
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WorkStatus'
+ *       404:
+ *         description: Assembly not found
+ */
+router.get('/assembly/:assemblyId', getWorkStatusesByAssembly);
 
 /**
  * @swagger
@@ -368,59 +398,76 @@ router.get('/status/:status', getWorkStatusesByStatus);
  *         work_name:
  *           type: string
  *           description: Name of the work
+ *           example: "Road Construction"
  *         department:
  *           type: string
- *           description: Department responsible for the work
+ *           description: Department responsible
+ *           example: "Public Works"
  *         status:
  *           type: string
  *           enum: [Pending, In Progress, Completed, Halted, Cancelled]
  *           description: Current status of the work
+ *           example: "In Progress"
  *         approved_fund_from:
  *           type: string
  *           enum: [vidhayak nidhi, swechcha nidhi]
  *           description: Source of approved funds
+ *           example: "vidhayak nidhi"
  *         total_budget:
  *           type: number
- *           description: Total budget allocated for the work
+ *           description: Total approved budget
+ *           example: 500000
  *         spent_amount:
  *           type: number
  *           description: Amount spent so far
+ *           example: 250000
  *         falia:
  *           type: string
- *           description: Falia name/location
+ *           description: Falia/area name
+ *           example: "Main Road"
  *         description:
  *           type: string
  *           description: Detailed description of the work
+ *           example: "Construction of 2km road with drainage"
  *         start_date:
  *           type: string
  *           format: date
  *           description: Work start date
+ *           example: "2023-01-15"
  *         expected_end_date:
  *           type: string
  *           format: date
- *           description: Expected work completion date
+ *           description: Expected completion date
+ *           example: "2023-06-30"
  *         actual_end_date:
  *           type: string
  *           format: date
- *           description: Actual work completion date
+ *           description: Actual completion date
+ *           example: "2023-07-15"
  *         state_id:
  *           type: string
  *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439011"
  *         division_id:
  *           type: string
  *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439012"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
+ *           example: "507f1f77bcf86cd799439013"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
+ *           example: "507f1f77bcf86cd799439014"
  *         block_id:
  *           type: string
  *           description: Reference to Block
+ *           example: "507f1f77bcf86cd799439015"
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
+ *           example: "507f1f77bcf86cd799439016"
  *         documents:
  *           type: array
  *           items:
@@ -429,19 +476,23 @@ router.get('/status/:status', getWorkStatusesByStatus);
  *               name:
  *                 type: string
  *                 description: Document name
+ *                 example: "Approval Letter"
  *               url:
  *                 type: string
  *                 description: Document URL
+ *                 example: "https://example.com/docs/approval.pdf"
  *               uploaded_at:
  *                 type: string
  *                 format: date-time
  *                 description: Upload timestamp
  *         created_by:
  *           type: string
- *           description: Reference to User who created the record
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         updated_by:
  *           type: string
- *           description: Reference to User who last updated the record
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -450,6 +501,11 @@ router.get('/status/:status', getWorkStatusesByStatus);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;

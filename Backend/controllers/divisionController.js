@@ -114,8 +114,7 @@ exports.createDivision = async (req, res, next) => {
 
     const divisionData = {
       ...req.body,
-      created_by: req.user.id,
-      updated_by: req.user.id
+      created_by: req.user.id
     };
 
     const division = await Division.create(divisionData);

@@ -57,6 +57,7 @@ const eventRoutes = require('./routes/eventRoutes');
 const eventTypeRoutes = require('./routes/eventTypeRoutes');
 const statusRoutes = require('./routes/statusRoutes');
 const blockPolygonRoutes = require('./routes/blockPolygonRoutes');
+const genderRoutes = require('./routes/genderRoutes');
 
 // Connect to database
 connectDB();
@@ -130,7 +131,7 @@ app.use('/api/assembly-votes', assemblyVotesRoutes);
 app.use('/api/parliament-votes', parliamentVotesRoutes);
 app.use('/api/election-years', ElectionYearRoutes);
 app.use('/api/potential-candidates', potentialCandidateRoutes);
-app.use('/api/work-statuses', workStatusRoutes);
+app.use('/api/work-status', workStatusRoutes);
 app.use('/api/caste-lists', casteListRoutes);
 app.use('/api/local-issues', localIssueRoutes);
 app.use('/api/events', eventRoutes);
@@ -138,6 +139,7 @@ app.use('/api/event-types', eventTypeRoutes);
 app.use('/api/statuses', statusRoutes);
 // Add this with your other route middleware (usually after auth middleware)
 app.use('/api/block-polygons', blockPolygonRoutes);
+app.use('/api/genders', genderRoutes);
 // Error handler
 app.use(errorHandler);
 

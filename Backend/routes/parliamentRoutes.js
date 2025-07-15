@@ -5,8 +5,8 @@ const {
   createParliament,
   updateParliament,
   deleteParliament,
-  getParliamentsByCategory,
-  getParliamentsByRegionalType
+  getParliamentsByState,
+  getParliamentsByDivision
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -16,7 +16,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Parliaments
- *   description: Parliament constituency management
+ *   description: Parliament management
  */
 
 /**
@@ -42,27 +42,27 @@ const router = express.Router();
  *           type: string
  *         description: Search term for parliament names
  *       - in: query
- *         name: state_id
- *         schema:
- *           type: string
- *         description: State ID to filter by
- *       - in: query
- *         name: division_id
- *         schema:
- *           type: string
- *         description: Division ID to filter by
- *       - in: query
  *         name: category
  *         schema:
  *           type: string
  *           enum: [reserved, special, general]
- *         description: Category to filter by
+ *         description: Filter by category
  *       - in: query
  *         name: regional_type
  *         schema:
  *           type: string
  *           enum: [urban, rural, mixed]
- *         description: Regional type to filter by
+ *         description: Filter by regional type
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
  *     responses:
  *       200:
  *         description: List of parliaments
@@ -194,20 +194,19 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
 
 /**
  * @swagger
- * /api/parliaments/category/{category}:
+ * /api/parliaments/state/{stateId}:
  *   get:
- *     summary: Get parliaments by category
+ *     summary: Get parliaments by state
  *     tags: [Parliaments]
  *     parameters:
  *       - in: path
- *         name: category
+ *         name: stateId
  *         required: true
  *         schema:
  *           type: string
- *           enum: [reserved, special, general]
  *     responses:
  *       200:
- *         description: List of parliaments in the specified category
+ *         description: List of parliaments for the state
  *         content:
  *           application/json:
  *             schema:
@@ -221,25 +220,26 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Parliament'
+ *       404:
+ *         description: State not found
  */
-router.get('/category/:category', getParliamentsByCategory);
+router.get('/state/:stateId', getParliamentsByState);
 
 /**
  * @swagger
- * /api/parliaments/regional/{type}:
+ * /api/parliaments/division/{divisionId}:
  *   get:
- *     summary: Get parliaments by regional type
+ *     summary: Get parliaments by division
  *     tags: [Parliaments]
  *     parameters:
  *       - in: path
- *         name: type
+ *         name: divisionId
  *         required: true
  *         schema:
  *           type: string
- *           enum: [urban, rural, mixed]
  *     responses:
  *       200:
- *         description: List of parliaments of the specified regional type
+ *         description: List of parliaments for the division
  *         content:
  *           application/json:
  *             schema:
@@ -253,8 +253,10 @@ router.get('/category/:category', getParliamentsByCategory);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Parliament'
+ *       404:
+ *         description: Division not found
  */
-router.get('/regional/:type', getParliamentsByRegionalType);
+router.get('/division/:divisionId', getParliamentsByDivision);
 
 /**
  * @swagger
@@ -269,12 +271,11 @@ router.get('/regional/:type', getParliamentsByRegionalType);
  *         - category
  *         - regional_type
  *         - created_by
- *         - updated_by
  *       properties:
  *         name:
  *           type: string
- *           description: Parliament constituency name
- *           example: "Bangalore South"
+ *           description: Parliament name
+ *           example: "5th Parliament District"
  *         division_id:
  *           type: string
  *           description: Reference to Division
@@ -283,28 +284,24 @@ router.get('/regional/:type', getParliamentsByRegionalType);
  *           type: string
  *           description: Reference to State
  *           example: "507f1f77bcf86cd799439012"
- *         assembly_id:
- *           type: string
- *           description: Reference to Assembly (optional)
- *           example: "507f1f77bcf86cd799439013"
  *         category:
  *           type: string
  *           enum: [reserved, special, general]
- *           description: Parliament category
+ *           description: Category of parliament
  *           example: "general"
  *         regional_type:
  *           type: string
  *           enum: [urban, rural, mixed]
- *           description: Regional classification
+ *           description: Regional type of parliament
  *           example: "urban"
  *         created_by:
  *           type: string
- *           description: Reference to User who created this record
- *           example: "507f1f77bcf86cd799439014"
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
  *         updated_by:
  *           type: string
- *           description: Reference to User who last updated this record
- *           example: "507f1f77bcf86cd799439015"
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -313,11 +310,6 @@ router.get('/regional/:type', getParliamentsByRegionalType);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;
