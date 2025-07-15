@@ -1,4 +1,3 @@
-// === CandidateView.jsx ===
 import { Stack, Typography, Divider, Grid, Box, Chip, Avatar } from '@mui/material';
 import { CalendarTick, People, User, Award } from 'iconsax-react';
 
@@ -15,11 +14,6 @@ export default function CandidateView({ data }) {
             minute: '2-digit',
             hour12: true
         });
-    };
-
-    const formatNumber = (number) => {
-        if (!number) return 'N/A';
-        return number.toLocaleString();
     };
 
     const formatCurrency = (amount) => {
@@ -50,30 +44,24 @@ export default function CandidateView({ data }) {
 
             <Grid container spacing={3}>
                 {/* Left Column - Personal Information */}
-                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                <Grid item xs={12} md={6}>
                     <Stack spacing={2}>
                         <Typography variant="h6" color="primary">Personal Information</Typography>
 
                         <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Grid item xs={12} sm={6} md={4}>
                                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Name</Typography>
                                 <Typography variant="body1" fontWeight="medium">{data.name || 'N/A'}</Typography>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Grid item xs={12} sm={6} md={4}>
                                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Caste</Typography>
                                 <Chip label={data.caste || 'N/A'} size="small" variant="outlined" />
                             </Grid>
-                            <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Grid item xs={12} sm={6} md={4}>
                                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Education</Typography>
                                 <Typography variant="body1">{data.education || 'N/A'}</Typography>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Votes</Typography>
-                                <Typography variant="body1" fontWeight="bold" color="success.main">
-                                    {formatNumber(data.votes)}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Grid item xs={12} sm={6} md={6}>
                                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Criminal Cases</Typography>
                                 <Chip
                                     label={data.criminal_cases || '0'}
@@ -101,9 +89,9 @@ export default function CandidateView({ data }) {
                 </Grid>
 
                 {/* Right Column - Political Information */}
-                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                <Grid item xs={12} md={6}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                        <Grid item xs={12} sm={6} md={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Party</Typography>
                             {data.party_id ? (
                                 <Chip label={data.party_id.name} color="primary" size="small" />
@@ -111,7 +99,7 @@ export default function CandidateView({ data }) {
                                 <Typography variant="caption">No party assigned</Typography>
                             )}
                         </Grid>
-                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                        <Grid item xs={12} sm={6} md={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
                             {data.assembly_id ? (
                                 <Chip label={data.assembly_id.name} color="info" size="small" />
@@ -119,7 +107,7 @@ export default function CandidateView({ data }) {
                                 <Typography variant="caption">No assembly assigned</Typography>
                             )}
                         </Grid>
-                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                        <Grid item xs={12} sm={6} md={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
                             {data.parliament_id ? (
                                 <Chip label={data.parliament_id.name} color="secondary" size="small" />
@@ -127,7 +115,23 @@ export default function CandidateView({ data }) {
                                 <Typography variant="caption">No parliament assigned</Typography>
                             )}
                         </Grid>
-                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                            {data.state_id ? (
+                                <Chip label={data.state_id.name} color="success" size="small" />
+                            ) : (
+                                <Typography variant="caption">No state assigned</Typography>
+                            )}
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                            {data.division_id ? (
+                                <Chip label={data.division_id.name} color="warning" size="small" />
+                            ) : (
+                                <Typography variant="caption">No division assigned</Typography>
+                            )}
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Election Year</Typography>
                             {data.election_year ? (
                                 <Chip

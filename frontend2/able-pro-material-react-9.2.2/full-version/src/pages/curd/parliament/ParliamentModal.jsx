@@ -268,7 +268,7 @@ export default function ParliamentModal({
                     </Grid>
 
                     {/* Row 4: Assembly (Optional) */}
-                    <Grid item xs={12}>
+                    {/* <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Assembly (Optional)</InputLabel>
                             <FormControl fullWidth>
@@ -287,7 +287,7 @@ export default function ParliamentModal({
                                 </Select>
                             </FormControl>
                         </Stack>
-                    </Grid>
+                    </Grid> */}
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>

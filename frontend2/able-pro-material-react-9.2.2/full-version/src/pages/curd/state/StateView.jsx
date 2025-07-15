@@ -20,11 +20,11 @@ export default function StateView({ data }) {
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
                 <Typography variant="h6">{data.name || 'Untitled State'}</Typography>
-                <Chip
+                {/* <Chip
                     label={data.is_active ? 'ACTIVE' : 'INACTIVE'}
                     color={data.is_active ? 'success' : 'error'}
                     size="small"
-                />
+                /> */}
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
@@ -41,6 +41,17 @@ export default function StateView({ data }) {
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
                                 {data.created_by?.username || 'N/A'}
+                            </Typography>
+                        </Box>
+<Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <User size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Updated By
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.updated_by?.username || 'N/A'}
                             </Typography>
                         </Box>
 
@@ -88,17 +99,17 @@ export default function StateView({ data }) {
                             </Box>
                         )}
 
-                        <Box>
+                        {/* <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
                             <Chip label={data.is_active ? 'ACTIVE' : 'INACTIVE'} color={data.is_active ? 'success' : 'error'} size="small" />
-                        </Box>
+                        </Box> */}
 
-                        <Box>
+                        {/* <Box>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>State ID</Typography>
                             <Typography variant="body2" color="text.secondary">
                                 {data._id || data.id || 'N/A'}
                             </Typography>
-                        </Box>
+                        </Box> */}
                     </Stack>
                 </Grid>
             </Grid>

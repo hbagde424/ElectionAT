@@ -107,17 +107,17 @@ export default function StatesListPage() {
                 </Typography>
             )
         },
-        {
-            header: 'Status',
-            accessorKey: 'is_active',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue() ? 'Active' : 'Inactive'}
-                    color={getValue() ? 'success' : 'error'}
-                    size="small"
-                />
-            )
-        },
+        // {
+        //     header: 'Status',
+        //     accessorKey: 'is_active',
+        //     cell: ({ getValue }) => (
+        //         <Chip
+        //             label={getValue() ? 'Active' : 'Inactive'}
+        //             color={getValue() ? 'success' : 'error'}
+        //             size="small"
+        //         />
+        //     )
+        // },
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -139,6 +139,11 @@ export default function StatesListPage() {
         {
             header: 'Created At',
             accessorKey: 'created_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+{
+            header: 'Updated At',
+            accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
         {

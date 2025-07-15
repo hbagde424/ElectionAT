@@ -178,6 +178,12 @@ export default function DivisionListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
+{
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        
         {
             header: 'Actions',
             meta: { className: 'cell-center' },

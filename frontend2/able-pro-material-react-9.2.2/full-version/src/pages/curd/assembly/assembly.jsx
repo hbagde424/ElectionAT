@@ -210,6 +210,11 @@ export default function AssemblyListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
+{
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
         {
             header: 'Updated At',
             accessorKey: 'updated_at',

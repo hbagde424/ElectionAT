@@ -239,6 +239,11 @@ export default function VisitsListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
+{
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
         {
             header: 'Updated At',
             accessorKey: 'updated_at',

@@ -44,6 +44,17 @@ export default function DistrictView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
+<Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <User size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Updated By
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.updated_by?.username || 'N/A'}
+                            </Typography>
+                        </Box>
 
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -110,12 +121,12 @@ export default function DistrictView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
                             <Chip label={data.is_active ? 'ACTIVE' : 'INACTIVE'} color={data.is_active ? 'success' : 'error'} size="small" />
                         </Grid> */}
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>District ID</Typography>
                             <Typography variant="body2" color="text.secondary">
                                 {data._id || data.id || 'N/A'}
                             </Typography>
-                        </Grid>
+                        </Grid> */}
                     </Grid>
                 </Grid>
             </Grid>

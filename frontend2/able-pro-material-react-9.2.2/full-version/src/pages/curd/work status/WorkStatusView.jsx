@@ -1,192 +1,270 @@
-import { Stack, Typography, Divider, Chip, Grid, Link } from '@mui/material';
+import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
+import { CalendarTick, User, DocumentText1 } from 'iconsax-react';
 
 export default function WorkStatusView({ data }) {
     if (!data) return null;
 
-    const statusColors = {
-        'Pending': 'default',
-        'In Progress': 'info',
-        'Completed': 'success',
-        'Halted': 'warning',
-        'Cancelled': 'error'
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
     };
 
-    const fundSourceColors = {
-        'vidhayak nidhi': 'primary',
-        'swechcha nidhi': 'secondary'
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(amount || 0);
     };
 
     return (
-        <Stack spacing={2}>
-            <Typography variant="h5">{data.work_name}</Typography>
-            <Divider />
-
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Department:</Typography>
-                        <Typography>{data.department}</Typography>
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Status:</Typography>
-                        <Chip 
-                            label={data.status} 
-                            color={statusColors[data.status]} 
-                            size="small" 
-                            sx={{ textTransform: 'capitalize' }}
-                        />
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Fund Source:</Typography>
-                        <Chip 
-                            label={data.approved_fund_from} 
-                            color={fundSourceColors[data.approved_fund_from]} 
-                            size="small" 
-                            sx={{ textTransform: 'capitalize' }}
-                        />
-                    </Stack>
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Total Budget:</Typography>
-                        <Typography>₹{data.total_budget.toLocaleString()}</Typography>
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Spent Amount:</Typography>
-                        <Typography>₹{data.spent_amount.toLocaleString()}</Typography>
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Remaining:</Typography>
-                        <Typography>₹{(data.total_budget - data.spent_amount).toLocaleString()}</Typography>
-                    </Stack>
-                </Grid>
-            </Grid>
-
-            {data.falia && (
-                <Stack spacing={1}>
-                    <Typography fontWeight="bold">Falia:</Typography>
-                    <Typography>{data.falia}</Typography>
-                </Stack>
-            )}
-
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Start Date:</Typography>
-                        <Typography>{new Date(data.start_date).toLocaleDateString()}</Typography>
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Expected End Date:</Typography>
-                        <Typography>{new Date(data.expected_end_date).toLocaleDateString()}</Typography>
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Actual End Date:</Typography>
-                        <Typography>
-                            {data.actual_end_date ? new Date(data.actual_end_date).toLocaleDateString() : 'N/A'}
-                        </Typography>
-                    </Stack>
-                </Grid>
-            </Grid>
-
-            {data.description && (
-                <Stack spacing={1}>
-                    <Typography fontWeight="bold">Description:</Typography>
-                    <Typography>{data.description}</Typography>
-                </Stack>
-            )}
-
-            <Typography variant="h6">Location Details</Typography>
-            <Divider />
-
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Booth:</Typography>
-                        {data.booth_id ? (
-                            <Typography>
-                                {data.booth_id.name} (Booth: {data.booth_id.booth_number})
-                            </Typography>
-                        ) : (
-                            <Typography variant="caption">No booth</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Block:</Typography>
-                        {data.block_id ? (
-                            <Chip label={data.block_id.name} color="primary" size="small" />
-                        ) : (
-                            <Typography variant="caption">No block</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Assembly:</Typography>
-                        {data.assembly_id ? (
-                            <Chip label={data.assembly_id.name} color="secondary" size="small" />
-                        ) : (
-                            <Typography variant="caption">No assembly</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={1}>
-                        <Typography fontWeight="bold">Parliament:</Typography>
-                        {data.parliament_id ? (
-                            <Chip label={data.parliament_id.name} color="info" size="small" />
-                        ) : (
-                            <Typography variant="caption">No parliament</Typography>
-                        )}
-                    </Stack>
-                </Grid>
-            </Grid>
-
-            <Stack spacing={1}>
-                <Typography fontWeight="bold">Division:</Typography>
-                {data.division_id ? (
-                    <Chip label={data.division_id.name} color="warning" size="small" />
-                ) : (
-                    <Typography variant="caption">No division</Typography>
-                )}
+        <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+                <Typography variant="h6">{data.work_name || 'Untitled Work'}</Typography>
+                <Chip
+                    label={data.department?.toUpperCase() || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+                <Chip
+                    label={data.status || 'N/A'}
+                    color={
+                        data.status === 'Completed' ? 'success' :
+                        data.status === 'In Progress' ? 'info' :
+                        data.status === 'Halted' ? 'warning' :
+                        data.status === 'Cancelled' ? 'error' : 'default'
+                    }
+                    size="small"
+                />
+                <Chip
+                    label={`Work ID: ${data._id || 'N/A'}`}
+                    size="small"
+                    variant="outlined"
+                />
             </Stack>
 
-            {data.documents?.length > 0 && (
-                <>
-                    <Typography variant="h6">Documents</Typography>
-                    <Divider />
-                    <Stack spacing={1}>
-                        {data.documents.map((doc, index) => (
-                            <Stack key={index} direction="row" spacing={2} alignItems="center">
-                                <Typography sx={{ flex: 1 }}>{doc.name}</Typography>
-                                <Link href={doc.url} target="_blank" rel="noopener">View Document</Link>
-                            </Stack>
-                        ))}
-                    </Stack>
-                </>
-            )}
+            <Divider sx={{ mb: 2 }} />
 
-            <Typography variant="body2">Created At: {new Date(data.created_at).toLocaleString()}</Typography>
-            <Typography variant="body2">Updated At: {new Date(data.updated_at).toLocaleString()}</Typography>
-        </Stack>
+            <Grid container spacing={3}>
+                {/* Left Column */}
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={2}>
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Description
+                            </Typography>
+                            <Typography variant="body1" paragraph>
+                                {data.description || 'No description provided'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Financial Information
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Total Budget:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatCurrency(data.total_budget)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Spent Amount:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatCurrency(data.spent_amount)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Fund Source:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.approved_fund_from || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Remaining Budget:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatCurrency((data.total_budget || 0) - (data.spent_amount || 0))}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Timeline
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Start Date:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatDate(data.start_date)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Expected End:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatDate(data.expected_end_date)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Actual End:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatDate(data.actual_end_date)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Status:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.status || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    </Stack>
+                </Grid>
+
+                {/* Right Column */}
+                <Grid item xs={12} md={6}>
+                    <Stack spacing={2}>
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Location Information
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Falia:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.falia || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">State:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.state_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Division:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.division_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Parliament:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.parliament_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Assembly:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.assembly_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Block:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.block_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="body2">Booth:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.booth_id?.name || 'N/A'} {data.booth_id?.booth_number ? `(Booth #${data.booth_id.booth_number})` : ''}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Documents
+                            </Typography>
+                            {data.documents?.length > 0 ? (
+                                <Stack spacing={1}>
+                                    {data.documents.map((doc, index) => (
+                                        <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                                            <DocumentText1 size="16" />
+                                            <Typography 
+                                                variant="body2" 
+                                                component="a" 
+                                                href={doc.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                sx={{ textDecoration: 'underline', color: 'primary.main' }}
+                                            >
+                                                {doc.name}
+                                            </Typography>
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            ) : (
+                                <Typography variant="body2">No documents attached</Typography>
+                            )}
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Audit Information
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <User size="16" />
+                                        <Stack>
+                                            <Typography variant="body2">Created By:</Typography>
+                                            <Typography variant="body1" fontWeight="medium">
+                                                {data.created_by?.username || 'N/A'}
+                                            </Typography>
+                                        </Stack>
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CalendarTick size="16" />
+                                        <Stack>
+                                            <Typography variant="body2">Created At:</Typography>
+                                            <Typography variant="body1" fontWeight="medium">
+                                                {formatDate(data.created_at)}
+                                            </Typography>
+                                        </Stack>
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <User size="16" />
+                                        <Stack>
+                                            <Typography variant="body2">Updated By:</Typography>
+                                            <Typography variant="body1" fontWeight="medium">
+                                                {data.updated_by?.username || 'N/A'}
+                                            </Typography>
+                                        </Stack>
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CalendarTick size="16" />
+                                        <Stack>
+                                            <Typography variant="body2">Last Updated:</Typography>
+                                            <Typography variant="body1" fontWeight="medium">
+                                                {formatDate(data.updated_at)}
+                                            </Typography>
+                                        </Stack>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    </Stack>
+                </Grid>
+            </Grid>
+        </Box>
     );
 }

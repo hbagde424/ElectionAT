@@ -81,6 +81,28 @@ const CRUDMenu = {
   icon: icons.CURd,
   children: [
     {
+      id: 'state',
+      title: <FormattedMessage id="State" />,
+      type: 'item',
+      url: '/state',
+      icon: icons.Location,
+    },
+    {
+      id: 'division',
+      title: <FormattedMessage id="Division" />,
+      type: 'item',
+      url: '/division',
+      icon: icons.Bank, // Administrative division
+    },
+    {
+      id: 'parliament',
+      title: <FormattedMessage id="Parliament" />,
+      type: 'item',
+      url: '/parliament',
+      icon: icons.Building,
+    },
+
+    {
       id: 'assembly',
       title: <FormattedMessage id="Assembly" />,
       type: 'item',
@@ -88,11 +110,11 @@ const CRUDMenu = {
       icon: icons.Courthouse, // Government building
     },
     {
-      id: 'Assembly-Votes',
-      title: <FormattedMessage id="Assembly-Votes" />,
+      id: 'district',
+      title: <FormattedMessage id="District" />,
       type: 'item',
-      url: '/Assembly-Votes',
-      icon: icons.LikeTag, // Voting representation
+      url: '/district',
+      icon: icons.Location,
     },
     {
       id: 'block',
@@ -102,19 +124,28 @@ const CRUDMenu = {
       icon: icons.Location, // Geographical block
     },
     {
-      id: 'Block-Votes',
-      title: <FormattedMessage id="Block-Votes" />,
-      type: 'item',
-      url: '/Block-Votes',
-      icon: icons.ChartSquare, // Voting data
-    },
-    {
       id: 'booth',
       title: <FormattedMessage id="Booth" />,
       type: 'item',
       url: '/booth',
       icon: icons.Home, // Polling booth
     },
+    {
+      id: 'Assembly-Votes',
+      title: <FormattedMessage id="Assembly-Votes" />,
+      type: 'item',
+      url: '/Assembly-Votes',
+      icon: icons.LikeTag, // Voting representation
+    },
+    
+    {
+      id: 'Block-Votes',
+      title: <FormattedMessage id="Block-Votes" />,
+      type: 'item',
+      url: '/Block-Votes',
+      icon: icons.ChartSquare, // Voting data
+    },
+    
     {
       id: 'Booth-Survey',
       title: <FormattedMessage id="Booth-Survey" />,
@@ -150,25 +181,20 @@ const CRUDMenu = {
       url: '/Caste-List',
       icon: icons.HierarchySqu, // Hierarchical list
     },
-    {
-      id: 'district',
-      title: <FormattedMessage id="District" />,
-      type: 'item',
-      url: '/district',
-      icon: icons.Location,
-    },
-    {
-      id: 'division',
-      title: <FormattedMessage id="Division" />,
-      type: 'item',
-      url: '/division',
-      icon: icons.Bank, // Administrative division
-    },
+    
+    
     {
       id: 'Events',
       title: <FormattedMessage id="Events" />,
       type: 'item',
       url: '/Events',
+      icon: icons.Calendar,
+    },
+     {
+      id: 'Gender',
+      title: <FormattedMessage id="Gender" />,
+      type: 'item',
+      url: '/Gender',
       icon: icons.Calendar,
     },
     {
@@ -178,13 +204,7 @@ const CRUDMenu = {
       url: '/Local-Issue',
       icon: icons.Flag,
     },
-    {
-      id: 'parliament',
-      title: <FormattedMessage id="Parliament" />,
-      type: 'item',
-      url: '/parliament',
-      icon: icons.Building,
-    },
+    
     {
       id: 'Parliament-Votes',
       title: <FormattedMessage id="Parliament-Votes" />,

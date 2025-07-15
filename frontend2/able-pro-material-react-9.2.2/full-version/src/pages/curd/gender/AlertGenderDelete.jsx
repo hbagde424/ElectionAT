@@ -1,10 +1,10 @@
 import { Dialog, DialogTitle, DialogActions, Button, DialogContent, Typography, Stack, Chip } from '@mui/material';
 import { Warning2 } from 'iconsax-react';
 
-export default function AlertWorkStatusDelete({ id, open, handleClose, refresh }) {
+export default function AlertGenderDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
-        const res = await fetch(`http://localhost:5000/api/work-statuses/${id}`, {
+        const res = await fetch(`http://localhost:5000/api/genders/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -23,18 +23,18 @@ export default function AlertWorkStatusDelete({ id, open, handleClose, refresh }
             <DialogTitle>
                 <Stack direction="row" alignItems="center" spacing={1}>
                     <Warning2 size="24" color="#f44336" />
-                    <Typography variant="h6">Delete Work Status</Typography>
+                    <Typography variant="h6">Delete Gender Entry</Typography>
                 </Stack>
             </DialogTitle>
             <DialogContent>
                 <Stack spacing={2}>
                     <Typography>
-                        Are you sure you want to delete this work status? This action cannot be undone.
+                        Are you sure you want to delete this gender entry? This action cannot be undone.
                     </Typography>
                     <Stack direction="row" spacing={1}>
                         <Chip label="Warning" color="error" size="small" />
                         <Typography variant="body2" color="text.secondary">
-                            All associated data including documents will be permanently removed.
+                            This gender information will be permanently removed from the system.
                         </Typography>
                     </Stack>
                 </Stack>
@@ -44,7 +44,7 @@ export default function AlertWorkStatusDelete({ id, open, handleClose, refresh }
                     Cancel
                 </Button>
                 <Button color="error" variant="contained" onClick={handleDelete}>
-                    Delete Work Status
+                    Delete Entry
                 </Button>
             </DialogActions>
         </Dialog>

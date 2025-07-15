@@ -90,6 +90,17 @@ export default function LocalIssueView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
+<Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <User size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Updated By
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.updated_by?.username || 'N/A'}
+                            </Typography>
+                        </Box>
 
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
