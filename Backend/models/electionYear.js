@@ -4,12 +4,27 @@ const electionYearSchema = new mongoose.Schema({
   year: {
     type: Number,
     required: true,
-    unique: true
+    unique: true,
+    validate: {
+      validator: function(v) {
+        return v.toString().length === 4 && v >= 1900 && v <= 2100;
+      },
+      message: props => `${props.value} is not a valid year!`
+    }
   },
   election_type: {
     type: String,
     enum: ['Assembly', 'Parliament'],
     required: true
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   created_at: {
     type: Date,

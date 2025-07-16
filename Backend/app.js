@@ -48,7 +48,7 @@ const boothVotesRoutes = require('./routes/boothVotesRoutes');
 const blockVotesRoutes = require('./routes/blockVotesRoutes');
 const assemblyVotesRoutes = require('./routes/assemblyVotesRoutes');
 const parliamentVotesRoutes = require('./routes/parliamentVotesRoutes');
-const ElectionYearRoutes = require('./routes/electionYearRoutes');
+const electionYearRoutes = require('./routes/electionYearRoutes');
 const potentialCandidateRoutes = require('./routes/potentialCandidateRoutes');
 const workStatusRoutes = require('./routes/workStatusRoutes');
 const casteListRoutes = require('./routes/casteListRoutes');
@@ -58,6 +58,7 @@ const eventTypeRoutes = require('./routes/eventTypeRoutes');
 const statusRoutes = require('./routes/statusRoutes');
 const blockPolygonRoutes = require('./routes/blockPolygonRoutes');
 const genderRoutes = require('./routes/genderRoutes');
+const electionTypeRoutes = require('./routes/electionTypeRoutes');
 
 // Connect to database
 connectDB();
@@ -129,7 +130,7 @@ app.use('/api/booth-votes', boothVotesRoutes);
 app.use('/api/block-votes', blockVotesRoutes);
 app.use('/api/assembly-votes', assemblyVotesRoutes);
 app.use('/api/parliament-votes', parliamentVotesRoutes);
-app.use('/api/election-years', ElectionYearRoutes);
+app.use('/api/election-years', electionYearRoutes);
 app.use('/api/potential-candidates', potentialCandidateRoutes);
 app.use('/api/work-status', workStatusRoutes);
 app.use('/api/caste-lists', casteListRoutes);
@@ -140,6 +141,9 @@ app.use('/api/statuses', statusRoutes);
 // Add this with your other route middleware (usually after auth middleware)
 app.use('/api/block-polygons', blockPolygonRoutes);
 app.use('/api/genders', genderRoutes);
+app.use('/api/election-types', electionTypeRoutes);
+
+
 // Error handler
 app.use(errorHandler);
 
