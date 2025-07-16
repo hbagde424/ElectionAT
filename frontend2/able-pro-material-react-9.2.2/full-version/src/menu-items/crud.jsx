@@ -267,6 +267,13 @@ const CRUDMenu = {
       type: 'item',
       url: '/Work-Status',
       icon: icons.ClipboardTick // Completed work
+    },
+    {
+      id: 'Year',
+      title: <FormattedMessage id="Year" />,
+      type: 'item',
+      url: '/Year',
+      icon: icons.ClipboardTick // Completed work
     }
   ]
 };

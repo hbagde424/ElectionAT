@@ -151,6 +151,9 @@ const Users = Loadable(lazy(() => import('pages/curd/user/user')));
 const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
+const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
+const BoothDemographic = Loadable(lazy(() => import('pages/curd/booth demographic/BoothDemographic')));
+const ElectionType = Loadable(lazy(() => import('pages/curd/Election-Type/ElectionType')));
 const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issue')));
 const Events = Loadable(lazy(() => import('pages/curd/events/events')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
@@ -639,6 +642,19 @@ const MainRoutes = {
         {
           path: 'Gender',
           element: <Gender />
+        },
+        {
+          path: 'Year',
+          element: <Year />
+        },
+        {
+          path: 'Booth-Demographic',
+          element: <BoothDemographic />
+        },
+        
+        {
+          path: 'Election-Type',
+          element: <ElectionType />
         },
         {
           path: 'Local-Issue',
