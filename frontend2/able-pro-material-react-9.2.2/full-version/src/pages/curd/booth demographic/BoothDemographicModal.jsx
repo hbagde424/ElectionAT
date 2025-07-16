@@ -16,166 +16,325 @@ export default function BoothDemographicsModal({
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
 
+    // State for reference data
+    const [states, setStates] = useState([]);
+    const [divisions, setDivisions] = useState([]);
+    const [parliaments, setParliaments] = useState([]);
+    const [assemblies, setAssemblies] = useState([]);
+    const [blocks, setBlocks] = useState([]);
+
+    // State for filtered dropdowns
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
+    const [filteredParliaments, setFilteredParliaments] = useState([]);
+    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+    const [filteredBlocks, setFilteredBlocks] = useState([]);
+
     const [formData, setFormData] = useState({
-        total_population: '',
-        total_electors: '',
-        male_electors: '',
-        female_electors: '',
-        other_electors: '',
+        booth_id: '',
+        state_id: '',
+        division_id: '',
+        parliament_id: '',
+        assembly_id: '',
+        block_id: '',
+        total_population: 0,
+        total_electors: 0,
+        male_electors: 0,
+        female_electors: 0,
+        other_electors: 0,
         education: {
-            illiterate: '',
-            educated: '',
-            class_1_to_5: '',
-            class_5_to_10: '',
-            class_10_to_12: '',
-            graduate: '',
-            post_graduate: '',
-            other_education: ''
+            illiterate: 0,
+            educated: 0,
+            class_1_to_5: 0,
+            class_5_to_10: 0,
+            class_10_to_12: 0,
+            graduate: 0,
+            post_graduate: 0,
+            other_education: 0
         },
         annual_income: {
-            below_10k: '',
-            _10k_to_20k: '',
-            _25k_to_50k: '',
-            _50k_to_2L: '',
-            _2L_to_5L: '',
-            above_5L: ''
+            below_10k: 0,
+            _10k_to_20k: 0,
+            _25k_to_50k: 0,
+            _50k_to_2L: 0,
+            _2L_to_5L: 0,
+            above_5L: 0
         },
         age_groups: {
-            _18_25: '',
-            _26_40: '',
-            _41_60: '',
-            _60_above: ''
+            _18_25: 0,
+            _26_40: 0,
+            _41_60: 0,
+            _60_above: 0
         },
         caste_population: {
-            sc: '',
-            st: '',
-            obc: '',
-            general: '',
-            other: ''
+            sc: 0,
+            st: 0,
+            obc: 0,
+            general: 0,
+            other: 0
         },
-        literacy_rate: ''
+        literacy_rate: 0
     });
-    const [submitted, setSubmitted] = useState(false);
 
+    const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Fetch all reference data
     useEffect(() => {
+        const fetchReferenceData = async () => {
+            try {
+                const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
+                    fetch('http://localhost:5000/api/states'),
+                    fetch('http://localhost:5000/api/divisions'),
+                    fetch('http://localhost:5000/api/parliaments'),
+                    fetch('http://localhost:5000/api/assemblies'),
+                    fetch('http://localhost:5000/api/blocks')
+                ]);
+
+                const [statesData, divisionsData, parliamentsData, assembliesData, blocksData] = await Promise.all([
+                    statesRes.json(),
+                    divisionsRes.json(),
+                    parliamentsRes.json(),
+                    assembliesRes.json(),
+                    blocksRes.json()
+                ]);
+
+                if (statesData.success) setStates(statesData.data);
+                if (divisionsData.success) setDivisions(divisionsData.data);
+                if (parliamentsData.success) setParliaments(parliamentsData.data);
+                if (assembliesData.success) setAssemblies(assembliesData.data);
+                if (blocksData.success) setBlocks(blocksData.data);
+
+            } catch (error) {
+                console.error('Failed to fetch reference data:', error);
+            }
+        };
+
+        fetchReferenceData();
+    }, []);
+
+    // Initialize form data when booth or demographics changes
+    useEffect(() => {
+        if (booth) {
+            setFormData(prev => ({
+                ...prev,
+                booth_id: booth._id,
+                state_id: booth.state_id?._id || booth.state_id || '',
+                division_id: booth.division_id?._id || booth.division_id || '',
+                parliament_id: booth.parliament_id?._id || booth.parliament_id || '',
+                assembly_id: booth.assembly_id?._id || booth.assembly_id || '',
+                block_id: booth.block_id?._id || booth.block_id || ''
+            }));
+        }
+
         if (demographics) {
             setFormData({
-                total_population: demographics.total_population || '',
-                total_electors: demographics.total_electors || '',
-                male_electors: demographics.male_electors || '',
-                female_electors: demographics.female_electors || '',
-                other_electors: demographics.other_electors || '',
-                education: demographics.education || {
-                    illiterate: '',
-                    educated: '',
-                    class_1_to_5: '',
-                    class_5_to_10: '',
-                    class_10_to_12: '',
-                    graduate: '',
-                    post_graduate: '',
-                    other_education: ''
-                },
-                annual_income: demographics.annual_income || {
-                    below_10k: '',
-                    _10k_to_20k: '',
-                    _25k_to_50k: '',
-                    _50k_to_2L: '',
-                    _2L_to_5L: '',
-                    above_5L: ''
-                },
-                age_groups: demographics.age_groups || {
-                    _18_25: '',
-                    _26_40: '',
-                    _41_60: '',
-                    _60_above: ''
-                },
-                caste_population: demographics.caste_population || {
-                    sc: '',
-                    st: '',
-                    obc: '',
-                    general: '',
-                    other: ''
-                },
-                literacy_rate: demographics.literacy_rate || ''
-            });
-        } else {
-            setFormData({
-                total_population: '',
-                total_electors: '',
-                male_electors: '',
-                female_electors: '',
-                other_electors: '',
+                booth_id: demographics.booth_id,
+                state_id: demographics.state_id?._id || demographics.state_id || '',
+                division_id: demographics.division_id?._id || demographics.division_id || '',
+                parliament_id: demographics.parliament_id?._id || demographics.parliament_id || '',
+                assembly_id: demographics.assembly_id?._id || demographics.assembly_id || '',
+                block_id: demographics.block_id?._id || demographics.block_id || '',
+                total_population: demographics.total_population || 0,
+                total_electors: demographics.total_electors || 0,
+                male_electors: demographics.male_electors || 0,
+                female_electors: demographics.female_electors || 0,
+                other_electors: demographics.other_electors || 0,
                 education: {
-                    illiterate: '',
-                    educated: '',
-                    class_1_to_5: '',
-                    class_5_to_10: '',
-                    class_10_to_12: '',
-                    graduate: '',
-                    post_graduate: '',
-                    other_education: ''
+                    illiterate: demographics.education?.illiterate || 0,
+                    educated: demographics.education?.educated || 0,
+                    class_1_to_5: demographics.education?.class_1_to_5 || 0,
+                    class_5_to_10: demographics.education?.class_5_to_10 || 0,
+                    class_10_to_12: demographics.education?.class_10_to_12 || 0,
+                    graduate: demographics.education?.graduate || 0,
+                    post_graduate: demographics.education?.post_graduate || 0,
+                    other_education: demographics.education?.other_education || 0
                 },
                 annual_income: {
-                    below_10k: '',
-                    _10k_to_20k: '',
-                    _25k_to_50k: '',
-                    _50k_to_2L: '',
-                    _2L_to_5L: '',
-                    above_5L: ''
+                    below_10k: demographics.annual_income?.below_10k || 0,
+                    _10k_to_20k: demographics.annual_income?._10k_to_20k || 0,
+                    _25k_to_50k: demographics.annual_income?._25k_to_50k || 0,
+                    _50k_to_2L: demographics.annual_income?._50k_to_2L || 0,
+                    _2L_to_5L: demographics.annual_income?._2L_to_5L || 0,
+                    above_5L: demographics.annual_income?.above_5L || 0
                 },
                 age_groups: {
-                    _18_25: '',
-                    _26_40: '',
-                    _41_60: '',
-                    _60_above: ''
+                    _18_25: demographics.age_groups?._18_25 || 0,
+                    _26_40: demographics.age_groups?._26_40 || 0,
+                    _41_60: demographics.age_groups?._41_60 || 0,
+                    _60_above: demographics.age_groups?._60_above || 0
                 },
                 caste_population: {
-                    sc: '',
-                    st: '',
-                    obc: '',
-                    general: '',
-                    other: ''
+                    sc: demographics.caste_population?.sc || 0,
+                    st: demographics.caste_population?.st || 0,
+                    obc: demographics.caste_population?.obc || 0,
+                    general: demographics.caste_population?.general || 0,
+                    other: demographics.caste_population?.other || 0
                 },
-                literacy_rate: ''
+                literacy_rate: demographics.literacy_rate || 0
             });
         }
-    }, [demographics]);
+    }, [booth, demographics]);
+
+    // Cascading dropdown effects
+    useEffect(() => {
+        if (formData.state_id) {
+            const filtered = divisions.filter(division =>
+                division.state_id?._id === formData.state_id || division.state_id === formData.state_id
+            );
+            setFilteredDivisions(filtered);
+
+            if (formData.division_id && !filtered.some(d => d._id === formData.division_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    division_id: '',
+                    parliament_id: '',
+                    assembly_id: '',
+                    block_id: ''
+                }));
+            }
+        } else {
+            setFilteredDivisions([]);
+            setFormData(prev => ({
+                ...prev,
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: ''
+            }));
+        }
+    }, [formData.state_id, divisions]);
+
+    useEffect(() => {
+        if (formData.division_id) {
+            const filtered = parliaments.filter(parliament =>
+                parliament.division_id?._id === formData.division_id || parliament.division_id === formData.division_id
+            );
+            setFilteredParliaments(filtered);
+
+            if (formData.parliament_id && !filtered.some(p => p._id === formData.parliament_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    parliament_id: '',
+                    assembly_id: '',
+                    block_id: ''
+                }));
+            }
+        } else {
+            setFilteredParliaments([]);
+            setFormData(prev => ({
+                ...prev,
+                parliament_id: '',
+                assembly_id: '',
+                block_id: ''
+            }));
+        }
+    }, [formData.division_id, parliaments]);
+
+    useEffect(() => {
+        if (formData.parliament_id) {
+            const filtered = assemblies.filter(assembly =>
+                assembly.parliament_id?._id === formData.parliament_id || assembly.parliament_id === formData.parliament_id
+            );
+            setFilteredAssemblies(filtered);
+
+            if (formData.assembly_id && !filtered.some(a => a._id === formData.assembly_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    assembly_id: '',
+                    block_id: ''
+                }));
+            }
+        } else {
+            setFilteredAssemblies([]);
+            setFormData(prev => ({
+                ...prev,
+                assembly_id: '',
+                block_id: ''
+            }));
+        }
+    }, [formData.parliament_id, assemblies]);
+
+    useEffect(() => {
+        if (formData.assembly_id) {
+            const filtered = blocks.filter(block =>
+                block.assembly_id?._id === formData.assembly_id || block.assembly_id === formData.assembly_id
+            );
+            setFilteredBlocks(filtered);
+
+            if (formData.block_id && !filtered.some(b => b._id === formData.block_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    block_id: ''
+                }));
+            }
+        } else {
+            setFilteredBlocks([]);
+            setFormData(prev => ({
+                ...prev,
+                block_id: ''
+            }));
+        }
+    }, [formData.assembly_id, blocks]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        
-        // Check if the field is nested (contains a dot)
+
+        // Convert to number if it's a numeric field
+        const processedValue = value === '' ? '' : isNaN(value) ? value : Number(value);
+
         if (name.includes('.')) {
             const [parent, child] = name.split('.');
             setFormData(prev => ({
                 ...prev,
                 [parent]: {
                     ...prev[parent],
-                    [child]: value
+                    [child]: processedValue
                 }
             }));
         } else {
             setFormData(prev => ({
                 ...prev,
-                [name]: value
+                [name]: processedValue
             }));
         }
     };
 
     const handleSubmit = async () => {
+        console.log('Submit button clicked'); // Check if handler is triggered
         setSubmitted(true);
-        
-        // Basic validation
+        setLoading(true);
+
+        // Validation
         const requiredFields = [
-            'total_population', 'total_electors', 
+            'booth_id', 'state_id', 'division_id',
+            'parliament_id', 'assembly_id', 'block_id',
+            'total_population', 'total_electors',
             'male_electors', 'female_electors'
         ];
-        
-        for (const field of requiredFields) {
-            if (!formData[field] || isNaN(formData[field])) {
-                return;
+
+        console.log('Form data:', formData); // Log current form data
+
+        const hasErrors = requiredFields.some(field => {
+            if (field.includes('.')) {
+                const [parent, child] = field.split('.');
+                const value = formData[parent][child];
+                console.log(`Checking ${field}:`, value); // Log each field check
+                return !value || isNaN(value);
             }
+            const value = formData[field];
+            console.log(`Checking ${field}:`, value); // Log each field check
+            return !value || isNaN(value);
+        });
+
+        console.log('Validation hasErrors:', hasErrors); // Log validation result
+
+        if (hasErrors) {
+            console.log('Validation failed - blocking submission');
+            setLoading(false);
+            return;
         }
+
+        console.log('Preparing to submit data...'); // Confirm we're proceeding to submit
 
         const method = demographics ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
@@ -195,34 +354,10 @@ export default function BoothDemographicsModal({
         }
 
         const submitData = {
-            booth_id: booth._id,
-            state_id: booth.state_id?._id || booth.state_id,
-            division_id: booth.division_id?._id || booth.division_id,
-            assembly_id: booth.assembly_id?._id || booth.assembly_id,
-            parliament_id: booth.parliament_id?._id || booth.parliament_id,
-            block_id: booth.block_id?._id || booth.block_id,
             ...formData,
             created_by: demographics ? undefined : userId,
             updated_by: userId
         };
-
-        // Convert string numbers to actual numbers
-        Object.keys(submitData).forEach(key => {
-            if (typeof submitData[key] === 'string' && !isNaN(submitData[key])) {
-                submitData[key] = Number(submitData[key]);
-            }
-        });
-
-        // Convert nested objects' string numbers
-        ['education', 'annual_income', 'age_groups', 'caste_population'].forEach(group => {
-            if (submitData[group]) {
-                Object.keys(submitData[group]).forEach(key => {
-                    if (typeof submitData[group][key] === 'string' && !isNaN(submitData[group][key])) {
-                        submitData[group][key] = Number(submitData[group][key]);
-                    }
-                });
-            }
-        });
 
         try {
             const res = await fetch(url, {
@@ -240,11 +375,13 @@ export default function BoothDemographicsModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit demographics:', errorData);
-                alert('Failed to save demographics. Please check the form data.');
+                alert(errorData.message || 'Failed to save demographics. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting demographics:', error);
             alert('An error occurred while saving the demographics.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -264,6 +401,137 @@ export default function BoothDemographicsModal({
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
                     {/* Basic Demographics */}
+                    <Grid container spacing={2} mt={1}>
+                        {/* Hierarchy Section */}
+                        <Grid item xs={12}>
+                            <Typography variant="h6" gutterBottom>Geographical Hierarchy</Typography>
+                            <Divider />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel required>State</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.state_id}>
+                                    <Select
+                                        name="state_id"
+                                        value={formData.state_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select State</MenuItem>
+                                        {states.map((state) => (
+                                            <MenuItem key={state._id} value={state._id}>
+                                                {state.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {submitted && !formData.state_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>State is required</Box>
+                                )}
+                            </Stack>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel required>Division</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.division_id}>
+                                    <Select
+                                        name="division_id"
+                                        value={formData.division_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.state_id}
+                                    >
+                                        <MenuItem value="">Select Division</MenuItem>
+                                        {filteredDivisions.map((division) => (
+                                            <MenuItem key={division._id} value={division._id}>
+                                                {division.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {submitted && !formData.division_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Division is required</Box>
+                                )}
+                            </Stack>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel required>Parliament</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.parliament_id}>
+                                    <Select
+                                        name="parliament_id"
+                                        value={formData.parliament_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.division_id}
+                                    >
+                                        <MenuItem value="">Select Parliament</MenuItem>
+                                        {filteredParliaments.map((parliament) => (
+                                            <MenuItem key={parliament._id} value={parliament._id}>
+                                                {parliament.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {submitted && !formData.parliament_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Parliament is required</Box>
+                                )}
+                            </Stack>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel required>Assembly</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.assembly_id}>
+                                    <Select
+                                        name="assembly_id"
+                                        value={formData.assembly_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.parliament_id}
+                                    >
+                                        <MenuItem value="">Select Assembly</MenuItem>
+                                        {filteredAssemblies.map((assembly) => (
+                                            <MenuItem key={assembly._id} value={assembly._id}>
+                                                {assembly.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {submitted && !formData.assembly_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Assembly is required</Box>
+                                )}
+                            </Stack>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel required>Block</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.block_id}>
+                                    <Select
+                                        name="block_id"
+                                        value={formData.block_id}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={!formData.assembly_id}
+                                    >
+                                        <MenuItem value="">Select Block</MenuItem>
+                                        {filteredBlocks.map((block) => (
+                                            <MenuItem key={block._id} value={block._id}>
+                                                {block.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {submitted && !formData.block_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Block is required</Box>
+                                )}
+                            </Stack>
+                        </Grid>
+                    </Grid>
                     <Grid item xs={12}>
                         <Typography variant="h6" gutterBottom>Basic Demographics</Typography>
                         <Divider />
@@ -313,8 +581,8 @@ export default function BoothDemographicsModal({
                                 required
                                 error={submitted && (!formData.male_electors || isNaN(formData.male_electors))}
                                 helperText={
-                                    submitted && (!formData.male_electors || isNaN(formData.male_electors)) ? 'Required field' : 
-                                    formData.total_electors ? calculatePercentage(formData.male_electors, formData.total_electors) : ''
+                                    submitted && (!formData.male_electors || isNaN(formData.male_electors)) ? 'Required field' :
+                                        formData.total_electors ? calculatePercentage(formData.male_electors, formData.total_electors) : ''
                                 }
                             />
                         </Stack>
@@ -332,8 +600,8 @@ export default function BoothDemographicsModal({
                                 required
                                 error={submitted && (!formData.female_electors || isNaN(formData.female_electors))}
                                 helperText={
-                                    submitted && (!formData.female_electors || isNaN(formData.female_electors)) ? 'Required field' : 
-                                    formData.total_electors ? calculatePercentage(formData.female_electors, formData.total_electors) : ''
+                                    submitted && (!formData.female_electors || isNaN(formData.female_electors)) ? 'Required field' :
+                                        formData.total_electors ? calculatePercentage(formData.female_electors, formData.total_electors) : ''
                                 }
                             />
                         </Stack>
@@ -494,9 +762,11 @@ export default function BoothDemographicsModal({
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                    {demographics ? 'Update' : 'Submit'}
+                <Button onClick={() => modalToggler(false)} disabled={loading}>
+                    Cancel
+                </Button>
+                <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+                    {loading ? 'Processing...' : demographics ? 'Update' : 'Submit'}
                 </Button>
             </DialogActions>
         </Dialog>
