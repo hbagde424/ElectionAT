@@ -15,6 +15,26 @@ const winningPartySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parliament'
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: true
+  },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: true
+  },
+  block_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Block',
+    required: true
+  },
+  booth_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Booth',
+    required: true
+  },
   party_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Party',
@@ -33,6 +53,15 @@ const winningPartySchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -43,9 +72,12 @@ const winningPartySchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp before saving
+// Update timestamp and updated_by before saving
 winningPartySchema.pre('save', function(next) {
   this.updated_at = Date.now();
+  if (this.isNew) {
+    this.created_at = this.updated_at;
+  }
   next();
 });
 

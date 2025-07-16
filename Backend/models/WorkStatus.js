@@ -76,6 +76,12 @@ const workStatusSchema = new mongoose.Schema({
       message: 'Actual end date must be after start date'
     }
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required'],
+    index: true
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
@@ -158,6 +164,13 @@ workStatusSchema.pre('save', function(next) {
 });
 
 // Virtual population
+workStatusSchema.virtual('state', {
+  ref: 'State',
+  localField: 'state_id',
+  foreignField: '_id',
+  justOne: true
+});
+
 workStatusSchema.virtual('division', {
   ref: 'Division',
   localField: 'division_id',
@@ -212,6 +225,7 @@ workStatusSchema.index({ work_name: 'text', description: 'text', falia: 'text' }
 workStatusSchema.index({ status: 1, department: 1 });
 workStatusSchema.index({ approved_fund_from: 1 });
 workStatusSchema.index({ 
+  state_id: 1,
   division_id: 1, 
   parliament_id: 1, 
   assembly_id: 1,

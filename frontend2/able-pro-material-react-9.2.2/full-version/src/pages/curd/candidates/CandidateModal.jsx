@@ -23,9 +23,10 @@ export default function CandidateModal({
         party_id: '',
         assembly_id: '',
         parliament_id: '',
+        state_id: '',
+        division_id: '',
         election_year: '',
         caste: '',
-        votes: '',
         criminal_cases: '',
         assets: '',
         liabilities: '',
@@ -44,6 +45,8 @@ export default function CandidateModal({
     const assembliesList = assemblies || [];
     const electionYearsList = electionYears || [];
     const parliamentsList = parliaments || [];
+    const statesList = states || [];
+    const divisionsList = divisions || [];
 
     // Caste options
     const casteOptions = ['General', 'OBC', 'SC', 'ST', 'Other'];
@@ -55,9 +58,10 @@ export default function CandidateModal({
                 party_id: candidate.party_id?._id || candidate.party_id || '',
                 assembly_id: candidate.assembly_id?._id || candidate.assembly_id || '',
                 parliament_id: candidate.parliament_id?._id || candidate.parliament_id || '',
+                state_id: candidate.state_id?._id || candidate.state_id || '',
+                division_id: candidate.division_id?._id || candidate.division_id || '',
                 election_year: candidate.election_year?._id || candidate.election_year || '',
                 caste: candidate.caste || '',
-                votes: candidate.votes || '',
                 criminal_cases: candidate.criminal_cases || '',
                 assets: candidate.assets || '',
                 liabilities: candidate.liabilities || '',
@@ -72,9 +76,10 @@ export default function CandidateModal({
                 party_id: '',
                 assembly_id: '',
                 parliament_id: '',
+                state_id: '',
+                division_id: '',
                 election_year: '',
                 caste: '',
-                votes: '',
                 criminal_cases: '',
                 assets: '',
                 liabilities: '',
@@ -106,17 +111,18 @@ export default function CandidateModal({
             case 'parliament_id':
                 if (!value) return 'Parliament selection is required';
                 break;
+            case 'state_id':
+                if (!value) return 'State selection is required';
+                break;
+            case 'division_id':
+                if (!value) return 'Division selection is required';
+                break;
             case 'election_year':
                 if (!value) return 'Election year selection is required';
                 break;
             case 'caste':
                 if (!value) return 'Caste selection is required';
                 if (!casteOptions.includes(value)) return 'Please select a valid caste';
-                break;
-            case 'votes':
-                if (value && isNaN(value)) return 'Votes must be a number';
-                if (value && parseInt(value) < 0) return 'Votes cannot be negative';
-                if (value && parseInt(value) > 999999999) return 'Votes value is too large';
                 break;
             case 'criminal_cases':
                 if (value && isNaN(value)) return 'Criminal cases must be a number';
@@ -149,7 +155,7 @@ export default function CandidateModal({
     // Validate entire form
     const validateForm = () => {
         const newErrors = {};
-        const requiredFields = ['name', 'party_id', 'assembly_id', 'parliament_id', 'election_year', 'caste'];
+        const requiredFields = ['name', 'party_id', 'assembly_id', 'parliament_id', 'state_id', 'division_id', 'election_year', 'caste'];
 
         requiredFields.forEach(field => {
             const error = validateField(field, formData[field]);
@@ -157,7 +163,7 @@ export default function CandidateModal({
         });
 
         // Validate optional fields
-        ['votes', 'criminal_cases', 'assets', 'liabilities', 'education', 'photo'].forEach(field => {
+        ['criminal_cases', 'assets', 'liabilities', 'education', 'photo'].forEach(field => {
             const error = validateField(field, formData[field]);
             if (error) newErrors[field] = error;
         });
@@ -284,8 +290,10 @@ export default function CandidateModal({
                 <Grid container spacing={2} mt={1}>
                     {renderTextField('Name', 'name', 'text', true)}
                     {renderSelect('Party', 'party_id', partiesList, 'name', true)}
-                    {renderSelect('Assembly', 'assembly_id', assembliesList, 'name', true)}
+                    {renderSelect('State', 'state_id', statesList, 'name', true)}
+                    {renderSelect('Division', 'division_id', divisionsList, 'name', true)}
                     {renderSelect('Parliament', 'parliament_id', parliamentsList, 'name', true)}
+                    {renderSelect('Assembly', 'assembly_id', assembliesList, 'name', true)}
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -329,7 +337,6 @@ export default function CandidateModal({
                         </Stack>
                     </Grid>
 
-                    {renderTextField('Votes', 'votes', 'number')}
                     {renderTextField('Criminal Cases', 'criminal_cases', 'number')}
                     {renderTextField('Assets', 'assets')}
                     {renderTextField('Liabilities', 'liabilities')}

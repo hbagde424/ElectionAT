@@ -20,6 +20,16 @@ const partySchema = new mongoose.Schema({
   founded_year: {
     type: Number
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -30,8 +40,12 @@ const partySchema = new mongoose.Schema({
   }
 });
 
+// Update timestamp and updated_by before saving
 partySchema.pre('save', function(next) {
   this.updated_at = Date.now();
+  if (this.isModified()) {
+    this.updated_by = this._locals?.user?.id;
+  }
   next();
 });
 

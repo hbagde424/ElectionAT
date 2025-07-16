@@ -22,6 +22,16 @@ const candidateSchema = new mongoose.Schema({
     ref: 'Parliament',
     required: [true, 'Parliament reference is required']
   },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required']
+  },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: [true, 'Division reference is required']
+  },
   election_year: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ElectionYear',
@@ -33,11 +43,6 @@ const candidateSchema = new mongoose.Schema({
     trim: true,
     enum: ['General', 'OBC', 'SC', 'ST', 'Other'],
     default: 'General'
-  },
-  votes: {
-    type: Number,
-    default: 0,
-    min: [0, 'Votes cannot be negative']
   },
   criminal_cases: {
     type: Number,

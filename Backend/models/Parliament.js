@@ -17,11 +17,6 @@ const parliamentSchema = new mongoose.Schema({
     ref: 'State',
     required: [true, 'State reference is required']
   },
-  assembly_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Assembly',
-    required: false
-  },
   category: {
     type: String,
     required: [true, 'Category is required'],
@@ -43,6 +38,11 @@ const parliamentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -56,11 +56,18 @@ const parliamentSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Update timestamp before saving
-parliamentSchema.pre('save', function(next) {
+// Update timestamp and updated_by before saving
+parliamentSchema.pre('save', function (next) {
   this.updated_at = Date.now();
+
+  // Set updated_by only if document is NOT new (i.e., it's an update)
+  if (!this.isNew && this.isModified()) {
+    this.updated_by = this._locals.user?.id;
+  }
+
   next();
 });
+
 
 // Indexes for better performance
 parliamentSchema.index({ name: 1 });

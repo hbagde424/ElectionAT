@@ -16,23 +16,24 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 
-import DistrictModal from './DistrictModal';
-import AlertDistrictDelete from './AlertDistrictDelete';
-import DistrictView from './DistritView';
+import GenderModal from './genderModal';
+import AlertGenderDelete from './AlertGenderDelete';
+import GenderView from './GenderView';
 
-export default function DistrictListPage() {
+export default function GenderListPage() {
     const theme = useTheme();
 
-    const [selectedDistrict, setSelectedDistrict] = useState(null);
+    const [selectedGender, setSelectedGender] = useState(null);
     const [openModal, setOpenModal] = useState(false);
     const [openDelete, setOpenDelete] = useState(false);
-    const [districtDeleteId, setDistrictDeleteId] = useState('');
-    const [districts, setDistricts] = useState([]);
+    const [genderDeleteId, setGenderDeleteId] = useState('');
+    const [genderList, setGenderList] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
-    const [users, setUsers] = useState([]);
+    const [blocks, setBlocks] = useState([]);
+    const [booths, setBooths] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -40,66 +41,60 @@ export default function DistrictListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes] = await Promise.all([
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies')
+                fetch('http://localhost:5000/api/assemblies'),
+                fetch('http://localhost:5000/api/blocks'),
+                fetch('http://localhost:5000/api/booths')
             ]);
 
-            const token = localStorage.getItem('serviceToken');
-            const [usersRes] = await Promise.all([
-                fetch('http://localhost:5000/api/users', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
-            ]);
-
-            const usersData = await usersRes.json();
-            if (usersData.success) setUsers(usersData.data);
-
-            const [statesData, divisionsData, parliamentsData, assembliesData] = await Promise.all([
+            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
-                assembliesRes.json()
+                assembliesRes.json(),
+                blocksRes.json(),
+                boothsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (parliamentsData.success) setParliaments(parliamentsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
+            if (blocksData.success) setBlocks(blocksData.data);
+            if (boothsData.success) setBooths(boothsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
     };
 
-    const fetchDistricts = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchGenderList = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/districts?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`http://localhost:5000/api/genders?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
-                setDistricts(json.data);
+                setGenderList(json.data);
                 setPageCount(json.pages);
             }
         } catch (error) {
-            console.error('Failed to fetch districts:', error);
+            console.error('Failed to fetch gender list:', error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchDistricts(pagination.pageIndex, pagination.pageSize, globalFilter);
+        fetchGenderList(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     const handleDeleteOpen = (id) => {
-        setDistrictDeleteId(id);
+        setGenderDeleteId(id);
         setOpenDelete(true);
     };
 
@@ -121,22 +116,34 @@ export default function DistrictListPage() {
             cell: ({ row }) => <Typography>{row.index + 1}</Typography>
         },
         {
-            header: 'Name',
-            accessorKey: 'name',
+            header: 'Male Count',
+            accessorKey: 'male',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 200,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
+                <Typography fontWeight="medium">
                     {getValue()}
                 </Typography>
             )
         },
         {
+            header: 'Female Count',
+            accessorKey: 'female',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Total',
+            cell: ({ row }) => (
+                <Typography fontWeight="bold">
+                    {row.original.male + row.original.female}
+                </Typography>
+            )
+        },
+        {
             header: 'State',
-            accessorKey: 'state_id',
+            accessorKey: 'state',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -148,7 +155,7 @@ export default function DistrictListPage() {
         },
         {
             header: 'Division',
-            accessorKey: 'division_id',
+            accessorKey: 'division',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -160,7 +167,7 @@ export default function DistrictListPage() {
         },
         {
             header: 'Parliament',
-            accessorKey: 'parliament_id',
+            accessorKey: 'parliament',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -172,7 +179,7 @@ export default function DistrictListPage() {
         },
         {
             header: 'Assembly',
-            accessorKey: 'assembly_id',
+            accessorKey: 'assembly',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -182,17 +189,30 @@ export default function DistrictListPage() {
                 />
             )
         },
-        // {
-        //     header: 'Status',
-        //     accessorKey: 'is_active',
-        //     cell: ({ getValue }) => (
-        //         <Chip
-        //             label={getValue() ? 'Active' : 'Inactive'}
-        //             color={getValue() ? 'success' : 'error'}
-        //             size="small"
-        //         />
-        //     )
-        // },
+        {
+            header: 'Block',
+            accessorKey: 'block',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="success"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Booth',
+            accessorKey: 'booth',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -202,7 +222,7 @@ export default function DistrictListPage() {
                 </Typography>
             )
         },
-        {
+         {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
@@ -216,8 +236,8 @@ export default function DistrictListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
-            header: 'Updated At',
+        {
+            header: 'updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
@@ -232,7 +252,7 @@ export default function DistrictListPage() {
                         <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
                             {expandIcon}
                         </IconButton>
-                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedDistrict(row.original); setOpenModal(true); }}>
+                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedGender(row.original); setOpenModal(true); }}>
                             <Edit />
                         </IconButton>
                         <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
@@ -245,7 +265,7 @@ export default function DistrictListPage() {
     ], [theme]);
 
     const table = useReactTable({
-        data: districts,
+        data: genderList,
         columns,
         state: { pagination, globalFilter },
         pageCount,
@@ -259,15 +279,15 @@ export default function DistrictListPage() {
         getRowCanExpand: () => true
     });
 
-    const fetchAllDistrictsForCsv = async () => {
+    const fetchAllGendersForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/districts?all=true');
+            const res = await fetch('http://localhost:5000/api/genders?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;
             }
         } catch (error) {
-            console.error('Failed to fetch all districts for CSV:', error);
+            console.error('Failed to fetch all genders for CSV:', error);
         }
         return [];
     };
@@ -278,17 +298,19 @@ export default function DistrictListPage() {
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
-        const allData = await fetchAllDistrictsForCsv();
+        const allData = await fetchAllGendersForCsv();
         setCsvData(allData.map(item => ({
-            Name: item.name,
-            State: item.state_id?.name || '',
-            Division: item.division_id?.name || '',
-            Parliament: item.parliament_id?.name || '',
-            Assembly: item.assembly_id?.name || '',
-            // Status: item.is_active ? 'Active' : 'Inactive',
+            'Male Count': item.male,
+            'Female Count': item.female,
+            'Total': item.male + item.female,
+            'State': item.state?.name || '',
+            'Division': item.division?.name || '',
+            'Parliament': item.parliament?.name || '',
+            'Assembly': item.assembly?.name || '',
+            'Block': item.block?.name || '',
+            'Booth': item.booth?.name || '',
             'Created By': item.created_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
+            'Created At': item.created_at
         })));
         setCsvLoading(false);
         setTimeout(() => {
@@ -307,20 +329,20 @@ export default function DistrictListPage() {
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${districts.length} districts...`}
+                        placeholder={`Search ${genderList.length} gender entries...`}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink
                             data={csvData}
-                            filename="districts_all.csv"
+                            filename="gender_list_all.csv"
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedDistrict(null); setOpenModal(true); }}>
-                            Add District
+                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedGender(null); setOpenModal(true); }}>
+                            Add Gender Entry
                         </Button>
                     </Stack>
                 </Stack>
@@ -359,7 +381,7 @@ export default function DistrictListPage() {
                                         {row.getIsExpanded() && (
                                             <TableRow>
                                                 <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <DistrictView data={row.original} />
+                                                    <GenderView data={row.original} />
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -380,23 +402,24 @@ export default function DistrictListPage() {
                 </ScrollX>
             </MainCard>
 
-            <DistrictModal
+            <GenderModal
                 open={openModal}
                 modalToggler={setOpenModal}
-                district={selectedDistrict}
+                genderEntry={selectedGender}
                 states={states}
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                users={users}
-                refresh={() => fetchDistricts(pagination.pageIndex, pagination.pageSize)}
+                blocks={blocks}
+                booths={booths}
+                refresh={() => fetchGenderList(pagination.pageIndex, pagination.pageSize)}
             />
 
-            <AlertDistrictDelete
-                id={districtDeleteId}
+            <AlertGenderDelete
+                id={genderDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchDistricts(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => fetchGenderList(pagination.pageIndex, pagination.pageSize)}
             />
         </>
     );

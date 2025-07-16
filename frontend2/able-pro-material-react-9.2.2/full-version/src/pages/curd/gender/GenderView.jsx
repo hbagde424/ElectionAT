@@ -1,7 +1,7 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
-import { CalendarTick, User, Location } from 'iconsax-react';
+import { CalendarTick, User, Profile, People } from 'iconsax-react';
 
-export default function EventView({ data }) {
+export default function GenderView({ data }) {
     if (!data) return null;
 
     const formatDate = (dateString) => {
@@ -16,38 +16,17 @@ export default function EventView({ data }) {
         });
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'done': return 'success';
-            case 'incomplete': return 'warning';
-            case 'cancelled': return 'error';
-            case 'postponed': return 'info';
-            default: return 'default';
-        }
-    };
-
-    const getTypeColor = (type) => {
-        switch (type) {
-            case 'campaign': return 'primary';
-            case 'activity': return 'secondary';
-            default: return 'default';
-        }
-    };
+    const totalCount = data.male + data.female;
 
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                <Typography variant="h6">{data.name || 'Untitled Event'}</Typography>
+                <Typography variant="h6">Gender Distribution</Typography>
                 <Chip
-                    label={data.type?.toUpperCase() || 'N/A'}
+                    label={`Total: ${totalCount}`}
                     size="small"
-                    color={getTypeColor(data.type)}
                     variant="outlined"
-                />
-                <Chip
-                    label={data.status?.toUpperCase() || 'N/A'}
-                    color={getStatusColor(data.status)}
-                    size="small"
+                    color="primary"
                 />
             </Stack>
 
@@ -57,38 +36,51 @@ export default function EventView({ data }) {
                 {/* Left Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Stack spacing={2}>
-                        {data.description && (
-                            <Box>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                    Description
-                                </Typography>
-                                <Typography variant="body1" paragraph>
-                                    {data.description}
-                                </Typography>
-                            </Box>
-                        )}
-
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <Location size="16" />
+                                <People size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
-                                    Location
+                                    Male Count
                                 </Typography>
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
-                                {data.location || 'N/A'}
+                                {data.male || '0'}
                             </Typography>
                         </Box>
 
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <CalendarTick size="16" />
+                                <People size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
-                                    Event Dates
+                                    Female Count
                                 </Typography>
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
-                                {formatDate(data.start_date)} to {formatDate(data.end_date)}
+                                {data.female || '0'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Male Percentage
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {totalCount > 0 ? ((data.male / totalCount) * 100).toFixed(2) + '%' : '0%'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Female Percentage
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {totalCount > 0 ? ((data.female / totalCount) * 100).toFixed(2) + '%' : '0%'}
                             </Typography>
                         </Box>
                     </Stack>
@@ -108,7 +100,8 @@ export default function EventView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
@@ -132,20 +125,6 @@ export default function EventView({ data }) {
                             </Typography>
                         </Box>
 
-                        {data.updated_by && (
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <User size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {data.updated_by?.username || 'N/A'}
-                                </Typography>
-                            </Box>
-                        )}
-
                         {data.updated_at && (
                             <Box>
                                 <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -161,36 +140,34 @@ export default function EventView({ data }) {
                         )}
                     </Stack>
                 </Grid>
+            </Grid>
 
-                {/* Location Hierarchy */}
-                <Grid item xs={12}>
-                    <Divider sx={{ my: 2 }} />
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
-                            <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
-                            <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
-                            <Chip label={data.parliament_id?.name || 'N/A'} color="secondary" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
-                            <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
-                            <Chip label={data.block_id?.name || 'N/A'} color="success" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
-                            <Chip label={data.booth_id?.name || 'N/A'} color="error" size="small" />
-                        </Grid>
-                    </Grid>
+            <Divider sx={{ my: 2 }} />
+
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                    <Chip label={data.state?.name || 'N/A'} color="primary" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                    <Chip label={data.division?.name || 'N/A'} color="warning" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                    <Chip label={data.parliament?.name || 'N/A'} color="secondary" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                    <Chip label={data.assembly?.name || 'N/A'} color="info" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
+                    <Chip label={data.block?.name || 'N/A'} color="success" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                    <Chip label={data.booth?.name || 'N/A'} color="error" size="small" />
                 </Grid>
             </Grid>
         </Box>

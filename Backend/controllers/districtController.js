@@ -21,6 +21,8 @@ exports.getDistricts = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('division_id', 'name')
       .populate('created_by', 'username')
+      // In getDistricts and getDistrict methods, update the populate calls:
+      .populate('updated_by', 'username')
       .sort({ name: 1 });
 
     // Search functionality
@@ -74,7 +76,9 @@ exports.getDistrict = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
       .populate('division_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+
 
     if (!district) {
       return res.status(404).json({
@@ -147,7 +151,8 @@ exports.createDistrict = async (req, res, next) => {
 
     const districtData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+      updated_by: req.user.id
     };
 
     const district = await District.create(districtData);
@@ -219,6 +224,11 @@ exports.updateDistrict = async (req, res, next) => {
       }
     }
 
+    req.body.updated_by = req.user.id;
+
+    // Set user in locals for pre-save hook
+    district._locals = { user: req.user };
+
     district = await District.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
@@ -226,7 +236,9 @@ exports.updateDistrict = async (req, res, next) => {
       .populate('state_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('division_id', 'name');
+      .populate('division_id', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username'); // Add population of updated_by
 
     res.status(200).json({
       success: true,
@@ -279,7 +291,9 @@ exports.getDistrictsByState = async (req, res, next) => {
     const districts = await District.find({ state_id: req.params.stateId })
       .sort({ name: 1 })
       .populate('division_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+
 
     res.status(200).json({
       success: true,
@@ -308,7 +322,9 @@ exports.getDistrictsByDivision = async (req, res, next) => {
     const districts = await District.find({ division_id: req.params.divisionId })
       .sort({ name: 1 })
       .populate('state_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+
 
     res.status(200).json({
       success: true,

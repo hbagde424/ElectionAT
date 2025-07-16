@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   getStates,
-  getStateById,
+  getState,
   createState,
   updateState,
   deleteState
@@ -38,7 +38,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search by state name
+ *         description: Search term for state names
  *     responses:
  *       200:
  *         description: List of states
@@ -86,7 +86,7 @@ router.get('/', getStates);
  *       404:
  *         description: State not found
  */
-router.get('/:id', getStateById);
+router.get('/:id', getState);
 
 /**
  * @swagger
@@ -110,7 +110,6 @@ router.get('/:id', getStateById);
  *       401:
  *         description: Not authorized
  */
-// router.post('/', createState);
 router.post('/', protect, authorize('superAdmin'), createState);
 
 /**
@@ -177,11 +176,20 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteState);
  *       type: object
  *       required:
  *         - name
+ *         - created_by
  *       properties:
  *         name:
  *           type: string
- *           description: Name of the state
+ *           description: State name
  *           example: "California"
+ *         created_by:
+ *           type: string
+ *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string
  *           format: date-time

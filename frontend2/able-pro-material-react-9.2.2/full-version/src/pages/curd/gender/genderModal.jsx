@@ -1,16 +1,15 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Switch, FormControlLabel, Chip, Box, Typography, Autocomplete
+    Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
-import { DatePicker } from '@mui/x-date-pickers';
 import JWTContext from 'contexts/JWTContext';
 
-export default function WorkStatusModal({
+export default function GenderModal({
     open,
     modalToggler,
-    workStatus,
+    genderEntry,
     states,
     divisions,
     parliaments,
@@ -23,82 +22,48 @@ export default function WorkStatusModal({
     const { user } = contextValue || {};
 
     const [formData, setFormData] = useState({
-        work_name: '',
-        department: '',
-        status: 'Pending',
-        approved_fund_from: '',
-        total_budget: '',
-        spent_amount: '',
-        falia: '',
-        description: '',
-        start_date: null,
-        expected_end_date: null,
-        actual_end_date: null,
+        male: 0,
+        female: 0,
         state_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
         block_id: '',
-        booth_id: '',
-        documents: []
+        booth_id: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
-    // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
-    const statusOptions = ['Pending', 'In Progress', 'Completed', 'Halted', 'Cancelled'];
-    const fundSourceOptions = ['vidhayak nidhi', 'swechcha nidhi'];
-
     useEffect(() => {
-        if (workStatus) {
+        if (genderEntry) {
             setFormData({
-                work_name: workStatus.work_name || '',
-                department: workStatus.department || '',
-                status: workStatus.status || 'Pending',
-                approved_fund_from: workStatus.approved_fund_from || '',
-                total_budget: workStatus.total_budget || '',
-                spent_amount: workStatus.spent_amount || '',
-                falia: workStatus.falia || '',
-                description: workStatus.description || '',
-                start_date: workStatus.start_date ? new Date(workStatus.start_date) : null,
-                expected_end_date: workStatus.expected_end_date ? new Date(workStatus.expected_end_date) : null,
-                actual_end_date: workStatus.actual_end_date ? new Date(workStatus.actual_end_date) : null,
-                state_id: workStatus.state_id?._id?.toString() || workStatus.state_id?.toString() || '',
-                division_id: workStatus.division_id?._id?.toString() || workStatus.division_id?.toString() || '',
-                parliament_id: workStatus.parliament_id?._id?.toString() || workStatus.parliament_id?.toString() || '',
-                assembly_id: workStatus.assembly_id?._id?.toString() || workStatus.assembly_id?.toString() || '',
-                block_id: workStatus.block_id?._id?.toString() || workStatus.block_id?.toString() || '',
-                booth_id: workStatus.booth_id?._id?.toString() || workStatus.booth_id?.toString() || '',
-                documents: workStatus.documents || []
+                male: genderEntry.male || 0,
+                female: genderEntry.female || 0,
+                state_id: genderEntry.state_id?._id?.toString() || genderEntry.state_id?.toString() || '',
+                division_id: genderEntry.division_id?._id?.toString() || genderEntry.division_id?.toString() || '',
+                parliament_id: genderEntry.parliament_id?._id?.toString() || genderEntry.parliament_id?.toString() || '',
+                assembly_id: genderEntry.assembly_id?._id?.toString() || genderEntry.assembly_id?.toString() || '',
+                block_id: genderEntry.block_id?._id?.toString() || genderEntry.block_id?.toString() || '',
+                booth_id: genderEntry.booth_id?._id?.toString() || genderEntry.booth_id?.toString() || ''
             });
         } else {
             setFormData({
-                work_name: '',
-                department: '',
-                status: 'Pending',
-                approved_fund_from: '',
-                total_budget: '',
-                spent_amount: '',
-                falia: '',
-                description: '',
-                start_date: null,
-                expected_end_date: null,
-                actual_end_date: null,
+                male: 0,
+                female: 0,
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
                 block_id: '',
-                booth_id: '',
-                documents: []
+                booth_id: ''
             });
         }
-    }, [workStatus]);
+    }, [genderEntry]);
 
     // State -> Division
     useEffect(() => {
@@ -190,7 +155,7 @@ export default function WorkStatusModal({
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Assembly -> Blocks
+    // Assembly -> Block
     useEffect(() => {
         if (formData.assembly_id) {
             const filtered = blocks?.filter(block => {
@@ -200,15 +165,23 @@ export default function WorkStatusModal({
             setFilteredBlocks(filtered);
 
             if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
-                setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
+                setFormData(prev => ({
+                    ...prev,
+                    block_id: '',
+                    booth_id: ''
+                }));
             }
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
+            setFormData(prev => ({
+                ...prev,
+                block_id: '',
+                booth_id: ''
+            }));
         }
     }, [formData.assembly_id, blocks]);
 
-    // Block -> Booths
+    // Block -> Booth
     useEffect(() => {
         if (formData.block_id) {
             const filtered = booths?.filter(booth => {
@@ -218,70 +191,53 @@ export default function WorkStatusModal({
             setFilteredBooths(filtered);
 
             if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
-                setFormData(prev => ({ ...prev, booth_id: '' }));
+                setFormData(prev => ({
+                    ...prev,
+                    booth_id: ''
+                }));
             }
         } else {
             setFilteredBooths([]);
-            setFormData(prev => ({ ...prev, booth_id: '' }));
+            setFormData(prev => ({
+                ...prev,
+                booth_id: ''
+            }));
         }
     }, [formData.block_id, booths]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             [name]: value
         }));
     };
 
-    const handleDateChange = (name, date) => {
-        setFormData(prev => ({
+    const handleNumberChange = (e) => {
+        const { name, value } = e.target;
+        const numValue = parseInt(value) || 0;
+        setFormData((prev) => ({
             ...prev,
-            [name]: date
+            [name]: numValue < 0 ? 0 : numValue
         }));
     };
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        
         // Validation
-        const requiredFields = [
-            'work_name', 'department', 'status', 'approved_fund_from',
-            'total_budget', 'start_date', 'expected_end_date',
-            'state_id', 'division_id', 'parliament_id',
-            'assembly_id', 'block_id', 'booth_id'
-        ];
-        
+        const requiredFields = ['male', 'female', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
         for (const field of requiredFields) {
-            if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
+            if (!formData[field] && formData[field] !== 0) {
                 return;
             }
         }
 
-        // Validate dates
-        if (formData.expected_end_date < formData.start_date) {
-            alert('Expected end date must be after start date');
-            return;
-        }
-
-        if (formData.actual_end_date && formData.actual_end_date < formData.start_date) {
-            alert('Actual end date must be after start date');
-            return;
-        }
-
-        // Validate budget
-        if (parseFloat(formData.spent_amount) > parseFloat(formData.total_budget)) {
-            alert('Spent amount cannot exceed total budget');
-            return;
-        }
-
-        const method = workStatus ? 'PUT' : 'POST';
+        const method = genderEntry ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
-        const url = workStatus
-            ? `http://localhost:5000/api/work-status/${workStatus._id}`
-            : 'http://localhost:5000/api/work-status';
+        const url = genderEntry
+            ? `http://localhost:5000/api/genders/${genderEntry._id}`
+            : 'http://localhost:5000/api/genders';
 
-        // Get user ID from context or localStorage
         let userId = user?._id || user?.id;
         if (!userId) {
             try {
@@ -292,15 +248,10 @@ export default function WorkStatusModal({
             }
         }
 
-        const userTracking = workStatus ? { updated_by: userId } : { created_by: userId };
+        const userTracking = genderEntry ? { updated_by: userId } : { created_by: userId };
         const submitData = {
             ...formData,
-            ...userTracking,
-            total_budget: parseFloat(formData.total_budget),
-            spent_amount: parseFloat(formData.spent_amount || 0),
-            start_date: formData.start_date.toISOString(),
-            expected_end_date: formData.expected_end_date.toISOString(),
-            actual_end_date: formData.actual_end_date ? formData.actual_end_date.toISOString() : null
+            ...userTracking
         };
 
         try {
@@ -318,212 +269,56 @@ export default function WorkStatusModal({
                 refresh();
             } else {
                 const errorData = await res.json();
-                console.error('Failed to submit work status:', errorData);
-                alert('Failed to save work status. Please check the form data.');
+                console.error('Failed to submit gender entry:', errorData);
+                alert('Failed to save gender entry. Please check the form data.');
             }
         } catch (error) {
-            console.error('Error submitting work status:', error);
-            alert('An error occurred while saving the work status.');
+            console.error('Error submitting gender entry:', error);
+            alert('An error occurred while saving the gender entry.');
         }
     };
 
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-            <DialogTitle>{workStatus ? 'Edit Work Status' : 'Add Work Status'}</DialogTitle>
+            <DialogTitle>{genderEntry ? 'Edit Gender Entry' : 'Add Gender Entry'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {/* Row 1: Work Name and Department */}
+                    {/* Row 1: Male and Female Count */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Work Name</InputLabel>
+                            <InputLabel required>Male Count</InputLabel>
                             <TextField
-                                name="work_name"
-                                value={formData.work_name}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.work_name}
-                                helperText={submitted && !formData.work_name ? 'Work name is required' : ''}
-                                placeholder="Enter work name"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Department</InputLabel>
-                            <TextField
-                                name="department"
-                                value={formData.department}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.department}
-                                helperText={submitted && !formData.department ? 'Department is required' : ''}
-                                placeholder="Enter department name"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 2: Status and Approved Fund From */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Status</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.status}>
-                                <Select
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    {statusOptions.map((option) => (
-                                        <MenuItem key={option} value={option}>
-                                            {option}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Approved Fund From</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.approved_fund_from}>
-                                <Select
-                                    name="approved_fund_from"
-                                    value={formData.approved_fund_from}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <MenuItem value="">Select Fund Source</MenuItem>
-                                    {fundSourceOptions.map((option) => (
-                                        <MenuItem key={option} value={option}>
-                                            {option}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 3: Budget and Spent Amount */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Total Budget</InputLabel>
-                            <TextField
-                                name="total_budget"
-                                value={formData.total_budget}
-                                onChange={handleChange}
-                                fullWidth
-                                required
+                                name="male"
                                 type="number"
-                                error={submitted && !formData.total_budget}
-                                helperText={submitted && !formData.total_budget ? 'Total budget is required' : ''}
-                                placeholder="Enter total budget amount"
+                                value={formData.male}
+                                onChange={handleNumberChange}
+                                fullWidth
+                                required
+                                error={submitted && formData.male === undefined}
+                                helperText={submitted && formData.male === undefined ? 'Male count is required' : ''}
+                                inputProps={{ min: 0 }}
                             />
                         </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel>Spent Amount</InputLabel>
+                            <InputLabel required>Female Count</InputLabel>
                             <TextField
-                                name="spent_amount"
-                                value={formData.spent_amount}
-                                onChange={handleChange}
-                                fullWidth
+                                name="female"
                                 type="number"
-                                placeholder="Enter spent amount"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 4: Falia and Description */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Falia</InputLabel>
-                            <TextField
-                                name="falia"
-                                value={formData.falia}
-                                onChange={handleChange}
+                                value={formData.female}
+                                onChange={handleNumberChange}
                                 fullWidth
-                                placeholder="Enter falia name"
+                                required
+                                error={submitted && formData.female === undefined}
+                                helperText={submitted && formData.female === undefined ? 'Female count is required' : ''}
+                                inputProps={{ min: 0 }}
                             />
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
-                            <TextField
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                fullWidth
-                                placeholder="Enter description"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 5: Dates */}
-                    <Grid item xs={12} sm={4}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Start Date</InputLabel>
-                            <DatePicker
-                                value={formData.start_date}
-                                onChange={(date) => handleDateChange('start_date', date)}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        fullWidth
-                                        required
-                                        error={submitted && !formData.start_date}
-                                        helperText={submitted && !formData.start_date ? 'Start date is required' : ''}
-                                    />
-                                )}
-                            />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={4}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Expected End Date</InputLabel>
-                            <DatePicker
-                                value={formData.expected_end_date}
-                                onChange={(date) => handleDateChange('expected_end_date', date)}
-                                minDate={formData.start_date}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        fullWidth
-                                        required
-                                        error={submitted && !formData.expected_end_date}
-                                        helperText={submitted && !formData.expected_end_date ? 'Expected end date is required' : ''}
-                                    />
-                                )}
-                            />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={4}>
-                        <Stack spacing={1}>
-                            <InputLabel>Actual End Date</InputLabel>
-                            <DatePicker
-                                value={formData.actual_end_date}
-                                onChange={(date) => handleDateChange('actual_end_date', date)}
-                                minDate={formData.start_date}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        fullWidth
-                                    />
-                                )}
-                            />
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 6: State and Division */}
+                    {/* Row 2: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>State</InputLabel>
@@ -573,7 +368,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 7: Parliament and Assembly */}
+                    {/* Row 3: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Parliament</InputLabel>
@@ -624,7 +419,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 8: Block and Booth */}
+                    {/* Row 4: Block and Booth */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Block</InputLabel>
@@ -664,7 +459,7 @@ export default function WorkStatusModal({
                                     <MenuItem value="">Select Booth</MenuItem>
                                     {filteredBooths.map((booth) => (
                                         <MenuItem key={booth._id} value={booth._id}>
-                                            {booth.name} (Booth #{booth.booth_number})
+                                            {booth.name}
                                         </MenuItem>
                                     ))}
                                 </Select>
@@ -679,7 +474,7 @@ export default function WorkStatusModal({
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
                 <Button variant="contained" onClick={handleSubmit}>
-                    {workStatus ? 'Update' : 'Submit'}
+                    {genderEntry ? 'Update' : 'Submit'}
                 </Button>
             </DialogActions>
         </Dialog>

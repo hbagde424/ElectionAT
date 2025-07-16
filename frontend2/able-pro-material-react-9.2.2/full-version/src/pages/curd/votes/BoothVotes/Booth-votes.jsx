@@ -249,6 +249,11 @@ export default function BoothVotesListPage() {
       accessorKey: 'created_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
     },
+{
+      header: 'Updated At',
+      accessorKey: 'updated_at',
+      cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
+    },
     {
       header: 'Actions',
       meta: { className: 'cell-center' },

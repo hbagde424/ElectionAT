@@ -21,6 +21,8 @@ exports.getAssemblies = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('created_by', 'username')
+      .populate('updated_by', 'username')// Add population of updated_by
+
       .sort({ name: 1 });
 
     // Search functionality
@@ -84,7 +86,9 @@ exports.getAssembly = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username'); // Add population of updated_by
+
 
     if (!assembly) {
       return res.status(404).json({
@@ -153,7 +157,8 @@ exports.createAssembly = async (req, res, next) => {
 
     const assemblyData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+      updated_by: req.user.id
     };
 
     const assembly = await Assembly.create(assemblyData);
@@ -186,7 +191,6 @@ exports.updateAssembly = async (req, res, next) => {
         message: 'Assembly not found'
       });
     }
-
     // Verify state exists if being updated
     if (req.body.state_id) {
       const state = await State.findById(req.body.state_id);
@@ -231,6 +235,12 @@ exports.updateAssembly = async (req, res, next) => {
       }
     }
 
+     // Set updated_by from authenticated user
+    req.body.updated_by = req.user.id;
+
+    // Set user in locals for pre-save hook
+    assembly._locals = { user: req.user };
+
     assembly = await Assembly.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
@@ -238,7 +248,9 @@ exports.updateAssembly = async (req, res, next) => {
       .populate('state_id', 'name')
       .populate('district_id', 'name')
       .populate('division_id', 'name')
-      .populate('parliament_id', 'name');
+      .populate('parliament_id', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username'); // Add population of updated_by
 
     res.status(200).json({
       success: true,
@@ -298,7 +310,9 @@ exports.getAssembliesByParliament = async (req, res, next) => {
       .sort({ name: 1 })
       .populate('state_id', 'name')
       .populate('district_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username'); // Add population of updated_by
+
 
     res.status(200).json({
       success: true,
@@ -328,7 +342,9 @@ exports.getAssembliesByDivision = async (req, res, next) => {
       .sort({ name: 1 })
       .populate('state_id', 'name')
       .populate('district_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username'); // Add population of updated_by
+
 
     res.status(200).json({
       success: true,

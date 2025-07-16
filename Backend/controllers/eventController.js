@@ -1,5 +1,5 @@
 const Event = require('../models/Event');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');
@@ -22,6 +22,7 @@ exports.getEvents = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
+      .populate('state_id', 'name')
       .populate('booth_id', 'booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')

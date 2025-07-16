@@ -6,7 +6,7 @@ const {
   updateCandidate,
   deleteCandidate,
   getCandidatesByAssembly,
-  getCandidatesByParliament
+  getCandidatesByParty
 } = require('../controllers/candidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -57,7 +57,17 @@ const router = express.Router();
  *           type: string
  *         description: Parliament ID to filter by
  *       - in: query
- *         name: year
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID to filter by
+ *       - in: query
+ *         name: election_year
  *         schema:
  *           type: string
  *         description: Election year ID to filter by
@@ -66,11 +76,6 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Caste to filter by
- *       - in: query
- *         name: active
- *         schema:
- *           type: boolean
- *         description: Filter by active status
  *     responses:
  *       200:
  *         description: List of candidates
@@ -142,7 +147,7 @@ router.get('/:id', getCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin', 'superAdmin'), createCandidate);
+router.post('/', protect, authorize('superAdmin'), createCandidate);
 
 /**
  * @swagger
@@ -174,7 +179,7 @@ router.post('/', protect, authorize('superAdmin', 'superAdmin'), createCandidate
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'superAdmin'), updateCandidate);
+router.put('/:id', protect, authorize('superAdmin'), updateCandidate);
 
 /**
  * @swagger
@@ -235,19 +240,19 @@ router.get('/assembly/:assemblyId', getCandidatesByAssembly);
 
 /**
  * @swagger
- * /api/candidates/parliament/{parliamentId}:
+ * /api/candidates/party/{partyId}:
  *   get:
- *     summary: Get candidates by parliament
+ *     summary: Get candidates by party
  *     tags: [Candidates]
  *     parameters:
  *       - in: path
- *         name: parliamentId
+ *         name: partyId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: List of candidates for the parliament
+ *         description: List of candidates for the party
  *         content:
  *           application/json:
  *             schema:
@@ -262,9 +267,9 @@ router.get('/assembly/:assemblyId', getCandidatesByAssembly);
  *                   items:
  *                     $ref: '#/components/schemas/Candidate'
  *       404:
- *         description: Parliament not found
+ *         description: Party not found
  */
-router.get('/parliament/:parliamentId', getCandidatesByParliament);
+router.get('/party/:partyId', getCandidatesByParty);
 
 /**
  * @swagger
@@ -277,6 +282,8 @@ router.get('/parliament/:parliamentId', getCandidatesByParliament);
  *         - party_id
  *         - assembly_id
  *         - parliament_id
+ *         - state_id
+ *         - division_id
  *         - election_year
  *         - caste
  *         - created_by
@@ -297,43 +304,47 @@ router.get('/parliament/:parliamentId', getCandidatesByParliament);
  *           type: string
  *           description: Reference to Parliament
  *           example: "507f1f77bcf86cd799439013"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "507f1f77bcf86cd799439014"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "507f1f77bcf86cd799439015"
  *         election_year:
  *           type: string
  *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439014"
+ *           example: "507f1f77bcf86cd799439016"
  *         caste:
  *           type: string
  *           enum: [General, OBC, SC, ST, Other]
  *           description: Caste category
  *           example: "OBC"
- *         votes:
- *           type: number
- *           description: Number of votes received
- *           example: 15000
  *         criminal_cases:
  *           type: number
  *           description: Number of criminal cases
  *           example: 2
  *         assets:
  *           type: string
- *           description: Assets declaration
- *           example: "₹5 crore property, ₹2 crore investments"
+ *           description: Description of assets
+ *           example: "Rs. 5 crore property"
  *         liabilities:
  *           type: string
- *           description: Liabilities declaration
- *           example: "₹50 lakh loan"
+ *           description: Description of liabilities
+ *           example: "Rs. 50 lakh loan"
  *         education:
  *           type: string
- *           description: Educational qualification
- *           example: "MBA, Harvard University"
+ *           description: Education qualification
+ *           example: "MBA"
  *         photo:
  *           type: string
  *           description: URL to candidate photo
- *           example: "https://example.com/photos/john-doe.jpg"
+ *           example: "https://example.com/photo.jpg"
  *         is_active:
  *           type: boolean
- *           description: Active status
- *           default: true
+ *           description: Whether candidate is active
+ *           example: true
  *         created_by:
  *           type: string
  *           description: Reference to User who created

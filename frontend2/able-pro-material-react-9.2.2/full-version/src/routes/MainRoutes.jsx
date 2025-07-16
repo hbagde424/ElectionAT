@@ -135,7 +135,7 @@ const LocalDynamics = Loadable(lazy(() => import('pages/curd/local-dynamics/Loca
 const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
 const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateListPage')));
 const PartyActivitiesList = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesListPage')));
-const WinningPartiesList = Loadable(lazy(() => import('pages/curd/WinningPartiesList')));
+const WinningPartiesList = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesList')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
@@ -150,6 +150,7 @@ const ParliamentVotes = Loadable(lazy(() => import('pages/curd/votes/ParliamentV
 const Users = Loadable(lazy(() => import('pages/curd/user/user')));
 const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
+const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
 const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issue')));
 const Events = Loadable(lazy(() => import('pages/curd/events/events')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
@@ -634,6 +635,10 @@ const MainRoutes = {
         {
           path: 'Caste-List',
           element: <CastList />
+        },
+        {
+          path: 'Gender',
+          element: <Gender />
         },
         {
           path: 'Local-Issue',

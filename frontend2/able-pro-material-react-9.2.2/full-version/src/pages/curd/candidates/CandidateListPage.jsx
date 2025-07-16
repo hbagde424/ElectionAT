@@ -124,235 +124,247 @@ const CandidateListPage = () => {
     };
 
     const columns = useMemo(() => [
-        {
-            header: '#',
-            accessorKey: '_id',
-            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
-        },
-        {
-            header: 'Name',
-            accessorKey: 'name',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 150,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue()}
-                </Typography>
+    {
+        header: '#',
+        accessorKey: '_id',
+        cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+    },
+    {
+        header: 'Name',
+        accessorKey: 'name',
+        cell: ({ getValue }) => (
+            <Typography sx={{
+                maxWidth: 150,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+            }}>
+                {getValue()}
+            </Typography>
+        )
+    },
+    {
+        header: 'Photo',
+        accessorKey: 'photo',
+        cell: ({ getValue }) => (
+            getValue() ? (
+                <Avatar src={getValue()} alt="Candidate" sx={{ width: 40, height: 40 }} />
+            ) : (
+                <Avatar sx={{ width: 40, height: 40 }}>
+                    <User size={20} />
+                </Avatar>
             )
-        },
-        {
-            header: 'Photo',
-            accessorKey: 'photo',
-            cell: ({ getValue }) => (
-                getValue() ? (
-                    <Avatar src={getValue()} alt="Candidate" sx={{ width: 40, height: 40 }} />
-                ) : (
-                    <Avatar sx={{ width: 40, height: 40 }}>
-                        <User size={20} />
-                    </Avatar>
-                )
-            )
-        },
-        {
-            header: 'Party',
-            accessorKey: 'party_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Assembly',
-            accessorKey: 'assembly_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="info"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Parliament',
-            accessorKey: 'parliament_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="secondary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Election Year',
-            accessorKey: 'election_year',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue() ? `${getValue().year}` : 'N/A'}
-                    color="warning"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Caste',
-            accessorKey: 'caste',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue() || 'N/A'}
-                </Typography>
-            )
-        },
-        {
-            header: 'Votes',
-            accessorKey: 'votes',
-            cell: ({ getValue }) => (
-                <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                    {formatNumber(getValue())}
-                </Typography>
-            )
-        },
-        {
-            header: 'Criminal Cases',
-            accessorKey: 'criminal_cases',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue() || '0'}
-                    color={getValue() > 0 ? 'error' : 'success'}
-                    size="small"
-                />
-            )
-        },
-        {
-            header: 'Assets',
-            accessorKey: 'assets',
-            cell: ({ getValue }) => (
-                <Typography sx={{ fontWeight: 'medium' }}>
-                    ₹{formatNumber(getValue())}
-                </Typography>
-            )
-        },
-        {
-            header: 'Liabilities',
-            accessorKey: 'liabilities',
-            cell: ({ getValue }) => (
-                <Typography sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                    ₹{formatNumber(getValue())}
-                </Typography>
-            )
-        },
-        {
-            header: 'Education',
-            accessorKey: 'education',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue() || 'N/A'}
-                </Typography>
-            )
-        },
-        {
-            header: 'Status',
-            accessorKey: 'is_active',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue ? 'Active' : 'Inactive'}
-                    color={getValue ? 'success' : 'error'}
-                    size="small"
-                />
-            )
-        },
-        {
-            header: 'Created By',
-            accessorKey: 'created_by',
-            cell: ({ getValue }) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    <Avatar sx={{ width: 24, height: 24 }}>
-                        <User size={16} />
-                    </Avatar>
-                    <Typography>{getValue()?.username || 'Unknown'}</Typography>
+        )
+    },
+    {
+        header: 'Party',
+        accessorKey: 'party_id',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue()?.name || 'N/A'}
+                color="primary"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        header: 'Assembly',
+        accessorKey: 'assembly_id',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue()?.name || 'N/A'}
+                color="info"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        header: 'Parliament',
+        accessorKey: 'parliament_id',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue()?.name || 'N/A'}
+                color="secondary"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        header: 'State',
+        accessorKey: 'state_id',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue()?.name || 'N/A'}
+                color="success"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        header: 'Division',
+        accessorKey: 'division_id',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue()?.name || 'N/A'}
+                color="warning"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        header: 'Election Year',
+        accessorKey: 'election_year',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue() ? `${getValue().year}` : 'N/A'}
+                color="warning"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        header: 'Caste',
+        accessorKey: 'caste',
+        cell: ({ getValue }) => (
+            <Typography sx={{
+                maxWidth: 120,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+            }}>
+                {getValue() || 'N/A'}
+            </Typography>
+        )
+    },
+    {
+        header: 'Criminal Cases',
+        accessorKey: 'criminal_cases',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue() || '0'}
+                color={getValue() > 0 ? 'error' : 'success'}
+                size="small"
+            />
+        )
+    },
+    {
+        header: 'Assets',
+        accessorKey: 'assets',
+        cell: ({ getValue }) => (
+            <Typography sx={{ fontWeight: 'medium' }}>
+                ₹{formatNumber(getValue())}
+            </Typography>
+        )
+    },
+    {
+        header: 'Liabilities',
+        accessorKey: 'liabilities',
+        cell: ({ getValue }) => (
+            <Typography sx={{ fontWeight: 'medium', color: 'error.main' }}>
+                ₹{formatNumber(getValue())}
+            </Typography>
+        )
+    },
+    {
+        header: 'Education',
+        accessorKey: 'education',
+        cell: ({ getValue }) => (
+            <Typography sx={{
+                maxWidth: 120,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+            }}>
+                {getValue() || 'N/A'}
+            </Typography>
+        )
+    },
+    {
+        header: 'Status',
+        accessorKey: 'is_active',
+        cell: ({ getValue }) => (
+            <Chip
+                label={getValue ? 'Active' : 'Inactive'}
+                color={getValue ? 'success' : 'error'}
+                size="small"
+            />
+        )
+    },
+    {
+        header: 'Created By',
+        accessorKey: 'created_by',
+        cell: ({ getValue }) => (
+            <Stack direction="row" alignItems="center" spacing={1}>
+                <Avatar sx={{ width: 24, height: 24 }}>
+                    <User size={16} />
+                </Avatar>
+                <Typography>{getValue()?.username || 'Unknown'}</Typography>
+            </Stack>
+        )
+    },
+    {
+        header: 'Updated By',
+        accessorKey: 'updated_by',
+        cell: ({ getValue }) => (
+            <Typography>
+                {getValue()?.username || 'N/A'}
+            </Typography>
+        )
+    },
+    {
+        header: 'Created At',
+        accessorKey: 'created_at',
+        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+    },
+    {
+        header: 'Updated At',
+        accessorKey: 'updated_at',
+        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+    },
+    {
+        header: 'Actions',
+        meta: { className: 'cell-center' },
+        cell: ({ row }) => {
+            const isExpanded = row.getIsExpanded();
+            const expandIcon = isExpanded
+                ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
+                : <Eye />;
+            return (
+                <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                    <Tooltip title="View">
+                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
+                            {expandIcon}
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Edit">
+                        <IconButton color="primary" onClick={(e) => {
+                            e.stopPropagation();
+                            setEditData(row.original);
+                            setOpenModal(true);
+                        }}>
+                            <Edit />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                        <IconButton color="error" onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteAlert({ open: true, id: row.original._id });
+                        }}>
+                            <Trash />
+                        </IconButton>
+                    </Tooltip>
                 </Stack>
-            )
-        },
-        {
-            header: 'Updated By',
-            accessorKey: 'updated_by',
-            cell: ({ getValue }) => (
-                <Typography>
-                    {getValue()?.username || 'N/A'}
-                </Typography>
-            )
-        },
-        {
-            header: 'Created At',
-            accessorKey: 'created_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-        },
-        {
-            header: 'Updated At',
-            accessorKey: 'updated_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-        },
-        {
-            header: 'Actions',
-            meta: { className: 'cell-center' },
-            cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
-                return (
-                    <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <Tooltip title="View">
-                            <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                                {expandIcon}
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit">
-                            <IconButton
-                                color="primary"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditData(row.original);
-                                    setOpenModal(true);
-                                }}
-                            >
-                                <Edit />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                            <IconButton
-                                color="error"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteAlert({ open: true, id: row.original._id });
-                                }}
-                            >
-                                <Trash />
-                            </IconButton>
-                        </Tooltip>
-                    </Stack>
-                );
-            }
+            );
         }
-    ], [theme]);
+    }
+], [theme]);
+
 
     const table = useReactTable({
         data: candidates,
@@ -389,6 +401,7 @@ const CandidateListPage = () => {
         setCsvData(allData.map(item => ({
             Name: item.name,
             Party: item.party_id?.name || '',
+            State: item.state_id?.name || '',
             Assembly: item.assembly_id?.name || '',
             Parliament: item.parliament_id?.name || '',
             'Election Year': item.election_year ? `${item.election_year.year}` : '',
