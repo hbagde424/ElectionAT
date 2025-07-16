@@ -406,7 +406,6 @@ const CandidateListPage = () => {
             Parliament: item.parliament_id?.name || '',
             'Election Year': item.election_year ? `${item.election_year.year}` : '',
             Caste: item.caste || '',
-            Votes: item.votes || 0,
             'Criminal Cases': item.criminal_cases || 0,
             Assets: item.assets || 0,
             Liabilities: item.liabilities || 0,

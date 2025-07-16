@@ -41,13 +41,14 @@ export default function CandidateModal({
     const [imagePreview, setImagePreview] = useState('');
 
     // Use props instead of fetching data
-    const partiesList = parties || [];
-    const assembliesList = assemblies || [];
-    const electionYearsList = electionYears || [];
-    const parliamentsList = parliaments || [];
-    const statesList = states || [];
-    const divisionsList = divisions || [];
-
+    // With these more defensive checks:
+    const partiesList = Array.isArray(parties) ? parties : [];
+    const assembliesList = Array.isArray(assemblies) ? assemblies : [];
+    const electionYearsList = Array.isArray(electionYears) ? electionYears : [];
+    const parliamentsList = Array.isArray(parliaments) ? parliaments : [];
+    const statesList = Array.isArray(states) ? states : [];
+    const divisionsList = Array.isArray(divisions) ? divisions : [];
+    console.log('electionYears:', electionYears, 'electionYearsList:', electionYearsList);
     // Caste options
     const casteOptions = ['General', 'OBC', 'SC', 'ST', 'Other'];
 
