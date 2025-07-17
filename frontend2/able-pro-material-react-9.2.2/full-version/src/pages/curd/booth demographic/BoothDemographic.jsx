@@ -268,24 +268,24 @@ export default function BoothDemographicsListPage() {
                 />
             )
         },
-         {
-                    header: 'Created By',
-                    accessorKey: 'created_by',
-                    cell: ({ getValue }) => (
-                        <Typography>
-                            {getValue()?.username || 'N/A'}
-                        </Typography>
-                    )
-                },
-                {
-                    header: 'Updated By',
-                    accessorKey: 'updated_by',
-                    cell: ({ getValue }) => (
-                        <Typography>
-                            {getValue()?.username || 'N/A'}
-                        </Typography>
-                    )
-                },
+        {
+            header: 'Created By',
+            accessorKey: 'created_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Updated By',
+            accessorKey: 'updated_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
         {
             header: 'Created At',
             accessorKey: 'created_at',
@@ -472,7 +472,7 @@ export default function BoothDemographicsListPage() {
             <BoothDemographicsModal
                 open={openModal}
                 modalToggler={setOpenModal}
-                demographic={selectedDemographic}
+                demographics={selectedDemographic}
                 booths={booths}
                 states={states}
                 divisions={divisions}

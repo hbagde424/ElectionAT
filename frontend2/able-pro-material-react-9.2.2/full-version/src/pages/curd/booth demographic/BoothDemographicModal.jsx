@@ -578,7 +578,13 @@ export default function BoothDemographicsModal({
                             <Stack spacing={1}>
                                 <InputLabel>Booth</InputLabel>
                                 <TextField
-                                    value={booth?.name ? `${booth.name} (Booth #${booth.booth_number})` : demographics.booth_id?.name || ''}
+                                    value={
+                                        booth?.name
+                                            ? `${booth.name} (Booth #${booth.booth_number})`
+                                            : demographics?.booth_id?.name
+                                                ? `${demographics.booth_id.name} (Booth #${demographics.booth_id.booth_number})`
+                                                : ''
+                                    }
                                     fullWidth
                                     InputProps={{ readOnly: true }}
                                 />
