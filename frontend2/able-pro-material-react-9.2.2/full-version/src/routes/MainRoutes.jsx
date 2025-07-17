@@ -152,6 +152,8 @@ const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-su
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
 const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
+const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
+// const Influancer = Loadable(lazy(() => import('pages/curd/influancer/Influancer')));
 const BoothDemographic = Loadable(lazy(() => import('pages/curd/booth demographic/BoothDemographic')));
 const ElectionType = Loadable(lazy(() => import('pages/curd/Election-Type/ElectionType')));
 const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issue')));
@@ -656,6 +658,14 @@ const MainRoutes = {
           path: 'Election-Type',
           element: <ElectionType />
         },
+        {
+          path: 'Government-Schema',
+          element: <GovernmentSchema />
+        },
+        // {
+        //   path: 'Influancer',
+        //   element: <Influancer />
+        // },
         {
           path: 'Local-Issue',
           element: <LocalIssue />

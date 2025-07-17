@@ -198,6 +198,20 @@ const CRUDMenu = {
       icon: icons.Calendar,
     },
     {
+      id: 'Government-Schema',
+      title: <FormattedMessage id="Government-Schema" />,
+      type: 'item',
+      url: '/Government-Schema',
+      icon: icons.Calendar,
+    },
+    // {
+    //   id: 'Influancer',
+    //   title: <FormattedMessage id="Influancer" />,
+    //   type: 'item',
+    //   url: '/Influancer',
+    //   icon: icons.Calendar,
+    // },
+    {
       id: 'Local-Issue',
       title: <FormattedMessage id="Local-Issue" />,
       type: 'item',
