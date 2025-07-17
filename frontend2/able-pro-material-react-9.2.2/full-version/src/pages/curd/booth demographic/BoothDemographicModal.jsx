@@ -132,7 +132,7 @@ export default function BoothDemographicsModal({
 
         if (demographics) {
             setFormData({
-                booth_id: demographics.booth_id,
+                booth_id: demographics.booth_id?._id || demographics.booth_id || '',
                 state_id: demographics.state_id?._id || demographics.state_id || '',
                 division_id: demographics.division_id?._id || demographics.division_id || '',
                 parliament_id: demographics.parliament_id?._id || demographics.parliament_id || '',
