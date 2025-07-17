@@ -51,6 +51,11 @@ const boothSchema = new mongoose.Schema({
     ref: 'State',
     required: true
   },
+    updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // or 'Admin'
+    required: true
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // or 'Admin'
