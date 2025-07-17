@@ -176,6 +176,7 @@ exports.updateMe = async (req, res, next) => {
     if (req.body.password) {
       fieldsToUpdate.password = req.body.password;
     }
+    req.body.updated_at = new Date();
 
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
       new: true,
@@ -338,6 +339,7 @@ exports.updateUser = async (req, res, next) => {
       ...req.body,
       updated_by: req.user.id
     };
+    req.body.updated_at = new Date();
 
     const user = await User.findByIdAndUpdate(req.params.id, updateData, {
       new: true,

@@ -225,6 +225,7 @@ exports.updateLocalIssue = async (req, res, next) => {
     }
 
     req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
 
     localIssue = await LocalIssue.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

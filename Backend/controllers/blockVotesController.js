@@ -251,6 +251,7 @@ exports.updateBlockVote = async (req, res, next) => {
 
     // Add updated_by info
     req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
 
     vote = await BlockVotes.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

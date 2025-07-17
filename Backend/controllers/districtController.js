@@ -228,6 +228,7 @@ exports.updateDistrict = async (req, res, next) => {
 
     // Set user in locals for pre-save hook
     district._locals = { user: req.user };
+    req.body.updated_at = new Date();
 
     district = await District.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

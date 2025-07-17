@@ -3,7 +3,7 @@ const Booth = require('../models/booth');
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
-const Division = require('../models/Division');
+const Division = require('../models/division');
 const State = require('../models/state');
 
 // @desc    Get all visits
@@ -173,6 +173,7 @@ exports.updateVisit = async (req, res, next) => {
 
         // Set updated_by to current user
         req.body.updated_by = req.user.id;
+        req.body.updated_at = new Date();
 
         visit = await Visit.findByIdAndUpdate(req.params.id, req.body, {
             new: true,

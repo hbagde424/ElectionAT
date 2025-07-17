@@ -149,6 +149,7 @@ exports.updateActiveParty = async (req, res, next) => {
         message: 'Party cannot be changed'
       });
     }
+    req.body.updated_at = new Date();
 
     activeParty = await ActiveParty.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

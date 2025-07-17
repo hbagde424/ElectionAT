@@ -229,6 +229,7 @@ exports.updateCandidate = async (req, res, next) => {
     if (req.user?.id) {
       req.body.updated_by = req.user.id;
     }
+    req.body.updated_at = new Date();
 
     candidate = await populateCandidate(
       Candidate.findByIdAndUpdate(req.params.id, req.body, {

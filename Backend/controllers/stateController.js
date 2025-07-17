@@ -122,6 +122,9 @@ exports.updateState = async (req, res, next) => {
       updated_at: Date.now()
     };
 
+    req.body.updated_at = new Date();
+
+
     const updatedState = await State.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true

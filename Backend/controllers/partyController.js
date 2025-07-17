@@ -113,6 +113,7 @@ exports.updateParty = async (req, res, next) => {
 
     // Set updated_by from authenticated user
     req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
 
     // Set user in locals for pre-save hook
     party._locals = { user: req.user };

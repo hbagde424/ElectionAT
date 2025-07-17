@@ -204,6 +204,7 @@ exports.updatePotentialCandidate = async (req, res, next) => {
     }
 
     req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
 
     candidate = await PotentialCandidate.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

@@ -216,6 +216,7 @@ exports.updateBlock = async (req, res, next) => {
       ...req.body,
       updated_by: req.user.id
     };
+    req.body.updated_at = new Date();
 
     block = await Block.findByIdAndUpdate(req.params.id, updateData, {
       new: true,

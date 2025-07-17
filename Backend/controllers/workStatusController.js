@@ -308,6 +308,7 @@ exports.updateWorkStatus = async (req, res, next) => {
       ...req.body,
       updated_by: req.user.id
     };
+    req.body.updated_at = new Date();
 
     workStatus = await WorkStatus.findByIdAndUpdate(req.params.id, updateData, {
       new: true,

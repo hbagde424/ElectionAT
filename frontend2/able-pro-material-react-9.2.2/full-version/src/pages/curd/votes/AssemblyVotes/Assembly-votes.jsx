@@ -140,7 +140,7 @@ export default function AssemblyVotesListPage() {
       if (blocksJson.success) setBlocks(blocksJson.data);
       if (boothsJson.success) setBooths(boothsJson.data);
       if (candidatesJson.success) setCandidates(candidatesJson.data);
-      if (electionYearsJson) setElectionYears(electionYearsJson);
+      if (electionYearsJson?.success) setElectionYears(electionYearsJson.data || []);
       if (usersJson.success) setUsers(usersJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
