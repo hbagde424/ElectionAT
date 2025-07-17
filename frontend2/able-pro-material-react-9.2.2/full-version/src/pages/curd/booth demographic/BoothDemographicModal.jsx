@@ -11,7 +11,8 @@ export default function BoothDemographicsModal({
     modalToggler,
     booth,
     demographics,
-    refresh
+    refresh,
+    booths = [] // Accept booths array as a prop
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
@@ -318,21 +319,19 @@ export default function BoothDemographicsModal({
             if (field.includes('.')) {
                 const [parent, child] = field.split('.');
                 const value = formData[parent][child];
-                console.log(`Checking ${field}:`, value); // Log each field check
-                return !value || isNaN(value);
+                return value === '' || value === null || value === undefined || isNaN(value);
             }
             const value = formData[field];
-            console.log(`Checking ${field}:`, value); // Log each field check
-            return !value || isNaN(value);
+            return value === '' || value === null || value === undefined || isNaN(value);
         });
 
         console.log('Validation hasErrors:', hasErrors); // Log validation result
 
-        if (hasErrors) {
-            console.log('Validation failed - blocking submission');
-            setLoading(false);
-            return;
-        }
+        // if (hasErrors) {
+        //     console.log('Validation failed - blocking submission');
+        //     setLoading(false);
+        //     return;
+        // }
 
         console.log('Preparing to submit data...'); // Confirm we're proceeding to submit
 
@@ -395,11 +394,50 @@ export default function BoothDemographicsModal({
             <DialogTitle>
                 {demographics ? 'Edit Booth Demographics' : 'Add Booth Demographics'}
                 <Typography variant="subtitle2" color="text.secondary">
-                    {booth?.name} (Booth #{booth?.booth_number})
+                    {booth?.name ? `${booth.name} (Booth #${booth.booth_number})` : ''}
                 </Typography>
             </DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
+                    {/* Booth Selector (only for add) */}
+                    {!demographics && (
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel required>Booth</InputLabel>
+                                <FormControl fullWidth required error={submitted && !formData.booth_id}>
+                                    <Select
+                                        name="booth_id"
+                                        value={formData.booth_id}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <MenuItem value="">Select Booth</MenuItem>
+                                        {booths.map((b) => (
+                                            <MenuItem key={b._id} value={b._id}>
+                                                {b.name} (#{b.booth_number})
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                {submitted && !formData.booth_id && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Booth is required</Box>
+                                )}
+                            </Stack>
+                        </Grid>
+                    )}
+                    {/* If editing, show booth as read-only */}
+                    {demographics && (
+                        <Grid item xs={12} sm={6} md={4}>
+                            <Stack spacing={1}>
+                                <InputLabel>Booth</InputLabel>
+                                <TextField
+                                    value={booth?.name ? `${booth.name} (Booth #${booth.booth_number})` : demographics.booth_id?.name || ''}
+                                    fullWidth
+                                    InputProps={{ readOnly: true }}
+                                />
+                            </Stack>
+                        </Grid>
+                    )}
                     {/* Basic Demographics */}
                     <Grid container spacing={2} mt={1}>
                         {/* Hierarchy Section */}
