@@ -226,7 +226,9 @@ exports.updateBlock = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('district_id', 'name')
       .populate('division_id', 'name')
-      .populate('state_id', 'name');
+      .populate('state_id', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
