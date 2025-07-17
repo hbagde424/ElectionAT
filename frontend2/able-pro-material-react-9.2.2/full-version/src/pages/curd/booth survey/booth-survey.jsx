@@ -366,8 +366,18 @@ export default function BoothSurveyListPage() {
       }
     },
     {
-      header: 'Created',
+      header: 'Created At',
       accessorKey: 'created_at',
+      cell: ({ getValue }) => (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <CalendarTick size={14} />
+          <Typography variant="caption">{formatDateTime(getValue())}</Typography>
+        </Stack>
+      )
+    },
+    {
+      header: 'Updated At',
+      accessorKey: 'updated_at',
       cell: ({ getValue }) => (
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <CalendarTick size={14} />
