@@ -38,12 +38,12 @@ const potentialCandidateSchema = new mongoose.Schema({
     to_date: { 
       type: Date, 
       required: [true, 'To date is required'],
-      validate: {
-        validator: function(value) {
-          return value >= this.post_details.from_date;
-        },
-        message: 'To date must be after from date'
-      }
+      // validate: {
+      //   validator: function(value) {
+      //     return value >= this.post_details.from_date;
+      //   },
+      //   message: 'To date must be after from date'
+      // }
     },
     place: { 
       type: String, 

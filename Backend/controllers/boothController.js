@@ -25,6 +25,8 @@ exports.getBooths = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('state_id', 'name')
       .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+
       .sort({ booth_number: 1 });
 
     // Search functionality
@@ -95,7 +97,9 @@ exports.getBooth = async (req, res, next) => {
       .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+
 
     if (!booth) {
       return res.status(404).json({
@@ -218,6 +222,14 @@ exports.updateBooth = async (req, res, next) => {
       }
     }
 
+     // Set updated_by to current user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized - user not identified'
+      });
+    }
+    req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
 
     booth = await Booth.findByIdAndUpdate(req.params.id, req.body, {
@@ -229,7 +241,9 @@ exports.updateBooth = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('district_id', 'name')
       .populate('division_id', 'name')
-      .populate('state_id', 'name');
+      .populate('state_id', 'name')
+            .populate('created_by', 'username')
+      .populate('updated_by', 'username')
 
     res.status(200).json({
       success: true,
@@ -288,7 +302,8 @@ exports.getBoothsByAssembly = async (req, res, next) => {
     const booths = await Booth.find({ assembly_id: req.params.assemblyId })
       .sort({ booth_number: 1 })
       .populate('block_id', 'name')
-      .populate('created_by', 'username');
+           .populate('created_by', 'username')
+      .populate('updated_by', 'username')
 
     res.status(200).json({
       success: true,
