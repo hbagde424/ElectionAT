@@ -77,7 +77,7 @@ export default function PotentialCandidateListPage() {
 
       if (partiesJson.success) setParties(partiesJson.data);
       if (assembliesJson.success) setAssemblies(assembliesJson.data);
-      if (electionYearsJson) setElectionYears(electionYearsJson);
+      if (electionYearsJson?.success) setElectionYears(electionYearsJson.data || []);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }

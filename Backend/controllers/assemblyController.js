@@ -240,6 +240,7 @@ exports.updateAssembly = async (req, res, next) => {
 
     // Set user in locals for pre-save hook
     assembly._locals = { user: req.user };
+    req.body.updated_at = new Date();
 
     assembly = await Assembly.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

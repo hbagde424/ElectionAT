@@ -160,6 +160,7 @@ exports.updateDivision = async (req, res, next) => {
     if (req.user && req.user.id) {
       req.body.updated_by = req.user.id;
     }
+    req.body.updated_at = new Date();
 
     division = await Division.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

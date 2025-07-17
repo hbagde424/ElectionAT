@@ -1,5 +1,5 @@
 const Event = require('../models/Event');
-const Division = require('../models/Division');
+const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');
@@ -222,6 +222,7 @@ exports.updateEvent = async (req, res, next) => {
 
     // Add updated_by from authenticated user
     req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
 
     event = await Event.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

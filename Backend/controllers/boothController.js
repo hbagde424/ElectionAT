@@ -218,6 +218,8 @@ exports.updateBooth = async (req, res, next) => {
       }
     }
 
+    req.body.updated_at = new Date();
+
     booth = await Booth.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true

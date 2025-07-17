@@ -5,7 +5,7 @@ const Parliament = require('../models/parliament');
 const Party = require('../models/party');
 const Year = require('../models/Year');
 const State = require('../models/state');
-const Division = require('../models/Division');
+const Division = require('../models/division');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
 
@@ -217,6 +217,7 @@ exports.updateWinningParty = async (req, res, next) => {
 
     // Set updated_by to current user
     req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
 
     winningParty = await WinningParty.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

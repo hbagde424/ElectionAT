@@ -182,6 +182,7 @@ exports.updateParliament = async (req, res, next) => {
 
     // Set user in locals for pre-save hook
     parliament._locals = { user: req.user };
+    req.body.updated_at = new Date();
 
     parliament = await Parliament.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
