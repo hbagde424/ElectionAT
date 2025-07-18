@@ -30,7 +30,7 @@ const blockSchema = new mongoose.Schema({
   district_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'District',
-    required: true
+    required: false
   },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,

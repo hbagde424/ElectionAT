@@ -1,7 +1,7 @@
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
-const District = require('../models/district');
+// const District = require('../models/district');
 const Division = require('../models/division');
 const State = require('../models/state');
 
@@ -12,14 +12,14 @@ exports.getBlocks = async (req, res, next) => {
   try {
     // Pagination
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
     // Basic query
     let query = Block.find()
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('district_id', 'name')
+      // .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
       .populate('created_by', 'username')
@@ -47,9 +47,9 @@ exports.getBlocks = async (req, res, next) => {
     }
 
     // Filter by district
-    if (req.query.district) {
-      query = query.where('district_id').equals(req.query.district);
-    }
+    // if (req.query.district) {
+    //   query = query.where('district_id').equals(req.query.district);
+    // }
 
     // Filter by division
     if (req.query.division) {
@@ -90,7 +90,7 @@ exports.getBlock = async (req, res, next) => {
     const block = await Block.findById(req.params.id)
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('district_id', 'name')
+      // .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
       .populate('created_by', 'username')
@@ -121,13 +121,13 @@ exports.createBlock = async (req, res, next) => {
     const [
       assembly,
       parliament,
-      district,
+      // district,
       division,
       state
     ] = await Promise.all([
       Assembly.findById(req.body.assembly_id),
       Parliament.findById(req.body.parliament_id),
-      District.findById(req.body.district_id),
+      // District.findById(req.body.district_id),
       Division.findById(req.body.division_id),
       State.findById(req.body.state_id)
     ]);
@@ -138,9 +138,9 @@ exports.createBlock = async (req, res, next) => {
     if (!parliament) {
       return res.status(400).json({ success: false, message: 'Parliament not found' });
     }
-    if (!district) {
-      return res.status(400).json({ success: false, message: 'District not found' });
-    }
+    // if (!district) {
+    //   return res.status(400).json({ success: false, message: 'District not found' });
+    // }
     if (!division) {
       return res.status(400).json({ success: false, message: 'Division not found' });
     }
@@ -196,7 +196,7 @@ exports.updateBlock = async (req, res, next) => {
     const verificationPromises = [];
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.district_id) verificationPromises.push(District.findById(req.body.district_id));
+    // if (req.body.district_id) verificationPromises.push(District.findById(req.body.district_id));
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
 
@@ -224,7 +224,7 @@ exports.updateBlock = async (req, res, next) => {
     })
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('district_id', 'name')
+      // .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
       .populate('created_by', 'username')

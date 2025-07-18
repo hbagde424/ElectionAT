@@ -39,7 +39,7 @@ const boothSchema = new mongoose.Schema({
   district_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'District',
-    required: true
+    required: false
   },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -54,7 +54,7 @@ const boothSchema = new mongoose.Schema({
     updated_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // or 'Admin'
-    required: true
+    required: false
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
