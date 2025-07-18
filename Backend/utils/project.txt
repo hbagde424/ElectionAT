@@ -1,17 +1,591 @@
-mujhe ek pura software project banana hai mern stack technology hai main tumhe pura pura project samkhata hu tum mujhe uska pure detail me roadmap bana ke do ki chije kesi hogi backend me main kese banau kesa flow hoga technical language me bhi batao 
+Election Atlas – Documentation
+📌 Project Overview
+
+Project Name: Election Atlas
+Technology Stack: MERN (MongoDB, Express.js, React.js, Node.js)
+Purpose: A GIS-based booth-level election data analysis tool for Madhya Pradesh to visualize, monitor and plan election strategies.
+
+⚙️ Backend Architecture
+
+- Framework: Node.js with Express
+- Database: MongoDB
+- Authentication: JWT + Role-Based Access Control
+- APIs: RESTful API design
+- Documentation Tool: Swagger (OAS 3.0)
+- GIS Integration: GeoJSON + QGIS/ArcGIS processing
+- Middleware: Authentication, Error Handling
+
+🗂️ Directory Structure (Key Folders)
+
+Backend/
+├── config/               # Database & Swagger configuration
+├── controllers/          # All API logic
+├── Data/                 # Static JSON input data
+├── middlewares/          # Auth & error handling
+├── models/               # Mongoose schema models
+├── routes/               # Express route files
+├── utils/                # Utility functions (e.g. JWT, error handler)
+├── .env                  # Environment variables
+├── app.js                # Express app setup
+├── server.js             # Main server start file
+├── seedData.js           # DB seed script
+
+🔐 Authentication (JWT)
+
+- Registration: /api/auth/register
+- Login: /api/auth/login
+- Current User Info: /api/auth/me
+- Toggle User Status: /api/auth/toggle-status/:userId
+- Roles: master, division, parliament, assembly, block
+
+🧩 Modules & APIs
+Over 30+ modules are implemented, here are a few key ones:
 
 
-mere pass mapdhay Pradesh ka polygens hai jisme mere pass division wise , perliemment wise, district wise and assembly wise polygens hai 
-maine upper example ke liye ek file attect ki hai 
+Accomplished MLAs CURD 
+{
+  "assembly_id": "507f1f77bcf86cd799439011",
+  "party_id": "507f1f77bcf86cd799439012",
+  "name": "John Doe",
+  "term_start": "2020-05-15",
+  "term_end": "2025-05-14",
+  "achievements": ["Built new hospital", "Improved road infrastructure"],
+  "contact_info": {
+    "email": "john.doe@example.com",
+    "phone": "9876543210",
+    "address": "123 MLA Residence, Capital City"
+  },
+  "is_current": true
+}
 
-ab main mere project me chahta hu ki mere pass assembly ki 230 id password ho wo 230 id password se alag alag assembly open hogi or uss assembly ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi assembly ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+ Active Parties CURD CURD 
+ 
+{
+  "booth_id": "507f1f77bcf86cd799439013",
+  "party_id": "507f1f77bcf86cd799439012",
+  "active_members": 25,
+  "last_activity": "2023-10-10",
+  "is_active": true,
+  "contact_person": {
+    "name": "Rahul Sharma",
+    "phone": "9876543211"
+  }
+}
 
-or sam mujhe division ki 9 id password ho wo 9 id password se alag alag division open hogi or uss division ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi division ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+Assemblies CURD
 
-or sam mujhe parliment ki 29 id password ho wo 29 id password se alag alag parliment open hogi or uss parliment ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi parliment ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+{
+  "name": "Lucknow West",
+  "type": "Urban",
+  "category": "General",
+  "district_id": "507f1f77bcf86cd799439011",
+  "division_id": "507f1f77bcf86cd799439012",
+  "parliament_id": "507f1f77bcf86cd799439013",
+  "is_active": true,
+  "created_at": "2025-06-16T09:53:30.310Z",
+  "updated_at": "2025-06-16T09:53:30.310Z"
+}
 
-or sam mujhe District ki 55 id password ho wo 55 id password se alag alag District open hogi or uss District ki puri details mujhe Pehle polygen ke through map me show karwana hai fir or bhi data mujhe jo ki main excel ke through data insert karuga wo sab mujhe ussi District ka data mujhe alag alag tariko se visualize karna hai jese ki donart chat me bar graph me etc.
+Assemblies Polygen CURD
+{
+  
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.123, 28.456],
+            [77.124, 28.457], 
+            [77.125, 28.458],
+            [77.123, 28.456]
+          ]
+        ]
+      },
+      "properties": {
+        "Name": "Delhi Cantt",
+        "District": "New Delhi",
+        "Division": "Central Delhi",
+        "Parliament": "New Delhi",
+        "VS_Code": 42,
+        "TotalVoters": 150000,
+        "AreaSqKm": 25.5,
+        "ReservedCategory": "GEN"
+      }
+    }
+  ],
+  "createdAt": "2023-10-15T10:00:00.000Z",
+  "updatedAt": "2023-10-15T10:00:00.000Z"
+}
 
-or mujhe ek master admin bhi chahiye jo sabhi ko dekh sake or sabhi ka access ho uske pass
 
-ye sab mujhe backend banaan hai kese karu kya banau batao
+Auth  CURD
+
+{
+  "email": "user@example.com",
+  "password": "string",
+  "role": "master",
+  "regionIds": [
+    "string"
+  ],
+  "regionModel": "Division"
+}
+
+Blocks CURD 
+{
+  "name": "Block A",
+  "assembly_id": "507f1f77bcf86cd799439011"
+}
+
+Booth Demographics CURD
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "assembly_id": "507f1f77bcf86cd799439012",
+  "parliament_id": "507f1f77bcf86cd799439013",
+  "block_id": "507f1f77bcf86cd799439014",
+  "total_population": 1500,
+  "total_electors": 1200,
+  "male_electors": 600,
+  "female_electors": 590,
+  "other_electors": 10,
+  "age_18_25": 300,
+  "age_26_40": 400,
+  "age_41_60": 350,
+  "age_60_above": 150,
+  "sc_percent": 15.5,
+  "st_percent": 10.2,
+  "obc_percent": 35.7,
+  "general_percent": 38.6,
+  "literacy_rate": 78.5,
+  "religious_composition": {
+    "hindu": 65,
+    "muslim": 25,
+    "christian": 5,
+    "sikh": 3,
+    "other": 2
+  },
+  "created_at": "2025-06-16T09:57:33.326Z",
+  "updated_at": "2025-06-16T09:57:33.326Z"
+}
+
+BoothElectionStats CURD
+
+{
+  "booth_id": "string",
+  "year_id": "string",
+  "total_votes_polled": 0,
+  "turnout_percentage": 0,
+  "male_turnout": 0,
+  "female_turnout": 0,
+  "nota_votes": 0,
+  "rejected_votes": 0,
+  "winning_candidate": "string",
+  "winning_party_id": "string",
+  "created_at": "2025-06-16T09:58:04.015Z",
+  "updated_at": "2025-06-16T09:58:04.015Z"
+}
+Booth Infrastructure CURD
+
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "premises_type": "School",
+  "categorization": "Sensitive",
+  "accessibility_issues": "No ramp access for wheelchairs",
+  "created_at": "2025-06-16T09:58:25.331Z",
+  "updated_at": "2025-06-16T09:58:25.331Z"
+}
+
+
+
+Booth Party Presence CURD
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "party_id": "507f1f77bcf86cd799439012",
+  "local_unit_head_name": "John Doe",
+  "head_phone": "+1234567890",
+  "registered_members": 25,
+  "has_booth_committee": "Yes",
+  "created_at": "2025-06-16T09:58:42.446Z",
+  "updated_at": "2025-06-16T09:58:42.446Z"
+}
+
+
+
+Booth Party Vote Shares CURD
+
+
+{
+  "stat_id": "507f1f77bcf86cd799439011",
+  "party_id": "507f1f77bcf86cd799439012",
+  "votes": 1250,
+  "vote_percent": 42.5,
+  "created_at": "2025-06-16T09:58:59.886Z",
+  "updated_at": "2025-06-16T09:58:59.887Z"
+}
+
+
+Booths CURD
+{
+  "name": "Booth 123",
+  "booth_number": "123",
+  "block_id": "string",
+  "full_address": "123 Main St, District, State",
+  "assembly_id": "string",
+  "parliament_id": "string",
+  "latitude": 28.6139,
+  "longitude": 77.209,
+  "created_at": "2025-06-16T10:00:29.115Z",
+  "updated_at": "2025-06-16T10:00:29.115Z"
+}
+
+
+
+Booth Surveys CURD
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "survey_done_by": "507f1f77bcf86cd799439012",
+  "survey_date": "2023-05-15T10:00:00Z",
+  "status": "Completed",
+  "remark": "Survey completed with minor issues",
+  "created_at": "2025-06-16T10:00:50.364Z",
+  "updated_at": "2025-06-16T10:00:50.364Z"
+}
+
+
+Booth Volunteers CURD
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "party_id": "507f1f77bcf86cd799439012",
+  "assembly_id": "507f1f77bcf86cd799439013",
+  "parliament_id": "507f1f77bcf86cd799439014",
+  "block_id": "507f1f77bcf86cd799439015",
+  "name": "John Doe",
+  "role": "Polling Agent",
+  "phone": "+1234567890",
+  "email": "john.doe@example.com",
+  "area_responsibility": "North Sector",
+  "activity_level": "High",
+  "remarks": "Very active during campaigns",
+  "created_at": "2025-06-16T10:01:12.649Z",
+  "updated_at": "2025-06-16T10:01:12.649Z"
+}
+
+
+
+Candidates CURD
+{
+  "name": "John Doe",
+  "party": "507f1f77bcf86cd799439011",
+  "assembly": "507f1f77bcf86cd799439012",
+  "assemblyModel": "Assembly",
+  "election_year": "507f1f77bcf86cd799439013",
+  "caste": "OBC",
+  "votes": 15000,
+  "criminal_cases": 2,
+  "assets": "₹5 crore",
+  "liabilities": "₹50 lakh",
+  "education": "Post Graduate",
+  "photo": "https://example.com/photos/john-doe.jpg",
+  "is_active": true,
+  "created_at": "2025-06-16T10:01:33.296Z",
+  "updated_at": "2025-06-16T10:01:33.296Z"
+}
+
+
+
+
+Districts CURD
+
+	{
+  "name": "Lucknow West",
+  "division_id": "507f1f77bcf86cd799439012",
+  "parliament_id": "507f1f77bcf86cd799439013",
+}
+
+Districts Polygen
+{
+  "_id": "617a8d63f2c1a23456789012",
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "_id": "617a8d63f2c1a23456789013",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.206, 28.613],  // Starting point (longitude, latitude)
+            [77.207, 28.614],
+            [77.208, 28.613],
+            [77.207, 28.612],
+            [77.206, 28.613]   // Closing the polygon (must match first point)
+          ]
+        ]
+      },
+      "properties": {
+        "Name": "Central Delhi",
+        "District": "New Delhi",
+        "Division": "Delhi Division",
+        "Parliament": "New Delhi",
+        "VS_Code": 101
+      }
+    }
+  ],
+  "createdAt": "2023-10-25T09:30:00.000Z",
+  "updatedAt": "2023-10-25T09:30:00.000Z",
+  "__v": 0
+}
+
+
+ Divisions Polygen
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "_id": "61a8d63f2c1a234567890ab2",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.102, 28.704],  // Starting point (longitude, latitude)
+            [77.103, 28.705],
+            [77.104, 28.704],
+            [77.103, 28.703],
+            [77.102, 28.704]   // Closing the polygon
+          ]
+        ]
+      },
+      "properties": {
+        "Name": "Central Division",
+        "District": "New Delhi",
+        "Division": "Delhi Central",
+        "Parliament": "New Delhi Central",
+        "VS_Code": 501
+      }
+    },
+    {
+      
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.205, 28.613],
+            [77.206, 28.614],
+            [77.207, 28.613],
+            [77.206, 28.612],
+            [77.205, 28.613]
+          ]
+        ]
+      },
+      "properties": {
+        "Name": "East Division",
+        "District": "New Delhi",
+        "Division": "Delhi East",
+        "Parliament": "New Delhi East",
+        "VS_Code": 502
+      }
+    }
+  ],
+  "createdAt": "2023-11-15T08:45:30.000Z",
+  "updatedAt": "2023-11-15T08:45:30.000Z",
+  "__v": 0
+}
+
+
+Divisions CURD
+{
+  "name": "North District",
+  "state_id": "507f1f77bcf86cd799439011",
+  "election_year_id": "607f1f77bcf86cd799439022",
+  "created_at": "2025-06-16T10:04:12.012Z",
+  "updated_at": "2025-06-16T10:04:12.012Z"
+}
+
+LocalDynamics CURD
+{
+  "booth_id": "string",
+  "dominant_caste": "string",
+  "known_issues": "string",
+  "local_leader": "string",
+  "grassroots_orgs": "string",
+  "created_at": "2025-06-16T10:04:31.230Z",
+  "updated_at": "2025-06-16T10:04:31.230Z"
+}
+
+
+Local News CURD
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "headline": "Local election results announced",
+  "source": "Daily News",
+  "published_date": "2023-05-15T10:00:00Z",
+  "news_url": "https://example.com/news/local-election-results",
+  "created_at": "2025-06-16T10:04:48.974Z",
+  "updated_at": "2025-06-16T10:04:48.974Z"
+}
+
+
+Parliaments CURD 
+{
+  "name": "Bangalore North",
+  "division_id": "507f1f77bcf86cd799439011",
+  "created_at": "2025-06-16T10:05:13.762Z",
+  "updated_at": "2025-06-16T10:05:13.762Z"
+}
+
+Parliaments polygen
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[long,lat], [long,lat], ...]]
+      },
+      "properties": {
+        "Name": "Constituency Name",
+        "District": "District Name",
+        "Division": "Division Name", 
+        "Parliament": "Parliament Name",
+        "VS_Code": 123
+      }
+    }
+  ]
+}
+
+Party Activities CURD
+{
+  "party_id": "507f1f77bcf86cd799439011",
+  "assembly_id": "507f1f77bcf86cd799439012",
+  "booth_id": "507f1f77bcf86cd799439013",
+  "activity_type": "rally",
+  "title": "Election Rally in Downtown",
+  "description": "Annual election rally with party leaders",
+  "activity_date": "2023-05-15T10:00:00Z",
+  "status": "scheduled",
+  "created_by": "507f1f77bcf86cd799439014",
+  "attendance_count": 5000,
+  "media_coverage": true,
+  "created_at": "2025-06-16T10:05:34.530Z",
+  "updated_at": "2025-06-16T10:05:34.530Z"
+}
+
+
+Parties CURD
+{
+  "name": "Indian National Congress",
+  "abbreviation": "INC",
+  "symbol": "Hand",
+  "founded_year": 1885,
+  "created_at": "2023-01-01T00:00:00.000Z",
+  "updated_at": "2023-01-01T00:00:00.000Z"
+}
+States CURD 
+
+{
+  "name": "California",
+  "created_at": "2025-06-16T10:06:19.406Z",
+  "updated_at": "2025-06-16T10:06:19.406Z"
+}
+
+
+Users CURD
+{
+  "email": "user@example.com",
+  "password": "string",
+  "role": "superAdmin",
+  "accessLevel": "viewOnly",
+  "regionIds": [
+    "string"
+  ],
+  "regionModel": "Division"
+}
+login CURD
+
+{
+  "email": "user@example.com",
+  "password": "string"
+}
+
+Voting Trends CURD
+
+{
+  "booth_id": "507f1f77bcf86cd799439011",
+  "assembly_id": "507f1f77bcf86cd799439012",
+  "parliament_id": "507f1f77bcf86cd799439013",
+  "block_id": "507f1f77bcf86cd799439014",
+  "division_id": "507f1f77bcf86cd799439015",
+  "election_year": 2023,
+  "turnout_percent": 65.5,
+  "leading_party_id": "507f1f77bcf86cd799439016",
+  "victory_margin": 1250,
+  "party_vote_shares": [
+    {
+      "party_id": "507f1f77bcf86cd799439016",
+      "vote_share": 42.5
+    }
+  ],
+  "created_at": "2025-06-16T10:07:33.017Z",
+  "updated_at": "2025-06-16T10:07:33.017Z"
+}
+
+
+Winning Parties CURD
+{
+  "candidate_id": "507f1f77bcf86cd799439011",
+  "assembly_id": "507f1f77bcf86cd799439012",
+  "parliament_id": "507f1f77bcf86cd799439013",
+  "party_id": "507f1f77bcf86cd799439014",
+  "year_id": "507f1f77bcf86cd799439015",
+  "votes": 75000,
+  "margin": 12500
+}
+
+
+Years CURD
+{
+  "year": 2023,
+  "is_current": true,
+  "created_at": "2023-01-01T00:00:00.000Z",
+  "updated_at": "2023-01-01T00:00:00.000Z"
+}
+
+
+
+
+
+
+🧱 Database (ERD Summary)
+
+The database includes over 30 related collections organized in a hierarchical structure:
+- State > Division > Parliament > District > Assembly > Block > Booth
+- Election Data: booth_election_stats, party_vote_share, winning_party, voting_trends
+- Demographics: booth_demographics, local_dynamics
+- Admin & Volunteers: booth_admin, booth_volunteers, party_presence
+- GIS Support: Polygon collections for boundaries (division, district, assembly, etc.)
+
+🌍 GIS Integration
+
+- Mapping layers include Booth, Assembly, Parliament polygons using GeoJSON
+- Point-in-polygon spatial queries supported
+- Lat-long stored in booth documents
+
+📊 Project Use Cases
+
+- Visualize booth-wise winning/losing trends
+- Map literacy, caste % to booth results
+- Monitor volunteer presence & survey data
+- Analyze vote share swing per booth
+- Compare candidates via past performance
+
+
+
+Database  Structure              https://app.eraser.io/workspace/ywJM24TsDrrouUNvrWVs                         
+ 
