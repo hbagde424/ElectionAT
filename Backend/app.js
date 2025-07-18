@@ -60,7 +60,7 @@ const blockPolygonRoutes = require('./routes/blockPolygonRoutes');
 const genderRoutes = require('./routes/genderRoutes');
 const electionTypeRoutes = require('./routes/electionTypeRoutes');
 const governmentRoutes = require('./routes/governmentRoutes');
-// const influencerRoutes = require('./routes/influencerRoutes');
+const influencerRoutes = require('./routes/influencerRoutes');
 // Connect to database
 connectDB();
 seedSuperAdmin();
@@ -144,7 +144,7 @@ app.use('/api/block-polygons', blockPolygonRoutes);
 app.use('/api/genders', genderRoutes);
 app.use('/api/election-types', electionTypeRoutes);
 app.use('/api/governments', governmentRoutes);
-// app.use('/api/influencers', influencerRoutes);
+app.use('/api/influencers', influencerRoutes);
 
 
 // Error handler

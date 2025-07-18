@@ -6,7 +6,7 @@ const State = require('../models/state');
 exports.getStates = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
     let query = State.find()
