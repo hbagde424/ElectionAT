@@ -44,7 +44,8 @@ export default function CandidateModal({
     // With these more defensive checks:
     const partiesList = Array.isArray(parties) ? parties : [];
     const assembliesList = Array.isArray(assemblies) ? assemblies : [];
-    const electionYearsList = Array.isArray(electionYears) ? electionYears : [];
+    // const electionYearsList = Array.isArray(electionYears) ? electionYears : [];
+const electionYearsList = electionYears?.data || [];
     const parliamentsList = Array.isArray(parliaments) ? parliaments : [];
     const statesList = Array.isArray(states) ? states : [];
     const divisionsList = Array.isArray(divisions) ? divisions : [];

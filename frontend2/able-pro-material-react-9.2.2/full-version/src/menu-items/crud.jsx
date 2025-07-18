@@ -204,13 +204,13 @@ const CRUDMenu = {
       url: '/Government-Schema',
       icon: icons.Calendar,
     },
-    // {
-    //   id: 'Influancer',
-    //   title: <FormattedMessage id="Influancer" />,
-    //   type: 'item',
-    //   url: '/Influancer',
-    //   icon: icons.Calendar,
-    // },
+    {
+      id: 'Influancer',
+      title: <FormattedMessage id="Influancer" />,
+      type: 'item',
+      url: '/Influancer',
+      icon: icons.Calendar,
+    },
     {
       id: 'Local-Issue',
       title: <FormattedMessage id="Local-Issue" />,
