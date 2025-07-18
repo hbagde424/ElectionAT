@@ -14,7 +14,7 @@ exports.getCasteLists = async (req, res, next) => {
   try {
     // Pagination
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
     // Basic query
@@ -34,7 +34,8 @@ exports.getCasteLists = async (req, res, next) => {
       query = query.find({
         $or: [
           { caste: { $regex: req.query.search, $options: 'i' } },
-          { category: { $regex: req.query.search, $options: 'i' } }
+          { category: { $regex: req.query.search, $options: 'i' } },
+          { percentage: { $regex: req.query.search, $options: 'i' } }
         ]
       });
     }
@@ -42,6 +43,10 @@ exports.getCasteLists = async (req, res, next) => {
     // Filter by category
     if (req.query.category) {
       query = query.where('category').equals(req.query.category);
+    }
+
+    if (req.query.percentage) {
+      query = query.where('percentage').equals(req.query.percentage);
     }
 
     // Filter by state
@@ -298,7 +303,7 @@ exports.getCasteListsByBooth = async (req, res, next) => {
     }
 
     const casteLists = await CasteList.find({ booth_id: req.params.boothId })
-      .sort({ category: 1, caste: 1 })
+      .sort({ category: 1, caste: 1, percentage: 1 })
       .populate('state', 'name')
       .populate('created_by', 'username');
 
@@ -327,7 +332,8 @@ exports.getCasteListsByState = async (req, res, next) => {
     }
 
     const casteLists = await CasteList.find({ state_id: req.params.stateId })
-      .sort({ category: 1, caste: 1 })
+      .sort({ category: 1, caste: 1, percentage: 1 })
+
       .populate('division', 'name')
       .populate('booth', 'name booth_number');
 

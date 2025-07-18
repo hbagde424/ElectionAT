@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Candidate = require('../models/Candidate');
 const Party = require('../models/party');
 const Assembly = require('../models/assembly');
@@ -25,11 +26,11 @@ const populateCandidate = (query) => {
 exports.getCandidates = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
     let query = Candidate.find();
-    
+
     // Apply filters
     const filters = ['party', 'assembly', 'parliament', 'state', 'division', 'election_year', 'caste'];
     filters.forEach(filter => {
@@ -101,39 +102,61 @@ exports.createCandidate = async (req, res, next) => {
       election_year: ElectionYear
     };
 
+    // Validate reference IDs
     for (const [field, Model] of Object.entries(references)) {
+      // Check if ID is valid format
+      if (!mongoose.Types.ObjectId.isValid(req.body[field])) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid ID format for ${field}`,
+          field
+        });
+      }
+
+      // Check if referenced document exists
       if (!await Model.findById(req.body[field])) {
-        return res.status(400).json({ 
-          success: false, 
+        return res.status(404).json({
+          success: false,
           message: `${Model.modelName} not found`,
           field
         });
       }
     }
 
-    // Check for existing candidate with same unique combination
+    // Check for existing candidate with same assembly, party and election year
     const existingCandidate = await Candidate.findOne({
       assembly_id: req.body.assembly_id,
-      parliament_id: req.body.parliament_id,
-      election_year: req.body.election_year,
-      party_id: req.body.party_id
-    });
+      party_id: req.body.party_id,
+      election_year: req.body.election_year
+    })
+      .populate('assembly_id', 'name')
+      .populate('party_id', 'name')
+      .populate('election_year', 'year');
+
 
     if (existingCandidate) {
       return res.status(409).json({
         success: false,
-        message: 'Candidate with these details already exists',
+        message: 'Duplicate candidate detected',
         conflict: {
-          assembly_id: existingCandidate.assembly_id,
-          parliament_id: existingCandidate.parliament_id,
-          election_year: existingCandidate.election_year,
-          party_id: existingCandidate.party_id
+          assembly: {
+            id: existingCandidate.assembly_id._id,
+            name: existingCandidate.assembly_id.name
+          },
+          party: {
+            id: existingCandidate.party_id._id,
+            name: existingCandidate.party_id.name
+          },
+          election_year: {
+            id: existingCandidate.election_year._id,
+            year: existingCandidate.election_year.year
+          }
         },
-        existingCandidateId: existingCandidate._id
+        suggestion: `A candidate from ${existingCandidate.party_id.name} already exists for ${existingCandidate.assembly_id.name} in election year ${existingCandidate.election_year.year}`
       });
     }
 
-    // Check user authentication
+    // Verify user authentication
     if (!req.user?.id) {
       return res.status(401).json({
         success: false,
@@ -141,24 +164,62 @@ exports.createCandidate = async (req, res, next) => {
       });
     }
 
+    // Prepare candidate data
     const candidateData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+      updated_by: req.user.id
     };
 
+    // Create new candidate
     const candidate = await Candidate.create(candidateData);
-    const populatedCandidate = await populateCandidate(Candidate.findById(candidate._id));
 
+    // Populate all referenced fields for the response
+    const populatedCandidate = await Candidate.findById(candidate._id)
+      .populate('party_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('election_year', 'year')
+      .populate('created_by', 'name email')
+      .populate('updated_by', 'name email');
+
+    // Return successful response
     res.status(201).json({
       success: true,
       data: populatedCandidate
     });
+
   } catch (err) {
     if (err.code === 11000) {
+      // Handle MongoDB duplicate key error
+      const duplicateFields = Object.keys(err.keyPattern);
+      const formattedValues = {};
+
+      // Format values for better readability
+      if (err.keyValue.assembly_id) {
+        formattedValues.assembly = err.keyValue.assembly_id;
+      }
+      if (err.keyValue.party_id) {
+        formattedValues.party = err.keyValue.party_id;
+      }
+      if (err.keyValue.election_year) {
+        formattedValues.election_year = err.keyValue.election_year;
+      }
+
       return res.status(409).json({
         success: false,
-        message: 'Duplicate candidate detected',
-        error: err.keyValue
+        message: 'Database detected duplicate candidate',
+        error: {
+          fields: duplicateFields.map(f =>
+            f === 'assembly_id' ? 'assembly' :
+              f === 'party_id' ? 'party' :
+                f
+          ),
+          values: formattedValues
+        },
+        suggestion: 'Combination of assembly, party and election year must be unique'
       });
     }
     next(err);
@@ -191,8 +252,8 @@ exports.updateCandidate = async (req, res, next) => {
 
     for (const [field, Model] of Object.entries(references)) {
       if (req.body[field] && !await Model.findById(req.body[field])) {
-        return res.status(400).json({ 
-          success: false, 
+        return res.status(400).json({
+          success: false,
           message: `${Model.modelName} not found`,
           field
         });
@@ -200,9 +261,9 @@ exports.updateCandidate = async (req, res, next) => {
     }
 
     // Check for duplicate candidates if unique fields are being updated
-    if (req.body.assembly_id || req.body.parliament_id || 
-        req.body.election_year || req.body.party_id) {
-      
+    if (req.body.assembly_id || req.body.parliament_id ||
+      req.body.election_year || req.body.party_id) {
+
       const duplicateCheck = {
         assembly_id: req.body.assembly_id || candidate.assembly_id,
         parliament_id: req.body.parliament_id || candidate.parliament_id,

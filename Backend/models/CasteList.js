@@ -14,6 +14,13 @@ const casteListSchema = new mongoose.Schema({
     maxlength: [100, 'Caste name cannot exceed 100 characters'],
     index: true
   },
+   percentage: {
+    type: String,
+    required: [true, 'percentage is required'],
+    trim: true,
+    maxlength: [100, 'percentage cannot exceed 100 characters'],
+    index: true
+  },
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',

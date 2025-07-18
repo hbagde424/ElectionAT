@@ -10,7 +10,7 @@ const candidateSchema = new mongoose.Schema({
   party_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Party',
-    required: [true, 'Party reference is required']
+    required: true
   },
   assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,10 +32,10 @@ const candidateSchema = new mongoose.Schema({
     ref: 'Division',
     required: [true, 'Division reference is required']
   },
-  election_year: {
+ election_year: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ElectionYear',
-    required: [true, 'Election year is required']
+    required: true
   },
   caste: {
     type: String,
@@ -102,9 +102,14 @@ candidateSchema.pre('save', function(next) {
   next();
 });
 
-// Indexes for better performance
-candidateSchema.index({ name: 'text' });
-candidateSchema.index({ caste: 1 });
-candidateSchema.index({ assembly_id: 1, parliament_id: 1, election_year: 1, party_id: 1 }, { unique: true });
+// Add these indexes to your schema for better performance
+// In your candidateSchema (replace the existing index)
+// In your candidateSchema
+// Remove unique constraint
+candidateSchema.index(
+  { assembly_id: 1, party_id: 1, election_year: 1 },
+  { name: 'candidate_assembly_party_election_index' }
+);
+
 
 module.exports = mongoose.model('Candidate', candidateSchema);
