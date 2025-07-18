@@ -12,6 +12,7 @@ export default function CasteModal({
     open,
     modalToggler,
     casteEntry,
+    percentageEntry,
     states,
     divisions,
     parliaments,
@@ -25,6 +26,7 @@ export default function CasteModal({
 
     const [formData, setFormData] = useState({
         category: 'General',
+        percentage: '',
         caste: '',
         state_id: '',
         division_id: '',
@@ -49,6 +51,7 @@ export default function CasteModal({
             setFormData({
                 category: casteEntry.category || 'General',
                 caste: casteEntry.caste || '',
+                percentage: percentageEntry.percentage || '',
                 state_id: casteEntry.state_id?._id?.toString() || casteEntry.state_id?.toString() || '',
                 division_id: casteEntry.division_id?._id?.toString() || casteEntry.division_id?.toString() || '',
                 parliament_id: casteEntry.parliament_id?._id?.toString() || casteEntry.parliament_id?.toString() || '',
@@ -60,6 +63,7 @@ export default function CasteModal({
             setFormData({
                 category: 'General',
                 caste: '',
+                percentage: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -221,7 +225,7 @@ export default function CasteModal({
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation
-        const requiredFields = ['category', 'caste', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
+        const requiredFields = ['category', 'percentage', 'caste', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -293,6 +297,22 @@ export default function CasteModal({
                                 error={submitted && !formData.caste}
                                 helperText={submitted && !formData.caste ? 'Caste name is required' : ''}
                                 placeholder="Enter caste name"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>percentage</InputLabel>
+                            <TextField
+                                name="percentage"
+                                value={formData.percentage}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.percentage}
+                                helperText={submitted && !formData.percentage ? 'percentage is required' : ''}
+                                placeholder="Enter percentage name"
                             />
                         </Stack>
                     </Grid>

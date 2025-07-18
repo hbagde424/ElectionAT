@@ -129,6 +129,20 @@ export default function CasteListPage() {
                 </Typography>
             )
         },
+         {
+            header: 'percentage',
+            accessorKey: 'percentage',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue()}
+                </Typography>
+            )
+        },
         {
             header: 'Category',
             accessorKey: 'category',
