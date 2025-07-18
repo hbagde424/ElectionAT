@@ -16,7 +16,6 @@ export default function BlocksModal({
     divisions,
     parliaments,
     assemblies,
-    districts,
     users,
     refresh
 }) {
@@ -30,7 +29,6 @@ export default function BlocksModal({
         division_id: '',
         parliament_id: '',
         assembly_id: '',
-        district_id: '',
         is_active: true
     });
     const [submitted, setSubmitted] = useState(false);
@@ -39,7 +37,6 @@ export default function BlocksModal({
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-    const [filteredDistricts, setFilteredDistricts] = useState([]);
 
     const categoryOptions = ['Urban', 'Rural', 'Semi-Urban', 'Tribal'];
 
@@ -52,7 +49,6 @@ export default function BlocksModal({
                 division_id: block.division_id?._id?.toString() || block.division_id?.toString() || '',
                 parliament_id: block.parliament_id?._id?.toString() || block.parliament_id?.toString() || '',
                 assembly_id: block.assembly_id?._id?.toString() || block.assembly_id?.toString() || '',
-                district_id: block.district_id?._id?.toString() || block.district_id?.toString() || '',
                 is_active: block.is_active !== undefined ? block.is_active : true
             });
         } else if (!block) {
@@ -63,7 +59,6 @@ export default function BlocksModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 is_active: true
             });
         }
@@ -83,8 +78,7 @@ export default function BlocksModal({
                     ...prev,
                     division_id: '',
                     parliament_id: '',
-                    assembly_id: '',
-                    district_id: ''
+                    assembly_id: ''
                 }));
             }
         } else {
@@ -93,8 +87,7 @@ export default function BlocksModal({
                 ...prev,
                 division_id: '',
                 parliament_id: '',
-                assembly_id: '',
-                district_id: ''
+                assembly_id: ''
             }));
         }
     }, [formData.state_id, divisions]);
@@ -112,8 +105,7 @@ export default function BlocksModal({
                 setFormData(prev => ({
                     ...prev,
                     parliament_id: '',
-                    assembly_id: '',
-                    district_id: ''
+                    assembly_id: ''
                 }));
             }
         } else {
@@ -121,8 +113,7 @@ export default function BlocksModal({
             setFormData(prev => ({
                 ...prev,
                 parliament_id: '',
-                assembly_id: '',
-                district_id: ''
+                assembly_id: ''
             }));
         }
     }, [formData.division_id, parliaments]);
@@ -139,37 +130,17 @@ export default function BlocksModal({
             if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
                 setFormData(prev => ({
                     ...prev,
-                    assembly_id: '',
-                    district_id: ''
+                    assembly_id: ''
                 }));
             }
         } else {
             setFilteredAssemblies([]);
             setFormData(prev => ({
                 ...prev,
-                assembly_id: '',
-                district_id: ''
+                assembly_id: ''
             }));
         }
     }, [formData.parliament_id, assemblies]);
-
-    // Assembly -> District
-    useEffect(() => {
-        if (formData.assembly_id) {
-            const filtered = districts?.filter(district => {
-                const districtAssemblyId = district.assembly_id?._id || district.assembly_id;
-                return districtAssemblyId === formData.assembly_id;
-            }) || [];
-            setFilteredDistricts(filtered);
-
-            if (formData.district_id && !filtered.find(d => d._id === formData.district_id)) {
-                setFormData(prev => ({ ...prev, district_id: '' }));
-            }
-        } else {
-            setFilteredDistricts([]);
-            setFormData(prev => ({ ...prev, district_id: '' }));
-        }
-    }, [formData.assembly_id, districts]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -182,7 +153,7 @@ export default function BlocksModal({
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation
-        const requiredFields = ['name', 'category', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'district_id'];
+        const requiredFields = ['name', 'category', 'state_id', 'division_id', 'parliament_id', 'assembly_id'];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -387,32 +358,7 @@ export default function BlocksModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: District and Status */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>District</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.district_id}>
-                                <Select
-                                    name="district_id"
-                                    value={formData.district_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
-                                    <MenuItem value="">Select District</MenuItem>
-                                    {filteredDistricts.map((district) => (
-                                        <MenuItem key={district._id} value={district._id}>
-                                            {district.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.district_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>District is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
+                    {/* Row 4: Status only */}
                     <Grid item xs={12} sm={6}>
                         <FormControlLabel
                             control={

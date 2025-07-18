@@ -1,11 +1,11 @@
+// ✅ CLEANED VERSION - all "district" references removed
+
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Switch, FormControlLabel, Chip, Box
+    Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
-
-// project imports
 import JWTContext from 'contexts/JWTContext';
 
 export default function BoothModal({
@@ -16,7 +16,6 @@ export default function BoothModal({
     divisions,
     parliaments,
     assemblies,
-    districts,
     blocks,
     refresh
 }) {
@@ -33,16 +32,13 @@ export default function BoothModal({
         division_id: '',
         parliament_id: '',
         assembly_id: '',
-        district_id: '',
         block_id: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
-    // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-    const [filteredDistricts, setFilteredDistricts] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
 
     useEffect(() => {
@@ -57,7 +53,6 @@ export default function BoothModal({
                 division_id: booth.division_id?._id?.toString() || booth.division_id?.toString() || '',
                 parliament_id: booth.parliament_id?._id?.toString() || booth.parliament_id?.toString() || '',
                 assembly_id: booth.assembly_id?._id?.toString() || booth.assembly_id?.toString() || '',
-                district_id: booth.district_id?._id?.toString() || booth.district_id?.toString() || '',
                 block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || ''
             });
         } else {
@@ -71,13 +66,11 @@ export default function BoothModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: ''
             });
         }
     }, [booth]);
 
-    // State -> Division
     useEffect(() => {
         if (formData.state_id) {
             const filtered = divisions?.filter(division => {
@@ -92,7 +85,6 @@ export default function BoothModal({
                     division_id: '',
                     parliament_id: '',
                     assembly_id: '',
-                    district_id: '',
                     block_id: ''
                 }));
             }
@@ -103,13 +95,11 @@ export default function BoothModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: ''
             }));
         }
     }, [formData.state_id, divisions]);
 
-    // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
             const filtered = parliaments?.filter(parliament => {
@@ -123,7 +113,6 @@ export default function BoothModal({
                     ...prev,
                     parliament_id: '',
                     assembly_id: '',
-                    district_id: '',
                     block_id: ''
                 }));
             }
@@ -133,13 +122,11 @@ export default function BoothModal({
                 ...prev,
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: ''
             }));
         }
     }, [formData.division_id, parliaments]);
 
-    // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id) {
             const filtered = assemblies?.filter(assembly => {
@@ -152,7 +139,6 @@ export default function BoothModal({
                 setFormData(prev => ({
                     ...prev,
                     assembly_id: '',
-                    district_id: '',
                     block_id: ''
                 }));
             }
@@ -161,36 +147,16 @@ export default function BoothModal({
             setFormData(prev => ({
                 ...prev,
                 assembly_id: '',
-                district_id: '',
                 block_id: ''
             }));
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Assembly -> District
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = districts?.filter(district => {
-                const districtAssemblyId = district.assembly_id?._id || district.assembly_id;
-                return districtAssemblyId === formData.assembly_id;
-            }) || [];
-            setFilteredDistricts(filtered);
-
-            if (formData.district_id && !filtered.find(d => d._id === formData.district_id)) {
-                setFormData(prev => ({ ...prev, district_id: '', block_id: '' }));
-            }
-        } else {
-            setFilteredDistricts([]);
-            setFormData(prev => ({ ...prev, district_id: '', block_id: '' }));
-        }
-    }, [formData.assembly_id, districts]);
-
-    // District -> Blocks
-    useEffect(() => {
-        if (formData.district_id) {
             const filtered = blocks?.filter(block => {
-                const blockDistrictId = block.district_id?._id || block.district_id;
-                return blockDistrictId === formData.district_id;
+                const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
+                return blockAssemblyId === formData.assembly_id;
             }) || [];
             setFilteredBlocks(filtered);
 
@@ -201,7 +167,7 @@ export default function BoothModal({
             setFilteredBlocks([]);
             setFormData(prev => ({ ...prev, block_id: '' }));
         }
-    }, [formData.district_id, blocks]);
+    }, [formData.assembly_id, blocks]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -213,13 +179,12 @@ export default function BoothModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        // Validation
         const requiredFields = [
-            'name', 'booth_number', 'full_address', 
-            'state_id', 'division_id', 'parliament_id', 
-            'assembly_id', 'district_id', 'block_id'
+            'name', 'booth_number', 'full_address',
+            'state_id', 'division_id', 'parliament_id',
+            'assembly_id', 'block_id'
         ];
-        
+
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -232,7 +197,6 @@ export default function BoothModal({
             ? `http://localhost:5000/api/booths/${booth._id}`
             : 'http://localhost:5000/api/booths';
 
-        // Get user ID from context or localStorage
         let userId = user?._id || user?.id;
         if (!userId) {
             try {
@@ -462,32 +426,7 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 6: District and Block */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>District</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.district_id}>
-                                <Select
-                                    name="district_id"
-                                    value={formData.district_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
-                                    <MenuItem value="">Select District</MenuItem>
-                                    {filteredDistricts.map((district) => (
-                                        <MenuItem key={district._id} value={district._id}>
-                                            {district.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.district_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>District is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
+                    {/* Row 6: Block */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Block</InputLabel>
@@ -497,7 +436,7 @@ export default function BoothModal({
                                     value={formData.block_id}
                                     onChange={handleChange}
                                     required
-                                    disabled={!formData.district_id}
+                                    disabled={!formData.assembly_id}
                                 >
                                     <MenuItem value="">Select Block</MenuItem>
                                     {filteredBlocks.map((block) => (

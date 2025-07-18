@@ -32,7 +32,7 @@ export default function BlocksListPage() {
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
-    const [districts, setDistricts] = useState([]);
+    // const [districts, setDistricts] = useState([]);
     const [users, setUsers] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -41,12 +41,12 @@ export default function BlocksListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, districtsRes] = await Promise.all([
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
                 fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/districts')
+                // fetch('http://localhost:5000/api/districts')
             ]);
 
             const token = localStorage.getItem('serviceToken');
@@ -61,19 +61,19 @@ export default function BlocksListPage() {
             const usersData = await usersRes.json();
             if (usersData.success) setUsers(usersData.data);
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, districtsData] = await Promise.all([
+            const [statesData, divisionsData, parliamentsData, assembliesData] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
-                districtsRes.json()
+                // districtsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (parliamentsData.success) setParliaments(parliamentsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (districtsData.success) setDistricts(districtsData.data);
+            // if (districtsData.success) setDistricts(districtsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -197,18 +197,18 @@ export default function BlocksListPage() {
                 />
             )
         },
-        {
-            header: 'District',
-            accessorKey: 'district_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="success"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
+        // {
+        //     header: 'District',
+        //     accessorKey: 'district_id',
+        //     cell: ({ getValue }) => (
+        //         <Chip
+        //             label={getValue()?.name || 'N/A'}
+        //             color="success"
+        //             size="small"
+        //             variant="outlined"
+        //         />
+        //     )
+        // },
         {
             header: 'Status',
             accessorKey: 'is_active',
@@ -314,7 +314,7 @@ export default function BlocksListPage() {
             Division: item.division_id?.name || '',
             Parliament: item.parliament_id?.name || '',
             Assembly: item.assembly_id?.name || '',
-            District: item.district_id?.name || '',
+            // District: item.district_id?.name || '',
             Status: item.is_active ? 'Active' : 'Inactive',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at,
@@ -418,7 +418,7 @@ export default function BlocksListPage() {
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                districts={districts}
+                // districts={districts}
                 users={users}
                 refresh={() => fetchBlocks(pagination.pageIndex, pagination.pageSize)}
             />

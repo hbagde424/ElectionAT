@@ -143,10 +143,10 @@ export default function BoothView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
                             <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>District</Typography>
                             <Chip label={data.district_id?.name || 'N/A'} color="success" size="small" />
-                        </Grid>
+                        </Grid> */}
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
                             <Chip label={data.block_id?.name || 'N/A'} color="default" size="small" />

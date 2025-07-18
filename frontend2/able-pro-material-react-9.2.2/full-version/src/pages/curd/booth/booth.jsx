@@ -32,7 +32,7 @@ export default function BoothsListPage() {
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
-    const [districts, setDistricts] = useState([]);
+    // const [districts, setDistricts] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -46,14 +46,14 @@ export default function BoothsListPage() {
                 divisionsRes, 
                 parliamentsRes, 
                 assembliesRes, 
-                districtsRes,
+                // districtsRes,
                 blocksRes
             ] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
                 fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/districts'),
+                // fetch('http://localhost:5000/api/districts'),
                 fetch('http://localhost:5000/api/blocks')
             ]);
 
@@ -62,14 +62,14 @@ export default function BoothsListPage() {
                 divisionsData, 
                 parliamentsData, 
                 assembliesData, 
-                districtsData,
+                // districtsData,
                 blocksData
             ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
-                districtsRes.json(),
+                // districtsRes.json(),
                 blocksRes.json()
             ]);
 
@@ -77,7 +77,7 @@ export default function BoothsListPage() {
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (parliamentsData.success) setParliaments(parliamentsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (districtsData.success) setDistricts(districtsData.data);
+            // if (districtsData.success) setDistricts(districtsData.data);
             if (blocksData.success) setBlocks(blocksData.data);
 
         } catch (error) {
@@ -213,18 +213,18 @@ export default function BoothsListPage() {
                 />
             )
         },
-        {
-            header: 'District',
-            accessorKey: 'district_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="success"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
+        // {
+        //     header: 'District',
+        //     accessorKey: 'district_id',
+        //     cell: ({ getValue }) => (
+        //         <Chip
+        //             label={getValue()?.name || 'N/A'}
+        //             color="success"
+        //             size="small"
+        //             variant="outlined"
+        //         />
+        //     )
+        // },
         {
             header: 'Division',
             accessorKey: 'division_id',
@@ -349,7 +349,7 @@ export default function BoothsListPage() {
             Block: item.block_id?.name || '',
             Assembly: item.assembly_id?.name || '',
             Parliament: item.parliament_id?.name || '',
-            District: item.district_id?.name || '',
+            // District: item.district_id?.name || '',
             Division: item.division_id?.name || '',
             State: item.state_id?.name || '',
             'Created By': item.created_by?.username || '',
@@ -455,7 +455,7 @@ export default function BoothsListPage() {
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                districts={districts}
+                // districts={districts}
                 blocks={blocks}
                 refresh={() => fetchBooths(pagination.pageIndex, pagination.pageSize)}
             />
