@@ -24,6 +24,7 @@ export default function GenderModal({
     const [formData, setFormData] = useState({
         male: 0,
         female: 0,
+        others: 0,
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -44,6 +45,7 @@ export default function GenderModal({
             setFormData({
                 male: genderEntry.male || 0,
                 female: genderEntry.female || 0,
+                others: genderEntry.others || 0,
                 state_id: genderEntry.state_id?._id?.toString() || genderEntry.state_id?.toString() || '',
                 division_id: genderEntry.division_id?._id?.toString() || genderEntry.division_id?.toString() || '',
                 parliament_id: genderEntry.parliament_id?._id?.toString() || genderEntry.parliament_id?.toString() || '',
@@ -55,6 +57,7 @@ export default function GenderModal({
             setFormData({
                 male: 0,
                 female: 0,
+                others: 0,
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -225,7 +228,7 @@ export default function GenderModal({
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation
-        const requiredFields = ['male', 'female', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
+        const requiredFields = ['male', 'female', 'others', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
         for (const field of requiredFields) {
             if (!formData[field] && formData[field] !== 0) {
                 return;
@@ -282,9 +285,9 @@ export default function GenderModal({
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{genderEntry ? 'Edit Gender Entry' : 'Add Gender Entry'}</DialogTitle>
             <DialogContent>
-                <Grid container spacing={2} mt={1}>
+                <Grid container spacing={4} mt={1}>
                     {/* Row 1: Male and Female Count */}
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel required>Male Count</InputLabel>
                             <TextField
@@ -301,7 +304,7 @@ export default function GenderModal({
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel required>Female Count</InputLabel>
                             <TextField
@@ -313,6 +316,23 @@ export default function GenderModal({
                                 required
                                 error={submitted && formData.female === undefined}
                                 helperText={submitted && formData.female === undefined ? 'Female count is required' : ''}
+                                inputProps={{ min: 0 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <Stack spacing={1}>
+                            <InputLabel required>others Count</InputLabel>
+                            <TextField
+                                name="others"
+                                type="number"
+                                value={formData.others}
+                                onChange={handleNumberChange}
+                                fullWidth
+                                required
+                                error={submitted && formData.others === undefined}
+                                helperText={submitted && formData.others === undefined ? 'others count is required' : ''}
                                 inputProps={{ min: 0 }}
                             />
                         </Stack>

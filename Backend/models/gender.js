@@ -13,6 +13,12 @@ const genderSchema = new mongoose.Schema({
     min: [0, 'Female count cannot be negative'],
     index: true
   },
+  others: {
+    type: Number,
+    required: [true, 'others count is required'],
+    min: [0, 'others count cannot be negative'],
+    index: true
+  },
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',
@@ -78,7 +84,7 @@ genderSchema.pre('save', function(next) {
 });
 
 // Indexes for better performance
-genderSchema.index({ male: 1, female: 1 });
+genderSchema.index({ male: 1, female: 1, others: 1 });
 genderSchema.index({ 
   state_id: 1,
   division_id: 1, 
