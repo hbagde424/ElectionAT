@@ -5,8 +5,8 @@ const {
   createCandidate,
   updateCandidate,
   deleteCandidate,
-  getCandidatesByAssembly,
-  getCandidatesByParty
+  getCandidatesByParty,
+  getCandidatesByYear
 } = require('../controllers/candidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -40,7 +40,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for candidate names
+ *         description: Search term for candidate names or caste
  *       - in: query
  *         name: party
  *         schema:
@@ -75,7 +75,7 @@ const router = express.Router();
  *         name: caste
  *         schema:
  *           type: string
- *         description: Caste to filter by
+ *         description: Caste to filter by (General, OBC, SC, ST, Other)
  *     responses:
  *       200:
  *         description: List of candidates
@@ -147,7 +147,7 @@ router.get('/:id', getCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createCandidate);
+router.post('/', protect, authorize('admin', 'superAdmin'), createCandidate);
 
 /**
  * @swagger
@@ -179,13 +179,13 @@ router.post('/', protect, authorize('superAdmin'), createCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateCandidate);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), updateCandidate);
 
 /**
  * @swagger
  * /api/candidates/{id}:
  *   delete:
- *     summary: Delete candidate
+ *     summary: Delete candidate (soft delete)
  *     tags: [Candidates]
  *     security:
  *       - bearerAuth: []
@@ -197,46 +197,13 @@ router.put('/:id', protect, authorize('superAdmin'), updateCandidate);
  *           type: string
  *     responses:
  *       200:
- *         description: Candidate deleted
+ *         description: Candidate deactivated
  *       401:
  *         description: Not authorized
  *       404:
  *         description: Candidate not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteCandidate);
-
-/**
- * @swagger
- * /api/candidates/assembly/{assemblyId}:
- *   get:
- *     summary: Get candidates by assembly
- *     tags: [Candidates]
- *     parameters:
- *       - in: path
- *         name: assemblyId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of candidates for the assembly
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Candidate'
- *       404:
- *         description: Assembly not found
- */
-router.get('/assembly/:assemblyId', getCandidatesByAssembly);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteCandidate);
 
 /**
  * @swagger
@@ -273,6 +240,39 @@ router.get('/party/:partyId', getCandidatesByParty);
 
 /**
  * @swagger
+ * /api/candidates/year/{yearId}:
+ *   get:
+ *     summary: Get candidates by election year
+ *     tags: [Candidates]
+ *     parameters:
+ *       - in: path
+ *         name: yearId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of candidates for the election year
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Candidate'
+ *       404:
+ *         description: Election year not found
+ */
+router.get('/year/:yearId', getCandidatesByYear);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     Candidate:
@@ -290,7 +290,7 @@ router.get('/party/:partyId', getCandidatesByParty);
  *       properties:
  *         name:
  *           type: string
- *           description: Candidate name
+ *           description: Candidate's full name
  *           example: "John Doe"
  *         party_id:
  *           type: string
@@ -298,11 +298,11 @@ router.get('/party/:partyId', getCandidatesByParty);
  *           example: "507f1f77bcf86cd799439011"
  *         assembly_id:
  *           type: string
- *           description: Reference to Assembly
+ *           description: Reference to Assembly constituency
  *           example: "507f1f77bcf86cd799439012"
  *         parliament_id:
  *           type: string
- *           description: Reference to Parliament
+ *           description: Reference to Parliament constituency
  *           example: "507f1f77bcf86cd799439013"
  *         state_id:
  *           type: string
@@ -323,36 +323,32 @@ router.get('/party/:partyId', getCandidatesByParty);
  *           example: "OBC"
  *         criminal_cases:
  *           type: number
- *           description: Number of criminal cases
+ *           description: Number of criminal cases against the candidate
  *           example: 2
  *         assets:
  *           type: string
  *           description: Description of assets
- *           example: "Rs. 5 crore property"
+ *           example: "House worth ₹50 lakh, agricultural land"
  *         liabilities:
  *           type: string
  *           description: Description of liabilities
- *           example: "Rs. 50 lakh loan"
+ *           example: "Bank loan of ₹10 lakh"
  *         education:
  *           type: string
- *           description: Education qualification
- *           example: "MBA"
+ *           description: Educational qualification
+ *           example: "Post Graduate"
  *         photo:
  *           type: string
- *           description: URL to candidate photo
- *           example: "https://example.com/photo.jpg"
+ *           description: URL to candidate's photo
+ *           example: "https://example.com/photos/john-doe.jpg"
  *         is_active:
  *           type: boolean
- *           description: Whether candidate is active
- *           example: true
+ *           description: Whether the candidate is active
+ *           default: true
  *         created_by:
  *           type: string
  *           description: Reference to User who created
  *           example: "507f1f77bcf86cd799439022"
- *         updated_by:
- *           type: string
- *           description: Reference to User who last updated
- *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time

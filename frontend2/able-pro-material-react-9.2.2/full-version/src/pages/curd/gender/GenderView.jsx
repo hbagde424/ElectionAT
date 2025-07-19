@@ -16,7 +16,7 @@ export default function GenderView({ data }) {
         });
     };
 
-    const totalCount = data.male + data.female;
+    const totalCount = data.male + data.female + data.others;
 
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
@@ -60,6 +60,18 @@ export default function GenderView({ data }) {
                             </Typography>
                         </Box>
 
+                         <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <People size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    others Count
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.others || '0'}
+                            </Typography>
+                        </Box>
+
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <Profile size="16" />
@@ -76,11 +88,11 @@ export default function GenderView({ data }) {
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <Profile size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
-                                    Female Percentage
+                                    Others Percentage
                                 </Typography>
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
-                                {totalCount > 0 ? ((data.female / totalCount) * 100).toFixed(2) + '%' : '0%'}
+                                {totalCount > 0 ? ((data.others / totalCount) * 100).toFixed(2) + '%' : '0%'}
                             </Typography>
                         </Box>
                     </Stack>

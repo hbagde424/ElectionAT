@@ -134,10 +134,19 @@ export default function GenderListPage() {
             )
         },
         {
+            header: 'others Count',
+            accessorKey: 'others',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue()}
+                </Typography>
+            )
+        },
+        {
             header: 'Total',
             cell: ({ row }) => (
                 <Typography fontWeight="bold">
-                    {row.original.male + row.original.female}
+                    {row.original.male + row.original.female+ row.original.others}
                 </Typography>
             )
         },
@@ -207,6 +216,18 @@ export default function GenderListPage() {
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Booth Number',
+            accessorKey: 'booth',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
                     color="error"
                     size="small"
                     variant="outlined"
@@ -302,13 +323,15 @@ export default function GenderListPage() {
         setCsvData(allData.map(item => ({
             'Male Count': item.male,
             'Female Count': item.female,
-            'Total': item.male + item.female,
+            'others Count': item.others,
+            'Total': item.male + item.female+ item.others,
             'State': item.state?.name || '',
             'Division': item.division?.name || '',
             'Parliament': item.parliament?.name || '',
             'Assembly': item.assembly?.name || '',
             'Block': item.block?.name || '',
             'Booth': item.booth?.name || '',
+            'Booth Number': item.booth?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at
         })));
