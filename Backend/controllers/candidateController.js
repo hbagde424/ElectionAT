@@ -12,8 +12,8 @@ const ElectionYear = require('../models/electionYear');
 exports.getCandidates = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) ;
+    const limit = parseInt(req.query.limit) ;
     const skip = (page - 1) * limit;
 
     // Basic query
