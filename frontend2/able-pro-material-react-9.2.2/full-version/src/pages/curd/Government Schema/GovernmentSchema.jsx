@@ -32,8 +32,8 @@ export default function GovernmentsListPage() {
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
-    const [blocks, setBlocks] = useState([]);
-    const [booths, setBooths] = useState([]);
+    // const [blocks, setBlocks] = useState([]);
+    // const [booths, setBooths] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -46,15 +46,14 @@ export default function GovernmentsListPage() {
                 divisionsRes, 
                 parliamentsRes, 
                 assembliesRes, 
-                blocksRes,
-                boothsRes
+               
             ] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
                 fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths')
+                // fetch('http://localhost:5000/api/blocks'),
+                // fetch('http://localhost:5000/api/booths')
             ]);
 
             const [
@@ -62,23 +61,23 @@ export default function GovernmentsListPage() {
                 divisionsData, 
                 parliamentsData, 
                 assembliesData, 
-                blocksData,
-                boothsData
+                // blocksData,
+                // boothsData
             ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
-                blocksRes.json(),
-                boothsRes.json()
+                // blocksRes.json(),
+                // boothsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (parliamentsData.success) setParliaments(parliamentsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
-            if (boothsData.success) setBooths(boothsData.data);
+            // if (blocksData.success) setBlocks(blocksData.data);
+            // if (boothsData.success) setBooths(boothsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -224,30 +223,30 @@ export default function GovernmentsListPage() {
                 />
             )
         },
-        {
-            header: 'Block',
-            accessorKey: 'block_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="default"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Booth',
-            accessorKey: 'booth_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="success"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
+        // {
+        //     header: 'Block',
+        //     accessorKey: 'block_id',
+        //     cell: ({ getValue }) => (
+        //         <Chip
+        //             label={getValue()?.name || 'N/A'}
+        //             color="default"
+        //             size="small"
+        //             variant="outlined"
+        //         />
+        //     )
+        // },
+        // {
+        //     header: 'Booth',
+        //     accessorKey: 'booth_id',
+        //     cell: ({ getValue }) => (
+        //         <Chip
+        //             label={getValue()?.name || 'N/A'}
+        //             color="success"
+        //             size="small"
+        //             variant="outlined"
+        //         />
+        //     )
+        // },
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -343,8 +342,8 @@ export default function GovernmentsListPage() {
             Division: item.division_id?.name || '',
             Parliament: item.parliament_id?.name || '',
             Assembly: item.assembly_id?.name || '',
-            Block: item.block_id?.name || '',
-            Booth: item.booth_id?.name || '',
+            // Block: item.block_id?.name || '',
+            // Booth: item.booth_id?.name || '',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at
         })));
@@ -446,8 +445,8 @@ export default function GovernmentsListPage() {
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                blocks={blocks}
-                booths={booths}
+                // blocks={blocks}
+                // booths={booths}
                 refresh={() => fetchGovernments(pagination.pageIndex, pagination.pageSize)}
             />
 
