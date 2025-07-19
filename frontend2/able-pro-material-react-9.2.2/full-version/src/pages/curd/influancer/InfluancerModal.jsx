@@ -14,7 +14,6 @@ export default function InfluencerModal({
     divisions,
     parliaments,
     assemblies,
-    districts,
     blocks,
     booths,
     refresh
@@ -32,7 +31,6 @@ export default function InfluencerModal({
         division_id: '',
         parliament_id: '',
         assembly_id: '',
-        district_id: '',
         block_id: '',
         booth_id: ''
     });
@@ -41,7 +39,6 @@ export default function InfluencerModal({
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-    const [filteredDistricts, setFilteredDistricts] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
@@ -57,7 +54,6 @@ export default function InfluencerModal({
                 division_id: influencer.division_id?._id?.toString() || influencer.division_id?.toString() || '',
                 parliament_id: influencer.parliament_id?._id?.toString() || influencer.parliament_id?.toString() || '',
                 assembly_id: influencer.assembly_id?._id?.toString() || influencer.assembly_id?.toString() || '',
-                district_id: influencer.district_id?._id?.toString() || influencer.district_id?.toString() || '',
                 block_id: influencer.block_id?._id?.toString() || influencer.block_id?.toString() || '',
                 booth_id: influencer.booth_id?._id?.toString() || influencer.booth_id?.toString() || ''
             });
@@ -72,7 +68,6 @@ export default function InfluencerModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             });
@@ -94,7 +89,6 @@ export default function InfluencerModal({
                     division_id: '',
                     parliament_id: '',
                     assembly_id: '',
-                    district_id: '',
                     block_id: '',
                     booth_id: ''
                 }));
@@ -106,7 +100,6 @@ export default function InfluencerModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             }));
@@ -127,7 +120,6 @@ export default function InfluencerModal({
                     ...prev,
                     parliament_id: '',
                     assembly_id: '',
-                    district_id: '',
                     block_id: '',
                     booth_id: ''
                 }));
@@ -138,7 +130,6 @@ export default function InfluencerModal({
                 ...prev,
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             }));
@@ -158,7 +149,6 @@ export default function InfluencerModal({
                 setFormData(prev => ({
                     ...prev,
                     assembly_id: '',
-                    district_id: '',
                     block_id: '',
                     booth_id: ''
                 }));
@@ -168,37 +158,18 @@ export default function InfluencerModal({
             setFormData(prev => ({
                 ...prev,
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             }));
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Assembly -> District
+    // Assembly -> Blocks
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = districts?.filter(district => {
-                const districtAssemblyId = district.assembly_id?._id || district.assembly_id;
-                return districtAssemblyId === formData.assembly_id;
-            }) || [];
-            setFilteredDistricts(filtered);
-
-            if (formData.district_id && !filtered.find(d => d._id === formData.district_id)) {
-                setFormData(prev => ({ ...prev, district_id: '', block_id: '', booth_id: '' }));
-            }
-        } else {
-            setFilteredDistricts([]);
-            setFormData(prev => ({ ...prev, district_id: '', block_id: '', booth_id: '' }));
-        }
-    }, [formData.assembly_id, districts]);
-
-    // District -> Blocks
-    useEffect(() => {
-        if (formData.district_id) {
             const filtered = blocks?.filter(block => {
-                const blockDistrictId = block.district_id?._id || block.district_id;
-                return blockDistrictId === formData.district_id;
+                const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
+                return blockAssemblyId === formData.assembly_id;
             }) || [];
             setFilteredBlocks(filtered);
 
@@ -209,7 +180,7 @@ export default function InfluencerModal({
             setFilteredBlocks([]);
             setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
         }
-    }, [formData.district_id, blocks]);
+    }, [formData.assembly_id, blocks]);
 
     // Block -> Booths
     useEffect(() => {
@@ -242,7 +213,7 @@ export default function InfluencerModal({
         const requiredFields = [
             'name', 'contact_number', 'full_address',
             'state_id', 'division_id', 'parliament_id',
-            'assembly_id', 'district_id', 'block_id', 'booth_id'
+            'assembly_id', 'block_id', 'booth_id'
         ];
         
         for (const field of requiredFields) {
@@ -298,273 +269,213 @@ export default function InfluencerModal({
     };
 
     return (
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
+        <Dialog open={open} onClose={() => modalToggler(false)} maxWidth="md" fullWidth>
             <DialogTitle>{influencer ? 'Edit Influencer' : 'Add Influencer'}</DialogTitle>
             <DialogContent>
-                <Grid container spacing={2} mt={1}>
-                    {/* Row 1: Name and Contact Number */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Name</InputLabel>
-                            <TextField
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.name}
-                                helperText={submitted && !formData.name ? 'Name is required' : ''}
-                                placeholder="Enter influencer name"
-                            />
-                        </Stack>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                    <Grid item xs={12} md={6}>
+                        <TextField
+                            fullWidth
+                            label="Name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            error={submitted && !formData.name}
+                            helperText={submitted && !formData.name ? 'Name is required' : ''}
+                        />
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Contact Number</InputLabel>
-                            <TextField
-                                name="contact_number"
-                                value={formData.contact_number}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.contact_number}
-                                helperText={submitted && !formData.contact_number ? 'Contact number is required' : ''}
-                                placeholder="Enter contact number"
-                            />
-                        </Stack>
+                    <Grid item xs={12} md={6}>
+                        <TextField
+                            fullWidth
+                            label="Contact Number"
+                            name="contact_number"
+                            value={formData.contact_number}
+                            onChange={handleChange}
+                            error={submitted && !formData.contact_number}
+                            helperText={submitted && !formData.contact_number ? 'Contact number is required' : ''}
+                        />
                     </Grid>
-
-                    {/* Row 2: Alternate Number and Email */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Alternate Number</InputLabel>
-                            <TextField
-                                name="alternate_number"
-                                value={formData.alternate_number}
-                                onChange={handleChange}
-                                fullWidth
-                                placeholder="Enter alternate number"
-                            />
-                        </Stack>
+                    <Grid item xs={12} md={6}>
+                        <TextField
+                            fullWidth
+                            label="Alternate Number"
+                            name="alternate_number"
+                            value={formData.alternate_number}
+                            onChange={handleChange}
+                        />
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Email</InputLabel>
-                            <TextField
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                fullWidth
-                                type="email"
-                                placeholder="Enter email address"
-                            />
-                        </Stack>
+                    <Grid item xs={12} md={6}>
+                        <TextField
+                            fullWidth
+                            label="Email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                        />
                     </Grid>
-
-                    {/* Row 3: Full Address */}
                     <Grid item xs={12}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Full Address</InputLabel>
-                            <TextField
-                                name="full_address"
-                                value={formData.full_address}
+                        <TextField
+                            fullWidth
+                            label="Full Address"
+                            name="full_address"
+                            value={formData.full_address}
+                            onChange={handleChange}
+                            multiline
+                            rows={3}
+                            error={submitted && !formData.full_address}
+                            helperText={submitted && !formData.full_address ? 'Address is required' : ''}
+                        />
+                    </Grid>
+
+                    {/* Location Hierarchy */}
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={submitted && !formData.state_id}>
+                            <InputLabel>State</InputLabel>
+                            <Select
+                                name="state_id"
+                                value={formData.state_id}
+                                label="State"
                                 onChange={handleChange}
-                                fullWidth
-                                required
-                                multiline
-                                rows={3}
-                                error={submitted && !formData.full_address}
-                                helperText={submitted && !formData.full_address ? 'Full address is required' : ''}
-                                placeholder="Enter full address"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 4: State and Division */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.state_id}>
-                                <Select
-                                    name="state_id"
-                                    value={formData.state_id}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <MenuItem value="">Select State</MenuItem>
-                                    {states?.map((state) => (
-                                        <MenuItem key={state._id} value={state._id}>
-                                            {state.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            >
+                                {states?.map((state) => (
+                                    <MenuItem key={state._id} value={state._id}>
+                                        {state.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                             {submitted && !formData.state_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>State is required</Box>
+                                <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 1 }}>
+                                    State is required
+                                </Box>
                             )}
-                        </Stack>
+                        </FormControl>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.division_id}>
-                                <Select
-                                    name="division_id"
-                                    value={formData.division_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.state_id}
-                                >
-                                    <MenuItem value="">Select Division</MenuItem>
-                                    {filteredDivisions.map((division) => (
-                                        <MenuItem key={division._id} value={division._id}>
-                                            {division.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={submitted && !formData.division_id}>
+                            <InputLabel>Division</InputLabel>
+                            <Select
+                                name="division_id"
+                                value={formData.division_id}
+                                label="Division"
+                                onChange={handleChange}
+                                disabled={!formData.state_id}
+                            >
+                                {filteredDivisions?.map((division) => (
+                                    <MenuItem key={division._id} value={division._id}>
+                                        {division.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                             {submitted && !formData.division_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Division is required</Box>
+                                <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 1 }}>
+                                    Division is required
+                                </Box>
                             )}
-                        </Stack>
+                        </FormControl>
                     </Grid>
 
-                    {/* Row 5: Parliament and Assembly */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.parliament_id}>
-                                <Select
-                                    name="parliament_id"
-                                    value={formData.parliament_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.division_id}
-                                >
-                                    <MenuItem value="">Select Parliament</MenuItem>
-                                    {filteredParliaments.map((parliament) => (
-                                        <MenuItem key={parliament._id} value={parliament._id}>
-                                            {parliament.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={submitted && !formData.parliament_id}>
+                            <InputLabel>Parliament</InputLabel>
+                            <Select
+                                name="parliament_id"
+                                value={formData.parliament_id}
+                                label="Parliament"
+                                onChange={handleChange}
+                                disabled={!formData.division_id}
+                            >
+                                {filteredParliaments?.map((parliament) => (
+                                    <MenuItem key={parliament._id} value={parliament._id}>
+                                        {parliament.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                             {submitted && !formData.parliament_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Parliament is required</Box>
+                                <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 1 }}>
+                                    Parliament is required
+                                </Box>
                             )}
-                        </Stack>
+                        </FormControl>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.assembly_id}>
-                                <Select
-                                    name="assembly_id"
-                                    value={formData.assembly_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.parliament_id}
-                                >
-                                    <MenuItem value="">Select Assembly</MenuItem>
-                                    {filteredAssemblies.map((assembly) => (
-                                        <MenuItem key={assembly._id} value={assembly._id}>
-                                            {assembly.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={submitted && !formData.assembly_id}>
+                            <InputLabel>Assembly</InputLabel>
+                            <Select
+                                name="assembly_id"
+                                value={formData.assembly_id}
+                                label="Assembly"
+                                onChange={handleChange}
+                                disabled={!formData.parliament_id}
+                            >
+                                {filteredAssemblies?.map((assembly) => (
+                                    <MenuItem key={assembly._id} value={assembly._id}>
+                                        {assembly.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                             {submitted && !formData.assembly_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Assembly is required</Box>
+                                <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 1 }}>
+                                    Assembly is required
+                                </Box>
                             )}
-                        </Stack>
+                        </FormControl>
                     </Grid>
 
-                    {/* Row 6: District and Block */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>District</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.district_id}>
-                                <Select
-                                    name="district_id"
-                                    value={formData.district_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
-                                    <MenuItem value="">Select District</MenuItem>
-                                    {filteredDistricts.map((district) => (
-                                        <MenuItem key={district._id} value={district._id}>
-                                            {district.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.district_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>District is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.block_id}>
-                                <Select
-                                    name="block_id"
-                                    value={formData.block_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.district_id}
-                                >
-                                    <MenuItem value="">Select Block</MenuItem>
-                                    {filteredBlocks.map((block) => (
-                                        <MenuItem key={block._id} value={block._id}>
-                                            {block.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={submitted && !formData.block_id}>
+                            <InputLabel>Block</InputLabel>
+                            <Select
+                                name="block_id"
+                                value={formData.block_id}
+                                label="Block"
+                                onChange={handleChange}
+                                disabled={!formData.assembly_id}
+                            >
+                                {filteredBlocks?.map((block) => (
+                                    <MenuItem key={block._id} value={block._id}>
+                                        {block.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                             {submitted && !formData.block_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Block is required</Box>
+                                <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 1 }}>
+                                    Block is required
+                                </Box>
                             )}
-                        </Stack>
+                        </FormControl>
                     </Grid>
 
-                    {/* Row 7: Booth */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Booth</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.booth_id}>
-                                <Select
-                                    name="booth_id"
-                                    value={formData.booth_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.block_id}
-                                >
-                                    <MenuItem value="">Select Booth</MenuItem>
-                                    {filteredBooths.map((booth) => (
-                                        <MenuItem key={booth._id} value={booth._id}>
-                                            {booth.name} (Booth #{booth.booth_number})
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={submitted && !formData.booth_id}>
+                            <InputLabel>Booth</InputLabel>
+                            <Select
+                                name="booth_id"
+                                value={formData.booth_id}
+                                label="Booth"
+                                onChange={handleChange}
+                                disabled={!formData.block_id}
+                            >
+                                {filteredBooths?.map((booth) => (
+                                    <MenuItem key={booth._id} value={booth._id}>
+                                        {booth.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                             {submitted && !formData.booth_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Booth is required</Box>
+                                <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 1 }}>
+                                    Booth is required
+                                </Box>
                             )}
-                        </Stack>
+                        </FormControl>
                     </Grid>
                 </Grid>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
+            <DialogActions>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                    {influencer ? 'Update' : 'Submit'}
+                <Button onClick={handleSubmit} variant="contained">
+                    {influencer ? 'Update' : 'Save'}
                 </Button>
             </DialogActions>
         </Dialog>
