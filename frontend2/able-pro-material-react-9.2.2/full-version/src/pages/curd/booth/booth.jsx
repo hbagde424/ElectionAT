@@ -36,16 +36,20 @@ export default function BoothsListPage() {
     const [blocks, setBlocks] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState(() => {
+        // Try to restore pagination state from localStorage
+        const saved = localStorage.getItem('boothPagination');
+        return saved ? JSON.parse(saved) : { pageIndex: 0, pageSize: 10 };
+    });
     const [globalFilter, setGlobalFilter] = useState('');
 
     const fetchReferenceData = async () => {
         try {
             const [
-                statesRes, 
-                divisionsRes, 
-                parliamentsRes, 
-                assembliesRes, 
+                statesRes,
+                divisionsRes,
+                parliamentsRes,
+                assembliesRes,
                 // districtsRes,
                 blocksRes
             ] = await Promise.all([
@@ -58,10 +62,10 @@ export default function BoothsListPage() {
             ]);
 
             const [
-                statesData, 
-                divisionsData, 
-                parliamentsData, 
-                assembliesData, 
+                statesData,
+                divisionsData,
+                parliamentsData,
+                assembliesData,
                 // districtsData,
                 blocksData
             ] = await Promise.all([
@@ -106,6 +110,11 @@ export default function BoothsListPage() {
         fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    // Save pagination state to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('boothPagination', JSON.stringify(pagination));
+    }, [pagination]);
 
     const handleDeleteOpen = (id) => {
         setBoothDeleteId(id);
@@ -272,7 +281,7 @@ export default function BoothsListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>

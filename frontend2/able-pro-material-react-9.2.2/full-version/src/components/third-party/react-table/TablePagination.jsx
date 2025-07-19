@@ -25,8 +25,12 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
       });
   }
 
-  // eslint-disable-next-line
-  useEffect(() => setPageSize(initialPageSize || 10), []);
+  // Only set initial page size if it hasn't been set before
+  useEffect(() => {
+    if (getState().pagination.pageSize === undefined) {
+      setPageSize(initialPageSize || 10);
+    }
+  }, [initialPageSize, setPageSize, getState]);
 
   const handleClose = () => {
     setOpen(false);
@@ -41,7 +45,9 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
   };
 
   const handleChange = (event) => {
-    setPageSize(Number(event.target.value));
+    const newSize = Number(event.target.value);
+    setPageSize(newSize);
+    setPageIndex(0); // Reset to first page when changing page size
   };
 
   return (
