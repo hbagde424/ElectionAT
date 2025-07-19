@@ -33,28 +33,28 @@ exports.register = async (req, res, next) => {
 
     // Verify references based on role
     let verificationPromises = [];
-    
+
     if (role === 'State' && req.body.state_ids) {
-      verificationPromises.push(State.find({ _id: { $in: req.body.state_ids }}));
+      verificationPromises.push(State.find({ _id: { $in: req.body.state_ids } }));
     }
     if (role === 'Division' && req.body.division_ids) {
-      verificationPromises.push(Division.find({ _id: { $in: req.body.division_ids }}));
+      verificationPromises.push(Division.find({ _id: { $in: req.body.division_ids } }));
     }
     if (role === 'Parliament' && req.body.parliament_ids) {
-      verificationPromises.push(Parliament.find({ _id: { $in: req.body.parliament_ids }}));
+      verificationPromises.push(Parliament.find({ _id: { $in: req.body.parliament_ids } }));
     }
     if (role === 'Block' && req.body.block_ids) {
-      verificationPromises.push(Block.find({ _id: { $in: req.body.block_ids }}));
+      verificationPromises.push(Block.find({ _id: { $in: req.body.block_ids } }));
     }
     if (role === 'Assembly' && req.body.assembly_ids) {
-      verificationPromises.push(Assembly.find({ _id: { $in: req.body.assembly_ids }}));
+      verificationPromises.push(Assembly.find({ _id: { $in: req.body.assembly_ids } }));
     }
     if (role === 'Booth' && req.body.booth_ids) {
-      verificationPromises.push(Booth.find({ _id: { $in: req.body.booth_ids }}));
+      verificationPromises.push(Booth.find({ _id: { $in: req.body.booth_ids } }));
     }
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result || result.length !== req.body[`${role.toLowerCase()}_ids`]?.length) {
         return res.status(400).json({
@@ -96,17 +96,17 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!username || !password) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide username and password'
+        message: 'Please provide email and password'
       });
     }
 
-    const user = await User.findOne({ $or: [{ username }, { email: username }, { mobile: username }] }).select('+password');
-    
+    const user = await User.findOne({ $or: [{ email }, { mobile: email }, { username: email }] }).select('+password');
+
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         success: false,
@@ -203,7 +203,7 @@ exports.getUsers = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     let query = {};
-    
+
     // Non-superAdmins can only see users they created
     if (req.user.role !== 'SuperAdmin') {
       query.created_by = req.user.id;
@@ -256,7 +256,7 @@ exports.getUsers = async (req, res, next) => {
 exports.getUser = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
-    
+
     // Non-superAdmins can only see users they created
     if (req.user.role !== 'SuperAdmin') {
       query.created_by = req.user.id;
@@ -294,7 +294,7 @@ exports.getUser = async (req, res, next) => {
 exports.updateUser = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
-    
+
     // Non-superAdmins can only update users they created
     if (req.user.role !== 'SuperAdmin') {
       query.created_by = req.user.id;
@@ -312,7 +312,7 @@ exports.updateUser = async (req, res, next) => {
     if (req.body.role || req.body[`${req.body.role?.toLowerCase()}_ids`]) {
       const role = req.body.role || existingUser.role;
       const ids = req.body[`${role.toLowerCase()}_ids`] || existingUser[`${role.toLowerCase()}_ids`];
-      
+
       let Model;
       switch (role) {
         case 'State': Model = State; break;
@@ -367,7 +367,7 @@ exports.updateUser = async (req, res, next) => {
 exports.deleteUser = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
-    
+
     // Non-superAdmins can only delete users they created
     if (req.user.role !== 'SuperAdmin') {
       query.created_by = req.user.id;
@@ -406,7 +406,7 @@ exports.deleteUser = async (req, res, next) => {
 exports.toggleActive = async (req, res, next) => {
   try {
     let query = { _id: req.params.id };
-    
+
     // Non-superAdmins can only toggle users they created
     if (req.user.role !== 'SuperAdmin') {
       query.created_by = req.user.id;
