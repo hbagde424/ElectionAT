@@ -94,22 +94,14 @@ const candidateSchema = new mongoose.Schema({
 });
 
 // Update timestamp and updated_by before saving
-candidateSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  if (this.isNew) {
-    this.updated_by = this.created_by;
-  }
-  next();
-});
+// candidateSchema.pre('save', function(next) {
+//   this.updated_at = Date.now();
+//   if (this.isNew) {
+//     this.updated_by = this.created_by;
+//   }
+//   next();
+// });
 
-// Add these indexes to your schema for better performance
-// In your candidateSchema (replace the existing index)
-// In your candidateSchema
-// Remove unique constraint
-candidateSchema.index(
-  { assembly_id: 1, party_id: 1, election_year: 1 },
-  { name: 'candidate_assembly_party_election_index' }
-);
 
 
 module.exports = mongoose.model('Candidate', candidateSchema);

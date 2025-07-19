@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const Candidate = require('../models/Candidate');
 const Party = require('../models/party');
 const Assembly = require('../models/assembly');
@@ -7,49 +6,75 @@ const State = require('../models/state');
 const Division = require('../models/division');
 const ElectionYear = require('../models/electionYear');
 
-// Helper function to populate candidate references
-const populateCandidate = (query) => {
-  return query
-    .populate('party_id', 'name symbol')
-    .populate('assembly_id', 'name')
-    .populate('parliament_id', 'name')
-    .populate('state_id', 'name')
-    .populate('division_id', 'name')
-    .populate('election_year', 'year')
-    .populate('created_by', 'username')
-    .populate('updated_by', 'username');
-};
-
 // @desc    Get all candidates
 // @route   GET /api/candidates
 // @access  Public
 exports.getCandidates = async (req, res, next) => {
   try {
+    // Pagination
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit);
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    let query = Candidate.find();
-
-    // Apply filters
-    const filters = ['party', 'assembly', 'parliament', 'state', 'division', 'election_year', 'caste'];
-    filters.forEach(filter => {
-      if (req.query[filter]) {
-        const field = filter === 'election_year' ? 'election_year' : `${filter}_id`;
-        query = query.where(field).equals(req.query[filter]);
-      }
-    });
+    // Basic query
+    let query = Candidate.find({ is_active: true })
+      .populate('party_id', 'name symbol')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('election_year', 'year')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+      .sort({ name: 1 });
 
     // Search functionality
     if (req.query.search) {
-      query = query.find({ $text: { $search: req.query.search } });
+      query = query.find({
+        $or: [
+          { name: { $regex: req.query.search, $options: 'i' } },
+          { caste: { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
     }
 
+    // Filter by party
+    if (req.query.party) {
+      query = query.where('party_id').equals(req.query.party);
+    }
+
+    // Filter by assembly
+    if (req.query.assembly) {
+      query = query.where('assembly_id').equals(req.query.assembly);
+    }
+
+    // Filter by parliament
+    if (req.query.parliament) {
+      query = query.where('parliament_id').equals(req.query.parliament);
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('state_id').equals(req.query.state);
+    }
+
+    // Filter by division
+    if (req.query.division) {
+      query = query.where('division_id').equals(req.query.division);
+    }
+
+    // Filter by election year
+    if (req.query.election_year) {
+      query = query.where('election_year').equals(req.query.election_year);
+    }
+
+    // Filter by caste
+    if (req.query.caste) {
+      query = query.where('caste').equals(req.query.caste);
+    }
+
+    const candidates = await query.skip(skip).limit(limit).exec();
     const total = await Candidate.countDocuments(query.getFilter());
-    const candidates = await populateCandidate(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ name: 1 });
 
     res.status(200).json({
       success: true,
@@ -69,7 +94,15 @@ exports.getCandidates = async (req, res, next) => {
 // @access  Public
 exports.getCandidate = async (req, res, next) => {
   try {
-    const candidate = await populateCandidate(Candidate.findById(req.params.id));
+    const candidate = await Candidate.findById(req.params.id)
+      .populate('party_id', 'name symbol')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('election_year', 'year')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     if (!candidate) {
       return res.status(404).json({
@@ -93,70 +126,39 @@ exports.getCandidate = async (req, res, next) => {
 exports.createCandidate = async (req, res, next) => {
   try {
     // Verify all references exist
-    const references = {
-      party_id: Party,
-      assembly_id: Assembly,
-      parliament_id: Parliament,
-      state_id: State,
-      division_id: Division,
-      election_year: ElectionYear
-    };
+    const [
+      party,
+      assembly,
+      parliament,
+      state,
+      division,
+      electionYear
+    ] = await Promise.all([
+      Party.findById(req.body.party_id),
+      Assembly.findById(req.body.assembly_id),
+      Parliament.findById(req.body.parliament_id),
+      State.findById(req.body.state_id),
+      Division.findById(req.body.division_id),
+      ElectionYear.findById(req.body.election_year)
+    ]);
 
-    // Validate reference IDs
-    for (const [field, Model] of Object.entries(references)) {
-      // Check if ID is valid format
-      if (!mongoose.Types.ObjectId.isValid(req.body[field])) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid ID format for ${field}`,
-          field
-        });
-      }
-
-      // Check if referenced document exists
-      if (!await Model.findById(req.body[field])) {
-        return res.status(404).json({
-          success: false,
-          message: `${Model.modelName} not found`,
-          field
-        });
-      }
-    }
-
-    // Check for existing candidate with same assembly, party and election year
-    const existingCandidate = await Candidate.findOne({
-      assembly_id: req.body.assembly_id,
-      party_id: req.body.party_id,
-      election_year: req.body.election_year
-    })
-      .populate('assembly_id', 'name')
-      .populate('party_id', 'name')
-      .populate('election_year', 'year');
-
-
-    if (existingCandidate) {
-      return res.status(409).json({
-        success: false,
-        message: 'Duplicate candidate detected',
-        conflict: {
-          assembly: {
-            id: existingCandidate.assembly_id._id,
-            name: existingCandidate.assembly_id.name
-          },
-          party: {
-            id: existingCandidate.party_id._id,
-            name: existingCandidate.party_id.name
-          },
-          election_year: {
-            id: existingCandidate.election_year._id,
-            year: existingCandidate.election_year.year
-          }
-        },
-        suggestion: `A candidate from ${existingCandidate.party_id.name} already exists for ${existingCandidate.assembly_id.name} in election year ${existingCandidate.election_year.year}`
+    // Check reference existence
+    const missingRefs = [];
+    if (!party) missingRefs.push('Party');
+    if (!assembly) missingRefs.push('Assembly');
+    if (!parliament) missingRefs.push('Parliament');
+    if (!state) missingRefs.push('State');
+    if (!division) missingRefs.push('Division');
+    if (!electionYear) missingRefs.push('Election Year');
+    
+    if (missingRefs.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `${missingRefs.join(', ')} not found` 
       });
     }
 
-    // Verify user authentication
+    // Check if user exists in request
     if (!req.user?.id) {
       return res.status(401).json({
         success: false,
@@ -164,62 +166,37 @@ exports.createCandidate = async (req, res, next) => {
       });
     }
 
-    // Prepare candidate data
-    const candidateData = {
-      ...req.body,
-      created_by: req.user.id,
-      updated_by: req.user.id
-    };
-
-    // Create new candidate
-    const candidate = await Candidate.create(candidateData);
-
-    // Populate all referenced fields for the response
-    const populatedCandidate = await Candidate.findById(candidate._id)
-      .populate('party_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
-      .populate('election_year', 'year')
-      .populate('created_by', 'name email')
-      .populate('updated_by', 'name email');
-
-    // Return successful response
-    res.status(201).json({
-      success: true,
-      data: populatedCandidate
+    // Check for existing candidate with same name, party, and election year
+    const existingCandidate = await Candidate.findOne({
+      name: req.body.name,
+      party_id: req.body.party_id,
+      election_year: req.body.election_year
     });
 
-  } catch (err) {
-    if (err.code === 11000) {
-      // Handle MongoDB duplicate key error
-      const duplicateFields = Object.keys(err.keyPattern);
-      const formattedValues = {};
-
-      // Format values for better readability
-      if (err.keyValue.assembly_id) {
-        formattedValues.assembly = err.keyValue.assembly_id;
-      }
-      if (err.keyValue.party_id) {
-        formattedValues.party = err.keyValue.party_id;
-      }
-      if (err.keyValue.election_year) {
-        formattedValues.election_year = err.keyValue.election_year;
-      }
-
+    if (existingCandidate) {
       return res.status(409).json({
         success: false,
-        message: 'Database detected duplicate candidate',
-        error: {
-          fields: duplicateFields.map(f =>
-            f === 'assembly_id' ? 'assembly' :
-              f === 'party_id' ? 'party' :
-                f
-          ),
-          values: formattedValues
-        },
-        suggestion: 'Combination of assembly, party and election year must be unique'
+        message: 'Candidate with this name, party, and election year already exists'
+      });
+    }
+
+    const candidateData = {
+      ...req.body,
+      created_by: req.user.id
+    };
+
+    const candidate = await Candidate.create(candidateData);
+
+    res.status(201).json({
+      success: true,
+      data: candidate
+    });
+  } catch (err) {
+    // Fallback error handling
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Duplicate candidate detected. A candidate with this name, party, and election year already exists.'
       });
     }
     next(err);
@@ -241,63 +218,47 @@ exports.updateCandidate = async (req, res, next) => {
     }
 
     // Verify all references exist if being updated
-    const references = {
-      party_id: Party,
-      assembly_id: Assembly,
-      parliament_id: Parliament,
-      state_id: State,
-      division_id: Division,
-      election_year: ElectionYear
-    };
+    const verificationPromises = [];
+    if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
 
-    for (const [field, Model] of Object.entries(references)) {
-      if (req.body[field] && !await Model.findById(req.body[field])) {
+    const verificationResults = await Promise.all(verificationPromises);
+    
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: `${Model.modelName} not found`,
-          field
-        });
-      }
-    }
-
-    // Check for duplicate candidates if unique fields are being updated
-    if (req.body.assembly_id || req.body.parliament_id ||
-      req.body.election_year || req.body.party_id) {
-
-      const duplicateCheck = {
-        assembly_id: req.body.assembly_id || candidate.assembly_id,
-        parliament_id: req.body.parliament_id || candidate.parliament_id,
-        election_year: req.body.election_year || candidate.election_year,
-        party_id: req.body.party_id || candidate.party_id
-      };
-
-      const existing = await Candidate.findOne({
-        ...duplicateCheck,
-        _id: { $ne: candidate._id }
-      });
-
-      if (existing) {
-        return res.status(409).json({
-          success: false,
-          message: 'Another candidate already exists with these details',
-          conflict: duplicateCheck,
-          existingCandidateId: existing._id
+          message: `${result.modelName} not found`
         });
       }
     }
 
     // Set updated_by to current user
-    if (req.user?.id) {
-      req.body.updated_by = req.user.id;
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized - user not identified'
+      });
     }
+    req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
 
-    candidate = await populateCandidate(
-      Candidate.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true
-      })
-    );
+    candidate = await Candidate.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    })
+      .populate('party_id', 'name symbol')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('election_year', 'year')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -305,17 +266,16 @@ exports.updateCandidate = async (req, res, next) => {
     });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({
+      return res.status(400).json({
         success: false,
-        message: 'Duplicate candidate detected',
-        error: err.keyValue
+        message: 'Candidate with this name and party already exists'
       });
     }
     next(err);
   }
 };
 
-// @desc    Delete candidate
+// @desc    Delete candidate (soft delete)
 // @route   DELETE /api/candidates/:id
 // @access  Private (Admin only)
 exports.deleteCandidate = async (req, res, next) => {
@@ -329,37 +289,15 @@ exports.deleteCandidate = async (req, res, next) => {
       });
     }
 
-    await candidate.deleteOne();
+    // Soft delete by setting is_active to false
+    candidate.is_active = false;
+    candidate.updated_by = req.user.id;
+    candidate.updated_at = new Date();
+    await candidate.save();
 
     res.status(200).json({
       success: true,
-      data: { id: req.params.id }
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get candidates by assembly
-// @route   GET /api/candidates/assembly/:assemblyId
-// @access  Public
-exports.getCandidatesByAssembly = async (req, res, next) => {
-  try {
-    if (!await Assembly.findById(req.params.assemblyId)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Assembly not found'
-      });
-    }
-
-    const candidates = await populateCandidate(
-      Candidate.find({ assembly_id: req.params.assemblyId })
-    ).sort({ name: 1 });
-
-    res.status(200).json({
-      success: true,
-      count: candidates.length,
-      data: candidates
+      data: {}
     });
   } catch (err) {
     next(err);
@@ -371,16 +309,57 @@ exports.getCandidatesByAssembly = async (req, res, next) => {
 // @access  Public
 exports.getCandidatesByParty = async (req, res, next) => {
   try {
-    if (!await Party.findById(req.params.partyId)) {
+    // Verify party exists
+    const party = await Party.findById(req.params.partyId);
+    if (!party) {
       return res.status(404).json({
         success: false,
         message: 'Party not found'
       });
     }
 
-    const candidates = await populateCandidate(
-      Candidate.find({ party_id: req.params.partyId })
-    ).sort({ name: 1 });
+    const candidates = await Candidate.find({ 
+      party_id: req.params.partyId,
+      is_active: true 
+    })
+      .sort({ name: 1 })
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('state_id', 'name')
+      .populate('election_year', 'year');
+
+    res.status(200).json({
+      success: true,
+      count: candidates.length,
+      data: candidates
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get candidates by election year
+// @route   GET /api/candidates/year/:yearId
+// @access  Public
+exports.getCandidatesByYear = async (req, res, next) => {
+  try {
+    // Verify election year exists
+    const year = await ElectionYear.findById(req.params.yearId);
+    if (!year) {
+      return res.status(404).json({
+        success: false,
+        message: 'Election year not found'
+      });
+    }
+
+    const candidates = await Candidate.find({ 
+      election_year: req.params.yearId,
+      is_active: true 
+    })
+      .sort({ name: 1 })
+      .populate('party_id', 'name symbol')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name');
 
     res.status(200).json({
       success: true,
