@@ -3,8 +3,6 @@ const State = require('../models/state');
 const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
-const Block = require('../models/block');
-const Booth = require('../models/booth');
 
 // @desc    Get all government projects
 // @route   GET /api/governments
@@ -22,8 +20,6 @@ exports.getGovernments = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -62,16 +58,6 @@ exports.getGovernments = async (req, res, next) => {
       query = query.where('assembly_id').equals(req.query.assembly);
     }
 
-    // Filter by block
-    if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
-    }
-
-    // Filter by booth
-    if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
-    }
-
     const governments = await query.skip(skip).limit(limit).exec();
     const total = await Government.countDocuments(query.getFilter());
 
@@ -98,8 +84,6 @@ exports.getGovernment = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -129,16 +113,12 @@ exports.createGovernment = async (req, res, next) => {
       state,
       division,
       parliament,
-      assembly,
-      block,
-      booth
+      assembly
     ] = await Promise.all([
       State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
-      Assembly.findById(req.body.assembly_id),
-      Block.findById(req.body.block_id),
-      req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null)
+      Assembly.findById(req.body.assembly_id)
     ]);
 
     if (!state) {
@@ -152,12 +132,6 @@ exports.createGovernment = async (req, res, next) => {
     }
     if (!assembly) {
       return res.status(400).json({ success: false, message: 'Assembly not found' });
-    }
-    if (!block) {
-      return res.status(400).json({ success: false, message: 'Block not found' });
-    }
-    if (req.body.booth_id && !booth) {
-      return res.status(400).json({ success: false, message: 'Booth not found' });
     }
 
     // Check if user exists in request
@@ -205,8 +179,6 @@ exports.updateGovernment = async (req, res, next) => {
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
-    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
     
@@ -214,7 +186,7 @@ exports.updateGovernment = async (req, res, next) => {
       if (!result) {
         return res.status(400).json({
           success: false,
-          message: `${result.modelName} not found`
+          message: 'Reference not found'
         });
       }
     }
@@ -237,8 +209,6 @@ exports.updateGovernment = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -319,7 +289,6 @@ exports.getGovernmentsByAssembly = async (req, res, next) => {
 
     const governments = await Government.find({ assembly_id: req.params.assemblyId })
       .sort({ name: 1 })
-      .populate('block_id', 'name')
       .populate('created_by', 'username');
 
     res.status(200).json({
