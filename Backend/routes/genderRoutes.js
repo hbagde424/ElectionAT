@@ -40,7 +40,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for male/female counts
+ *         description: Search term for male/female/others counts
  *       - in: query
  *         name: state
  *         schema:
@@ -275,6 +275,7 @@ router.get('/state/:stateId', getGendersByState);
  *       required:
  *         - male
  *         - female
+ *         - others
  *         - state_id
  *         - division_id
  *         - parliament_id
@@ -290,6 +291,10 @@ router.get('/state/:stateId', getGendersByState);
  *         female:
  *           type: number
  *           description: Count of females
+ *           example: 550
+ *         others:
+ *           type: number
+ *           description: Count of otherss
  *           example: 550
  *         state_id:
  *           type: string

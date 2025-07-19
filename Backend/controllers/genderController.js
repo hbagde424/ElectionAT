@@ -34,7 +34,8 @@ exports.getGenders = async (req, res, next) => {
       query = query.find({
         $or: [
           { female: { $regex: req.query.search, $options: 'i' } },
-          { male: { $regex: req.query.search, $options: 'i' } }
+          { male: { $regex: req.query.search, $options: 'i' } },
+          { others: { $regex: req.query.search, $options: 'i' } },
         ]
       });
     }
@@ -293,7 +294,7 @@ exports.getGendersByBooth = async (req, res, next) => {
     }
 
     const genders = await Gender.find({ booth_id: req.params.boothId })
-      .sort({ female: 1, male: 1 })
+      .sort({ female: 1, male: 1, others: 1 })
       .populate('state', 'name')
       .populate('created_by', 'username');
 
@@ -322,7 +323,7 @@ exports.getGendersByState = async (req, res, next) => {
     }
 
     const genders = await Gender.find({ state_id: req.params.stateId })
-      .sort({ female: 1, male: 1 })
+      .sort({ female: 1, male: 1, others:1 })
       .populate('division', 'name')
       .populate('booth', 'name booth_number');
 
