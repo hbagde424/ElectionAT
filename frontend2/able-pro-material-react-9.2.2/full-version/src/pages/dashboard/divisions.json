@@ -1,0 +1,184 @@
+{
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "DIV001",
+                "name": "Bhopal Division",
+                "code": "BPL",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            77.2,
+                            23.0
+                        ],
+                        [
+                            77.8,
+                            23.0
+                        ],
+                        [
+                            77.8,
+                            23.6
+                        ],
+                        [
+                            77.2,
+                            23.6
+                        ],
+                        [
+                            77.2,
+                            23.0
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "DIV002",
+                "name": "Indore Division",
+                "code": "IND",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            75.5,
+                            22.4
+                        ],
+                        [
+                            76.1,
+                            22.4
+                        ],
+                        [
+                            76.1,
+                            23.0
+                        ],
+                        [
+                            75.5,
+                            23.0
+                        ],
+                        [
+                            75.5,
+                            22.4
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "DIV003",
+                "name": "Gwalior Division",
+                "code": "GWL",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            78.0,
+                            26.0
+                        ],
+                        [
+                            78.6,
+                            26.0
+                        ],
+                        [
+                            78.6,
+                            26.6
+                        ],
+                        [
+                            78.0,
+                            26.6
+                        ],
+                        [
+                            78.0,
+                            26.0
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "DIV004",
+                "name": "Jabalpur Division",
+                "code": "JBP",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            79.5,
+                            23.0
+                        ],
+                        [
+                            80.1,
+                            23.0
+                        ],
+                        [
+                            80.1,
+                            23.6
+                        ],
+                        [
+                            79.5,
+                            23.6
+                        ],
+                        [
+                            79.5,
+                            23.0
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "DIV005",
+                "name": "Ujjain Division",
+                "code": "UJN",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            75.5,
+                            23.2
+                        ],
+                        [
+                            76.1,
+                            23.2
+                        ],
+                        [
+                            76.1,
+                            23.8
+                        ],
+                        [
+                            75.5,
+                            23.8
+                        ],
+                        [
+                            75.5,
+                            23.2
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

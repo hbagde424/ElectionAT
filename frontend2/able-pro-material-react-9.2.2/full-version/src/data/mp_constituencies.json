@@ -1,0 +1,18 @@
+[
+    {
+        "id": "mp-001",
+        "name": "Bhopal",
+        "parliament": "Bhopal Parliamentary",
+        "assembly": "Bhopal North",
+        "block": "Bhopal Block",
+        "booth": "Booth 101"
+    },
+    {
+        "id": "mp-002",
+        "name": "Indore",
+        "parliament": "Indore Parliamentary",
+        "assembly": "Indore-1",
+        "block": "Indore Block",
+        "booth": "Booth 201"
+    }
+]

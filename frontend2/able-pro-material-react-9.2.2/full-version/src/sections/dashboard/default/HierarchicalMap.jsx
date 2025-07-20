@@ -1,0 +1,911 @@
+import React, { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const HierarchicalMap = () => {
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const currentLayerRef = useRef(null);
+    const [currentLevel, setCurrentLevel] = useState('state');
+    const [selectedFeature, setSelectedFeature] = useState(null);
+
+    useEffect(() => {
+        // Initialize map
+        if (!mapInstanceRef.current && mapRef.current) {
+            mapInstanceRef.current = L.map(mapRef.current).setView([23.4707, 77.9455], 6); // Centered on MP
+
+            // Add base layers
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18
+            }).addTo(mapInstanceRef.current);
+
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 18
+            });
+
+            // Add layer control
+            const baseMaps = {
+                "Street Map": osmLayer,
+                "Satellite View": satelliteLayer
+            };
+            L.control.layers(baseMaps).addTo(mapInstanceRef.current);
+
+            // Load initial state data
+            loadStateData();
+        }
+
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, []);
+
+    const resetLayer = () => {
+        if (currentLayerRef.current) {
+            mapInstanceRef.current.removeLayer(currentLayerRef.current);
+            currentLayerRef.current = null;
+        }
+    };
+
+    // Static data for Madhya Pradesh
+    const mpStateData = {
+        type: 'FeatureCollection',
+        features: [
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'mp',
+                    name: 'Madhya Pradesh',
+                    stateCode: 'MP',
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                        [74.86, 21.84], // Starting from SW
+                        [75.63, 21.17],
+                        [76.87, 21.34],
+                        [77.82, 21.15],
+                        [78.98, 21.06],
+                        [79.91, 21.18],
+                        [80.87, 21.65],
+                        [81.89, 21.83],
+                        [82.52, 22.04], // Eastern point
+                        [82.41, 23.17],
+                        [82.17, 24.01],
+                        [82.31, 24.68],
+                        [82.12, 25.21],
+                        [81.27, 25.98],
+                        [80.32, 26.27], // Northern point
+                        [79.44, 26.48],
+                        [78.23, 26.35],
+                        [77.12, 26.48],
+                        [76.32, 26.21],
+                        [75.78, 25.87],
+                        [75.22, 25.32],
+                        [74.86, 24.63],
+                        [74.91, 23.98],
+                        [74.77, 22.85],
+                        [74.86, 21.84] // Back to start
+                    ]]
+                }
+            }
+        ]
+    };
+
+    // Parliamentary constituency data by division
+    const parliamentaryData = {
+        bhopal: [
+            { id: 'BPL01', name: 'Bhopal', pcNo: '18' },
+            { id: 'BPL02', name: 'Vidisha', pcNo: '19' },
+            { id: 'BPL03', name: 'Rajgarh', pcNo: '20' }
+        ],
+        indore: [
+            { id: 'IND01', name: 'Indore', pcNo: '25' },
+            { id: 'IND02', name: 'Dhar', pcNo: '24' }
+        ],
+        // Add more parliamentary constituencies for other divisions
+    };
+
+    const mpDivisionsData = {
+        type: 'FeatureCollection',
+        features: [
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'bhopal',
+                    name: 'Bhopal Division',
+                    divisionCode: 'BPL',
+                    stateName: 'Madhya Pradesh',
+                    parliamentarySeats: 3,
+                    districts: ['Bhopal', 'Sehore', 'Raisen', 'Vidisha', 'Rajgarh']
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                        [77.12, 23.08], // Bhopal division boundary
+                        [77.35, 22.95],
+                        [77.68, 22.89],
+                        [77.92, 22.94],
+                        [78.15, 23.12],
+                        [78.32, 23.35],
+                        [78.28, 23.68],
+                        [78.15, 23.92],
+                        [77.85, 24.08],
+                        [77.52, 24.12],
+                        [77.25, 23.98],
+                        [77.08, 23.75],
+                        [77.05, 23.42],
+                        [77.12, 23.08]
+                    ]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'chambal',
+                    name: 'Chambal Division',
+                    divisionCode: 'CHM',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[77.0, 25.5], [78.5, 25.5], [78.5, 26.5], [77.0, 26.5], [77.0, 25.5]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'gwalior',
+                    name: 'Gwalior Division',
+                    divisionCode: 'GWL',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[77.5, 24.5], [79.0, 24.5], [79.0, 25.5], [77.5, 25.5], [77.5, 24.5]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'indore',
+                    name: 'Indore Division',
+                    divisionCode: 'IND',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[75.5, 22.0], [76.5, 22.0], [76.5, 23.0], [75.5, 23.0], [75.5, 22.0]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'jabalpur',
+                    name: 'Jabalpur Division',
+                    divisionCode: 'JBP',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[79.5, 22.5], [80.5, 22.5], [80.5, 23.5], [79.5, 23.5], [79.5, 22.5]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'narmadapuram',
+                    name: 'Narmadapuram Division',
+                    divisionCode: 'NRM',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[77.0, 22.0], [78.0, 22.0], [78.0, 23.0], [77.0, 23.0], [77.0, 22.0]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'rewa',
+                    name: 'Rewa Division',
+                    divisionCode: 'RWA',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[81.0, 24.0], [82.0, 24.0], [82.0, 25.0], [81.0, 25.0], [81.0, 24.0]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'sagar',
+                    name: 'Sagar Division',
+                    divisionCode: 'SGR',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[78.5, 23.5], [79.5, 23.5], [79.5, 24.5], [78.5, 24.5], [78.5, 23.5]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'shahdol',
+                    name: 'Shahdol Division',
+                    divisionCode: 'SDL',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[81.5, 23.0], [82.5, 23.0], [82.5, 24.0], [81.5, 24.0], [81.5, 23.0]]]
+                }
+            },
+            {
+                type: 'Feature',
+                properties: {
+                    id: 'ujjain',
+                    name: 'Ujjain Division',
+                    divisionCode: 'UJN',
+                    stateName: 'Madhya Pradesh'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[[75.0, 23.0], [76.0, 23.0], [76.0, 24.0], [75.0, 24.0], [75.0, 23.0]]]
+                }
+            }
+        ]
+    };
+
+    const loadStateData = async () => {
+        try {
+            // Using static data instead of API call
+            showBoundaries(mpStateData, 'state');
+            setCurrentLevel('state');
+            setSelectedFeature(null);
+        } catch (error) {
+            console.error('Error loading state data:', error);
+        }
+    };
+
+    const loadDivisionData = async (stateId) => {
+        try {
+            // Using static division data
+            showBoundaries(mpDivisionsData, 'division');
+        } catch (error) {
+            console.error('Error loading division data:', error);
+        }
+    };
+
+    // Static parliamentary constituency data
+    const parliamentaryBoundariesData = {
+        bhopal: {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BPL01',
+                        name: 'Bhopal Parliamentary',
+                        pcNo: '18',
+                        divisionName: 'Bhopal Division',
+                        assemblySeats: 8,
+                        totalVoters: '2145678',
+                        lastElectionYear: '2019'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.25, 23.15],
+                            [77.48, 23.12],
+                            [77.65, 23.18],
+                            [77.72, 23.35],
+                            [77.68, 23.52],
+                            [77.52, 23.58],
+                            [77.35, 23.55],
+                            [77.28, 23.42],
+                            [77.25, 23.15]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BPL02',
+                        name: 'Vidisha Parliamentary',
+                        pcNo: '19',
+                        divisionName: 'Bhopal Division',
+                        assemblySeats: 8,
+                        totalVoters: '1987654',
+                        lastElectionYear: '2019'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.68, 23.52],
+                            [77.85, 23.48],
+                            [78.05, 23.55],
+                            [78.12, 23.72],
+                            [78.08, 23.88],
+                            [77.92, 23.92],
+                            [77.75, 23.85],
+                            [77.68, 23.72],
+                            [77.68, 23.52]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BPL03',
+                        name: 'Rajgarh Parliamentary',
+                        pcNo: '20',
+                        divisionName: 'Bhopal Division',
+                        assemblySeats: 8,
+                        totalVoters: '1876543',
+                        lastElectionYear: '2019'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [76.92, 23.68],
+                            [77.15, 23.65],
+                            [77.32, 23.72],
+                            [77.38, 23.88],
+                            [77.35, 24.05],
+                            [77.18, 24.08],
+                            [77.02, 24.02],
+                            [76.95, 23.85],
+                            [76.92, 23.68]
+                        ]]
+                    }
+                }
+            ]
+        }
+    };
+
+    const loadParliamentaryData = async (divisionId) => {
+        try {
+            // Using static data instead of API call
+            if (parliamentaryBoundariesData[divisionId]) {
+                showBoundaries(parliamentaryBoundariesData[divisionId], 'parliamentary');
+            } else {
+                console.warn('No parliamentary data available for this division');
+            }
+        } catch (error) {
+            console.error('Error loading parliamentary data:', error);
+        }
+    };
+
+    // Static assembly constituency data
+    const assemblyBoundariesData = {
+        BPL01: {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'AC001',
+                        name: 'Berasia',
+                        acNo: '157',
+                        pcName: 'Bhopal Parliamentary',
+                        totalVoters: '245678',
+                        category: 'GEN',
+                        lastElectionYear: '2023',
+                        winner: 'BJP',
+                        margin: '45678'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.35, 23.25],
+                            [77.45, 23.22],
+                            [77.52, 23.28],
+                            [77.48, 23.35],
+                            [77.42, 23.38],
+                            [77.35, 23.32],
+                            [77.35, 23.25]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'AC002',
+                        name: 'Bhopal Uttar',
+                        acNo: '158',
+                        pcName: 'Bhopal Parliamentary',
+                        totalVoters: '267890',
+                        category: 'GEN',
+                        lastElectionYear: '2023',
+                        winner: 'BJP',
+                        margin: '34567'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.38, 23.15],
+                            [77.48, 23.12],
+                            [77.55, 23.18],
+                            [77.52, 23.25],
+                            [77.45, 23.22],
+                            [77.38, 23.15]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'AC003',
+                        name: 'Narela',
+                        acNo: '159',
+                        pcName: 'Bhopal Parliamentary',
+                        totalVoters: '234567',
+                        category: 'GEN',
+                        lastElectionYear: '2023',
+                        winner: 'INC',
+                        margin: '12345'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.32, 23.28],
+                            [77.42, 23.25],
+                            [77.48, 23.32],
+                            [77.45, 23.38],
+                            [77.38, 23.35],
+                            [77.32, 23.28]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'AC004',
+                        name: 'Bhopal Dakshin-Paschim',
+                        acNo: '160',
+                        pcName: 'Bhopal Parliamentary',
+                        totalVoters: '289012',
+                        category: 'GEN',
+                        lastElectionYear: '2023',
+                        winner: 'BJP',
+                        margin: '23456'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.25, 23.18],
+                            [77.35, 23.15],
+                            [77.42, 23.22],
+                            [77.38, 23.28],
+                            [77.32, 23.25],
+                            [77.25, 23.18]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'AC005',
+                        name: 'Bhopal Madhya',
+                        acNo: '161',
+                        pcName: 'Bhopal Parliamentary',
+                        totalVoters: '278901',
+                        category: 'GEN',
+                        lastElectionYear: '2023',
+                        winner: 'BJP',
+                        margin: '34567'
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.42, 23.32],
+                            [77.52, 23.28],
+                            [77.58, 23.35],
+                            [77.55, 23.42],
+                            [77.48, 23.38],
+                            [77.42, 23.32]
+                        ]]
+                    }
+                }
+            ]
+        }
+    };
+
+    const loadAssemblyData = async (parliamentaryId) => {
+        try {
+            // Using static data instead of API call
+            if (assemblyBoundariesData[parliamentaryId]) {
+                showBoundaries(assemblyBoundariesData[parliamentaryId], 'assembly');
+            } else {
+                console.warn('No assembly data available for this parliamentary constituency');
+            }
+        } catch (error) {
+            console.error('Error loading assembly data:', error);
+        }
+    };
+
+    // Static block data
+    const blockBoundariesData = {
+        AC001: {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BLK001',
+                        name: 'Berasia Block',
+                        blockCode: 'BRS01',
+                        acName: 'Berasia',
+                        totalVoters: '85678',
+                        totalBooths: 125,
+                        population: '156789',
+                        mainTown: 'Berasia',
+                        ruralBooths: 98,
+                        urbanBooths: 27
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.35, 23.25],
+                            [77.42, 23.22],
+                            [77.45, 23.25],
+                            [77.42, 23.28],
+                            [77.38, 23.28],
+                            [77.35, 23.25]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BLK002',
+                        name: 'Sukhi Sewania',
+                        blockCode: 'BRS02',
+                        acName: 'Berasia',
+                        totalVoters: '65432',
+                        totalBooths: 95,
+                        population: '123456',
+                        mainTown: 'Sukhi Sewania',
+                        ruralBooths: 85,
+                        urbanBooths: 10
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.42, 23.22],
+                            [77.48, 23.22],
+                            [77.52, 23.25],
+                            [77.48, 23.28],
+                            [77.45, 23.25],
+                            [77.42, 23.22]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BLK003',
+                        name: 'Phanda',
+                        blockCode: 'BRS03',
+                        acName: 'Berasia',
+                        totalVoters: '45678',
+                        totalBooths: 75,
+                        population: '98765',
+                        mainTown: 'Phanda',
+                        ruralBooths: 70,
+                        urbanBooths: 5
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.38, 23.28],
+                            [77.42, 23.28],
+                            [77.45, 23.32],
+                            [77.42, 23.35],
+                            [77.38, 23.32],
+                            [77.38, 23.28]
+                        ]]
+                    }
+                }
+            ]
+        }
+    };
+
+    const loadBlockData = async (assemblyId) => {
+        try {
+            // Using static data instead of API call
+            if (blockBoundariesData[assemblyId]) {
+                showBoundaries(blockBoundariesData[assemblyId], 'block');
+            } else {
+                console.warn('No block data available for this assembly constituency');
+            }
+        } catch (error) {
+            console.error('Error loading block data:', error);
+        }
+    };
+
+    // Static booth data
+    const boothBoundariesData = {
+        BLK001: {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BTH001',
+                        name: 'Booth 1 - Berasia City',
+                        boothNo: '157/01',
+                        blockName: 'Berasia Block',
+                        location: 'Government School, Berasia',
+                        totalVoters: '1245',
+                        maleFemaleRatio: '1.1',
+                        boothArea: 'Urban',
+                        lastTurnout: '78.5%',
+                        facilities: ['Ramp', 'Drinking Water', 'Toilet']
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.35, 23.25],
+                            [77.37, 23.24],
+                            [77.38, 23.25],
+                            [77.37, 23.26],
+                            [77.35, 23.25]
+                        ]]
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: {
+                        id: 'BTH002',
+                        name: 'Booth 2 - Berasia Rural',
+                        boothNo: '157/02',
+                        blockName: 'Berasia Block',
+                        location: 'Primary School, Berasia Rural',
+                        totalVoters: '985',
+                        maleFemaleRatio: '0.95',
+                        boothArea: 'Rural',
+                        lastTurnout: '82.3%',
+                        facilities: ['Ramp', 'Drinking Water']
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [77.38, 23.24],
+                            [77.40, 23.23],
+                            [77.41, 23.24],
+                            [77.40, 23.25],
+                            [77.38, 23.24]
+                        ]]
+                    }
+                }
+            ]
+        }
+    };
+
+    const loadBoothData = async (blockId) => {
+        try {
+            // Using static data instead of API call
+            if (boothBoundariesData[blockId]) {
+                showBoundaries(boothBoundariesData[blockId], 'booth');
+            } else {
+                console.warn('No booth data available for this block');
+            }
+        } catch (error) {
+            console.error('Error loading booth data:', error);
+        }
+    };
+
+    // Color palette for different divisions
+    const getDivisionColor = (divisionCode) => {
+        const colors = {
+            'BPL': '#FF6B6B', // Bhopal - Red
+            'CHM': '#4ECDC4', // Chambal - Turquoise
+            'GWL': '#45B7D1', // Gwalior - Blue
+            'IND': '#96CEB4', // Indore - Green
+            'JBP': '#D4A5A5', // Jabalpur - Pink
+            'NRM': '#9B59B6', // Narmadapuram - Purple
+            'RWA': '#F1C40F', // Rewa - Yellow
+            'SGR': '#E67E22', // Sagar - Orange
+            'SDL': '#2ECC71', // Shahdol - Green
+            'UJN': '#3498DB'  // Ujjain - Blue
+        };
+        return colors[divisionCode] || '#3388ff';
+    };
+
+    const showBoundaries = (data, level) => {
+        resetLayer();
+
+        const style = (feature) => ({
+            color: level === 'division' ? getDivisionColor(feature.properties.divisionCode) : '#3388ff',
+            weight: 2,
+            fillOpacity: 0.2,
+            fillColor: level === 'division' ? getDivisionColor(feature.properties.divisionCode) : '#3388ff'
+        });
+
+        currentLayerRef.current = L.geoJSON(data, {
+            style: style,
+            onEachFeature: (feature, layer) => {
+                // Add tooltip
+                layer.bindTooltip(feature.properties.name || '', {
+                    permanent: false,
+                    direction: 'center'
+                });
+
+                // Add popup with details
+                const content = generatePopupContent(feature, level);
+                layer.bindPopup(content);
+
+                // Click handler for drill-down
+                layer.on('click', () => handleLayerClick(feature, level));
+
+                // Hover effects
+                layer.on({
+                    mouseover: (e) => {
+                        const layer = e.target;
+                        layer.setStyle({
+                            weight: 3,
+                            color: '#666',
+                            fillOpacity: 0.3
+                        });
+                    },
+                    mouseout: (e) => {
+                        currentLayerRef.current.resetStyle(e.target);
+                    }
+                });
+            }
+        }).addTo(mapInstanceRef.current);
+
+        // Fit bounds to show all features
+        mapInstanceRef.current.fitBounds(currentLayerRef.current.getBounds());
+    };
+
+    const handleLayerClick = (feature, level) => {
+        setSelectedFeature(feature);
+
+        switch (level) {
+            case 'state':
+                loadDivisionData(feature.properties.id);
+                setCurrentLevel('division');
+                break;
+            case 'division':
+                loadParliamentaryData(feature.properties.id);
+                setCurrentLevel('parliamentary');
+                break;
+            case 'parliamentary':
+                loadAssemblyData(feature.properties.id);
+                setCurrentLevel('assembly');
+                break;
+            case 'assembly':
+                loadBlockData(feature.properties.id);
+                setCurrentLevel('block');
+                break;
+            case 'block':
+                loadBoothData(feature.properties.id);
+                setCurrentLevel('booth');
+                break;
+            default:
+                break;
+        }
+    };
+
+    const generatePopupContent = (feature, level) => {
+        const properties = feature.properties;
+        let content = `<div class="popup-content" style="min-width: 200px;">
+            <h4 style="margin: 0 0 10px 0; color: #333;">${properties.name || ''}</h4>`;
+
+        switch (level) {
+            case 'state':
+                content += `<p>State Code: ${properties.stateCode || ''}</p>`;
+                break;
+            case 'division':
+                const districts = properties.districts ? properties.districts.join(', ') : '';
+                content += `
+                    <p><strong>Division Code:</strong> ${properties.divisionCode || ''}</p>
+                    <p><strong>State:</strong> ${properties.stateName || ''}</p>
+                    <p><strong>Parliamentary Seats:</strong> ${properties.parliamentarySeats || ''}</p>
+                    <p><strong>Districts:</strong> ${districts}</p>
+                    ${properties.divisionCode && parliamentaryData[properties.id] ?
+                        `<p><strong>Parliamentary Constituencies:</strong></p>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${parliamentaryData[properties.id].map(pc =>
+                            `<li>${pc.name} (PC No: ${pc.pcNo})</li>`
+                        ).join('')}
+                        </ul>`
+                        : ''}`;
+                break;
+            case 'parliamentary':
+                content += `
+                    <p><strong>PC No:</strong> ${properties.pcNo || ''}</p>
+                    <p><strong>Division:</strong> ${properties.divisionName || ''}</p>
+                    <p><strong>Assembly Seats:</strong> ${properties.assemblySeats || ''}</p>
+                    <p><strong>Total Voters:</strong> ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
+                    <p><strong>Last Election:</strong> ${properties.lastElectionYear || ''}</p>
+                    <hr style="margin: 10px 0">
+                    <p style="font-size: 0.9em; color: #666;">Click to view Assembly Constituencies</p>`;
+                break;
+            case 'assembly':
+                content += `
+                    <p><strong>AC No:</strong> ${properties.acNo || ''}</p>
+                    <p><strong>Parliamentary:</strong> ${properties.pcName || ''}</p>
+                    <p><strong>Category:</strong> ${properties.category || ''}</p>
+                    <p><strong>Total Voters:</strong> ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Last Election (${properties.lastElectionYear || ''}):</strong></p>
+                        <p>Winner: ${properties.winner || ''}</p>
+                        <p>Margin: ${properties.margin ? Number(properties.margin).toLocaleString() : ''} votes</p>
+                    </div>
+                    <hr style="margin: 10px 0">
+                    <p style="font-size: 0.9em; color: #666;">Click to view Blocks</p>`;
+                break;
+            case 'block':
+                content += `
+                    <p><strong>Block Code:</strong> ${properties.blockCode || ''}</p>
+                    <p><strong>Assembly:</strong> ${properties.acName || ''}</p>
+                    <p><strong>Main Town:</strong> ${properties.mainTown || ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Demographics:</strong></p>
+                        <p>Population: ${properties.population ? Number(properties.population).toLocaleString() : ''}</p>
+                        <p>Total Voters: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Booth Information:</strong></p>
+                        <p>Total Booths: ${properties.totalBooths || ''}</p>
+                        <p>Rural Booths: ${properties.ruralBooths || ''}</p>
+                        <p>Urban Booths: ${properties.urbanBooths || ''}</p>
+                    </div>
+                    <hr style="margin: 10px 0">
+                    <p style="font-size: 0.9em; color: #666;">Click to view Booths</p>`;
+                break;
+            case 'booth':
+                content += `
+                    <p><strong>Booth No:</strong> ${properties.boothNo || ''}</p>
+                    <p><strong>Block:</strong> ${properties.blockName || ''}</p>
+                    <p><strong>Location:</strong> ${properties.location || ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Voter Information:</strong></p>
+                        <p>Total Voters: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
+                        <p>Male/Female Ratio: ${properties.maleFemaleRatio || ''}</p>
+                        <p>Last Turnout: ${properties.lastTurnout || ''}</p>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Area Type:</strong> ${properties.boothArea || ''}</p>
+                        <p><strong>Available Facilities:</strong></p>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${properties.facilities ? properties.facilities.map(facility => `<li>${facility}</li>`).join('') : ''}
+                        </ul>
+                    </div>`;
+                break;
+        }
+
+        content += '</div>';
+        return content;
+    };
+
+    return (
+        <div>
+            <div style={{ height: '600px' }} ref={mapRef}></div>
+            {/* Navigation breadcrumb */}
+            <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px' }}>
+                <button
+                    onClick={loadStateData}
+                    disabled={currentLevel === 'state'}
+                >
+                    Back to State
+                </button>
+                {selectedFeature && (
+                    <span style={{ marginLeft: '10px' }}>
+                        {selectedFeature.properties.name} ({currentLevel})
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default HierarchicalMap;

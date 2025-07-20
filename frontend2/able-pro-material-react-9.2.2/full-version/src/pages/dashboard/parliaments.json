@@ -1,0 +1,115 @@
+{
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "BPL_P1",
+                "name": "Bhopal Parliament",
+                "code": "BPL01",
+                "division_code": "BPL",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            77.3,
+                            23.1
+                        ],
+                        [
+                            77.7,
+                            23.1
+                        ],
+                        [
+                            77.7,
+                            23.5
+                        ],
+                        [
+                            77.3,
+                            23.5
+                        ],
+                        [
+                            77.3,
+                            23.1
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "BPL_P2",
+                "name": "Vidisha Parliament",
+                "code": "BPL02",
+                "division_code": "BPL",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            77.3,
+                            23.5
+                        ],
+                        [
+                            77.7,
+                            23.5
+                        ],
+                        [
+                            77.7,
+                            23.9
+                        ],
+                        [
+                            77.3,
+                            23.9
+                        ],
+                        [
+                            77.3,
+                            23.5
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "IND_P1",
+                "name": "Indore Parliament",
+                "code": "IND01",
+                "division_code": "IND",
+                "st_code": "MP"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            75.6,
+                            22.5
+                        ],
+                        [
+                            76.0,
+                            22.5
+                        ],
+                        [
+                            76.0,
+                            22.9
+                        ],
+                        [
+                            75.6,
+                            22.9
+                        ],
+                        [
+                            75.6,
+                            22.5
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

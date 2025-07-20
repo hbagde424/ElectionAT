@@ -14,6 +14,8 @@ import { el } from 'date-fns/locale';
 // render - dashboard
 const DashboardDefault = Loadable(lazy(() => import('pages/dashboard/default')));
 const DashboardAnalytics = Loadable(lazy(() => import('pages/dashboard/analytics')));
+const GandhwaniMap = Loadable(lazy(() => import('pages/dashboard/gandhwani')));
+const HierarchicalMapDashboard = Loadable(lazy(() => import('pages/dashboard/map')));
 
 // render - widget
 const WidgetStatistics = Loadable(lazy(() => import('pages/widget/statistics')));
@@ -210,6 +212,10 @@ const MainRoutes = {
             {
               path: 'analytics',
               element: <DashboardAnalytics />
+            },
+            {
+              path: 'hierarchical-map',
+              element: <HierarchicalMapDashboard />
             }
           ]
         },
@@ -653,7 +659,7 @@ const MainRoutes = {
           path: 'Booth-Demographic',
           element: <BoothDemographic />
         },
-        
+
         {
           path: 'Election-Type',
           element: <ElectionType />
