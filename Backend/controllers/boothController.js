@@ -12,7 +12,7 @@ const State = require('../models/state');
 exports.getBooths = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) || 1;
+    const page = parseInt(req.query.page) ;
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 

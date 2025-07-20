@@ -15,8 +15,6 @@ export default function GovernmentModal({
     divisions,
     parliaments,
     assemblies,
-    blocks,
-    booths,
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -30,9 +28,7 @@ export default function GovernmentModal({
         state_id: '',
         division_id: '',
         parliament_id: '',
-        assembly_id: '',
-        block_id: '',
-        booth_id: ''
+        assembly_id: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -40,8 +36,6 @@ export default function GovernmentModal({
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-    const [filteredBlocks, setFilteredBlocks] = useState([]);
-    const [filteredBooths, setFilteredBooths] = useState([]);
 
     useEffect(() => {
         if (government) {
@@ -53,9 +47,7 @@ export default function GovernmentModal({
                 state_id: government.state_id?._id?.toString() || government.state_id?.toString() || '',
                 division_id: government.division_id?._id?.toString() || government.division_id?.toString() || '',
                 parliament_id: government.parliament_id?._id?.toString() || government.parliament_id?.toString() || '',
-                assembly_id: government.assembly_id?._id?.toString() || government.assembly_id?.toString() || '',
-                block_id: government.block_id?._id?.toString() || government.block_id?.toString() || '',
-                booth_id: government.booth_id?._id?.toString() || government.booth_id?.toString() || ''
+                assembly_id: government.assembly_id?._id?.toString() || government.assembly_id?.toString() || ''
             });
         } else {
             setFormData({
@@ -66,9 +58,7 @@ export default function GovernmentModal({
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
+                assembly_id: ''
             });
         }
     }, [government]);
@@ -87,9 +77,7 @@ export default function GovernmentModal({
                     ...prev,
                     division_id: '',
                     parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
+                    assembly_id: ''
                 }));
             }
         } else {
@@ -98,9 +86,7 @@ export default function GovernmentModal({
                 ...prev,
                 division_id: '',
                 parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
+                assembly_id: ''
             }));
         }
     }, [formData.state_id, divisions]);
@@ -118,9 +104,7 @@ export default function GovernmentModal({
                 setFormData(prev => ({
                     ...prev,
                     parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
+                    assembly_id: ''
                 }));
             }
         } else {
@@ -128,9 +112,7 @@ export default function GovernmentModal({
             setFormData(prev => ({
                 ...prev,
                 parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
+                assembly_id: ''
             }));
         }
     }, [formData.division_id, parliaments]);
@@ -147,57 +129,17 @@ export default function GovernmentModal({
             if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
                 setFormData(prev => ({
                     ...prev,
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
+                    assembly_id: ''
                 }));
             }
         } else {
             setFilteredAssemblies([]);
             setFormData(prev => ({
                 ...prev,
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
+                assembly_id: ''
             }));
         }
     }, [formData.parliament_id, assemblies]);
-
-    // Assembly -> Block
-    useEffect(() => {
-        if (formData.assembly_id) {
-            const filtered = blocks?.filter(block => {
-                const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
-                return blockAssemblyId === formData.assembly_id;
-            }) || [];
-            setFilteredBlocks(filtered);
-
-            if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
-                setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
-            }
-        } else {
-            setFilteredBlocks([]);
-            setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
-        }
-    }, [formData.assembly_id, blocks]);
-
-    // Block -> Booths
-    useEffect(() => {
-        if (formData.block_id) {
-            const filtered = booths?.filter(booth => {
-                const boothBlockId = booth.block_id?._id || booth.block_id;
-                return boothBlockId === formData.block_id;
-            }) || [];
-            setFilteredBooths(filtered);
-
-            if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
-                setFormData(prev => ({ ...prev, booth_id: '' }));
-            }
-        } else {
-            setFilteredBooths([]);
-            setFormData(prev => ({ ...prev, booth_id: '' }));
-        }
-    }, [formData.block_id, booths]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -219,8 +161,8 @@ export default function GovernmentModal({
         // Validation
         const requiredFields = [
             'name', 'type', 'amount', 
-            'state_id', 'division_id', 'parliament_id', 
-            'assembly_id', 'block_id'
+            'state_id', 'division_id', 
+            'parliament_id', 'assembly_id'
         ];
         
         for (const field of requiredFields) {
@@ -335,11 +277,11 @@ export default function GovernmentModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Project Completion Date</InputLabel>
-                            {/* <DatePicker
+                            <DatePicker
                                 value={formData.project_complete_date}
                                 onChange={handleDateChange}
                                 renderInput={(params) => <TextField {...params} fullWidth />}
-                            /> */}
+                            />
                         </Stack>
                     </Grid>
 
@@ -441,53 +383,6 @@ export default function GovernmentModal({
                             {submitted && !formData.assembly_id && (
                                 <Typography variant="caption" color="error">Assembly is required</Typography>
                             )}
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 5: Block and Booth */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.block_id}>
-                                <Select
-                                    name="block_id"
-                                    value={formData.block_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
-                                    <MenuItem value="">Select Block</MenuItem>
-                                    {filteredBlocks.map((block) => (
-                                        <MenuItem key={block._id} value={block._id}>
-                                            {block.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.block_id && (
-                                <Typography variant="caption" color="error">Block is required</Typography>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Booth</InputLabel>
-                            <FormControl fullWidth>
-                                <Select
-                                    name="booth_id"
-                                    value={formData.booth_id}
-                                    onChange={handleChange}
-                                    disabled={!formData.block_id}
-                                >
-                                    <MenuItem value="">Select Booth (Optional)</MenuItem>
-                                    {filteredBooths.map((booth) => (
-                                        <MenuItem key={booth._id} value={booth._id}>
-                                            {booth.name} (Booth #{booth.booth_number})
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
                         </Stack>
                     </Grid>
                 </Grid>

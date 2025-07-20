@@ -39,15 +39,6 @@ const governmentSchema = new mongoose.Schema({
     ref: 'Assembly',
     required: true
   },
-  block_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Block',
-    required: true
-  },
-  booth_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Booth'
-  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

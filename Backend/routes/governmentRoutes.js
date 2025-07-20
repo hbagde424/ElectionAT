@@ -67,16 +67,6 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Assembly ID to filter by
- *       - in: query
- *         name: block
- *         schema:
- *           type: string
- *         description: Block ID to filter by
- *       - in: query
- *         name: booth
- *         schema:
- *           type: string
- *         description: Booth ID to filter by
  *     responses:
  *       200:
  *         description: List of government projects
@@ -286,7 +276,6 @@ router.get('/assembly/:assemblyId', getGovernmentsByAssembly);
  *         - division_id
  *         - parliament_id
  *         - assembly_id
- *         - block_id
  *         - created_by
  *       properties:
  *         name:
@@ -323,14 +312,6 @@ router.get('/assembly/:assemblyId', getGovernmentsByAssembly);
  *           type: string
  *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439012"
- *         block_id:
- *           type: string
- *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439011"
- *         booth_id:
- *           type: string
- *           description: Reference to Booth (optional)
- *           example: "507f1f77bcf86cd799439021"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

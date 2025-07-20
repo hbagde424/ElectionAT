@@ -46,6 +46,8 @@ export default function BoothVotesModal({
   const [filteredBlocks, setFilteredBlocks] = useState([]);
   const [filteredBooths, setFilteredBooths] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [filteredCandidates, setFilteredCandidates] = useState([]);
+
 
   useEffect(() => {
     if (vote) {
@@ -76,6 +78,26 @@ export default function BoothVotesModal({
       });
     }
   }, [vote]);
+
+
+  useEffect(() => {
+    if (formData.election_year_id) {
+      const filtered = candidates?.filter(
+        (candidate) =>
+          candidate.election_year_id === formData.election_year_id || // direct match
+          candidate.election_year?._id === formData.election_year_id  // if populated
+      ) || [];
+      setFilteredCandidates(filtered);
+    } else {
+      setFilteredCandidates([]);
+    }
+  }, [formData.election_year_id, candidates]);
+
+
+  console.log("Matching", {
+    selected: formData.election_year_id,
+    inCandidate: candidates?.[0]?.election_year_id
+  });
 
   useEffect(() => {
     if (formData.state_id) {
@@ -278,22 +300,6 @@ export default function BoothVotesModal({
             </Select>
           </FormControl>
 
-          <FormControl fullWidth>
-            <InputLabel>Candidate</InputLabel>
-            <Select
-              name="candidate_id"
-              value={formData.candidate_id}
-              onChange={handleChange}
-              label="Candidate"
-              required
-            >
-              {candidates?.map((candidate) => (
-                <MenuItem key={candidate._id} value={candidate._id}>
-                  {candidate.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
 
           <FormControl fullWidth>
             <InputLabel>Election Year</InputLabel>
@@ -312,6 +318,29 @@ export default function BoothVotesModal({
               ))}
             </Select>
           </FormControl>
+
+
+
+          <FormControl fullWidth>
+            <InputLabel>Candidate</InputLabel>
+            <Select
+              name="candidate_id"
+              value={formData.candidate_id}
+              onChange={handleChange}
+              label="Candidate"
+              required
+              disabled={!formData.election_year_id}
+            >
+              {filteredCandidates?.map((candidate) => (
+                <MenuItem key={candidate._id} value={candidate._id}>
+                  {candidate.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+
+          
 
           <TextField
             name="total_votes"
