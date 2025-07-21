@@ -23,7 +23,7 @@ exports.getEvents = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('state_id', 'name')
-      .populate('booth_id', 'booth_number')
+      .populate('booth_id', 'booth_number name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ start_date: -1 });
@@ -104,7 +104,7 @@ exports.getEvent = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number')
+      .populate('booth_id', 'booth_number name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -233,7 +233,7 @@ exports.updateEvent = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number')
+      .populate('booth_id', 'booth_number name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -289,7 +289,7 @@ exports.getEventsByBooth = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number')
+      .populate('booth_id', 'booth_number name')
       .sort({ start_date: -1 });
 
     res.status(200).json({
@@ -320,7 +320,7 @@ exports.getEventsByType = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
-      .populate('booth_id', 'booth_number')
+      .populate('booth_id', 'booth_number name')
       .sort({ start_date: -1 });
 
     res.status(200).json({

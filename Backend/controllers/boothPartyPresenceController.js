@@ -14,7 +14,7 @@ exports.getPartyPresences = async (req, res, next) => {
 
     // Basic query
     let query = BoothPartyPresence.find()
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('party_id', 'name abbreviation symbol')
       .sort({ created_at: -1 });
 
@@ -55,7 +55,7 @@ exports.getPartyPresences = async (req, res, next) => {
 exports.getPartyPresenceById = async (req, res, next) => {
   try {
     const presence = await BoothPartyPresence.findById(req.params.id)
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('party_id', 'name abbreviation symbol');
 
     if (!presence) {
@@ -241,7 +241,7 @@ exports.getPresencesByParty = async (req, res, next) => {
     }
 
     const presences = await BoothPartyPresence.find({ party_id: req.params.partyId })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .sort({ created_at: -1 });
 
     res.status(200).json({

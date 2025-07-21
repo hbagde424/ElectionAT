@@ -13,7 +13,7 @@ exports.getAllBoothInfrastructures = async (req, res, next) => {
 
     // Basic query
     let query = BoothInfrastructure.find()
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .sort({ created_at: -1 });
 
     // Filter by premises type
@@ -48,7 +48,7 @@ exports.getAllBoothInfrastructures = async (req, res, next) => {
 exports.getBoothInfrastructure = async (req, res, next) => {
   try {
     const infrastructure = await BoothInfrastructure.findById(req.params.id)
-      .populate('booth_id', 'booth_number location');
+      .populate('booth_id', 'booth_number name location');
 
     if (!infrastructure) {
       return res.status(404).json({
@@ -192,7 +192,7 @@ exports.getInfrastructureByPremisesType = async (req, res, next) => {
     const infrastructures = await BoothInfrastructure.find({ 
       premises_type: req.params.premisesType 
     })
-    .populate('booth_id', 'booth_number location')
+    .populate('booth_id', 'booth_number name location')
     .sort({ created_at: -1 });
 
     res.status(200).json({
@@ -221,7 +221,7 @@ exports.getInfrastructureByCategorization = async (req, res, next) => {
     const infrastructures = await BoothInfrastructure.find({ 
       categorization: req.params.categorization 
     })
-    .populate('booth_id', 'booth_number location')
+    .populate('booth_id', 'booth_number name location')
     .sort({ created_at: -1 });
 
     res.status(200).json({
