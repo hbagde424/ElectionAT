@@ -343,7 +343,9 @@ export default function GovernmentsListPage() {
             Parliament: item.parliament_id?.name || '',
             Assembly: item.assembly_id?.name || '',
             // Block: item.block_id?.name || '',
-            // Booth: item.booth_id?.name || '',
+            Booth: item.booth_id?.name || '',
+            Booth_Number: item.booth_id?.booth_number || '',
+
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at
         })));

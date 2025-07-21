@@ -335,6 +335,25 @@ export default function GenderListPage() {
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at
         })));
+        //  setCsvData(allData.map(item => ({
+                
+          
+        //     'State': item.state?.name || '',
+        //     'State ID': item.state?._id || '',
+        //     'Division': item.division?.name || '',
+        //     'Division ID': item.division?._id || '',
+        //     'Parliament': item.parliament?.name || '',
+        //     'Parliament ID': item.parliament?._id || '',
+        //     'Assembly': item.assembly?.name || '',
+        //     'Assembly ID': item.assembly?._id || '',
+        //     'Block': item.block?.name || '',
+        //     'Block ID': item.block?._id || '',
+        //     'Booth': item.booth?.name || '',
+        //     'Booth Number': item.booth?.booth_number || '',
+        //     'Booth ID': item.booth?._id || '',
+        //     'Created By': item.created_by?.username || '',
+        //     'Created At': item.created_at
+        // })));
         setCsvLoading(false);
         setTimeout(() => {
             if (csvLinkRef.current) {
