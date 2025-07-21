@@ -285,6 +285,19 @@ export default function LocalIssueListPage() {
             ),
             size: 150
         },
+         {
+            header: 'Booth Number',
+            accessorKey: 'booth_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                />
+            ),
+            size: 150
+        },
         {
             header: 'Created By',
             accessorKey: 'created_by',
