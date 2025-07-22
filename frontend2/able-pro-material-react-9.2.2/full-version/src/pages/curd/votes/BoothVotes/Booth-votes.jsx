@@ -88,6 +88,7 @@ export default function BoothVotesListPage() {
     const formattedData = allData.map(item => ({
       'Candidate': item.candidate?.name || 'N/A',
       'Booth': `${item.booth?.name || 'N/A'} (No: ${item.booth?.booth_number || 'N/A'})`,
+      'Block number': item.booth?.booth_number || 'N/A',
       'Block': item.block?.name || 'N/A',
       'Assembly': item.assembly?.name || 'N/A',
       'Votes': item.total_votes,
