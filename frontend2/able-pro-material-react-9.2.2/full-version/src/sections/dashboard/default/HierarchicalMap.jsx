@@ -49,50 +49,7 @@ const HierarchicalMap = () => {
         }
     };
 
-    // Static data for Madhya Pradesh
-    const mpStateData = {
-        type: 'FeatureCollection',
-        features: [
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'mp',
-                    name: 'Madhya Pradesh',
-                    stateCode: 'MP',
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[
-                        [74.86, 21.84], // Starting from SW
-                        [75.63, 21.17],
-                        [76.87, 21.34],
-                        [77.82, 21.15],
-                        [78.98, 21.06],
-                        [79.91, 21.18],
-                        [80.87, 21.65],
-                        [81.89, 21.83],
-                        [82.52, 22.04], // Eastern point
-                        [82.41, 23.17],
-                        [82.17, 24.01],
-                        [82.31, 24.68],
-                        [82.12, 25.21],
-                        [81.27, 25.98],
-                        [80.32, 26.27], // Northern point
-                        [79.44, 26.48],
-                        [78.23, 26.35],
-                        [77.12, 26.48],
-                        [76.32, 26.21],
-                        [75.78, 25.87],
-                        [75.22, 25.32],
-                        [74.86, 24.63],
-                        [74.91, 23.98],
-                        [74.77, 22.85],
-                        [74.86, 21.84] // Back to start
-                    ]]
-                }
-            }
-        ]
-    };
+    // State data will be fetched from API
 
     // Parliamentary constituency data by division
     const parliamentaryData = {
@@ -263,10 +220,49 @@ const HierarchicalMap = () => {
 
     const loadStateData = async () => {
         try {
-            // Using static data instead of API call
-            showBoundaries(mpStateData, 'state');
-            setCurrentLevel('state');
-            setSelectedFeature(null);
+            const response = await fetch('http://localhost:5000/api/state-polygons');
+            if (!response.ok) {
+                throw new Error('Failed to fetch state data');
+            }
+            const responseData = await response.json();
+            if (responseData.success && responseData.data && responseData.data.length > 0) {
+                const stateData = responseData.data[0];
+
+                // Validate MultiPolygon structure
+                const validatedStateData = {
+                    ...stateData,
+                    features: stateData.features.map(feature => {
+                        // Ensure geometry type is correct
+                        if (!feature.geometry || feature.geometry.type !== 'MultiPolygon') {
+                            console.warn('Invalid geometry type in state data');
+                            return feature;
+                        }
+
+                        // Validate coordinates structure
+                        if (!Array.isArray(feature.geometry.coordinates) ||
+                            !Array.isArray(feature.geometry.coordinates[0]) ||
+                            !Array.isArray(feature.geometry.coordinates[0][0])) {
+                            console.warn('Invalid coordinates structure in state data');
+                            return feature;
+                        }
+
+                        return {
+                            ...feature,
+                            properties: {
+                                ...feature.properties,
+                                id: feature.properties.Name.toLowerCase().replace(/\s+/g, '-'),
+                                name: feature.properties.Name
+                            }
+                        };
+                    })
+                };
+                console.log('validatedStateData', validatedStateData)
+                showBoundaries(validatedStateData, 'state');
+                setCurrentLevel('state');
+                setSelectedFeature(null);
+            } else {
+                console.warn('No state data available');
+            }
         } catch (error) {
             console.error('Error loading state data:', error);
         }
@@ -562,12 +558,31 @@ const HierarchicalMap = () => {
     const showBoundaries = (data, level) => {
         resetLayer();
 
-        const style = (feature) => ({
-            color: level === 'division' ? getDivisionColor(feature.properties.divisionCode) : '#3388ff',
-            weight: 2,
-            fillOpacity: 0.2,
-            fillColor: level === 'division' ? getDivisionColor(feature.properties.divisionCode) : '#3388ff'
-        });
+        const style = (feature) => {
+            let color = '#3388ff';
+            let weight = 2;
+            let fillOpacity = 0.2;
+
+            if (level === 'state') {
+                color = '#2ecc71'; // Green color for state
+                weight = 3;
+                fillOpacity = 0.15;
+                // Add specific styling for MP state
+                if (feature.properties.Name === 'Madhya Pradesh') {
+                    color = '#1a5f32'; // Darker green for MP
+                    weight = 4;
+                }
+            } else if (level === 'division') {
+                color = getDivisionColor(feature.properties.divisionCode);
+            }
+
+            return {
+                color: color,
+                weight: weight,
+                fillOpacity: fillOpacity,
+                fillColor: color
+            };
+        };
 
         currentLayerRef.current = L.geoJSON(data, {
             style: style,
@@ -638,11 +653,16 @@ const HierarchicalMap = () => {
     const generatePopupContent = (feature, level) => {
         const properties = feature.properties;
         let content = `<div class="popup-content" style="min-width: 200px;">
-            <h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || ''}</h4>`;
+            <h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || properties.name || ''}</h4>`;
 
         switch (level) {
             case 'state':
-                content += `<p>State Code: ${properties.stateCode || ''}</p>`;
+                content += `
+                    <p><strong>State Name:</strong> ${properties.Name || ''}</p>
+                    <p><strong>Type:</strong> ${properties.Type || ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p style="font-size: 0.9em; color: #666;">Click to view Divisions</p>
+                    </div>`;
                 break;
             case 'division':
                 const districts = properties.districts ? properties.districts.join(', ') : '';
