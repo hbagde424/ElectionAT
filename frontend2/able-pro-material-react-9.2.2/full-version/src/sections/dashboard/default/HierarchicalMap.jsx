@@ -281,100 +281,21 @@ const HierarchicalMap = () => {
         }
     };
 
-    // Static parliamentary constituency data
-    const parliamentaryBoundariesData = {
-        bhopal: {
-            type: 'FeatureCollection',
-            features: [
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BPL01',
-                        name: 'Bhopal Parliamentary',
-                        pcNo: '18',
-                        divisionName: 'Bhopal Division',
-                        assemblySeats: 8,
-                        totalVoters: '2145678',
-                        lastElectionYear: '2019'
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.25, 23.15],
-                            [77.48, 23.12],
-                            [77.65, 23.18],
-                            [77.72, 23.35],
-                            [77.68, 23.52],
-                            [77.52, 23.58],
-                            [77.35, 23.55],
-                            [77.28, 23.42],
-                            [77.25, 23.15]
-                        ]]
-                    }
-                },
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BPL02',
-                        name: 'Vidisha Parliamentary',
-                        pcNo: '19',
-                        divisionName: 'Bhopal Division',
-                        assemblySeats: 8,
-                        totalVoters: '1987654',
-                        lastElectionYear: '2019'
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.68, 23.52],
-                            [77.85, 23.48],
-                            [78.05, 23.55],
-                            [78.12, 23.72],
-                            [78.08, 23.88],
-                            [77.92, 23.92],
-                            [77.75, 23.85],
-                            [77.68, 23.72],
-                            [77.68, 23.52]
-                        ]]
-                    }
-                },
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BPL03',
-                        name: 'Rajgarh Parliamentary',
-                        pcNo: '20',
-                        divisionName: 'Bhopal Division',
-                        assemblySeats: 8,
-                        totalVoters: '1876543',
-                        lastElectionYear: '2019'
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [76.92, 23.68],
-                            [77.15, 23.65],
-                            [77.32, 23.72],
-                            [77.38, 23.88],
-                            [77.35, 24.05],
-                            [77.18, 24.08],
-                            [77.02, 24.02],
-                            [76.95, 23.85],
-                            [76.92, 23.68]
-                        ]]
-                    }
-                }
-            ]
-        }
-    };
+    // Parliamentary data will be fetched from API
 
     const loadParliamentaryData = async (divisionId) => {
         try {
-            // Using static data instead of API call
-            if (parliamentaryBoundariesData[divisionId]) {
-                showBoundaries(parliamentaryBoundariesData[divisionId], 'parliamentary');
+            const response = await fetch('http://localhost:5000/api/parliament-polygons');
+            if (!response.ok) {
+                throw new Error('Failed to fetch parliamentary data');
+            }
+            const data = await response.json();
+            if (data && data.length > 0) {
+                // Filter data for the specific division if needed
+                // For now showing all parliament boundaries
+                showBoundaries(data[0], 'parliamentary');
             } else {
-                console.warn('No parliamentary data available for this division');
+                console.warn('No parliamentary data available');
             }
         } catch (error) {
             console.error('Error loading parliamentary data:', error);
@@ -529,98 +450,18 @@ const HierarchicalMap = () => {
         }
     };
 
-    // Static block data
-    const blockBoundariesData = {
-        AC001: {
-            type: 'FeatureCollection',
-            features: [
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BLK001',
-                        name: 'Berasia Block',
-                        blockCode: 'BRS01',
-                        acName: 'Berasia',
-                        totalVoters: '85678',
-                        totalBooths: 125,
-                        population: '156789',
-                        mainTown: 'Berasia',
-                        ruralBooths: 98,
-                        urbanBooths: 27
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.35, 23.25],
-                            [77.42, 23.22],
-                            [77.45, 23.25],
-                            [77.42, 23.28],
-                            [77.38, 23.28],
-                            [77.35, 23.25]
-                        ]]
-                    }
-                },
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BLK002',
-                        name: 'Sukhi Sewania',
-                        blockCode: 'BRS02',
-                        acName: 'Berasia',
-                        totalVoters: '65432',
-                        totalBooths: 95,
-                        population: '123456',
-                        mainTown: 'Sukhi Sewania',
-                        ruralBooths: 85,
-                        urbanBooths: 10
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.42, 23.22],
-                            [77.48, 23.22],
-                            [77.52, 23.25],
-                            [77.48, 23.28],
-                            [77.45, 23.25],
-                            [77.42, 23.22]
-                        ]]
-                    }
-                },
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BLK003',
-                        name: 'Phanda',
-                        blockCode: 'BRS03',
-                        acName: 'Berasia',
-                        totalVoters: '45678',
-                        totalBooths: 75,
-                        population: '98765',
-                        mainTown: 'Phanda',
-                        ruralBooths: 70,
-                        urbanBooths: 5
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.38, 23.28],
-                            [77.42, 23.28],
-                            [77.45, 23.32],
-                            [77.42, 23.35],
-                            [77.38, 23.32],
-                            [77.38, 23.28]
-                        ]]
-                    }
-                }
-            ]
-        }
-    };
+    // Block data will be fetched from API
 
     const loadBlockData = async (assemblyId) => {
         try {
-            // Using static data instead of API call
-            if (blockBoundariesData[assemblyId]) {
-                showBoundaries(blockBoundariesData[assemblyId], 'block');
+            const response = await fetch('http://localhost:5000/api/block-polygons');
+            if (!response.ok) {
+                throw new Error('Failed to fetch block data');
+            }
+            const responseData = await response.json();
+            if (responseData.success && responseData.data && responseData.data.length > 0) {
+                // For now showing all block boundaries from the first item
+                showBoundaries(responseData.data[0], 'block');
             } else {
                 console.warn('No block data available for this assembly constituency');
             }
@@ -797,7 +638,7 @@ const HierarchicalMap = () => {
     const generatePopupContent = (feature, level) => {
         const properties = feature.properties;
         let content = `<div class="popup-content" style="min-width: 200px;">
-            <h4 style="margin: 0 0 10px 0; color: #333;">${properties.name || ''}</h4>`;
+            <h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || ''}</h4>`;
 
         switch (level) {
             case 'state':
