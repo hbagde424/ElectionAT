@@ -181,6 +181,14 @@ const CRUDMenu = {
       url: '/Caste-List',
       icon: icons.HierarchySqu, // Hierarchical list
     },
+
+     {
+      id: 'Coding',
+      title: <FormattedMessage id="Coding" />,
+      type: 'item',
+      url: '/Coding',
+      icon: icons.Calendar,
+    },
     
     
     {

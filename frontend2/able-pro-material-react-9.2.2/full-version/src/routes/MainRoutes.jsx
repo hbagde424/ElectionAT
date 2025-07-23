@@ -153,6 +153,7 @@ const Users = Loadable(lazy(() => import('pages/curd/user/user')));
 const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
+const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
 const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
 const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
 const Influancer = Loadable(lazy(() => import('pages/curd/influancer/Influancer')));
@@ -650,6 +651,10 @@ const MainRoutes = {
         {
           path: 'Gender',
           element: <Gender />
+        },
+        {
+          path: 'Coding',
+          element: <Coding />
         },
         {
           path: 'Year',
