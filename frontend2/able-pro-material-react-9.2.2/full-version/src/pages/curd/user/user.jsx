@@ -286,6 +286,19 @@ export default function UserListPage() {
       )
     },
     {
+          header: 'Updated By',
+          accessorKey: 'updated_by',
+          cell: ({ getValue }) => {
+            const updatedBy = getValue();
+            return (
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <User size={14} />
+                <Typography variant="caption">{updatedBy?.username || 'Unknown'}</Typography>
+              </Stack>
+            );
+          }
+        },
+    {
       header: 'Created At',
       accessorKey: 'created_at',
       cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>

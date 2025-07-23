@@ -185,8 +185,44 @@ export default function InfluencersListPage() {
             )
         },
         {
+            header: 'Division',
+            accessorKey: 'division_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Parliament',
+            accessorKey: 'parliament_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
             header: 'Assembly',
             accessorKey: 'assembly_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+         {
+            header: 'Block',
+            accessorKey: 'block_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -211,6 +247,15 @@ export default function InfluencersListPage() {
         {
             header: 'Created By',
             accessorKey: 'created_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Updated By',
+            accessorKey: 'updated_by',
             cell: ({ getValue }) => (
                 <Typography>
                     {getValue()?.username || 'N/A'}
@@ -293,6 +338,7 @@ export default function InfluencersListPage() {
             District: item.district_id?.name || '',
             Block: item.block_id?.name || '',
             Booth: item.booth_id?.name || '',
+            Booth_Number: item.booth_id?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,

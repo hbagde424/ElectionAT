@@ -305,6 +305,19 @@ export default function EventListPage() {
             size: 150
         },
         {
+            header: 'Booth Number',
+            accessorKey: 'booth_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                />
+            ),
+            size: 150
+        },
+        {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
@@ -397,6 +410,8 @@ export default function EventListPage() {
             Assembly: item.assembly_id?.name || '',
             Block: item.block_id?.name || '',
             Booth: item.booth_id?.name || '',
+            Booth_Number: item.booth_id?.booth_number || '',
+
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,

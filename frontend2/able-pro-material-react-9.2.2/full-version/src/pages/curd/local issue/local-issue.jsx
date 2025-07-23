@@ -286,6 +286,19 @@ export default function LocalIssueListPage() {
             size: 150
         },
         {
+            header: 'Booth Number',
+            accessorKey: 'booth_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                />
+            ),
+            size: 150
+        },
+        {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
@@ -295,6 +308,16 @@ export default function LocalIssueListPage() {
             ),
             size: 150
         },
+         {
+                    header: 'Updated By',
+                    accessorKey: 'updated_by',
+                    cell: ({ getValue }) => (
+                        <Typography>
+                            {getValue()?.username || 'N/A'}
+                        </Typography>
+                    ),
+                    size: 150
+                },
         {
             header: 'Created At',
             accessorKey: 'created_at',
@@ -372,6 +395,7 @@ export default function LocalIssueListPage() {
             'Assembly': item.assembly_id?.name || '',
             'Block': item.block_id?.name || '',
             'Booth': item.booth_id?.name || '',
+            'Booth Number': item.booth_id?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at,
             'Updated At': item.updated_at
@@ -421,7 +445,7 @@ export default function LocalIssueListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     width: header.getSize(),
                                                     minWidth: header.getSize()
@@ -441,7 +465,7 @@ export default function LocalIssueListPage() {
                                     <Fragment key={row.id}>
                                         <TableRow>
                                             {row.getVisibleCells().map((cell) => (
-                                                <TableCell 
+                                                <TableCell
                                                     key={cell.id}
                                                     sx={{
                                                         width: cell.column.getSize(),

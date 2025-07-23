@@ -342,13 +342,37 @@ export default function LocalIssueModal({
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{localIssue ? 'Edit Local Issue' : 'Add Local Issue'}</DialogTitle>
-            <DialogContent>
+            <DialogContent  style="    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.57;
+    font-family: Inter var;
+    font-weight: 400;
+    min-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;" >
                 <Grid container spacing={2} mt={1}>
                     {/* Row 1: Issue Name and Department */}
-                    <Grid item xs={12} sm={6}>
+                    <Grid style="    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.57;
+    font-family: Inter var;
+    font-weight: 400;
+    min-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;" item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Issue Name</InputLabel>
-                            <TextField
+                            <TextField style="    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.57;
+    font-family: Inter var;
+    font-weight: 400;
+    min-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;"
                                 name="issue_name"
                                 value={formData.issue_name}
                                 onChange={handleChange}
@@ -360,6 +384,9 @@ export default function LocalIssueModal({
                             />
                         </Stack>
                     </Grid>
+                    <style>
+                        
+                    </style>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>

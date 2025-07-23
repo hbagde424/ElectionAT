@@ -18,7 +18,7 @@ exports.getVotingTrends = async (req, res, next) => {
 
     // Basic query
     let query = VotingTrends.find()
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('parliament_id', 'name number')
       .populate('block_id', 'name code')
@@ -92,7 +92,7 @@ exports.getVotingTrends = async (req, res, next) => {
 exports.getVotingTrendById = async (req, res, next) => {
   try {
     const trend = await VotingTrends.findById(req.params.id)
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('parliament_id', 'name number')
       .populate('block_id', 'name code')
@@ -432,7 +432,7 @@ exports.getTrendsByAssembly = async (req, res, next) => {
     }
 
     const trends = await VotingTrends.find({ assembly_id: req.params.assemblyId })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('parliament_id', 'name number')
       .populate('block_id', 'name code')
       .populate('division_id', 'name code')
@@ -465,7 +465,7 @@ exports.getTrendsByParliament = async (req, res, next) => {
     }
 
     const trends = await VotingTrends.find({ parliament_id: req.params.parliamentId })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('block_id', 'name code')
       .populate('division_id', 'name code')
@@ -498,7 +498,7 @@ exports.getTrendsByBlock = async (req, res, next) => {
     }
 
     const trends = await VotingTrends.find({ block_id: req.params.blockId })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('parliament_id', 'name number')
       .populate('division_id', 'name code')
@@ -530,7 +530,7 @@ exports.getTrendsByDivision = async (req, res, next) => {
     }
 
     const trends = await VotingTrends.find({ division_id: req.params.divisionId })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('parliament_id', 'name number')
       .populate('block_id', 'name code')
@@ -564,7 +564,7 @@ exports.getTrendsByParty = async (req, res, next) => {
 
     // Get trends where this party was the leading party
     const trends = await VotingTrends.find({ leading_party_id: req.params.partyId })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('parliament_id', 'name number')
       .populate('block_id', 'name code')
@@ -596,7 +596,7 @@ exports.getTrendsByYear = async (req, res, next) => {
     }
 
     const trends = await VotingTrends.find({ election_year: year })
-      .populate('booth_id', 'booth_number location')
+      .populate('booth_id', 'booth_number name location')
       .populate('assembly_id', 'name number')
       .populate('parliament_id', 'name number')
       .populate('block_id', 'name code')

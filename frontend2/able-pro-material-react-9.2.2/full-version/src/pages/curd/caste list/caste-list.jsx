@@ -231,6 +231,18 @@ export default function CasteListPage() {
                 />
             )
         },
+         {
+            header: 'Booth Number',
+            accessorKey: 'booth',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
+                    color="error"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
         {
             header: 'Created By',
             accessorKey: 'created_by',

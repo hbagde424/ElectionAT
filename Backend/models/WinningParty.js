@@ -40,12 +40,16 @@ const winningPartySchema = new mongoose.Schema({
     ref: 'Party',
     required: true
   },
-  year_id: {
+  election_year: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Year',
+    ref: 'ElectionYear',
     required: true
   },
   votes: {
+    type: Number,
+    required: true
+  },
+    booth_number: {
     type: Number,
     required: true
   },
@@ -81,13 +85,6 @@ winningPartySchema.pre('save', function(next) {
   next();
 });
 
-// Ensure unique combination of assembly/parliament and year
-winningPartySchema.index(
-  { $or: [
-    { assembly_id: 1, year_id: 1 },
-    { parliament_id: 1, year_id: 1 }
-  ] }, 
-  { unique: true }
-);
+
 
 module.exports = mongoose.model('WinningParty', winningPartySchema);
