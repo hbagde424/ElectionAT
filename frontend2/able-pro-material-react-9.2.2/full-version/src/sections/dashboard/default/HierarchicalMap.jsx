@@ -512,10 +512,10 @@ const HierarchicalMap = () => {
         }
     };
 
-    const loadAssemblyData = async (parliamentaryId) => {
+    const loadAssemblyData = async (divisionId) => {
         try {
-            // Get assembly polygons by parliamentary constituency
-            const response = await fetch('http://localhost:5000/api/assembly-polygons');
+            // Get assembly polygons by VS_Code from division
+            const response = await fetch(`http://localhost:5000/api/assembly-polygons/vs-code/${divisionId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch assembly data');
             }
@@ -523,18 +523,10 @@ const HierarchicalMap = () => {
             const assemblies = await response.json();
 
             if (assemblies && assemblies.length > 0) {
-                // Filter assemblies by parliamentary constituency if parliamentaryId is provided
-                const filteredAssemblies = assemblies.filter(assembly =>
-                    assembly.features.some(feature =>
-                        feature.properties.PC_NAME === parliamentaryId ||
-                        feature.properties.Parliament === parliamentaryId
-                    )
-                );
-
                 // Transform the data to match the expected format
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: filteredAssemblies.flatMap(assembly =>
+                    features: assemblies.map(assembly =>
                         assembly.features.map(feature => ({
                             type: 'Feature',
                             properties: {
@@ -769,19 +761,20 @@ const HierarchicalMap = () => {
 
     const handleLayerClick = (feature, level) => {
         setSelectedFeature(feature);
-
+        console.log('Clicked feature:', feature, 'at level:', level);
         switch (level) {
             case 'state':
                 loadDivisionData(feature.properties.id);
                 setCurrentLevel('division');
                 break;
             case 'division':
-                loadAssemblyData(feature.properties.id);
+                loadAssemblyData(feature.properties.VS_Code);
                 setCurrentLevel('assembly');
                 break;
             case 'parliamentary':
-                loadAssemblyData(feature.properties.id);
-                setCurrentLevel('assembly');
+                // loadAssemblyData(feature.properties.id);
+                loadParliamentaryData(feature.properties.name);
+                setCurrentLevel('parliamentary');
                 break;
             case 'assembly':
                 loadBlockData(feature.properties.id);
