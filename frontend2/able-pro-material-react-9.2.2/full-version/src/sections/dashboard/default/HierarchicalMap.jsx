@@ -310,51 +310,61 @@ const HierarchicalMap = () => {
 
     const loadParliamentaryData = async (divisionName) => {
         try {
-            const response = await fetch('http://localhost:5000/api/parliament-polygons');
+            // First get the Parliament name from division data
+            const parliamentName = divisionName;
+            console.log('Parliament name found:', parliamentName);
+
+            // Now fetch the parliamentary data using the Parliament name
+            const response = await fetch(`http://localhost:5000/api/parliament-polygons/name/${parliamentName}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch parliamentary data');
             }
             const data = await response.json();
             console.log('Parliamentary data:', data);
+            console.log('Looking for Parliament name:', parliamentName);
 
-            if (data && data.length > 0) {
+            if (data && data.length > 0 && data[0].features) {
+                // Get the first item since it's an array with one FeatureCollection
+                const parliamentData = data[0];
+                console.log('Processing parliament data features:', parliamentData.features);
+
                 // Group features by Parliament constituency
                 const parliamentFeatures = {};
-                data.forEach(item => {
-                    item.features.forEach(feature => {
-                        if (feature.properties.Division === divisionName) {
-                            const pcName = feature.properties.Parliament;
-                            if (!parliamentFeatures[pcName]) {
-                                parliamentFeatures[pcName] = {
-                                    type: 'Feature',
-                                    properties: {
-                                        id: pcName.toLowerCase().replace(/\s+/g, '-'),
-                                        name: pcName,
-                                        vsCode: feature.properties.VS_Code,
-                                        divisionName: feature.properties.Division,
-                                        district: feature.properties.District,
-                                        assemblyName: feature.properties.Name,
-                                        assemblySeats: 0,
-                                        totalVoters: 0,
-                                        lastElectionYear: '2023'
-                                    },
-                                    geometry: {
-                                        type: 'MultiPolygon',
-                                        coordinates: []
-                                    }
-                                };
-                            }
-                            // Count assembly seats
-                            parliamentFeatures[pcName].properties.assemblySeats++;
-
-                            // Add geometry
-                            if (feature.geometry.type === 'Polygon') {
-                                parliamentFeatures[pcName].geometry.coordinates.push([feature.geometry.coordinates]);
-                            } else if (feature.geometry.type === 'MultiPolygon') {
-                                parliamentFeatures[pcName].geometry.coordinates.push(...feature.geometry.coordinates);
-                            }
+                parliamentData.features.forEach(feature => {
+                    console.log('Processing feature:', feature);
+                    const pcName = feature.properties.Parliament;
+                    if (pcName === parliamentName) {
+                        if (!parliamentFeatures[pcName]) {
+                            parliamentFeatures[pcName] = {
+                                type: 'Feature',
+                                properties: {
+                                    id: pcName.toLowerCase().replace(/\s+/g, '-'),
+                                    name: pcName,
+                                    vsCode: feature.properties.VS_Code,
+                                    divisionName: feature.properties.Division,
+                                    district: feature.properties.District,
+                                    assemblyName: feature.properties.Name,
+                                    assemblySeats: 0,
+                                    totalVoters: 0,
+                                    lastElectionYear: '2023'
+                                },
+                                geometry: {
+                                    type: 'MultiPolygon',
+                                    coordinates: []
+                                }
+                            };
                         }
-                    });
+                        // Count assembly seats
+                        parliamentFeatures[pcName].properties.assemblySeats++;
+
+                        // Add geometry
+                        if (feature.geometry.type === 'Polygon') {
+                            // Create a proper MultiPolygon coordinate structure
+                            parliamentFeatures[pcName].geometry.coordinates.push(feature.geometry.coordinates);
+                        } else if (feature.geometry.type === 'MultiPolygon') {
+                            parliamentFeatures[pcName].geometry.coordinates.push(...feature.geometry.coordinates);
+                        }
+                    }
                 });
 
                 const transformedData = {
@@ -766,16 +776,15 @@ const HierarchicalMap = () => {
                 const vsCode = feature.properties.VS_Code || feature.properties.vsCode;
                 console.log('Division clicked, VS_Code:', vsCode);
                 if (vsCode) {
-                    loadAssemblyData(vsCode);
-                    setCurrentLevel('assembly');
+                    loadParliamentaryData(feature.properties.Parliament);
+                    setCurrentLevel('Parliament');
                 } else {
                     console.warn('No VS_Code found for division:', feature.properties.name);
                 }
                 break;
             case 'parliamentary':
-                loadAssemblyData(feature.properties.id);
-                // loadParliamentaryData(feature.properties.name);
-                setCurrentLevel('parliamentary');
+                loadAssemblyData(feature.properties.vsCode);
+                setCurrentLevel('Assembly ');
                 break;
             case 'assembly':
                 loadBlockData(feature.properties.id);
