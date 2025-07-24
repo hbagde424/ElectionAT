@@ -62,7 +62,7 @@ const genderRoutes = require('./routes/genderRoutes');
 const electionTypeRoutes = require('./routes/electionTypeRoutes');
 const governmentRoutes = require('./routes/governmentRoutes');
 const influencerRoutes = require('./routes/influencerRoutes');
-const statePolygonRoutes = require('./routes/statePolygonRoutes');
+// const statePolygonRoutes = require('./routes/statePolygonRoutes');
 const codingRoutes = require('./routes/codingRoutes');
 // const mpPolygonRoutes = require('./routes/statePolygonRoutes');
 // Connect to database
@@ -100,7 +100,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/district-polygons', districtPolygonRoutes);
 app.use('/api/division-polygons', divisionPolygonRoutes);
-app.use('/api/assembly', assembliesRoutes);
+app.use('/api/assembly-polygons', assembliesRoutes);
 app.use('/api/local-dynamics', localDynamicsRoutes);
 app.use('/api/states', stateRoutes);
 app.use('/api/divisions', divisionRoutes);
@@ -150,7 +150,7 @@ app.use('/api/genders', genderRoutes);
 app.use('/api/election-types', electionTypeRoutes);
 app.use('/api/governments', governmentRoutes);
 app.use('/api/influencers', influencerRoutes);
-app.use('/api/state-polygons', statePolygonRoutes);
+// app.use('/api/state-polygons', statePolygonRoutes);
 app.use('/api/codings', codingRoutes);
 // app.use('/api/mp-polygon', mpPolygonRoutes);
 
