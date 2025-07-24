@@ -11,6 +11,83 @@ const divisionPolygenController = require('../controllers/divisionPolygenControl
 
 /**
  * @swagger
+ * /api/division-polygons/within:
+ *   get:
+ *     summary: Get divisions within a geographic area
+ *     tags: [Division Polygons]
+ *     parameters:
+ *       - in: query
+ *         name: longitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Longitude of center point
+ *       - in: query
+ *         name: latitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Latitude of center point
+ *       - in: query
+ *         name: radius
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Radius in kilometers
+ *     responses:
+ *       200:
+ *         description: List of divisions within the area
+ *       400:
+ *         description: Missing parameters
+ *       404:
+ *         description: No divisions found
+ */
+router.get('/within', divisionPolygenController.getDivisionsWithin);
+
+/**
+ * @swagger
+ * /api/division-polygons/name/{name}:
+ *   get:
+ *     summary: Get division by name
+ *     tags: [Division Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Division name
+ *     responses:
+ *       200:
+ *         description: Division data
+ *       404:
+ *         description: Division not found
+ */
+router.get('/name/:name', divisionPolygenController.getDivisionByName);
+
+/**
+ * @swagger
+ * /api/division-polygons/district/{district}:
+ *   get:
+ *     summary: Get divisions by district
+ *     tags: [Division Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: district
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: District name
+ *     responses:
+ *       200:
+ *         description: List of divisions in the district
+ *       404:
+ *         description: No divisions found
+ */
+router.get('/district/:district', divisionPolygenController.getDivisionsByDistrict);
+
+/**
+ * @swagger
  * /api/division-polygons:
  *   post:
  *     summary: Create a new division polygon

@@ -1,100 +1,124 @@
 const express = require('express');
 const router = express.Router();
 const assemblyController = require('../controllers/assemblypolygenController');
-const authController = require('../middlewares/auth');
 
 /**
  * @swagger
  * tags:
- *   name: Assemblies
- *   description: Assembly data endpoints
+ *   name: Assembly Polygons
+ *   description: Assembly polygon data endpoints
  */
 
 /**
  * @swagger
- * /api/assembly:
+ * /api/assembly-polygons:
  *   get:
- *     summary: Get all assemblies polygen
- *     tags: [Assemblies]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get all assembly polygons
+ *     tags: [Assembly Polygons]
  *     responses:
  *       200:
- *         description: List of all assemblies
- *       401:
- *         description: Unauthorized
+ *         description: List of all assembly polygons
+ *       500:
+ *         description: Server error
  */
-router.get('/',  assemblyController.getAllAssemblies);
+router.get('/', assemblyController.getAllAssemblies);
 
 /**
  * @swagger
- * /api/assembly/vs_code/{vs_code}:
+ * /api/assembly-polygons/vs-code/{vs_code}:
  *   get:
- *     summary: Get assembly polygen by VS Code 
- *     tags: [Assemblies]
+ *     summary: Get assembly by VS Code
+ *     tags: [Assembly Polygons]
  *     parameters:
  *       - in: path
  *         name: vs_code
- *         schema:
- *           type: integer
  *         required: true
+ *         schema:
+ *           type: string
  *         description: Assembly VS Code
  *     responses:
  *       200:
- *         description: Assembly data
+ *         description: Assembly polygon data
  *       404:
  *         description: Assembly not found
  */
-router.get('/vs_code/:vs_code',  assemblyController.getAssemblyByVSCode);
+router.get('/vs-code/:vs_code', assemblyController.getAssemblyByVSCode);
 
 /**
  * @swagger
- * /api/Assembly/district/{district}:
+ * /api/assembly-polygons/district/{district}:
  *   get:
- *     summary: Get assemblies polygens by district 
- *     tags: [Assemblies]
+ *     summary: Get assemblies by district
+ *     tags: [Assembly Polygons]
  *     parameters:
  *       - in: path
  *         name: district
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
  *         description: District name
  *     responses:
  *       200:
- *         description: List of assemblies in the district
+ *         description: List of assembly polygons in the district
+ *       404:
+ *         description: No assemblies found
  */
 router.get('/district/:district', assemblyController.getAssembliesByDistrict);
 
 /**
  * @swagger
- * /api/assembly/within:
+ * /api/assembly-polygons/within:
  *   get:
- *     summary: Get assemblies polygens within geographic area
- *     tags: [Assemblies]
+ *     summary: Get assemblies within a geographic area
+ *     tags: [Assembly Polygons]
  *     parameters:
  *       - in: query
  *         name: longitude
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
  *         description: Longitude of center point
  *       - in: query
  *         name: latitude
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
  *         description: Latitude of center point
  *       - in: query
  *         name: radius
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
  *         description: Radius in kilometers
  *     responses:
  *       200:
  *         description: List of assemblies within the area
+ *       400:
+ *         description: Missing parameters
+ *       404:
+ *         description: No assemblies found
  */
 router.get('/within', assemblyController.getAssembliesWithin);
+
+/**
+ * @swagger
+ * /api/assembly-polygons/parliament/{pc_name}:
+ *   get:
+ *     summary: Get assemblies by parliamentary constituency
+ *     tags: [Assembly Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: pc_name
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Parliamentary Constituency name
+ *     responses:
+ *       200:
+ *         description: List of assemblies in the parliamentary constituency
+ *       404:
+ *         description: No assemblies found
+ */
+router.get('/parliament/:pc_name', assemblyController.getAssembliesByParliament);
 
 module.exports = router;

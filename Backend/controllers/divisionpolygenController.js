@@ -1,5 +1,89 @@
 const Divisionpolygen = require('../models/Divisionpolygen');
 
+// Helper to handle large JSON responses
+const sendJsonResponse = (res, data) => {
+  res.setHeader('Content-Type', 'application/json');
+  return res.status(200).send(JSON.stringify(data, null, 2));
+};
+
+// Helper error handler
+const handleError = (res, err) => {
+  console.error('Error:', err);
+  return res.status(500).json({
+    message: 'Server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+};
+
+// Get divisions within a geographic area
+exports.getDivisionsWithin = async (req, res) => {
+  try {
+    const { longitude, latitude, radius } = req.query;
+
+    if (!longitude || !latitude || !radius) {
+      return res.status(400).json({ message: 'Missing required query parameters' });
+    }
+
+    const divisions = await Divisionpolygen.find(
+      {
+        'features.geometry': {
+          $geoWithin: {
+            $centerSphere: [
+              [parseFloat(longitude), parseFloat(latitude)],
+              parseFloat(radius) / 6378.1 // Convert km to radians
+            ]
+          }
+        }
+      },
+      { _id: 0, __v: 0 }
+    ).lean();
+
+    if (!divisions || divisions.length === 0) {
+      return res.status(404).json({ message: 'No divisions found within the specified area' });
+    }
+
+    return sendJsonResponse(res, divisions);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// Get division by name
+exports.getDivisionByName = async (req, res) => {
+  try {
+    const division = await Divisionpolygen.findOne(
+      { 'features.properties.Name': req.params.name },
+      { _id: 0, __v: 0 }
+    ).lean();
+
+    if (!division) {
+      return res.status(404).json({ message: 'Division not found' });
+    }
+
+    return sendJsonResponse(res, division);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// Get divisions by district
+exports.getDivisionsByDistrict = async (req, res) => {
+  try {
+    const divisions = await Divisionpolygen.find(
+      { 'features.properties.District': req.params.district },
+      { _id: 0, __v: 0 }
+    ).lean();
+
+    if (!divisions || divisions.length === 0) {
+      return res.status(404).json({ message: 'No divisions found for this district' });
+    }
+
+    return sendJsonResponse(res, divisions);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
 /**
  * @swagger
  * components:
@@ -115,9 +199,9 @@ exports.getAllDivisionPolygens = async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();
-    
+
     const count = await Divisionpolygen.countDocuments();
-    
+
     res.json({
       polygons,
       totalPages: Math.ceil(count / limit),

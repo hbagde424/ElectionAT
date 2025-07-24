@@ -9,13 +9,46 @@ const sendJsonResponse = (res, data) => {
 // Helper error handler
 const handleError = (res, err) => {
   console.error('Error:', err);
-  return res.status(500).json({ 
+  return res.status(500).json({
     message: 'Server error',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 };
 
-// Get all assemblies (full data)
+// ✅ Get assemblies within a geographic area using $geoWithin
+exports.getAssembliesWithin = async (req, res) => {
+  try {
+    const { longitude, latitude, radius } = req.query;
+
+    if (!longitude || !latitude || !radius) {
+      return res.status(400).json({ message: 'Missing required query parameters' });
+    }
+
+    const assemblies = await Assembly.find(
+      {
+        'features.geometry': {
+          $geoWithin: {
+            $centerSphere: [
+              [parseFloat(longitude), parseFloat(latitude)],
+              parseFloat(radius) / 6378.1 // Convert km to radians
+            ]
+          }
+        }
+      },
+      { _id: 0, __v: 0 }
+    ).lean();
+
+    if (!assemblies || assemblies.length === 0) {
+      return res.status(404).json({ message: 'No assemblies found within the specified area' });
+    }
+
+    return sendJsonResponse(res, assemblies);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// Get all assemblies
 exports.getAllAssemblies = async (req, res) => {
   try {
     const assemblies = await Assembly.find({}, { _id: 0, __v: 0 }).lean();
@@ -25,7 +58,7 @@ exports.getAllAssemblies = async (req, res) => {
   }
 };
 
-// Get assembly by VS_Code (full data)
+// Get assembly by VS_Code
 exports.getAssemblyByVSCode = async (req, res) => {
   try {
     const vsCode = parseInt(req.params.vs_code);
@@ -41,60 +74,53 @@ exports.getAssemblyByVSCode = async (req, res) => {
     if (!assembly) {
       return res.status(404).json({ message: 'Assembly not found' });
     }
-    
+
     return sendJsonResponse(res, assembly);
   } catch (err) {
     return handleError(res, err);
   }
 };
 
-// Get assemblies by district (full data)
+// Get assemblies by district
 exports.getAssembliesByDistrict = async (req, res) => {
   try {
     const assemblies = await Assembly.find(
       { 'features.properties.District': req.params.district },
       { _id: 0, __v: 0 }
     ).lean();
-    
+
     if (!assemblies || assemblies.length === 0) {
       return res.status(404).json({ message: 'No assemblies found for this district' });
     }
-    
+
     return sendJsonResponse(res, assemblies);
   } catch (err) {
     return handleError(res, err);
   }
 };
-
-// Get assemblies within a geographic area (full data)
-exports.getAssembliesWithin = async (req, res) => {
+// Get assemblies by Parliament name
+exports.getAssembliesByParliament = async (req, res) => {
   try {
-    const { longitude, latitude, radius } = req.query;
-    
-    if (!longitude || !latitude || !radius) {
-      return res.status(400).json({ message: 'Missing required query parameters' });
-    }
+    const { pc_name } = req.params;
 
     const assemblies = await Assembly.find(
-      {
-        'features.geometry': {
-          $geoWithin: {
-            $centerSphere: [
-              [parseFloat(longitude), parseFloat(latitude)],
-              parseFloat(radius) / 6378.1
-            ]
-          }
-        }
-      },
+      { 'features.properties.PC_Name': pc_name },
       { _id: 0, __v: 0 }
     ).lean();
-    
+
     if (!assemblies || assemblies.length === 0) {
-      return res.status(404).json({ message: 'No assemblies found within the specified area' });
+      return res.status(404).json({ message: 'No assemblies found for this parliamentary constituency' });
     }
-    
-    return sendJsonResponse(res, assemblies);
+
+    res.status(200).json({
+      success: true,
+      count: assemblies.length,
+      data: assemblies
+    });
   } catch (err) {
-    return handleError(res, err);
+    console.error('Error in getAssembliesByParliament:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
+
+console.log('Assembly Controller loaded with keys:', Object.keys(module.exports));

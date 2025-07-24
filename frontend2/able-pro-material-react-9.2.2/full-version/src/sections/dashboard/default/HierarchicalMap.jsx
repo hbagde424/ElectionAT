@@ -270,10 +270,39 @@ const HierarchicalMap = () => {
 
     const loadDivisionData = async (stateId) => {
         try {
-            // Using static division data
-            showBoundaries(mpDivisionsData, 'division');
+            const response = await fetch('http://localhost:5000/api/division-polygons');
+            if (!response.ok) {
+                throw new Error('Failed to fetch division data');
+            }
+            const responseData = await response.json();
+            if (responseData.polygons && responseData.polygons.length > 0) {
+                const divisionData = responseData.polygons[0];
+                // Transform data to match the required format if needed
+                const transformedData = {
+                    ...divisionData,
+                    features: divisionData.features.map(feature => ({
+                        ...feature,
+                        properties: {
+                            ...feature.properties,
+                            id: feature.properties.Division.toLowerCase().replace(/\s+/g, '-'),
+                            name: feature.properties.Division,
+                            divisionCode: feature.properties.Division.substring(0, 3).toUpperCase(),
+                            stateName: 'Madhya Pradesh',
+                            parliamentarySeats: 1, // You might want to calculate this based on your data
+                            districts: [feature.properties.District]
+                        }
+                    }))
+                };
+                showBoundaries(transformedData, 'division');
+            } else {
+                console.warn('No division data available');
+                // Fallback to static data if API fails
+                showBoundaries(mpDivisionsData, 'division');
+            }
         } catch (error) {
             console.error('Error loading division data:', error);
+            // Fallback to static data if API fails
+            showBoundaries(mpDivisionsData, 'division');
         }
     };
 
@@ -435,14 +464,61 @@ const HierarchicalMap = () => {
 
     const loadAssemblyData = async (parliamentaryId) => {
         try {
-            // Using static data instead of API call
-            if (assemblyBoundariesData[parliamentaryId]) {
-                showBoundaries(assemblyBoundariesData[parliamentaryId], 'assembly');
+            // Get assembly polygons by parliamentary constituency
+            const response = await fetch('http://localhost:5000/api/assembly-polygons');
+            if (!response.ok) {
+                throw new Error('Failed to fetch assembly data');
+            }
+
+            const assemblies = await response.json();
+
+            if (assemblies && assemblies.length > 0) {
+                // Filter assemblies by parliamentary constituency if parliamentaryId is provided
+                const filteredAssemblies = assemblies.filter(assembly =>
+                    assembly.features.some(feature =>
+                        feature.properties.PC_NAME === parliamentaryId ||
+                        feature.properties.Parliament === parliamentaryId
+                    )
+                );
+
+                // Transform the data to match the expected format
+                const transformedData = {
+                    type: 'FeatureCollection',
+                    features: filteredAssemblies.flatMap(assembly =>
+                        assembly.features.map(feature => ({
+                            type: 'Feature',
+                            properties: {
+                                id: feature.properties.VS_Code.toString(),
+                                name: feature.properties.AC_NAME,
+                                acNo: feature.properties.VS_Code.toString(),
+                                pcName: feature.properties.PC_NAME || feature.properties.Parliament,
+                                category: feature.properties.Category || 'GEN',
+                                totalVoters: feature.properties.TotalVoters,
+                                lastElectionYear: '2023', // You might want to get this from your data
+                                winner: feature.properties.Winner || '',
+                                margin: feature.properties.Margin || '',
+                                district: feature.properties.District || feature.properties.DIST_NAME
+                            },
+                            geometry: feature.geometry
+                        }))
+                    )
+                };
+
+                console.log('Transformed Assembly Data:', transformedData);
+                showBoundaries(transformedData, 'assembly');
             } else {
-                console.warn('No assembly data available for this parliamentary constituency');
+                console.warn('No assembly data available');
+                // Fallback to static data if needed
+                if (assemblyBoundariesData[parliamentaryId]) {
+                    showBoundaries(assemblyBoundariesData[parliamentaryId], 'assembly');
+                }
             }
         } catch (error) {
             console.error('Error loading assembly data:', error);
+            // Fallback to static data on error
+            if (assemblyBoundariesData[parliamentaryId]) {
+                showBoundaries(assemblyBoundariesData[parliamentaryId], 'assembly');
+            }
         }
     };
 
@@ -456,8 +532,28 @@ const HierarchicalMap = () => {
             }
             const responseData = await response.json();
             if (responseData.success && responseData.data && responseData.data.length > 0) {
-                // For now showing all block boundaries from the first item
-                showBoundaries(responseData.data[0], 'block');
+                // Transform the data into a FeatureCollection
+                const transformedData = {
+                    type: 'FeatureCollection',
+                    features: responseData.data.map(feature => ({
+                        type: 'Feature',
+                        properties: {
+                            ...feature.properties,
+                            id: feature.properties.BlockName.toLowerCase().replace(/\s+/g, '-'),
+                            name: feature.properties.BlockName,
+                            blockCode: feature.properties.BlockName,
+                            acName: feature.properties.AC_NAME,
+                            mainTown: feature.properties.DIST_NAME,
+                            population: null, // Add if available in your data
+                            totalVoters: null, // Add if available in your data
+                            totalBooths: 1, // This should be calculated based on your data
+                            ruralBooths: feature.properties.BoothName ? 1 : 0,
+                            urbanBooths: 0
+                        },
+                        geometry: feature.geometry
+                    }))
+                };
+                showBoundaries(transformedData, 'block');
             } else {
                 console.warn('No block data available for this assembly constituency');
             }

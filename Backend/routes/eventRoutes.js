@@ -339,7 +339,7 @@ router.get('/type/:type', getEventsByType);
  *           type: string
  *           description: Event location
  *           example: "Central Park, New York"
- *          state_id:
+ *         state_id:
  *           type: string
  *           description: Reference to State
  *           example: "507f1f77bcf86cd799439010"
