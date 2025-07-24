@@ -512,55 +512,49 @@ const HierarchicalMap = () => {
         }
     };
 
-    const loadAssemblyData = async (divisionId) => {
+    const loadAssemblyData = async (vsCode) => {
         try {
-            // Get assembly polygons by VS_Code from division
-            const response = await fetch(`http://localhost:5000/api/assembly-polygons/vs-code/${divisionId}`);
+            console.log('Loading assembly data for VS_Code:', vsCode);
+            const response = await fetch(`http://localhost:5000/api/assembly-polygons/vs-code/${vsCode}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch assembly data');
             }
 
             const assemblies = await response.json();
+            console.log('Received assembly data:', assemblies);
 
-            if (assemblies && assemblies.length > 0) {
+            if (assemblies && assemblies.type === 'FeatureCollection' && assemblies.features && assemblies.features.length > 0) {
+                console.log('Processing assembly features:', assemblies.features);
                 // Transform the data to match the expected format
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: assemblies.map(assembly =>
-                        assembly.features.map(feature => ({
-                            type: 'Feature',
-                            properties: {
-                                id: feature.properties.VS_Code.toString(),
-                                name: feature.properties.AC_NAME,
-                                acNo: feature.properties.VS_Code.toString(),
-                                pcName: feature.properties.PC_NAME || feature.properties.Parliament,
-                                category: feature.properties.Category || 'GEN',
-                                totalVoters: feature.properties.TotalVoters,
-                                lastElectionYear: '2023', // You might want to get this from your data
-                                winner: feature.properties.Winner || '',
-                                margin: feature.properties.Margin || '',
-                                district: feature.properties.District || feature.properties.DIST_NAME
-                            },
-                            geometry: feature.geometry
-                        }))
-                    )
+                    features: assemblies.features.map(feature => ({
+                        type: 'Feature',
+                        properties: {
+                            id: feature.properties.VS_Code.toString(),
+                            name: feature.properties.Name,
+                            acNo: feature.properties.VS_Code.toString(),
+                            pcName: feature.properties.Parliament,
+                            district: feature.properties.District,
+                            division: feature.properties.Division,
+                            category: 'GEN',
+                            lastElectionYear: '2023'
+                        },
+                        geometry: feature.geometry
+                    }))
                 };
+
+                console.log('Final transformed assembly data:', transformedData);
 
                 console.log('Transformed Assembly Data:', transformedData);
                 showBoundaries(transformedData, 'assembly');
             } else {
                 console.warn('No assembly data available');
                 // Fallback to static data if needed
-                if (assemblyBoundariesData[parliamentaryId]) {
-                    showBoundaries(assemblyBoundariesData[parliamentaryId], 'assembly');
-                }
+                setCurrentLevel('assembly');
             }
         } catch (error) {
             console.error('Error loading assembly data:', error);
-            // Fallback to static data on error
-            if (assemblyBoundariesData[parliamentaryId]) {
-                showBoundaries(assemblyBoundariesData[parliamentaryId], 'assembly');
-            }
         }
     };
 
@@ -768,12 +762,19 @@ const HierarchicalMap = () => {
                 setCurrentLevel('division');
                 break;
             case 'division':
-                loadAssemblyData(feature.properties.VS_Code);
-                setCurrentLevel('assembly');
+                // Check if we have VS_Code in the properties
+                const vsCode = feature.properties.VS_Code || feature.properties.vsCode;
+                console.log('Division clicked, VS_Code:', vsCode);
+                if (vsCode) {
+                    loadAssemblyData(vsCode);
+                    setCurrentLevel('assembly');
+                } else {
+                    console.warn('No VS_Code found for division:', feature.properties.name);
+                }
                 break;
             case 'parliamentary':
-                // loadAssemblyData(feature.properties.id);
-                loadParliamentaryData(feature.properties.name);
+                loadAssemblyData(feature.properties.id);
+                // loadParliamentaryData(feature.properties.name);
                 setCurrentLevel('parliamentary');
                 break;
             case 'assembly':
