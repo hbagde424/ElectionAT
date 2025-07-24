@@ -285,7 +285,7 @@ const HierarchicalMap = () => {
                         properties: {
                             ...feature.properties,
                             id: feature.properties.Division.toLowerCase().replace(/\s+/g, '-'),
-                            name: feature.properties.Division,
+                            name: feature.properties.Name,
                             divisionCode: feature.properties.Division.substring(0, 3).toUpperCase(),
                             stateName: 'Madhya Pradesh',
                             parliamentarySeats: 1, // You might want to calculate this based on your data
@@ -308,17 +308,67 @@ const HierarchicalMap = () => {
 
     // Parliamentary data will be fetched from API
 
-    const loadParliamentaryData = async (divisionId) => {
+    const loadParliamentaryData = async (divisionName) => {
         try {
             const response = await fetch('http://localhost:5000/api/parliament-polygons');
             if (!response.ok) {
                 throw new Error('Failed to fetch parliamentary data');
             }
             const data = await response.json();
+            console.log('Parliamentary data:', data);
+
             if (data && data.length > 0) {
-                // Filter data for the specific division if needed
-                // For now showing all parliament boundaries
-                showBoundaries(data[0], 'parliamentary');
+                // Group features by Parliament constituency
+                const parliamentFeatures = {};
+                data.forEach(item => {
+                    item.features.forEach(feature => {
+                        if (feature.properties.Division === divisionName) {
+                            const pcName = feature.properties.Parliament;
+                            if (!parliamentFeatures[pcName]) {
+                                parliamentFeatures[pcName] = {
+                                    type: 'Feature',
+                                    properties: {
+                                        id: pcName.toLowerCase().replace(/\s+/g, '-'),
+                                        name: pcName,
+                                        vsCode: feature.properties.VS_Code,
+                                        divisionName: feature.properties.Division,
+                                        district: feature.properties.District,
+                                        assemblyName: feature.properties.Name,
+                                        assemblySeats: 0,
+                                        totalVoters: 0,
+                                        lastElectionYear: '2023'
+                                    },
+                                    geometry: {
+                                        type: 'MultiPolygon',
+                                        coordinates: []
+                                    }
+                                };
+                            }
+                            // Count assembly seats
+                            parliamentFeatures[pcName].properties.assemblySeats++;
+
+                            // Add geometry
+                            if (feature.geometry.type === 'Polygon') {
+                                parliamentFeatures[pcName].geometry.coordinates.push([feature.geometry.coordinates]);
+                            } else if (feature.geometry.type === 'MultiPolygon') {
+                                parliamentFeatures[pcName].geometry.coordinates.push(...feature.geometry.coordinates);
+                            }
+                        }
+                    });
+                });
+
+                const transformedData = {
+                    type: 'FeatureCollection',
+                    features: Object.values(parliamentFeatures)
+                };
+
+                console.log('Transformed parliamentary data:', transformedData);
+
+                if (transformedData.features.length > 0) {
+                    showBoundaries(transformedData, 'parliamentary');
+                } else {
+                    console.warn('No parliamentary constituencies found for division:', divisionName);
+                }
             } else {
                 console.warn('No parliamentary data available');
             }
@@ -726,8 +776,8 @@ const HierarchicalMap = () => {
                 setCurrentLevel('division');
                 break;
             case 'division':
-                loadParliamentaryData(feature.properties.id);
-                setCurrentLevel('parliamentary');
+                loadAssemblyData(feature.properties.id);
+                setCurrentLevel('assembly');
                 break;
             case 'parliamentary':
                 loadAssemblyData(feature.properties.id);
@@ -778,11 +828,13 @@ const HierarchicalMap = () => {
                 break;
             case 'parliamentary':
                 content += `
-                    <p><strong>PC No:</strong> ${properties.pcNo || ''}</p>
+                    <p><strong>Parliamentary Constituency:</strong> ${properties.name || ''}</p>
                     <p><strong>Division:</strong> ${properties.divisionName || ''}</p>
+                    <p><strong>District:</strong> ${properties.district || ''}</p>
+                    <p><strong>Assembly Name:</strong> ${properties.assemblyName || ''}</p>
                     <p><strong>Assembly Seats:</strong> ${properties.assemblySeats || ''}</p>
-                    <p><strong>Total Voters:</strong> ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
-                    <p><strong>Last Election:</strong> ${properties.lastElectionYear || ''}</p>
+                    <p><strong>VS Code:</strong> ${properties.vsCode || ''}</p>
+                    <p><strong>Last Election Year:</strong> ${properties.lastElectionYear || ''}</p>
                     <hr style="margin: 10px 0">
                     <p style="font-size: 0.9em; color: #666;">Click to view Assembly Constituencies</p>`;
                 break;
