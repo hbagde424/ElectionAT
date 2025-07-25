@@ -1,5 +1,3 @@
-// ✅ CLEANED VERSION - all "district" references removed
-
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
@@ -17,6 +15,7 @@ export default function BoothModal({
     parliaments,
     assemblies,
     blocks,
+    electionYears,
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -32,7 +31,8 @@ export default function BoothModal({
         division_id: '',
         parliament_id: '',
         assembly_id: '',
-        block_id: ''
+        block_id: '',
+        election_year: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -53,7 +53,8 @@ export default function BoothModal({
                 division_id: booth.division_id?._id?.toString() || booth.division_id?.toString() || '',
                 parliament_id: booth.parliament_id?._id?.toString() || booth.parliament_id?.toString() || '',
                 assembly_id: booth.assembly_id?._id?.toString() || booth.assembly_id?.toString() || '',
-                block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || ''
+                block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || '',
+                election_year: booth.election_year?._id?.toString() || booth.election_year?.toString() || ''
             });
         } else {
             setFormData({
@@ -66,7 +67,8 @@ export default function BoothModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                block_id: ''
+                block_id: '',
+                election_year: ''
             });
         }
     }, [booth]);
@@ -177,12 +179,14 @@ export default function BoothModal({
         }));
     };
 
+     
+
     const handleSubmit = async () => {
         setSubmitted(true);
         const requiredFields = [
             'name', 'booth_number', 'full_address',
             'state_id', 'division_id', 'parliament_id',
-            'assembly_id', 'block_id'
+            'assembly_id', 'block_id', 'election_year'
         ];
 
         for (const field of requiredFields) {
@@ -448,6 +452,30 @@ export default function BoothModal({
                             </FormControl>
                             {submitted && !formData.block_id && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Block is required</Box>
+                            )}
+                        </Stack>
+                    </Grid>
+
+<Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Election Year</InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.election_year}>
+                                <Select
+                                    name="election_year"
+                                    value={formData.election_year}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <MenuItem value="">Select Election Year</MenuItem>
+                                    {electionYears?.map((year) => (
+                                        <MenuItem key={year._id} value={year._id}>
+                                            {year.year}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            {submitted && !formData.election_year && (
+                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Election year is required</Box>
                             )}
                         </Stack>
                     </Grid>
