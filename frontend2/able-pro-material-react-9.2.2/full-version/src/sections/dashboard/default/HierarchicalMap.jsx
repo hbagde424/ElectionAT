@@ -65,158 +65,6 @@ const HierarchicalMap = () => {
         // Add more parliamentary constituencies for other divisions
     };
 
-    const mpDivisionsData = {
-        type: 'FeatureCollection',
-        features: [
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'bhopal',
-                    name: 'Bhopal Division',
-                    divisionCode: 'BPL',
-                    stateName: 'Madhya Pradesh',
-                    parliamentarySeats: 3,
-                    districts: ['Bhopal', 'Sehore', 'Raisen', 'Vidisha', 'Rajgarh']
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[
-                        [77.12, 23.08], // Bhopal division boundary
-                        [77.35, 22.95],
-                        [77.68, 22.89],
-                        [77.92, 22.94],
-                        [78.15, 23.12],
-                        [78.32, 23.35],
-                        [78.28, 23.68],
-                        [78.15, 23.92],
-                        [77.85, 24.08],
-                        [77.52, 24.12],
-                        [77.25, 23.98],
-                        [77.08, 23.75],
-                        [77.05, 23.42],
-                        [77.12, 23.08]
-                    ]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'chambal',
-                    name: 'Chambal Division',
-                    divisionCode: 'CHM',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[77.0, 25.5], [78.5, 25.5], [78.5, 26.5], [77.0, 26.5], [77.0, 25.5]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'gwalior',
-                    name: 'Gwalior Division',
-                    divisionCode: 'GWL',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[77.5, 24.5], [79.0, 24.5], [79.0, 25.5], [77.5, 25.5], [77.5, 24.5]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'indore',
-                    name: 'Indore Division',
-                    divisionCode: 'IND',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[75.5, 22.0], [76.5, 22.0], [76.5, 23.0], [75.5, 23.0], [75.5, 22.0]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'jabalpur',
-                    name: 'Jabalpur Division',
-                    divisionCode: 'JBP',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[79.5, 22.5], [80.5, 22.5], [80.5, 23.5], [79.5, 23.5], [79.5, 22.5]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'narmadapuram',
-                    name: 'Narmadapuram Division',
-                    divisionCode: 'NRM',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[77.0, 22.0], [78.0, 22.0], [78.0, 23.0], [77.0, 23.0], [77.0, 22.0]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'rewa',
-                    name: 'Rewa Division',
-                    divisionCode: 'RWA',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[81.0, 24.0], [82.0, 24.0], [82.0, 25.0], [81.0, 25.0], [81.0, 24.0]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'sagar',
-                    name: 'Sagar Division',
-                    divisionCode: 'SGR',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[78.5, 23.5], [79.5, 23.5], [79.5, 24.5], [78.5, 24.5], [78.5, 23.5]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'shahdol',
-                    name: 'Shahdol Division',
-                    divisionCode: 'SDL',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[81.5, 23.0], [82.5, 23.0], [82.5, 24.0], [81.5, 24.0], [81.5, 23.0]]]
-                }
-            },
-            {
-                type: 'Feature',
-                properties: {
-                    id: 'ujjain',
-                    name: 'Ujjain Division',
-                    divisionCode: 'UJN',
-                    stateName: 'Madhya Pradesh'
-                },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[75.0, 23.0], [76.0, 23.0], [76.0, 24.0], [75.0, 24.0], [75.0, 23.0]]]
-                }
-            }
-        ]
-    };
 
     const loadStateData = async () => {
         try {
@@ -275,34 +123,75 @@ const HierarchicalMap = () => {
                 throw new Error('Failed to fetch division data');
             }
             const responseData = await response.json();
-            if (responseData.polygons && responseData.polygons.length > 0) {
-                const divisionData = responseData.polygons[0];
-                // Transform data to match the required format if needed
+            console.log('Division API Response:', responseData);
+
+            if (responseData.features && responseData.features.length > 0) {
+                // Group features by Division
+                const divisionGroups = {};
+                responseData.features.forEach(feature => {
+                    const division = feature.properties.Division;
+
+                    if (!divisionGroups[division]) {
+                        divisionGroups[division] = {
+                            type: 'Feature',
+                            properties: {
+                                id: division.toLowerCase().replace(/\s+/g, '-'),
+                                name: division,
+                                OBJECTID: feature.properties.OBJECTID,
+                                districts: new Set([feature.properties.District]),
+                                parliaments: new Set([feature.properties.Parliament]),
+                                vsCodes: new Set([feature.properties.VS_Code]),
+                                Shape_Leng: feature.properties.Shape_Leng,
+                                Shape_Area: feature.properties.Shape_Area
+                            },
+                            geometry: {
+                                type: 'MultiPolygon',
+                                coordinates: []
+                            }
+                        };
+                    } else {
+                        // Update properties
+                        divisionGroups[division].properties.districts.add(feature.properties.District);
+                        divisionGroups[division].properties.parliaments.add(feature.properties.Parliament);
+                        divisionGroups[division].properties.vsCodes.add(feature.properties.VS_Code);
+                    }
+
+                    // Add geometry
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        if (feature.geometry.type === 'MultiPolygon') {
+                            divisionGroups[division].geometry.coordinates.push(...feature.geometry.coordinates);
+                        } else if (feature.geometry.type === 'Polygon') {
+                            divisionGroups[division].geometry.coordinates.push([feature.geometry.coordinates]);
+                        }
+                    }
+                });
+
+                // Transform to final format
                 const transformedData = {
-                    ...divisionData,
-                    features: divisionData.features.map(feature => ({
-                        ...feature,
+                    type: 'FeatureCollection',
+                    name: responseData.name,
+                    crs: responseData.crs,
+                    features: Object.values(divisionGroups).map(division => ({
+                        ...division,
                         properties: {
-                            ...feature.properties,
-                            id: feature.properties.Division.toLowerCase().replace(/\s+/g, '-'),
-                            name: feature.properties.Name,
-                            divisionCode: feature.properties.Division.substring(0, 3).toUpperCase(),
-                            stateName: 'Madhya Pradesh',
-                            parliamentarySeats: 1, // You might want to calculate this based on your data
-                            districts: [feature.properties.District]
+                            ...division.properties,
+                            districts: Array.from(division.properties.districts),
+                            parliaments: Array.from(division.properties.parliaments),
+                            vsCodes: Array.from(division.properties.vsCodes),
+                            parliamentarySeats: division.properties.parliaments.size
                         }
                     }))
                 };
+
+                console.log('Transformed Division Data:', transformedData);
                 showBoundaries(transformedData, 'division');
             } else {
                 console.warn('No division data available');
-                // Fallback to static data if API fails
-                showBoundaries(mpDivisionsData, 'division');
+
             }
         } catch (error) {
             console.error('Error loading division data:', error);
-            // Fallback to static data if API fails
-            showBoundaries(mpDivisionsData, 'division');
+
         }
     };
 
@@ -772,14 +661,18 @@ const HierarchicalMap = () => {
                 setCurrentLevel('division');
                 break;
             case 'division':
-                // Check if we have VS_Code in the properties
-                const vsCode = feature.properties.VS_Code || feature.properties.vsCode;
-                console.log('Division clicked, VS_Code:', vsCode);
-                if (vsCode) {
-                    loadParliamentaryData(feature.properties.Parliament);
-                    setCurrentLevel('Parliament');
+                console.log('Division clicked:', feature.properties);
+                // Get the first parliament name from the parliament array
+                const parliament = feature.properties.name
+                    ? feature.properties.name
+                    : null;
+
+                if (parliament) {
+                    console.log('Loading parliamentary data for:', parliament);
+                    loadParliamentaryData(parliament);
+                    setCurrentLevel('parliamentary');
                 } else {
-                    console.warn('No VS_Code found for division:', feature.properties.name);
+                    console.warn('No Parliament found for division:', feature.properties.name);
                 }
                 break;
             case 'parliamentary':

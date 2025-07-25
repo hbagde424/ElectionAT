@@ -4,32 +4,50 @@ const { Schema } = mongoose;
 const DivisionpolygenSchema = new Schema({
   type: {
     type: String,
-    default: "FeatureCollection"
+    default: "FeatureCollection",
+    required: true
+  },
+  name: {
+    type: String,
+    default: "Divstion",
+    required: true
+  },
+  crs: {
+    type: {
+      type: String,
+      default: "name",
+      required: true
+    },
+    properties: {
+      name: {
+        type: String,
+        default: "urn:ogc:def:crs:OGC:1.3:CRS84",
+        required: true
+      }
+    }
   },
   features: [{
     type: {
       type: String,
-      default: "Feature"
+      default: "Feature",
+      required: true
     },
     geometry: {
       type: {
         type: String,
-        default: "Polygon"
+        default: "MultiPolygon",
+        required: true
       },
       coordinates: {
-        type: [[[Number]]],
-        required: true,
-        validate: {
-          validator: function(coords) {
-            // Validate Polygon coordinates (first and last points must match)
-            return coords[0][0][0] === coords[0][coords[0].length-1][0] && 
-                   coords[0][0][1] === coords[0][coords[0].length-1][1];
-          },
-          message: 'Polygon coordinates must form a closed loop'
-        }
+        type: [[[[Number]]]],  // 4D array for MultiPolygon
+        required: true
       }
     },
     properties: {
+      OBJECTID: {
+        type: Number,
+        required: true
+      },
       Name: {
         type: String,
         required: true,
@@ -44,7 +62,7 @@ const DivisionpolygenSchema = new Schema({
         type: String,
         required: true,
         trim: true,
-        index: true // Add index for faster queries
+        index: true
       },
       Parliament: {
         type: String,
@@ -55,13 +73,21 @@ const DivisionpolygenSchema = new Schema({
         type: Number,
         required: true,
         min: 1
+      },
+      Shape_Leng: {
+        type: Number,
+        required: true
+      },
+      Shape_Area: {
+        type: Number,
+        required: true
       }
     }
   }]
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true } 
+  toObject: { virtuals: true }
 });
 
 // Add geospatial index for efficient queries

@@ -191,24 +191,34 @@ exports.createDivisionPolygen = async (req, res) => {
   }
 };
 
-// Get all division polygons with pagination
+// Get all division polygons
 exports.getAllDivisionPolygens = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-    const polygons = await Divisionpolygen.find()
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .exec();
+    // Find all polygon documents with all fields including coordinates
+    const polygons = await Divisionpolygen.find({}, {
+      __v: 0,
+      'features.__v': 0
+    }).lean();
 
-    const count = await Divisionpolygen.countDocuments();
-
-    res.json({
-      polygons,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page
-    });
+    if (polygons && polygons.length > 0) {
+      // Return the first polygon since it's a FeatureCollection containing all features
+      return sendJsonResponse(res, polygons[0]);
+    } else {
+      // Return empty GeoJSON FeatureCollection if no data
+      return sendJsonResponse(res, {
+        type: "FeatureCollection",
+        name: "Divstion",
+        crs: {
+          type: "name",
+          properties: {
+            name: "urn:ogc:def:crs:OGC:1.3:CRS84"
+          }
+        },
+        features: []
+      });
+    }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return handleError(res, err);
   }
 };
 
