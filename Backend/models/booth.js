@@ -51,14 +51,19 @@ const boothSchema = new mongoose.Schema({
     ref: 'State',
     required: true
   },
-    updated_by: {
+  election_year: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // or 'Admin'
+    ref: 'ElectionYear', 
+    required: true
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: false
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // or 'Admin'
+    ref: 'User',
     required: true
   },
   created_at: {

@@ -6,7 +6,8 @@ const {
   updateBooth,
   deleteBooth,
   getBoothsByAssembly,
-  getBoothsByBlock
+  getBoothsByBlock,
+  getBoothsByYear
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -57,11 +58,6 @@ const router = express.Router();
  *           type: string
  *         description: Parliament ID to filter by
  *       - in: query
- *         name: district
- *         schema:
- *           type: string
- *         description: District ID to filter by
- *       - in: query
  *         name: division
  *         schema:
  *           type: string
@@ -71,6 +67,11 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: State ID to filter by
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Election year ID to filter by
  *     responses:
  *       200:
  *         description: List of booths
@@ -268,6 +269,39 @@ router.get('/block/:blockId', getBoothsByBlock);
 
 /**
  * @swagger
+ * /api/booths/year/{yearId}:
+ *   get:
+ *     summary: Get booths by election year
+ *     tags: [Booths]
+ *     parameters:
+ *       - in: path
+ *         name: yearId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of booths for the election year
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Booth'
+ *       404:
+ *         description: Election year not found
+ */
+router.get('/year/:yearId', getBoothsByYear);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     Booth:
@@ -279,9 +313,9 @@ router.get('/block/:blockId', getBoothsByBlock);
  *         - block_id
  *         - assembly_id
  *         - parliament_id
- *         - district_id
  *         - division_id
  *         - state_id
+ *         - election_year
  *         - created_by
  *       properties:
  *         name:
@@ -316,10 +350,6 @@ router.get('/block/:blockId', getBoothsByBlock);
  *           type: string
  *           description: Reference to Parliament
  *           example: "507f1f77bcf86cd799439013"
- *         district_id:
- *           type: string
- *           description: Reference to District
- *           example: "507f1f77bcf86cd799439014"
  *         division_id:
  *           type: string
  *           description: Reference to Division
@@ -328,6 +358,10 @@ router.get('/block/:blockId', getBoothsByBlock);
  *           type: string
  *           description: Reference to State
  *           example: "507f1f77bcf86cd799439016"
+ *         election_year:
+ *           type: string
+ *           description: Reference to Election Year
+ *           example: "507f1f77bcf86cd799439017"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

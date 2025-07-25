@@ -2,9 +2,9 @@ const Booth = require('../models/booth');
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
-// const District = require('../models/district');
 const Division = require('../models/division');
 const State = require('../models/state');
+const ElectionYear = require('../models/electionYear');
 
 // @desc    Get all booths
 // @route   GET /api/booths
@@ -12,21 +12,20 @@ const State = require('../models/state');
 exports.getBooths = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) ;
-    const limit = parseInt(req.query.limit);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
     // Basic query
     let query = Booth.find()
       .populate('block_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')  
-      // .populate('district_id', 'name') // Removed 'division_id' from here
+      .populate('parliament_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
+      .populate('election_year', 'year')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
-
       .sort({ booth_number: 1 });
 
     // Search functionality
@@ -54,11 +53,6 @@ exports.getBooths = async (req, res, next) => {
       query = query.where('parliament_id').equals(req.query.parliament);
     }
 
-    // Filter by district
-    // if (req.query.district) {
-    //   query = query.where('district_id').equals(req.query.district);
-    // }
-
     // Filter by division
     if (req.query.division) {
       query = query.where('division_id').equals(req.query.division);
@@ -67,6 +61,11 @@ exports.getBooths = async (req, res, next) => {
     // Filter by state
     if (req.query.state) {
       query = query.where('state_id').equals(req.query.state);
+    }
+
+    // Filter by election year
+    if (req.query.election_year) {
+      query = query.where('election_year').equals(req.query.election_year);
     }
 
     const booths = await query.skip(skip).limit(limit).exec();
@@ -94,12 +93,11 @@ exports.getBooth = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
-      // .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
+      .populate('election_year', 'year')
       .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-
+      .populate('updated_by', 'username');
 
     if (!booth) {
       return res.status(404).json({
@@ -127,16 +125,16 @@ exports.createBooth = async (req, res, next) => {
       block,
       assembly,
       parliament,
-      // district,
       division,
-      state
+      state,
+      electionYear
     ] = await Promise.all([
       Block.findById(req.body.block_id),
       Assembly.findById(req.body.assembly_id),
       Parliament.findById(req.body.parliament_id),
-      // District.findById(req.body.district_id),
       Division.findById(req.body.division_id),
-      State.findById(req.body.state_id)
+      State.findById(req.body.state_id),
+      ElectionYear.findById(req.body.election_year)
     ]);
 
     if (!block) {
@@ -148,14 +146,14 @@ exports.createBooth = async (req, res, next) => {
     if (!parliament) {
       return res.status(400).json({ success: false, message: 'Parliament not found' });
     }
-    // if (!district) {
-    //   return res.status(400).json({ success: false, message: 'District not found' });
-    // }
     if (!division) {
       return res.status(400).json({ success: false, message: 'Division not found' });
     }
     if (!state) {
       return res.status(400).json({ success: false, message: 'State not found' });
+    }
+    if (!electionYear) {
+      return res.status(400).json({ success: false, message: 'Election year not found' });
     }
 
     // Check if user exists in request
@@ -207,9 +205,9 @@ exports.updateBooth = async (req, res, next) => {
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
-    // if (req.body.district_id) verificationPromises.push(District.findById(req.body.district_id));
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+    if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
 
     const verificationResults = await Promise.all(verificationPromises);
     
@@ -222,7 +220,7 @@ exports.updateBooth = async (req, res, next) => {
       }
     }
 
-     // Set updated_by to current user
+    // Set updated_by to current user
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -239,11 +237,11 @@ exports.updateBooth = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
-      // .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-            .populate('created_by', 'username')
-      .populate('updated_by', 'username')
+      .populate('election_year', 'year')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -302,8 +300,9 @@ exports.getBoothsByAssembly = async (req, res, next) => {
     const booths = await Booth.find({ assembly_id: req.params.assemblyId })
       .sort({ booth_number: 1 })
       .populate('block_id', 'name')
-           .populate('created_by', 'username')
+      .populate('created_by', 'username')
       .populate('updated_by', 'username')
+      .populate('election_year', 'year');
 
     res.status(200).json({
       success: true,
@@ -332,7 +331,39 @@ exports.getBoothsByBlock = async (req, res, next) => {
     const booths = await Booth.find({ block_id: req.params.blockId })
       .sort({ booth_number: 1 })
       .populate('assembly_id', 'name')
-      .populate('created_by', 'username');
+      .populate('created_by', 'username')
+      .populate('election_year', 'year');
+
+    res.status(200).json({
+      success: true,
+      count: booths.length,
+      data: booths
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get booths by election year
+// @route   GET /api/booths/year/:yearId
+// @access  Public
+exports.getBoothsByYear = async (req, res, next) => {
+  try {
+    // Verify election year exists
+    const year = await ElectionYear.findById(req.params.yearId);
+    if (!year) {
+      return res.status(404).json({
+        success: false,
+        message: 'Election year not found'
+      });
+    }
+
+    const booths = await Booth.find({ election_year: req.params.yearId })
+      .sort({ booth_number: 1 })
+      .populate('block_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('created_by', 'username')
+      .populate('election_year', 'year');
 
     res.status(200).json({
       success: true,
