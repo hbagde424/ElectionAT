@@ -30,7 +30,7 @@ const ParliamentpolygenSchema = new Schema({
         type: String,
         required: true
       },
-      Division: {
+      DIVISION_NAME: {
         type: String,
         required: true
       },

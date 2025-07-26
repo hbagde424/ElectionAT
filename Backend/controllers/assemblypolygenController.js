@@ -67,7 +67,7 @@ exports.getAssemblyByVSCode = async (req, res) => {
     }
 
     const assembly = await Assembly.findOne(
-      { 'features.properties.VS_Code': vsCode },
+      { 'features.properties.PC_NAME': vsCode },
       { _id: 0, __v: 0 }
     ).lean();
 
@@ -102,14 +102,37 @@ exports.getAssembliesByDistrict = async (req, res) => {
 exports.getAssembliesByParliament = async (req, res) => {
   try {
     const { pc_name } = req.params;
+    const pcNo = Number(pc_name); // Convert string to number
+    console.log('ashok_pc_no:', pcNo);
 
-    const assemblies = await Assembly.find(
-      { 'features.properties.PC_Name': pc_name },
-      { _id: 0, __v: 0 }
-    ).lean();
+    const assemblies = await Assembly.aggregate([
+      {
+        $project: {
+          type: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          features: {
+            $filter: {
+              input: "$features",
+              as: "feature",
+              cond: {
+                $eq: ["$$feature.properties.PC_NO", pcNo]
+              }
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          "features.0": { $exists: true }
+        }
+      }
+    ]);
 
     if (!assemblies || assemblies.length === 0) {
-      return res.status(404).json({ message: 'No assemblies found for this parliamentary constituency' });
+      return res.status(404).json({
+        message: 'No assemblies found for this parliamentary constituency'
+      });
     }
 
     res.status(200).json({
@@ -122,5 +145,8 @@ exports.getAssembliesByParliament = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+
 
 console.log('Assembly Controller loaded with keys:', Object.keys(module.exports));

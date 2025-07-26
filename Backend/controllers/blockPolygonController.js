@@ -50,8 +50,9 @@ exports.getPolygonsByBlock = async (req, res, next) => {
 exports.getPolygonsByBooth = async (req, res, next) => {
   try {
     const boothNumber = req.params.boothNumber;
+    console.log('Fetching polygons for block number ashok:', boothNumber);
     const polygons = await BlockPolygon.find({
-      "features.properties.booth_number": boothNumber
+      "features.properties.AC_NO": boothNumber
     });
 
     if (!polygons || polygons.length === 0) {
@@ -77,7 +78,7 @@ exports.getPolygonsByBooth = async (req, res, next) => {
 exports.getPolygonByBoothId = async (req, res, next) => {
   try {
     const boothId = req.params.boothId;
-    
+
     // First verify the booth exists
     const booth = await Booth.findById(boothId);
     if (!booth) {

@@ -119,14 +119,36 @@ exports.getParliamentpolygenById = async (req, res) => {
 
 exports.getParliamentpolygensByName = async (req, res) => {
   try {
-    const polygons = await Parliamentpolygen.find({
-      'features.properties.Name': req.params.name
-    });
+    const divisionName = req.params.name;
+
+    if (!divisionName) {
+      return res.status(400).json({ error: 'Division name is required' });
+    }
+    const polygons = await Parliamentpolygen.aggregate([
+      {
+        $project: {
+          features: {
+            $filter: {
+              input: "$features",
+              as: "feature",
+              cond: { $eq: ["$$feature.properties.DIVISION_NAME", divisionName] }
+            }
+          },
+          type: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      },
+      { $match: { "features.0": { $exists: true } } } // Only docs with matching features
+    ]);
+
     res.json(polygons);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+
 
 exports.getParliamentpolygensByDistrict = async (req, res) => {
   try {
