@@ -32,12 +32,11 @@ export default function BoothsListPage() {
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
-    // const [districts, setDistricts] = useState([]);
     const [blocks, setBlocks] = useState([]);
+    const [electionYears, setElectionYears] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState(() => {
-        // Try to restore pagination state from localStorage
         const saved = localStorage.getItem('boothPagination');
         return saved ? JSON.parse(saved) : { pageIndex: 0, pageSize: 10 };
     });
@@ -50,15 +49,15 @@ export default function BoothsListPage() {
                 divisionsRes,
                 parliamentsRes,
                 assembliesRes,
-                // districtsRes,
-                blocksRes
+                blocksRes,
+                electionYearsRes
             ] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
                 fetch('http://localhost:5000/api/assemblies'),
-                // fetch('http://localhost:5000/api/districts'),
-                fetch('http://localhost:5000/api/blocks')
+                fetch('http://localhost:5000/api/blocks'),
+                fetch('http://localhost:5000/api/election-years')
             ]);
 
             const [
@@ -66,23 +65,23 @@ export default function BoothsListPage() {
                 divisionsData,
                 parliamentsData,
                 assembliesData,
-                // districtsData,
-                blocksData
+                blocksData,
+                electionYearsData
             ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
-                // districtsRes.json(),
-                blocksRes.json()
+                blocksRes.json(),
+                electionYearsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (parliamentsData.success) setParliaments(parliamentsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
-            // if (districtsData.success) setDistricts(districtsData.data);
             if (blocksData.success) setBlocks(blocksData.data);
+            if (electionYearsData.success) setElectionYears(electionYearsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -158,6 +157,18 @@ export default function BoothsListPage() {
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue() || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Election Year',
+            accessorKey: 'election_year',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.year || 'N/A'}
+                    color="success"
                     size="small"
                     variant="outlined"
                 />
@@ -464,8 +475,8 @@ export default function BoothsListPage() {
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                // districts={districts}
                 blocks={blocks}
+                electionYears={electionYears}
                 refresh={() => fetchBooths(pagination.pageIndex, pagination.pageSize)}
             />
 

@@ -146,7 +146,7 @@ export default function WidgetData() {
       </Grid>
       <Grid item xs={12} md={6} lg={4}>
         <TotalRevenue />
-      </Grid>
+      </Grid> 
       <Grid item xs={12} md={6} lg={4}>
         <TasksCard />
       </Grid>
