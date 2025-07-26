@@ -431,10 +431,11 @@ const HierarchicalMap = () => {
             }
             const responseData = await response.json();
             if (responseData.success && responseData.data && responseData.data.length > 0) {
+                console.log('Received block data:', responseData.data[0].features);
                 // Transform the data into a FeatureCollection
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: responseData.data.map(feature => ({
+                    features: responseData.data[0].features.map(feature => ({
                         type: 'Feature',
                         properties: {
                             ...feature.properties,

@@ -49,11 +49,32 @@ exports.getPolygonsByBlock = async (req, res, next) => {
 // @access  Public
 exports.getPolygonsByBooth = async (req, res, next) => {
   try {
-    const boothNumber = req.params.boothNumber;
+    const boothNumber = Number(req.params.boothNumber); // Convert to number
     console.log('Fetching polygons for block number ashok:', boothNumber);
-    const polygons = await BlockPolygon.find({
-      "features.properties.AC_NO": boothNumber
-    });
+
+    const polygons = await BlockPolygon.aggregate([
+      {
+        $project: {
+          type: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          features: {
+            $filter: {
+              input: "$features",
+              as: "feature",
+              cond: {
+                $eq: ["$$feature.properties.AC_NO", boothNumber]
+              }
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          "features.0": { $exists: true }
+        }
+      }
+    ]);
 
     if (!polygons || polygons.length === 0) {
       return res.status(404).json({
