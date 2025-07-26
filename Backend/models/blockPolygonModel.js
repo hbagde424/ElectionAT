@@ -27,6 +27,7 @@ const blockPolygonSchema = new mongoose.Schema({
       Division: String,
       Parliament: String,
       VS_Code: Number,
+      AC_NO: String,
       booth_number: String, // Adding booth number for booth-wise data
       booth_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -45,7 +46,7 @@ const blockPolygonSchema = new mongoose.Schema({
 });
 
 // Update timestamp before saving
-blockPolygonSchema.pre('save', function(next) {
+blockPolygonSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });

@@ -123,26 +123,23 @@ const HierarchicalMap = () => {
                 throw new Error('Failed to fetch division data');
             }
             const responseData = await response.json();
-            console.log('Division API Response:', responseData);
 
             if (responseData.features && responseData.features.length > 0) {
-                // Group features by Division
-                const divisionGroups = {};
-                responseData.features.forEach(feature => {
-                    const division = feature.properties.Division;
+                const divisionGroups = responseData.features.reduce((groups, feature) => {
+                    console.log('Processing feature properties:', feature.properties);
+                    const division = (feature.properties.DIVISION_NAME || feature.properties.DIVISION_NAME)?.toUpperCase();
 
-                    if (!divisionGroups[division]) {
-                        divisionGroups[division] = {
+                    if (!groups[division]) {
+                        groups[division] = {
                             type: 'Feature',
                             properties: {
                                 id: division.toLowerCase().replace(/\s+/g, '-'),
                                 name: division,
-                                OBJECTID: feature.properties.OBJECTID,
+                                DIVISION_CODE: feature.properties.DIVISION_CODE,
+                                ST_NAME: feature.properties.ST_NAME,
                                 districts: new Set([feature.properties.District]),
                                 parliaments: new Set([feature.properties.Parliament]),
-                                vsCodes: new Set([feature.properties.VS_Code]),
-                                Shape_Leng: feature.properties.Shape_Leng,
-                                Shape_Area: feature.properties.Shape_Area
+                                vsCodes: new Set([feature.properties.VS_Code])
                             },
                             geometry: {
                                 type: 'MultiPolygon',
@@ -150,27 +147,23 @@ const HierarchicalMap = () => {
                             }
                         };
                     } else {
-                        // Update properties
-                        divisionGroups[division].properties.districts.add(feature.properties.District);
-                        divisionGroups[division].properties.parliaments.add(feature.properties.Parliament);
-                        divisionGroups[division].properties.vsCodes.add(feature.properties.VS_Code);
+                        groups[division].properties.districts.add(feature.properties.District);
+                        groups[division].properties.parliaments.add(feature.properties.Parliament);
+                        groups[division].properties.vsCodes.add(feature.properties.VS_Code);
                     }
 
-                    // Add geometry
-                    if (feature.geometry && feature.geometry.coordinates) {
+                    if (feature.geometry?.coordinates) {
                         if (feature.geometry.type === 'MultiPolygon') {
-                            divisionGroups[division].geometry.coordinates.push(...feature.geometry.coordinates);
+                            groups[division].geometry.coordinates.push(...feature.geometry.coordinates);
                         } else if (feature.geometry.type === 'Polygon') {
-                            divisionGroups[division].geometry.coordinates.push([feature.geometry.coordinates]);
+                            groups[division].geometry.coordinates.push([feature.geometry.coordinates]);
                         }
                     }
-                });
+                    return groups;
+                }, {});
 
-                // Transform to final format
                 const transformedData = {
                     type: 'FeatureCollection',
-                    name: responseData.name,
-                    crs: responseData.crs,
                     features: Object.values(divisionGroups).map(division => ({
                         ...division,
                         properties: {
@@ -183,15 +176,12 @@ const HierarchicalMap = () => {
                     }))
                 };
 
-                console.log('Transformed Division Data:', transformedData);
                 showBoundaries(transformedData, 'division');
             } else {
                 console.warn('No division data available');
-
             }
         } catch (error) {
             console.error('Error loading division data:', error);
-
         }
     };
 
@@ -208,57 +198,29 @@ const HierarchicalMap = () => {
             if (!response.ok) {
                 throw new Error('Failed to fetch parliamentary data');
             }
-            const data = await response.json();
-            console.log('Parliamentary data:', data);
-            console.log('Looking for Parliament name:', parliamentName);
+            const responseData = await response.json();
+            console.log('Parliamentary data:', responseData);
 
-            if (data && data.length > 0 && data[0].features) {
+            if (responseData && responseData.length > 0 && responseData[0].features) {
                 // Get the first item since it's an array with one FeatureCollection
-                const parliamentData = data[0];
-                console.log('Processing parliament data features:', parliamentData.features);
+                const parliamentData = responseData[0];
 
-                // Group features by Parliament constituency
-                const parliamentFeatures = {};
-                parliamentData.features.forEach(feature => {
-                    console.log('Processing feature:', feature);
-                    const pcName = feature.properties.Parliament;
-                    if (pcName === parliamentName) {
-                        if (!parliamentFeatures[pcName]) {
-                            parliamentFeatures[pcName] = {
-                                type: 'Feature',
-                                properties: {
-                                    id: pcName.toLowerCase().replace(/\s+/g, '-'),
-                                    name: pcName,
-                                    vsCode: feature.properties.VS_Code,
-                                    divisionName: feature.properties.Division,
-                                    district: feature.properties.District,
-                                    assemblyName: feature.properties.Name,
-                                    assemblySeats: 0,
-                                    totalVoters: 0,
-                                    lastElectionYear: '2023'
-                                },
-                                geometry: {
-                                    type: 'MultiPolygon',
-                                    coordinates: []
-                                }
-                            };
-                        }
-                        // Count assembly seats
-                        parliamentFeatures[pcName].properties.assemblySeats++;
-
-                        // Add geometry
-                        if (feature.geometry.type === 'Polygon') {
-                            // Create a proper MultiPolygon coordinate structure
-                            parliamentFeatures[pcName].geometry.coordinates.push(feature.geometry.coordinates);
-                        } else if (feature.geometry.type === 'MultiPolygon') {
-                            parliamentFeatures[pcName].geometry.coordinates.push(...feature.geometry.coordinates);
-                        }
-                    }
-                });
-
+                // Transform the data to match the expected format
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: Object.values(parliamentFeatures)
+                    features: parliamentData.features.map(feature => ({
+                        type: 'Feature',
+                        properties: {
+                            id: feature.properties.PC_NAME.toLowerCase().replace(/\s+/g, '-'),
+                            name: feature.properties.PC_NAME,
+                            pcNo: feature.properties.PC_NO,
+                            stateCode: feature.properties.ST_CODE,
+                            stateName: feature.properties.ST_NAME,
+                            parliamentId: feature.properties.PC_ID,
+                            divisionName: divisionName
+                        },
+                        geometry: feature.geometry
+                    }))
                 };
 
                 console.log('Transformed parliamentary data:', transformedData);
@@ -414,28 +376,29 @@ const HierarchicalMap = () => {
     const loadAssemblyData = async (vsCode) => {
         try {
             console.log('Loading assembly data for VS_Code:', vsCode);
-            const response = await fetch(`http://localhost:5000/api/assembly-polygons/vs-code/${vsCode}`);
+            const response = await fetch(`http://localhost:5000/api/assembly-polygons/parliament/${vsCode}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch assembly data');
             }
 
             const assemblies = await response.json();
-            console.log('Received assembly data:', assemblies);
+            console.log('Received assembly data1:', assemblies.data[0].type);
+            console.log('Received assembly data:', assemblies.data[0].features);
 
-            if (assemblies && assemblies.type === 'FeatureCollection' && assemblies.features && assemblies.features.length > 0) {
-                console.log('Processing assembly features:', assemblies.features);
+            if (assemblies && assemblies.data[0].type === "FeatureCollection" && assemblies.data[0].features && assemblies.data[0].features.length > 0) {
+                console.log('Processing assembly features:', assemblies.data[0].features);
                 // Transform the data to match the expected format
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: assemblies.features.map(feature => ({
+                    features: assemblies.data[0].features.map(feature => ({
                         type: 'Feature',
                         properties: {
-                            id: feature.properties.VS_Code.toString(),
-                            name: feature.properties.Name,
-                            acNo: feature.properties.VS_Code.toString(),
-                            pcName: feature.properties.Parliament,
-                            district: feature.properties.District,
-                            division: feature.properties.Division,
+                            id: feature.properties.PC_ID.toString(),
+                            name: feature.properties.AC_NAME,
+                            acNo: feature.properties.AC_NO.toString(),
+                            pcName: feature.properties.PC_NAME,
+                            district: feature.properties.ST_NAME,
+                            division: feature.properties.DIVISION_NAME,
                             category: 'GEN',
                             lastElectionYear: '2023'
                         },
@@ -460,17 +423,19 @@ const HierarchicalMap = () => {
     // Block data will be fetched from API
 
     const loadBlockData = async (assemblyId) => {
+        console.log('Loading block data for Assembly ID:', assemblyId);
         try {
-            const response = await fetch('http://localhost:5000/api/block-polygons');
+            const response = await fetch(`http://localhost:5000/api/block-polygons/booth/${assemblyId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch block data');
             }
             const responseData = await response.json();
             if (responseData.success && responseData.data && responseData.data.length > 0) {
+                console.log('Received block data:', responseData.data[0].features);
                 // Transform the data into a FeatureCollection
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: responseData.data.map(feature => ({
+                    features: responseData.data[0].features.map(feature => ({
                         type: 'Feature',
                         properties: {
                             ...feature.properties,
@@ -676,11 +641,12 @@ const HierarchicalMap = () => {
                 }
                 break;
             case 'parliamentary':
-                loadAssemblyData(feature.properties.vsCode);
-                setCurrentLevel('Assembly ');
+                console.log('Parliamentary constituency clicked:', feature.properties);
+                loadAssemblyData(feature.properties.pcNo);
+                setCurrentLevel('assembly');
                 break;
             case 'assembly':
-                loadBlockData(feature.properties.id);
+                loadBlockData(feature.properties.acNo);
                 setCurrentLevel('block');
                 break;
             case 'block':
@@ -709,11 +675,10 @@ const HierarchicalMap = () => {
             case 'division':
                 const districts = properties.districts ? properties.districts.join(', ') : '';
                 content += `
-                    <p><strong>Division Code:</strong> ${properties.divisionCode || ''}</p>
-                    <p><strong>State:</strong> ${properties.stateName || ''}</p>
-                    <p><strong>Parliamentary Seats:</strong> ${properties.parliamentarySeats || ''}</p>
+                    <p><strong>Division Code:</strong> ${properties.DIVISION_CODE || ''}</p>
+                    <p><strong>State:</strong> ${properties.ST_NAME || ''}</p>
                     <p><strong>Districts:</strong> ${districts}</p>
-                    ${properties.divisionCode && parliamentaryData[properties.id] ?
+                    ${properties.DIVISION_CODE && parliamentaryData[properties.id] ?
                         `<p><strong>Parliamentary Constituencies:</strong></p>
                         <ul style="margin: 5px 0; padding-left: 20px;">
                             ${parliamentaryData[properties.id].map(pc =>
