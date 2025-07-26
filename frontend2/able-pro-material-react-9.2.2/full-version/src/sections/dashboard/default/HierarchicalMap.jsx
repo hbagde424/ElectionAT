@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLocationDot, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 
 const HierarchicalMap = () => {
     const mapRef = useRef(null);
@@ -8,11 +10,108 @@ const HierarchicalMap = () => {
     const currentLayerRef = useRef(null);
     const [currentLevel, setCurrentLevel] = useState('state');
     const [selectedFeature, setSelectedFeature] = useState(null);
+    const [navigationHistory, setNavigationHistory] = useState([]);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [userLocation, setUserLocation] = useState(null);
+
+    // Function to handle fullscreen toggle
+    const toggleFullscreen = () => {
+        const element = document.documentElement;
+        if (!isFullscreen) {
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+        setIsFullscreen(!isFullscreen);
+    };
+
+    // Function to handle finding user location
+    const handleFindLocation = () => {
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.locate({ setView: true, maxZoom: 16 });
+        }
+    };
+
+    // Listen for fullscreen changes
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
+    }, []);
+
+    // Function to handle going back one level
+    const handleBack = () => {
+        if (navigationHistory.length > 0) {
+            const previousState = navigationHistory[navigationHistory.length - 1];
+            setNavigationHistory(prev => prev.slice(0, -1));
+
+            switch (previousState.level) {
+                case 'state':
+                    loadStateData();
+                    break;
+                case 'division':
+                    loadDivisionData(previousState.id);
+                    break;
+                case 'parliamentary':
+                    loadParliamentaryData(previousState.name);
+                    break;
+                case 'assembly':
+                    loadAssemblyData(previousState.id);
+                    break;
+                case 'block':
+                    loadBlockData(previousState.id);
+                    break;
+                default:
+                    break;
+            }
+            setCurrentLevel(previousState.level);
+            setSelectedFeature(previousState.feature);
+        }
+    };
 
     useEffect(() => {
         // Initialize map
         if (!mapInstanceRef.current && mapRef.current) {
             mapInstanceRef.current = L.map(mapRef.current).setView([23.4707, 77.9455], 6); // Centered on MP
+
+            // Add location found event handler
+            mapInstanceRef.current.on('locationfound', (e) => {
+                setUserLocation(e.latlng);
+                if (!currentLayerRef.current) {
+                    const marker = L.marker(e.latlng).addTo(mapInstanceRef.current);
+                    marker.bindPopup('You are here!').openPopup();
+                }
+            });
+
+            // Add location error handler
+            mapInstanceRef.current.on('locationerror', (e) => {
+                console.log('Location access denied or error:', e.message);
+                alert('Could not access your location. Please check your location permissions.');
+            });
 
             // Add base layers
             const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -591,6 +690,14 @@ const HierarchicalMap = () => {
     };
 
     const handleLayerClick = (feature, level) => {
+        // Store current state in history before changing
+        setNavigationHistory(prev => [...prev, {
+            level: currentLevel,
+            feature: selectedFeature,
+            id: feature.properties.id,
+            name: feature.properties.name
+        }]);
+
         setSelectedFeature(feature);
         console.log('Clicked feature:', feature, 'at level:', level);
         switch (level) {
@@ -737,18 +844,96 @@ const HierarchicalMap = () => {
 
     return (
         <div>
-            <div style={{ height: '600px' }} ref={mapRef}></div>
+            <div style={{ position: 'relative' }}>
+                <div
+                    style={{
+                        height: '600px',
+                        position: 'relative'
+                    }}
+                    className="map-container"
+                    ref={mapRef}
+                ></div>
+                {/* Map Controls */}
+                <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    zIndex: 1000
+                }}>
+                    <button
+                        onClick={handleFindLocation}
+                        style={{
+                            padding: '8px',
+                            backgroundColor: 'white',
+                            border: '2px solid rgba(0,0,0,0.2)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '34px',
+                            height: '34px'
+                        }}
+                        title="Find my location"
+                    >
+                        <FontAwesomeIcon icon={faLocationDot} />
+                    </button>
+                    <button
+                        onClick={toggleFullscreen}
+                        style={{
+                            padding: '8px',
+                            backgroundColor: 'white',
+                            border: '2px solid rgba(0,0,0,0.2)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '34px',
+                            height: '34px'
+                        }}
+                        title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    >
+                        <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
+                    </button>
+                </div>
+            </div>
             {/* Navigation breadcrumb */}
-            <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px' }}>
+            <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                    onClick={handleBack}
+                    disabled={navigationHistory.length === 0}
+                    style={{
+                        padding: '5px 15px',
+                        backgroundColor: navigationHistory.length === 0 ? '#cccccc' : '#4a90e2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: navigationHistory.length === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    ← Back
+                </button>
                 <button
                     onClick={loadStateData}
                     disabled={currentLevel === 'state'}
+                    style={{
+                        padding: '5px 15px',
+                        backgroundColor: currentLevel === 'state' ? '#cccccc' : '#4a90e2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: currentLevel === 'state' ? 'not-allowed' : 'pointer'
+                    }}
                 >
                     Back to State
                 </button>
                 {selectedFeature && (
-                    <span style={{ marginLeft: '10px' }}>
-                        {selectedFeature.properties.name} ({currentLevel})
+                    <span style={{ marginLeft: '10px', fontWeight: '500' }}>
+                        Current: {selectedFeature.properties.name} ({currentLevel})
                     </span>
                 )}
             </div>
