@@ -64,6 +64,7 @@ const governmentRoutes = require('./routes/governmentRoutes');
 const influencerRoutes = require('./routes/influencerRoutes');
 // const statePolygonRoutes = require('./routes/statePolygonRoutes');
 const codingRoutes = require('./routes/codingRoutes');
+const boothPolygonRoutes = require('./routes/boothPolygonsRoutes');
 // const mpPolygonRoutes = require('./routes/statePolygonRoutes');
 // Connect to database
 connectDB();
@@ -152,6 +153,7 @@ app.use('/api/governments', governmentRoutes);
 app.use('/api/influencers', influencerRoutes);
 // app.use('/api/state-polygons', statePolygonRoutes);
 app.use('/api/codings', codingRoutes);
+app.use('/api/booth-polygons', boothPolygonRoutes);
 // app.use('/api/mp-polygon', mpPolygonRoutes);
 
 // Error handler
