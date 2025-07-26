@@ -462,72 +462,41 @@ const HierarchicalMap = () => {
         }
     };
 
-    // Static booth data
-    const boothBoundariesData = {
-        BLK001: {
-            type: 'FeatureCollection',
-            features: [
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BTH001',
-                        name: 'Booth 1 - Berasia City',
-                        boothNo: '157/01',
-                        blockName: 'Berasia Block',
-                        location: 'Government School, Berasia',
-                        totalVoters: '1245',
-                        maleFemaleRatio: '1.1',
-                        boothArea: 'Urban',
-                        lastTurnout: '78.5%',
-                        facilities: ['Ramp', 'Drinking Water', 'Toilet']
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.35, 23.25],
-                            [77.37, 23.24],
-                            [77.38, 23.25],
-                            [77.37, 23.26],
-                            [77.35, 23.25]
-                        ]]
-                    }
-                },
-                {
-                    type: 'Feature',
-                    properties: {
-                        id: 'BTH002',
-                        name: 'Booth 2 - Berasia Rural',
-                        boothNo: '157/02',
-                        blockName: 'Berasia Block',
-                        location: 'Primary School, Berasia Rural',
-                        totalVoters: '985',
-                        maleFemaleRatio: '0.95',
-                        boothArea: 'Rural',
-                        lastTurnout: '82.3%',
-                        facilities: ['Ramp', 'Drinking Water']
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [77.38, 23.24],
-                            [77.40, 23.23],
-                            [77.41, 23.24],
-                            [77.40, 23.25],
-                            [77.38, 23.24]
-                        ]]
-                    }
-                }
-            ]
-        }
-    };
-
-    const loadBoothData = async (blockId) => {
+    const loadBoothData = async (BlockNumber) => {
         try {
-            // Using static data instead of API call
-            if (boothBoundariesData[blockId]) {
-                showBoundaries(boothBoundariesData[blockId], 'booth');
+            console.log('Loading booth data for booth number:', BlockNumber);
+            const response = await fetch(`http://localhost:5000/api/booth-polygons/booth/${BlockNumber}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch booth data');
+            }
+            const responseData = await response.json();
+
+            if (responseData && responseData.data && responseData.data.length > 0) {
+                // Transform the data into a FeatureCollection
+                const transformedData = {
+                    type: 'FeatureCollection',
+                    features: responseData.data[0].features.map(feature => ({
+                        type: 'Feature',
+                        properties: {
+                            id: feature.properties.BoothId || feature.properties.id,
+                            name: feature.properties.BoothName || feature.properties.name,
+                            boothNo: feature.properties.BoothNo || feature.properties.boothNo,
+                            blockName: feature.properties.BlockName || feature.properties.blockName,
+                            location: feature.properties.Location || feature.properties.location,
+                            totalVoters: feature.properties.TotalVoters || feature.properties.totalVoters,
+                            maleFemaleRatio: feature.properties.Gender_Ratio || feature.properties.maleFemaleRatio,
+                            boothArea: feature.properties.Area_Type || feature.properties.boothArea,
+                            lastTurnout: feature.properties.Last_Turnout || feature.properties.lastTurnout,
+                            facilities: feature.properties.Facilities || []
+                        },
+                        geometry: feature.geometry
+                    }))
+                };
+
+                console.log('Transformed booth data:', transformedData);
+                showBoundaries(transformedData, 'booth');
             } else {
-                console.warn('No booth data available for this block');
+                console.warn('No booth data available for this booth number');
             }
         } catch (error) {
             console.error('Error loading booth data:', error);
@@ -650,8 +619,13 @@ const HierarchicalMap = () => {
                 setCurrentLevel('block');
                 break;
             case 'block':
-                loadBoothData(feature.properties.id);
-                setCurrentLevel('booth');
+                const BlockNumber = feature.properties.BlockNumber || feature.properties.BlockNumber;
+                if (BlockNumber) {
+                    loadBoothData(BlockNumber);
+                    setCurrentLevel('booth');
+                } else {
+                    console.warn('No Block number found in feature properties:', feature.properties);
+                }
                 break;
             default:
                 break;
