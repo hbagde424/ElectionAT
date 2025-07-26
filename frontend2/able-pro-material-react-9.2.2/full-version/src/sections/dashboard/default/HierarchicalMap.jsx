@@ -465,7 +465,7 @@ const HierarchicalMap = () => {
     const loadBoothData = async (BlockNumber) => {
         try {
             console.log('Loading booth data for booth number:', BlockNumber);
-            const response = await fetch(`http://localhost:5000/api/booth-polygons/booth/${BlockNumber}`);
+            const response = await fetch(`http://localhost:5000/api/booths/block-number/${BlockNumber}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch booth data');
             }
@@ -505,17 +505,18 @@ const HierarchicalMap = () => {
 
     // Color palette for different divisions
     const getDivisionColor = (divisionCode) => {
+        console.log('Getting color for division code:', divisionCode);
         const colors = {
-            'BPL': '#FF6B6B', // Bhopal - Red
-            'CHM': '#4ECDC4', // Chambal - Turquoise
-            'GWL': '#45B7D1', // Gwalior - Blue
-            'IND': '#96CEB4', // Indore - Green
-            'JBP': '#D4A5A5', // Jabalpur - Pink
-            'NRM': '#9B59B6', // Narmadapuram - Purple
-            'RWA': '#F1C40F', // Rewa - Yellow
-            'SGR': '#E67E22', // Sagar - Orange
-            'SDL': '#2ECC71', // Shahdol - Green
-            'UJN': '#3498DB'  // Ujjain - Blue
+            'BHOPAL': '#ff0000ff', // Bhopal - Red
+            'CHAMBAL': '#00ffeeff', // Chambal - Turquoise
+            'GWALIOR': '#00d0ffff', // Gwalior - Blue
+            'INDORE': '#00fc86ff', // Indore - Green
+            'JABALPUR': '#ff0000ff', // Jabalpur - Pink
+            'NARMADAPURAM': '#b200f8ff', // Narmadapuram - Purple
+            'REWA': '#ffcc00ff', // Rewa - Yellow
+            'SAGAR': '#ff7700ff', // Sagar - Orange
+            'SHAHDOL': '#00ff6aff', // Shahdol - Green
+            'UJJAIN': '#0086dfff'  // Ujjain - Blue
         };
         return colors[divisionCode] || '#3388ff';
     };
@@ -524,21 +525,24 @@ const HierarchicalMap = () => {
         resetLayer();
 
         const style = (feature) => {
-            let color = '#3388ff';
+            let color = '#000000';
             let weight = 2;
             let fillOpacity = 0.2;
 
             if (level === 'state') {
-                color = '#2ecc71'; // Green color for state
+                color = '#cc2e2eff'; // Green color for state
                 weight = 3;
                 fillOpacity = 0.15;
                 // Add specific styling for MP state
                 if (feature.properties.Name === 'Madhya Pradesh') {
-                    color = '#1a5f32'; // Darker green for MP
+                    color = '#000000'; // Darker green for MP
                     weight = 4;
                 }
             } else if (level === 'division') {
-                color = getDivisionColor(feature.properties.divisionCode);
+
+                color = getDivisionColor(feature.properties.name);
+                console.log('return colour code:', color);
+
             }
 
             return {
@@ -634,7 +638,7 @@ const HierarchicalMap = () => {
 
     const generatePopupContent = (feature, level) => {
         const properties = feature.properties;
-        let content = `<div class="popup-content" style="min-width: 200px;">
+        let content = `<div>
             <h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || properties.name || ''}</h4>`;
 
         switch (level) {
