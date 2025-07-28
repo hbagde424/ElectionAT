@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
+import MainCard from 'components/MainCard';
 
 const HierarchicalMap = () => {
     const mapRef = useRef(null);
@@ -535,43 +536,93 @@ const HierarchicalMap = () => {
     };
 
     const loadBoothData = async (BlockNumber) => {
-        try {
-            const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch booth data');
-            }
-            const responseData = await response.json();
-            console.log('Booth data response:', responseData.features[0].features);
-            if (responseData && responseData.features && responseData.features[0].features.length > 0) {
-                console.log('Transformed booth data:', responseData.features);
-                const transformedData = {
-                    type: 'FeatureCollection',
-                    features: responseData.features[0].features.map(feature => ({
-                        type: 'Feature',
-                        properties: {
-                            id: feature.properties.BoothId || feature.properties.id,
-                            name: feature.properties.BoothName || feature.properties.name,
-                            boothNo: feature.properties.BoothNo || feature.properties.boothNo,
-                            blockName: feature.properties.BlockName || feature.properties.blockName,
-                            location: feature.properties.Location || feature.properties.location,
-                            totalVoters: feature.properties.TotalVoters || feature.properties.totalVoters,
-                            maleFemaleRatio: feature.properties.Gender_Ratio || feature.properties.maleFemaleRatio,
-                            boothArea: feature.properties.Area_Type || feature.properties.boothArea,
-                            lastTurnout: feature.properties.Last_Turnout || feature.properties.lastTurnout,
-                            facilities: feature.properties.Facilities || []
-                        },
-                        geometry: feature.geometry
-                    }))
-                };
-
-                showBoundaries(transformedData, 'booth');
-            } else {
-                alert('No booth data available for this booth number');
-            }
-        } catch (error) {
-            console.error('Error loading booth data:', error);
+    try {
+        console.log('[DEBUG] Fetching booth data for BlockNumber:', BlockNumber);
+        
+        const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    };
+
+        const responseData = await response.json();
+        console.log('[DEBUG] Raw API response:', responseData);
+
+        // Validate API response structure
+        if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
+            throw new Error('Invalid API response structure');
+        }
+
+        if (responseData.features.length === 0) {
+            alert(`No booths found for block ${BlockNumber}`);
+            return;
+        }
+
+        // Transform features with proper validation
+        const transformedData = {
+            type: 'FeatureCollection',
+            features: responseData.features.map((feature, index) => {
+                // Validate geometry
+                if (!feature.geometry || !feature.geometry.coordinates) {
+                    console.warn(`Feature ${index} missing geometry`, feature);
+                    return null;
+                }
+
+                return {
+                    type: 'Feature',
+                    properties: {
+                        id: feature.properties?.BoothId || 
+                            feature.properties?.id || 
+                            `booth-${BlockNumber}-${index}`,
+                        name: feature.properties?.BoothName || 
+                              feature.properties?.name || 
+                              `Booth ${feature.properties?.BoothNo || index}`,
+                        boothNo: feature.properties?.BoothNo || feature.properties?.boothNo || '',
+                        blockName: feature.properties?.BlockName || feature.properties?.blockName || '',
+                        blockNumber: feature.properties?.BlockNumber || BlockNumber, // Ensure blockNumber is included
+                        location: feature.properties?.Location || feature.properties?.location || '',
+                        totalVoters: parseInt(feature.properties?.TotalVoters || feature.properties?.totalVoters || 0),
+                        maleFemaleRatio: feature.properties?.Gender_Ratio || feature.properties?.maleFemaleRatio || '',
+                        boothArea: feature.properties?.Area_Type || feature.properties?.boothArea || '',
+                        lastTurnout: feature.properties?.Last_Turnout || feature.properties?.lastTurnout || '',
+                        facilities: Array.isArray(feature.properties?.Facilities) ? 
+                                   feature.properties.Facilities : []
+                    },
+                    geometry: feature.geometry
+                };
+            }).filter(feature => feature !== null)
+        };
+
+        console.log('[DEBUG] Transformed booth data:', transformedData);
+        
+        // Clear existing booth markers if any
+        mapInstanceRef.current.eachLayer(layer => {
+            if (layer instanceof L.Marker && layer._popup && layer._popup._content.includes('Booth')) {
+                mapInstanceRef.current.removeLayer(layer);
+            }
+        });
+
+        // Show only the selected block's booths
+        showBoundaries(transformedData, 'booth');
+        setCurrentLevel('booth');
+        
+        // Fit bounds to show only these booths
+        if (currentLayerRef.current) {
+            mapInstanceRef.current.fitBounds(currentLayerRef.current.getBounds(), {
+                padding: [50, 50], // Add some padding
+                maxZoom: 16 // Don't zoom in too close
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error in loadBoothData:', error);
+        alert(`Failed to load booth data: ${error.message}`);
+        
+        // Fallback: Show the block boundaries again
+        if (selectedFeature && selectedFeature.properties) {
+            loadBlockData(selectedFeature.properties.blockCode || selectedFeature.properties.id);
+        }
+    }
+};
 
     // Color palette for different divisions
     const getDivisionColor = (divisionCode) => {
@@ -813,6 +864,7 @@ const HierarchicalMap = () => {
     };
 
     return (
+        <MainCard>
         <div>
             <div style={{ position: 'relative' }}>
                 <div
@@ -908,6 +960,7 @@ const HierarchicalMap = () => {
                 )}
             </div>
         </div>
+    </MainCard>
     );
 };
 
