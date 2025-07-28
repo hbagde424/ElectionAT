@@ -32,6 +32,13 @@ import AssignUsers from 'sections/widget/statistics/AssignUsers';
 import Transactions from 'sections/widget/data/Transactions';
 import TotalIncome from 'sections/widget/chart/TotalIncome';
 import WelcomeBanner from 'sections/dashboard/default/WelcomeBanner';
+import BoothSurveyListPage from 'pages/curd/booth survey/booth-survey';
+import Candidate from 'pages/curd/candidates/CandidateListPage';
+import Gender from 'pages/curd/gender/Gender';
+import CasteList from 'pages/curd/caste list/caste-list';
+import BoothVotes from 'pages/curd/votes/BoothVotes/Booth-votes';
+import WinningParty from 'pages/curd/winning-parties/WinningPartiesList';
+import GovernmentSchema from 'pages/curd/Government Schema/GovernmentSchema';
 
 // Icons
 import { Eye, EyeSlash } from 'iconsax-react';
@@ -70,6 +77,10 @@ export default function DashboardDefault() {
 
       <Grid item xs={12}>
         <HierarchicalMap />
+      </Grid>
+
+      <Grid item xs={12} sm={6} >
+        <BoothSurveyListPage />
       </Grid>
 
       {/* Row 1 */}
