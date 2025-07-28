@@ -21,7 +21,14 @@ exports.getBoothVotes = async (req, res, next) => {
 
     // Basic query
     let query = BoothVotes.find()
-      .populate('candidate', 'name party')
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
       .populate('state', 'name')
       .populate('division', 'name')
       .populate('parliament', 'name')
@@ -105,7 +112,14 @@ exports.getBoothVotes = async (req, res, next) => {
 exports.getBoothVote = async (req, res, next) => {
   try {
     const vote = await BoothVotes.findById(req.params.id)
-      .populate('candidate', 'name party')
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
       .populate('state', 'name')
       .populate('division', 'name')
       .populate('parliament', 'name')
@@ -239,7 +253,7 @@ exports.updateBoothVote = async (req, res, next) => {
     if (req.body.election_year_id) verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
@@ -257,7 +271,14 @@ exports.updateBoothVote = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-      .populate('candidate', 'name party')
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
       .populate('state', 'name')
       .populate('division', 'name')
       .populate('parliament', 'name')
@@ -324,7 +345,14 @@ exports.getVotesByBooth = async (req, res, next) => {
 
     const votes = await BoothVotes.find({ booth_id: req.params.boothId })
       .sort({ total_votes: -1 })
-      .populate('candidate', 'name party')
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
       .populate('election_year', 'year');
 
     res.status(200).json({
@@ -382,7 +410,14 @@ exports.getVotesByState = async (req, res, next) => {
 
     const votes = await BoothVotes.find({ state_id: req.params.stateId })
       .sort({ total_votes: -1 })
-      .populate('candidate', 'name party')
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
       .populate('booth', 'name booth_number')
       .populate('election_year', 'year');
 
@@ -412,7 +447,14 @@ exports.getVotesByElectionYear = async (req, res, next) => {
 
     const votes = await BoothVotes.find({ election_year_id: req.params.yearId })
       .sort({ total_votes: -1 })
-      .populate('candidate', 'name party')
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
       .populate('booth', 'name booth_number')
       .populate('state', 'name');
 
