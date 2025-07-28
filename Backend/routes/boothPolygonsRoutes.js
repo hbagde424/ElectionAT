@@ -2,14 +2,12 @@ const express = require('express');
 const {
   getBoothPolygons,
   getBoothPolygon,
-  createBoothPolygon,
-  updateBoothPolygon,
-  deleteBoothPolygon,
-  getPolygonsByBooth,
-  getPolygonsWithin,
-  getBoothsByBlockNumber
+  getBoothPolygonsByAssembly,
+  getBoothPolygonsByBlock,
+  getBoothPolygonsByYear,
+  getBoothPolygonsWithin,
+  getBoothPolygonsByBlockNumber
 } = require('../controllers/boothPolygonController');
-const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -17,7 +15,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Booth Polygons
- *   description: Booth polygon (geospatial) management
+ *   description: Booth polygon management
  */
 
 /**
@@ -43,15 +41,10 @@ const router = express.Router();
  *           type: string
  *         description: Search term for booth names or numbers
  *       - in: query
- *         name: booth
+ *         name: block
  *         schema:
  *           type: string
- *         description: Booth ID to filter by
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
+ *         description: Block name to filter by
  *       - in: query
  *         name: assembly
  *         schema:
@@ -62,28 +55,47 @@ const router = express.Router();
  *         schema:
  *           type: integer
  *         description: Parliament number (PC_NO) to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: integer
+ *         description: Division code to filter by
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: integer
+ *         description: State code to filter by
+ *       - in: query
+ *         name: election_year
+ *         schema:
+ *           type: string
+ *         description: Election year ID to filter by
  *     responses:
  *       200:
- *         description: List of booth polygons
+ *         description: GeoJSON FeatureCollection of booth polygons
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 total:
- *                   type: integer
- *                 page:
- *                   type: integer
- *                 pages:
- *                   type: integer
- *                 data:
+ *                 type:
+ *                   type: string
+ *                   example: "FeatureCollection"
+ *                 features:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothPolygon'
+ *                     $ref: '#/components/schemas/BoothPolygonFeature'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  */
 router.get('/', getBoothPolygons);
 
@@ -101,11 +113,11 @@ router.get('/', getBoothPolygons);
  *           type: string
  *     responses:
  *       200:
- *         description: Booth polygon data
+ *         description: GeoJSON Feature of booth polygon
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/BoothPolygon'
+ *               $ref: '#/components/schemas/BoothPolygonFeature'
  *       404:
  *         description: Booth polygon not found
  */
@@ -113,223 +125,203 @@ router.get('/:id', getBoothPolygon);
 
 /**
  * @swagger
- * /api/booth-polygons:
- *   post:
- *     summary: Create new booth polygon
- *     tags: [Booth Polygons]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/BoothPolygon'
- *     responses:
- *       201:
- *         description: Booth polygon created successfully
- *       400:
- *         description: Invalid input data
- *       401:
- *         description: Not authorized
- */
-router.post('/', protect, authorize('superAdmin'), createBoothPolygon);
-
-/**
- * @swagger
- * /api/booth-polygons/{id}:
- *   put:
- *     summary: Update booth polygon
- *     tags: [Booth Polygons]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/BoothPolygon'
- *     responses:
- *       200:
- *         description: Booth polygon updated successfully
- *       400:
- *         description: Invalid input data
- *       401:
- *         description: Not authorized
- *       404:
- *         description: Booth polygon not found
- */
-router.put('/:id', protect, authorize('superAdmin'), updateBoothPolygon);
-
-/**
- * @swagger
- * /api/booth-polygons/{id}:
- *   delete:
- *     summary: Delete booth polygon
- *     tags: [Booth Polygons]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Booth polygon deleted
- *       401:
- *         description: Not authorized
- *       404:
- *         description: Booth polygon not found
- */
-router.delete('/:id', protect, authorize('superAdmin'), deleteBoothPolygon);
-
-/**
- * @swagger
- * /api/booth-polygons/booth/{boothId}:
+ * /api/booth-polygons/assembly/{acNo}:
  *   get:
- *     summary: Get booth polygons by booth ID
+ *     summary: Get booth polygons by assembly (AC)
  *     tags: [Booth Polygons]
  *     parameters:
  *       - in: path
- *         name: boothId
+ *         name: acNo
  *         required: true
  *         schema:
- *           type: string
+ *           type: integer
  *     responses:
  *       200:
- *         description: List of booth polygons for the specified booth
+ *         description: GeoJSON FeatureCollection of booth polygons
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
+ *                 type:
+ *                   type: string
+ *                   example: "FeatureCollection"
+ *                 features:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothPolygon'
- *       404:
- *         description: Booth not found
+ *                     $ref: '#/components/schemas/BoothPolygonFeature'
  */
-router.get('/booth/:boothId', getPolygonsByBooth);
+router.get('/assembly/:acNo', getBoothPolygonsByAssembly);
+
+/**
+ * @swagger
+ * /api/booth-polygons/block/{blockName}:
+ *   get:
+ *     summary: Get booth polygons by block name
+ *     tags: [Booth Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: blockName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Block name (case-insensitive)
+ *     responses:
+ *       200:
+ *         description: GeoJSON FeatureCollection of booth polygons
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 type:
+ *                   type: string
+ *                   example: "FeatureCollection"
+ *                 features:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothPolygonFeature'
+ *                 message:
+ *                   type: string
+ *                   description: Informational message when no features found
+ *       400:
+ *         description: Bad request when block name is empty
+ */
+router.get('/block/:blockName', getBoothPolygonsByBlock);
+
+/**
+ * @swagger
+ * /api/booth-polygons/year/{yearId}:
+ *   get:
+ *     summary: Get booth polygons by election year
+ *     tags: [Booth Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: yearId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: GeoJSON FeatureCollection of booth polygons
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 type:
+ *                   type: string
+ *                   example: "FeatureCollection"
+ *                 features:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BoothPolygonFeature'
+ *       404:
+ *         description: Election year not found
+ */
+router.get('/year/:yearId', getBoothPolygonsByYear);
 
 /**
  * @swagger
  * /api/booth-polygons/within:
- *   post:
+ *   get:
  *     summary: Get booth polygons within a geographical area
  *     tags: [Booth Polygons]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               geometry:
- *                 type: object
- *                 properties:
- *                   type:
- *                     type: string
- *                     enum: [Polygon, MultiPolygon]
- *                   coordinates:
- *                     type: array
- *                     items:
- *                       type: array
- *                       items:
- *                         type: array
- *                         items:
- *                           type: number
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Latitude of center point
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Longitude of center point
+ *       - in: query
+ *         name: radius
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Radius in kilometers
  *     responses:
  *       200:
- *         description: List of booth polygons within the specified area
+ *         description: GeoJSON FeatureCollection of booth polygons within the area
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
+ *                 type:
+ *                   type: string
+ *                   example: "FeatureCollection"
+ *                 features:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/BoothPolygon'
+ *                     $ref: '#/components/schemas/BoothPolygonFeature'
  *       400:
- *         description: Invalid geometry provided
+ *         description: Missing required parameters
  */
-router.post('/within', getPolygonsWithin);
+router.get('/within', getBoothPolygonsWithin);
+
 
 /**
  * @swagger
- * /api/booths/block-number/{blockNumber}:
+ * /api/booth-polygons/block-number/{blockNumber}:
  *   get:
- *     summary: Get booths by BlockNumber
- *     tags: [Booths]
+ *     summary: Get booth polygons by block number
+ *     tags: [Booth Polygons]
  *     parameters:
  *       - in: path
  *         name: blockNumber
  *         required: true
  *         schema:
  *           type: string
- *         description: The BlockNumber to filter by
+ *         description: The block number to search for
  *     responses:
  *       200:
- *         description: List of booths for the specified BlockNumber
+ *         description: GeoJSON FeatureCollection of booth polygons
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
+ *                 type:
+ *                   type: string
+ *                   example: "FeatureCollection"
+ *                 features:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Booth'
- *       404:
- *         description: No booths found for this BlockNumber
+ *                     $ref: '#/components/schemas/BoothPolygonFeature'
+ *                 message:
+ *                   type: string
+ *                   description: Informational message when no features found
+ *       400:
+ *         description: Bad request when block number is empty
  */
-router.get('/block-number/:blockNumber', getBoothsByBlockNumber);
+router.get('/block-number/:blockNumber', getBoothPolygonsByBlockNumber);
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     BoothPolygon:
+ *     BoothPolygonFeature:
  *       type: object
  *       required:
  *         - type
  *         - geometry
  *         - properties
- *         - created_by
  *       properties:
  *         type:
  *           type: string
- *           enum: [Feature]
- *           description: GeoJSON type
  *           example: "Feature"
  *         geometry:
  *           type: object
  *           properties:
  *             type:
  *               type: string
- *               enum: [Polygon]
- *               description: GeoJSON geometry type
  *               example: "Polygon"
  *             coordinates:
  *               type: array
@@ -339,88 +331,33 @@ router.get('/block-number/:blockNumber', getBoothsByBlockNumber);
  *                   type: array
  *                   items:
  *                     type: number
- *               description: Array of coordinate arrays
- *               example: [[[long, lat], [long, lat], [long, lat], [long, lat]]]
  *         properties:
  *           type: object
  *           properties:
- *             booth_id:
- *               type: string
- *               description: Reference to Booth
- *               example: "507f1f77bcf86cd799439011"
  *             BoothName:
  *               type: string
- *               description: Booth name
- *               example: "Kherwa"
  *             BoothNo:
  *               type: string
- *               description: Booth number
- *               example: "188"
  *             BlockName:
  *               type: string
- *               description: Block name
- *               example: "Bagh"
  *             BlockNumber:
  *               type: string
- *               description: Block number
- *               example: "1"
  *             AC_NAME:
  *               type: string
- *               description: Assembly constituency name
- *               example: "Gandhwani (ST)"
  *             AC_NO:
  *               type: integer
- *               description: Assembly constituency number
- *               example: 197
  *             PC_NAME:
  *               type: string
- *               description: Parliament constituency name
- *               example: "DHAR (ST)"
  *             PC_NO:
  *               type: integer
- *               description: Parliament constituency number
- *               example: 25
  *             ST_NAME:
  *               type: string
- *               description: State name
- *               example: "MADHYA PRADESH"
  *             ST_CODE:
  *               type: integer
- *               description: State code
- *               example: 23
  *             DIVISION_NAME:
  *               type: string
- *               description: Division name
- *               example: "Indore"
  *             DIVISION_CODE:
  *               type: integer
- *               description: Division code
- *               example: 4
- *             election_year:
- *               type: string
- *               description: Reference to Election Year
- *               example: "507f1f77bcf86cd799439017"
- *         created_by:
- *           type: string
- *           description: Reference to User who created
- *           example: "507f1f77bcf86cd799439022"
- *         updated_by:
- *           type: string
- *           description: Reference to User who last updated
- *           example: "507f1f77bcf86cd799439023"
- *         created_at:
- *           type: string
- *           format: date-time
- *           description: Creation timestamp
- *         updated_at:
- *           type: string
- *           format: date-time
- *           description: Last update timestamp
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */
 
 module.exports = router;

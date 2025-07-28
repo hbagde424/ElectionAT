@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
 
-const boothPolygonSchema = new Schema({
+const boothPolygonSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ['Feature'],
@@ -19,11 +18,6 @@ const boothPolygonSchema = new Schema({
     }
   },
   properties: {
-    booth_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'Booth',
-      required: true
-    },
     BoothName: {
       type: String,
       required: true
@@ -32,48 +26,64 @@ const boothPolygonSchema = new Schema({
       type: String,
       required: true
     },
-    BlockName: String,
-    BlockNumber: String,
-    AC_NAME: String,
-    AC_NO: Number,
-    PC_NAME: String,
-    PC_NO: Number,
-    ST_NAME: String,
-    ST_CODE: Number,
-    DIVISION_NAME: String,
-    DIVISION_CODE: Number,
-    election_year: {
-      type: Schema.Types.ObjectId,
-      ref: 'ElectionYear',
+    BlockName: {
+      type: String,
+      required: true
+    },
+    BlockNumber: {
+      type: String,
+      required: true
+    },
+    AC_NAME: {
+      type: String,
+      required: true
+    },
+    AC_NO: {
+      type: Number,
+      required: true
+    },
+    PC_NAME: {
+      type: String,
+      required: true
+    },
+    PC_NO: {
+      type: Number,
+      required: true
+    },
+    ST_NAME: {
+      type: String,
+      required: true
+    },
+    ST_CODE: {
+      type: Number,
+      required: true
+    },
+    DIVISION_NAME: {
+      type: String,
+      required: true
+    },
+    DIVISION_CODE: {
+      type: Number,
       required: true
     }
   },
-  created_by: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+   BlockNumber: {
+    type: String,  // or Number if you store it as number
     required: true
   },
-  updated_by: {
-    type: Schema.Types.ObjectId,
-    ref: 'User'
+  booth_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Booth',
+    required: false
   },
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
+  election_year: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ElectionYear',
+    required: true
   }
-});
+}, { timestamps: true });
 
 // Create 2dsphere index for geospatial queries
 boothPolygonSchema.index({ 'geometry.coordinates': '2dsphere' });
-
-// Update the updated_at timestamp before saving
-boothPolygonSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  next();
-});
 
 module.exports = mongoose.model('BoothPolygon', boothPolygonSchema);

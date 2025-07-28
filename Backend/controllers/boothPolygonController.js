@@ -1,5 +1,7 @@
 const BoothPolygon = require('../models/boothPolygon');
 const Booth = require('../models/booth');
+const Assembly = require('../models/assembly');
+const Block = require('../models/block');
 const ElectionYear = require('../models/electionYear');
 
 // @desc    Get all booth polygons
@@ -14,10 +16,7 @@ exports.getBoothPolygons = async (req, res, next) => {
 
     // Basic query
     let query = BoothPolygon.find()
-      .populate('properties.booth_id', 'name booth_number')
-      .populate('properties.election_year', 'year')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
+      .sort({ 'properties.BoothNo': 1 });
 
     // Search functionality
     if (req.query.search) {
@@ -29,36 +28,48 @@ exports.getBoothPolygons = async (req, res, next) => {
       });
     }
 
-    // Filter by booth
-    if (req.query.booth) {
-      query = query.where('properties.booth_id').equals(req.query.booth);
+    // Filter by block
+    if (req.query.block) {
+      query = query.where('properties.BlockName').equals(req.query.block);
     }
 
-    // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('properties.election_year').equals(req.query.election_year);
-    }
-
-    // Filter by assembly (AC_NO)
+    // Filter by assembly (AC)
     if (req.query.assembly) {
       query = query.where('properties.AC_NO').equals(parseInt(req.query.assembly));
     }
 
-    // Filter by parliament (PC_NO)
+    // Filter by parliament (PC)
     if (req.query.parliament) {
       query = query.where('properties.PC_NO').equals(parseInt(req.query.parliament));
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      query = query.where('properties.ST_CODE').equals(parseInt(req.query.state));
+    }
+
+    // Filter by division
+    if (req.query.division) {
+      query = query.where('properties.DIVISION_CODE').equals(parseInt(req.query.division));
+    }
+
+    // Filter by election year
+    if (req.query.election_year) {
+      query = query.where('election_year').equals(req.query.election_year);
     }
 
     const polygons = await query.skip(skip).limit(limit).exec();
     const total = await BoothPolygon.countDocuments(query.getFilter());
 
     res.status(200).json({
-      success: true,
-      count: polygons.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      data: polygons
+      type: "FeatureCollection",
+      features: polygons,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (err) {
     next(err);
@@ -70,133 +81,6 @@ exports.getBoothPolygons = async (req, res, next) => {
 // @access  Public
 exports.getBoothPolygon = async (req, res, next) => {
   try {
-    const polygon = await BoothPolygon.findById(req.params.id)
-      .populate('properties.booth_id', 'name booth_number')
-      .populate('properties.election_year', 'year')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
-
-    if (!polygon) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booth polygon not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: polygon
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Create booth polygon
-// @route   POST /api/booth-polygons
-// @access  Private (Admin only)
-exports.createBoothPolygon = async (req, res, next) => {
-  try {
-    // Verify booth exists
-    const booth = await Booth.findById(req.body.properties.booth_id);
-    if (!booth) {
-      return res.status(400).json({ success: false, message: 'Booth not found' });
-    }
-
-    // Verify election year exists
-    const electionYear = await ElectionYear.findById(req.body.properties.election_year);
-    if (!electionYear) {
-      return res.status(400).json({ success: false, message: 'Election year not found' });
-    }
-
-    // Check if user exists in request
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-
-    const polygonData = {
-      ...req.body,
-      created_by: req.user.id
-    };
-
-    const polygon = await BoothPolygon.create(polygonData);
-
-    res.status(201).json({
-      success: true,
-      data: polygon
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Update booth polygon
-// @route   PUT /api/booth-polygons/:id
-// @access  Private (Admin only)
-exports.updateBoothPolygon = async (req, res, next) => {
-  try {
-    let polygon = await BoothPolygon.findById(req.params.id);
-
-    if (!polygon) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booth polygon not found'
-      });
-    }
-
-    // Verify booth exists if being updated
-    if (req.body.properties && req.body.properties.booth_id) {
-      const booth = await Booth.findById(req.body.properties.booth_id);
-      if (!booth) {
-        return res.status(400).json({ success: false, message: 'Booth not found' });
-      }
-    }
-
-    // Verify election year exists if being updated
-    if (req.body.properties && req.body.properties.election_year) {
-      const electionYear = await ElectionYear.findById(req.body.properties.election_year);
-      if (!electionYear) {
-        return res.status(400).json({ success: false, message: 'Election year not found' });
-      }
-    }
-
-    // Set updated_by to current user
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-    
-    req.body.updated_by = req.user.id;
-    req.body.updated_at = new Date();
-
-    polygon = await BoothPolygon.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    })
-      .populate('properties.booth_id', 'name booth_number')
-      .populate('properties.election_year', 'year')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
-
-    res.status(200).json({
-      success: true,
-      data: polygon
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Delete booth polygon
-// @route   DELETE /api/booth-polygons/:id
-// @access  Private (Admin only)
-exports.deleteBoothPolygon = async (req, res, next) => {
-  try {
     const polygon = await BoothPolygon.findById(req.params.id);
 
     if (!polygon) {
@@ -206,39 +90,93 @@ exports.deleteBoothPolygon = async (req, res, next) => {
       });
     }
 
-    await polygon.deleteOne();
-
     res.status(200).json({
-      success: true,
-      data: {}
+      type: "Feature",
+      ...polygon.toObject()
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Get booth polygons by booth ID
-// @route   GET /api/booth-polygons/booth/:boothId
+// @desc    Get booth polygons by assembly (AC)
+// @route   GET /api/booth-polygons/assembly/:acNo
 // @access  Public
-exports.getPolygonsByBooth = async (req, res, next) => {
+exports.getBoothPolygonsByAssembly = async (req, res, next) => {
   try {
-    // Verify booth exists
-    const booth = await Booth.findById(req.params.boothId);
-    if (!booth) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booth not found'
+    const acNo = parseInt(req.params.acNo);
+    
+    const polygons = await BoothPolygon.find({ 'features.properties.AC_NO': acNo })
+      .sort({ 'properties.BoothNo': 1 });
+
+    res.status(200).json({
+      type: "FeatureCollection",
+      features: polygons
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get booth polygons by block
+// @route   GET /api/booth-polygons/block/:blockName
+// @access  Public
+exports.getBoothPolygonsByBlock = async (req, res, next) => {
+  try {
+    const blockName = req.params.blockName.trim();
+    
+    if (!blockName) {
+      return res.status(400).json({
+        type: "FeatureCollection",
+        features: [],
+        error: "Block name parameter is required"
       });
     }
 
-    const polygons = await BoothPolygon.find({ 'properties.booth_id': req.params.boothId })
-      .populate('properties.election_year', 'year')
-      .populate('created_by', 'username');
+    // Case-insensitive search with regex
+    const polygons = await BoothPolygon.find({ 
+      'properties.BlockName': { 
+        $regex: new RegExp(blockName, 'i') 
+      }
+    }).sort({ 'properties.BoothNo': 1 });
+
+    if (polygons.length === 0) {
+      return res.status(200).json({
+        type: "FeatureCollection",
+        features: [],
+        message: `No booth polygons found for block '${blockName}'`
+      });
+    }
 
     res.status(200).json({
-      success: true,
-      count: polygons.length,
-      data: polygons
+      type: "FeatureCollection",
+      features: polygons
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get booth polygons by election year
+// @route   GET /api/booth-polygons/year/:yearId
+// @access  Public
+exports.getBoothPolygonsByYear = async (req, res, next) => {
+  try {
+    // Verify election year exists
+    const year = await ElectionYear.findById(req.params.yearId);
+    if (!year) {
+      return res.status(404).json({
+        success: false,
+        message: 'Election year not found'
+      });
+    }
+
+    const polygons = await BoothPolygon.find({ election_year: req.params.yearId })
+      .sort({ 'properties.BoothNo': 1 });
+
+    res.status(200).json({
+      type: "FeatureCollection",
+      features: polygons
     });
   } catch (err) {
     next(err);
@@ -246,77 +184,69 @@ exports.getPolygonsByBooth = async (req, res, next) => {
 };
 
 // @desc    Get booth polygons within a geographical area
-// @route   POST /api/booth-polygons/within
+// @route   GET /api/booth-polygons/within
 // @access  Public
-exports.getPolygonsWithin = async (req, res, next) => {
+exports.getBoothPolygonsWithin = async (req, res, next) => {
   try {
-    const { geometry } = req.body;
-
-    if (!geometry || !geometry.coordinates || !geometry.type) {
+    const { lat, lng, radius } = req.query;
+    
+    if (!lat || !lng || !radius) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid GeoJSON geometry (Polygon or MultiPolygon)'
+        message: 'Please provide lat, lng and radius parameters'
       });
     }
 
     const polygons = await BoothPolygon.find({
       geometry: {
         $geoWithin: {
-          $geometry: geometry
+          $centerSphere: [
+            [parseFloat(lng), parseFloat(lat)],
+            parseFloat(radius) / 6378.1 // Convert km to radians
+          ]
         }
       }
-    })
-      .populate('properties.booth_id', 'name booth_number')
-      .populate('properties.election_year', 'year');
+    });
 
     res.status(200).json({
-      success: true,
-      count: polygons.length,
-      data: polygons
+      type: "FeatureCollection",
+      features: polygons
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Get booths by BlockNumber
-// @route   GET /api/booths/block-number/:blockNumber
+// @desc    Get booth polygons by block number
+// @route   GET /api/booth-polygons/block-number/:blockNumber
 // @access  Public
-exports.getBoothsByBlockNumber = async (req, res, next) => {
+exports.getBoothPolygonsByBlockNumber = async (req, res, next) => {
   try {
-    const blockNumber = req.params.blockNumber;
-
-    // First find all booth polygons with this BlockNumber
-    const boothPolygons = await BoothPolygon.find({ 'properties.BlockNumber': blockNumber })
-      .select('properties.booth_id')
-      .populate('properties.booth_id');
-
-    // Extract unique booth IDs
-    const boothIds = [...new Set(boothPolygons.map(poly => poly.properties.booth_id._id))];
-
-    if (boothIds.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No booths found for this BlockNumber'
+    const blockNumber = req.params.blockNumber.trim();
+    
+    if (!blockNumber) {
+      return res.status(400).json({
+        type: "FeatureCollection",
+        features: [],
+        error: "Block number parameter is required"
       });
     }
 
-    // Get full booth details
-    const booths = await Booth.find({ _id: { $in: boothIds } })
-      .populate('block_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('division_id', 'name')
-      .populate('state_id', 'name')
-      .populate('election_year', 'year')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .sort({ booth_number: 1 });
+    const polygons = await BoothPolygon.find({ 
+      'features.properties.BlockNumber': blockNumber
+    }).sort({ 'properties.BoothNo': 1 });
+
+    if (polygons.length === 0) {
+      return res.status(200).json({
+        type: "FeatureCollection",
+        features: [],
+        message: `No booth polygons found for block number '${blockNumber}'`
+      });
+    }
 
     res.status(200).json({
-      success: true,
-      count: booths.length,
-      data: booths
+      type: "FeatureCollection",
+      features: polygons
     });
   } catch (err) {
     next(err);
