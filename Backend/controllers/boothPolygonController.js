@@ -226,18 +226,37 @@ exports.getBoothPolygonsByBlockNumber = async (req, res, next) => {
     
     if (!blockNumber) {
       return res.status(400).json({
-        type: "FeatureCollection",
-        features: [],
-        error: "Block number parameter is required"
+        success: false,
+        message: "Block number parameter is required"
       });
     }
 
-    const polygons = await BoothPolygon.find({ 
-      'features.properties.BlockNumber': blockNumber
-    }).sort({ 'properties.BoothNo': 1 });
+    // Find all documents that contain features matching the blockNumber
+    const polygons = await BoothPolygon.aggregate([
+      { $unwind: "$features" },
+      { 
+        $match: { 
+          "features.properties.BlockNumber": blockNumber 
+        } 
+      },
+      {
+        $group: {
+          _id: null,
+          features: { $push: "$features" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          type: { $literal: "FeatureCollection" },
+          features: 1
+        }
+      }
+    ]);
 
-    if (polygons.length === 0) {
+    if (polygons.length === 0 || polygons[0].features.length === 0) {
       return res.status(200).json({
+        success: true,
         type: "FeatureCollection",
         features: [],
         message: `No booth polygons found for block number '${blockNumber}'`
@@ -245,8 +264,9 @@ exports.getBoothPolygonsByBlockNumber = async (req, res, next) => {
     }
 
     res.status(200).json({
+      success: true,
       type: "FeatureCollection",
-      features: polygons
+      features: polygons[0].features
     });
   } catch (err) {
     next(err);
