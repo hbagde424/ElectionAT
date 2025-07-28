@@ -110,7 +110,6 @@ const HierarchicalMap = () => {
 
             // Add location error handler
             mapInstanceRef.current.on('locationerror', (e) => {
-                console.log('Location access denied or error:', e.message);
                 alert('Could not access your location. Please check your location permissions.');
             });
 
@@ -536,93 +535,89 @@ const HierarchicalMap = () => {
     };
 
     const loadBoothData = async (BlockNumber) => {
-    try {
-        console.log('[DEBUG] Fetching booth data for BlockNumber:', BlockNumber);
-        
-        const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        try {
 
-        const responseData = await response.json();
-        console.log('[DEBUG] Raw API response:', responseData);
-
-        // Validate API response structure
-        if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
-            throw new Error('Invalid API response structure');
-        }
-
-        if (responseData.features.length === 0) {
-            alert(`No booths found for block ${BlockNumber}`);
-            return;
-        }
-
-        // Transform features with proper validation
-        const transformedData = {
-            type: 'FeatureCollection',
-            features: responseData.features.map((feature, index) => {
-                // Validate geometry
-                if (!feature.geometry || !feature.geometry.coordinates) {
-                    console.warn(`Feature ${index} missing geometry`, feature);
-                    return null;
-                }
-
-                return {
-                    type: 'Feature',
-                    properties: {
-                        id: feature.properties?.BoothId || 
-                            feature.properties?.id || 
-                            `booth-${BlockNumber}-${index}`,
-                        name: feature.properties?.BoothName || 
-                              feature.properties?.name || 
-                              `Booth ${feature.properties?.BoothNo || index}`,
-                        boothNo: feature.properties?.BoothNo || feature.properties?.boothNo || '',
-                        blockName: feature.properties?.BlockName || feature.properties?.blockName || '',
-                        blockNumber: feature.properties?.BlockNumber || BlockNumber, // Ensure blockNumber is included
-                        location: feature.properties?.Location || feature.properties?.location || '',
-                        totalVoters: parseInt(feature.properties?.TotalVoters || feature.properties?.totalVoters || 0),
-                        maleFemaleRatio: feature.properties?.Gender_Ratio || feature.properties?.maleFemaleRatio || '',
-                        boothArea: feature.properties?.Area_Type || feature.properties?.boothArea || '',
-                        lastTurnout: feature.properties?.Last_Turnout || feature.properties?.lastTurnout || '',
-                        facilities: Array.isArray(feature.properties?.Facilities) ? 
-                                   feature.properties.Facilities : []
-                    },
-                    geometry: feature.geometry
-                };
-            }).filter(feature => feature !== null)
-        };
-
-        console.log('[DEBUG] Transformed booth data:', transformedData);
-        
-        // Clear existing booth markers if any
-        mapInstanceRef.current.eachLayer(layer => {
-            if (layer instanceof L.Marker && layer._popup && layer._popup._content.includes('Booth')) {
-                mapInstanceRef.current.removeLayer(layer);
+            const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        });
 
-        // Show only the selected block's booths
-        showBoundaries(transformedData, 'booth');
-        setCurrentLevel('booth');
-        
-        // Fit bounds to show only these booths
-        if (currentLayerRef.current) {
-            mapInstanceRef.current.fitBounds(currentLayerRef.current.getBounds(), {
-                padding: [50, 50], // Add some padding
-                maxZoom: 16 // Don't zoom in too close
+            const responseData = await response.json();
+
+            // Validate API response structure
+            if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
+                throw new Error('Invalid API response structure');
+            }
+
+            if (responseData.features.length === 0) {
+                alert(`No booths found for block ${BlockNumber}`);
+                return;
+            }
+
+            // Transform features with proper validation
+            const transformedData = {
+                type: 'FeatureCollection',
+                features: responseData.features.map((feature, index) => {
+                    // Validate geometry
+                    if (!feature.geometry || !feature.geometry.coordinates) {
+                        console.warn(`Feature ${index} missing geometry`, feature);
+                        return null;
+                    }
+
+                    return {
+                        type: 'Feature',
+                        properties: {
+                            id: feature.properties?.BoothId ||
+                                feature.properties?.id ||
+                                `booth-${BlockNumber}-${index}`,
+                            name: feature.properties?.BoothName ||
+                                feature.properties?.name ||
+                                `Booth ${feature.properties?.BoothNo || index}`,
+                            boothNo: feature.properties?.BoothNo || feature.properties?.boothNo || '',
+                            blockName: feature.properties?.BlockName || feature.properties?.blockName || '',
+                            blockNumber: feature.properties?.BlockNumber || BlockNumber, // Ensure blockNumber is included
+                            location: feature.properties?.Location || feature.properties?.location || '',
+                            totalVoters: parseInt(feature.properties?.TotalVoters || feature.properties?.totalVoters || 0),
+                            maleFemaleRatio: feature.properties?.Gender_Ratio || feature.properties?.maleFemaleRatio || '',
+                            boothArea: feature.properties?.Area_Type || feature.properties?.boothArea || '',
+                            lastTurnout: feature.properties?.Last_Turnout || feature.properties?.lastTurnout || '',
+                            facilities: Array.isArray(feature.properties?.Facilities) ?
+                                feature.properties.Facilities : []
+                        },
+                        geometry: feature.geometry
+                    };
+                }).filter(feature => feature !== null)
+            };
+
+            // Clear existing booth markers if any
+            mapInstanceRef.current.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer._popup && layer._popup._content.includes('Booth')) {
+                    mapInstanceRef.current.removeLayer(layer);
+                }
             });
+
+            // Show only the selected block's booths
+            showBoundaries(transformedData, 'booth');
+            setCurrentLevel('booth');
+
+            // Fit bounds to show only these booths
+            if (currentLayerRef.current) {
+                mapInstanceRef.current.fitBounds(currentLayerRef.current.getBounds(), {
+                    padding: [50, 50], // Add some padding
+                    maxZoom: 16 // Don't zoom in too close
+                });
+            }
+
+        } catch (error) {
+            console.error('Error in loadBoothData:', error);
+            alert(`Failed to load booth data: ${error.message}`);
+
+            // Fallback: Show the block boundaries again
+            if (selectedFeature && selectedFeature.properties) {
+                loadBlockData(selectedFeature.properties.blockCode || selectedFeature.properties.id);
+            }
         }
-        
-    } catch (error) {
-        console.error('Error in loadBoothData:', error);
-        alert(`Failed to load booth data: ${error.message}`);
-        
-        // Fallback: Show the block boundaries again
-        if (selectedFeature && selectedFeature.properties) {
-            loadBlockData(selectedFeature.properties.blockCode || selectedFeature.properties.id);
-        }
-    }
-};
+    };
 
     // Color palette for different divisions
     const getDivisionColor = (divisionCode) => {
@@ -661,7 +656,6 @@ const HierarchicalMap = () => {
             } else if (level === 'division') {
 
                 color = getDivisionColor(feature.properties.name);
-                console.log('return colour code:', color);
 
             }
 
@@ -720,21 +714,18 @@ const HierarchicalMap = () => {
         }]);
 
         setSelectedFeature(feature);
-        console.log('Clicked feature:', feature, 'at level:', level);
         switch (level) {
             case 'state':
                 loadDivisionData(feature.properties.id);
                 setCurrentLevel('division');
                 break;
             case 'division':
-                console.log('Division clicked:', feature.properties);
                 // Get the first parliament name from the parliament array
                 const parliament = feature.properties.name
                     ? feature.properties.name
                     : null;
 
                 if (parliament) {
-                    console.log('Loading parliamentary data for:', parliament);
                     loadParliamentaryData(parliament);
                     setCurrentLevel('parliamentary');
                 } else {
@@ -742,7 +733,6 @@ const HierarchicalMap = () => {
                 }
                 break;
             case 'parliamentary':
-                console.log('Parliamentary constituency clicked:', feature.properties);
                 loadAssemblyData(feature.properties.pcNo);
                 setCurrentLevel('assembly');
                 break;
@@ -865,102 +855,150 @@ const HierarchicalMap = () => {
 
     return (
         <MainCard>
-        <div>
-            <div style={{ position: 'relative' }}>
-                <div
-                    style={{
-                        height: '600px',
-                        position: 'relative'
-                    }}
-                    className="map-container"
-                    ref={mapRef}
-                ></div>
-                {/* Map Controls */}
-                <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    zIndex: 1000
-                }}>
-                    <button
-                        onClick={handleFindLocation}
+            <div>
+                <div style={{ position: 'relative' }}>
+                    <div
                         style={{
-                            padding: '8px',
-                            backgroundColor: 'white',
-                            border: '2px solid rgba(0,0,0,0.2)',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '34px',
-                            height: '34px'
+                            height: '600px',
+                            position: 'relative'
                         }}
-                        title="Find my location"
-                    >
-                        <FontAwesomeIcon icon={faLocationDot} />
-                    </button>
-                    <button
-                        onClick={toggleFullscreen}
-                        style={{
-                            padding: '8px',
-                            backgroundColor: 'white',
-                            border: '2px solid rgba(0,0,0,0.2)',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '34px',
-                            height: '34px'
-                        }}
-                        title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                    >
-                        <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
-                    </button>
+                        className="map-container"
+                        ref={mapRef}
+                    ></div>
+                    {/* Map Controls */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        zIndex: 1000
+                    }}>
+                        <button
+                            onClick={handleFindLocation}
+                            style={{
+                                padding: '8px',
+                                backgroundColor: 'white',
+                                border: '2px solid rgba(0,0,0,0.2)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '34px',
+                                height: '34px'
+                            }}
+                            title="Find my location"
+                        >
+                            <FontAwesomeIcon icon={faLocationDot} />
+                        </button>
+                        <button
+                            onClick={toggleFullscreen}
+                            style={{
+                                padding: '8px',
+                                backgroundColor: 'white',
+                                border: '2px solid rgba(0,0,0,0.2)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '34px',
+                                height: '34px'
+                            }}
+                            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                        >
+                            <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
+                        </button>
+                    </div>
+                </div>
+                {/* Navigation breadcrumb */}
+                <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                        <button
+                            onClick={handleBack}
+                            disabled={navigationHistory.length === 0}
+                            style={{
+                                padding: '5px 15px',
+                                backgroundColor: navigationHistory.length === 0 ? '#cccccc' : '#4a90e2',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: navigationHistory.length === 0 ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            ← Back
+                        </button>
+                        {selectedFeature && (
+                            <span style={{ marginLeft: '10px', fontWeight: '500' }}>
+                                Current: {selectedFeature.properties.name} ({currentLevel})
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={loadStateData}
+                            disabled={currentLevel === 'state'}
+                            style={{
+                                padding: '5px 15px',
+                                backgroundColor: currentLevel === 'state' ? '#cccccc' : '#4a90e2',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: currentLevel === 'state' ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            Back to State
+                        </button>
+                        {navigationHistory.map((item, index) => {
+                            const isDisabled = index >= navigationHistory.length - 1;
+                            return (
+                                <button
+                                    key={`${item.level}-${index}`}
+                                    onClick={() => {
+                                        // Navigate to this level by executing all steps up to this point
+                                        const targetHistory = navigationHistory.slice(0, index + 1);
+                                        const target = targetHistory[targetHistory.length - 1];
+
+                                        setNavigationHistory(targetHistory);
+                                        switch (target.level) {
+                                            case 'division':
+                                                loadDivisionData(target.id);
+                                                break;
+                                            case 'parliamentary':
+                                                loadParliamentaryData(target.name);
+                                                break;
+                                            case 'assembly':
+                                                loadAssemblyData(target.id);
+                                                break;
+                                            case 'block':
+                                                loadBlockData(target.id);
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                        setCurrentLevel(target.level);
+                                        setSelectedFeature(target.feature);
+                                    }}
+                                    disabled={isDisabled}
+                                    style={{
+                                        padding: '5px 15px',
+                                        backgroundColor: isDisabled ? '#cccccc' : '#4a90e2',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Back to {item.level.charAt(0).toUpperCase() + item.level.slice(1)}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
-            {/* Navigation breadcrumb */}
-            <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
-                    onClick={handleBack}
-                    disabled={navigationHistory.length === 0}
-                    style={{
-                        padding: '5px 15px',
-                        backgroundColor: navigationHistory.length === 0 ? '#cccccc' : '#4a90e2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: navigationHistory.length === 0 ? 'not-allowed' : 'pointer'
-                    }}
-                >
-                    ← Back
-                </button>
-                <button
-                    onClick={loadStateData}
-                    disabled={currentLevel === 'state'}
-                    style={{
-                        padding: '5px 15px',
-                        backgroundColor: currentLevel === 'state' ? '#cccccc' : '#4a90e2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: currentLevel === 'state' ? 'not-allowed' : 'pointer'
-                    }}
-                >
-                    Back to State
-                </button>
-                {selectedFeature && (
-                    <span style={{ marginLeft: '10px', fontWeight: '500' }}>
-                        Current: {selectedFeature.properties.name} ({currentLevel})
-                    </span>
-                )}
-            </div>
-        </div>
-    </MainCard>
+        </MainCard>
     );
 };
 
