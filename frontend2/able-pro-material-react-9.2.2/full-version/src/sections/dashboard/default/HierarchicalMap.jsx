@@ -181,7 +181,6 @@ const HierarchicalMap = () => {
                     features: stateData.features.map(feature => {
                         // Ensure geometry type is correct
                         if (!feature.geometry || feature.geometry.type !== 'MultiPolygon') {
-                            console.warn('Invalid geometry type in state data');
                             return feature;
                         }
 
@@ -189,7 +188,6 @@ const HierarchicalMap = () => {
                         if (!Array.isArray(feature.geometry.coordinates) ||
                             !Array.isArray(feature.geometry.coordinates[0]) ||
                             !Array.isArray(feature.geometry.coordinates[0][0])) {
-                            console.warn('Invalid coordinates structure in state data');
                             return feature;
                         }
 
@@ -203,12 +201,11 @@ const HierarchicalMap = () => {
                         };
                     })
                 };
-                console.log('validatedStateData', validatedStateData)
                 showBoundaries(validatedStateData, 'state');
                 setCurrentLevel('state');
                 setSelectedFeature(null);
             } else {
-                console.warn('No state data available');
+                alert('No state data available');
             }
         } catch (error) {
             console.error('Error loading state data:', error);
@@ -225,7 +222,6 @@ const HierarchicalMap = () => {
 
             if (responseData.features && responseData.features.length > 0) {
                 const divisionGroups = responseData.features.reduce((groups, feature) => {
-                    console.log('Processing feature properties:', feature.properties);
                     const division = (feature.properties.DIVISION_NAME || feature.properties.DIVISION_NAME)?.toUpperCase();
 
                     if (!groups[division]) {
@@ -288,23 +284,15 @@ const HierarchicalMap = () => {
 
     const loadParliamentaryData = async (divisionName) => {
         try {
-            // First get the Parliament name from division data
             const parliamentName = divisionName;
-            console.log('Parliament name found:', parliamentName);
-
-            // Now fetch the parliamentary data using the Parliament name
             const response = await fetch(`http://localhost:5000/api/parliament-polygons/name/${parliamentName}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch parliamentary data');
             }
             const responseData = await response.json();
-            console.log('Parliamentary data:', responseData);
 
             if (responseData && responseData.length > 0 && responseData[0].features) {
-                // Get the first item since it's an array with one FeatureCollection
                 const parliamentData = responseData[0];
-
-                // Transform the data to match the expected format
                 const transformedData = {
                     type: 'FeatureCollection',
                     features: parliamentData.features.map(feature => ({
@@ -322,15 +310,13 @@ const HierarchicalMap = () => {
                     }))
                 };
 
-                console.log('Transformed parliamentary data:', transformedData);
-
                 if (transformedData.features.length > 0) {
                     showBoundaries(transformedData, 'parliamentary');
                 } else {
-                    console.warn('No parliamentary constituencies found for division:', divisionName);
+                    alert('No parliamentary constituencies found for division: ' + divisionName);
                 }
             } else {
-                console.warn('No parliamentary data available');
+                alert('No parliamentary data available');
             }
         } catch (error) {
             console.error('Error loading parliamentary data:', error);
@@ -474,19 +460,13 @@ const HierarchicalMap = () => {
 
     const loadAssemblyData = async (vsCode) => {
         try {
-            console.log('Loading assembly data for VS_Code:', vsCode);
             const response = await fetch(`http://localhost:5000/api/assembly-polygons/parliament/${vsCode}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch assembly data');
             }
 
             const assemblies = await response.json();
-            console.log('Received assembly data1:', assemblies.data[0].type);
-            console.log('Received assembly data:', assemblies.data[0].features);
-
             if (assemblies && assemblies.data[0].type === "FeatureCollection" && assemblies.data[0].features && assemblies.data[0].features.length > 0) {
-                console.log('Processing assembly features:', assemblies.data[0].features);
-                // Transform the data to match the expected format
                 const transformedData = {
                     type: 'FeatureCollection',
                     features: assemblies.data[0].features.map(feature => ({
@@ -505,13 +485,9 @@ const HierarchicalMap = () => {
                     }))
                 };
 
-                console.log('Final transformed assembly data:', transformedData);
-
-                console.log('Transformed Assembly Data:', transformedData);
                 showBoundaries(transformedData, 'assembly');
             } else {
-                console.warn('No assembly data available');
-                // Fallback to static data if needed
+                alert('No assembly data available');
                 setCurrentLevel('assembly');
             }
         } catch (error) {
@@ -522,7 +498,6 @@ const HierarchicalMap = () => {
     // Block data will be fetched from API
 
     const loadBlockData = async (assemblyId) => {
-        console.log('Loading block data for Assembly ID:', assemblyId);
         try {
             const response = await fetch(`http://localhost:5000/api/block-polygons/booth/${assemblyId}`);
             if (!response.ok) {
@@ -530,8 +505,6 @@ const HierarchicalMap = () => {
             }
             const responseData = await response.json();
             if (responseData.success && responseData.data && responseData.data.length > 0) {
-                console.log('Received block data:', responseData.data[0].features);
-                // Transform the data into a FeatureCollection
                 const transformedData = {
                     type: 'FeatureCollection',
                     features: responseData.data[0].features.map(feature => ({
@@ -543,9 +516,9 @@ const HierarchicalMap = () => {
                             blockCode: feature.properties.BlockName,
                             acName: feature.properties.AC_NAME,
                             mainTown: feature.properties.DIST_NAME,
-                            population: null, // Add if available in your data
-                            totalVoters: null, // Add if available in your data
-                            totalBooths: 1, // This should be calculated based on your data
+                            population: null,
+                            totalVoters: null,
+                            totalBooths: 1,
                             ruralBooths: feature.properties.BoothName ? 1 : 0,
                             urbanBooths: 0
                         },
@@ -554,7 +527,7 @@ const HierarchicalMap = () => {
                 };
                 showBoundaries(transformedData, 'block');
             } else {
-                console.warn('No block data available for this assembly constituency');
+                alert('No block data available for this assembly constituency');
             }
         } catch (error) {
             console.error('Error loading block data:', error);
@@ -563,18 +536,17 @@ const HierarchicalMap = () => {
 
     const loadBoothData = async (BlockNumber) => {
         try {
-            console.log('Loading booth data for booth number:', BlockNumber);
-            const response = await fetch(`http://localhost:5000/api/booths/block-number/${BlockNumber}`);
+            const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch booth data');
             }
             const responseData = await response.json();
-
-            if (responseData && responseData.data && responseData.data.length > 0) {
-                // Transform the data into a FeatureCollection
+            console.log('Booth data response:', responseData.features[0].features);
+            if (responseData && responseData.features && responseData.features[0].features.length > 0) {
+                console.log('Transformed booth data:', responseData.features);
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: responseData.data[0].features.map(feature => ({
+                    features: responseData.features[0].features.map(feature => ({
                         type: 'Feature',
                         properties: {
                             id: feature.properties.BoothId || feature.properties.id,
@@ -592,10 +564,9 @@ const HierarchicalMap = () => {
                     }))
                 };
 
-                console.log('Transformed booth data:', transformedData);
                 showBoundaries(transformedData, 'booth');
             } else {
-                console.warn('No booth data available for this booth number');
+                alert('No booth data available for this booth number');
             }
         } catch (error) {
             console.error('Error loading booth data:', error);
@@ -604,7 +575,6 @@ const HierarchicalMap = () => {
 
     // Color palette for different divisions
     const getDivisionColor = (divisionCode) => {
-        console.log('Getting color for division code:', divisionCode);
         const colors = {
             'BHOPAL': '#ff0000ff', // Bhopal - Red
             'CHAMBAL': '#00ffeeff', // Chambal - Turquoise
