@@ -87,6 +87,7 @@ export default function BoothVotesListPage() {
     const allData = await fetchAllVotesForCsv();
     const formattedData = allData.map(item => ({
       'Candidate': item.candidate?.name || 'N/A',
+      'Party': item.candidate?.party_id?.name || 'N/A',
       'Booth': `${item.booth?.name || 'N/A'} (No: ${item.booth?.booth_number || 'N/A'})`,
       'Block number': item.booth?.booth_number || 'N/A',
       'Block': item.block?.name || 'N/A',
@@ -170,6 +171,11 @@ export default function BoothVotesListPage() {
       header: 'Candidate',
       accessorKey: 'candidate.name',
       cell: ({ row }) => <Typography>{row.original?.candidate?.name || 'N/A'}</Typography>
+    },
+    {
+      header: 'Candidate Party Name',
+      accessorKey: 'candidate.party_id.name',
+      cell: ({ row }) => <Typography>{row.original?.candidate?.party_id?.name || 'N/A'}</Typography>
     },
     {
       header: 'Booth',
