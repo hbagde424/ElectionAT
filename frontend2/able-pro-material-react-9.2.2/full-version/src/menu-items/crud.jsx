@@ -284,6 +284,13 @@ const CRUDMenu = {
       icon: icons.Award,
     },
     {
+      id: 'WInningCandidateList',
+      title: <FormattedMessage id="Winning Candidate List" />,
+      type: 'item',
+      url: '/WInningCandidateList',
+      icon: icons.Award,
+    },
+    {
       id: 'Work-Status',
       title: <FormattedMessage id="Work-Status" />,
       type: 'item',
