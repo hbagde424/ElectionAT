@@ -21,9 +21,14 @@ const winningCandidateSchema = new mongoose.Schema({
     ref: 'Assembly',
     required: true
   },
-  winning_party_id: {
+  party_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'WinningParty',
+    ref: 'Party',
+    required: true
+  },
+  year_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ElectionYear',
     required: true
   },
   candidate_id: {
@@ -32,7 +37,7 @@ const winningCandidateSchema = new mongoose.Schema({
     required: true
   },
   total_electors: {
-    type: Number,
+    type: String,
     required: true
   },
   total_votes: {
@@ -40,7 +45,7 @@ const winningCandidateSchema = new mongoose.Schema({
     required: true
   },
   voting_percentage: {
-    type: Number,
+    type: String,
     required: true
   },
   margin: {
@@ -48,7 +53,7 @@ const winningCandidateSchema = new mongoose.Schema({
     required: true
   },
   margin_percentage: {
-    type: Number,
+    type: String,
     required: true
   },
   created_by: {

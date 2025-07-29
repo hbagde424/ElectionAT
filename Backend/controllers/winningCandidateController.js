@@ -3,8 +3,9 @@ const State = require('../models/state');
 const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
-const WinningParty = require('../models/WinningParty');
+const Party = require('../models/party');
 const Candidate = require('../models/Candidate');
+const Year = require('../models/electionYear');
 
 // @desc    Get all winning candidates
 // @route   GET /api/winning-candidates
@@ -22,11 +23,22 @@ exports.getWinningCandidates = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('winning_party_id', 'name')
+      .populate('party_id', 'name')
+      .populate('year_id', 'year')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ total_votes: -1 });
+
+    // Search functionality (could search by candidate name through population)
+    if (req.query.search) {
+      query = query.find({
+        $or: [
+          { 'candidate_id.name': { $regex: req.query.search, $options: 'i' } },
+          { 'party_id.name': { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
+    }
 
     // Filter by assembly
     if (req.query.assembly) {
@@ -38,6 +50,11 @@ exports.getWinningCandidates = async (req, res, next) => {
       query = query.where('parliament_id').equals(req.query.parliament);
     }
 
+    // Filter by party
+    if (req.query.party) {
+      query = query.where('party_id').equals(req.query.party);
+    }
+
     // Filter by state
     if (req.query.state) {
       query = query.where('state_id').equals(req.query.state);
@@ -46,16 +63,6 @@ exports.getWinningCandidates = async (req, res, next) => {
     // Filter by division
     if (req.query.division) {
       query = query.where('division_id').equals(req.query.division);
-    }
-
-    // Filter by party
-    if (req.query.party) {
-      query = query.where('winning_party_id').equals(req.query.party);
-    }
-
-    // Filter by candidate
-    if (req.query.candidate) {
-      query = query.where('candidate_id').equals(req.query.candidate);
     }
 
     const winningCandidates = await query.skip(skip).limit(limit).exec();
@@ -84,7 +91,7 @@ exports.getWinningCandidate = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('winning_party_id', 'name')
+      .populate('party_id', 'name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
@@ -116,14 +123,14 @@ exports.createWinningCandidate = async (req, res, next) => {
       division,
       parliament,
       assembly,
-      winningParty,
+      party,
       candidate
     ] = await Promise.all([
       State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
-      WinningParty.findById(req.body.winning_party_id),
+      Party.findById(req.body.party_id),
       Candidate.findById(req.body.candidate_id)
     ]);
 
@@ -139,8 +146,8 @@ exports.createWinningCandidate = async (req, res, next) => {
     if (!assembly) {
       return res.status(400).json({ success: false, message: 'Assembly not found' });
     }
-    if (!winningParty) {
-      return res.status(400).json({ success: false, message: 'Winning party not found' });
+    if (!party) {
+      return res.status(400).json({ success: false, message: 'Party not found' });
     }
     if (!candidate) {
       return res.status(400).json({ success: false, message: 'Candidate not found' });
@@ -166,6 +173,12 @@ exports.createWinningCandidate = async (req, res, next) => {
       data: winningCandidate
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Winning candidate with these details already exists'
+      });
+    }
     next(err);
   }
 };
@@ -190,7 +203,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.winning_party_id) verificationPromises.push(WinningParty.findById(req.body.winning_party_id));
+    if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
     if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
 
     const verificationResults = await Promise.all(verificationPromises);
@@ -199,7 +212,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
       if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'One or more references not found'
+          message: `${result.modelName} not found`
         });
       }
     }
@@ -222,7 +235,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('winning_party_id', 'name')
+      .populate('party_id', 'name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
@@ -232,6 +245,12 @@ exports.updateWinningCandidate = async (req, res, next) => {
       data: winningCandidate
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Winning candidate with these details already exists'
+      });
+    }
     next(err);
   }
 };
@@ -277,7 +296,7 @@ exports.getWinningCandidatesByAssembly = async (req, res, next) => {
 
     const winningCandidates = await WinningCandidate.find({ assembly_id: req.params.assemblyId })
       .sort({ total_votes: -1 })
-      .populate('winning_party_id', 'name')
+      .populate('party_id', 'name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username');
 
@@ -307,9 +326,9 @@ exports.getWinningCandidatesByParliament = async (req, res, next) => {
 
     const winningCandidates = await WinningCandidate.find({ parliament_id: req.params.parliamentId })
       .sort({ total_votes: -1 })
-      .populate('winning_party_id', 'name')
+      .populate('party_id', 'name')
       .populate('candidate_id', 'name')
-      .populate('assembly_id', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -321,26 +340,26 @@ exports.getWinningCandidatesByParliament = async (req, res, next) => {
   }
 };
 
-// @desc    Get winning candidates by election year
-// @route   GET /api/winning-candidates/year/:yearId
+// @desc    Get winning candidates by party
+// @route   GET /api/winning-candidates/party/:partyId
 // @access  Public
-exports.getWinningCandidatesByYear = async (req, res, next) => {
+exports.getWinningCandidatesByParty = async (req, res, next) => {
   try {
-    // Verify election year exists
-    const year = await ElectionYear.findById(req.params.yearId);
-    if (!year) {
+    // Verify party exists
+    const party = await Party.findById(req.params.partyId);
+    if (!party) {
       return res.status(404).json({
         success: false,
-        message: 'Election year not found'
+        message: 'Party not found'
       });
     }
 
-    const winningCandidates = await WinningCandidate.find({ election_year: req.params.yearId })
+    const winningCandidates = await WinningCandidate.find({ party_id: req.params.partyId })
       .sort({ total_votes: -1 })
-      .populate('winning_party_id', 'name')
-      .populate('candidate_id', 'name')
       .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name');
+      .populate('parliament_id', 'name')
+      .populate('candidate_id', 'name')
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

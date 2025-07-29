@@ -7,7 +7,7 @@ const {
   deleteWinningCandidate,
   getWinningCandidatesByAssembly,
   getWinningCandidatesByParliament,
-  getWinningCandidatesByYear
+  getWinningCandidatesByParty
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -38,6 +38,11 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for candidate names or parties
+ *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
@@ -48,6 +53,11 @@ const router = express.Router();
  *           type: string
  *         description: Parliament ID to filter by
  *       - in: query
+ *         name: party
+ *         schema:
+ *           type: string
+ *         description: Party ID to filter by
+ *       - in: query
  *         name: state
  *         schema:
  *           type: string
@@ -57,16 +67,6 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Division ID to filter by
- *       - in: query
- *         name: party
- *         schema:
- *           type: string
- *         description: Winning Party ID to filter by
- *       - in: query
- *         name: candidate
- *         schema:
- *           type: string
- *         description: Candidate ID to filter by
  *     responses:
  *       200:
  *         description: List of winning candidates
@@ -264,19 +264,19 @@ router.get('/parliament/:parliamentId', getWinningCandidatesByParliament);
 
 /**
  * @swagger
- * /api/winning-candidates/year/{yearId}:
+ * /api/winning-candidates/party/{partyId}:
  *   get:
- *     summary: Get winning candidates by election year
+ *     summary: Get winning candidates by party
  *     tags: [WinningCandidates]
  *     parameters:
  *       - in: path
- *         name: yearId
+ *         name: partyId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: List of winning candidates for the election year
+ *         description: List of winning candidates for the party
  *         content:
  *           application/json:
  *             schema:
@@ -291,9 +291,9 @@ router.get('/parliament/:parliamentId', getWinningCandidatesByParliament);
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  *       404:
- *         description: Election year not found
+ *         description: Party not found
  */
-router.get('/year/:yearId', getWinningCandidatesByYear);
+router.get('/party/:partyId', getWinningCandidatesByParty);
 
 /**
  * @swagger
@@ -306,7 +306,7 @@ router.get('/year/:yearId', getWinningCandidatesByYear);
  *         - division_id
  *         - parliament_id
  *         - assembly_id
- *         - winning_party_id
+ *         - party_id
  *         - candidate_id
  *         - total_electors
  *         - total_votes
@@ -331,34 +331,34 @@ router.get('/year/:yearId', getWinningCandidatesByYear);
  *           type: string
  *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439012"
- *         winning_party_id:
+ *         party_id:
  *           type: string
- *           description: Reference to Winning Party
+ *           description: Reference to Party
  *           example: "507f1f77bcf86cd799439018"
  *         candidate_id:
  *           type: string
  *           description: Reference to Candidate
  *           example: "507f1f77bcf86cd799439019"
  *         total_electors:
- *           type: number
+ *           type: string
  *           description: Total number of electors
- *           example: 15000
+ *           example: "50000"
  *         total_votes:
  *           type: number
  *           description: Total votes received
- *           example: 10000
+ *           example: 35000
  *         voting_percentage:
- *           type: number
+ *           type: string
  *           description: Voting percentage
- *           example: 66.67
+ *           example: "70.00%"
  *         margin:
  *           type: number
- *           description: Victory margin in votes
- *           example: 2500
+ *           description: Winning margin in numbers
+ *           example: 5000
  *         margin_percentage:
- *           type: number
- *           description: Victory margin percentage
- *           example: 16.67
+ *           type: string
+ *           description: Winning margin percentage
+ *           example: "10.00%"
  *         created_by:
  *           type: string
  *           description: Reference to User who created
@@ -371,6 +371,11 @@ router.get('/year/:yearId', getWinningCandidatesByYear);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;
