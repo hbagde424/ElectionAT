@@ -224,6 +224,27 @@ export default function VisitsListPage() {
                 </Typography>
             )
         },
+         {
+            header: 'Status',
+            accessorKey: 'work_status',
+            cell: ({ getValue }) => (
+                <Typography sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {getValue() || '—'}
+                </Typography>
+            )
+        },
+        // {
+        //     header: 'Status',
+        //     accessorKey: 'work_status',
+        //     cell: ({ getValue }) => (
+        //         <Chip
+        //             label={getValue()}
+        //             color={getStatusColor(getValue())}
+        //             size="small"
+        //             variant="outlined"
+        //         />
+        //     )
+        // },
         {
             header: 'Created By',
             accessorKey: 'created_by',

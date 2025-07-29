@@ -15,7 +15,6 @@ export default function VisitModal({
     divisions,
     parliaments,
     assemblies,
-    districts,
     blocks,
     booths,
     refresh
@@ -33,10 +32,10 @@ export default function VisitModal({
         division_id: '',
         parliament_id: '',
         assembly_id: '',
-        district_id: '',
         block_id: '',
         booth_id: '',
-        is_active: true
+        is_active: true,
+        work_status: 'announced'
     });
 
     const [submitted, setSubmitted] = useState(false);
@@ -45,9 +44,17 @@ export default function VisitModal({
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-    const [filteredDistricts, setFilteredDistricts] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+
+    // Work status options
+   // In your VisitModal component, change the workStatusOptions to:
+const workStatusOptions = [
+    { value: 'announced', label: 'Announced' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'in progress', label: 'In Progress' },
+    { value: 'complete', label: 'Complete' }
+];
 
     useEffect(() => {
         if (visit) {
@@ -61,10 +68,10 @@ export default function VisitModal({
                 division_id: visit.division_id?._id?.toString() || visit.division_id?.toString() || '',
                 parliament_id: visit.parliament_id?._id?.toString() || visit.parliament_id?.toString() || '',
                 assembly_id: visit.assembly_id?._id?.toString() || visit.assembly_id?.toString() || '',
-                district_id: visit.district_id?._id?.toString() || visit.district_id?.toString() || '',
                 block_id: visit.block_id?._id?.toString() || visit.block_id?.toString() || '',
                 booth_id: visit.booth_id?._id?.toString() || visit.booth_id?.toString() || '',
-                is_active: visit.is_active !== undefined ? visit.is_active : true
+                is_active: visit.is_active !== undefined ? visit.is_active : true,
+                work_status: visit.work_status || 'announced'
             });
         } else {
             setFormData({
@@ -77,10 +84,10 @@ export default function VisitModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: '',
-                is_active: true
+                is_active: true,
+                work_status: 'announced'
             });
         }
     }, [visit]);
@@ -100,7 +107,6 @@ export default function VisitModal({
                     division_id: '',
                     parliament_id: '',
                     assembly_id: '',
-                    district_id: '',
                     block_id: '',
                     booth_id: ''
                 }));
@@ -112,7 +118,6 @@ export default function VisitModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             }));
@@ -133,7 +138,6 @@ export default function VisitModal({
                     ...prev,
                     parliament_id: '',
                     assembly_id: '',
-                    district_id: '',
                     block_id: '',
                     booth_id: ''
                 }));
@@ -144,7 +148,6 @@ export default function VisitModal({
                 ...prev,
                 parliament_id: '',
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             }));
@@ -164,7 +167,6 @@ export default function VisitModal({
                 setFormData(prev => ({
                     ...prev,
                     assembly_id: '',
-                    district_id: '',
                     block_id: '',
                     booth_id: ''
                 }));
@@ -174,47 +176,18 @@ export default function VisitModal({
             setFormData(prev => ({
                 ...prev,
                 assembly_id: '',
-                district_id: '',
                 block_id: '',
                 booth_id: ''
             }));
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Assembly -> District
+    // Assembly -> Block
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = districts?.filter(district => {
-                const districtAssemblyId = district.assembly_id?._id || district.assembly_id;
-                return districtAssemblyId === formData.assembly_id;
-            }) || [];
-            setFilteredDistricts(filtered);
-
-            if (formData.district_id && !filtered.find(d => d._id === formData.district_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    district_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
-            }
-        } else {
-            setFilteredDistricts([]);
-            setFormData(prev => ({
-                ...prev,
-                district_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.assembly_id, districts]);
-
-    // District -> Block
-    useEffect(() => {
-        if (formData.district_id) {
             const filtered = blocks?.filter(block => {
-                const blockDistrictId = block.district_id?._id || block.district_id;
-                return blockDistrictId === formData.district_id;
+                const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
+                return blockAssemblyId === formData.assembly_id;
             }) || [];
             setFilteredBlocks(filtered);
 
@@ -233,7 +206,7 @@ export default function VisitModal({
                 booth_id: ''
             }));
         }
-    }, [formData.district_id, blocks]);
+    }, [formData.assembly_id, blocks]);
 
     // Block -> Booth
     useEffect(() => {
@@ -281,7 +254,7 @@ export default function VisitModal({
         const requiredFields = [
             'person_name', 'post', 'date',
             'state_id', 'division_id', 'parliament_id',
-            'assembly_id', 'district_id', 'block_id', 'booth_id'
+            'assembly_id', 'block_id', 'booth_id'
         ];
         
         for (const field of requiredFields) {
@@ -378,7 +351,7 @@ export default function VisitModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 2: Date and Status */}
+                    {/* Row 2: Date and Work Status */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Visit Date</InputLabel>
@@ -399,6 +372,26 @@ export default function VisitModal({
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Work Status</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="work_status"
+                                    value={formData.work_status}
+                                    onChange={handleChange}
+                                >
+                                    {workStatusOptions.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 3: Active Switch */}
+                    <Grid item xs={12}>
                         <FormControlLabel
                             control={
                                 <Switch
@@ -411,7 +404,7 @@ export default function VisitModal({
                         />
                     </Grid>
 
-                    {/* Row 3: State and Division */}
+                    {/* Row 4: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>State</InputLabel>
@@ -461,7 +454,7 @@ export default function VisitModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: Parliament and Assembly */}
+                    {/* Row 5: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Parliament</InputLabel>
@@ -512,32 +505,7 @@ export default function VisitModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 5: District and Block */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>District</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.district_id}>
-                                <Select
-                                    name="district_id"
-                                    value={formData.district_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
-                                    <MenuItem value="">Select District</MenuItem>
-                                    {filteredDistricts.map((district) => (
-                                        <MenuItem key={district._id} value={district._id}>
-                                            {district.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.district_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>District is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
+                    {/* Row 6: Block and Booth */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Block</InputLabel>
@@ -547,7 +515,7 @@ export default function VisitModal({
                                     value={formData.block_id}
                                     onChange={handleChange}
                                     required
-                                    disabled={!formData.district_id}
+                                    disabled={!formData.assembly_id}
                                 >
                                     <MenuItem value="">Select Block</MenuItem>
                                     {filteredBlocks.map((block) => (
@@ -563,7 +531,6 @@ export default function VisitModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 6: Booth and Remarks */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Booth</InputLabel>
