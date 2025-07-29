@@ -139,6 +139,7 @@ const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/Cand
 const PartyActivitiesList = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesListPage')));
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesList')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
+const WInningCandidateList = Loadable(lazy(() => import('pages/curd/WinningCandidates/WinningCandidates')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
@@ -609,6 +610,10 @@ const MainRoutes = {
         {
           path: 'visits',
           element: <VisitListPageList />
+        },
+        {
+          path: 'WInningCandidateList',
+          element: <WInningCandidateList />
         },
 
         {
