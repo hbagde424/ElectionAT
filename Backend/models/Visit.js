@@ -53,6 +53,12 @@ const visitSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Visit date is required']
   },
+  work_status: {
+    type: String,
+    enum: ['announced', 'approved', 'in progress', 'complete'],
+    default: 'announced',
+    required: [true, 'Work status is required']
+  },
   declaration: {
     type: String,
     trim: true,
@@ -94,5 +100,6 @@ visitSchema.pre('save', function(next) {
 // Indexes for better performance
 visitSchema.index({ booth_id: 1, date: -1 }); // For getting visits by booth sorted by date
 visitSchema.index({ person_name: 'text' }); // For text search on person names
+visitSchema.index({ work_status: 1 }); // Index for work_status field
 
 module.exports = mongoose.model('Visit', visitSchema);

@@ -5,7 +5,9 @@ const {
   createVisit,
   updateVisit,
   deleteVisit,
-  getVisitsByBooth
+  getVisitsByBooth,
+  getVisitsByDateRange,
+  getVisitsByStatus
 } = require('../controllers/visitController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -36,27 +38,11 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
- *         name: search
+ *         name: work_status
  *         schema:
  *           type: string
- *         description: Search term for person names
- *       - in: query
- *         name: booth
- *         schema:
- *           type: string
- *         description: Booth ID to filter by
- *       - in: query
- *         name: startDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Start date for filtering
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: End date for filtering
+ *           enum: [announced, approved, in progress, complete]
+ *         description: Filter by work status
  *     responses:
  *       200:
  *         description: List of visits
@@ -68,12 +54,6 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                 count:
- *                   type: integer
- *                 total:
- *                   type: integer
- *                 page:
- *                   type: integer
- *                 pages:
  *                   type: integer
  *                 data:
  *                   type: array
@@ -128,9 +108,7 @@ router.get('/:id', getVisit);
  *       401:
  *         description: Not authorized
  */
-// router.post('/', createVisit);
-router.post('/', protect,  createVisit);
-// router.post('/', protect, authorize('superAdmin'), createVisit);
+router.post('/', protect, authorize('admin', 'superAdmin'), createVisit);
 
 /**
  * @swagger
@@ -162,7 +140,7 @@ router.post('/', protect,  createVisit);
  *       404:
  *         description: Visit not found
  */
-router.put('/:id', protect, authorize('superAdmin'), updateVisit);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), updateVisit);
 
 /**
  * @swagger
@@ -186,7 +164,7 @@ router.put('/:id', protect, authorize('superAdmin'), updateVisit);
  *       404:
  *         description: Visit not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteVisit);
+router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteVisit);
 
 /**
  * @swagger
@@ -223,53 +201,127 @@ router.get('/booth/:boothId', getVisitsByBooth);
 
 /**
  * @swagger
+ * /api/visits/status/{status}:
+ *   get:
+ *     summary: Get visits by work status
+ *     tags: [Visits]
+ *     parameters:
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [announced, approved, in progress, complete]
+ *     responses:
+ *       200:
+ *         description: List of visits with the specified status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Visit'
+ */
+router.get('/status/:status', getVisitsByStatus);
+
+/**
+ * @swagger
+ * /api/visits/date-range:
+ *   get:
+ *     summary: Get visits by date range
+ *     tags: [Visits]
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         required: true
+ *         description: Start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         required: true
+ *         description: End date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: List of visits within the date range
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Visit'
+ */
+router.get('/date-range', getVisitsByDateRange);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     Visit:
  *       type: object
  *       required:
  *         - state_id
- *         - booth_id
- *         - block_id
+ *         - division_id
  *         - assembly_id
  *         - parliament_id
- *         - division_id
+ *         - block_id
+ *         - booth_id
  *         - person_name
  *         - post
  *         - date
+ *         - work_status
  *         - created_by
  *       properties:
  *         state_id:
  *           type: string
  *           description: Reference to State
- *         booth_id:
+ *         division_id:
  *           type: string
- *           description: Reference to Booth
- *         block_id:
- *           type: string
- *           description: Reference to Block
+ *           description: Reference to Division
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *         division_id:
+ *         block_id:
  *           type: string
- *           description: Reference to Division
+ *           description: Reference to Block
+ *         booth_id:
+ *           type: string
+ *           description: Reference to Booth
  *         person_name:
  *           type: string
- *           description: Name of visiting person
- *           example: "John Doe"
+ *           description: Name of the visiting person
  *         post:
  *           type: string
- *           description: Post/Designation of visiting person
- *           example: "MLA"
+ *           description: Post/position of the visiting person
  *         date:
  *           type: string
  *           format: date-time
- *           description: Visit date
- *           example: "2023-05-15T10:00:00Z"
+ *           description: Date of visit
+ *         work_status:
+ *           type: string
+ *           enum: [announced, approved, in progress, complete]
+ *           description: Status of the work
  *         declaration:
  *           type: string
  *           description: Declaration made during visit
@@ -278,10 +330,10 @@ router.get('/booth/:boothId', getVisitsByBooth);
  *           description: Additional remarks
  *         created_by:
  *           type: string
- *           description: User who created the visit record
+ *           description: Reference to User who created
  *         updated_by:
  *           type: string
- *           description: User who last updated the visit record
+ *           description: Reference to User who last updated
  *         created_at:
  *           type: string
  *           format: date-time
