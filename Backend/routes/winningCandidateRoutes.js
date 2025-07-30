@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getWinningCandidates,
+  getWinningCandidatesForGraph,
   getWinningCandidate,
   createWinningCandidate,
   updateWinningCandidate,
@@ -90,6 +91,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
+router.get('/graph', getWinningCandidatesForGraph);
 router.get('/', getWinningCandidates);
 
 /**

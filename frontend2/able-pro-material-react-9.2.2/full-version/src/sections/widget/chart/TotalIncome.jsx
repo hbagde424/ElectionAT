@@ -159,7 +159,7 @@ export default function TotalIncome() {
                   color="text.secondary"
                   sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.25 }}
                 >
-                  <ArrowUp size={14} /> +$76,343
+                  <ArrowUp size={14} /> +$76,3431
                 </Typography>
               </Typography>
             </Stack>

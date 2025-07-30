@@ -64,35 +64,7 @@ const HierarchicalMap = () => {
         };
     }, []);
 
-    // Function to handle going back one level
-    const handleBack = () => {
-        if (navigationHistory.length > 0) {
-            const previousState = navigationHistory[navigationHistory.length - 1];
-            setNavigationHistory(prev => prev.slice(0, -1));
 
-            switch (previousState.level) {
-                case 'state':
-                    loadStateData();
-                    break;
-                case 'division':
-                    loadDivisionData(previousState.id);
-                    break;
-                case 'parliamentary':
-                    loadParliamentaryData(previousState.name);
-                    break;
-                case 'assembly':
-                    loadAssemblyData(previousState.id);
-                    break;
-                case 'block':
-                    loadBlockData(previousState.id);
-                    break;
-                default:
-                    break;
-            }
-            setCurrentLevel(previousState.level);
-            setSelectedFeature(previousState.feature);
-        }
-    };
 
     useEffect(() => {
         // Initialize map
@@ -619,43 +591,29 @@ const HierarchicalMap = () => {
         }
     };
 
-    // Color palette for different divisions
-    const getDivisionColor = (divisionCode) => {
-        const colors = {
-            'BHOPAL': '#ff0000ff', // Bhopal - Red
-            'CHAMBAL': '#00ffeeff', // Chambal - Turquoise
-            'GWALIOR': '#00d0ffff', // Gwalior - Blue
-            'INDORE': '#00fc86ff', // Indore - Green
-            'JABALPUR': '#ff0000ff', // Jabalpur - Pink
-            'NARMADAPURAM': '#b200f8ff', // Narmadapuram - Purple
-            'REWA': '#ffcc00ff', // Rewa - Yellow
-            'SAGAR': '#ff7700ff', // Sagar - Orange
-            'SHAHDOL': '#00ff6aff', // Shahdol - Green
-            'UJJAIN': '#0086dfff'  // Ujjain - Blue
-        };
-        return colors[divisionCode] || '#3388ff';
-    };
+
 
     const showBoundaries = (data, level) => {
         resetLayer();
 
         const style = (feature) => {
-            let color = '#000000';
+            let color = '#477fcdff';
             let weight = 2;
             let fillOpacity = 0.2;
 
             if (level === 'state') {
-                color = '#cc2e2eff'; // Green color for state
+
                 weight = 3;
                 fillOpacity = 0.15;
                 // Add specific styling for MP state
                 if (feature.properties.Name === 'Madhya Pradesh') {
-                    color = '#000000'; // Darker green for MP
+
                     weight = 4;
                 }
             } else if (level === 'division') {
 
-                color = getDivisionColor(feature.properties.name);
+
+                weight = 4;
 
             }
 
@@ -915,86 +873,20 @@ const HierarchicalMap = () => {
                 </div>
                 {/* Navigation breadcrumb */}
                 <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                        <button
-                            onClick={handleBack}
-                            disabled={navigationHistory.length === 0}
-                            style={{
-                                padding: '5px 15px',
-                                backgroundColor: navigationHistory.length === 0 ? '#cccccc' : '#4a90e2',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: navigationHistory.length === 0 ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            ← Back
-                        </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {/* Current Location Display */}
                         {selectedFeature && (
-                            <span style={{ marginLeft: '10px', fontWeight: '500' }}>
-                                Current: {selectedFeature.properties.name} ({currentLevel})
-                            </span>
-                        )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <button
-                            onClick={loadStateData}
-                            disabled={currentLevel === 'state'}
-                            style={{
-                                padding: '5px 15px',
-                                backgroundColor: currentLevel === 'state' ? '#cccccc' : '#4a90e2',
-                                color: 'white',
-                                border: 'none',
+                            <div style={{
+                                padding: '8px',
+                                backgroundColor: '#fff',
                                 borderRadius: '4px',
-                                cursor: currentLevel === 'state' ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            Back to State
-                        </button>
-                        {navigationHistory.map((item, index) => {
-                            const isDisabled = index >= navigationHistory.length - 1;
-                            return (
-                                <button
-                                    key={`${item.level}-${index}`}
-                                    onClick={() => {
-                                        // Navigate to this level by executing all steps up to this point
-                                        const targetHistory = navigationHistory.slice(0, index + 1);
-                                        const target = targetHistory[targetHistory.length - 1];
-
-                                        setNavigationHistory(targetHistory);
-                                        switch (target.level) {
-                                            case 'division':
-                                                loadDivisionData(target.id);
-                                                break;
-                                            case 'parliamentary':
-                                                loadParliamentaryData(target.name);
-                                                break;
-                                            case 'assembly':
-                                                loadAssemblyData(target.id);
-                                                break;
-                                            case 'block':
-                                                loadBlockData(target.id);
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        setCurrentLevel(target.level);
-                                        setSelectedFeature(target.feature);
-                                    }}
-                                    disabled={isDisabled}
-                                    style={{
-                                        padding: '5px 15px',
-                                        backgroundColor: isDisabled ? '#cccccc' : '#4a90e2',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: isDisabled ? 'not-allowed' : 'pointer'
-                                    }}
-                                >
-                                    Back to {item.level.charAt(0).toUpperCase() + item.level.slice(1)}
-                                </button>
-                            );
-                        })}
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <span style={{ fontWeight: '500' }}>
+                                    Current Location: {selectedFeature.properties.name} ({currentLevel})
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

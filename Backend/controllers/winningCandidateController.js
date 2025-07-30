@@ -81,6 +81,43 @@ exports.getWinningCandidates = async (req, res, next) => {
   }
 };
 
+exports.getWinningCandidatesForGraph = async (req, res, next) => {
+  try {
+    // Basic query
+    let query = WinningCandidate.find()
+      .populate('party_id', 'name')
+      .populate({
+        path: 'year_id',
+        select: 'year'
+      });
+
+    // Filter by year
+    if (req.query.year) {
+      // First find the year_id for the given year value
+      const yearDoc = await Year.findOne({ year: req.query.year });
+      if (!yearDoc) {
+        return res.status(404).json({
+          success: false,
+          message: `No data found for year ${req.query.year}`
+        });
+      }
+      query = query.where('year_id').equals(yearDoc._id);
+    }
+
+    const winningCandidates = await query.exec();
+    const total = await WinningCandidate.countDocuments(query.getFilter());
+
+    res.status(200).json({
+      success: true,
+      count: winningCandidates.length,
+      total,
+      data: winningCandidates
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get single winning candidate
 // @route   GET /api/winning-candidates/:id
 // @access  Public
@@ -207,7 +244,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
     if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
