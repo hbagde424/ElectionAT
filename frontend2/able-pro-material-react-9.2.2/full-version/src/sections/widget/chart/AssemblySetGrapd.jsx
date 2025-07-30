@@ -27,7 +27,7 @@ const getPieChartOptions = (parties) => ({
     type: 'donut',
     height: 320
   },
-  labels: parties || ['INC', 'BJP', 'BSP', 'OTHERS'],
+  labels: parties || ['INC', 'BJP', 'BAP', 'OTHERS'],
   legend: {
     show: false
   },
@@ -48,16 +48,6 @@ const getPieChartOptions = (parties) => ({
 
 // ==============================|| CHART ||============================== //
 
-const PARTY_COLORS = {
-  'Bharatiya Janata Party': '#FF9933', // Saffron for BJP
-  'BJP': '#FF9933',
-  'Indian National Congress': '#000080', // Navy Blue for INC
-  'INC': '#000080',
-  'Bahujan Samaj Party': '#0000FF', // Blue for BSP
-  'BSP': '#0000FF',
-  'Others': '#6b7280' // Gray for Others
-};
-
 function ApexDonutChart({ data, loading }) {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
@@ -71,14 +61,9 @@ function ApexDonutChart({ data, loading }) {
 
   // Process the data to get party-wise seat counts
   const getPartyData = useCallback(() => {
-    if (!data || !data.length) return { series: [], labels: [], originalNames: [] };
+    if (!data || !data.length) return { series: [], labels: [] };
 
     const partyStats = {};
-    const partyOrder = ['Bharatiya Janata Party', 'Indian National Congress']; // Define preferred order
-    const partyDisplayNames = {
-      'Bharatiya Janata Party': 'BJP',
-      'Indian National Congress': 'INC'
-    };
 
     // Group data by party
     data.forEach(item => {
@@ -93,24 +78,9 @@ function ApexDonutChart({ data, loading }) {
       partyStats[partyName].votes += parseInt(item.total_votes) || 0;
     });
 
-    // Sort parties by custom order first, then by seats
+    // Sort parties by seats in descending order
     const sortedParties = Object.entries(partyStats)
-      .sort(([nameA, statsA], [nameB, statsB]) => {
-        // First, try to sort by the preferred order
-        const indexA = partyOrder.indexOf(nameA);
-        const indexB = partyOrder.indexOf(nameB);
-
-        // If both parties are in the preferred order, use that order
-        if (indexA !== -1 && indexB !== -1) {
-          return indexA - indexB;
-        }
-        // If one party is in the preferred order, it should come first
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-
-        // For parties not in the preferred order, sort by seats
-        return statsB.seats - statsA.seats;
-      });
+      .sort(([, a], [, b]) => b.seats - a.seats);
 
     // Get top 3 parties and group rest as Others
     const mainParties = sortedParties.slice(0, 3);
@@ -129,38 +99,25 @@ function ApexDonutChart({ data, loading }) {
 
     return {
       series: processedData.map(([, stats]) => stats.seats),
-      labels: processedData.map(([name]) => partyDisplayNames[name] || name),
-      originalNames: processedData.map(([name]) => name),
+      labels: processedData.map(([name]) => name),
       stats: Object.fromEntries(processedData)
     };
-  }, [data]); const { series, labels, originalNames, stats } = getPartyData();
+  }, [data]); const { series, labels, stats } = getPartyData();
   const [options, setOptions] = useState(getPieChartOptions(labels));
 
   useEffect(() => {
-    // Map colors based on original party names and assign unique colors for others
-    const usedColors = new Set();
-    const chartColors = originalNames.map(name => {
-      // First check if we have a direct color match
-      if (PARTY_COLORS[name]) {
-        usedColors.add(PARTY_COLORS[name]);
-        return PARTY_COLORS[name];
-      }
+    setOptions(getPieChartOptions(labels));
+  }, [labels]);
 
-      // For BSP, use a specific color
-      if (name === 'Bahujan Samaj Party' || name === 'BSP') {
-        return '#0000FF'; // Blue for BSP
-      }
+  useEffect(() => {
+    const saffron = '#FF9933'; // Saffron color for BJP
+    const navyBlue = '#008FFB'; // Navy blue for INC
+    const success = theme.palette.success.main;
+    const primaryLighter = theme.palette.primary[100];
 
-      // For other parties, use a rotating set of distinct colors
-      const otherColors = ['#22c55e', '#f97316', '#06b6d4', '#ec4899'].filter(color => !usedColors.has(color));
-      const selectedColor = otherColors[0] || theme.palette.success.main;
-      usedColors.add(selectedColor);
-      return selectedColor;
-    });
-
-    setOptions({
-      ...getPieChartOptions(labels),
-      colors: chartColors,
+    setOptions((prevState) => ({
+      ...prevState,
+      colors: [navyBlue, saffron, success, primaryLighter],
       xaxis: {
         labels: {
           style: {
@@ -184,8 +141,8 @@ function ApexDonutChart({ data, loading }) {
       theme: {
         mode: mode === ThemeMode.DARK ? 'dark' : 'light'
       }
-    });
-  }, [mode, primary, line, grey200, backColor, theme, labels, originalNames]);
+    }));
+  }, [mode, primary, line, grey200, backColor, theme]);
 
   return (
     <div id="chart" style={{ position: 'relative', minHeight: downSM ? 280 : 320 }}>
@@ -208,7 +165,7 @@ export default function TotalIncome() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(2023); // Default year set to 2023
 
   const open = Boolean(anchorEl);
 
@@ -222,8 +179,10 @@ export default function TotalIncome() {
       const result = await response.json();
       const availableYears = result.data.map(item => item.year).sort((a, b) => b - a);
       setYears(availableYears);
+      // If 2023 is available, set it as selected, otherwise use the first available year
+      const defaultYear = availableYears.includes(2023) ? 2023 : availableYears[0];
       if (availableYears.length > 0 && !selectedYear) {
-        setSelectedYear(availableYears[0]);
+        setSelectedYear(defaultYear);
       }
     } catch (err) {
       console.error('Error fetching years:', err);
@@ -266,9 +225,9 @@ export default function TotalIncome() {
     setAnchorEl(null);
   };
 
-  // Calculate total seats for each party
+  // Calculate total seats and votes for each party
   const getPartyStats = useCallback(() => {
-    if (!data || !data.length) return {};
+    if (!data || !data.length) return { partyStats: {}, totalVotes: 0, totalSeats: 0 };
 
     const stats = {};
     let totalSeats = 0;
@@ -312,15 +271,17 @@ export default function TotalIncome() {
       party.votePercentage = ((party.votes / totalVotes) * 100).toFixed(1);
     });
 
-    return result;
-  }, [data]); const partyStats = getPartyStats();
+    return { partyStats: result, totalVotes, totalSeats };
+  }, [data]); 
+
+  const { partyStats, totalVotes, totalSeats } = getPartyStats();
 
   return (
     <MainCard>
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-            <Typography variant="h5">Total Seats {selectedYear ? `(${selectedYear})` : ''}</Typography>
+            <Typography variant="h5">Total Seats by Assembly in Madhya Pradesh {selectedYear ? `(${selectedYear})` : ''}</Typography>
             <IconButton
               color="secondary"
               id="wallet-button"
@@ -362,6 +323,20 @@ export default function TotalIncome() {
             <ApexDonutChart data={data} loading={loading} />
           )}
         </Grid>
+        
+        {/* Total Votes Card */}
+        <Grid item xs={6}>
+          <MainCard content={false} border={false} sx={{ bgcolor: 'background.default' }}>
+            <Stack alignItems="center" sx={{ p: 2 }} spacing={0.5}>
+              <Typography variant="h6">Total Assembly</Typography>
+              <Typography variant="h4">{totalSeats.toLocaleString()}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Total Votes {totalVotes} constituencies
+              </Typography>
+            </Stack>
+          </MainCard>
+        </Grid>
+        
         {Object.entries(partyStats).map(([partyName, stats], index) => (
           <Grid item xs={12} sm={6} key={partyName}>
             <MainCard content={false} border={false} sx={{ bgcolor: 'background.default' }}>
@@ -370,14 +345,14 @@ export default function TotalIncome() {
                   <Dot
                     componentDiv
                     color={
-                      PARTY_COLORS[partyName] ||
-                      ['#22c55e', '#f97316', '#06b6d4', '#ec4899'][index % 4] ||
-                      'secondary'
+                      partyName === 'Indian National Congress' ? '#000080' :
+                        partyName === 'Bharatiya Janata Party' ? '#FF9933' :
+                          index === 2 ? 'success' : 'secondary'
                     }
                   />
                   <Typography>{partyName === 'Bharatiya Janata Party' ? 'BJP' :
                     partyName === 'Indian National Congress' ? 'INC' :
-                      partyName === 'Bahujan Samaj Party' ? 'BSP' :
+                      partyName === 'Bharat Adivasi Party' ? 'BAP' :
                         partyName}</Typography>
                 </Stack>
                 <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

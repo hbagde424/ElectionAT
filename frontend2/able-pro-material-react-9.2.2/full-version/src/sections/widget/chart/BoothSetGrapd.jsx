@@ -22,9 +22,56 @@ import { ThemeMode } from 'config';
 
 // chart options
 const getPieChartOptions = (parties) => ({
-  chart: {
+    chart: {
     type: 'donut',
-    height: 320
+    height: 320,
+    toolbar: {
+      show: true,
+      tools: {
+        download: true,
+        selection: false,
+        zoom: false,
+        zoomin: false,
+        zoomout: false,
+        pan: false,
+        reset: false
+      },
+      export: {
+        csv: {
+          filename: `election_results_${new Date().toISOString().slice(0,10)}`,
+          columnDelimiter: ',',
+          headerCategory: 'Category',
+          headerValue: 'Value',
+          // Custom data formatter for CSV
+          formatter: function(value, { seriesIndex, w }) {
+            // First add the pie chart data
+            let csvData = [
+              ['Party', 'Seats', 'Seat Percentage', 'Votes', 'Vote Percentage'],
+              ...Object.entries(partyStats).map(([party, stats]) => [
+                party,
+                stats.seats,
+                `${stats.seatPercentage}%`,
+                stats.votes,
+                `${stats.votePercentage}%`
+              ]),
+              [],
+              ['Summary', 'Value'],
+              ['Total Seats', totalSeats],
+              ['Total Votes', totalVotes],
+              ['Total Booths', totalBooths]
+            ];
+            
+            return csvData.map(row => row.join(',')).join('\n');
+          }
+        },
+        svg: {
+          filename: 'party_seats_chart'
+        },
+        png: {
+          filename: 'party_seats_chart'
+        }
+      }
+    }
   },
   labels: parties || ['INC', 'BJP', 'BAP', 'OTHERS'],
   legend: {
@@ -44,6 +91,7 @@ const getPieChartOptions = (parties) => ({
     }
   }
 });
+
 
 // ==============================|| CHART ||============================== //
 
@@ -166,7 +214,8 @@ export default function TotalSeatsByParty() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(2023); // Default year set to 2023
+  const [totalBooths, setTotalBooths] = useState(0);
 
   const open = Boolean(anchorEl);
 
@@ -180,8 +229,10 @@ export default function TotalSeatsByParty() {
       const result = await response.json();
       const availableYears = result.data.map(item => item.year).sort((a, b) => b - a);
       setYears(availableYears);
+      // If 2023 is available, set it as selected, otherwise use the first available year
+      const defaultYear = availableYears.includes(2023) ? 2023 : availableYears[0];
       if (availableYears.length > 0 && !selectedYear) {
-        setSelectedYear(availableYears[0]);
+        setSelectedYear(defaultYear);
       }
     } catch (err) {
       console.error('Error fetching years:', err);
@@ -198,9 +249,16 @@ export default function TotalSeatsByParty() {
       }
       const result = await response.json();
       setData(result.data);
+      
+      // Fetch total booths count
+      const boothsResponse = await fetch(`http://localhost:5000/api/total-booths${yearParam}`);
+      if (boothsResponse.ok) {
+        const boothsData = await boothsResponse.json();
+        setTotalBooths(boothsData.totalBooths || 0);
+      }
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching winning parties:', err);
+      console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
@@ -226,7 +284,7 @@ export default function TotalSeatsByParty() {
 
   // Calculate total seats for each party
   const getPartyStats = useCallback(() => {
-    if (!data || !data.length) return {};
+    if (!data || !data.length) return { partyStats: {}, totalVotes: 0, totalSeats: 0 };
 
     const stats = {};
     let totalSeats = 0;
@@ -270,13 +328,13 @@ export default function TotalSeatsByParty() {
       party.votePercentage = ((party.votes / totalVotes) * 100).toFixed(1);
     });
 
-    return result;
+    return { partyStats: result, totalVotes, totalSeats };
   }, [data]);
 
-  const partyStats = getPartyStats();
+  const { partyStats, totalVotes, totalSeats } = getPartyStats();
 
   return (
-    <MainCard>
+    <MainCard >
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
@@ -322,6 +380,30 @@ export default function TotalSeatsByParty() {
             <ApexDonutChart data={data} loading={loading} />
           )}
         </Grid>
+
+        {/* Total Votes and Booths Card */}
+        <Grid item xs={12} md={6}>
+          <MainCard content={false} border={false} sx={{ bgcolor: 'background.default' }}>
+            <Stack alignItems="center" sx={{ p: 2 }} spacing={0.5}>
+              <Typography variant="h6">Total Votes</Typography>
+              <Typography variant="h4">{totalVotes.toLocaleString()}</Typography>
+              
+            </Stack>
+          </MainCard>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <MainCard content={false} border={false} sx={{ bgcolor: 'background.default' }}>
+            <Stack alignItems="center" sx={{ p: 2 }} spacing={0.5}>
+              <Typography variant="h6">Total Booths</Typography>
+              <Typography variant="h4">{totalSeats.toLocaleString()}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                In Gandhwani constituency
+              </Typography>
+            </Stack>
+          </MainCard>
+        </Grid>
+        
         {Object.entries(partyStats).map(([partyName, stats], index) => (
           <Grid item xs={12} sm={6} key={partyName}>
             <MainCard content={false} border={false} sx={{ bgcolor: 'background.default' }}>
