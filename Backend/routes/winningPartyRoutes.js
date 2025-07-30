@@ -7,7 +7,8 @@ const {
   deleteWinningParty,
   getWinningPartiesByParty,
   getWinningPartiesByYear,
-  getWinningPartiesByBooth
+  getWinningPartiesByBooth,
+  getWinningPartysForGraph
 } = require('../controllers/winningPartyController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -116,6 +117,45 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/WinningParty'
  */
 router.get('/', getWinningParties);
+
+/**
+ * @swagger
+ * /api/winning-parties/graph:
+ *   get:
+ *     summary: Get winning party data grouped by year and party for graph
+ *     tags: [WinningParties]
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         description: Filter by election year (e.g., 2019)
+ *     responses:
+ *       200:
+ *         description: Graph-ready data grouped by year and party
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 data:
+ *                   type: object
+ *                   example:
+ *                     2019:
+ *                       BJP: 40
+ *                       INC: 25
+ *                     2024:
+ *                       BJP: 30
+ *                       INC: 30
+ */
+
+router.get('/graph', getWinningPartysForGraph);
 
 /**
  * @swagger
