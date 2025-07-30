@@ -22,14 +22,35 @@ import { ThemeMode } from 'config';
 
 
 // chart options
-const getPieChartOptions = (parties) => ({
+const getPieChartOptions = (parties, totalSeats) => ({
   chart: {
     type: 'donut',
-    height: 320
+    height: 320,
+    events: {
+      mounted: (chart) => {
+        chart.windowResizeHandler();
+      }
+    }
   },
   labels: parties || ['INC', 'BJP', 'BAP', 'OTHERS'],
   legend: {
     show: false
+  },
+  plotOptions: {
+    pie: {
+      donut: {
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            label: 'Total Seats',
+            formatter: function (w) {
+              return totalSeats
+            }
+          }
+        }
+      }
+    }
   },
   dataLabels: {
     enabled: true,
@@ -102,12 +123,15 @@ function ApexDonutChart({ data, loading }) {
       labels: processedData.map(([name]) => name),
       stats: Object.fromEntries(processedData)
     };
-  }, [data]); const { series, labels, stats } = getPartyData();
-  const [options, setOptions] = useState(getPieChartOptions(labels));
+  }, [data]);
+
+  const { series, labels, stats } = getPartyData();
+  const totalSeats = series.reduce((acc, curr) => acc + curr, 0);
+  const [options, setOptions] = useState(getPieChartOptions(labels, totalSeats));
 
   useEffect(() => {
-    setOptions(getPieChartOptions(labels));
-  }, [labels]);
+    setOptions(getPieChartOptions(labels, totalSeats));
+  }, [labels, totalSeats]);
 
   useEffect(() => {
     const saffron = '#FF9933'; // Saffron color for BJP
