@@ -45,6 +45,7 @@ import ChangeTheme from 'sections/maps/change-theme';
 import MainCard from 'components/MainCard';
 // total incon
 import TotalIncome from 'sections/widget/chart/AssemblySetGrapd';
+// import TotalIncome from 'sections/widget/chart/TotalIncome copy';
 import Booth from 'sections/widget/chart/BoothSetGrapd';
 
 import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
@@ -89,6 +90,9 @@ export default function WidgetData() {
       <Grid item xs={12} md={6}>
         <TotalIncome />
       </Grid>
+       {/* <Grid item xs={12} md={6}>
+        <TotalIncome />
+      </Grid> */}
       <Grid item xs={12} md={6}>
         <Booth />
       </Grid>
