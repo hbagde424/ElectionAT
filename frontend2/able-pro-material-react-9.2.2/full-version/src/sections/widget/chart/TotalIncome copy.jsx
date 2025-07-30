@@ -34,13 +34,34 @@ const getPieChartOptions = (parties) => ({
   dataLabels: {
     enabled: true,
     formatter: function (val, opts) {
-      return ''
+      return opts.w.config.labels[opts.seriesIndex]
     }
   },
   tooltip: {
+    enabled: true,
     y: {
-      formatter: function (value) {
-        return value + ' Seats'
+      formatter: function (value, { series, seriesIndex, w }) {
+        const label = w.config.labels[seriesIndex];
+        const total = series.reduce((a, b) => a + b, 0);
+        const percentage = ((value / total) * 100).toFixed(1);
+        return `${label}: ${value} Seats (${percentage}%)`
+      }
+    }
+  },
+  plotOptions: {
+    pie: {
+      donut: {
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            label: 'Total Seats',
+            formatter: function (w) {
+              const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+              return total
+            }
+          }
+        }
       }
     }
   }
