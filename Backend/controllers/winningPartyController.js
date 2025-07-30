@@ -9,6 +9,66 @@ const Block = require('../models/block');
 const Booth = require('../models/booth');
 const ElectionYear = require('../models/electionYear');
 
+
+
+
+
+// @desc    Get winning party data grouped by year and party for graph
+// @route   GET /api/winning-parties/graph
+// @access  Public
+exports.getWinningPartysForGraph = async (req, res, next) => {
+  try {
+    let query = WinningParty.find()
+      .populate('party_id', 'name')
+      .populate('election_year', 'year');
+
+    // Filter by year (optional query param)
+    if (req.query.year) {
+      const year = parseInt(req.query.year, 10);
+      if (isNaN(year)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Year must be a valid number'
+        });
+      }
+
+      const yearDoc = await ElectionYear.findOne({ year: year });
+      if (!yearDoc) {
+        return res.status(404).json({
+          success: false,
+          message: `No election data found for year ${year}`
+        });
+      }
+
+      query = query.where('election_year').equals(yearDoc._id);
+    }
+
+    const winningParties = await query.exec();
+    const total = await WinningParty.countDocuments(query.getFilter());
+
+    // const graphData = winningParties.reduce((acc, record) => {
+    //   const year = record.election_year?.year || 'Unknown Year';
+    //   const party = record.party_id?.name || 'Unknown Party';
+
+    //   if (!acc[year]) acc[year] = {};
+    //   if (!acc[year][party]) acc[year][party] = 0;
+
+    //   acc[year][party] += 1;
+
+    //   return acc;
+    // }, {});
+
+    res.status(200).json({
+      success: true,
+      count: winningParties.length,
+      total,
+      data: winningParties
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get all winning party records
 // @route   GET /api/winning-parties
 // @access  Public
