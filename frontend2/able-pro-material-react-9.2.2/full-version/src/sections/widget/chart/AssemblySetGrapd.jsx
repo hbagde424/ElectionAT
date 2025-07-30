@@ -22,7 +22,7 @@ import { ThemeMode } from 'config';
 
 
 // chart options
-const getPieChartOptions = (parties) => ({
+const getPieChartOptions = (parties, totalSeats) => ({
   chart: {
     type: 'donut',
     height: 320
@@ -31,19 +31,85 @@ const getPieChartOptions = (parties) => ({
   legend: {
     show: false
   },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '70%',
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            showAlways: true,
+            label: 'Total\nSeats',
+            fontSize: '20px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 600,
+            color: '#373d3f',
+            formatter: function (w) {
+              return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+            }
+          }
+        }
+      }
+    }
+  },
+  states: {
+    hover: {
+      filter: {
+        type: 'none'
+      }
+    },
+    active: {
+      filter: {
+        type: 'none'
+      }
+    }
+  },
   dataLabels: {
     enabled: true,
     formatter: function (val, opts) {
-      return ''
+      const series = opts.w.globals.series;
+      const label = opts.w.globals.labels[opts.seriesIndex];
+      const value = series[opts.seriesIndex];
+      const percentage = ((value / series.reduce((a, b) => a + b)) * 100).toFixed(1);
+      return `${label}: ${value}`
+    },
+    style: {
+      fontSize: '14px',
+      fontFamily: 'Helvetica, Arial, sans-serif',
+      fontWeight: 500
     }
   },
   tooltip: {
-    y: {
-      formatter: function (value) {
-        return value + ' Seats'
-      }
+    enabled: true,
+    theme: 'dark',
+    followCursor: false,
+    fixed: {
+      enabled: true,
+      position: 'topRight',
+      offsetX: 0,
+      offsetY: 0,
+    },
+    style: {
+      fontSize: '14px'
+    },
+    onDatasetHover: {
+      highlightDataSeries: true,
+    },
+    custom: function ({ series, seriesIndex, w }) {
+      const label = w.globals.labels[seriesIndex];
+      const value = series[seriesIndex];
+      const total = series.reduce((a, b) => a + b, 0);
+      const percentage = ((value / total) * 100).toFixed(1);
+
+      return '<div class="custom-tooltip" style="padding: 8px; background: #333; color: white; border-radius: 4px;">' +
+        '<span style="font-weight: bold;">' + label + '</span><br />' +
+        '<span>Seats: ' + value + '</span><br />' +
+        '<span>Share: ' + percentage + '%</span>' +
+        '</div>';
     }
   }
+
 });
 
 // ==============================|| CHART ||============================== //
@@ -134,7 +200,8 @@ function ApexDonutChart({ data, loading }) {
       stats: Object.fromEntries(processedData)
     };
   }, [data]); const { series, labels, originalNames, stats } = getPartyData();
-  const [options, setOptions] = useState(getPieChartOptions(labels));
+  const totalSeats = series.reduce((a, b) => a + b, 0);
+  const [options, setOptions] = useState(getPieChartOptions(labels, totalSeats));
 
   useEffect(() => {
     // Map colors based on original party names and assign unique colors for others
@@ -159,7 +226,7 @@ function ApexDonutChart({ data, loading }) {
     });
 
     setOptions({
-      ...getPieChartOptions(labels),
+      ...getPieChartOptions(labels, totalSeats),
       colors: chartColors,
       xaxis: {
         labels: {
