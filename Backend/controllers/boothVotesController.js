@@ -70,6 +70,13 @@ exports.getBoothVotes = async (req, res, next) => {
       query = query.where('block_id').equals(req.query.block);
     }
 
+       if (req.query.party) {
+      query = query.where('party_id').equals(req.query.party);
+    }
+       if (req.query.booth) {
+      query = query.where('booth_id').equals(req.query.booth);
+    }
+
     // Filter by booth
     if (req.query.booth) {
       query = query.where('booth_id').equals(req.query.booth);
