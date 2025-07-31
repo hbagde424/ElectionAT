@@ -5,6 +5,19 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 import MainCard from 'components/MainCard';
 
+// Add custom styles for permanent labels
+const customStyles = `
+    .permanent-label {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        font-weight: bold;
+        color: #333;
+        text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+        font-size: 14px;
+    }
+`;
+
 const HierarchicalMap = () => {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
@@ -67,6 +80,11 @@ const HierarchicalMap = () => {
 
 
     useEffect(() => {
+        // Add custom styles to document
+        const styleElement = document.createElement('style');
+        styleElement.textContent = customStyles;
+        document.head.appendChild(styleElement);
+
         // Initialize map
         if (!mapInstanceRef.current && mapRef.current) {
             mapInstanceRef.current = L.map(mapRef.current).setView([23.4707, 77.9455], 6); // Centered on MP
@@ -109,6 +127,11 @@ const HierarchicalMap = () => {
             if (mapInstanceRef.current) {
                 mapInstanceRef.current.remove();
                 mapInstanceRef.current = null;
+            }
+            // Clean up custom styles
+            const styleElement = document.querySelector('style');
+            if (styleElement && styleElement.textContent === customStyles) {
+                document.head.removeChild(styleElement);
             }
         };
     }, []);
@@ -628,10 +651,13 @@ const HierarchicalMap = () => {
         currentLayerRef.current = L.geoJSON(data, {
             style: style,
             onEachFeature: (feature, layer) => {
-                // Add tooltip
+                // Add permanent label
                 layer.bindTooltip(feature.properties.name || '', {
-                    permanent: false,
-                    direction: 'center'
+                    permanent: true,
+                    direction: 'center',
+                    className: 'permanent-label',
+                    offset: [0, 0],
+                    opacity: 0.9
                 });
 
                 // Add popup with details
