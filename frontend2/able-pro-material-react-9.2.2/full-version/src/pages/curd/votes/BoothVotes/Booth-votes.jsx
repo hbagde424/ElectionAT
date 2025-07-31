@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider
+  Button, Stack, Box, Typography, Divider, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
@@ -49,11 +49,27 @@ export default function BoothVotesListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [selectedCandidate, setSelectedCandidate] = useState('');
+  const [selectedBooth, setSelectedBooth] = useState('');
+  const [selectedAssembly, setSelectedAssembly] = useState('');
+  const [selectedParty, setSelectedParty] = useState('');
+  const [tempFilters, setTempFilters] = useState({
+    candidate: '',
+    booth: '',
+    assembly: '',
+    party: ''
+  });
 
   const fetchVotes = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/booth-votes?page=${pageIndex + 1}&limit=${pageSize}`);
+      let url = `http://localhost:5000/api/booth-votes?page=${pageIndex + 1}&limit=${pageSize}`;
+      if (selectedCandidate) url += `&candidate=${selectedCandidate}`;
+      if (selectedBooth) url += `&booth=${selectedBooth}`;
+      if (selectedAssembly) url += `&assembly=${selectedAssembly}`;
+      if (selectedParty) url += `&party=${selectedParty}`;
+
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setVotes(json.data);
@@ -69,7 +85,13 @@ export default function BoothVotesListPage() {
   const fetchAllVotesForCsv = async () => {
     setCsvLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/booth-votes?all=true');
+      let url = 'http://localhost:5000/api/booth-votes?all=true';
+      if (selectedCandidate) url += `&candidate=${selectedCandidate}`;
+      if (selectedBooth) url += `&booth=${selectedBooth}`;
+      if (selectedAssembly) url += `&assembly=${selectedAssembly}`;
+      if (selectedParty) url += `&party=${selectedParty}`;
+
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         return json.data;
@@ -103,7 +125,7 @@ export default function BoothVotesListPage() {
       'Updated At': new Date(item.updated_at).toLocaleString()
     }));
     setCsvData(formattedData);
-    
+
     setTimeout(() => {
       if (csvLinkRef.current) {
         csvLinkRef.current.link.click();
@@ -151,8 +173,11 @@ export default function BoothVotesListPage() {
 
   useEffect(() => {
     fetchVotes(pagination.pageIndex, pagination.pageSize);
+  }, [pagination.pageIndex, pagination.pageSize, selectedCandidate, selectedBooth, selectedAssembly, selectedParty]);
+
+  useEffect(() => {
     fetchReferenceData();
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, []);
 
   const handleDeleteOpen = (id) => {
     setVoteDeleteId(id);
@@ -256,7 +281,7 @@ export default function BoothVotesListPage() {
       accessorKey: 'created_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
     },
-{
+    {
       header: 'Updated At',
       accessorKey: 'updated_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
@@ -324,12 +349,120 @@ export default function BoothVotesListPage() {
   return (
     <>
       <MainCard content={false}>
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-          <DebouncedInput
-            value={table.getState().globalFilter || ''}
-            onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${votes.length} votes...`}
-          />
+        <Stack spacing={2} sx={{ padding: 3 }}>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+            <DebouncedInput
+              value={table.getState().globalFilter || ''}
+              onFilterChange={(value) => table.setGlobalFilter(String(value))}
+              placeholder={`Search ${votes.length} votes...`}
+            />
+          </Stack>
+
+          <Stack direction="row" spacing={2} alignItems="center">
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Candidate</InputLabel>
+              <Select
+                value={tempFilters.candidate}
+                label="Candidate"
+                onChange={(e) => {
+                  setTempFilters(prev => ({ ...prev, candidate: e.target.value }));
+                }}
+              >
+                <MenuItem value="">All Candidates</MenuItem>
+                {candidates.map((candidate) => (
+                  <MenuItem key={candidate._id} value={candidate._id}>
+                    {candidate.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Booth</InputLabel>
+              <Select
+                value={tempFilters.booth}
+                label="Booth"
+                onChange={(e) => {
+                  setTempFilters(prev => ({ ...prev, booth: e.target.value }));
+                }}
+              >
+                <MenuItem value="">All Booths</MenuItem>
+                {booths.map((booth) => (
+                  <MenuItem key={booth._id} value={booth._id}>
+                    {booth.name} (No: {booth.booth_number})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Assembly</InputLabel>
+              <Select
+                value={tempFilters.assembly}
+                label="Assembly"
+                onChange={(e) => {
+                  setTempFilters(prev => ({ ...prev, assembly: e.target.value }));
+                }}
+              >
+                <MenuItem value="">All Assemblies</MenuItem>
+                {assemblies.map((assembly) => (
+                  <MenuItem key={assembly._id} value={assembly._id}>
+                    {assembly.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Party</InputLabel>
+              <Select
+                value={tempFilters.party}
+                label="Party"
+                onChange={(e) => {
+                  setTempFilters(prev => ({ ...prev, party: e.target.value }));
+                }}
+              >
+                <MenuItem value="">All Parties</MenuItem>
+                {Array.from(new Set(candidates.map(c => c.party_id).filter(Boolean))).map((party) => (
+                  <MenuItem key={party._id} value={party._id}>
+                    {party.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button
+              variant="contained"
+              onClick={() => {
+                setSelectedCandidate(tempFilters.candidate);
+                setSelectedBooth(tempFilters.booth);
+                setSelectedAssembly(tempFilters.assembly);
+                setSelectedParty(tempFilters.party);
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
+            >
+              Apply Filters
+            </Button>
+
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setTempFilters({
+                  candidate: '',
+                  booth: '',
+                  assembly: '',
+                  party: ''
+                });
+                setSelectedCandidate('');
+                setSelectedBooth('');
+                setSelectedAssembly('');
+                setSelectedParty('');
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
+            >
+              Clear Filters
+            </Button>
+          </Stack>
           <Stack direction="row" spacing={1}>
             <CSVLink
               data={csvData}
@@ -337,9 +470,9 @@ export default function BoothVotesListPage() {
               style={{ display: 'none' }}
               ref={csvLinkRef}
             />
-            <Button 
-              variant="outlined" 
-              onClick={handleDownloadCsv} 
+            <Button
+              variant="outlined"
+              onClick={handleDownloadCsv}
               disabled={csvLoading}
             >
               {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
