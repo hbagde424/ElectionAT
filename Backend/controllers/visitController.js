@@ -1,10 +1,11 @@
-const Visit = require('../models/visit');
+const Visit = require('../models/Visit');
 const Booth = require('../models/booth');
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
 const Division = require('../models/division');
 const State = require('../models/state');
+const Candidate = require('../models/Candidate');
 const User = require('../models/User');
 
 // @desc    Get all visits
@@ -25,13 +26,49 @@ exports.getVisits = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate({
+        path: 'candidate_id',
+        select: 'name photo mobile caste education',
+        options: { strictPopulate: false }  // <- ye ensure karega error na aaye agar document missing ho
+      })
+
+
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ date: -1 });
 
+    // Search functionality
+    if (req.query.search) {
+      query = query.find({
+        $or: [
+          { 'candidate_id.name': { $regex: req.query.search, $options: 'i' } },
+          { post: { $regex: req.query.search, $options: 'i' } },
+          { locationName: { $regex: req.query.search, $options: 'i' } }
+        ]
+      });
+    }
+
     // Filter by work status
     if (req.query.work_status) {
       query = query.where('work_status').equals(req.query.work_status);
+    }
+
+    // Filter by candidate
+    if (req.query.candidate) {
+      query = query.where('candidate_id').equals(req.query.candidate);
+    }
+
+    // Filter by location proximity if lat/lng and radius provided
+    if (req.query.latitude && req.query.longitude && req.query.radius) {
+      const lat = parseFloat(req.query.latitude);
+      const lng = parseFloat(req.query.longitude);
+      const radius = parseFloat(req.query.radius) / 6378.1; // Convert km to radians
+
+      query = query.where('location').near({
+        center: [lng, lat],
+        spherical: true,
+        maxDistance: radius
+      });
     }
 
     const visits = await query.skip(skip).limit(limit).exec();
@@ -62,6 +99,7 @@ exports.getVisit = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -94,6 +132,7 @@ exports.createVisit = async (req, res, next) => {
       parliament,
       block,
       booth,
+      candidate,
       user
     ] = await Promise.all([
       State.findById(req.body.state_id),
@@ -102,6 +141,7 @@ exports.createVisit = async (req, res, next) => {
       Parliament.findById(req.body.parliament_id),
       Block.findById(req.body.block_id),
       Booth.findById(req.body.booth_id),
+      Candidate.findById(req.body.candidate_id),
       User.findById(req.user.id)
     ]);
 
@@ -111,11 +151,20 @@ exports.createVisit = async (req, res, next) => {
     if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
     if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
     if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+    if (!candidate) return res.status(400).json({ success: false, message: 'Candidate not found' });
     if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
     // Set default work_status if not provided
     if (!req.body.work_status) {
       req.body.work_status = 'announced';
+    }
+
+    // Create location object if coordinates are provided
+    if (req.body.latitude && req.body.longitude) {
+      req.body.location = {
+        type: 'Point',
+        coordinates: [req.body.longitude, req.body.latitude]
+      };
     }
 
     const visitData = {
@@ -156,9 +205,10 @@ exports.updateVisit = async (req, res, next) => {
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
+    if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
@@ -166,6 +216,17 @@ exports.updateVisit = async (req, res, next) => {
           message: `${result.modelName} not found`
         });
       }
+    }
+
+    // Update location object if coordinates are provided
+    if (req.body.latitude && req.body.longitude) {
+      req.body.location = {
+        type: 'Point',
+        coordinates: [req.body.longitude, req.body.latitude]
+      };
+    } else if (req.body.latitude === null || req.body.longitude === null) {
+      // Remove location if coordinates are explicitly set to null
+      req.body.location = undefined;
     }
 
     // Set updated_by to current user
@@ -182,6 +243,7 @@ exports.updateVisit = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -235,6 +297,7 @@ exports.getVisitsByBooth = async (req, res, next) => {
 
     const visits = await Visit.find({ booth_id: req.params.boothId })
       .sort({ date: -1 })
+      .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -264,6 +327,7 @@ exports.getVisitsByStatus = async (req, res, next) => {
     const visits = await Visit.find({ work_status: req.params.status })
       .sort({ date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('candidate_id', 'name')
       .populate('created_by', 'username');
 
     res.status(200).json({
@@ -282,7 +346,7 @@ exports.getVisitsByStatus = async (req, res, next) => {
 exports.getVisitsByDateRange = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     if (!startDate || !endDate) {
       return res.status(400).json({
         success: false,
@@ -296,14 +360,88 @@ exports.getVisitsByDateRange = async (req, res, next) => {
         $lte: new Date(endDate)
       }
     })
-    .sort({ date: -1 })
-    .populate('booth_id', 'name booth_number')
-    .populate('created_by', 'username');
+      .sort({ date: -1 })
+      .populate('booth_id', 'name booth_number')
+      .populate('candidate_id', 'name')
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,
       count: visits.length,
       data: visits
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get visits near a location
+// @route   GET /api/visits/nearby
+// @access  Public
+exports.getNearbyVisits = async (req, res, next) => {
+  try {
+    const { longitude, latitude, maxDistance = 10 } = req.query;
+
+    if (!longitude || !latitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both longitude and latitude are required'
+      });
+    }
+
+    const visits = await Visit.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)]
+          },
+          $maxDistance: parseFloat(maxDistance) * 1000 // Convert km to meters
+        }
+      }
+    })
+      .populate('booth_id', 'name booth_number')
+      .populate('candidate_id', 'name')
+      .populate('created_by', 'username');
+
+    res.status(200).json({
+      success: true,
+      count: visits.length,
+      data: visits
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get visits by candidate with path
+// @route   GET /api/visits/candidate/:candidateId/path
+// @access  Public
+exports.getCandidatePath = async (req, res, next) => {
+  try {
+    const visits = await Visit.find({ candidate_id: req.params.candidateId })
+      .populate('booth_id', 'name booth_number')
+      .sort({ date: 1 }); // Sort by date to show chronological path
+
+    // Filter visits with coordinates
+    const visitsWithCoords = visits.filter(v => v.latitude && v.longitude);
+
+    // Create GeoJSON LineString for the path
+    const lineString = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: visitsWithCoords.map(v => [v.longitude, v.latitude])
+      }
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        visits: visitsWithCoords,
+        path: lineString
+      }
     });
   } catch (err) {
     next(err);

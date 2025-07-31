@@ -37,11 +37,10 @@ const visitSchema = new mongoose.Schema({
     required: [true, 'Booth reference is required'],
     index: true
   },
-  person_name: {
-    type: String,
-    required: [true, 'Person name is required'],
-    trim: true,
-    maxlength: [100, 'Person name cannot exceed 100 characters']
+  candidate_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Candidate',
+    required: [true, 'Candidate reference is required']
   },
   post: {
     type: String,
@@ -69,6 +68,24 @@ const visitSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Remark cannot exceed 500 characters']
   },
+  // New fields for location data
+  longitude: {
+    type: Number,
+    required: false,
+    min: -180,
+    max: 180
+  },
+  latitude: {
+    type: Number,
+    required: false,
+    min: -90,
+    max: 90
+  },
+  locationName: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Location name cannot exceed 200 characters']
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -88,6 +105,9 @@ const visitSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for geospatial queries
+visitSchema.index({ location: '2dsphere' });
+
 // Update timestamp and updated_by before saving
 visitSchema.pre('save', function(next) {
   this.updated_at = Date.now();
@@ -99,7 +119,6 @@ visitSchema.pre('save', function(next) {
 
 // Indexes for better performance
 visitSchema.index({ booth_id: 1, date: -1 }); // For getting visits by booth sorted by date
-visitSchema.index({ person_name: 'text' }); // For text search on person names
 visitSchema.index({ work_status: 1 }); // Index for work_status field
 
 module.exports = mongoose.model('Visit', visitSchema);

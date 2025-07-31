@@ -7,7 +7,9 @@ const {
   deleteVisit,
   getVisitsByBooth,
   getVisitsByDateRange,
-  getVisitsByStatus
+  getVisitsByStatus,
+  getNearbyVisits,
+  getCandidatePath
 } = require('../controllers/visitController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -38,11 +40,36 @@ const router = express.Router();
  *           type: integer
  *         description: Items per page
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for candidate names, posts, or location names
+ *       - in: query
  *         name: work_status
  *         schema:
  *           type: string
  *           enum: [announced, approved, in progress, complete]
  *         description: Filter by work status
+ *       - in: query
+ *         name: candidate
+ *         schema:
+ *           type: string
+ *         description: Filter by candidate ID
+ *       - in: query
+ *         name: latitude
+ *         schema:
+ *           type: number
+ *         description: Latitude for proximity search
+ *       - in: query
+ *         name: longitude
+ *         schema:
+ *           type: number
+ *         description: Longitude for proximity search
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: number
+ *         description: Radius in kilometers for proximity search
  *     responses:
  *       200:
  *         description: List of visits
@@ -54,6 +81,12 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
  *                   type: integer
  *                 data:
  *                   type: array
@@ -273,6 +306,101 @@ router.get('/date-range', getVisitsByDateRange);
 
 /**
  * @swagger
+ * /api/visits/nearby:
+ *   get:
+ *     summary: Get visits near a location
+ *     tags: [Visits]
+ *     parameters:
+ *       - in: query
+ *         name: longitude
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Longitude of the center point
+ *       - in: query
+ *         name: latitude
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Latitude of the center point
+ *       - in: query
+ *         name: maxDistance
+ *         schema:
+ *           type: number
+ *         default: 10
+ *         description: Maximum distance in kilometers from the center point
+ *     responses:
+ *       200:
+ *         description: List of nearby visits
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Visit'
+ */
+router.get('/nearby', getNearbyVisits);
+
+/**
+ * @swagger
+ * /api/visits/candidate/{candidateId}/path:
+ *   get:
+ *     summary: Get candidate's visit path
+ *     tags: [Visits]
+ *     parameters:
+ *       - in: path
+ *         name: candidateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Candidate ID
+ *     responses:
+ *       200:
+ *         description: Candidate's visit path as GeoJSON
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     visits:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Visit'
+ *                     path:
+ *                       type: object
+ *                       properties:
+ *                         type:
+ *                           type: string
+ *                         properties:
+ *                           type: object
+ *                         geometry:
+ *                           type: object
+ *                           properties:
+ *                             type:
+ *                               type: string
+ *                             coordinates:
+ *                               type: array
+ *                               items:
+ *                                 type: array
+ *                                 items:
+ *                                   type: number
+ */
+router.get('/candidate/:candidateId/path', getCandidatePath);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     Visit:
@@ -284,7 +412,7 @@ router.get('/date-range', getVisitsByDateRange);
  *         - parliament_id
  *         - block_id
  *         - booth_id
- *         - person_name
+ *         - candidate_id
  *         - post
  *         - date
  *         - work_status
@@ -308,9 +436,9 @@ router.get('/date-range', getVisitsByDateRange);
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
- *         person_name:
+ *         candidate_id:
  *           type: string
- *           description: Name of the visiting person
+ *           description: Reference to Candidate
  *         post:
  *           type: string
  *           description: Post/position of the visiting person
@@ -328,6 +456,30 @@ router.get('/date-range', getVisitsByDateRange);
  *         remark:
  *           type: string
  *           description: Additional remarks
+ *         longitude:
+ *           type: number
+ *           minimum: -180
+ *           maximum: 180
+ *           description: Longitude coordinate of visit location
+ *         latitude:
+ *           type: number
+ *           minimum: -90
+ *           maximum: 90
+ *           description: Latitude coordinate of visit location
+ *         locationName:
+ *           type: string
+ *           description: Name of the visit location
+ *         location:
+ *           type: object
+ *           properties:
+ *             type:
+ *               type: string
+ *               enum: ['Point']
+ *             coordinates:
+ *               type: array
+ *               items:
+ *                 type: number
+ *           description: GeoJSON Point for geospatial queries
  *         created_by:
  *           type: string
  *           description: Reference to User who created
@@ -342,6 +494,11 @@ router.get('/date-range', getVisitsByDateRange);
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 module.exports = router;
