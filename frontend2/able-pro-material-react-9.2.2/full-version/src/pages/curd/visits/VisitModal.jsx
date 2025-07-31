@@ -1,360 +1,458 @@
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions, Button,
-    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    FormControlLabel, Switch, Box, Chip
+    Dialog, DialogTitle, DialogContent, DialogActions,
+    Button, Grid, Stack, TextField, InputLabel, Select, 
+    MenuItem, FormControl, FormHelperText, Alert, 
+    CircularProgress, Typography
 } from '@mui/material';
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
-import JWTContext from 'contexts/JWTContext';
+
+// Form Components (previously imported from FormComponents.jsx)
+const FormSelect = ({ 
+    label, 
+    name, 
+    value, 
+    options, 
+    onChange, 
+    error, 
+    disabled,
+    labelKey = 'name',
+    required = false 
+}) => (
+    <Stack spacing={1}>
+        <InputLabel required={required}>{label}</InputLabel>
+        <FormControl fullWidth error={!!error} disabled={disabled}>
+            <Select name={name} value={value} onChange={onChange}>
+                <MenuItem value=""><em>Select {label}</em></MenuItem>
+                {options.map((opt) => (
+                    <MenuItem key={opt._id} value={opt._id}>
+                        {opt[labelKey] || 'Unknown'}
+                    </MenuItem>
+                ))}
+            </Select>
+            {error && <FormHelperText>{error}</FormHelperText>}
+        </FormControl>
+    </Stack>
+);
+
+const FormTextField = ({ 
+    label, 
+    name, 
+    value, 
+    onChange, 
+    error, 
+    disabled,
+    type = 'text',
+    required = false 
+}) => (
+    <Stack spacing={1}>
+        <InputLabel required={required}>{label}</InputLabel>
+        <TextField
+            name={name}
+            value={value}
+            onChange={onChange}
+            fullWidth
+            type={type}
+            error={!!error}
+            helperText={error}
+            disabled={disabled}
+        />
+    </Stack>
+);
 
 export default function VisitModal({
     open,
     modalToggler,
     visit,
-    states,
-    divisions,
-    parliaments,
-    assemblies,
-    blocks,
-    booths,
+    states = [],
+    divisions = [],
+    parliaments = [],
+    assemblies = [],
+    blocks = [],
+    booths = [],
+    candidates = [],
     refresh
 }) {
-    const contextValue = useContext(JWTContext);
-    const { user } = contextValue || {};
-
-    const [formData, setFormData] = useState({
-        person_name: '',
-        post: '',
-        date: new Date(),
-        declaration: '',
-        remark: '',
-        state_id: '',
-        division_id: '',
-        parliament_id: '',
-        assembly_id: '',
-        block_id: '',
-        booth_id: '',
-        is_active: true,
-        work_status: 'announced'
-    });
-
-    const [submitted, setSubmitted] = useState(false);
-
-    // Filtered arrays for cascading dropdowns
+    // Form state management
+    const [formData, setFormData] = useState(initializeFormData(visit));
+    const [errors, setErrors] = useState({});
+    const [submitError, setSubmitError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Filtered data states
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
-    // Work status options
-   // In your VisitModal component, change the workStatusOptions to:
-const workStatusOptions = [
-    { value: 'announced', label: 'Announced' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'in progress', label: 'In Progress' },
-    { value: 'complete', label: 'Complete' }
-];
-
-    useEffect(() => {
-        if (visit) {
-            setFormData({
-                person_name: visit.person_name || '',
-                post: visit.post || '',
-                date: visit.date ? new Date(visit.date) : new Date(),
-                declaration: visit.declaration || '',
-                remark: visit.remark || '',
-                state_id: visit.state_id?._id?.toString() || visit.state_id?.toString() || '',
-                division_id: visit.division_id?._id?.toString() || visit.division_id?.toString() || '',
-                parliament_id: visit.parliament_id?._id?.toString() || visit.parliament_id?.toString() || '',
-                assembly_id: visit.assembly_id?._id?.toString() || visit.assembly_id?.toString() || '',
-                block_id: visit.block_id?._id?.toString() || visit.block_id?.toString() || '',
-                booth_id: visit.booth_id?._id?.toString() || visit.booth_id?.toString() || '',
-                is_active: visit.is_active !== undefined ? visit.is_active : true,
-                work_status: visit.work_status || 'announced'
-            });
-        } else {
-            setFormData({
-                person_name: '',
-                post: '',
-                date: new Date(),
-                declaration: '',
-                remark: '',
+    // Initialize form data
+    function initializeFormData(visit) {
+        if (!visit) {
+            return {
                 state_id: '',
                 division_id: '',
-                parliament_id: '',
                 assembly_id: '',
+                parliament_id: '',
                 block_id: '',
                 booth_id: '',
-                is_active: true,
-                work_status: 'announced'
-            });
+                candidate_id: '',
+                post: '',
+                date: new Date(),
+                work_status: 'announced',
+                declaration: '',
+                remark: '',
+                longitude: '',
+                latitude: '',
+                locationName: ''
+            };
         }
-    }, [visit]);
+        
+        return {
+            state_id: visit.state_id?._id || visit.state_id || '',
+            division_id: visit.division_id?._id || visit.division_id || '',
+            assembly_id: visit.assembly_id?._id || visit.assembly_id || '',
+            parliament_id: visit.parliament_id?._id || visit.parliament_id || '',
+            block_id: visit.block_id?._id || visit.block_id || '',
+            booth_id: visit.booth_id?._id || visit.booth_id || '',
+            candidate_id: visit.candidate_id?._id || visit.candidate_id || '',
+            post: visit.post || '',
+            date: visit.date ? new Date(visit.date) : new Date(),
+            work_status: visit.work_status || 'announced',
+            declaration: visit.declaration || '',
+            remark: visit.remark || '',
+            longitude: visit.longitude || '',
+            latitude: visit.latitude || '',
+            locationName: visit.locationName || ''
+        };
+    }
 
-    // State -> Division
+    // Reset form when modal opens/closes or visit changes
+    useEffect(() => {
+        if (open) {
+            setFormData(initializeFormData(visit));
+            setErrors({});
+            setSubmitError('');
+        }
+    }, [open, visit]);
+
+    // Filter dependent data based on selections
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions?.filter(division => {
-                const divisionStateId = division.state_id?._id || division.state_id;
-                return divisionStateId === formData.state_id;
-            }) || [];
+            const filtered = divisions.filter(d => {
+                const divisionStateId = d.state_id?._id || d.state_id;
+                return divisionStateId?.toString() === formData.state_id.toString();
+            });
             setFilteredDivisions(filtered);
-
-            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    division_id: '',
-                    parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
+            
+            if (!filtered.some(d => d._id?.toString() === formData.division_id?.toString())) {
+                setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
             }
         } else {
             setFilteredDivisions([]);
-            setFormData(prev => ({
-                ...prev,
-                division_id: '',
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
+            setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
         }
     }, [formData.state_id, divisions]);
 
-    // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = parliaments?.filter(parliament => {
-                const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
-                return parliamentDivisionId === formData.division_id;
-            }) || [];
+            const filtered = parliaments.filter(p => {
+                const parliamentDivisionId = p.division_id?._id || p.division_id;
+                return parliamentDivisionId?.toString() === formData.division_id.toString();
+            });
             setFilteredParliaments(filtered);
-
-            if (formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
+            
+            if (!filtered.some(p => p._id?.toString() === formData.parliament_id?.toString())) {
+                setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
             }
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({
-                ...prev,
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
+            setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
         }
     }, [formData.division_id, parliaments]);
 
-    // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id) {
-            const filtered = assemblies?.filter(assembly => {
-                const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
-                return assemblyParliamentId === formData.parliament_id;
-            }) || [];
+            const filtered = assemblies.filter(a => {
+                const assemblyParliamentId = a.parliament_id?._id || a.parliament_id;
+                return assemblyParliamentId?.toString() === formData.parliament_id.toString();
+            });
             setFilteredAssemblies(filtered);
-
-            if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
+            
+            if (!filtered.some(a => a._id?.toString() === formData.assembly_id?.toString())) {
+                setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
             }
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({
-                ...prev,
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
+            setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Assembly -> Block
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = blocks?.filter(block => {
-                const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
-                return blockAssemblyId === formData.assembly_id;
-            }) || [];
+            const filtered = blocks.filter(b => {
+                const blockAssemblyId = b.assembly_id?._id || b.assembly_id;
+                return blockAssemblyId?.toString() === formData.assembly_id.toString();
+            });
             setFilteredBlocks(filtered);
-
-            if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    block_id: '',
-                    booth_id: ''
-                }));
+            
+            if (!filtered.some(b => b._id?.toString() === formData.block_id?.toString())) {
+                setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
             }
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({
-                ...prev,
-                block_id: '',
-                booth_id: ''
-            }));
+            setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
         }
     }, [formData.assembly_id, blocks]);
 
-    // Block -> Booth
     useEffect(() => {
         if (formData.block_id) {
-            const filtered = booths?.filter(booth => {
-                const boothBlockId = booth.block_id?._id || booth.block_id;
-                return boothBlockId === formData.block_id;
-            }) || [];
+            const filtered = booths.filter(b => {
+                const boothBlockId = b.block_id?._id || b.block_id;
+                return boothBlockId?.toString() === formData.block_id.toString();
+            });
             setFilteredBooths(filtered);
-
-            if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    booth_id: ''
-                }));
+            
+            if (!filtered.some(b => b._id?.toString() === formData.booth_id?.toString())) {
+                setFormData(prev => ({ ...prev, booth_id: '' }));
             }
         } else {
             setFilteredBooths([]);
-            setFormData(prev => ({
-                ...prev,
-                booth_id: ''
-            }));
+            setFormData(prev => ({ ...prev, booth_id: '' }));
         }
     }, [formData.block_id, booths]);
 
+    // Field validation
+    const validateField = (name, value) => {
+        const validations = {
+            state_id: () => !value && 'State selection is required',
+            division_id: () => !value && 'Division selection is required',
+            assembly_id: () => !value && 'Assembly selection is required',
+            parliament_id: () => !value && 'Parliament selection is required',
+            block_id: () => !value && 'Block selection is required',
+            booth_id: () => !value && 'Booth selection is required',
+            candidate_id: () => !value && 'Candidate selection is required',
+            post: () => {
+                if (!value) return 'Post is required';
+                if (value.length > 100) return 'Post cannot exceed 100 characters';
+                return '';
+            },
+            date: () => !value && 'Date is required',
+            work_status: () => !value && 'Work status is required',
+            declaration: () => value.length > 500 && 'Declaration cannot exceed 500 characters',
+            remark: () => value.length > 500 && 'Remark cannot exceed 500 characters',
+            longitude: () => {
+                if (value && (isNaN(value) || value < -180 || value > 180)) 
+                    return 'Longitude must be between -180 and 180';
+                return '';
+            },
+            latitude: () => {
+                if (value && (isNaN(value) || value < -90 || value > 90)) 
+                    return 'Latitude must be between -90 and 90';
+                return '';
+            },
+            locationName: () => value.length > 200 && 'Location name cannot exceed 200 characters'
+        };
+
+        return validations[name] ? validations[name]() : '';
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+        Object.keys(formData).forEach(field => {
+            const error = validateField(field, formData[field]);
+            if (error) newErrors[field] = error;
+        });
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        const { name, value } = e.target;
+
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+        if (submitError) setSubmitError('');
+
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleDateChange = (date) => {
-        setFormData(prev => ({
-            ...prev,
-            date: date
-        }));
+        setFormData(prev => ({ ...prev, date }));
     };
 
     const handleSubmit = async () => {
-        setSubmitted(true);
-        
-        // Validation
-        const requiredFields = [
-            'person_name', 'post', 'date',
-            'state_id', 'division_id', 'parliament_id',
-            'assembly_id', 'block_id', 'booth_id'
-        ];
-        
-        for (const field of requiredFields) {
-            if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
-                return;
-            }
-        }
+        if (!validateForm()) return;
 
-        const method = visit ? 'PUT' : 'POST';
-        const token = localStorage.getItem('serviceToken');
-        const url = visit
-            ? `http://localhost:5000/api/visits/${visit._id}`
-            : 'http://localhost:5000/api/visits';
-
-        // Get user ID from context or localStorage
-        let userId = user?._id || user?.id;
-        if (!userId) {
-            try {
-                const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-                userId = localUser._id || localUser.id;
-            } catch (e) {
-                console.error('Failed to parse localStorage user:', e);
-            }
-        }
-
-        const userTracking = visit 
-            ? { updated_by: userId } 
-            : { created_by: userId };
-            
-        const submitData = {
-            ...formData,
-            ...userTracking
-        };
+        setIsSubmitting(true);
+        setSubmitError('');
 
         try {
+            const token = localStorage.getItem('serviceToken');
+            const url = visit 
+                ? `http://localhost:5000/api/visits/${visit._id}` 
+                : 'http://localhost:5000/api/visits';
+            const method = visit ? 'PUT' : 'POST';
+
             const res = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(submitData)
+                body: JSON.stringify(formData)
             });
+
+            const data = await res.json();
 
             if (res.ok) {
                 modalToggler(false);
                 refresh();
             } else {
-                const errorData = await res.json();
-                console.error('Failed to submit visit:', errorData);
-                alert('Failed to save visit. Please check the form data.');
+                handleSubmissionError(data);
             }
         } catch (error) {
-            console.error('Error submitting visit:', error);
-            alert('An error occurred while saving the visit.');
+            console.error('Error submitting form:', error);
+            setSubmitError('Network error. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSubmissionError = (data) => {
+        if (data.errors) {
+            const serverErrors = {};
+            Object.keys(data.errors).forEach(key => {
+                serverErrors[key] = data.errors[key].message;
+            });
+            setErrors(serverErrors);
+        } else {
+            setSubmitError(data.message || 'An error occurred while saving the record');
         }
     };
 
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-            <DialogTitle>{visit ? 'Edit Visit' : 'Add Visit'}</DialogTitle>
+            <DialogTitle>
+                {visit ? 'Edit Visit Record' : 'Add Visit Record'}
+            </DialogTitle>
+            
             <DialogContent>
+                {submitError && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {submitError}
+                    </Alert>
+                )}
+
                 <Grid container spacing={2} mt={1}>
-                    {/* Row 1: Person Name and Post */}
                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Person Name</InputLabel>
-                            <TextField
-                                name="person_name"
-                                value={formData.person_name}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.person_name}
-                                helperText={submitted && !formData.person_name ? 'Person name is required' : ''}
-                                placeholder="Enter person name"
-                            />
-                        </Stack>
+                        <FormSelect
+                            label="State"
+                            name="state_id"
+                            value={formData.state_id}
+                            options={states}
+                            onChange={handleChange}
+                            error={errors.state_id}
+                            disabled={isSubmitting}
+                            required
+                        />
                     </Grid>
-
+                    
                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Post/Designation</InputLabel>
-                            <TextField
-                                name="post"
-                                value={formData.post}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.post}
-                                helperText={submitted && !formData.post ? 'Post is required' : ''}
-                                placeholder="Enter post/designation"
-                            />
-                        </Stack>
+                        <FormSelect
+                            label="Division"
+                            name="division_id"
+                            value={formData.division_id}
+                            options={filteredDivisions}
+                            onChange={handleChange}
+                            error={errors.division_id}
+                            disabled={isSubmitting}
+                            required
+                        />
                     </Grid>
-
-                    {/* Row 2: Date and Work Status */}
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormSelect
+                            label="Parliament"
+                            name="parliament_id"
+                            value={formData.parliament_id}
+                            options={filteredParliaments}
+                            onChange={handleChange}
+                            error={errors.parliament_id}
+                            disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormSelect
+                            label="Assembly"
+                            name="assembly_id"
+                            value={formData.assembly_id}
+                            options={filteredAssemblies}
+                            onChange={handleChange}
+                            error={errors.assembly_id}
+                            disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormSelect
+                            label="Block"
+                            name="block_id"
+                            value={formData.block_id}
+                            options={filteredBlocks}
+                            onChange={handleChange}
+                            error={errors.block_id}
+                            disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormSelect
+                            label="Booth"
+                            name="booth_id"
+                            value={formData.booth_id}
+                            options={filteredBooths}
+                            onChange={handleChange}
+                            error={errors.booth_id}
+                            disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormSelect
+                            label="Candidate"
+                            name="candidate_id"
+                            value={formData.candidate_id}
+                            options={candidates}
+                            onChange={handleChange}
+                            error={errors.candidate_id}
+                            disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Post"
+                            name="post"
+                            value={formData.post}
+                            onChange={handleChange}
+                            error={errors.post}
+                            disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+                    
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Visit Date</InputLabel>
+                            <InputLabel required>Date</InputLabel>
                             <DatePicker
                                 value={formData.date}
                                 onChange={handleDateChange}
@@ -362,236 +460,109 @@ const workStatusOptions = [
                                     <TextField
                                         {...params}
                                         fullWidth
-                                        required
-                                        error={submitted && !formData.date}
-                                        helperText={submitted && !formData.date ? 'Date is required' : ''}
+                                        error={!!errors.date}
+                                        helperText={errors.date}
+                                        disabled={isSubmitting}
                                     />
                                 )}
                             />
                         </Stack>
                     </Grid>
-
+                    
                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Work Status</InputLabel>
-                            <FormControl fullWidth>
-                                <Select
-                                    name="work_status"
-                                    value={formData.work_status}
-                                    onChange={handleChange}
-                                >
-                                    {workStatusOptions.map((option) => (
-                                        <MenuItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 3: Active Switch */}
-                    <Grid item xs={12}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    name="is_active"
-                                    checked={formData.is_active}
-                                    onChange={handleChange}
-                                />
-                            }
-                            label="Active"
+                        <FormSelect
+                            label="Work Status"
+                            name="work_status"
+                            value={formData.work_status}
+                            options={[
+                                { _id: 'announced', name: 'Announced' },
+                                { _id: 'approved', name: 'Approved' },
+                                { _id: 'in progress', name: 'In Progress' },
+                                { _id: 'complete', name: 'Complete' }
+                            ]}
+                            onChange={handleChange}
+                            error={errors.work_status}
+                            disabled={isSubmitting}
+                            required
                         />
                     </Grid>
-
-                    {/* Row 4: State and Division */}
+                    
                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.state_id}>
-                                <Select
-                                    name="state_id"
-                                    value={formData.state_id}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <MenuItem value="">Select State</MenuItem>
-                                    {states?.map((state) => (
-                                        <MenuItem key={state._id} value={state._id}>
-                                            {state.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.state_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>State is required</Box>
-                            )}
-                        </Stack>
+                        <FormTextField
+                            label="Longitude"
+                            name="longitude"
+                            value={formData.longitude}
+                            onChange={handleChange}
+                            error={errors.longitude}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
                     </Grid>
-
+                    
                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.division_id}>
-                                <Select
-                                    name="division_id"
-                                    value={formData.division_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.state_id}
-                                >
-                                    <MenuItem value="">Select Division</MenuItem>
-                                    {filteredDivisions.map((division) => (
-                                        <MenuItem key={division._id} value={division._id}>
-                                            {division.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.division_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Division is required</Box>
-                            )}
-                        </Stack>
+                        <FormTextField
+                            label="Latitude"
+                            name="latitude"
+                            value={formData.latitude}
+                            onChange={handleChange}
+                            error={errors.latitude}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
                     </Grid>
-
-                    {/* Row 5: Parliament and Assembly */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.parliament_id}>
-                                <Select
-                                    name="parliament_id"
-                                    value={formData.parliament_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.division_id}
-                                >
-                                    <MenuItem value="">Select Parliament</MenuItem>
-                                    {filteredParliaments.map((parliament) => (
-                                        <MenuItem key={parliament._id} value={parliament._id}>
-                                            {parliament.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.parliament_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Parliament is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.assembly_id}>
-                                <Select
-                                    name="assembly_id"
-                                    value={formData.assembly_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.parliament_id}
-                                >
-                                    <MenuItem value="">Select Assembly</MenuItem>
-                                    {filteredAssemblies.map((assembly) => (
-                                        <MenuItem key={assembly._id} value={assembly._id}>
-                                            {assembly.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.assembly_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Assembly is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 6: Block and Booth */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.block_id}>
-                                <Select
-                                    name="block_id"
-                                    value={formData.block_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
-                                    <MenuItem value="">Select Block</MenuItem>
-                                    {filteredBlocks.map((block) => (
-                                        <MenuItem key={block._id} value={block._id}>
-                                            {block.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.block_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Block is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Booth</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.booth_id}>
-                                <Select
-                                    name="booth_id"
-                                    value={formData.booth_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.block_id}
-                                >
-                                    <MenuItem value="">Select Booth</MenuItem>
-                                    {filteredBooths.map((booth) => (
-                                        <MenuItem key={booth._id} value={booth._id}>
-                                            {booth.name} (Booth #{booth.booth_number})
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.booth_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Booth is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    {/* Row 7: Declaration and Remark */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Declaration</InputLabel>
-                            <TextField
-                                name="declaration"
-                                value={formData.declaration}
-                                onChange={handleChange}
-                                fullWidth
-                                multiline
-                                rows={2}
-                                placeholder="Enter declaration"
-                            />
-                        </Stack>
-                    </Grid>
-
+                    
                     <Grid item xs={12}>
-                        <Stack spacing={1}>
-                            <InputLabel>Remark</InputLabel>
-                            <TextField
-                                name="remark"
-                                value={formData.remark}
-                                onChange={handleChange}
-                                fullWidth
-                                multiline
-                                rows={2}
-                                placeholder="Enter remark"
-                            />
-                        </Stack>
+                        <FormTextField
+                            label="Location Name"
+                            name="locationName"
+                            value={formData.locationName}
+                            onChange={handleChange}
+                            error={errors.locationName}
+                            disabled={isSubmitting}
+                            multiline
+                            rows={2}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <FormTextField
+                            label="Declaration"
+                            name="declaration"
+                            value={formData.declaration}
+                            onChange={handleChange}
+                            error={errors.declaration}
+                            disabled={isSubmitting}
+                            multiline
+                            rows={3}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <FormTextField
+                            label="Remark"
+                            name="remark"
+                            value={formData.remark}
+                            onChange={handleChange}
+                            error={errors.remark}
+                            disabled={isSubmitting}
+                            multiline
+                            rows={3}
+                        />
                     </Grid>
                 </Grid>
             </DialogContent>
+            
             <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => modalToggler(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSubmit}>
-                    {visit ? 'Update' : 'Submit'}
+                <Button onClick={() => modalToggler(false)} disabled={isSubmitting}>
+                    Cancel
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+                >
+                    {isSubmitting ? 'Saving...' : (visit ? 'Update' : 'Submit')}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -1,7 +1,7 @@
 import { Dialog, DialogTitle, DialogActions, Button, DialogContent, Typography, Stack, Chip } from '@mui/material';
 import { Warning2 } from 'iconsax-react';
 
-export default function AlertVisitsDelete({ id, open, handleClose, refresh }) {
+export default function AlertVisitDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
         const res = await fetch(`http://localhost:5000/api/visits/${id}`, {
@@ -23,7 +23,7 @@ export default function AlertVisitsDelete({ id, open, handleClose, refresh }) {
             <DialogTitle>
                 <Stack direction="row" alignItems="center" spacing={1}>
                     <Warning2 size="24" color="#f44336" />
-                    <Typography variant="h6">Delete Visit</Typography>
+                    <Typography variant="h6">Delete Visit Record</Typography>
                 </Stack>
             </DialogTitle>
             <DialogContent>
@@ -34,7 +34,7 @@ export default function AlertVisitsDelete({ id, open, handleClose, refresh }) {
                     <Stack direction="row" spacing={1}>
                         <Chip label="Warning" color="error" size="small" />
                         <Typography variant="body2" color="text.secondary">
-                            All associated data will be permanently removed.
+                            This record will be permanently removed from the system.
                         </Typography>
                     </Stack>
                 </Stack>
@@ -44,7 +44,7 @@ export default function AlertVisitsDelete({ id, open, handleClose, refresh }) {
                     Cancel
                 </Button>
                 <Button color="error" variant="contained" onClick={handleDelete}>
-                    Delete Visit
+                    Delete Record
                 </Button>
             </DialogActions>
         </Dialog>

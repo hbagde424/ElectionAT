@@ -1,5 +1,5 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
-import { CalendarTick, User } from 'iconsax-react';
+import { CalendarTick, User, Location, DocumentText } from 'iconsax-react';
 
 export default function VisitView({ data }) {
     if (!data) return null;
@@ -16,18 +16,20 @@ export default function VisitView({ data }) {
         });
     };
 
+    const workStatusColor = {
+        'announced': 'default',
+        'approved': 'info',
+        'in progress': 'warning',
+        'complete': 'success'
+    };
+
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                <Typography variant="h6">{data.person_name || 'Untitled Visit'}</Typography>
+                <Typography variant="h6">Visit Details</Typography>
                 <Chip
-                    label={data.post?.toUpperCase() || 'N/A'}
-                    size="small"
-                    variant="outlined"
-                />
-                <Chip
-                    label={data.is_active ? 'ACTIVE' : 'INACTIVE'}
-                    color={data.is_active ? 'success' : 'error'}
+                    label={formatDate(data.date)}
+                    color="primary"
                     size="small"
                 />
             </Stack>
@@ -40,35 +42,58 @@ export default function VisitView({ data }) {
                     <Stack spacing={2}>
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <CalendarTick size="16" />
+                                <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
-                                    Visit Date
+                                    Candidate
                                 </Typography>
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
-                                {formatDate(data.date)}
+                                {data.candidate_id?.name || 'N/A'}
                             </Typography>
                         </Box>
 
-                        {data.declaration && (
-                            <Box>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                    Declaration
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <DocumentText size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Post
                                 </Typography>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {data.declaration}
-                                </Typography>
-                            </Box>
-                        )}
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.post || 'N/A'}
+                            </Typography>
+                        </Box>
 
-                        {data.remark && (
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <CalendarTick size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Work Status
+                                </Typography>
+                            </Stack>
+                            <Chip
+                                label={data.work_status?.toUpperCase() || 'N/A'}
+                                color={workStatusColor[data.work_status] || 'default'}
+                                size="small"
+                            />
+                        </Box>
+
+                        {data.locationName && (
                             <Box>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                    Remark
-                                </Typography>
+                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                    <Location size="16" />
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Location
+                                    </Typography>
+                                </Stack>
                                 <Typography variant="body1" fontWeight="medium">
-                                    {data.remark}
+                                    {data.locationName}
                                 </Typography>
+                                {data.latitude && data.longitude && (
+                                    <Typography variant="body2" color="text.secondary">
+                                        {data.latitude}, {data.longitude}
+                                    </Typography>
+                                )}
                             </Box>
                         )}
                     </Stack>
@@ -77,104 +102,62 @@ export default function VisitView({ data }) {
                 {/* Right Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
                             <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
-                            <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
+                            <Chip label={data.division_id?.name || 'N/A'} color="secondary" size="small" />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
-                            <Chip label={data.parliament_id?.name || 'N/A'} color="secondary" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
-                            <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>District</Typography>
-                            <Chip label={data.district_id?.name || 'N/A'} color="success" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        {data.assembly_id && (
+                            <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                                <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
+                            </Grid>
+                        )}
+                        {data.parliament_id && (
+                            <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                                <Chip label={data.parliament_id?.name || 'N/A'} color="warning" size="small" />
+                            </Grid>
+                        )}
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
-                            <Chip label={data.block_id?.name || 'N/A'} color="default" size="small" />
+                            <Chip label={data.block_id?.name || 'N/A'} color="success" size="small" />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
-                            <Chip 
-                                label={data.booth_id ? `${data.booth_id.name} (Booth #${data.booth_id.booth_number})` : 'N/A'} 
-                                color="default" 
-                                size="small" 
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
-                            <Chip label={data.is_active ? 'ACTIVE' : 'INACTIVE'} color={data.is_active ? 'success' : 'error'} size="small" />
+                            <Chip label={data.booth_id?.name || 'N/A'} size="small" />
                         </Grid>
                     </Grid>
+                </Grid>
 
-                    <Divider sx={{ my: 2 }} />
+                {/* Full width fields */}
+                <Grid item xs={12}>
+                    {data.declaration && (
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Declaration
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                                {data.declaration}
+                            </Typography>
+                        </Box>
+                    )}
+                </Grid>
 
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <User size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {data.created_by?.username || 'N/A'}
-                                </Typography>
-                            </Box>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <CalendarTick size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {formatDate(data.created_at)}
-                                </Typography>
-                            </Box>
-                        </Grid>
-                        {data.updated_by && (
-                            <Grid item xs={12} sm={6}>
-                                <Box>
-                                    <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                        <User size="16" />
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                            Updated By
-                                        </Typography>
-                                    </Stack>
-                                    <Typography variant="body1" fontWeight="medium">
-                                        {data.updated_by?.username || 'N/A'}
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                        )}
-                        {data.updated_at && (
-                            <Grid item xs={12} sm={6}>
-                                <Box>
-                                    <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                        <CalendarTick size="16" />
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                            Last Updated
-                                        </Typography>
-                                    </Stack>
-                                    <Typography variant="body1" fontWeight="medium">
-                                        {formatDate(data.updated_at)}
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                        )}
-                    </Grid>
+                <Grid item xs={12}>
+                    {data.remark && (
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Remark
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                                {data.remark}
+                            </Typography>
+                        </Box>
+                    )}
                 </Grid>
             </Grid>
         </Box>
