@@ -156,78 +156,78 @@ const CandidateListPage = () => {
             )
         )
     },
-    {
-        header: 'Party',
-        accessorKey: 'party_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                color="primary"
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Assembly',
-        accessorKey: 'assembly_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                color="info"
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Parliament',
-        accessorKey: 'parliament_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                color="secondary"
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'State',
-        accessorKey: 'state_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                color="success"
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Division',
-        accessorKey: 'division_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                color="warning"
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Election Year',
-        accessorKey: 'election_year',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue() ? `${getValue().year}` : 'N/A'}
-                color="warning"
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
+    // {
+    //     header: 'Party',
+    //     accessorKey: 'party_id',
+    //     cell: ({ getValue }) => (
+    //         <Chip
+    //             label={getValue()?.name || 'N/A'}
+    //             color="primary"
+    //             size="small"
+    //             variant="outlined"
+    //         />
+    //     )
+    // },
+    // {
+    //     header: 'Assembly',
+    //     accessorKey: 'assembly_id',
+    //     cell: ({ getValue }) => (
+    //         <Chip
+    //             label={getValue()?.name || 'N/A'}
+    //             color="info"
+    //             size="small"
+    //             variant="outlined"
+    //         />
+    //     )
+    // },
+    // {
+    //     header: 'Parliament',
+    //     accessorKey: 'parliament_id',
+    //     cell: ({ getValue }) => (
+    //         <Chip
+    //             label={getValue()?.name || 'N/A'}
+    //             color="secondary"
+    //             size="small"
+    //             variant="outlined"
+    //         />
+    //     )
+    // },
+    // {
+    //     header: 'State',
+    //     accessorKey: 'state_id',
+    //     cell: ({ getValue }) => (
+    //         <Chip
+    //             label={getValue()?.name || 'N/A'}
+    //             color="success"
+    //             size="small"
+    //             variant="outlined"
+    //         />
+    //     )
+    // },
+    // {
+    //     header: 'Division',
+    //     accessorKey: 'division_id',
+    //     cell: ({ getValue }) => (
+    //         <Chip
+    //             label={getValue()?.name || 'N/A'}
+    //             color="warning"
+    //             size="small"
+    //             variant="outlined"
+    //         />
+    //     )
+    // },
+    // {
+    //     header: 'Election Year',
+    //     accessorKey: 'election_year',
+    //     cell: ({ getValue }) => (
+    //         <Chip
+    //             label={getValue() ? `${getValue().year}` : 'N/A'}
+    //             color="warning"
+    //             size="small"
+    //             variant="outlined"
+    //         />
+    //     )
+    // },
     {
         header: 'Caste',
         accessorKey: 'caste',

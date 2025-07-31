@@ -291,13 +291,13 @@ const electionYearsList = electionYears?.data || [];
 
                 <Grid container spacing={2} mt={1}>
                     {renderTextField('Name', 'name', 'text', true)}
-                    {renderSelect('Party', 'party_id', partiesList, 'name', true)}
-                    {renderSelect('State', 'state_id', statesList, 'name', true)}
-                    {renderSelect('Division', 'division_id', divisionsList, 'name', true)}
-                    {renderSelect('Parliament', 'parliament_id', parliamentsList, 'name', true)}
-                    {renderSelect('Assembly', 'assembly_id', assembliesList, 'name', true)}
+                    {/* {renderSelect('Party', 'party_id', partiesList, 'name', true)} */}
+                    {/* {renderSelect('State', 'state_id', statesList, 'name', true)} */}
+                    {/* {renderSelect('Division', 'division_id', divisionsList, 'name', true)} */}
+                    {/* {renderSelect('Parliament', 'parliament_id', parliamentsList, 'name', true)} */}
+                    {/* {renderSelect('Assembly', 'assembly_id', assembliesList, 'name', true)} */}
 
-                    <Grid item xs={12} sm={6}>
+                    {/* <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Election Year</InputLabel>
                             <FormControl fullWidth error={!!errors.election_year} disabled={isSubmitting}>
@@ -318,7 +318,7 @@ const electionYearsList = electionYears?.data || [];
                                 {errors.election_year && <FormHelperText>{errors.election_year}</FormHelperText>}
                             </FormControl>
                         </Stack>
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
