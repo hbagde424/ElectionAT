@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   useTheme,
   useMediaQuery,
@@ -7,8 +7,11 @@ import {
   Stack,
   Typography,
   ListItemButton,
-  CircularProgress
+  CircularProgress,
+  Button,
+  Icon
 } from '@mui/material';
+import html2canvas from 'html2canvas';
 
 import ReactApexChart from 'react-apexcharts';
 
@@ -128,12 +131,31 @@ function ApexDonutChart({ data, loading }) {
 }
 
 export default function TotalIncome() {
+  const contentRef = useRef(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [years, setYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState(2023);
+
+  const downloadFullChart = useCallback(async () => {
+    if (contentRef.current) {
+      try {
+        const canvas = await html2canvas(contentRef.current, {
+          scale: 2,
+          backgroundColor: null,
+          logging: false
+        });
+        const link = document.createElement('a');
+        link.download = `Assembly_Results_${selectedYear}_Full.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        console.error('Error generating PNG:', err);
+      }
+    }
+  }, [selectedYear]);
 
   const open = Boolean(anchorEl);
 
@@ -220,76 +242,90 @@ export default function TotalIncome() {
             <Typography variant="h5">
               Total Seats by Assembly in Madhya Pradesh ({selectedYear})
             </Typography>
-            <IconButton onClick={handleClick}>
-              <MoreIcon />
-            </IconButton>
-            <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-              {years.map((year) => (
-                <ListItemButton
-                  key={year}
-                  selected={year === selectedYear}
-                  onClick={() => {
-                    setSelectedYear(year);
-                    handleClose();
-                  }}
-                >
-                  {year}
-                </ListItemButton>
-              ))}
-            </Menu>
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={downloadFullChart}
+
+              >
+                Download
+              </Button>
+              <IconButton onClick={handleClick}>
+                <MoreIcon />
+              </IconButton>
+              <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
+                {years.map((year) => (
+                  <ListItemButton
+                    key={year}
+                    selected={year === selectedYear}
+                    onClick={() => {
+                      setSelectedYear(year);
+                      handleClose();
+                    }}
+                  >
+                    {year}
+                  </ListItemButton>
+                ))}
+              </Menu>
+            </Stack>
           </Stack>
         </Grid>
 
-        <Grid item xs={12}>
-          {error ? (
-            <Typography color="error">{error}</Typography>
-          ) : (
-            <ApexDonutChart data={data} loading={loading} />
-          )}
-        </Grid>
+        <div ref={contentRef}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              {error ? (
+                <Typography color="error">{error}</Typography>
+              ) : (
+                <ApexDonutChart data={data} loading={loading} />
+              )}
+            </Grid>
 
-        <Grid item xs={6}>
-          <MainCard content={false}>
-            <Stack alignItems="center" sx={{ p: 2 }} spacing={0.5}>
-              <Typography variant="h6">Total Assembly</Typography>
-              <Typography variant="h4">{totalSeats}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Total Votes: {totalVotes.toLocaleString()}
-              </Typography>
-            </Stack>
-          </MainCard>
-        </Grid>
-
-        {Object.entries(partyStats).map(([name, stat], idx) => (
-          <Grid item xs={12} sm={6} key={name}>
-            <MainCard content={false}>
-              <Stack sx={{ p: 2 }} spacing={0.5}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Dot
-                    componentDiv
-                    color={
-                      name === 'Indian National Congress' ? '#000080'
-                        : name === 'Bharatiya Janata Party' ? '#FF9933'
-                          : idx === 2 ? 'success' : 'secondary'
-                    }
-                  />
-                  <Typography>
-                    {name === 'Bharatiya Janata Party' ? 'BJP'
-                      : name === 'Indian National Congress' ? 'INC'
-                        : name === 'Bharat Adivasi Party' ? 'BAP'
-                          : name}
+            <Grid item xs={6}>
+              <MainCard content={false}>
+                <Stack alignItems="center" sx={{ p: 2 }} spacing={0.5}>
+                  <Typography variant="h6">Total Assembly</Typography>
+                  <Typography variant="h4">{totalSeats}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total Votes: {totalVotes.toLocaleString()}
                   </Typography>
                 </Stack>
-                <Typography variant="subtitle1">
-                  {stat.seats} (<Typography component="span" variant="caption">{stat.seatPercentage}%</Typography>)
-                </Typography>
-                <Typography variant="caption">
-                  Votes: {stat.votes.toLocaleString()} ({stat.votePercentage}%)
-                </Typography>
-              </Stack>
-            </MainCard>
+              </MainCard>
+            </Grid>
+
+            {Object.entries(partyStats).map(([name, stat], idx) => (
+              <Grid item xs={12} sm={6} key={name}>
+                <MainCard content={false}>
+                  <Stack sx={{ p: 2 }} spacing={0.5}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Dot
+                        componentDiv
+                        color={
+                          name === 'Indian National Congress' ? '#000080'
+                            : name === 'Bharatiya Janata Party' ? '#FF9933'
+                              : idx === 2 ? 'success' : 'secondary'
+                        }
+                      />
+                      <Typography>
+                        {name === 'Bharatiya Janata Party' ? 'BJP'
+                          : name === 'Indian National Congress' ? 'INC'
+                            : name === 'Bharat Adivasi Party' ? 'BAP'
+                              : name}
+                      </Typography>
+                    </Stack>
+                    <Typography variant="subtitle1">
+                      {stat.seats} (<Typography component="span" variant="caption">{stat.seatPercentage}%</Typography>)
+                    </Typography>
+                    <Typography variant="caption">
+                      Votes: {stat.votes.toLocaleString()} ({stat.votePercentage}%)
+                    </Typography>
+                  </Stack>
+                </MainCard>
+              </Grid>
+            ))}
           </Grid>
-        ))}
+        </div>
       </Grid>
     </MainCard>
   );
