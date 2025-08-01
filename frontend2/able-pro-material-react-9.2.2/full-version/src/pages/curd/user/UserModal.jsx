@@ -19,7 +19,9 @@ import {
   FormControlLabel,
   Chip
 } from '@mui/material';
+import { ROLES, PERMISSIONS, ROLE_PERMISSIONS, getAvailableEntities } from '../../../utils/rolePermissions';
 import { useEffect, useState } from 'react';
+import RolePermissionsView from '../../../components/RolePermissionsView';
 
 export default function UserModal({
   open,
@@ -46,8 +48,12 @@ export default function UserModal({
     assembly_ids: [],
     block_ids: [],
     booth_ids: [],
+    permissions: {},
     isActive: true
   });
+
+  // Get available entities based on selected role
+  const availableEntities = formData.role ? getAvailableEntities(formData.role) : [];
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +70,7 @@ export default function UserModal({
         password: '',
         confirmPassword: '',
         role: user.role || '',
+        permissions: user.permissions || ROLE_PERMISSIONS[user.role] || {},
         state_ids: (user.state_ids || []).map(item => typeof item === 'object' ? item._id : item),
         division_ids: (user.division_ids || []).map(item => typeof item === 'object' ? item._id : item),
         parliament_ids: (user.parliament_ids || []).map(item => typeof item === 'object' ? item._id : item),
@@ -142,6 +149,29 @@ export default function UserModal({
       if (error) newErrors[field] = error;
     });
 
+    // Validate that appropriate IDs are selected based on role
+    const role = formData.role;
+    if (role) {
+      if (role === ROLES.STATE_ADMIN && formData.state_ids.length === 0) {
+        newErrors.state_ids = 'State selection is required for State Admin';
+      }
+      if (role === ROLES.DIVISION_ADMIN && formData.division_ids.length === 0) {
+        newErrors.division_ids = 'Division selection is required for Division Admin';
+      }
+      if (role === ROLES.PARLIAMENT_ADMIN && formData.parliament_ids.length === 0) {
+        newErrors.parliament_ids = 'Parliament selection is required for Parliament Admin';
+      }
+      if (role === ROLES.ASSEMBLY_ADMIN && formData.assembly_ids.length === 0) {
+        newErrors.assembly_ids = 'Assembly selection is required for Assembly Admin';
+      }
+      if (role === ROLES.BLOCK_ADMIN && formData.block_ids.length === 0) {
+        newErrors.block_ids = 'Block selection is required for Block Admin';
+      }
+      if (role === ROLES.BOOTH_ADMIN && formData.booth_ids.length === 0) {
+        newErrors.booth_ids = 'Booth selection is required for Booth Admin';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -185,8 +215,12 @@ export default function UserModal({
         : 'http://localhost:5000/api/users/register';
 
       const currentUser = JSON.parse(localStorage.getItem('user'));
+      // Get permissions based on role
+      const permissions = ROLE_PERMISSIONS[formData.role] || {};
+
       const submitData = {
         ...formData,
+        permissions,
         ...(user ? { updated_by: currentUser?._id } : { created_by: currentUser?._id })
       };
 
@@ -334,15 +368,17 @@ export default function UserModal({
                   label="Role *"
                 >
                   <MenuItem value="">Select Role</MenuItem>
-                  <MenuItem value="superAdmin">Super Admin</MenuItem>
-                  <MenuItem value="Admin">Admin</MenuItem>
-                  <MenuItem value="State">State</MenuItem>
-                  <MenuItem value="Division">Division</MenuItem>
-                  <MenuItem value="Parliament">Parliament</MenuItem>
-                  <MenuItem value="Assembly">Assembly</MenuItem>
-                  <MenuItem value="Block">Block</MenuItem>
-                  <MenuItem value="Booth">Booth</MenuItem>
+                  {Object.values(ROLES).map((role) => (
+                    <MenuItem key={role} value={role}>
+                      {role.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')}
+                    </MenuItem>
+                  ))}
                 </Select>
+                {formData.role && (
+                  <Box sx={{ mt: 2 }}>
+                    <RolePermissionsView role={formData.role} />
+                  </Box>
+                )}
                 {errors.role && <FormHelperText>{errors.role}</FormHelperText>}
               </FormControl>
             </Grid>

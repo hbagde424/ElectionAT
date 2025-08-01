@@ -2,6 +2,7 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const errorHandler = require('./middlewares/errorHandler');
 const connectDB = require('./config/db');
 const { specs, swaggerUi } = require('./config/swagger');
@@ -89,6 +90,9 @@ app.use(cors({
 
 // Set security headers
 app.use(helmet());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Add Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));

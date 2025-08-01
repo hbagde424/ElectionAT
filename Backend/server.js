@@ -9,9 +9,17 @@ const server = http.createServer(app);
 
 require('dotenv').config();
 
-server.listen(config.PORT, () => {
-  console.log(`Server running in ${config.NODE_ENV} mode on port ${config.PORT}`);
-});
+// Connect to database first
+require('./config/db')()
+  .then(() => {
+    server.listen(config.PORT, () => {
+      console.log(`Server running in ${config.NODE_ENV} mode on port ${config.PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {

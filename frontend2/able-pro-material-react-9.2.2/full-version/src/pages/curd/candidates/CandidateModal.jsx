@@ -1,22 +1,22 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Grid, Stack, TextField, InputLabel, Select, 
-    MenuItem, FormControl, FormHelperText, Alert, 
+    Button, Grid, Stack, TextField, InputLabel, Select,
+    MenuItem, FormControl, FormHelperText, Alert,
     CircularProgress, Typography, Avatar
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
 // Helper components
-const FormSelect = ({ 
-    label, 
-    name, 
-    value, 
-    options = [], 
-    onChange, 
-    error, 
+const FormSelect = ({
+    label,
+    name,
+    value,
+    options = [],
+    onChange,
+    error,
     disabled,
     labelKey = 'name',
-    required = false 
+    required = false
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required}>{label}</InputLabel>
@@ -34,15 +34,15 @@ const FormSelect = ({
     </Stack>
 );
 
-const FormTextField = ({ 
-    label, 
-    name, 
-    value, 
-    onChange, 
-    error, 
+const FormTextField = ({
+    label,
+    name,
+    value,
+    onChange,
+    error,
     disabled,
     type = 'text',
-    required = false 
+    required = false
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required}>{label}</InputLabel>
@@ -156,7 +156,7 @@ export default function CandidateModal({
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        
+
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -164,81 +164,81 @@ export default function CandidateModal({
     };
 
     const handleSubmit = async () => {
-  if (!validateForm()) return;
+        if (!validateForm()) return;
 
-  setIsSubmitting(true);
-  setSubmitError('');
+        setIsSubmitting(true);
+        setSubmitError('');
 
-  try {
-    // 1. Get authentication token
-    const token = localStorage.getItem('serviceToken');
-    if (!token) {
-      throw new Error('Please login to continue');
-    }
+        try {
+            // 1. Get authentication token
+            const token = localStorage.getItem('serviceToken');
+            if (!token) {
+                throw new Error('Please login to continue');
+            }
 
-    // 2. Get user ID - check both localStorage and sessionStorage
-    const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
-    if (!userId) {
-      throw new Error('User session expired. Please login again');
-    }
+            // 2. Get user ID - check both localStorage and sessionStorage
+            // const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+            // if (!userId) {
+            //     throw new Error('User session expired. Please login again');
+            // }
 
-    // 3. Prepare form data
-    const formDataToSend = new FormData();
-    formDataToSend.append('name', formData.name);
-    formDataToSend.append('caste', formData.caste);
-    formDataToSend.append('criminal_cases', formData.criminal_cases);
-    formDataToSend.append('created_by', userId); // Add created_by field
-    
-    // Add optional fields
-    if (formData.assets) formDataToSend.append('assets', formData.assets);
-    if (formData.liabilities) formDataToSend.append('liabilities', formData.liabilities);
-    if (formData.education) formDataToSend.append('education', formData.education);
-    if (photoFile) formDataToSend.append('photo', photoFile);
+            // 3. Prepare form data
+            const formDataToSend = new FormData();
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('caste', formData.caste);
+            formDataToSend.append('criminal_cases', formData.criminal_cases);
+            //   formDataToSend.append('created_by', userId); // Add created_by field
 
-    // 4. Make the API request
-    const url = candidate 
-      ? `http://localhost:5000/api/candidates/${candidate._id}` 
-      : 'http://localhost:5000/api/candidates';
-    const method = candidate ? 'PUT' : 'POST';
+            // Add optional fields
+            if (formData.assets) formDataToSend.append('assets', formData.assets);
+            if (formData.liabilities) formDataToSend.append('liabilities', formData.liabilities);
+            if (formData.education) formDataToSend.append('education', formData.education);
+            if (photoFile) formDataToSend.append('photo', photoFile);
 
-    const res = await fetch(url, {
-      method,
-      headers: { 
-        Authorization: `Bearer ${token}` 
-      },
-      body: formDataToSend
-    });
+            // 4. Make the API request
+            const url = candidate
+                ? `http://localhost:5000/api/candidates/${candidate._id}`
+                : 'http://localhost:5000/api/candidates';
+            const method = candidate ? 'PUT' : 'POST';
 
-    // 5. Handle response
-    const data = await res.json();
-    
-    if (!res.ok) {
-      // Handle backend validation errors
-      if (data.errors) {
-        const errorMessages = Object.values(data.errors).map(err => err.message);
-        throw new Error(errorMessages.join(', '));
-      }
-      throw new Error(data.message || 'Failed to save candidate');
-    }
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: formDataToSend
+            });
 
-    // Success case
-    modalToggler(false);
-    refresh();
-    
-  } catch (error) {
-    console.error('Submission error:', error);
-    setSubmitError(error.message);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+            // 5. Handle response
+            const data = await res.json();
+
+            if (!res.ok) {
+                // Handle backend validation errors
+                if (data.errors) {
+                    const errorMessages = Object.values(data.errors).map(err => err.message);
+                    throw new Error(errorMessages.join(', '));
+                }
+                throw new Error(data.message || 'Failed to save candidate');
+            }
+
+            // Success case
+            modalToggler(false);
+            refresh();
+
+        } catch (error) {
+            console.error('Submission error:', error);
+            setSubmitError(error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
             <DialogTitle>
                 {candidate ? 'Edit Candidate' : 'Add New Candidate'}
             </DialogTitle>
-            
+
             <DialogContent>
                 {submitError && (
                     <Alert severity="error" sx={{ mb: 2 }}>
@@ -258,7 +258,7 @@ export default function CandidateModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Caste"
@@ -277,7 +277,7 @@ export default function CandidateModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Criminal Cases"
@@ -289,7 +289,7 @@ export default function CandidateModal({
                             type="number"
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12}>
                         <FormTextField
                             label="Education"
@@ -300,7 +300,7 @@ export default function CandidateModal({
                             disabled={isSubmitting}
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Assets"
@@ -311,7 +311,7 @@ export default function CandidateModal({
                             disabled={isSubmitting}
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Liabilities"
@@ -322,22 +322,22 @@ export default function CandidateModal({
                             disabled={isSubmitting}
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Photo</InputLabel>
                             <Stack direction="row" spacing={2} alignItems="center">
-                                <Avatar 
-                                    src={photoPreview || '/default-avatar.png'} 
-                                    alt="Candidate" 
+                                <Avatar
+                                    src={photoPreview || '/default-avatar.png'}
+                                    alt="Candidate"
                                     sx={{ width: 60, height: 60 }}
                                 />
                                 <Button variant="outlined" component="label">
                                     Upload Photo
-                                    <input 
-                                        type="file" 
-                                        hidden 
-                                        accept="image/*" 
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept="image/*"
                                         onChange={handlePhotoChange}
                                         disabled={isSubmitting}
                                     />
@@ -347,7 +347,7 @@ export default function CandidateModal({
                     </Grid>
                 </Grid>
             </DialogContent>
-            
+
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)} disabled={isSubmitting}>
                     Cancel

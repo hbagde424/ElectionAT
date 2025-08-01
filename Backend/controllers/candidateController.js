@@ -94,12 +94,27 @@ exports.createCandidate = async (req, res, next) => {
       });
     }
 
-    const candidateData = {
-      ...req.body,
-      created_by: req.user.id
-    };
+    try {
+      const candidateData = {
+        ...req.body,
+        created_by: req.user.id
+      };
 
-    const candidate = await Candidate.create(candidateData);
+      // Handle file upload
+      if (req.file) {
+        candidateData.photo = `/uploads/candidate/${req.file.filename}`;
+        console.log('Setting photo path:', candidateData.photo);
+      }
+
+      const candidate = await Candidate.create(candidateData);
+      console.log('Created candidate:', candidate);
+    } catch (error) {
+      console.error('Validation error:', error.message);
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -133,6 +148,18 @@ exports.updateCandidate = async (req, res, next) => {
     }
     req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
+
+    // Handle file upload
+    if (req.file) {
+      // Delete old photo if exists
+      if (candidate.photo) {
+        const oldPhotoPath = path.join(__dirname, '..', candidate.photo);
+        if (fs.existsSync(oldPhotoPath)) {
+          fs.unlinkSync(oldPhotoPath);
+        }
+      }
+      req.body.photo = `/uploads/candidate/${req.file.filename}`;
+    }
 
     candidate = await Candidate.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -194,7 +221,7 @@ exports.uploadPhoto = async (req, res, next) => {
     }
 
     // Handle the upload via middleware
-    upload.single('photo')(req, res, async function(err) {
+    upload.single('photo')(req, res, async function (err) {
       if (err) {
         return res.status(400).json({
           success: false,
@@ -210,15 +237,15 @@ exports.uploadPhoto = async (req, res, next) => {
       }
 
       // Delete old photo if exists
-      if (candidate.photo && candidate.photo.startsWith('/uploads/candidates/')) {
-        const oldPhotoPath = path.join(__dirname, '../public', candidate.photo);
+      if (candidate.photo && candidate.photo.startsWith('/uploads/candidate/')) {
+        const oldPhotoPath = path.join(__dirname, '..', candidate.photo);
         if (fs.existsSync(oldPhotoPath)) {
           fs.unlinkSync(oldPhotoPath);
         }
       }
 
       // Update candidate with new photo path
-      candidate.photo = `/uploads/candidates/${req.file.filename}`;
+      candidate.photo = `/uploads/candidate/${req.file.filename}`;
       candidate.updated_by = req.user.id;
       candidate.updated_at = new Date();
       await candidate.save();
@@ -242,11 +269,13 @@ exports.getCandidatesByCriminalCases = async (req, res, next) => {
   try {
     const candidates = await Candidate.aggregate([
       { $match: { is_active: true } },
-      { $group: { 
-        _id: '$criminal_cases',
-        count: { $sum: 1 },
-        candidates: { $push: '$$ROOT' }
-      }},
+      {
+        $group: {
+          _id: '$criminal_cases',
+          count: { $sum: 1 },
+          candidates: { $push: '$$ROOT' }
+        }
+      },
       { $sort: { _id: 1 } }
     ]);
 
@@ -267,11 +296,13 @@ exports.getCandidatesByCaste = async (req, res, next) => {
   try {
     const candidates = await Candidate.aggregate([
       { $match: { is_active: true } },
-      { $group: { 
-        _id: '$caste',
-        count: { $sum: 1 },
-        candidates: { $push: '$$ROOT' }
-      }},
+      {
+        $group: {
+          _id: '$caste',
+          count: { $sum: 1 },
+          candidates: { $push: '$$ROOT' }
+        }
+      },
       { $sort: { _id: 1 } }
     ]);
 

@@ -35,13 +35,15 @@ const candidateSchema = new mongoose.Schema({
     type: String,
     default: '',
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         // Allow empty string or valid URL or local path
-        return v === '' || 
-               /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(v) || 
-               v.startsWith('/uploads/candidates/');
+        if (v === '') return true;
+        if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(v)) return true;
+        if (v.startsWith('/uploads/candidate/')) return true;
+        console.log('Photo validation failed:', v);
+        return false;
       },
-      message: props => `${props.value} is not a valid URL or file path!`
+      message: props => `Invalid photo path: ${props.value}. Must be empty, a URL, or start with /uploads/candidate/`
     }
   },
   is_active: {
@@ -68,7 +70,7 @@ const candidateSchema = new mongoose.Schema({
 });
 
 // Update timestamp before saving
-candidateSchema.pre('save', function(next) {
+candidateSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });

@@ -10,6 +10,7 @@ const {
   getCandidatesByCaste
 } = require('../controllers/candidateController');
 const { protect, authorize } = require('../middlewares/auth');
+const upload = require('../config/candidateUpload');
 
 const router = express.Router();
 
@@ -123,7 +124,7 @@ router.get('/:id', getCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin', 'admin'), createCandidate);
+router.post('/', protect, authorize('superAdmin', 'admin'), upload.single('photo'), createCandidate);
 
 /**
  * @swagger
@@ -155,7 +156,7 @@ router.post('/', protect, authorize('superAdmin', 'admin'), createCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'admin'), updateCandidate);
+router.put('/:id', protect, authorize('superAdmin', 'admin'), upload.single('photo'), updateCandidate);
 
 /**
  * @swagger
