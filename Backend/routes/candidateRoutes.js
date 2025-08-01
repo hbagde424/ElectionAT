@@ -5,8 +5,9 @@ const {
   createCandidate,
   updateCandidate,
   deleteCandidate,
-  getCandidatesByParty,
-  getCandidatesByYear
+  uploadPhoto,
+  getCandidatesByCriminalCases,
+  getCandidatesByCaste
 } = require('../controllers/candidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -40,42 +41,17 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for candidate names or caste
- *       - in: query
- *         name: party
- *         schema:
- *           type: string
- *         description: Party ID to filter by
- *       - in: query
- *         name: assembly
- *         schema:
- *           type: string
- *         description: Assembly ID to filter by
- *       - in: query
- *         name: parliament
- *         schema:
- *           type: string
- *         description: Parliament ID to filter by
- *       - in: query
- *         name: state
- *         schema:
- *           type: string
- *         description: State ID to filter by
- *       - in: query
- *         name: division
- *         schema:
- *           type: string
- *         description: Division ID to filter by
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
+ *         description: Search term for candidate names, caste, or education
  *       - in: query
  *         name: caste
  *         schema:
  *           type: string
- *         description: Caste to filter by (General, OBC, SC, ST, Other)
+ *         description: Caste to filter by
+ *       - in: query
+ *         name: criminal_cases
+ *         schema:
+ *           type: integer
+ *         description: Number of criminal cases to filter by
  *     responses:
  *       200:
  *         description: List of candidates
@@ -147,7 +123,7 @@ router.get('/:id', getCandidate);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'superAdmin'), createCandidate);
+router.post('/', protect, authorize('superAdmin', 'admin'), createCandidate);
 
 /**
  * @swagger
@@ -179,7 +155,7 @@ router.post('/', protect, authorize('admin', 'superAdmin'), createCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.put('/:id', protect, authorize('admin', 'superAdmin'), updateCandidate);
+router.put('/:id', protect, authorize('superAdmin', 'admin'), updateCandidate);
 
 /**
  * @swagger
@@ -203,23 +179,53 @@ router.put('/:id', protect, authorize('admin', 'superAdmin'), updateCandidate);
  *       404:
  *         description: Candidate not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteCandidate);
+router.delete('/:id', protect, authorize('superAdmin', 'admin'), deleteCandidate);
 
 /**
  * @swagger
- * /api/candidates/party/{partyId}:
- *   get:
- *     summary: Get candidates by party
+ * /api/candidates/{id}/photo:
+ *   post:
+ *     summary: Upload candidate photo
  *     tags: [Candidates]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: partyId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
- *         description: List of candidates for the party
+ *         description: Photo uploaded successfully
+ *       400:
+ *         description: Invalid file or no file uploaded
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Candidate not found
+ */
+router.post('/:id/photo', protect, authorize('superAdmin', 'admin'), uploadPhoto);
+
+/**
+ * @swagger
+ * /api/candidates/criminal-cases:
+ *   get:
+ *     summary: Get candidates grouped by criminal cases count
+ *     tags: [Candidates]
+ *     responses:
+ *       200:
+ *         description: List of candidates grouped by criminal cases
  *         content:
  *           application/json:
  *             schema:
@@ -232,27 +238,30 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteCandidate
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Candidate'
- *       404:
- *         description: Party not found
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: integer
+ *                         description: Number of criminal cases
+ *                       count:
+ *                         type: integer
+ *                         description: Number of candidates with this many cases
+ *                       candidates:
+ *                         type: array
+ *                         items:
+ *                           $ref: '#/components/schemas/Candidate'
  */
-router.get('/party/:partyId', getCandidatesByParty);
+router.get('/criminal-cases', getCandidatesByCriminalCases);
 
 /**
  * @swagger
- * /api/candidates/year/{yearId}:
+ * /api/candidates/caste:
  *   get:
- *     summary: Get candidates by election year
+ *     summary: Get candidates grouped by caste
  *     tags: [Candidates]
- *     parameters:
- *       - in: path
- *         name: yearId
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
- *         description: List of candidates for the election year
+ *         description: List of candidates grouped by caste
  *         content:
  *           application/json:
  *             schema:
@@ -265,11 +274,20 @@ router.get('/party/:partyId', getCandidatesByParty);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Candidate'
- *       404:
- *         description: Election year not found
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Caste name
+ *                       count:
+ *                         type: integer
+ *                         description: Number of candidates in this caste
+ *                       candidates:
+ *                         type: array
+ *                         items:
+ *                           $ref: '#/components/schemas/Candidate'
  */
-router.get('/year/:yearId', getCandidatesByYear);
+router.get('/caste', getCandidatesByCaste);
 
 /**
  * @swagger
@@ -279,12 +297,6 @@ router.get('/year/:yearId', getCandidatesByYear);
  *       type: object
  *       required:
  *         - name
- *         - party_id
- *         - assembly_id
- *         - parliament_id
- *         - state_id
- *         - division_id
- *         - election_year
  *         - caste
  *         - created_by
  *       properties:
@@ -292,55 +304,31 @@ router.get('/year/:yearId', getCandidatesByYear);
  *           type: string
  *           description: Candidate's full name
  *           example: "John Doe"
- *         party_id:
- *           type: string
- *           description: Reference to Party
- *           example: "507f1f77bcf86cd799439011"
- *         assembly_id:
- *           type: string
- *           description: Reference to Assembly constituency
- *           example: "507f1f77bcf86cd799439012"
- *         parliament_id:
- *           type: string
- *           description: Reference to Parliament constituency
- *           example: "507f1f77bcf86cd799439013"
- *         state_id:
- *           type: string
- *           description: Reference to State
- *           example: "507f1f77bcf86cd799439014"
- *         division_id:
- *           type: string
- *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439015"
- *         election_year:
- *           type: string
- *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439016"
  *         caste:
  *           type: string
  *           enum: [General, OBC, SC, ST, Other]
- *           description: Caste category
+ *           description: Candidate's caste category
  *           example: "OBC"
  *         criminal_cases:
- *           type: number
+ *           type: integer
  *           description: Number of criminal cases against the candidate
  *           example: 2
  *         assets:
  *           type: string
- *           description: Description of assets
+ *           description: Description of candidate's assets
  *           example: "House worth ₹50 lakh, agricultural land"
  *         liabilities:
  *           type: string
- *           description: Description of liabilities
+ *           description: Description of candidate's liabilities
  *           example: "Bank loan of ₹10 lakh"
  *         education:
  *           type: string
- *           description: Educational qualification
- *           example: "Post Graduate"
+ *           description: Candidate's educational qualification
+ *           example: "MBA, Bachelor of Arts"
  *         photo:
  *           type: string
- *           description: URL to candidate's photo
- *           example: "https://example.com/photos/john-doe.jpg"
+ *           description: URL or path to candidate's photo
+ *           example: "/uploads/candidates/candidate-123456789.jpg"
  *         is_active:
  *           type: boolean
  *           description: Whether the candidate is active
@@ -348,6 +336,10 @@ router.get('/year/:yearId', getCandidatesByYear);
  *         created_by:
  *           type: string
  *           description: Reference to User who created
+ *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
  *           example: "507f1f77bcf86cd799439022"
  *         created_at:
  *           type: string

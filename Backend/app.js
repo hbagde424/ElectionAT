@@ -66,6 +66,7 @@ const influencerRoutes = require('./routes/influencerRoutes');
 const codingRoutes = require('./routes/codingRoutes');
 const boothPolygonRoutes = require('./routes/boothPolygonsRoutes');
 const winningCandidateRoutes = require('./routes/winningCandidateRoutes');
+const path = require('path');
 // const mpPolygonRoutes = require('./routes/statePolygonRoutes');
 // Connect to database
 connectDB();
@@ -157,6 +158,8 @@ app.use('/api/codings', codingRoutes);
 app.use('/api/booth-polygons', boothPolygonRoutes);
 app.use('/api/winning-candidates', winningCandidateRoutes);
 // app.use('/api/mp-polygon', mpPolygonRoutes);
+// Serve static files from the public directory
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Error handler
 app.use(errorHandler);

@@ -1,10 +1,7 @@
 const Candidate = require('../models/Candidate');
-const Party = require('../models/party');
-const Assembly = require('../models/assembly');
-const Parliament = require('../models/parliament');
-const State = require('../models/state');
-const Division = require('../models/division');
-const ElectionYear = require('../models/electionYear');
+const upload = require('../config/candidateUpload');
+const fs = require('fs');
+const path = require('path');
 
 // @desc    Get all candidates
 // @route   GET /api/candidates
@@ -12,18 +9,12 @@ const ElectionYear = require('../models/electionYear');
 exports.getCandidates = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) ;
-    const limit = parseInt(req.query.limit) ;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
     // Basic query
     let query = Candidate.find({ is_active: true })
-      .populate('party_id', 'name symbol')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
-      .populate('election_year', 'year')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -33,44 +24,20 @@ exports.getCandidates = async (req, res, next) => {
       query = query.find({
         $or: [
           { name: { $regex: req.query.search, $options: 'i' } },
-          { caste: { $regex: req.query.search, $options: 'i' } }
+          { caste: { $regex: req.query.search, $options: 'i' } },
+          { education: { $regex: req.query.search, $options: 'i' } }
         ]
       });
-    }
-
-    // Filter by party
-    if (req.query.party) {
-      query = query.where('party_id').equals(req.query.party);
-    }
-
-    // Filter by assembly
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
-    }
-
-    // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
-    }
-
-    // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
-    }
-
-    // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
-    }
-
-    // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('election_year').equals(req.query.election_year);
     }
 
     // Filter by caste
     if (req.query.caste) {
       query = query.where('caste').equals(req.query.caste);
+    }
+
+    // Filter by criminal cases
+    if (req.query.criminal_cases) {
+      query = query.where('criminal_cases').equals(parseInt(req.query.criminal_cases));
     }
 
     const candidates = await query.skip(skip).limit(limit).exec();
@@ -95,12 +62,6 @@ exports.getCandidates = async (req, res, next) => {
 exports.getCandidate = async (req, res, next) => {
   try {
     const candidate = await Candidate.findById(req.params.id)
-      .populate('party_id', 'name symbol')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
-      .populate('election_year', 'year')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -120,63 +81,16 @@ exports.getCandidate = async (req, res, next) => {
   }
 };
 
-// @desc    Create candidate
+// @desc    Create new candidate
 // @route   POST /api/candidates
 // @access  Private (Admin only)
 exports.createCandidate = async (req, res, next) => {
   try {
-    // Verify all references exist
-    const [
-      party,
-      assembly,
-      parliament,
-      state,
-      division,
-      electionYear
-    ] = await Promise.all([
-      Party.findById(req.body.party_id),
-      Assembly.findById(req.body.assembly_id),
-      Parliament.findById(req.body.parliament_id),
-      State.findById(req.body.state_id),
-      Division.findById(req.body.division_id),
-      ElectionYear.findById(req.body.election_year)
-    ]);
-
-    // Check reference existence
-    const missingRefs = [];
-    if (!party) missingRefs.push('Party');
-    if (!assembly) missingRefs.push('Assembly');
-    if (!parliament) missingRefs.push('Parliament');
-    if (!state) missingRefs.push('State');
-    if (!division) missingRefs.push('Division');
-    if (!electionYear) missingRefs.push('Election Year');
-    
-    if (missingRefs.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `${missingRefs.join(', ')} not found` 
-      });
-    }
-
     // Check if user exists in request
-    if (!req.user?.id) {
+    if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
         message: 'Not authorized - user not identified'
-      });
-    }
-
-    // Check for existing candidate with same name, party, and election year
-    const existingCandidate = await Candidate.findOne({
-      name: req.body.name,
-      party_id: req.body.party_id,
-      election_year: req.body.election_year
-    });
-
-    if (existingCandidate) {
-      return res.status(409).json({
-        success: false,
-        message: 'Candidate with this name, party, and election year already exists'
       });
     }
 
@@ -192,13 +106,6 @@ exports.createCandidate = async (req, res, next) => {
       data: candidate
     });
   } catch (err) {
-    // Fallback error handling
-    if (err.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'Duplicate candidate detected. A candidate with this name, party, and election year already exists.'
-      });
-    }
     next(err);
   }
 };
@@ -217,26 +124,6 @@ exports.updateCandidate = async (req, res, next) => {
       });
     }
 
-    // Verify all references exist if being updated
-    const verificationPromises = [];
-    if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
-    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
-    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
-    if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
-
-    const verificationResults = await Promise.all(verificationPromises);
-    
-    for (const result of verificationResults) {
-      if (!result) {
-        return res.status(400).json({
-          success: false,
-          message: `${result.modelName} not found`
-        });
-      }
-    }
-
     // Set updated_by to current user
     if (!req.user || !req.user.id) {
       return res.status(401).json({
@@ -251,12 +138,6 @@ exports.updateCandidate = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-      .populate('party_id', 'name symbol')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
-      .populate('election_year', 'year')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -265,12 +146,6 @@ exports.updateCandidate = async (req, res, next) => {
       data: candidate
     });
   } catch (err) {
-    if (err.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Candidate with this name and party already exists'
-      });
-    }
     next(err);
   }
 };
@@ -304,29 +179,76 @@ exports.deleteCandidate = async (req, res, next) => {
   }
 };
 
-// @desc    Get candidates by party
-// @route   GET /api/candidates/party/:partyId
-// @access  Public
-exports.getCandidatesByParty = async (req, res, next) => {
+// @desc    Upload candidate photo
+// @route   POST /api/candidates/:id/photo
+// @access  Private (Admin only)
+exports.uploadPhoto = async (req, res, next) => {
   try {
-    // Verify party exists
-    const party = await Party.findById(req.params.partyId);
-    if (!party) {
+    const candidate = await Candidate.findById(req.params.id);
+
+    if (!candidate) {
       return res.status(404).json({
         success: false,
-        message: 'Party not found'
+        message: 'Candidate not found'
       });
     }
 
-    const candidates = await Candidate.find({ 
-      party_id: req.params.partyId,
-      is_active: true 
-    })
-      .sort({ name: 1 })
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('state_id', 'name')
-      .populate('election_year', 'year');
+    // Handle the upload via middleware
+    upload.single('photo')(req, res, async function(err) {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+      }
+
+      // Delete old photo if exists
+      if (candidate.photo && candidate.photo.startsWith('/uploads/candidates/')) {
+        const oldPhotoPath = path.join(__dirname, '../public', candidate.photo);
+        if (fs.existsSync(oldPhotoPath)) {
+          fs.unlinkSync(oldPhotoPath);
+        }
+      }
+
+      // Update candidate with new photo path
+      candidate.photo = `/uploads/candidates/${req.file.filename}`;
+      candidate.updated_by = req.user.id;
+      candidate.updated_at = new Date();
+      await candidate.save();
+
+      res.status(200).json({
+        success: true,
+        data: {
+          photo: candidate.photo
+        }
+      });
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get candidates by criminal cases count
+// @route   GET /api/candidates/criminal-cases
+// @access  Public
+exports.getCandidatesByCriminalCases = async (req, res, next) => {
+  try {
+    const candidates = await Candidate.aggregate([
+      { $match: { is_active: true } },
+      { $group: { 
+        _id: '$criminal_cases',
+        count: { $sum: 1 },
+        candidates: { $push: '$$ROOT' }
+      }},
+      { $sort: { _id: 1 } }
+    ]);
 
     res.status(200).json({
       success: true,
@@ -338,28 +260,20 @@ exports.getCandidatesByParty = async (req, res, next) => {
   }
 };
 
-// @desc    Get candidates by election year
-// @route   GET /api/candidates/year/:yearId
+// @desc    Get candidates by caste
+// @route   GET /api/candidates/caste
 // @access  Public
-exports.getCandidatesByYear = async (req, res, next) => {
+exports.getCandidatesByCaste = async (req, res, next) => {
   try {
-    // Verify election year exists
-    const year = await ElectionYear.findById(req.params.yearId);
-    if (!year) {
-      return res.status(404).json({
-        success: false,
-        message: 'Election year not found'
-      });
-    }
-
-    const candidates = await Candidate.find({ 
-      election_year: req.params.yearId,
-      is_active: true 
-    })
-      .sort({ name: 1 })
-      .populate('party_id', 'name symbol')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name');
+    const candidates = await Candidate.aggregate([
+      { $match: { is_active: true } },
+      { $group: { 
+        _id: '$caste',
+        count: { $sum: 1 },
+        candidates: { $push: '$$ROOT' }
+      }},
+      { $sort: { _id: 1 } }
+    ]);
 
     res.status(200).json({
       success: true,
