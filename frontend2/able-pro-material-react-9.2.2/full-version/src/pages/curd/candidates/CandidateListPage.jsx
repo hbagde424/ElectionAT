@@ -1,4 +1,3 @@
-// === CandidateListPage.jsx ===
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar
@@ -11,7 +10,7 @@ import {
 } from '@tanstack/react-table';
 import { CSVLink } from 'react-csv';
 import IconButton from 'components/@extended/IconButton';
-import { Add, Edit, Trash, Eye, User } from 'iconsax-react';
+import { Add, Edit, Trash, Eye } from 'iconsax-react';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
@@ -36,7 +35,6 @@ const CandidateListPage = () => {
     const [assemblies, setAssemblies] = useState([]);
     const [parties, setParties] = useState([]);
     const [electionYears, setElectionYears] = useState([]);
-    const [users, setUsers] = useState([]);
 
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
@@ -62,7 +60,10 @@ const CandidateListPage = () => {
 
     const fetchReferenceData = async () => {
         try {
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, partiesRes, electionYearsRes] = await Promise.all([
+            const [
+                statesRes, divisionsRes, parliamentsRes, 
+                assembliesRes, partiesRes, electionYearsRes
+            ] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
@@ -71,20 +72,10 @@ const CandidateListPage = () => {
                 fetch('http://localhost:5000/api/election-years')
             ]);
 
-            const token = localStorage.getItem('serviceToken');
-
-            const [usersRes] = await Promise.all([
-                fetch('http://localhost:5000/api/users', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
-            ]);
-
-            const usersData = await usersRes.json();
-            if (usersData.success) setUsers(usersData.data);
-
-            const [statesData, divisionsData, parliamentsData, assembliesData, partiesData, electionYearsData] = await Promise.all([
+            const [
+                statesData, divisionsData, parliamentsData, 
+                assembliesData, partiesData, electionYearsData
+            ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
@@ -109,15 +100,6 @@ const CandidateListPage = () => {
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
-
     const formatNumber = (number) => {
         if (!number) return 'N/A';
         return number.toLocaleString();
@@ -130,158 +112,41 @@ const CandidateListPage = () => {
         cell: ({ row }) => <Typography>{row.index + 1}</Typography>
     },
     {
-        header: 'Name',
-        accessorKey: 'name',
-        cell: ({ getValue }) => (
-            <Typography sx={{
-                maxWidth: 150,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-            }}>
-                {getValue()}
-            </Typography>
-        )
-    },
-    {
         header: 'Photo',
         accessorKey: 'photo',
         cell: ({ getValue }) => (
-            getValue() ? (
-                <Avatar src={getValue()} alt="Candidate" sx={{ width: 40, height: 40 }} />
-            ) : (
-                <Avatar sx={{ width: 40, height: 40 }}>
-                    <User size={20} />
-                </Avatar>
-            )
+            <Avatar 
+                src={getValue() || '/default-avatar.png'} 
+                alt="Candidate" 
+                sx={{ width: 40, height: 40 }}
+            />
         )
     },
-    // {
-    //     header: 'Party',
-    //     accessorKey: 'party_id',
-    //     cell: ({ getValue }) => (
-    //         <Chip
-    //             label={getValue()?.name || 'N/A'}
-    //             color="primary"
-    //             size="small"
-    //             variant="outlined"
-    //         />
-    //     )
-    // },
-    // {
-    //     header: 'Assembly',
-    //     accessorKey: 'assembly_id',
-    //     cell: ({ getValue }) => (
-    //         <Chip
-    //             label={getValue()?.name || 'N/A'}
-    //             color="info"
-    //             size="small"
-    //             variant="outlined"
-    //         />
-    //     )
-    // },
-    // {
-    //     header: 'Parliament',
-    //     accessorKey: 'parliament_id',
-    //     cell: ({ getValue }) => (
-    //         <Chip
-    //             label={getValue()?.name || 'N/A'}
-    //             color="secondary"
-    //             size="small"
-    //             variant="outlined"
-    //         />
-    //     )
-    // },
-    // {
-    //     header: 'State',
-    //     accessorKey: 'state_id',
-    //     cell: ({ getValue }) => (
-    //         <Chip
-    //             label={getValue()?.name || 'N/A'}
-    //             color="success"
-    //             size="small"
-    //             variant="outlined"
-    //         />
-    //     )
-    // },
-    // {
-    //     header: 'Division',
-    //     accessorKey: 'division_id',
-    //     cell: ({ getValue }) => (
-    //         <Chip
-    //             label={getValue()?.name || 'N/A'}
-    //             color="warning"
-    //             size="small"
-    //             variant="outlined"
-    //         />
-    //     )
-    // },
-    // {
-    //     header: 'Election Year',
-    //     accessorKey: 'election_year',
-    //     cell: ({ getValue }) => (
-    //         <Chip
-    //             label={getValue() ? `${getValue().year}` : 'N/A'}
-    //             color="warning"
-    //             size="small"
-    //             variant="outlined"
-    //         />
-    //     )
-    // },
+    {
+        header: 'Name',
+        accessorKey: 'name',
+        cell: ({ getValue }) => (
+            <Typography fontWeight="medium">
+                {getValue() || 'N/A'}
+            </Typography>
+        )
+    },
     {
         header: 'Caste',
         accessorKey: 'caste',
         cell: ({ getValue }) => (
-            <Typography sx={{
-                maxWidth: 120,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-            }}>
-                {getValue() || 'N/A'}
-            </Typography>
+            <Chip
+                label={getValue() || 'N/A'}
+                size="small"
+            />
         )
     },
     {
         header: 'Criminal Cases',
         accessorKey: 'criminal_cases',
         cell: ({ getValue }) => (
-            <Chip
-                label={getValue() || '0'}
-                color={getValue() > 0 ? 'error' : 'success'}
-                size="small"
-            />
-        )
-    },
-    {
-        header: 'Assets',
-        accessorKey: 'assets',
-        cell: ({ getValue }) => (
-            <Typography sx={{ fontWeight: 'medium' }}>
-                ₹{formatNumber(getValue())}
-            </Typography>
-        )
-    },
-    {
-        header: 'Liabilities',
-        accessorKey: 'liabilities',
-        cell: ({ getValue }) => (
-            <Typography sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                ₹{formatNumber(getValue())}
-            </Typography>
-        )
-    },
-    {
-        header: 'Education',
-        accessorKey: 'education',
-        cell: ({ getValue }) => (
-            <Typography sx={{
-                maxWidth: 120,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-            }}>
-                {getValue() || 'N/A'}
+            <Typography color={getValue() > 0 ? 'error.main' : 'success.main'}>
+                {getValue() || 0}
             </Typography>
         )
     },
@@ -290,42 +155,11 @@ const CandidateListPage = () => {
         accessorKey: 'is_active',
         cell: ({ getValue }) => (
             <Chip
-                label={getValue ? 'Active' : 'Inactive'}
-                color={getValue ? 'success' : 'error'}
+                label={getValue() ? 'Active' : 'Inactive'}
+                color={getValue() ? 'success' : 'error'}
                 size="small"
             />
         )
-    },
-    {
-        header: 'Created By',
-        accessorKey: 'created_by',
-        cell: ({ getValue }) => (
-            <Stack direction="row" alignItems="center" spacing={1}>
-                <Avatar sx={{ width: 24, height: 24 }}>
-                    <User size={16} />
-                </Avatar>
-                <Typography>{getValue()?.username || 'Unknown'}</Typography>
-            </Stack>
-        )
-    },
-    {
-        header: 'Updated By',
-        accessorKey: 'updated_by',
-        cell: ({ getValue }) => (
-            <Typography>
-                {getValue()?.username || 'N/A'}
-            </Typography>
-        )
-    },
-    {
-        header: 'Created At',
-        accessorKey: 'created_at',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-        header: 'Updated At',
-        accessorKey: 'updated_at',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
     },
     {
         header: 'Actions',
@@ -365,7 +199,6 @@ const CandidateListPage = () => {
     }
 ], [theme]);
 
-
     const table = useReactTable({
         data: candidates,
         columns,
@@ -381,7 +214,6 @@ const CandidateListPage = () => {
         getRowCanExpand: () => true
     });
 
-    // Helper to fetch all candidates for CSV
     const fetchAllCandidatesForCsv = async () => {
         try {
             const res = await fetch('http://localhost:5000/api/candidates?all=true');
@@ -399,20 +231,18 @@ const CandidateListPage = () => {
         setCsvLoading(true);
         const allData = await fetchAllCandidatesForCsv();
         setCsvData(allData.map(item => ({
-            Name: item.name,
-            Party: item.party_id?.name || '',
-            State: item.state_id?.name || '',
-            Assembly: item.assembly_id?.name || '',
-            Parliament: item.parliament_id?.name || '',
-            'Election Year': item.election_year ? `${item.election_year.year}` : '',
-            Caste: item.caste || '',
+            'Name': item.name || '',
+            'Party': item.party_id?.name || '',
+            'State': item.state_id?.name || '',
+            'Assembly': item.assembly_id?.name || '',
+            'Parliament': item.parliament_id?.name || '',
+            'Caste': item.caste || '',
             'Criminal Cases': item.criminal_cases || 0,
-            Assets: item.assets || 0,
-            Liabilities: item.liabilities || 0,
-            Education: item.education || '',
-            Status: item.is_active ? 'Active' : 'Inactive',
-            'Created By': item.created_by?.username || '',
-            'Updated By': item.updated_by?.username || '',
+            'Education': item.education || '',
+            'Assets': item.assets || '',
+            'Liabilities': item.liabilities || '',
+            'Election Year': item.election_year?.year || '',
+            'Status': item.is_active ? 'Active' : 'Inactive',
             'Created At': item.created_at,
             'Updated At': item.updated_at
         })));
@@ -433,7 +263,7 @@ const CandidateListPage = () => {
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${candidates.length} candidates...`}
+                        placeholder={`Search ${candidates.length} records...`}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink
@@ -516,7 +346,6 @@ const CandidateListPage = () => {
                 assemblies={assemblies}
                 parties={parties}
                 electionYears={electionYears}
-                users={users}
                 refresh={() => fetchCandidates(pagination.pageIndex, pagination.pageSize)}
             />
             <AlertCandidateDelete

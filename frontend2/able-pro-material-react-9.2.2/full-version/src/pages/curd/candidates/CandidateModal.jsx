@@ -1,287 +1,244 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    FormHelperText, Alert, CircularProgress, Avatar, Box, Typography
+    Button, Grid, Stack, TextField, InputLabel, Select, 
+    MenuItem, FormControl, FormHelperText, Alert, 
+    CircularProgress, Typography, Avatar
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+
+// Helper components
+const FormSelect = ({ 
+    label, 
+    name, 
+    value, 
+    options = [], 
+    onChange, 
+    error, 
+    disabled,
+    labelKey = 'name',
+    required = false 
+}) => (
+    <Stack spacing={1}>
+        <InputLabel required={required}>{label}</InputLabel>
+        <FormControl fullWidth error={!!error} disabled={disabled}>
+            <Select name={name} value={value} onChange={onChange}>
+                <MenuItem value=""><em>Select {label}</em></MenuItem>
+                {options.map((opt) => (
+                    <MenuItem key={opt._id || opt} value={opt._id || opt}>
+                        {opt[labelKey] || opt}
+                    </MenuItem>
+                ))}
+            </Select>
+            {error && <FormHelperText>{error}</FormHelperText>}
+        </FormControl>
+    </Stack>
+);
+
+const FormTextField = ({ 
+    label, 
+    name, 
+    value, 
+    onChange, 
+    error, 
+    disabled,
+    type = 'text',
+    required = false 
+}) => (
+    <Stack spacing={1}>
+        <InputLabel required={required}>{label}</InputLabel>
+        <TextField
+            name={name}
+            value={value}
+            onChange={onChange}
+            fullWidth
+            type={type}
+            error={!!error}
+            helperText={error}
+            disabled={disabled}
+        />
+    </Stack>
+);
 
 export default function CandidateModal({
     open,
     modalToggler,
     candidate,
-    states,
-    divisions,
-    parliaments,
-    assemblies,
-    parties,
-    electionYears,
-    users,
     refresh
 }) {
     const [formData, setFormData] = useState({
         name: '',
-        party_id: '',
-        assembly_id: '',
-        parliament_id: '',
-        state_id: '',
-        division_id: '',
-        election_year: '',
-        caste: '',
-        criminal_cases: '',
+        caste: 'General',
+        criminal_cases: 0,
         assets: '',
         liabilities: '',
         education: '',
         photo: '',
         is_active: true
     });
-
     const [errors, setErrors] = useState({});
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imagePreview, setImagePreview] = useState('');
+    const [photoFile, setPhotoFile] = useState(null);
+    const [photoPreview, setPhotoPreview] = useState('');
 
-    // Use props instead of fetching data
-    // With these more defensive checks:
-    const partiesList = Array.isArray(parties) ? parties : [];
-    const assembliesList = Array.isArray(assemblies) ? assemblies : [];
-    // const electionYearsList = Array.isArray(electionYears) ? electionYears : [];
-const electionYearsList = electionYears?.data || [];
-    const parliamentsList = Array.isArray(parliaments) ? parliaments : [];
-    const statesList = Array.isArray(states) ? states : [];
-    const divisionsList = Array.isArray(divisions) ? divisions : [];
-    console.log('electionYears:', electionYears, 'electionYearsList:', electionYearsList);
-    // Caste options
-    const casteOptions = ['General', 'OBC', 'SC', 'ST', 'Other'];
-
+    // Initialize form data when candidate prop changes
     useEffect(() => {
         if (candidate) {
             setFormData({
                 name: candidate.name || '',
-                party_id: candidate.party_id?._id || candidate.party_id || '',
-                assembly_id: candidate.assembly_id?._id || candidate.assembly_id || '',
-                parliament_id: candidate.parliament_id?._id || candidate.parliament_id || '',
-                state_id: candidate.state_id?._id || candidate.state_id || '',
-                division_id: candidate.division_id?._id || candidate.division_id || '',
-                election_year: candidate.election_year?._id || candidate.election_year || '',
-                caste: candidate.caste || '',
-                criminal_cases: candidate.criminal_cases || '',
+                caste: candidate.caste || 'General',
+                criminal_cases: candidate.criminal_cases || 0,
                 assets: candidate.assets || '',
                 liabilities: candidate.liabilities || '',
                 education: candidate.education || '',
                 photo: candidate.photo || '',
-                is_active: candidate.is_active ?? true
+                is_active: candidate.is_active !== undefined ? candidate.is_active : true
             });
-            setImagePreview(candidate.photo || '');
+            setPhotoPreview(candidate.photo || '');
         } else {
             setFormData({
                 name: '',
-                party_id: '',
-                assembly_id: '',
-                parliament_id: '',
-                state_id: '',
-                division_id: '',
-                election_year: '',
-                caste: '',
-                criminal_cases: '',
+                caste: 'General',
+                criminal_cases: 0,
                 assets: '',
                 liabilities: '',
                 education: '',
                 photo: '',
                 is_active: true
             });
-            setImagePreview('');
+            setPhotoPreview('');
         }
-        setErrors({});
-        setSubmitError('');
-    }, [candidate, open]);
+    }, [candidate]);
 
-    // Validate individual field
+    const handlePhotoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setPhotoFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const validateField = (name, value) => {
         switch (name) {
             case 'name':
-                if (!value || value.trim().length === 0) return 'Name is required';
-                if (value.trim().length < 2) return 'Name must be at least 2 characters';
-                if (value.trim().length > 100) return 'Name cannot exceed 100 characters';
-                if (!/^[a-zA-Z\s]+$/.test(value.trim())) return 'Name can only contain letters and spaces';
-                break;
-            case 'party_id':
-                if (!value) return 'Party selection is required';
-                break;
-            case 'assembly_id':
-                if (!value) return 'Assembly selection is required';
-                break;
-            case 'parliament_id':
-                if (!value) return 'Parliament selection is required';
-                break;
-            case 'state_id':
-                if (!value) return 'State selection is required';
-                break;
-            case 'division_id':
-                if (!value) return 'Division selection is required';
-                break;
-            case 'election_year':
-                if (!value) return 'Election year selection is required';
-                break;
+                return !value ? 'Name is required' : '';
             case 'caste':
-                if (!value) return 'Caste selection is required';
-                if (!casteOptions.includes(value)) return 'Please select a valid caste';
-                break;
+                return !value ? 'Caste is required' : '';
             case 'criminal_cases':
-                if (value && isNaN(value)) return 'Criminal cases must be a number';
-                if (value && parseInt(value) < 0) return 'Criminal cases cannot be negative';
-                if (value && parseInt(value) > 100) return 'Criminal cases value seems unrealistic';
-                break;
-            case 'assets':
-                if (value && value.trim().length > 500) return 'Assets description cannot exceed 500 characters';
-                break;
-            case 'liabilities':
-                if (value && value.trim().length > 500) return 'Liabilities description cannot exceed 500 characters';
-                break;
-            case 'education':
-                if (value && value.trim().length > 200) return 'Education description cannot exceed 200 characters';
-                break;
-            case 'photo':
-                if (value && value.trim().length > 0) {
-                    const urlPattern = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
-                    if (!urlPattern.test(value.trim())) {
-                        return 'Please enter a valid URL (must start with http://, https://, or ftp://)';
-                    }
-                }
-                break;
+                if (isNaN(value)) return 'Must be a number';
+                if (parseInt(value) < 0) return 'Cannot be negative';
+                return '';
             default:
-                break;
+                return '';
         }
-        return '';
     };
 
-    // Validate entire form
     const validateForm = () => {
         const newErrors = {};
-        const requiredFields = ['name', 'party_id', 'assembly_id', 'parliament_id', 'state_id', 'division_id', 'election_year', 'caste'];
+        let isValid = true;
 
-        requiredFields.forEach(field => {
+        ['name', 'caste', 'criminal_cases'].forEach(field => {
             const error = validateField(field, formData[field]);
-            if (error) newErrors[field] = error;
-        });
-
-        // Validate optional fields
-        ['criminal_cases', 'assets', 'liabilities', 'education', 'photo'].forEach(field => {
-            const error = validateField(field, formData[field]);
-            if (error) newErrors[field] = error;
+            if (error) {
+                newErrors[field] = error;
+                isValid = false;
+            }
         });
 
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return isValid;
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-
-        // Clear error for this field
+        setFormData(prev => ({ ...prev, [name]: value }));
+        
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
         if (submitError) setSubmitError('');
-
-        setFormData(prev => ({ ...prev, [name]: value }));
-
-        // Update image preview for photo field
-        if (name === 'photo') {
-            setImagePreview(value);
-        }
     };
 
     const handleSubmit = async () => {
-        if (!validateForm()) {
-            return;
-        }
+  if (!validateForm()) return;
 
-        setIsSubmitting(true);
-        setSubmitError('');
+  setIsSubmitting(true);
+  setSubmitError('');
 
-        try {
-            const token = localStorage.getItem('serviceToken');
-            const url = candidate ? `http://localhost:5000/api/candidates/${candidate._id}` : 'http://localhost:5000/api/candidates';
-            const method = candidate ? 'PUT' : 'POST';
+  try {
+    // 1. Get authentication token
+    const token = localStorage.getItem('serviceToken');
+    if (!token) {
+      throw new Error('Please login to continue');
+    }
 
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
+    // 2. Get user ID - check both localStorage and sessionStorage
+    const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+    if (!userId) {
+      throw new Error('User session expired. Please login again');
+    }
 
-            const data = await res.json();
+    // 3. Prepare form data
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', formData.name);
+    formDataToSend.append('caste', formData.caste);
+    formDataToSend.append('criminal_cases', formData.criminal_cases);
+    formDataToSend.append('created_by', userId); // Add created_by field
+    
+    // Add optional fields
+    if (formData.assets) formDataToSend.append('assets', formData.assets);
+    if (formData.liabilities) formDataToSend.append('liabilities', formData.liabilities);
+    if (formData.education) formDataToSend.append('education', formData.education);
+    if (photoFile) formDataToSend.append('photo', photoFile);
 
-            if (res.ok) {
-                modalToggler(false);
-                refresh();
-            } else {
-                // Handle server-side validation errors
-                if (data.errors) {
-                    const serverErrors = {};
-                    Object.keys(data.errors).forEach(key => {
-                        serverErrors[key] = data.errors[key].message;
-                    });
-                    setErrors(serverErrors);
-                } else if (data.message) {
-                    setSubmitError(data.message);
-                } else {
-                    setSubmitError('An error occurred while saving the candidate');
-                }
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            setSubmitError('Network error. Please try again.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+    // 4. Make the API request
+    const url = candidate 
+      ? `http://localhost:5000/api/candidates/${candidate._id}` 
+      : 'http://localhost:5000/api/candidates';
+    const method = candidate ? 'PUT' : 'POST';
 
-    const renderTextField = (label, name, type = 'text', required = false) => (
-        <Grid item xs={12} sm={6} key={name}>
-            <Stack spacing={1}>
-                <InputLabel required={required}>{label}</InputLabel>
-                <TextField
-                    name={name}
-                    value={formData[name]}
-                    onChange={handleChange}
-                    fullWidth
-                    type={type}
-                    error={!!errors[name]}
-                    helperText={errors[name]}
-                    disabled={isSubmitting}
-                />
-            </Stack>
-        </Grid>
-    );
+    const res = await fetch(url, {
+      method,
+      headers: { 
+        Authorization: `Bearer ${token}` 
+      },
+      body: formDataToSend
+    });
 
-    const renderSelect = (label, name, options, labelKey = 'name', required = false) => (
-        <Grid item xs={12} sm={6} key={name}>
-            <Stack spacing={1}>
-                <InputLabel required={required}>{label}</InputLabel>
-                <FormControl fullWidth error={!!errors[name]} disabled={isSubmitting}>
-                    <Select name={name} value={formData[name]} onChange={handleChange}>
-                        <MenuItem value="">
-                            <em>Select {label}</em>
-                        </MenuItem>
-                        {options.map((opt) => (
-                            <MenuItem key={opt._id} value={opt._id}>
-                                {opt[labelKey] || 'Unknown'}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                    {errors[name] && <FormHelperText>{errors[name]}</FormHelperText>}
-                </FormControl>
-            </Stack>
-        </Grid>
-    );
+    // 5. Handle response
+    const data = await res.json();
+    
+    if (!res.ok) {
+      // Handle backend validation errors
+      if (data.errors) {
+        const errorMessages = Object.values(data.errors).map(err => err.message);
+        throw new Error(errorMessages.join(', '));
+      }
+      throw new Error(data.message || 'Failed to save candidate');
+    }
+
+    // Success case
+    modalToggler(false);
+    refresh();
+    
+  } catch (error) {
+    console.error('Submission error:', error);
+    setSubmitError(error.message);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
     return (
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
-            <DialogTitle>{candidate ? 'Edit Candidate' : 'Add Candidate'}</DialogTitle>
+        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
+            <DialogTitle>
+                {candidate ? 'Edit Candidate' : 'Add New Candidate'}
+            </DialogTitle>
+            
             <DialogContent>
                 {submitError && (
                     <Alert severity="error" sx={{ mb: 2 }}>
@@ -290,98 +247,107 @@ const electionYearsList = electionYears?.data || [];
                 )}
 
                 <Grid container spacing={2} mt={1}>
-                    {renderTextField('Name', 'name', 'text', true)}
-                    {/* {renderSelect('Party', 'party_id', partiesList, 'name', true)} */}
-                    {/* {renderSelect('State', 'state_id', statesList, 'name', true)} */}
-                    {/* {renderSelect('Division', 'division_id', divisionsList, 'name', true)} */}
-                    {/* {renderSelect('Parliament', 'parliament_id', parliamentsList, 'name', true)} */}
-                    {/* {renderSelect('Assembly', 'assembly_id', assembliesList, 'name', true)} */}
-
-                    {/* <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Election Year</InputLabel>
-                            <FormControl fullWidth error={!!errors.election_year} disabled={isSubmitting}>
-                                <Select
-                                    name="election_year"
-                                    value={formData.election_year}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="">
-                                        <em>Select Election Year</em>
-                                    </MenuItem>
-                                    {electionYearsList.map((opt) => (
-                                        <MenuItem key={opt._id} value={opt._id}>
-                                            {`${opt.year} (${opt.election_type})`}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {errors.election_year && <FormHelperText>{errors.election_year}</FormHelperText>}
-                            </FormControl>
-                        </Stack>
-                    </Grid> */}
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Caste</InputLabel>
-                            <FormControl fullWidth error={!!errors.caste} disabled={isSubmitting}>
-                                <Select name="caste" value={formData.caste} onChange={handleChange}>
-                                    <MenuItem value="">
-                                        <em>Select Caste</em>
-                                    </MenuItem>
-                                    {casteOptions.map((caste) => (
-                                        <MenuItem key={caste} value={caste}>
-                                            {caste}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {errors.caste && <FormHelperText>{errors.caste}</FormHelperText>}
-                            </FormControl>
-                        </Stack>
+                    <Grid item xs={12}>
+                        <FormTextField
+                            label="Name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            error={errors.name}
+                            disabled={isSubmitting}
+                            required
+                        />
                     </Grid>
-
-                    {renderTextField('Criminal Cases', 'criminal_cases', 'number')}
-                    {renderTextField('Assets', 'assets')}
-                    {renderTextField('Liabilities', 'liabilities')}
-                    {renderTextField('Education', 'education')}
-
+                    
                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Photo URL</InputLabel>
-                            <TextField
-                                name="photo"
-                                value={formData.photo}
-                                onChange={handleChange}
-                                fullWidth
-                                placeholder="https://example.com/photo.jpg"
-                                error={!!errors.photo}
-                                helperText={errors.photo || 'Enter a valid image URL'}
-                                disabled={isSubmitting}
-                            />
-                        </Stack>
+                        <FormSelect
+                            label="Caste"
+                            name="caste"
+                            value={formData.caste}
+                            options={[
+                                { _id: 'General', name: 'General' },
+                                { _id: 'OBC', name: 'OBC' },
+                                { _id: 'SC', name: 'SC' },
+                                { _id: 'ST', name: 'ST' },
+                                { _id: 'Other', name: 'Other' }
+                            ]}
+                            onChange={handleChange}
+                            error={errors.caste}
+                            disabled={isSubmitting}
+                            required
+                        />
                     </Grid>
-
-                    {imagePreview && (
-                        <Grid item xs={12} sm={6}>
-                            <Stack spacing={1}>
-                                <InputLabel>Image Preview</InputLabel>
-                                <Box display="flex" justifyContent="center">
-                                    <Avatar
-                                        src={imagePreview}
-                                        alt="Candidate"
-                                        sx={{ width: 80, height: 80 }}
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                        }}
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Criminal Cases"
+                            name="criminal_cases"
+                            value={formData.criminal_cases}
+                            onChange={handleChange}
+                            error={errors.criminal_cases}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <FormTextField
+                            label="Education"
+                            name="education"
+                            value={formData.education}
+                            onChange={handleChange}
+                            error={errors.education}
+                            disabled={isSubmitting}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Assets"
+                            name="assets"
+                            value={formData.assets}
+                            onChange={handleChange}
+                            error={errors.assets}
+                            disabled={isSubmitting}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Liabilities"
+                            name="liabilities"
+                            value={formData.liabilities}
+                            onChange={handleChange}
+                            error={errors.liabilities}
+                            disabled={isSubmitting}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Photo</InputLabel>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                                <Avatar 
+                                    src={photoPreview || '/default-avatar.png'} 
+                                    alt="Candidate" 
+                                    sx={{ width: 60, height: 60 }}
+                                />
+                                <Button variant="outlined" component="label">
+                                    Upload Photo
+                                    <input 
+                                        type="file" 
+                                        hidden 
+                                        accept="image/*" 
+                                        onChange={handlePhotoChange}
+                                        disabled={isSubmitting}
                                     />
-                                </Box>
-                                <Typography variant="caption" color="textSecondary" textAlign="center">
-                                    Image preview (if URL is valid)
-                                </Typography>
+                                </Button>
                             </Stack>
-                        </Grid>
-                    )}
+                        </Stack>
+                    </Grid>
                 </Grid>
             </DialogContent>
+            
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)} disabled={isSubmitting}>
                     Cancel

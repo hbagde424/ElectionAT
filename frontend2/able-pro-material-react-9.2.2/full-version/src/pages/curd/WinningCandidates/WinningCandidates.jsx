@@ -1,3 +1,7 @@
+import Grid from '@mui/material/Grid';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import ChangeTheme from 'sections/maps/change-theme copy';
+// import MainCard from 'components/MainCard';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -19,6 +23,22 @@ import { CSVLink } from 'react-csv';
 import WinningCandidateModal from './WinningCandidatesModal';
 import AlertWinningCandidateDelete from './AlertWinningCandidatesDelete';
 import WinningCandidateView from './WinningCandidatesView';
+
+
+
+const mapConfiguration = {
+  mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
+  minZoom: 1
+};
+
+const MAPBOX_THEMES = {
+  light: 'mapbox://styles/mapbox/light-v10',
+  dark: 'mapbox://styles/mapbox/dark-v10',
+  streets: 'mapbox://styles/mapbox/streets-v11',
+  outdoors: 'mapbox://styles/mapbox/outdoors-v11',
+  satellite: 'mapbox://styles/mapbox/satellite-v9',
+  satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+};
 
 export default function WinningCandidateListPage() {
     const theme = useTheme();
@@ -43,11 +63,11 @@ export default function WinningCandidateListPage() {
     const fetchReferenceData = async () => {
         try {
             const [
-                statesRes, 
-                divisionsRes, 
-                parliamentsRes, 
-                assembliesRes, 
-                partiesRes, 
+                statesRes,
+                divisionsRes,
+                parliamentsRes,
+                assembliesRes,
+                partiesRes,
                 candidatesRes,
                 yearsRes
             ] = await Promise.all([
@@ -61,11 +81,11 @@ export default function WinningCandidateListPage() {
             ]);
 
             const [
-                statesData, 
-                divisionsData, 
-                parliamentsData, 
-                assembliesData, 
-                partiesData, 
+                statesData,
+                divisionsData,
+                parliamentsData,
+                assembliesData,
+                partiesData,
                 candidatesData,
                 yearsData
             ] = await Promise.all([
@@ -365,6 +385,14 @@ export default function WinningCandidateListPage() {
 
     return (
         <>
+
+            <Grid item xs={12}>
+                <MainCard title="Theme Variants">
+                    <MapContainerStyled>
+                        <ChangeTheme {...mapConfiguration} themes={MAPBOX_THEMES} />
+                    </MapContainerStyled>
+                </MainCard>
+            </Grid>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
