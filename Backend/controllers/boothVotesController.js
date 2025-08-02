@@ -21,14 +21,8 @@ exports.getBoothVotes = async (req, res, next) => {
 
     // Basic query
     let query = BoothVotes.find()
-      .populate({
-        path: 'candidate',
-        select: 'name party_id',
-        populate: {
-          path: 'party_id',
-          select: 'name abbreviation'
-        }
-      })
+     
+      .populate('candidate', 'name')
       .populate('state', 'name')
       .populate('division', 'name')
       .populate('parliament', 'name')
