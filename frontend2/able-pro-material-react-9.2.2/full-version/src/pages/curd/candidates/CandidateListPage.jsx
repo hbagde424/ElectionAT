@@ -48,6 +48,7 @@ const CandidateListPage = () => {
             const res = await fetch(`http://localhost:5000/api/candidates?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
+                console.log('Candidate data:', json.data); // Debug log to see raw data
                 setCandidates(json.data);
                 setPageCount(json.pages);
             }
@@ -61,7 +62,7 @@ const CandidateListPage = () => {
     const fetchReferenceData = async () => {
         try {
             const [
-                statesRes, divisionsRes, parliamentsRes, 
+                statesRes, divisionsRes, parliamentsRes,
                 assembliesRes, partiesRes, electionYearsRes
             ] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
@@ -73,7 +74,7 @@ const CandidateListPage = () => {
             ]);
 
             const [
-                statesData, divisionsData, parliamentsData, 
+                statesData, divisionsData, parliamentsData,
                 assembliesData, partiesData, electionYearsData
             ] = await Promise.all([
                 statesRes.json(),
@@ -106,98 +107,143 @@ const CandidateListPage = () => {
     };
 
     const columns = useMemo(() => [
-    {
-        header: '#',
-        accessorKey: '_id',
-        cell: ({ row }) => <Typography>{row.index + 1}</Typography>
-    },
-    {
-        header: 'Photo',
-        accessorKey: 'photo',
-        cell: ({ getValue }) => (
-            <Avatar 
-                src={getValue() || '/default-avatar.png'} 
-                alt="Candidate" 
-                sx={{ width: 40, height: 40 }}
-            />
-        )
-    },
-    {
-        header: 'Name',
-        accessorKey: 'name',
-        cell: ({ getValue }) => (
-            <Typography fontWeight="medium">
-                {getValue() || 'N/A'}
-            </Typography>
-        )
-    },
-    {
-        header: 'Caste',
-        accessorKey: 'caste',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue() || 'N/A'}
-                size="small"
-            />
-        )
-    },
-    {
-        header: 'Criminal Cases',
-        accessorKey: 'criminal_cases',
-        cell: ({ getValue }) => (
-            <Typography color={getValue() > 0 ? 'error.main' : 'success.main'}>
-                {getValue() || 0}
-            </Typography>
-        )
-    },
-    {
-        header: 'Status',
-        accessorKey: 'is_active',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue() ? 'Active' : 'Inactive'}
-                color={getValue() ? 'success' : 'error'}
-                size="small"
-            />
-        )
-    },
-    {
-        header: 'Actions',
-        meta: { className: 'cell-center' },
-        cell: ({ row }) => {
-            const isExpanded = row.getIsExpanded();
-            const expandIcon = isExpanded
-                ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-                : <Eye />;
-            return (
-                <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                    <Tooltip title="View">
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                        <IconButton color="primary" onClick={(e) => {
-                            e.stopPropagation();
-                            setEditData(row.original);
-                            setOpenModal(true);
-                        }}>
-                            <Edit />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton color="error" onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteAlert({ open: true, id: row.original._id });
-                        }}>
-                            <Trash />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
-            );
+        {
+            header: '#',
+            accessorKey: '_id',
+            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+        },
+        {
+            header: 'Photo',
+            accessorKey: 'photo',
+
+            cell: ({ getValue }) => {
+                const photoPath = getValue();
+                let photoUrl = '/default-avatar.png';
+
+                if (photoPath) {
+                    photoUrl = photoPath;
+                    // Log the image URL for debugging
+                    console.log('Loading image from:', photoUrl);
+
+                    // Verify the image exists
+                    fetch(photoUrl, {
+                        method: 'HEAD',
+                        credentials: 'include',
+                        mode: 'cors'
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                console.error('Image not found:', response.status, response.statusText);
+                            }
+                        })
+                        .catch(error => console.error('Error checking image:', error));
+                }
+
+                return (
+                    <Avatar
+                        src={photoUrl}
+                        alt="Candidate"
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            '&:hover': {
+                                cursor: 'pointer',
+                                transform: 'scale(1.5)',
+                                transition: 'transform 0.3s ease-in-out',
+                                zIndex: 1
+                            }
+                        }}
+                        onError={(e) => {
+                            console.error('Image load error for:', photoUrl);
+                            // Try to load the image directly to see any CORS or network errors
+                            const img = new Image();
+                            img.onerror = () => console.error('Failed to load image in background');
+                            img.src = photoUrl;
+                            // Set default avatar
+                            e.target.src = '/default-avatar.png';
+                        }}
+                    />
+                );
+            }
+
+
+        },
+        {
+            header: 'Name',
+            accessorKey: 'name',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Caste',
+            accessorKey: 'caste',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    size="small"
+                />
+            )
+        },
+        {
+            header: 'Criminal Cases',
+            accessorKey: 'criminal_cases',
+            cell: ({ getValue }) => (
+                <Typography color={getValue() > 0 ? 'error.main' : 'success.main'}>
+                    {getValue() || 0}
+                </Typography>
+            )
+        },
+        {
+            header: 'Status',
+            accessorKey: 'is_active',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() ? 'Active' : 'Inactive'}
+                    color={getValue() ? 'success' : 'error'}
+                    size="small"
+                />
+            )
+        },
+        {
+            header: 'Actions',
+            meta: { className: 'cell-center' },
+            cell: ({ row }) => {
+                const isExpanded = row.getIsExpanded();
+                const expandIcon = isExpanded
+                    ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
+                    : <Eye />;
+                return (
+                    <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                        <Tooltip title="View">
+                            <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
+                                {expandIcon}
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                            <IconButton color="primary" onClick={(e) => {
+                                e.stopPropagation();
+                                setEditData(row.original);
+                                setOpenModal(true);
+                            }}>
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton color="error" onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteAlert({ open: true, id: row.original._id });
+                            }}>
+                                <Trash />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                );
+            }
         }
-    }
-], [theme]);
+    ], [theme]);
 
     const table = useReactTable({
         data: candidates,
