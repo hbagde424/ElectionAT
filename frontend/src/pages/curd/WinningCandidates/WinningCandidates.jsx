@@ -355,31 +355,37 @@ export default function WinningCandidateListPage() {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
-    const handleDownloadCsv = async () => {
-        setCsvLoading(true);
-        const allData = await fetchAllCandidatesForCsv();
-        setCsvData(allData.map(item => ({
-            'Candidate': item.candidate_id?.name || '',
-            'Party': item.party_id?.name || '',
-            'Year': item.year_id?.year || '',
-            'Total Votes': item.total_votes,
-            'Voting Percentage': item.voting_percentage,
-            'Margin': item.margin,
-            'Margin Percentage': item.margin_percentage,
-            'State': item.state_id?.name || '',
-            'Division': item.division_id?.name || '',
-            'Parliament': item.parliament_id?.name || '',
-            'Assembly': item.assembly_id?.name || '',
-            'Created By': item.created_by?.username || '',
-            'Created At': item.created_at
-        })));
-        setCsvLoading(false);
-        setTimeout(() => {
-            if (csvLinkRef.current) {
-                csvLinkRef.current.link.click();
-            }
-        }, 100);
-    };
+   const [shouldDownload, setShouldDownload] = useState(false);
+
+useEffect(() => {
+    if (shouldDownload && csvData.length > 0) {
+        csvLinkRef.current?.link.click();
+        setShouldDownload(false); // Reset flag
+    }
+}, [csvData, shouldDownload]);
+
+const handleDownloadCsv = async () => {
+    setCsvLoading(true);
+    const allData = await fetchAllCandidatesForCsv();
+    setCsvData(allData.map(item => ({
+        'Candidate': item.candidate_id?.name || '',
+        'Party': item.party_id?.name || '',
+        'Year': item.year_id?.year || '',
+        'Total Votes': item.total_votes,
+        'Voting Percentage': item.voting_percentage,
+        'Margin': item.margin,
+        'Margin Percentage': item.margin_percentage,
+        'State': item.state_id?.name || '',
+        'Division': item.division_id?.name || '',
+        'Parliament': item.parliament_id?.name || '',
+        'Assembly': item.assembly_id?.name || '',
+        'Created By': item.created_by?.username || '',
+        'Created At': item.created_at
+    })));
+    setCsvLoading(false);
+    setShouldDownload(true);
+};
+
 
     if (loading) return <EmptyReactTable />;
 

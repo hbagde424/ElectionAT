@@ -1,81 +1,120 @@
 import PropTypes from 'prop-types';
-import { useState, useCallback, memo, useEffect, useRef } from 'react';
+import { useState, useCallback, memo, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Map, { Source, Layer, Popup } from 'react-map-gl';
 import ControlPanel from './control-panel';
 import MapControl from 'components/third-party/map/MapControl';
 import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress } from '@mui/material';
 
+// Complete Party color mapping
+const partyColors = {
+  'Bharatiya Janata Party': '#FF9933', // Saffron (BJP)
+  'Indian National Congress': '#19AAED', // Light Blue (INC)
+  'Bahujan Samaj Party': '#004B00', // Dark Green (BSP)
+  'Aam Aadmi Party': '#0072B5', // Blue (AAP)
+  'Gondwana Ganatantra Party': '#800080', // Purple (GGP)
+  'Independent': '#A9A9A9', // Gray (INDEPENDENT)
+  'Samajwadi Party': '#FF0000', // Red (SP)
+  'Azad Samaj Party': '#FFA500', // Orange (KANSHI RAM)
+  'Janata Dal': '#008080', // Teal (UNITED)
+  'Communist Party of India': '#FF4500', // OrangeRed (CPI)
+  'Bharat Adivasi Party': '#4B0082', // Indigo (BAP)
+  'All India Majlis-e-Ittehadul Muslimeen': '#006400', // DarkGreen (AIMIM)
+  'Communist Party of India (Marxist)': '#8B0000', // DarkRed (CPI(M))
+  'Lok Janshakti Party': '#000080', // Navy (RAM VILAS)
+  'Other Registered (Unrecognised) Parties': '#696969', // DimGray (OTHER)
+  'default': '#CCCCCC' // Light Gray for others
+};
+
 function AssemblyConstituencyMap({ themes, ...other }) {
   const theme = useTheme();
   const [selectTheme, setSelectTheme] = useState('outdoors');
   const [assemblyData, setAssemblyData] = useState(null);
+  const [winningCandidates, setWinningCandidates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [popupInfo, setPopupInfo] = useState(null);
   const [filters, setFilters] = useState({
     pcName: 'all',
-    acType: 'all'
+    party: 'all'
   });
   const [pcNames, setPcNames] = useState([]);
-  const [acTypes, setAcTypes] = useState([]);
+  const [parties, setParties] = useState([]);
   const mapRef = useRef(null);
-
-  // Color coding for reserved constituencies
-  const constituencyColors = {
-    'SC': '#800080',  // Purple for SC
-    'ST': '#FFA500',  // Orange for ST
-    'GEN': '#CCCCCC', // Gray for General
-    'default': '#00FF00' // Green for unknown
-  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch assembly polygons
-        const response = await fetch('http://localhost:5000/api/assembly-polygons');
-        if (!response.ok) throw new Error('Failed to fetch assembly data');
-        const data = await response.json();
+        // Fetch both datasets in parallel
+        const [assemblyResponse, candidatesResponse] = await Promise.all([
+          fetch('http://localhost:5000/api/assembly-polygons'),
+          fetch('http://localhost:5000/api/winning-candidates?all=true')
+        ]);
 
-        // Normalize the API response structure
+        if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');
+        if (!candidatesResponse.ok) throw new Error('Failed to fetch candidates data');
+
+        const assemblyData = await assemblyResponse.json();
+        const candidatesData = await candidatesResponse.json();
+
+        // Normalize the assembly API response structure
         let features = [];
-        if (data.features) {
-          features = data.features;
-        } else if (data.data?.[0]?.features) {
-          features = data.data[0].features;
-        } else if (Array.isArray(data) && data[0]?.features) {
-          features = data[0].features;
+        if (assemblyData.features) {
+          features = assemblyData.features;
+        } else if (assemblyData.data?.[0]?.features) {
+          features = assemblyData.data[0].features;
+        } else if (Array.isArray(assemblyData) && assemblyData[0]?.features) {
+          features = assemblyData[0].features;
         }
 
         if (features.length === 0) {
           throw new Error('No assembly features found in response');
         }
 
-        // Extract unique PC names and AC types for filters
+        // Process winning candidates data
+        const winningParties = new Set();
+        const candidatesByAcNo = {};
+        
+        candidatesData.data.forEach(candidate => {
+          const acNo = candidate.assembly_id?.AC_NO;
+          if (acNo) {
+            candidatesByAcNo[acNo] = candidate;
+            if (candidate.party_id?.name) {
+              winningParties.add(candidate.party_id.name);
+            }
+          }
+        });
+
+        // Extract unique PC names for filters
         const uniquePcNames = new Set();
-        const uniqueAcTypes = new Set();
         
         features.forEach(feature => {
           if (feature.properties?.PC_NAME) {
             uniquePcNames.add(feature.properties.PC_NAME);
           }
-          // Detect AC type from name (SC/ST) or use GEN as default
-          const acType = feature.properties?.AC_NAME?.includes('(SC)') ? 'SC' : 
-                        feature.properties?.AC_NAME?.includes('(ST)') ? 'ST' : 'GEN';
-          uniqueAcTypes.add(acType);
           
-          // Add the detected type to properties
-          feature.properties.AC_TYPE = acType;
+          // Add winning party information to each feature
+          const acNo = feature.properties?.AC_NO;
+          if (acNo && candidatesByAcNo[acNo]) {
+            feature.properties.winningParty = candidatesByAcNo[acNo].party_id?.name || 'Unknown';
+            feature.properties.winningCandidate = candidatesByAcNo[acNo].candidate_id?.name || 'Unknown';
+            feature.properties.margin = candidatesByAcNo[acNo].margin || 'N/A';
+          } else {
+            feature.properties.winningParty = 'Unknown';
+            feature.properties.winningCandidate = 'Unknown';
+            feature.properties.margin = 'N/A';
+          }
         });
 
         setPcNames(Array.from(uniquePcNames).sort());
-        setAcTypes(Array.from(uniqueAcTypes).sort());
+        setParties(Array.from(winningParties).sort());
         setAssemblyData({
           type: 'FeatureCollection',
           features: features
         });
+        setWinningCandidates(candidatesByAcNo);
 
       } catch (err) {
         console.error('Data loading error:', err);
@@ -104,8 +143,8 @@ function AssemblyConstituencyMap({ themes, ...other }) {
 
     const filteredFeatures = assemblyData.features.filter(feature => {
       const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
-      const typeMatch = filters.acType === 'all' || feature.properties?.AC_TYPE === filters.acType;
-      return pcMatch && typeMatch;
+      const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
+      return pcMatch && partyMatch;
     });
 
     return {
@@ -115,9 +154,7 @@ function AssemblyConstituencyMap({ themes, ...other }) {
   };
 
   const getColorForFeature = (feature) => {
-    if (feature.properties?.AC_NAME?.includes('(SC)')) return constituencyColors['SC'];
-    if (feature.properties?.AC_NAME?.includes('(ST)')) return constituencyColors['ST'];
-    return constituencyColors['GEN'];
+    return partyColors[feature.properties?.winningParty] || partyColors['default'];
   };
 
   const handleChangeTheme = useCallback((value) => setSelectTheme(value), []);
@@ -156,10 +193,24 @@ function AssemblyConstituencyMap({ themes, ...other }) {
               type="fill"
               paint={{
                 'fill-color': [
-                  'case',
-                  ['==', ['get', 'AC_TYPE'], 'SC'], constituencyColors['SC'],
-                  ['==', ['get', 'AC_TYPE'], 'ST'], constituencyColors['ST'],
-                  constituencyColors['GEN']
+                  'match',
+                  ['get', 'winningParty'],
+                  'Bharatiya Janata Party', partyColors['Bharatiya Janata Party'],
+                  'Indian National Congress', partyColors['Indian National Congress'],
+                  'Bahujan Samaj Party', partyColors['Bahujan Samaj Party'],
+                  'Aam Aadmi Party', partyColors['Aam Aadmi Party'],
+                  'Gondwana Ganatantra Party', partyColors['Gondwana Ganatantra Party'],
+                  'Independent', partyColors['Independent'],
+                  'Samajwadi Party', partyColors['Samajwadi Party'],
+                  'Azad Samaj Party', partyColors['Azad Samaj Party'],
+                  'Janata Dal', partyColors['Janata Dal'],
+                  'Communist Party of India', partyColors['Communist Party of India'],
+                  'Bharat Adivasi Party', partyColors['Bharat Adivasi Party'],
+                  'All India Majlis-e-Ittehadul Muslimeen', partyColors['All India Majlis-e-Ittehadul Muslimeen'],
+                  'Communist Party of India (Marxist)', partyColors['Communist Party of India (Marxist)'],
+                  'Lok Janshakti Party', partyColors['Lok Janshakti Party'],
+                  'Other Registered (Unrecognised) Parties', partyColors['Other Registered (Unrecognised) Parties'],
+                  partyColors['default']
                 ],
                 'fill-opacity': 0.7,
                 'fill-outline-color': '#000000',
@@ -213,13 +264,14 @@ function AssemblyConstituencyMap({ themes, ...other }) {
                 borderRadius: '4px'
               }}>
                 <span style={{ color: '#FFF', padding: '0 4px' }}>
-                  {popupInfo.properties.AC_TYPE || 'GEN'} Constituency
+                  {popupInfo.properties.winningParty || 'Unknown Party'}
                 </span>
               </div>
               <div style={{ marginTop: '8px' }}>
+                <p><strong>Winning Candidate:</strong> {popupInfo.properties.winningCandidate || 'Unknown'}</p>
+                <p><strong>Margin:</strong> {popupInfo.properties.margin || 'N/A'}</p>
                 <p><strong>AC Number:</strong> {popupInfo.properties.AC_NO || 'N/A'}</p>
                 <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
-                <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'}</p>
                 <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
               </div>
             </div>
@@ -263,19 +315,16 @@ function AssemblyConstituencyMap({ themes, ...other }) {
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel id="acType-filter-label">Constituency Type</InputLabel>
+          <InputLabel id="party-filter-label">Winning Party</InputLabel>
           <Select
-            labelId="acType-filter-label"
-            value={filters.acType}
-            label="Constituency Type"
-            onChange={(e) => handleFilterChange('acType', e.target.value)}
+            labelId="party-filter-label"
+            value={filters.party}
+            label="Winning Party"
+            onChange={(e) => handleFilterChange('party', e.target.value)}
           >
-            <MenuItem value="all">All Types</MenuItem>
-            {acTypes.map(type => (
-              <MenuItem key={type} value={type}>
-                {type === 'SC' ? 'Scheduled Caste' : 
-                 type === 'ST' ? 'Scheduled Tribe' : 'General'}
-              </MenuItem>
+            <MenuItem value="all">All Parties</MenuItem>
+            {parties.map(party => (
+              <MenuItem key={party} value={party}>{party}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -291,31 +340,23 @@ function AssemblyConstituencyMap({ themes, ...other }) {
           backgroundColor: 'rgba(255, 255, 255, 0.9)',
           padding: 2,
           borderRadius: 1,
-          width: 200,
+          width: 250,
           boxShadow: 3
         }}
       >
-        <Typography variant="h6" gutterBottom>
-          Constituency Types
-        </Typography>
-        {Object.entries({
-          'SC': 'Scheduled Caste',
-          'ST': 'Scheduled Tribe',
-          'GEN': 'General'
-        }).map(([type, label]) => (
-          <Box key={type} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <Box 
-              sx={{ 
-                width: 16, 
-                height: 16, 
-                backgroundColor: constituencyColors[type], 
-                mr: 1,
-                border: '1px solid #000'
-              }} 
-            />
-            <Typography variant="body2">{label}</Typography>
-          </Box>
-        ))}
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Box 
+            sx={{ 
+              width: 16, 
+              height: 16, 
+              backgroundColor: partyColors['default'], 
+              mr: 1,
+              border: '1px solid #000'
+            }} 
+          />
+          <Typography variant="body2">Other Parties</Typography>
+        </Box>
       </Box>
 
       {/* Loading Indicator */}
@@ -333,7 +374,7 @@ function AssemblyConstituencyMap({ themes, ...other }) {
           }}
         >
           <CircularProgress size={60} thickness={4} />
-          <Typography variant="body1" sx={{ mt: 2 }}>Loading Assembly Data...</Typography>
+          <Typography variant="body1" sx={{ mt: 2 }}>Loading Data...</Typography>
         </Box>
       )}
 
