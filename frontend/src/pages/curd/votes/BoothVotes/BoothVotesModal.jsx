@@ -82,11 +82,7 @@ export default function BoothVotesModal({
 
   useEffect(() => {
     if (formData.election_year_id) {
-      const filtered = candidates?.filter(
-        (candidate) =>
-          candidate.election_year_id === formData.election_year_id || // direct match
-          candidate.election_year?._id === formData.election_year_id  // if populated
-      ) || [];
+      const filtered = candidates || [];
       setFilteredCandidates(filtered);
     } else {
       setFilteredCandidates([]);
