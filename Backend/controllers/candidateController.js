@@ -151,11 +151,21 @@ exports.updateCandidate = async (req, res, next) => {
       const config = require('../config/config');
       updateData.photo = `${config.BASE_URL}/uploads/candidate/${req.file.filename}`;
 
-      // Optionally: delete old photo file
+      // Delete old photo file if it exists
       if (candidate.photo) {
-        const oldPath = path.join(__dirname, `../${candidate.photo}`);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath); // delete old image
+        try {
+          // Extract the filename from the full URL
+          const oldFileName = candidate.photo.split('/').pop();
+          const oldPath = path.join(__dirname, '../uploads/candidate', oldFileName);
+
+          // Check if file exists before attempting to delete
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+            console.log('Successfully deleted old image:', oldPath);
+          }
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+          // Continue with update even if delete fails
         }
       }
     }
@@ -190,6 +200,23 @@ exports.deleteCandidate = async (req, res, next) => {
         success: false,
         message: 'Candidate not found'
       });
+    }
+
+    // Delete the photo file if it exists
+    if (candidate.photo) {
+      try {
+        // Extract the filename from the full URL
+        const fileName = candidate.photo.split('/').pop();
+        const imagePath = path.join(__dirname, '../uploads/candidate', fileName);
+
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+          console.log('Successfully deleted image file:', imagePath);
+        }
+      } catch (error) {
+        console.error('Error deleting image file:', error);
+        // Continue with deletion even if file removal fails
+      }
     }
 
     // Soft delete by setting is_active to false
