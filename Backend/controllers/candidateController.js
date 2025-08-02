@@ -100,9 +100,10 @@ exports.createCandidate = async (req, res, next) => {
         created_by: req.user.id
       };
 
+      const config = require('../config/config');
       // Handle file upload
       if (req.file) {
-        candidateData.photo = `/uploads/candidate/${req.file.filename}`;
+        candidateData.photo = `${config.BASE_URL}/uploads/candidate/${req.file.filename}`;
         console.log('Setting photo path:', candidateData.photo);
       }
 
@@ -147,7 +148,8 @@ exports.updateCandidate = async (req, res, next) => {
 
     // If a new photo is uploaded
     if (req.file) {
-      updateData.photo = `/uploads/candidate/${req.file.filename}`;
+      const config = require('../config/config');
+      updateData.photo = `${config.BASE_URL}/uploads/candidate/${req.file.filename}`;
 
       // Optionally: delete old photo file
       if (candidate.photo) {

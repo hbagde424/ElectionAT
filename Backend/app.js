@@ -2,7 +2,6 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-// const path = require('path');
 const errorHandler = require('./middlewares/errorHandler');
 const connectDB = require('./config/db');
 const { specs, swaggerUi } = require('./config/swagger');
@@ -85,14 +84,31 @@ if (process.env.NODE_ENV === 'development') {
 // Enable CORS
 app.use(cors({
   origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
-// Set security headers
-app.use(helmet());
+// Set security headers with proper configuration for images
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "http://localhost:5000"]
+    }
+  }
+}));
 
 // Serve static files from uploads directory
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 
 // Add Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
