@@ -130,7 +130,7 @@ exports.createCandidate = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateCandidate = async (req, res, next) => {
   try {
-    let candidate = await Candidate.findById(req.params.id);
+    const candidate = await Candidate.findById(req.params.id);
 
     if (!candidate) {
       return res.status(404).json({
@@ -139,43 +139,42 @@ exports.updateCandidate = async (req, res, next) => {
       });
     }
 
-    // Set updated_by to current user
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-    req.body.updated_by = req.user.id;
-    req.body.updated_at = new Date();
+    // Prepare update data
+    const updateData = {
+      ...req.body,
+      updated_by: req.user.id
+    };
 
-    // Handle file upload
+    // If a new photo is uploaded
     if (req.file) {
-      // Delete old photo if exists
+      updateData.photo = `/uploads/candidate/${req.file.filename}`;
+
+      // Optionally: delete old photo file
       if (candidate.photo) {
-        const oldPhotoPath = path.join(__dirname, '..', candidate.photo);
-        if (fs.existsSync(oldPhotoPath)) {
-          fs.unlinkSync(oldPhotoPath);
+        const oldPath = path.join(__dirname, `../${candidate.photo}`);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath); // delete old image
         }
       }
-      req.body.photo = `/uploads/candidate/${req.file.filename}`;
     }
 
-    candidate = await Candidate.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    })
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
+    // Update candidate
+    const updatedCandidate = await Candidate.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
 
     res.status(200).json({
       success: true,
-      data: candidate
+      data: updatedCandidate
     });
   } catch (err) {
-    next(err);
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 // @desc    Delete candidate (soft delete)
 // @route   DELETE /api/candidates/:id
