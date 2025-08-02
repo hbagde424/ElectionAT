@@ -130,6 +130,21 @@ export default function AssemblyListPage() {
             )
         },
         {
+            header: 'Assembly NO',
+            accessorKey: 'AC_NO',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue()}
+                </Typography>
+            )
+        },
+        
+        {
             header: 'Type',
             accessorKey: 'type',
             cell: ({ getValue }) => (
