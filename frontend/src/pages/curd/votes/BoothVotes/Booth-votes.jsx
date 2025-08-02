@@ -46,6 +46,7 @@ export default function BoothVotesListPage() {
   const [candidates, setCandidates] = useState([]);
   const [electionYears, setElectionYears] = useState([]);
   const [users, setUsers] = useState([]);
+  const [parties, setParties] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -135,7 +136,7 @@ export default function BoothVotesListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
+      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes, partiesRes] = await Promise.all([
         fetch('http://localhost:5000/api/states'),
         fetch('http://localhost:5000/api/divisions'),
         fetch('http://localhost:5000/api/parliaments'),
@@ -144,7 +145,8 @@ export default function BoothVotesListPage() {
         fetch('http://localhost:5000/api/booths'),
         fetch('http://localhost:5000/api/candidates'),
         fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users')
+        fetch('http://localhost:5000/api/users'),
+        fetch('http://localhost:5000/api/parties')
       ]);
 
       const statesJson = await statesRes.json();
@@ -156,6 +158,7 @@ export default function BoothVotesListPage() {
       const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
       const usersJson = await usersRes.json();
+      const partiesJson = await partiesRes.json();
 
       console.log('Fetched reference data:', candidatesJson.data);
 
@@ -168,6 +171,7 @@ export default function BoothVotesListPage() {
       if (candidatesJson.success) setCandidates(candidatesJson.data);
       if (electionYearsJson?.success) setElectionYears(electionYearsJson.data || []);
       if (usersJson.success) setUsers(usersJson.data);
+      if (partiesJson.success) setParties(partiesJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
@@ -425,9 +429,9 @@ export default function BoothVotesListPage() {
                 }}
               >
                 <MenuItem value="">All Parties</MenuItem>
-                {Array.from(new Set(candidates.map(c => c.party_id).filter(Boolean))).map((party) => (
+                {parties.map((party) => (
                   <MenuItem key={party._id} value={party._id}>
-                    {party.name}
+                    {party.name} ({party.abbreviation})
                   </MenuItem>
                 ))}
               </Select>
