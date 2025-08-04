@@ -12,17 +12,15 @@ const Year = require('../models/electionYear');
 // @access  Public
 exports.getWinningCandidates = async (req, res, next) => {
   try {
-    // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
-    // Basic query
     let query = WinningCandidate.find()
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
+      .populate('assembly_id', 'name AC_NO') // ✅ added assembly_no
       .populate('party_id', 'name')
       .populate('year_id', 'year')
       .populate('candidate_id', 'name')
@@ -30,7 +28,6 @@ exports.getWinningCandidates = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ total_votes: -1 });
 
-    // Search functionality (could search by candidate name through population)
     if (req.query.search) {
       query = query.find({
         $or: [
@@ -40,32 +37,29 @@ exports.getWinningCandidates = async (req, res, next) => {
       });
     }
 
-    // Filter by assembly
     if (req.query.assembly) {
       query = query.where('assembly_id').equals(req.query.assembly);
     }
-
-    // Filter by parliament
     if (req.query.parliament) {
       query = query.where('parliament_id').equals(req.query.parliament);
     }
-
-    // Filter by party
     if (req.query.party) {
       query = query.where('party_id').equals(req.query.party);
     }
-
-    // Filter by state
     if (req.query.state) {
       query = query.where('state_id').equals(req.query.state);
     }
-
-    // Filter by division
     if (req.query.division) {
       query = query.where('division_id').equals(req.query.division);
     }
+     let winningCandidates;
+// TODO:We have to do this in all apis
+if (req.query.all === 'true') {
+    winningCandidates = await query.exec(); // fetch all
+} else {
+    winningCandidates = await query.skip(skip).limit(limit).exec(); // paginated
+}
 
-    const winningCandidates = await query.skip(skip).limit(limit).exec();
     const total = await WinningCandidate.countDocuments(query.getFilter());
 
     res.status(200).json({
@@ -80,6 +74,7 @@ exports.getWinningCandidates = async (req, res, next) => {
     next(err);
   }
 };
+
 
 exports.getWinningCandidatesForGraph = async (req, res, next) => {
   try {
