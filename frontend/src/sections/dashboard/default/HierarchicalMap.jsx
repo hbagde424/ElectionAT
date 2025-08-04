@@ -89,6 +89,25 @@ const HierarchicalMap = () => {
         if (!mapInstanceRef.current && mapRef.current) {
             mapInstanceRef.current = L.map(mapRef.current).setView([23.4707, 77.9455], 6); // Centered on MP
 
+            // --- Add India GeoJSON as a non-interactive background layer ---
+            fetch('/india.geojson')
+                .then(res => res.json())
+                .then(indiaData => {
+                    L.geoJSON(indiaData, {
+                        style: {
+                            color: '#003366', // dark blue outline
+                            weight: 4,
+                            fillOpacity: 0.07,
+                            fillColor: '#e0e0e0'
+                        },
+                        interactive: false
+                    }).addTo(mapInstanceRef.current);
+                })
+                .catch(err => {
+                    console.error('Could not load India GeoJSON:', err);
+                });
+            // --- End India GeoJSON block ---
+
             // Add location found event handler
             mapInstanceRef.current.on('locationfound', (e) => {
                 setUserLocation(e.latlng);
