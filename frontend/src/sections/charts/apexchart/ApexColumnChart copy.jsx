@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
-
-// material-ui
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
-
-// third-party
 import ReactApexChart from 'react-apexcharts';
-
+import axios from 'axios';
 import { ThemeMode } from 'config';
 
+// Chart options configuration
 const columnChartOptions = {
   chart: {
     type: 'bar',
-    height: 350
+    height: 350,
+    stacked: false
   },
   plotOptions: {
     bar: {
@@ -31,11 +29,16 @@ const columnChartOptions = {
     colors: ['transparent']
   },
   xaxis: {
-    categories: [] // updated in useEffect
+    categories: []
   },
   yaxis: {
     title: {
-      text: '% Voter Turnout'
+      text: 'Number of Voters'
+    },
+    labels: {
+      formatter: function(val) {
+        return val.toLocaleString(); // Format numbers with commas
+      }
     }
   },
   fill: {
@@ -43,14 +46,14 @@ const columnChartOptions = {
   },
   tooltip: {
     y: {
-      formatter(val) {
-        return `${val}%`;
+      formatter: function(val) {
+        return val.toLocaleString(); // Format tooltip numbers with commas
       }
     }
   },
   legend: {
     show: true,
-    fontFamily: `Inter var`,
+    fontFamily: `'Inter', sans-serif`,
     position: 'bottom',
     offsetX: 10,
     offsetY: 10,
@@ -72,7 +75,7 @@ const columnChartOptions = {
       breakpoint: 600,
       options: {
         yaxis: {
-          show: false
+          show: true // Keep y-axis visible on mobile
         }
       }
     }
@@ -84,50 +87,113 @@ export default function VoterTurnoutChart() {
   const mode = theme.palette.mode;
   const matchDownMd = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Theme colors
   const { primary } = theme.palette.text;
   const line = theme.palette.divider;
-  const grey200 = theme.palette.secondary[200];
-
   const secondary = theme.palette.primary[700];
   const primaryMain = theme.palette.primary.main;
   const successDark = theme.palette.success.main;
 
-  const constituencies = [
-    'Bhopal', 'Indore', 'Gwalior', 'Jabalpur', 'Ujjain',
-    'Rewa', 'Satna', 'Sagar', 'Chhindwara', 'Ratlam'
-  ];
-
-  const [series] = useState([
-    {
-      name: '2014 Turnout',
-      data: [60, 62, 58, 65, 59, 61, 60, 64, 66, 63]
-    },
-    {
-      name: '2019 Turnout',
-      data: [68, 70, 64, 69, 63, 67, 66, 71, 73, 69]
-    }
-  ]);
-
-  const [options, setOptions] = useState({
-    ...columnChartOptions,
-    xaxis: {
-      categories: constituencies
-    }
-  });
+  // State for chart data
+  const [series, setSeries] = useState([]);
+  const [options, setOptions] = useState(columnChartOptions);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedYear, setSelectedYear] = useState('2024'); // Default year
 
   useEffect(() => {
-    setOptions((prevState) => ({
-      ...prevState,
-      colors: [secondary, primaryMain, successDark],
-      xaxis: {
-        ...prevState.xaxis,
-        categories: constituencies,
-        labels: {
-          style: {
-            colors: constituencies.map(() => primary)
-          }
+    const fetchVoterTurnoutData = async () => {
+      try {
+        // First get all available years
+        const yearsResponse = await axios.get('http://localhost:5000/api/election-years');
+        const years = yearsResponse.data.data;
+        
+        if (!years || years.length === 0) {
+          throw new Error('No election years available');
         }
-      },
+
+        // Fetch data for each year
+        const yearDataPromises = years.map(year => 
+          axios.get('http://localhost:5000/api/voter-turnout', {
+            params: {
+              year: year._id,
+              limit: 10
+            }
+          })
+        );
+
+        const yearResponses = await Promise.all(yearDataPromises);
+        
+        // Process data for each year
+        const processedData = yearResponses.map((response, index) => {
+          const yearData = response.data.data;
+          const year = years[index].year;
+          
+          if (!yearData || yearData.length === 0) {
+            return null;
+          }
+
+          // Sum up total voters and votes across all constituencies for this year
+          const totalVoters = yearData.reduce((sum, item) => sum + (item.total_voter || 0), 0);
+          const totalVotes = yearData.reduce((sum, item) => sum + (item.total_votes || 0), 0);
+
+          return {
+            year,
+            totalVoters,
+            totalVotes
+          };
+        }).filter(Boolean); // Remove null entries
+
+        if (processedData.length === 0) {
+          throw new Error('No valid voter turnout data available');
+        }
+
+        // Prepare chart data
+        const categories = processedData.map(item => item.year.toString());
+        const votersData = processedData.map(item => item.totalVoters);
+        const votesData = processedData.map(item => item.totalVotes);
+
+        setSeries([
+          {
+            name: 'Total Voters',
+            data: votersData
+          },
+          {
+            name: 'Total Votes',
+            data: votesData
+          }
+        ]);
+
+        // Update chart options
+        setOptions(prevOptions => ({
+          ...prevOptions,
+          xaxis: {
+            ...prevOptions.xaxis,
+            categories: categories,
+            labels: {
+              style: {
+                colors: Array(categories.length).fill(primary)
+              }
+            }
+          }
+        }));
+
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching voter turnout data:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchVoterTurnoutData();
+  }, [primary]);
+
+  // Update theme-related options
+  useEffect(() => {
+    setOptions(prevState => ({
+      ...prevState,
+      colors: [secondary, successDark], // Different colors for voters and votes
       yaxis: {
         ...prevState.yaxis,
         labels: {
@@ -140,19 +206,41 @@ export default function VoterTurnoutChart() {
         borderColor: line
       },
       legend: {
+        ...prevState.legend,
         labels: {
-          colors: 'secondary.main'
+          colors: primary
         }
       },
       theme: {
         mode: mode === ThemeMode.DARK ? 'dark' : 'light'
       }
     }));
-  }, [mode, primary, line, grey200, secondary, primaryMain, successDark]);
+  }, [mode, primary, line, secondary, successDark]);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height={350}>
+        <p>Loading voter turnout data...</p>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height={350}>
+        <p>Error: {error}</p>
+      </Box>
+    );
+  }
 
   return (
     <Box id="chart" sx={{ '& .apexcharts-legend': { flexDirection: matchDownMd ? 'column' : 'row' } }}>
-      <ReactApexChart options={options} series={series} type="bar" height={350} />
+      <ReactApexChart 
+        options={options} 
+        series={series} 
+        type="bar" 
+        height={350} 
+      />
     </Box>
   );
 }
