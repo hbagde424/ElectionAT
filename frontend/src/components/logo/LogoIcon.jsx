@@ -16,9 +16,9 @@ export default function LogoIcon() {
 
   return (
     <img
-      src="https://cdn.pixabay.com/photo/2023/09/14/10/27/face-logo-8252748_1280.png"
+      src="http://electionatlas.in/logo2"
       alt="logo"
-      width="100"
+      width="110"
       height="100"
     />
   );
