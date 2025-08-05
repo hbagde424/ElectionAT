@@ -8,7 +8,8 @@ const {
   deleteWinningCandidate,
   getWinningCandidatesByAssembly,
   getWinningCandidatesByParliament,
-  getWinningCandidatesByParty
+  getWinningCandidatesByParty,
+  getCandidatesByAssemblyAndYear
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -141,6 +142,94 @@ router.get('/:id', getWinningCandidate);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin'), createWinningCandidate);
+
+/**
+ * @swagger
+ * /api/winning-candidates/assembly/{assemblyId}/year/{yearId}:
+ *   get:
+ *     summary: Get candidates by assembly and year with statistics
+ *     tags: [WinningCandidates]
+ *     parameters:
+ *       - in: path
+ *         name: assemblyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assembly ID
+ *       - in: path
+ *         name: yearId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Year ID
+ *     responses:
+ *       200:
+ *         description: Candidates data with statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     assembly:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         ac_no:
+ *                           type: string
+ *                     year:
+ *                       type: string
+ *                     total_candidates:
+ *                       type: integer
+ *                     total_votes_cast:
+ *                       type: integer
+ *                     winner:
+ *                       type: object
+ *                       properties:
+ *                         candidate_id:
+ *                           type: string
+ *                         candidate_name:
+ *                           type: string
+ *                         party_id:
+ *                           type: string
+ *                         party_name:
+ *                           type: string
+ *                         votes_received:
+ *                           type: number
+ *                         margin:
+ *                           type: number
+ *                         margin_percentage:
+ *                           type: string
+ *                     all_candidates:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           candidate_id:
+ *                             type: string
+ *                           candidate_name:
+ *                             type: string
+ *                           party_id:
+ *                             type: string
+ *                           party_name:
+ *                             type: string
+ *                           party_symbol:
+ *                             type: string
+ *                           votes_received:
+ *                             type: number
+ *                           voting_percentage:
+ *                             type: string
+ *       404:
+ *         description: Assembly, year or candidates not found
+ */
+router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
 
 /**
  * @swagger
