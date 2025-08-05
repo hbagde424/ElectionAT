@@ -39,7 +39,11 @@ import CasteList from 'pages/curd/caste list/caste-list';
 import BoothVotes from 'pages/curd/votes/BoothVotes/Booth-votes';
 import WinningParty from 'pages/curd/winning-parties/WinningPartiesList';
 import GovernmentSchema from 'pages/curd/Government Schema/GovernmentSchema';
+import AssemblyGraph from 'sections/widget/chart/AssemblySetGrapd';
+import MainCard from 'components/MainCard';
+import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
 
+import Booth from 'sections/widget/chart/BoothSetGrapd';
 // Icons
 import { Eye, EyeSlash } from 'iconsax-react';
 
@@ -78,6 +82,23 @@ export default function DashboardDefault() {
       <Grid item xs={12}>
         <HierarchicalMap />
       </Grid>
+
+      <Grid item xs={12} md={6}>
+        <AssemblyGraph />
+      </Grid>
+      {/* <Grid item xs={12} md={6}>
+              <TotalIncome />
+            </Grid> */}
+      <Grid item xs={12} md={6}>
+        <Booth />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <MainCard title="Avrage Voter Turnout">
+          <ApexColumnChart />
+        </MainCard>
+      </Grid>
+
 
       <Grid item xs={12} sm={6} >
         <BoothSurveyListPage />
