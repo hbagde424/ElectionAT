@@ -12,7 +12,7 @@ import {
   Icon
 } from '@mui/material';
 import html2canvas from 'html2canvas';
-
+import { ImportCurve } from 'iconsax-react';
 import ReactApexChart from 'react-apexcharts';
 
 import MainCard from 'components/MainCard';
@@ -35,7 +35,7 @@ const getPieChartOptions = (parties, totalSeats) => ({
           show: true,
           total: {
             show: true,
-            label: 'Total Seats',
+            label: 'Total Assembly',
             formatter: () => totalSeats
           }
         }
@@ -247,9 +247,9 @@ export default function TotalIncome() {
                 variant="contained"
                 color="primary"
                 onClick={downloadFullChart}
-
+                startIcon={<ImportCurve />}
               >
-                Download
+                
               </Button>
               <IconButton onClick={handleClick}>
                 <MoreIcon />
