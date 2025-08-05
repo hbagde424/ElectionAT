@@ -285,7 +285,7 @@ const CRUDMenu = {
     },
     {
       id: 'WInningCandidateList',
-      title: <FormattedMessage id="Winning Candidate List" />,
+      title: <FormattedMessage id="Winning Assembly List" />,
       type: 'item',
       url: '/WInningCandidateList',
       icon: icons.Award,
