@@ -58,6 +58,130 @@ exports.getVisits = async (req, res, next) => {
       query = query.where('candidate_id').equals(req.query.candidate);
     }
 
+    // Region-based filters
+    // Handle both ID and name-based filtering for state
+    if (req.query.state_id || req.query.state) {
+      if (req.query.state) {
+        // Remove hyphens from the state name and convert to normal space
+        const stateName = req.query.state.replace(/-/g, ' ');
+        const state = await State.findOne({
+          name: { $regex: new RegExp('^' + stateName + '$', 'i') }
+        });
+        console.log('stateashok', stateName);
+        if (state) {
+          query = query.where('state_id').equals(state._id);
+        }
+      } else {
+        query = query.where('state_id').equals(req.query.state_id);
+      }
+    }
+
+    // Handle both ID and name-based filtering for division
+    if (req.query.division_id || req.query.division) {
+      if (req.query.division) {
+        const division = await Division.findOne({
+          name: { $regex: new RegExp('^' + req.query.division.replace(/-/g, ' ') + '$', 'i') }
+        });
+        if (division) {
+          query = query.where('division_id').equals(division._id);
+        }
+      } else {
+        query = query.where('division_id').equals(req.query.division_id);
+      }
+    }
+
+    // Handle both ID and name-based filtering for parliament
+    if (req.query.parliament_id || req.query.parliament) {
+      if (req.query.parliament) {
+        const parliament = await Parliament.findOne({
+          name: { $regex: new RegExp('^' + req.query.parliament.replace(/-/g, ' ') + '$', 'i') }
+        });
+        if (parliament) {
+          query = query.where('parliament_id').equals(parliament._id);
+        }
+      } else {
+        query = query.where('parliament_id').equals(req.query.parliament_id);
+      }
+    }
+
+    // Handle assembly filtering by number or id
+    if (req.query.assembly_id || req.query.assembly) {
+      if (req.query.assembly) {
+        // Check if it's a number
+        if (!isNaN(req.query.assembly)) {
+          // Search by assembly number
+          const assembly = await Assembly.findOne({
+            assembly_number: req.query.assembly
+          });
+          if (assembly) {
+            query = query.where('assembly_id').equals(assembly._id);
+          }
+        } else {
+          // Search by name
+          const assembly = await Assembly.findOne({
+            name: { $regex: new RegExp('^' + req.query.assembly.replace(/-/g, ' ') + '$', 'i') }
+          });
+          if (assembly) {
+            query = query.where('assembly_id').equals(assembly._id);
+          }
+        }
+      } else {
+        query = query.where('assembly_id').equals(req.query.assembly_id);
+      }
+    }
+
+    // Handle block filtering
+    if (req.query.block_id || req.query.block) {
+      if (req.query.block) {
+        // Convert query to proper case and clean up
+        const blockName = req.query.block
+          .replace(/-/g, ' ')
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+
+        const block = await Block.findOne({
+          $or: [
+            { name: blockName }, // Exact match with proper case
+            { name: { $regex: new RegExp('^' + req.query.block + '$', 'i') } } // Case-insensitive match
+          ]
+        });
+        if (block) {
+          query = query.where('block_id').equals(block._id);
+        }
+      } else {
+        query = query.where('block_id').equals(req.query.block_id);
+      }
+    }
+
+    // Handle booth filtering (format: booth-NUMBER-NUMBER)
+    if (req.query.booth_id || req.query.booth) {
+      if (req.query.booth) {
+        // Handle format like 'booth-2-98'
+        const boothMatch = req.query.booth.match(/booth-(\d+)-(\d+)/);
+        if (boothMatch) {
+          const boothNumber = boothMatch[2]; // Get the last number
+          const booth = await Booth.findOne({
+            booth_number: boothNumber
+          });
+          if (booth) {
+            query = query.where('booth_id').equals(booth._id);
+          }
+        } else {
+          // Fallback to name search if format doesn't match
+          const booth = await Booth.findOne({
+            name: { $regex: new RegExp('^' + req.query.booth.replace(/-/g, ' ') + '$', 'i') }
+          });
+          if (booth) {
+            query = query.where('booth_id').equals(booth._id);
+          }
+        }
+      } else {
+        query = query.where('booth_id').equals(req.query.booth_id);
+      }
+    }
+
     // Filter by location proximity if lat/lng and radius provided
     if (req.query.latitude && req.query.longitude && req.query.radius) {
       const lat = parseFloat(req.query.latitude);
