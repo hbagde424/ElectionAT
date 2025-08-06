@@ -49,7 +49,10 @@ import CasteList from 'pages/curd/caste list/caste-list';
 import BoothVotes from 'pages/curd/votes/BoothVotes/Booth-votes';
 import WinningParty from 'pages/curd/winning-parties/WinningPartiesList';
 import GovernmentSchema from 'pages/curd/Government Schema/GovernmentSchema';
+import AssemblyGraph from 'sections/widget/chart/AssemblySetGrapd';
+import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
 
+import Booth from 'sections/widget/chart/BoothSetGrapd';
 // Icons
 import { Eye, EyeSlash } from 'iconsax-react';
 
@@ -71,7 +74,6 @@ import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 
 
 export default function DashboardDefault() {
@@ -120,63 +122,19 @@ export default function DashboardDefault() {
         <HierarchicalMap />
       </Grid>
 
-      {/* Visits Table Row */}
-      <Grid item xs={12}>
-        <MainCard content={false}>
-          <ScrollX>
-            <TableContainer>
-              {loading ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>#</TableCell>
-                      <TableCell>Candidate</TableCell>
-                      <TableCell>Post</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Booth</TableCell>
-                      <TableCell>Location</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {visits.map((visit, index) => (
-                      <TableRow key={visit._id}>
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell>
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            <Avatar src={visit.candidate_id?.photo} sx={{ width: 32, height: 32 }} />
-                            <Typography>{visit.candidate_id?.name || 'N/A'}</Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>{visit.post || 'N/A'}</TableCell>
-                        <TableCell>{new Date(visit.date).toLocaleDateString('en-IN')}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={visit.work_status?.toUpperCase() || 'N/A'}
-                            color={
-                              visit.work_status === 'complete' ? 'success' :
-                                visit.work_status === 'in progress' ? 'warning' :
-                                  visit.work_status === 'approved' ? 'info' : 'default'
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{visit.booth_id?.name || 'N/A'}</TableCell>
-                        <TableCell>{visit.locationName || 'N/A'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TableContainer>
-            <Box sx={{ p: 2 }}>
+      <Grid item xs={12} md={6}>
+        <AssemblyGraph />
+      </Grid>
+      {/* <Grid item xs={12} md={6}>
+              <TotalIncome />
+            </Grid> */}
+      <Grid item xs={12} md={6}>
+        <Booth />
+      </Grid>
 
-            </Box>
-          </ScrollX>
+      <Grid item xs={12} md={6}>
+        <MainCard title="Avrage Voter Turnout">
+          <ApexColumnChart />
         </MainCard>
       </Grid>
 
@@ -250,7 +208,65 @@ export default function DashboardDefault() {
           <EcommerceDataChart color={theme.palette.error.dark} />
         </EcommerceDataCard>
       </Grid>
+      <Grid item xs={12} sm={12} lg={12}>
+        <Typography variant="h6" gutterBottom>
+          Recent Visitis
+        </Typography>
+        <ScrollX>
+          <TableContainer>
+            {loading ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Candidate</TableCell>
+                    <TableCell>Post</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Booth</TableCell>
+                    <TableCell>Location</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {visits.map((visit, index) => (
+                    <TableRow key={visit._id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Avatar src={visit.candidate_id?.photo} sx={{ width: 32, height: 32 }} />
+                          <Typography>{visit.candidate_id?.name || 'N/A'}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{visit.post || 'N/A'}</TableCell>
+                      <TableCell>{new Date(visit.date).toLocaleDateString('en-IN')}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={visit.work_status?.toUpperCase() || 'N/A'}
+                          color={
+                            visit.work_status === 'complete' ? 'success' :
+                              visit.work_status === 'in progress' ? 'warning' :
+                                visit.work_status === 'approved' ? 'info' : 'default'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{visit.booth_id?.name || 'N/A'}</TableCell>
+                      <TableCell>{visit.locationName || 'N/A'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TableContainer>
+          <Box sx={{ p: 2 }}>
 
+          </Box>
+        </ScrollX>
+      </Grid>
       {/* Row 2 */}
       <Grid item xs={12} md={8} lg={9}>
         <Grid container spacing={3}>

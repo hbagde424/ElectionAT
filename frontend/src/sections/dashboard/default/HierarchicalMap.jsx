@@ -92,11 +92,11 @@ const HierarchicalMap = () => {
             // --- Add India GeoJSON as a non-interactive background layer ---
             fetch('/india.geojson')
                 .then(res => res.json())
-                .then(indiaData => {
+                .then(indiaData => {    
                     L.geoJSON(indiaData, {
                         style: {
                             color: '#003366', // dark blue outline
-                            weight: 4,
+                            weight: 1,
                             fillOpacity: 0.07,
                             fillColor: '#e0e0e0'
                         },

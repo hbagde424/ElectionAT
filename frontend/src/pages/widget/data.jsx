@@ -44,11 +44,12 @@ import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import ChangeTheme from 'sections/maps/change-theme';
 import MainCard from 'components/MainCard';
 // total incon
-import TotalIncome from 'sections/widget/chart/AssemblySetGrapd';
+import AssemblyGraph from 'sections/widget/chart/AssemblySetGrapd';
 // import TotalIncome from 'sections/widget/chart/TotalIncome copy';
 import Booth from 'sections/widget/chart/BoothSetGrapd';
 
 import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
+import CandidateAssemblyVote from 'sections/charts/apexchart/CandidateAssemblyVotes';
 
 import ApexMixedChart from 'sections/charts/apexchart/ApexMixedChart copy';
 
@@ -88,7 +89,7 @@ export default function WidgetData() {
       </Grid>
 
       <Grid item xs={12} md={6}>
-        <TotalIncome />
+        <AssemblyGraph />
       </Grid>
        {/* <Grid item xs={12} md={6}>
         <TotalIncome />
@@ -100,6 +101,12 @@ export default function WidgetData() {
       <Grid item xs={12} md={6}>
         <MainCard title="Avrage Voter Turnout">
           <ApexColumnChart />
+        </MainCard>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <MainCard title="Avrage Voter Turnout">
+          <CandidateAssemblyVote />
         </MainCard>
       </Grid>
 

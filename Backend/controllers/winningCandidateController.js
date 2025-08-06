@@ -402,3 +402,89 @@ exports.getWinningCandidatesByParty = async (req, res, next) => {
     next(err);
   }
 };
+
+
+
+// @desc    Get candidates by assembly and year with vote statistics
+// @route   GET /api/winning-candidates/assembly/:assemblyId/year/:yearId
+// @access  Public
+exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
+  try {
+    // Verify assembly exists
+    const assembly = await Assembly.findById(req.params.assemblyId);
+    if (!assembly) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assembly not found'
+      });
+    }
+
+    // Verify year exists
+    const year = await Year.findById(req.params.yearId);
+    if (!year) {
+      return res.status(404).json({
+        success: false,
+        message: 'Election year not found'
+      });
+    }
+
+    // Get all candidates for this assembly and year
+    const candidates = await WinningCandidate.find({
+      assembly_id: req.params.assemblyId,
+      year_id: req.params.yearId
+    })
+      .sort({ total_votes: -1 }) // Sort by votes in descending order
+      .populate('party_id', 'name symbol') // Include party name and symbol
+      .populate('candidate_id', 'name') // Include candidate name
+      .lean(); // Convert to plain JavaScript object
+
+    if (candidates.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No candidates found for this assembly and year combination'
+      });
+    }
+
+    // Calculate statistics
+    const totalCandidates = candidates.length;
+    const totalVotesCast = candidates.reduce((sum, candidate) => sum + candidate.total_votes, 0);
+    const winner = candidates[0]; // First one after sorting by votes
+
+    // Format the response
+    const response = {
+      success: true,
+      data: {
+        assembly: {
+          id: assembly._id,
+          name: assembly.name,
+          ac_no: assembly.AC_NO
+        },
+        year: year.year,
+        total_candidates: totalCandidates,
+        total_votes_cast: totalVotesCast,
+        winner: {
+          candidate_id: winner.candidate_id._id,
+          candidate_name: winner.candidate_id.name,
+          party_id: winner.party_id._id,
+          party_name: winner.party_id.name,
+          votes_received: winner.total_votes,
+          margin: winner.margin,
+          margin_percentage: winner.margin_percentage
+        },
+        all_candidates: candidates.map(candidate => ({
+          candidate_id: candidate.candidate_id._id,
+          candidate_name: candidate.candidate_id.name,
+          party_id: candidate.party_id._id,
+          party_name: candidate.party_id.name,
+          party_symbol: candidate.party_id.symbol,
+          votes_received: candidate.total_votes,
+          voting_percentage: candidate.voting_percentage
+        }))
+      }
+    };
+
+    res.status(200).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
