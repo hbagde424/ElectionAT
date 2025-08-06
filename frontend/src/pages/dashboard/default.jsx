@@ -94,7 +94,7 @@ export default function DashboardDefault() {
       </Grid>
 
       <Grid item xs={12} md={6}>
-        <MainCard title="Avrage Voter Turnout">
+        <MainCard title="average Voter Turnout">
           <ApexColumnChart />
         </MainCard>
       </Grid>
