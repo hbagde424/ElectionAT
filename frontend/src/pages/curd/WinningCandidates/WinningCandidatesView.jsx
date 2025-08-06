@@ -81,6 +81,30 @@ export default function WinningCandidateView({ data }) {
                                 {data.total_votes || '0'}
                             </Typography>
                         </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Poll Percentage
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.poll_percentage || 'N/A'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Election Type
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {Array.isArray(data.type) ? data.type.join(', ') : (data.type || 'N/A')}
+                            </Typography>
+                        </Box>
                     </Stack>
                 </Grid>
 

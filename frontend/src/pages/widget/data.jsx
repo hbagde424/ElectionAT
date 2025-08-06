@@ -123,7 +123,7 @@ export default function WidgetData() {
 
 
       {/* row 1 */}
-      {/* <Grid item xs={12} md={6} lg={4}>
+      <Grid item xs={12} md={6} lg={4}>
         <MyTask />
       </Grid>
       <Grid item xs={12} md={6} lg={4}>
@@ -131,26 +131,26 @@ export default function WidgetData() {
       </Grid>
       <Grid item xs={12} lg={4} md={12}>
         <TeamMembers />
-      </Grid> */}
+      </Grid>
 
       {/* row 2 */}
-      {/* <Grid item xs={12} md={7} lg={8}>
+      <Grid item xs={12} md={7} lg={8}>
         <Products />
       </Grid>
       <Grid item xs={12} md={5} lg={4}>
         <MonthlyRevenue />
-      </Grid> */}
+      </Grid>
 
       {/* row 3 */}
-      {/* <Grid item xs={12} md={5} lg={6}>
+      <Grid item xs={12} md={5} lg={6}>
         <NewCustomers />
       </Grid>
       <Grid item xs={12} md={7} lg={6}>
         <RecentTickets />
-      </Grid> */}
+      </Grid>
 
       {/* row 4 */}
-      {/* <Grid item xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <Transactions />
       </Grid>
       <Grid item xs={12} md={6} lg={3}>
@@ -158,10 +158,10 @@ export default function WidgetData() {
       </Grid>
       <Grid item xs={12} md={6} lg={3}>
         <AddTask />
-      </Grid> */}
+      </Grid>
 
       {/* row 5 */}
-      {/* <Grid item xs={12} md={6} lg={4}>
+      <Grid item xs={12} md={6} lg={4}>
         <IncomingRequests />
       </Grid>
       <Grid item xs={12} md={6} lg={4}>
@@ -169,10 +169,10 @@ export default function WidgetData() {
       </Grid>
       <Grid item xs={12} md={6} lg={4}>
         <TasksCard />
-      </Grid> */}
+      </Grid>
 
       {/* row 1 */}
-      {/* <Grid item xs={12} md={6} lg={3}>
+      <Grid item xs={12} md={6} lg={3}>
         <ToDoList />
       </Grid>
       <Grid item xs={12} md={6} lg={3}>
@@ -180,44 +180,44 @@ export default function WidgetData() {
       </Grid>
       <Grid item xs={12} md={12} lg={6}>
         <ApplicationSales />
-      </Grid> */}
+      </Grid>
 
       {/* row 2 */}
-      {/* <Grid item xs={12} md={7} lg={6}>
+      <Grid item xs={12} md={7} lg={6}>
         <LatestMessages />
       </Grid>
       <Grid item xs={12} md={5} lg={6}>
         <UserActivity />
-      </Grid> */}
+      </Grid>
 
       {/* row 3 */}
-      {/* <Grid item xs={12} lg={6} md={6}>
+      <Grid item xs={12} lg={6} md={6}>
         <ProjectTable />
       </Grid>
       <Grid item xs={12} lg={6} md={6}>
         <ProductSales />
-      </Grid> */}
+      </Grid>
 
       {/* row 5 */}
-      {/* <Grid item xs={12} md={8}>
+      <Grid item xs={12} md={8}>
         <ActiveTickets />
       </Grid>
       <Grid item xs={12} md={4}>
         <LatestPosts />
-      </Grid> */}
+      </Grid>
 
       {/* row 6 */}
-      {/* <Grid item xs={12} md={5} lg={4}>
+      <Grid item xs={12} md={5} lg={4}>
         <FeedsCard />
-      </Grid> */}
-      {/* <Grid item xs={12} md={7} lg={8}>
+      </Grid>
+      <Grid item xs={12} md={7} lg={8}>
         <LatestCustomers />
-      </Grid> */}
+      </Grid>
 
       {/* row 7 */}
-      {/* <Grid item xs={12}>
+      <Grid item xs={12}>
         <LatestOrder />
-      </Grid> */}
+      </Grid>
     </Grid>
   );
 }
