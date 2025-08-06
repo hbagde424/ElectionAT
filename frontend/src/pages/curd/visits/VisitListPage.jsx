@@ -73,7 +73,7 @@ const VisitListPage = () => {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/visits?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/visits?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setVisits(json.data);
@@ -89,8 +89,8 @@ const VisitListPage = () => {
     const fetchMapVisits = async (candidateId = null) => {
         try {
             const url = candidateId
-                ? `http://localhost:5000/api/visits?all=true&candidate=${candidateId}`
-                : 'http://localhost:5000/api/visits?all=true';
+                ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${candidateId}`
+                : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
 
             const res = await fetch(url);
             const json = await res.json();
@@ -130,8 +130,8 @@ const VisitListPage = () => {
         setCsvLoading(true);
         try {
             const url = selectedCandidate
-                ? `http://localhost:5000/api/visits?all=true&candidate=${selectedCandidate}`
-                : 'http://localhost:5000/api/visits?all=true';
+                ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${selectedCandidate}`
+                : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
 
             const res = await fetch(url);
             const json = await res.json();
@@ -177,13 +177,13 @@ const VisitListPage = () => {
                 assembliesRes, blocksRes, boothsRes,
                 candidatesRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths'),
-                fetch('http://localhost:5000/api/candidates')
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`)
             ]);
 
             const [
@@ -401,103 +401,103 @@ const VisitListPage = () => {
                     >
                         <MapContainerStyled>
                             <Map
-  ref={mapRef}
-  initialViewState={{
-    latitude: 23.4707,
-    longitude: 77.9455,
-    zoom: 6
-  }}
-  mapStyle={MAPBOX_THEMES[selectedTheme]}
-  mapboxAccessToken={mapConfiguration.mapboxAccessToken}
->
-  <MapControl />
+                                ref={mapRef}
+                                initialViewState={{
+                                    latitude: 23.4707,
+                                    longitude: 77.9455,
+                                    zoom: 6
+                                }}
+                                mapStyle={MAPBOX_THEMES[selectedTheme]}
+                                mapboxAccessToken={mapConfiguration.mapboxAccessToken}
+                            >
+                                <MapControl />
 
-  {/* Route line (optional) */}
-  {routeData && (
-    <Source id="route" type="geojson" data={routeData}>
-      <Layer
-        id="route-line"
-        type="line"
-        paint={{
-          'line-color': theme.palette.primary.main,
-          'line-width': 2
-        }}
-      />
-    </Source>
-  )}
+                                {/* Route line (optional) */}
+                                {routeData && (
+                                    <Source id="route" type="geojson" data={routeData}>
+                                        <Layer
+                                            id="route-line"
+                                            type="line"
+                                            paint={{
+                                                'line-color': theme.palette.primary.main,
+                                                'line-width': 2
+                                            }}
+                                        />
+                                    </Source>
+                                )}
 
-  {/* Marker for each visit */}
-  {mapVisits.map((visit, idx) => (
-    <Marker
-      key={idx}
-      longitude={visit.longitude}
-      latitude={visit.latitude}
-      anchor="bottom"
-      onClick={() => {
-        setPopupInfo({
-          longitude: visit.longitude,
-          latitude: visit.latitude,
-          visit: visit
-        });
-      }}
-    >
-      <Avatar
-        src={visit.candidate_id?.photo}
-        sx={{
-          width: 32,
-          height: 32,
-          border: `2px solid ${theme.palette.primary.main}`,
-          cursor: 'pointer'
-        }}
-      />
-    </Marker>
-  ))}
+                                {/* Marker for each visit */}
+                                {mapVisits.map((visit, idx) => (
+                                    <Marker
+                                        key={idx}
+                                        longitude={visit.longitude}
+                                        latitude={visit.latitude}
+                                        anchor="bottom"
+                                        onClick={() => {
+                                            setPopupInfo({
+                                                longitude: visit.longitude,
+                                                latitude: visit.latitude,
+                                                visit: visit
+                                            });
+                                        }}
+                                    >
+                                        <Avatar
+                                            src={visit.candidate_id?.photo}
+                                            sx={{
+                                                width: 32,
+                                                height: 32,
+                                                border: `2px solid ${theme.palette.primary.main}`,
+                                                cursor: 'pointer'
+                                            }}
+                                        />
+                                    </Marker>
+                                ))}
 
-  {/* Popup when a marker is clicked */}
-  {popupInfo && (
-    <Popup
-      longitude={popupInfo.longitude}
-      latitude={popupInfo.latitude}
-      closeButton={true}
-      anchor="bottom"
-      onClose={() => setPopupInfo(null)}
-    >
-      <Box sx={{ p: 1 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Avatar src={popupInfo.visit.candidate_id?.photo} sx={{ width: 48, height: 48 }} />
-          <Box>
-            <Typography fontWeight="bold">{popupInfo.visit.candidate_id?.name}</Typography>
-            <Typography variant="body2" color="text.secondary">{popupInfo.visit.post || 'N/A'}</Typography>
-          </Box>
-        </Stack>
+                                {/* Popup when a marker is clicked */}
+                                {popupInfo && (
+                                    <Popup
+                                        longitude={popupInfo.longitude}
+                                        latitude={popupInfo.latitude}
+                                        closeButton={true}
+                                        anchor="bottom"
+                                        onClose={() => setPopupInfo(null)}
+                                    >
+                                        <Box sx={{ p: 1 }}>
+                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                <Avatar src={popupInfo.visit.candidate_id?.photo} sx={{ width: 48, height: 48 }} />
+                                                <Box>
+                                                    <Typography fontWeight="bold">{popupInfo.visit.candidate_id?.name}</Typography>
+                                                    <Typography variant="body2" color="text.secondary">{popupInfo.visit.post || 'N/A'}</Typography>
+                                                </Box>
+                                            </Stack>
 
-        <Divider sx={{ my: 1 }} />
+                                            <Divider sx={{ my: 1 }} />
 
-        <Typography variant="body2"><strong>📅 Visit Date:</strong> {formatDate(popupInfo.visit.date)}</Typography>
-        <Typography variant="body2"><strong>📍 Location:</strong> {popupInfo.visit.locationName || 'N/A'}</Typography>
-        <Typography variant="body2"><strong>📌 Booth:</strong> {popupInfo.visit.booth_id?.name || 'N/A'}</Typography>
-        <Typography variant="body2"><strong>🔄 Status:</strong> 
-          <Chip
-            label={popupInfo.visit.work_status?.toUpperCase() || 'N/A'}
-            size="small"
-            sx={{
-              ml: 1,
-              backgroundColor: workStatusColor[popupInfo.visit.work_status] || theme.palette.grey[400],
-              color: 'white'
-            }}
-          />
-        </Typography>
-        {popupInfo.visit.declaration && (
-          <Typography variant="body2"><strong>🗒️ Declaration:</strong> {popupInfo.visit.declaration}</Typography>
-        )}
-        {popupInfo.visit.remark && (
-          <Typography variant="body2"><strong>📝 Remark:</strong> {popupInfo.visit.remark}</Typography>
-        )}
-        <Typography variant="caption"><strong>🌐 Coordinates:</strong> {popupInfo.visit.latitude?.toFixed(4)}, {popupInfo.visit.longitude?.toFixed(4)}</Typography>
-      </Box>
-    </Popup>
-  )}
-</Map>
+                                            <Typography variant="body2"><strong>📅 Visit Date:</strong> {formatDate(popupInfo.visit.date)}</Typography>
+                                            <Typography variant="body2"><strong>📍 Location:</strong> {popupInfo.visit.locationName || 'N/A'}</Typography>
+                                            <Typography variant="body2"><strong>📌 Booth:</strong> {popupInfo.visit.booth_id?.name || 'N/A'}</Typography>
+                                            <Typography variant="body2"><strong>🔄 Status:</strong>
+                                                <Chip
+                                                    label={popupInfo.visit.work_status?.toUpperCase() || 'N/A'}
+                                                    size="small"
+                                                    sx={{
+                                                        ml: 1,
+                                                        backgroundColor: workStatusColor[popupInfo.visit.work_status] || theme.palette.grey[400],
+                                                        color: 'white'
+                                                    }}
+                                                />
+                                            </Typography>
+                                            {popupInfo.visit.declaration && (
+                                                <Typography variant="body2"><strong>🗒️ Declaration:</strong> {popupInfo.visit.declaration}</Typography>
+                                            )}
+                                            {popupInfo.visit.remark && (
+                                                <Typography variant="body2"><strong>📝 Remark:</strong> {popupInfo.visit.remark}</Typography>
+                                            )}
+                                            <Typography variant="caption"><strong>🌐 Coordinates:</strong> {popupInfo.visit.latitude?.toFixed(4)}, {popupInfo.visit.longitude?.toFixed(4)}</Typography>
+                                        </Box>
+                                    </Popup>
+                                )}
+                            </Map>
 
 
                             <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1 }}>
