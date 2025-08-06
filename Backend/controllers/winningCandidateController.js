@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const WinningCandidate = require('../models/winningCandidate');
 const State = require('../models/state');
 const Division = require('../models/division');
@@ -20,7 +21,7 @@ exports.getWinningCandidates = async (req, res, next) => {
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name AC_NO') // ✅ added assembly_no
+      .populate('assembly_id', 'name AC_NO')
       .populate('party_id', 'name')
       .populate('year_id', 'year')
       .populate('candidate_id', 'name')
@@ -52,13 +53,16 @@ exports.getWinningCandidates = async (req, res, next) => {
     if (req.query.division) {
       query = query.where('division_id').equals(req.query.division);
     }
-     let winningCandidates;
-// TODO:We have to do this in all apis
-if (req.query.all === 'true') {
-    winningCandidates = await query.exec(); // fetch all
-} else {
-    winningCandidates = await query.skip(skip).limit(limit).exec(); // paginated
-}
+    if (req.query.type) {
+      query = query.where('type').all([req.query.type]);
+    }
+
+    let winningCandidates;
+    if (req.query.all === 'true') {
+      winningCandidates = await query.exec();
+    } else {
+      winningCandidates = await query.skip(skip).limit(limit).exec();
+    }
 
     const total = await WinningCandidate.countDocuments(query.getFilter());
 
@@ -75,10 +79,8 @@ if (req.query.all === 'true') {
   }
 };
 
-
 exports.getWinningCandidatesForGraph = async (req, res, next) => {
   try {
-    // Basic query
     let query = WinningCandidate.find()
       .populate('party_id', 'name')
       .populate({
@@ -86,9 +88,7 @@ exports.getWinningCandidatesForGraph = async (req, res, next) => {
         select: 'year'
       });
 
-    // Filter by year
     if (req.query.year) {
-      // First find the year_id for the given year value
       const yearDoc = await Year.findOne({ year: req.query.year });
       if (!yearDoc) {
         return res.status(404).json({
@@ -122,7 +122,7 @@ exports.getWinningCandidate = async (req, res, next) => {
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
+      .populate('assembly_id', 'name AC_NO')
       .populate('party_id', 'name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
@@ -149,21 +149,22 @@ exports.getWinningCandidate = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createWinningCandidate = async (req, res, next) => {
   try {
-    // Verify all references exist
     const [
       state,
       division,
       parliament,
       assembly,
       party,
-      candidate
+      candidate,
+      year
     ] = await Promise.all([
       State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
       Party.findById(req.body.party_id),
-      Candidate.findById(req.body.candidate_id)
+      Candidate.findById(req.body.candidate_id),
+      Year.findById(req.body.year_id)
     ]);
 
     if (!state) {
@@ -184,8 +185,35 @@ exports.createWinningCandidate = async (req, res, next) => {
     if (!candidate) {
       return res.status(400).json({ success: false, message: 'Candidate not found' });
     }
+    if (!year) {
+      return res.status(400).json({ success: false, message: 'Election year not found' });
+    }
 
-    // Check if user exists in request
+    // // Validate assembly_no matches assembly's AC_NO
+    // if (req.body.assembly_no !== assembly.AC_NO) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Assembly number does not match the referenced assembly'
+    //   });
+    // }
+
+    // Validate poll_percentage format
+    if (!/^\d{1,3}(\.\d{1,2})?%$/.test(req.body.poll_percentage)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Poll percentage must be in format like "50.25%"'
+      });
+    }
+
+    // Validate type array
+    const allowedTypes = ['General', 'Bye', 'Midterm', 'Special'];
+    if (!req.body.type || !req.body.type.every(t => allowedTypes.includes(t))) {
+      return res.status(400).json({
+        success: false,
+        message: `Type must be one or more of: ${allowedTypes.join(', ')}`
+      });
+    }
+
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -229,7 +257,6 @@ exports.updateWinningCandidate = async (req, res, next) => {
       });
     }
 
-    // Verify all references exist if being updated
     const verificationPromises = [];
     if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
@@ -237,6 +264,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
     if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
     if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
+    if (req.body.year_id) verificationPromises.push(Year.findById(req.body.year_id));
 
     const verificationResults = await Promise.all(verificationPromises);
 
@@ -244,12 +272,41 @@ exports.updateWinningCandidate = async (req, res, next) => {
       if (!result) {
         return res.status(400).json({
           success: false,
-          message: `${result.modelName} not found`
+          message: 'Referenced document not found'
         });
       }
     }
 
-    // Set updated_by to current user
+    // Validate assembly_no if assembly is being updated
+    if (req.body.assembly_id) {
+      const assembly = await Assembly.findById(req.body.assembly_id);
+      if (req.body.assembly_no !== assembly.AC_NO) {
+        return res.status(400).json({
+          success: false,
+          message: 'Assembly number does not match the referenced assembly'
+        });
+      }
+    }
+
+    // Validate poll_percentage if being updated
+    if (req.body.poll_percentage && !/^\d{1,3}(\.\d{1,2})?%$/.test(req.body.poll_percentage)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Poll percentage must be in format like "50.25%"'
+      });
+    }
+
+    // Validate type if being updated
+    if (req.body.type) {
+      const allowedTypes = ['General', 'Bye', 'Midterm', 'Special'];
+      if (!req.body.type.every(t => allowedTypes.includes(t))) {
+        return res.status(400).json({
+          success: false,
+          message: `Type must be one or more of: ${allowedTypes.join(', ')}`
+        });
+      }
+    }
+
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -266,7 +323,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
+      .populate('assembly_id', 'name AC_NO')
       .populate('party_id', 'name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
@@ -317,7 +374,6 @@ exports.deleteWinningCandidate = async (req, res, next) => {
 // @access  Public
 exports.getWinningCandidatesByAssembly = async (req, res, next) => {
   try {
-    // Verify assembly exists
     const assembly = await Assembly.findById(req.params.assemblyId);
     if (!assembly) {
       return res.status(404).json({
@@ -347,7 +403,6 @@ exports.getWinningCandidatesByAssembly = async (req, res, next) => {
 // @access  Public
 exports.getWinningCandidatesByParliament = async (req, res, next) => {
   try {
-    // Verify parliament exists
     const parliament = await Parliament.findById(req.params.parliamentId);
     if (!parliament) {
       return res.status(404).json({
@@ -377,7 +432,6 @@ exports.getWinningCandidatesByParliament = async (req, res, next) => {
 // @access  Public
 exports.getWinningCandidatesByParty = async (req, res, next) => {
   try {
-    // Verify party exists
     const party = await Party.findById(req.params.partyId);
     if (!party) {
       return res.status(404).json({
@@ -403,14 +457,11 @@ exports.getWinningCandidatesByParty = async (req, res, next) => {
   }
 };
 
-
-
 // @desc    Get candidates by assembly and year with vote statistics
 // @route   GET /api/winning-candidates/assembly/:assemblyId/year/:yearId
 // @access  Public
 exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
   try {
-    // Verify assembly exists
     const assembly = await Assembly.findById(req.params.assemblyId);
     if (!assembly) {
       return res.status(404).json({
@@ -419,7 +470,6 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
       });
     }
 
-    // Verify year exists
     const year = await Year.findById(req.params.yearId);
     if (!year) {
       return res.status(404).json({
@@ -428,15 +478,14 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
       });
     }
 
-    // Get all candidates for this assembly and year
     const candidates = await WinningCandidate.find({
       assembly_id: req.params.assemblyId,
       year_id: req.params.yearId
     })
-      .sort({ total_votes: -1 }) // Sort by votes in descending order
-      .populate('party_id', 'name symbol') // Include party name and symbol
-      .populate('candidate_id', 'name') // Include candidate name
-      .lean(); // Convert to plain JavaScript object
+      .sort({ total_votes: -1 })
+      .populate('party_id', 'name symbol')
+      .populate('candidate_id', 'name')
+      .lean();
 
     if (candidates.length === 0) {
       return res.status(404).json({
@@ -445,12 +494,10 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
       });
     }
 
-    // Calculate statistics
     const totalCandidates = candidates.length;
     const totalVotesCast = candidates.reduce((sum, candidate) => sum + candidate.total_votes, 0);
-    const winner = candidates[0]; // First one after sorting by votes
+    const winner = candidates[0];
 
-    // Format the response
     const response = {
       success: true,
       data: {
@@ -469,7 +516,10 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
           party_name: winner.party_id.name,
           votes_received: winner.total_votes,
           margin: winner.margin,
-          margin_percentage: winner.margin_percentage
+          margin_percentage: winner.margin_percentage,
+          assembly_no: winner.assembly_no,
+          election_type: winner.type,
+          poll_percentage: winner.poll_percentage
         },
         all_candidates: candidates.map(candidate => ({
           candidate_id: candidate.candidate_id._id,
@@ -478,7 +528,10 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
           party_name: candidate.party_id.name,
           party_symbol: candidate.party_id.symbol,
           votes_received: candidate.total_votes,
-          voting_percentage: candidate.voting_percentage
+          voting_percentage: candidate.voting_percentage,
+          assembly_no: candidate.assembly_no,
+          election_type: candidate.type,
+          poll_percentage: candidate.poll_percentage
         }))
       }
     };

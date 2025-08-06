@@ -21,6 +21,20 @@ const winningCandidateSchema = new mongoose.Schema({
     ref: 'Assembly',
     required: true
   },
+  assembly_no: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: [String],
+    required: true,
+    enum: ['General', 'Bye', 'Midterm', 'Special'], // example types
+    default: ['General']
+  },
+  poll_percentage: {
+    type: String,
+    required: true
+  },
   party_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Party',
