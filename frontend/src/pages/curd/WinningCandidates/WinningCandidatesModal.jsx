@@ -1,10 +1,12 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Box
+    Box, Chip, Autocomplete
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+
+const electionTypes = ['General', 'Bye', 'Midterm', 'Special'];
 
 export default function WinningCandidateModal({
     open,
@@ -26,6 +28,9 @@ export default function WinningCandidateModal({
         candidate_id: '',
         party_id: '',
         year_id: '',
+        assembly_no: '',
+        type: ['General'],
+        poll_percentage: '',
         total_electors: '',
         total_votes: 0,
         voting_percentage: '',
@@ -38,6 +43,9 @@ export default function WinningCandidateModal({
     });
     const [submitted, setSubmitted] = useState(false);
 
+    // Add error message state
+    const [errorMessage, setErrorMessage] = useState('');
+
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
@@ -49,6 +57,9 @@ export default function WinningCandidateModal({
                 candidate_id: candidateEntry.candidate_id?._id?.toString() || candidateEntry.candidate_id?.toString() || '',
                 party_id: candidateEntry.party_id?._id?.toString() || candidateEntry.party_id?.toString() || '',
                 year_id: candidateEntry.year_id?._id?.toString() || candidateEntry.year_id?.toString() || '',
+                assembly_no: candidateEntry.assembly_no || '',
+                type: candidateEntry.type || ['General'],
+                poll_percentage: candidateEntry.poll_percentage || '',
                 total_electors: candidateEntry.total_electors || '',
                 total_votes: candidateEntry.total_votes || 0,
                 voting_percentage: candidateEntry.voting_percentage || '',
@@ -64,6 +75,9 @@ export default function WinningCandidateModal({
                 candidate_id: '',
                 party_id: '',
                 year_id: '',
+                assembly_no: '',
+                type: ['General'],
+                poll_percentage: '',
                 total_electors: '',
                 total_votes: 0,
                 voting_percentage: '',
@@ -158,8 +172,11 @@ export default function WinningCandidateModal({
     // Party -> Candidates
     useEffect(() => {
         if (formData.party_id) {
+            console.log('candidates',candidates)
+          
             const filtered = candidates?.filter(candidate => {
                 const candidatePartyId = candidate.party_id?._id || candidate.party_id;
+                
                 return candidatePartyId === formData.party_id;
             }) || [];
             setFilteredCandidates(filtered);
@@ -196,18 +213,26 @@ export default function WinningCandidateModal({
         }));
     };
 
+    const handleElectionTypeChange = (event, newValue) => {
+        setFormData(prev => ({
+            ...prev,
+            type: newValue
+        }));
+    };
+
     const handleSubmit = async () => {
         setSubmitted(true);
+        setErrorMessage(''); // Clear previous error
         // Validation
         const requiredFields = [
-            'candidate_id', 'party_id', 'year_id', 'total_electors', 'total_votes', 
-            'voting_percentage', 'margin', 'margin_percentage',
+            'candidate_id', 'party_id', 'year_id', 'assembly_no', 'type', 'poll_percentage',
+            'total_electors', 'total_votes', 'voting_percentage', 'margin', 'margin_percentage',
             'state_id', 'division_id', 'parliament_id', 'assembly_id'
         ];
         
         for (const field of requiredFields) {
             if (!formData[field] && formData[field] !== 0) {
-                console.error(`Missing required field: ${field}`);
+                setErrorMessage(`Missing required field: ${field}`);
                 return;
             }
         }
@@ -215,7 +240,8 @@ export default function WinningCandidateModal({
         const method = candidateEntry ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = candidateEntry
-            ? `http://localhost:5000/api/winning-candidates/${candidateEntry._id}`: 'http://localhost:5000/api/winning-candidates';
+            ? `http://localhost:5000/api/winning-candidates/${candidateEntry._id}`
+            : 'http://localhost:5000/api/winning-candidates';
 
         let userId = user?._id || user?.id;
         if (!userId) {
@@ -223,7 +249,7 @@ export default function WinningCandidateModal({
                 const localUser = JSON.parse(localStorage.getItem('user') || '{}');
                 userId = localUser._id || localUser.id;
             } catch (e) {
-                console.error('Failed to parse localStorage user:', e);
+                // ...existing code...
             }
         }
 
@@ -248,12 +274,10 @@ export default function WinningCandidateModal({
                 refresh();
             } else {
                 const errorData = await res.json();
-                console.error('Failed to submit winning candidate entry:', errorData);
-                alert('Failed to save winning candidate entry. Please check the form data.');
+                setErrorMessage(errorData.message || 'Failed to save winning candidate entry. Please check the form data.');
             }
         } catch (error) {
-            console.error('Error submitting winning candidate entry:', error);
-            alert('An error occurred while saving the winning candidate entry.');
+            setErrorMessage('An error occurred while saving the winning candidate entry.');
         }
     };
 
@@ -261,6 +285,11 @@ export default function WinningCandidateModal({
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{candidateEntry ? 'Edit Winning Candidate Entry' : 'Add Winning Candidate Entry'}</DialogTitle>
             <DialogContent>
+                {errorMessage && (
+                    <Box sx={{ color: 'error.main', mb: 2, fontWeight: 500 }}>
+                        {errorMessage}
+                    </Box>
+                )}
                 <Grid container spacing={4} mt={1}>
                     {/* Row 1: Party and Candidate */}
                     <Grid item xs={12} sm={6}>
@@ -312,7 +341,7 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 2: Year and Total Electors */}
+                    {/* Row 2: Year and Assembly No */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Election Year</InputLabel>
@@ -339,6 +368,67 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
+                            <InputLabel required>Assembly No</InputLabel>
+                            <TextField
+                                name="assembly_no"
+                                value={formData.assembly_no}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.assembly_no}
+                                helperText={submitted && !formData.assembly_no ? 'Assembly number is required' : ''}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 3: Election Type and Poll Percentage */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Election Type</InputLabel>
+                            <Autocomplete
+                                multiple
+                                options={electionTypes}
+                                value={formData.type}
+                                onChange={handleElectionTypeChange}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        error={submitted && (!formData.type || formData.type.length === 0)}
+                                        helperText={submitted && (!formData.type || formData.type.length === 0) ? 'At least one election type is required' : ''}
+                                    />
+                                )}
+                                renderTags={(value, getTagProps) =>
+                                    value.map((option, index) => (
+                                        <Chip
+                                            label={option}
+                                            size="small"
+                                            {...getTagProps({ index })}
+                                        />
+                                    ))
+                                }
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Poll Percentage</InputLabel>
+                            <TextField
+                                name="poll_percentage"
+                                value={formData.poll_percentage}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.poll_percentage}
+                                helperText={submitted && !formData.poll_percentage ? 'Poll percentage is required' : ''}
+                                placeholder="e.g. 75.25%"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 4: Total Electors and Total Votes */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
                             <InputLabel required>Total Electors</InputLabel>
                             <TextField
                                 name="total_electors"
@@ -352,7 +442,6 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 3: Votes and Percentages */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Total Votes</InputLabel>
@@ -370,6 +459,7 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
+                    {/* Row 5: Voting Percentage and Margin */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Voting Percentage</InputLabel>
@@ -402,6 +492,7 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
+                    {/* Row 6: Margin Percentage */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Margin Percentage</InputLabel>
@@ -417,7 +508,7 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: State and Division */}
+                    {/* Row 7: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>State</InputLabel>
@@ -445,7 +536,7 @@ export default function WinningCandidateModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Division</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.division_id}>
+                                                        <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
                                     value={formData.division_id}
@@ -467,7 +558,7 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 5: Parliament and Assembly */}
+                    {/* Row 8: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Parliament</InputLabel>
@@ -519,10 +610,10 @@ export default function WinningCandidateModal({
                     </Grid>
                 </Grid>
             </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
+            <DialogActions>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
                 <Button variant="contained" onClick={handleSubmit}>
-                    {candidateEntry ? 'Update' : 'Submit'}
+                    {candidateEntry ? 'Update' : 'Save'}
                 </Button>
             </DialogActions>
         </Dialog>

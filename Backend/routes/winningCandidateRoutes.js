@@ -19,7 +19,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: WinningCandidates
- *   description: Winning Candidate management
+ *   description: API for managing winning election candidates
  */
 
 /**
@@ -43,35 +43,47 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for candidate names or parties
+ *         description: Search term for candidate or party names
  *       - in: query
  *         name: assembly
  *         schema:
  *           type: string
- *         description: Assembly ID to filter by
+ *         description: Filter by assembly ID
  *       - in: query
  *         name: parliament
  *         schema:
  *           type: string
- *         description: Parliament ID to filter by
+ *         description: Filter by parliament ID
  *       - in: query
  *         name: party
  *         schema:
  *           type: string
- *         description: Party ID to filter by
+ *         description: Filter by party ID
  *       - in: query
  *         name: state
  *         schema:
  *           type: string
- *         description: State ID to filter by
+ *         description: Filter by state ID
  *       - in: query
  *         name: division
  *         schema:
  *           type: string
- *         description: Division ID to filter by
+ *         description: Filter by division ID
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [General, Bye, Midterm, Special]
+ *         description: Filter by election type
+ *       - in: query
+ *         name: all
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Set to 'true' to get all records without pagination
  *     responses:
  *       200:
- *         description: List of winning candidates
+ *         description: Successful response
  *         content:
  *           application/json:
  *             schema:
@@ -92,14 +104,46 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-router.get('/graph', getWinningCandidatesForGraph);
 router.get('/', getWinningCandidates);
+
+/**
+ * @swagger
+ * /api/winning-candidates/graph:
+ *   get:
+ *     summary: Get winning candidates data for visualization
+ *     tags: [WinningCandidates]
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: string
+ *         description: Filter by election year
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WinningCandidate'
+ */
+router.get('/graph', getWinningCandidatesForGraph);
 
 /**
  * @swagger
  * /api/winning-candidates/{id}:
  *   get:
- *     summary: Get single winning candidate
+ *     summary: Get a single winning candidate
  *     tags: [WinningCandidates]
  *     parameters:
  *       - in: path
@@ -107,13 +151,19 @@ router.get('/', getWinningCandidates);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Winning candidate ID
  *     responses:
  *       200:
- *         description: Winning candidate data
+ *         description: Successful response
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/WinningCandidate'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/WinningCandidate'
  *       404:
  *         description: Winning candidate not found
  */
@@ -123,7 +173,7 @@ router.get('/:id', getWinningCandidate);
  * @swagger
  * /api/winning-candidates:
  *   post:
- *     summary: Create new winning candidate
+ *     summary: Create a new winning candidate
  *     tags: [WinningCandidates]
  *     security:
  *       - bearerAuth: []
@@ -136,35 +186,6 @@ router.get('/:id', getWinningCandidate);
  *     responses:
  *       201:
  *         description: Winning candidate created successfully
- *       400:
- *         description: Invalid input data
- *       401:
- *         description: Not authorized
- */
-router.post('/', protect, authorize('superAdmin'), createWinningCandidate);
-
-/**
- * @swagger
- * /api/winning-candidates/assembly/{assemblyId}/year/{yearId}:
- *   get:
- *     summary: Get candidates by assembly and year with statistics
- *     tags: [WinningCandidates]
- *     parameters:
- *       - in: path
- *         name: assemblyId
- *         required: true
- *         schema:
- *           type: string
- *         description: Assembly ID
- *       - in: path
- *         name: yearId
- *         required: true
- *         schema:
- *           type: string
- *         description: Year ID
- *     responses:
- *       200:
- *         description: Candidates data with statistics
  *         content:
  *           application/json:
  *             schema:
@@ -173,69 +194,19 @@ router.post('/', protect, authorize('superAdmin'), createWinningCandidate);
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: object
- *                   properties:
- *                     assembly:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                         name:
- *                           type: string
- *                         ac_no:
- *                           type: string
- *                     year:
- *                       type: string
- *                     total_candidates:
- *                       type: integer
- *                     total_votes_cast:
- *                       type: integer
- *                     winner:
- *                       type: object
- *                       properties:
- *                         candidate_id:
- *                           type: string
- *                         candidate_name:
- *                           type: string
- *                         party_id:
- *                           type: string
- *                         party_name:
- *                           type: string
- *                         votes_received:
- *                           type: number
- *                         margin:
- *                           type: number
- *                         margin_percentage:
- *                           type: string
- *                     all_candidates:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           candidate_id:
- *                             type: string
- *                           candidate_name:
- *                             type: string
- *                           party_id:
- *                             type: string
- *                           party_name:
- *                             type: string
- *                           party_symbol:
- *                             type: string
- *                           votes_received:
- *                             type: number
- *                           voting_percentage:
- *                             type: string
- *       404:
- *         description: Assembly, year or candidates not found
+ *                   $ref: '#/components/schemas/WinningCandidate'
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Unauthorized
  */
-router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
+router.post('/', protect, authorize('superAdmin'), createWinningCandidate);
 
 /**
  * @swagger
  * /api/winning-candidates/{id}:
  *   put:
- *     summary: Update winning candidate
+ *     summary: Update a winning candidate
  *     tags: [WinningCandidates]
  *     security:
  *       - bearerAuth: []
@@ -245,6 +216,7 @@ router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear)
  *         required: true
  *         schema:
  *           type: string
+ *         description: Winning candidate ID
  *     requestBody:
  *       required: true
  *       content:
@@ -254,10 +226,19 @@ router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear)
  *     responses:
  *       200:
  *         description: Winning candidate updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/WinningCandidate'
  *       400:
  *         description: Invalid input data
  *       401:
- *         description: Not authorized
+ *         description: Unauthorized
  *       404:
  *         description: Winning candidate not found
  */
@@ -267,7 +248,7 @@ router.put('/:id', protect, authorize('superAdmin'), updateWinningCandidate);
  * @swagger
  * /api/winning-candidates/{id}:
  *   delete:
- *     summary: Delete winning candidate
+ *     summary: Delete a winning candidate
  *     tags: [WinningCandidates]
  *     security:
  *       - bearerAuth: []
@@ -277,11 +258,21 @@ router.put('/:id', protect, authorize('superAdmin'), updateWinningCandidate);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Winning candidate ID
  *     responses:
  *       200:
- *         description: Winning candidate deleted
+ *         description: Winning candidate deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
  *       401:
- *         description: Not authorized
+ *         description: Unauthorized
  *       404:
  *         description: Winning candidate not found
  */
@@ -299,9 +290,10 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteWinningCandidate);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Assembly ID
  *     responses:
  *       200:
- *         description: List of winning candidates for the assembly
+ *         description: Successful response
  *         content:
  *           application/json:
  *             schema:
@@ -332,9 +324,10 @@ router.get('/assembly/:assemblyId', getWinningCandidatesByAssembly);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Parliament ID
  *     responses:
  *       200:
- *         description: List of winning candidates for the parliament
+ *         description: Successful response
  *         content:
  *           application/json:
  *             schema:
@@ -365,9 +358,10 @@ router.get('/parliament/:parliamentId', getWinningCandidatesByParliament);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Party ID
  *     responses:
  *       200:
- *         description: List of winning candidates for the party
+ *         description: Successful response
  *         content:
  *           application/json:
  *             schema:
@@ -388,6 +382,87 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
 
 /**
  * @swagger
+ * /api/winning-candidates/assembly/{assemblyId}/year/{yearId}:
+ *   get:
+ *     summary: Get candidates by assembly and year with statistics
+ *     tags: [WinningCandidates]
+ *     parameters:
+ *       - in: path
+ *         name: assemblyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assembly ID
+ *       - in: path
+ *         name: yearId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Election year ID
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     assembly:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         ac_no:
+ *                           type: string
+ *                     year:
+ *                       type: string
+ *                     total_candidates:
+ *                       type: integer
+ *                     total_votes_cast:
+ *                       type: integer
+ *                     winner:
+ *                       $ref: '#/components/schemas/WinningCandidate'
+ *                     all_candidates:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           candidate_id:
+ *                             type: string
+ *                           candidate_name:
+ *                             type: string
+ *                           party_id:
+ *                             type: string
+ *                           party_name:
+ *                             type: string
+ *                           party_symbol:
+ *                             type: string
+ *                           votes_received:
+ *                             type: number
+ *                           voting_percentage:
+ *                             type: string
+ *                           assembly_no:
+ *                             type: string
+ *                           election_type:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                           poll_percentage:
+ *                             type: string
+ *       404:
+ *         description: Assembly, year or candidates not found
+ */
+router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     WinningCandidate:
@@ -397,6 +472,9 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
  *         - division_id
  *         - parliament_id
  *         - assembly_id
+ *         - assembly_no
+ *         - type
+ *         - poll_percentage
  *         - party_id
  *         - candidate_id
  *         - total_electors
@@ -422,6 +500,21 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
  *           type: string
  *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439012"
+ *         assembly_no:
+ *           type: string
+ *           description: Assembly number
+ *           example: "AC-42"
+ *         type:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [General, Bye, Midterm, Special]
+ *           description: Type(s) of election
+ *           example: ["General"]
+ *         poll_percentage:
+ *           type: string
+ *           description: Polling percentage
+ *           example: "75.25%"
  *         party_id:
  *           type: string
  *           description: Reference to Party
@@ -454,6 +547,10 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
  *           type: string
  *           description: Reference to User who created
  *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
+ *           example: "507f1f77bcf86cd799439023"
  *         created_at:
  *           type: string
  *           format: date-time
