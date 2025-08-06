@@ -10,6 +10,15 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import CircularProgress from '@mui/material/CircularProgress';
+import Avatar from '@mui/material/Avatar';
+import Chip from '@mui/material/Chip';
 import Link from '@mui/material/Link';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -33,6 +42,7 @@ import Transactions from 'sections/widget/data/Transactions';
 import TotalIncome from 'sections/widget/chart/TotalIncome';
 import WelcomeBanner from 'sections/dashboard/default/WelcomeBanner';
 import BoothSurveyListPage from 'pages/curd/booth survey/booth-survey';
+import VisitListPage from 'pages/curd/visits/VisitListPage';
 import Candidate from 'pages/curd/candidates/CandidateListPage';
 import Gender from 'pages/curd/gender/Gender';
 import CasteList from 'pages/curd/caste list/caste-list';
@@ -40,7 +50,6 @@ import BoothVotes from 'pages/curd/votes/BoothVotes/Booth-votes';
 import WinningParty from 'pages/curd/winning-parties/WinningPartiesList';
 import GovernmentSchema from 'pages/curd/Government Schema/GovernmentSchema';
 import AssemblyGraph from 'sections/widget/chart/AssemblySetGrapd';
-import MainCard from 'components/MainCard';
 import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
 
 import Booth from 'sections/widget/chart/BoothSetGrapd';
@@ -62,12 +71,42 @@ import { preload } from 'swr';
 // Icons
 import { ArrowDown, ArrowUp, Book, Calendar, CloudChange, Wallet3 } from 'iconsax-react';
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
+import MainCard from 'components/MainCard';
+import ScrollX from 'components/ScrollX';
+
+
 
 export default function DashboardDefault() {
   const theme = useTheme();
+  const [visits, setVisits] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [pageCount, setPageCount] = useState(0);
 
+  const fetchVisits = async (pageIndex, pageSize) => {
+    setLoading(true);
+    try {
+      const response = await axios.get('/visits', {
+        params: {
+          page: pageIndex + 1,
+          limit: pageSize
+        }
+      });
 
+      if (response.data.success) {
+        setVisits(response.data.data);
+        setPageCount(Math.ceil(response.data.total / pageSize));
+      }
+    } catch (error) {
+      console.error('Error fetching visits:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    fetchVisits(pagination.pageIndex, pagination.pageSize);
+  }, [pagination.pageIndex, pagination.pageSize]);
 
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
@@ -103,6 +142,8 @@ export default function DashboardDefault() {
       <Grid item xs={12} sm={6} >
         <BoothSurveyListPage />
       </Grid>
+
+
 
       {/* Row 1 */}
       <Grid item xs={12} sm={6} lg={3}>
@@ -167,7 +208,65 @@ export default function DashboardDefault() {
           <EcommerceDataChart color={theme.palette.error.dark} />
         </EcommerceDataCard>
       </Grid>
+      <Grid item xs={12} sm={12} lg={12}>
+        <Typography variant="h6" gutterBottom>
+          Recent Visitis
+        </Typography>
+        <ScrollX>
+          <TableContainer>
+            {loading ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Candidate</TableCell>
+                    <TableCell>Post</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Booth</TableCell>
+                    <TableCell>Location</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {visits.map((visit, index) => (
+                    <TableRow key={visit._id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Avatar src={visit.candidate_id?.photo} sx={{ width: 32, height: 32 }} />
+                          <Typography>{visit.candidate_id?.name || 'N/A'}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{visit.post || 'N/A'}</TableCell>
+                      <TableCell>{new Date(visit.date).toLocaleDateString('en-IN')}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={visit.work_status?.toUpperCase() || 'N/A'}
+                          color={
+                            visit.work_status === 'complete' ? 'success' :
+                              visit.work_status === 'in progress' ? 'warning' :
+                                visit.work_status === 'approved' ? 'info' : 'default'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{visit.booth_id?.name || 'N/A'}</TableCell>
+                      <TableCell>{visit.locationName || 'N/A'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TableContainer>
+          <Box sx={{ p: 2 }}>
 
+          </Box>
+        </ScrollX>
+      </Grid>
       {/* Row 2 */}
       <Grid item xs={12} md={8} lg={9}>
         <Grid container spacing={3}>
