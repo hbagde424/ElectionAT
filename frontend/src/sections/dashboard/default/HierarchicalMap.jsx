@@ -18,7 +18,8 @@ const customStyles = `
     }
 `;
 
-const HierarchicalMap = () => {
+
+function HierarchicalMap({ onRegionClick }) {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const currentLayerRef = useRef(null);
@@ -92,7 +93,7 @@ const HierarchicalMap = () => {
             // --- Add India GeoJSON as a non-interactive background layer ---
             fetch('/india.geojson')
                 .then(res => res.json())
-                .then(indiaData => {    
+                .then(indiaData => {
                     L.geoJSON(indiaData, {
                         style: {
                             color: '#003366', // dark blue outline
@@ -717,6 +718,16 @@ const HierarchicalMap = () => {
         }]);
 
         setSelectedFeature(feature);
+
+        // Call the onRegionClick prop with region data
+        if (onRegionClick) {
+            onRegionClick({
+                id: feature.properties.id,
+                name: feature.properties.name,
+                level: level
+            });
+        }
+
         switch (level) {
             case 'state':
                 loadDivisionData(feature.properties.id);

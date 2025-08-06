@@ -83,15 +83,20 @@ export default function DashboardDefault() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [pageCount, setPageCount] = useState(0);
 
-  const fetchVisits = async (pageIndex, pageSize) => {
+  const fetchVisits = async (pageIndex, pageSize, region = null) => {
     setLoading(true);
     try {
-      const response = await axios.get('/visits', {
-        params: {
-          page: pageIndex + 1,
-          limit: pageSize
-        }
-      });
+      const params = {
+        page: pageIndex + 1,
+        limit: pageSize
+      };
+
+      // Add region parameters if available
+      if (region) {
+        params[region.level] = region.id;
+      }
+
+      const response = await axios.get('/visits', { params });
 
       if (response.data.success) {
         setVisits(response.data.data);
@@ -108,6 +113,15 @@ export default function DashboardDefault() {
     fetchVisits(pagination.pageIndex, pagination.pageSize);
   }, [pagination.pageIndex, pagination.pageSize]);
 
+  const handleMapClick = (regionData) => {
+    if (regionData) {
+      fetchVisits(pagination.pageIndex, pagination.pageSize, regionData);
+    } else {
+      // If no region is selected, fetch all visits
+      fetchVisits(pagination.pageIndex, pagination.pageSize);
+    }
+  };
+
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
   const scriptedRef = useScriptRef();
@@ -119,7 +133,7 @@ export default function DashboardDefault() {
       </Grid> */}
 
       <Grid item xs={12}>
-        <HierarchicalMap />
+        <HierarchicalMap onRegionClick={handleMapClick} />
       </Grid>
 
       <Grid item xs={12} md={6}>
