@@ -26,7 +26,7 @@ const partyColors = {
   'default': '#CCCCCC' // Light Gray for others
 };
 
-function AssemblyConstituencyMap({ themes, ...other }) {
+function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
   const theme = useTheme();
   const [selectTheme, setSelectTheme] = useState('outdoors');
   const [assemblyData, setAssemblyData] = useState(null);
@@ -36,17 +36,18 @@ function AssemblyConstituencyMap({ themes, ...other }) {
   const [popupInfo, setPopupInfo] = useState(null);
   const [filters, setFilters] = useState({
     pcName: 'all',
-    party: 'all'
+    party: 'all',
+    year: selectedYear || 'all'
   });
   const [pcNames, setPcNames] = useState([]);
   const [parties, setParties] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
   const mapRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
         // Fetch both datasets in parallel
         const [assemblyResponse, candidatesResponse] = await Promise.all([
           fetch('http://localhost:5000/api/assembly-polygons'),
@@ -76,40 +77,70 @@ function AssemblyConstituencyMap({ themes, ...other }) {
         // Process winning candidates data
         const winningParties = new Set();
         const candidatesByAcNo = {};
-        
-        candidatesData.data.forEach(candidate => {
+        const yearsSet = new Set();
+
+        let filteredCandidates = candidatesData.data;
+        if (selectedYear) {
+          filteredCandidates = filteredCandidates.filter(candidate => {
+            // year_id can be object or string
+            if (typeof candidate.year_id === 'object' && candidate.year_id?._id) {
+              return candidate.year_id._id === selectedYear || candidate.year_id.year === selectedYear;
+            }
+            return candidate.year_id === selectedYear || candidate.year_id === Number(selectedYear);
+          });
+        }
+
+        filteredCandidates.forEach(candidate => {
           const acNo = candidate.assembly_id?.AC_NO;
           if (acNo) {
             candidatesByAcNo[acNo] = candidate;
             if (candidate.party_id?.name) {
               winningParties.add(candidate.party_id.name);
             }
+            
+            // Extract year information
+            if (candidate.year_id) {
+              if (typeof candidate.year_id === 'object') {
+                if (candidate.year_id.year) {
+                  yearsSet.add(candidate.year_id.year.toString());
+                } else if (candidate.year_id._id) {
+                  yearsSet.add(candidate.year_id._id.toString());
+                }
+              } else {
+                yearsSet.add(candidate.year_id.toString());
+              }
+            }
           }
         });
 
         // Extract unique PC names for filters
         const uniquePcNames = new Set();
-        
+
         features.forEach(feature => {
           if (feature.properties?.PC_NAME) {
             uniquePcNames.add(feature.properties.PC_NAME);
           }
-          
+
           // Add winning party information to each feature
           const acNo = feature.properties?.AC_NO;
           if (acNo && candidatesByAcNo[acNo]) {
-            feature.properties.winningParty = candidatesByAcNo[acNo].party_id?.name || 'Unknown';
-            feature.properties.winningCandidate = candidatesByAcNo[acNo].candidate_id?.name || 'Unknown';
-            feature.properties.margin = candidatesByAcNo[acNo].margin || 'N/A';
+            const candidate = candidatesByAcNo[acNo];
+            feature.properties.winningParty = candidate.party_id?.name || 'Unknown';
+            feature.properties.winningCandidate = candidate.name || candidate.candidate_id?.name || 'Unknown';
+            feature.properties.margin = candidate.margin || 'N/A';
+            // Use API's election_year field for year filtering
+            feature.properties.electionYear = candidate.election_year || 'N/A';
           } else {
             feature.properties.winningParty = 'Unknown';
             feature.properties.winningCandidate = 'Unknown';
             feature.properties.margin = 'N/A';
+            feature.properties.electionYear = 'N/A';
           }
         });
 
         setPcNames(Array.from(uniquePcNames).sort());
         setParties(Array.from(winningParties).sort());
+        setAvailableYears(Array.from(yearsSet).sort().reverse()); // Sort years in descending order
         setAssemblyData({
           type: 'FeatureCollection',
           features: features
@@ -125,7 +156,7 @@ function AssemblyConstituencyMap({ themes, ...other }) {
     };
 
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const handleFeatureClick = (e) => {
     if (!e.features?.length) return;
@@ -141,10 +172,20 @@ function AssemblyConstituencyMap({ themes, ...other }) {
   const getFilteredData = () => {
     if (!assemblyData) return null;
 
+
     const filteredFeatures = assemblyData.features.filter(feature => {
       const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
       const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
-      return pcMatch && partyMatch;
+      // Normalize both yearValue and filterYear to string for robust comparison
+      const yearValue = feature.properties?.electionYear?.toString();
+      const filterYear = filters.year?.toString();
+      const selectedYearStr = selectedYear?.toString();
+      const yearMatch =
+        filterYear === 'all' ||
+        yearValue === filterYear ||
+        (selectedYearStr && (filterYear === selectedYearStr || filterYear === 'all'));
+
+      return pcMatch && partyMatch && yearMatch;
     });
 
     return {
@@ -270,6 +311,7 @@ function AssemblyConstituencyMap({ themes, ...other }) {
               <div style={{ marginTop: '8px' }}>
                 <p><strong>Winning Candidate:</strong> {popupInfo.properties.winningCandidate || 'Unknown'}</p>
                 <p><strong>Margin:</strong> {popupInfo.properties.margin || 'N/A'}</p>
+                <p><strong>Election Year:</strong> {popupInfo.properties.electionYear || 'N/A'}</p>
                 <p><strong>AC Number:</strong> {popupInfo.properties.AC_NO || 'N/A'}</p>
                 <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
                 <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
@@ -314,7 +356,7 @@ function AssemblyConstituencyMap({ themes, ...other }) {
           </Select>
         </FormControl>
 
-        <FormControl fullWidth size="small">
+        <FormControl fullWidth sx={{ mb: 2 }} size="small">
           <InputLabel id="party-filter-label">Winning Party</InputLabel>
           <Select
             labelId="party-filter-label"
@@ -325,6 +367,21 @@ function AssemblyConstituencyMap({ themes, ...other }) {
             <MenuItem value="all">All Parties</MenuItem>
             {parties.map(party => (
               <MenuItem key={party} value={party}>{party}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth size="small">
+          <InputLabel id="year-filter-label">Election Year</InputLabel>
+          <Select
+            labelId="year-filter-label"
+            value={filters.year}
+            label="Election Year"
+            onChange={(e) => handleFilterChange('year', e.target.value)}
+          >
+            <MenuItem value="all">All Years</MenuItem>
+            {availableYears.map(year => (
+              <MenuItem key={year} value={year}>{year}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -344,7 +401,26 @@ function AssemblyConstituencyMap({ themes, ...other }) {
           boxShadow: 3
         }}
       >
-        
+        <Typography variant="h6" gutterBottom>
+          Party Colors
+        </Typography>
+        {Object.entries(partyColors).map(([party, color]) => {
+          if (party === 'default') return null;
+          return (
+            <Box key={party} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Box 
+                sx={{ 
+                  width: 16, 
+                  height: 16, 
+                  backgroundColor: color, 
+                  mr: 1,
+                  border: '1px solid #000'
+                }} 
+              />
+              <Typography variant="body2">{party}</Typography>
+            </Box>
+          );
+        })}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Box 
             sx={{ 
@@ -419,5 +495,6 @@ export default memo(AssemblyConstituencyMap);
 
 AssemblyConstituencyMap.propTypes = {
   themes: PropTypes.object.isRequired,
+  selectedYear: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   other: PropTypes.any
 };

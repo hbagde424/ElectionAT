@@ -460,7 +460,7 @@ exports.getWinningCandidatesByParty = async (req, res, next) => {
 // @desc    Get candidates by assembly and year with vote statistics
 // @route   GET /api/winning-candidates/assembly/:assemblyId/year/:yearId
 // @access  Public
-exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
+ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
   try {
     const assembly = await Assembly.findById(req.params.assemblyId);
     if (!assembly) {
@@ -494,6 +494,15 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
       });
     }
 
+    // Optional: Filter out incomplete records (uncomment if needed)
+    // const candidatesFiltered = candidates.filter(c => c.candidate_id && c.party_id);
+    // if (candidatesFiltered.length === 0) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: 'No complete candidate records found'
+    //   });
+    // }
+
     const totalCandidates = candidates.length;
     const totalVotesCast = candidates.reduce((sum, candidate) => sum + candidate.total_votes, 0);
     const winner = candidates[0];
@@ -510,10 +519,10 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
         total_candidates: totalCandidates,
         total_votes_cast: totalVotesCast,
         winner: {
-          candidate_id: winner.candidate_id._id,
-          candidate_name: winner.candidate_id.name,
-          party_id: winner.party_id._id,
-          party_name: winner.party_id.name,
+          candidate_id: winner.candidate_id?._id || null,
+          candidate_name: winner.candidate_id?.name || null,
+          party_id: winner.party_id?._id || null,
+          party_name: winner.party_id?.name || null,
           votes_received: winner.total_votes,
           margin: winner.margin,
           margin_percentage: winner.margin_percentage,
@@ -522,11 +531,11 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
           poll_percentage: winner.poll_percentage
         },
         all_candidates: candidates.map(candidate => ({
-          candidate_id: candidate.candidate_id._id,
-          candidate_name: candidate.candidate_id.name,
-          party_id: candidate.party_id._id,
-          party_name: candidate.party_id.name,
-          party_symbol: candidate.party_id.symbol,
+          candidate_id: candidate.candidate_id?._id || null,
+          candidate_name: candidate.candidate_id?.name || null,
+          party_id: candidate.party_id?._id || null,
+          party_name: candidate.party_id?.name || null,
+          party_symbol: candidate.party_id?.symbol || null,
           votes_received: candidate.total_votes,
           voting_percentage: candidate.voting_percentage,
           assembly_no: candidate.assembly_no,
@@ -538,6 +547,7 @@ exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
 
     res.status(200).json(response);
   } catch (err) {
-    next(err);
+    console.error("Error in getCandidatesByAssemblyAndYear:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };

@@ -176,20 +176,11 @@ export default function CandidateModal({
                 throw new Error('Please login to continue');
             }
 
-            // 2. Get user ID - check both localStorage and sessionStorage
-            // const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
-            // if (!userId) {
-            //     throw new Error('User session expired. Please login again');
-            // }
-
             // 3. Prepare form data
             const formDataToSend = new FormData();
             formDataToSend.append('name', formData.name);
             formDataToSend.append('caste', formData.caste);
             formDataToSend.append('criminal_cases', formData.criminal_cases);
-            //   formDataToSend.append('created_by', userId); // Add created_by field
-
-            // Add optional fields
             if (formData.assets) formDataToSend.append('assets', formData.assets);
             if (formData.liabilities) formDataToSend.append('liabilities', formData.liabilities);
             if (formData.education) formDataToSend.append('education', formData.education);
@@ -209,25 +200,31 @@ export default function CandidateModal({
                 body: formDataToSend
             });
 
-            // 5. Handle response
-            const data = await res.json();
+            let data = null;
+            try {
+                data = await res.json();
+            } catch (jsonErr) {
+                // If response is not JSON, ignore parsing error
+                data = {};
+            }
 
             if (!res.ok) {
                 // Handle backend validation errors
-                if (data.errors) {
+                if (data && data.errors) {
                     const errorMessages = Object.values(data.errors).map(err => err.message);
                     throw new Error(errorMessages.join(', '));
                 }
-                throw new Error(data.message || 'Failed to save candidate');
+                throw new Error((data && (data.message || data.error)) || 'Failed to save candidate');
             }
 
             // Success case
+            setSubmitError('');
             modalToggler(false);
             refresh();
 
         } catch (error) {
             console.error('Submission error:', error);
-            setSubmitError(error.message);
+            setSubmitError(error.message || 'An error occurred');
         } finally {
             setIsSubmitting(false);
         }

@@ -169,32 +169,16 @@ export default function WinningCandidateModal({
         }
     }, [formData.parliament_id, assemblies]);
 
-    // Party -> Candidates
+    // Show all candidates in dropdown, not filtered by party
     useEffect(() => {
-        if (formData.party_id) {
-            console.log('candidates',candidates)
-          
-            const filtered = candidates?.filter(candidate => {
-                const candidatePartyId = candidate.party_id?._id || candidate.party_id;
-                
-                return candidatePartyId === formData.party_id;
-            }) || [];
-            setFilteredCandidates(filtered);
-
-            if (formData.candidate_id && !filtered.find(c => c._id === formData.candidate_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    candidate_id: ''
-                }));
-            }
-        } else {
-            setFilteredCandidates([]);
+        setFilteredCandidates(candidates || []);
+        if (formData.candidate_id && !(candidates || []).find(c => c._id === formData.candidate_id)) {
             setFormData(prev => ({
                 ...prev,
                 candidate_id: ''
             }));
         }
-    }, [formData.party_id, candidates]);
+    }, [candidates]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;

@@ -110,7 +110,7 @@ export default function WidgetData() {
       </Grid>
 
       <Grid item xs={12} md={6}>
-        <MainCard title="Average Voter Turnout">
+        <MainCard title="Candidate Voter Turnout">
           <CandidateAssemblyVote />
         </MainCard>
       </Grid>

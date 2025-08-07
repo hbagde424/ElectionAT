@@ -28,7 +28,7 @@ const winningCandidateSchema = new mongoose.Schema({
   type: {
     type: [String],
     required: true,
-    enum: ['General', 'Bye', 'Midterm', 'Special'], // example types
+    enum: ['General', 'SC', 'ST', 'OBC'], // example types
     default: ['General']
   },
   poll_percentage: {

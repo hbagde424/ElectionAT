@@ -94,6 +94,7 @@ exports.createCandidate = async (req, res, next) => {
       });
     }
 
+    let candidate;
     try {
       const candidateData = {
         ...req.body,
@@ -107,7 +108,7 @@ exports.createCandidate = async (req, res, next) => {
         console.log('Setting photo path:', candidateData.photo);
       }
 
-      const candidate = await Candidate.create(candidateData);
+      candidate = await Candidate.create(candidateData);
       console.log('Created candidate:', candidate);
     } catch (error) {
       console.error('Validation error:', error.message);
@@ -117,7 +118,7 @@ exports.createCandidate = async (req, res, next) => {
       });
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: candidate
     });

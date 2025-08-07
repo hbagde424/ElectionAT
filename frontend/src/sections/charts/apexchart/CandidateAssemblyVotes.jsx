@@ -124,7 +124,8 @@ export default function VoterTurnoutChart() {
 
   useEffect(() => {
     if (electionData && electionData.all_candidates) {
-      const categories = electionData.all_candidates.map(candidate => candidate.candidate_name);
+      // Use 'Unknown Candidate' if candidate_name is null
+      const categories = electionData.all_candidates.map((candidate, idx) => candidate.candidate_name || `Unknown ${idx + 1}`);
       const votesData = electionData.all_candidates.map(candidate => candidate.votes_received);
       const partyColors = electionData.all_candidates.map(candidate => 
         candidate.party_name === electionData.winner.party_name ? successDark : secondary
@@ -168,7 +169,7 @@ export default function VoterTurnoutChart() {
         },
         annotations: {
           xaxis: [{
-            x: electionData.winner.candidate_name,
+            x: electionData.winner.candidate_name || 'Unknown Candidate 1',
             borderColor: primaryMain,
             label: {
               borderColor: primaryMain,
