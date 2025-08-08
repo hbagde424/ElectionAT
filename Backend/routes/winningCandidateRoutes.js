@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const {
   getWinningCandidates,
@@ -9,7 +11,9 @@ const {
   getWinningCandidatesByAssembly,
   getWinningCandidatesByParliament,
   getWinningCandidatesByParty,
-  getCandidatesByAssemblyAndYear
+  getCandidatesByAssemblyAndYear,
+  getPartyAssemblyCountByYear,
+  predictWinningPartyForNextYear
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -105,6 +109,94 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
 router.get('/', getWinningCandidates);
+
+
+/**
+ * @swagger
+ * /api/winning-candidates/predict/2028:
+ *   get:
+ *     summary: Predict winning party for each assembly for 2028 based on historical data
+ *     tags: [WinningCandidates]
+ *     responses:
+ *       200:
+ *         description: Successful prediction
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 year:
+ *                   type: integer
+ *                 total_assemblies:
+ *                   type: integer
+ *                 predictions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       assembly_id:
+ *                         type: string
+ *                       assembly_name:
+ *                         type: string
+ *                       assembly_no:
+ *                         type: string
+ *                       predicted_party:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           symbol:
+ *                             type: string
+ *                           color:
+ *                             type: string
+ *                       win_count:
+ *                         type: integer
+ */
+router.get('/predict/2028', require('../controllers/winningCandidateController').predictWinningPartyForNextYear);
+
+
+/**
+ * @swagger
+ * /api/winning-candidates/party-assembly-count:
+ *   get:
+ *     summary: Get number of assemblies won by each party for a given year
+ *     tags: [WinningCandidates]
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Election year ID
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       party_id:
+ *                         type: string
+ *                       party_name:
+ *                         type: string
+ *                       party_symbol:
+ *                         type: string
+ *                       assembly_count:
+ *                         type: integer
+ */
+router.get('/party-assembly-count', getPartyAssemblyCountByYear);
 
 /**
  * @swagger

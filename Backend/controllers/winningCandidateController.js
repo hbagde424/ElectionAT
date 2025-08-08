@@ -1,3 +1,116 @@
+// @desc    Predict winning party for each assembly for 2028 based on historical data
+// @route   GET /api/winning-candidates/predict/2028
+// @access  Public
+exports.predictWinningPartyForNextYear = async (req, res, next) => {
+  try {
+    // Get all assemblies
+    const assemblies = await Assembly.find({}, '_id name AC_NO');
+    // Get all years except 2028
+    const years = await Year.find({ year: { $ne: '2028' } }, '_id year');
+    const yearIds = years.map(y => y._id);
+
+    // For each assembly, find party with most wins in past years
+    const predictions = [];
+    for (const assembly of assemblies) {
+      // Find all winning candidates for this assembly in past years
+      const winners = await WinningCandidate.find({
+        assembly_id: assembly._id,
+        year_id: { $in: yearIds }
+      }).populate('party_id', 'name symbol color');
+
+      // Count wins per party
+      const partyWinCount = {};
+      for (const winner of winners) {
+        const partyId = winner.party_id?._id?.toString() || winner.party_id?.toString();
+        if (!partyId) continue;
+        if (!partyWinCount[partyId]) {
+          partyWinCount[partyId] = { count: 0, party: winner.party_id };
+        }
+        partyWinCount[partyId].count++;
+      }
+      // Find party with max wins
+      let predictedParty = null;
+      let maxWins = 0;
+      Object.values(partyWinCount).forEach(obj => {
+        if (obj.count > maxWins) {
+          maxWins = obj.count;
+          predictedParty = obj.party;
+        }
+      });
+      predictions.push({
+        assembly_id: assembly._id,
+        assembly_name: assembly.name,
+        assembly_no: assembly.AC_NO,
+        predicted_party: predictedParty ? {
+          id: predictedParty._id,
+          name: predictedParty.name,
+          symbol: predictedParty.symbol,
+          color: predictedParty.color
+        } : null,
+        win_count: maxWins
+      });
+    }
+    res.status(200).json({
+      success: true,
+      year: 2028,
+      total_assemblies: assemblies.length,
+      predictions
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+// @desc    Get number of assemblies won by each party for a given year
+// @route   GET /api/winning-candidates/party-assembly-count?year=YEAR_ID
+// @access  Public
+exports.getPartyAssemblyCountByYear = async (req, res, next) => {
+  try {
+    const { year } = req.query;
+    if (!year) {
+      return res.status(400).json({ success: false, message: 'Year ID is required as query param' });
+    }
+
+    let yearObjId;
+    try {
+      yearObjId = new mongoose.Types.ObjectId(year);
+    } catch (e) {
+      return res.status(400).json({ success: false, message: 'Invalid year ID format' });
+    }
+
+    // Aggregate: group by party, count unique assemblies for the given year
+    const result = await WinningCandidate.aggregate([
+      { $match: { year_id: yearObjId } },
+      { $group: {
+          _id: "$party_id",
+          assemblies: { $addToSet: "$assembly_id" }
+        }
+      },
+      { $project: {
+          party_id: "$_id",
+          assembly_count: { $size: "$assemblies" },
+          _id: 0
+        }
+      },
+      { $sort: { assembly_count: -1 } }
+    ]);
+
+    // Populate party name and color
+    const populated = await Party.populate(result, { path: 'party_id', select: 'name symbol color' });
+
+    res.status(200).json({
+      success: true,
+      data: populated.map(r => ({
+        party_id: r.party_id?._id || r.party_id,
+        party_name: r.party_id?.name || null,
+        party_symbol: r.party_id?.symbol || null,
+        party_color: r.party_id?.color || null,
+        assembly_count: r.assembly_count
+      }))
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 const mongoose = require('mongoose');
 const WinningCandidate = require('../models/winningCandidate');
 const State = require('../models/state');
