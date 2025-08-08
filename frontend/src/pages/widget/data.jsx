@@ -49,10 +49,12 @@ import AssemblyGraph from 'sections/widget/chart/AssemblySetGrapd';
 import Booth from 'sections/widget/chart/BoothSetGrapd';
 
 import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
+import Party from 'sections/charts/apexchart/partygraph';
 import CandidateAssemblyVote from 'sections/charts/apexchart/CandidateAssemblyVotes';
 
 import ApexMixedChart from 'sections/charts/apexchart/ApexMixedChart copy';
-import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
+import HierarchicPalMap from 'sections/dashboard/default/HierarchicalMap';
+import Predicted from 'sections/dashboard/default/predicted';
 
 
 
@@ -82,7 +84,7 @@ export default function WidgetData() {
       </Grid> */}
 
       <Grid item xs={12}>
-        <HierarchicalMap />
+        <HierarchicPalMap />
       </Grid>
 
       {/* <Grid item xs={12}>
@@ -119,6 +121,16 @@ export default function WidgetData() {
         <MainCard title="Votes Share Trends">
           <ApexMixedChart />
         </MainCard>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <MainCard title="Party Graph">
+          <Party />
+        </MainCard>
+      </Grid>
+
+      <Grid item xs={12}>
+        <Predicted />
       </Grid>
 
 
