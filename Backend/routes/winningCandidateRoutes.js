@@ -1,5 +1,6 @@
 
 
+
 const express = require('express');
 const {
   getWinningCandidates,
@@ -109,6 +110,42 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
 router.get('/', getWinningCandidates);
+
+/**
+ * @swagger
+ * /api/winning-candidates/predicted-party-assembly-count:
+ *   get:
+ *     summary: Get predicted number of assemblies won by each party for 2028
+ *     tags: [WinningCandidates]
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 year:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       party_id:
+ *                         type: string
+ *                       party_name:
+ *                         type: string
+ *                       party_symbol:
+ *                         type: string
+ *                       party_color:
+ *                         type: string
+ *                       assembly_count:
+ *                         type: integer
+ */
+router.get('/predicted-party-assembly-count', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
 
 
 /**

@@ -1,3 +1,80 @@
+// @desc    Get predicted assembly win count per party for 2028
+// @route   GET /api/winning-candidates/predicted-party-assembly-count
+// @access  Public
+exports.getPredictedPartyAssemblyCount2028 = async (req, res, next) => {
+  try {
+    // Use the same logic as predictWinningPartyForNextYear to get predictions
+    const assemblies = await Assembly.find({}, '_id name AC_NO');
+    const years = await Year.find({ year: { $ne: '2028' } }, '_id year');
+    const yearIds = years.map(y => y._id);
+
+    // For each assembly, find party with most wins in past years
+    const predictions = [];
+    for (const assembly of assemblies) {
+      const winners = await WinningCandidate.find({
+        assembly_id: assembly._id,
+        year_id: { $in: yearIds }
+      }).populate('party_id', 'name symbol color');
+
+      const partyWinCount = {};
+      for (const winner of winners) {
+        const partyId = winner.party_id?._id?.toString() || winner.party_id?.toString();
+        if (!partyId) continue;
+        if (!partyWinCount[partyId]) {
+          partyWinCount[partyId] = { count: 0, party: winner.party_id };
+        }
+        partyWinCount[partyId].count++;
+      }
+      // Find party with max wins
+      let predictedParty = null;
+      let maxWins = 0;
+      Object.values(partyWinCount).forEach(obj => {
+        if (obj.count > maxWins) {
+          maxWins = obj.count;
+          predictedParty = obj.party;
+        }
+      });
+      predictions.push({
+        assembly_id: assembly._id,
+        predicted_party: predictedParty ? {
+          id: predictedParty._id,
+          name: predictedParty.name,
+          symbol: predictedParty.symbol,
+          color: predictedParty.color
+        } : null
+      });
+    }
+
+    // Count how many assemblies each party is predicted to win
+    const partyAssemblyCount = {};
+    for (const pred of predictions) {
+      if (pred.predicted_party && pred.predicted_party.id) {
+        const pid = pred.predicted_party.id.toString();
+        if (!partyAssemblyCount[pid]) {
+          partyAssemblyCount[pid] = {
+            party_id: pid,
+            party_name: pred.predicted_party.name,
+            party_symbol: pred.predicted_party.symbol,
+            party_color: pred.predicted_party.color,
+            assembly_count: 0
+          };
+        }
+        partyAssemblyCount[pid].assembly_count++;
+      }
+    }
+
+    // Convert to array and sort descending
+    const result = Object.values(partyAssemblyCount).sort((a, b) => b.assembly_count - a.assembly_count);
+
+    res.status(200).json({
+      success: true,
+      year: 2028,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 // @desc    Predict winning party for each assembly for 2028 based on historical data
 // @route   GET /api/winning-candidates/predict/2028
 // @access  Public
