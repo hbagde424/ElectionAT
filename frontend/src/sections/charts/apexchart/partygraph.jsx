@@ -110,7 +110,13 @@ export default function PartyAssemblyCountChart() {
         const yearsData = yearsResponse.data.data;
         setYears(yearsData);
         if (yearsData && yearsData.length > 0) {
-          setSelectedYear(yearsData[0]._id); // Default to first year
+          // Try to find year 2023
+          const year2023 = yearsData.find(y => y.year === 2023);
+          if (year2023) {
+            setSelectedYear(year2023._id);
+          } else {
+            setSelectedYear(yearsData[0]._id); // Fallback to first year
+          }
         }
       } catch (err) {
         setError('Failed to fetch years');
