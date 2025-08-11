@@ -50,6 +50,7 @@ import Booth from 'sections/widget/chart/BoothSetGrapd';
 
 import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
 import Party from 'sections/charts/apexchart/partygraph';
+import PredictedbarGraph from 'sections/charts/apexchart/predictedbarGraph';
 import CandidateAssemblyVote from 'sections/charts/apexchart/CandidateAssemblyVotes';
 
 import ApexMixedChart from 'sections/charts/apexchart/ApexMixedChart copy';
@@ -126,6 +127,12 @@ export default function WidgetData() {
       <Grid item xs={12} md={6}>
         <MainCard title="Party Graph">
           <Party />
+        </MainCard>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <MainCard title="Predicted Bar Graph">
+          <PredictedbarGraph />
         </MainCard>
       </Grid>
 
