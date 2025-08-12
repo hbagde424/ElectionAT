@@ -32,6 +32,16 @@ export default function ParliamentView({ data }) {
                 />
             </Stack>
 
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Divider sx={{ mb: 1 }} />
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box sx={{ bgcolor: '#f9f9f9', borderRadius: 1, p: 2 }}>
+                        <div dangerouslySetInnerHTML={{ __html: data.description }} />
+                    </Box>
+                </Box>
+            )}
+
             <Divider sx={{ mb: 2 }} />
 
             <Grid container spacing={3}>
@@ -49,7 +59,7 @@ export default function ParliamentView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
@@ -60,7 +70,6 @@ export default function ParliamentView({ data }) {
                                 {data.updated_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <CalendarTick size="16" />
@@ -72,37 +81,8 @@ export default function ParliamentView({ data }) {
                                 {formatDate(data.created_at)}
                             </Typography>
                         </Box>
-
-                        {data.updated_by && (
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <User size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {data.updated_by?.username || 'N/A'}
-                                </Typography>
-                            </Box>
-                        )}
-
-                        {data.updated_at && (
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <CalendarTick size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {formatDate(data.updated_at)}
-                                </Typography>
-                            </Box>
-                        )}
                     </Stack>
                 </Grid>
-
                 {/* Right Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Grid container spacing={2}>
@@ -114,10 +94,6 @@ export default function ParliamentView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
                             <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
                         </Grid>
-                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
-                            <Chip label={data.assembly_id?.name || 'N/A'} color="secondary" size="small" />
-                        </Grid> */}
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Category</Typography>
                             <Chip label={data.category?.toUpperCase() || 'N/A'} size="small" />
@@ -126,12 +102,6 @@ export default function ParliamentView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Regional Type</Typography>
                             <Chip label={data.regional_type?.toUpperCase() || 'N/A'} size="small" />
                         </Grid>
-                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament ID</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {data._id || data.id || 'N/A'}
-                            </Typography>
-                        </Grid> */}
                     </Grid>
                 </Grid>
             </Grid>

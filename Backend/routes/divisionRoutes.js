@@ -223,6 +223,10 @@ router.get('/state/:stateId', getDivisionsByState);
  *           type: string
  *           description: Division name
  *           example: "Northern Division"
+ *         description:
+ *           type: string
+ *           description: Division description (HTML allowed)
+ *           example: "<p>Some description about the division.</p>"
  *         division_code:
  *           type: string
  *           description: Unique division code

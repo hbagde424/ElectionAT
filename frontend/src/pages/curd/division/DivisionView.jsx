@@ -25,12 +25,17 @@ export default function DivisionView({ data }) {
                     size="small"
                     variant="outlined"
                 />
-                {/* <Chip
-                    label={data.is_active ? 'ACTIVE' : 'INACTIVE'}
-                    color={data.is_active ? 'success' : 'error'}
-                    size="small"
-                /> */}
             </Stack>
+
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Divider sx={{ mb: 1 }} />
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box sx={{ bgcolor: '#f9f9f9', borderRadius: 1, p: 2 }}>
+                        <div dangerouslySetInnerHTML={{ __html: data.description }} />
+                    </Box>
+                </Box>
+            )}
 
             <Divider sx={{ mb: 2 }} />
 
@@ -49,7 +54,7 @@ export default function DivisionView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
@@ -60,7 +65,6 @@ export default function DivisionView({ data }) {
                                 {data.updated_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <CalendarTick size="16" />
@@ -83,37 +87,8 @@ export default function DivisionView({ data }) {
                                 {formatDate(data.updated_at)}
                             </Typography>
                         </Box>
-
-                        {data.updated_by && (
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <User size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {data.updated_by?.username || 'N/A'}
-                                </Typography>
-                            </Box>
-                        )}
-
-                        {data.updated_at && (
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <CalendarTick size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {formatDate(data.updated_at)}
-                                </Typography>
-                            </Box>
-                        )}
                     </Stack>
                 </Grid>
-
                 {/* Right Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Grid container spacing={2}>
@@ -125,16 +100,6 @@ export default function DivisionView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division Code</Typography>
                             <Chip label={data.division_code || 'N/A'} color="warning" size="small" />
                         </Grid>
-                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
-                            <Chip label={data.is_active ? 'ACTIVE' : 'INACTIVE'} color={data.is_active ? 'success' : 'error'} size="small" />
-                        </Grid> */}
-                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division ID</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {data._id || data.id || 'N/A'}
-                            </Typography>
-                        </Grid> */}
                     </Grid>
                 </Grid>
             </Grid>

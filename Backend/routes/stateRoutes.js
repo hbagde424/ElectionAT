@@ -182,6 +182,10 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteState);
  *           type: string
  *           description: State name
  *           example: "California"
+ *         description:
+ *           type: string
+ *           description: State description (HTML allowed)
+ *           example: "<p>Some description about the state.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

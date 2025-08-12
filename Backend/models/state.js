@@ -7,6 +7,10 @@ const stateSchema = new mongoose.Schema({
     trim: true,
     unique: true
   },
+  description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

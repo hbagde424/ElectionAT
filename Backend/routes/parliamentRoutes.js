@@ -276,6 +276,10 @@ router.get('/division/:divisionId', getParliamentsByDivision);
  *           type: string
  *           description: Parliament name
  *           example: "5th Parliament District"
+ *         description:
+ *           type: string
+ *           description: Parliament description (HTML allowed)
+ *           example: "<p>Some description about the parliament.</p>"
  *         division_id:
  *           type: string
  *           description: Reference to Division

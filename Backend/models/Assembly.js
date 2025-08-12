@@ -8,6 +8,11 @@ const assemblySchema = new mongoose.Schema({
     maxlength: [100, 'Assembly name cannot exceed 100 characters'],
     unique: true
   },
+  description: {
+    type: String,
+    trim: true,
+    default: '' // Rich text (HTML) allowed
+  },
   AC_NO: {
     type: String,
     required: [true, 'Assembly name is required'],

@@ -114,6 +114,7 @@ exports.createDivision = async (req, res, next) => {
 
     const divisionData = {
       ...req.body,
+      description: req.body.description || '',
       created_by: req.user.id
     };
 
@@ -162,7 +163,11 @@ exports.updateDivision = async (req, res, next) => {
     }
     req.body.updated_at = new Date();
 
-    division = await Division.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = {
+      ...req.body,
+      description: req.body.description || '',
+    };
+    division = await Division.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     });

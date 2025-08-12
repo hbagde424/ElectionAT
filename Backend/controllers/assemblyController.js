@@ -155,8 +155,18 @@ exports.createAssembly = async (req, res, next) => {
       });
     }
 
+
+    // Only allow fields that are in the schema
     const assemblyData = {
-      ...req.body,
+      name: req.body.name,
+      description: req.body.description || '',
+      AC_NO: req.body.AC_NO,
+      type: req.body.type,
+      category: req.body.category,
+      state_id: req.body.state_id,
+      district_id: req.body.district_id,
+      division_id: req.body.division_id,
+      parliament_id: req.body.parliament_id,
       created_by: req.user.id,
       updated_by: req.user.id
     };
@@ -238,11 +248,23 @@ exports.updateAssembly = async (req, res, next) => {
      // Set updated_by from authenticated user
     req.body.updated_by = req.user.id;
 
-    // Set user in locals for pre-save hook
-    assembly._locals = { user: req.user };
-    req.body.updated_at = new Date();
 
-    assembly = await Assembly.findByIdAndUpdate(req.params.id, req.body, {
+    // Only allow fields that are in the schema
+    const updateData = {
+      name: req.body.name,
+      description: req.body.description || '',
+      AC_NO: req.body.AC_NO,
+      type: req.body.type,
+      category: req.body.category,
+      state_id: req.body.state_id,
+      district_id: req.body.district_id,
+      division_id: req.body.division_id,
+      parliament_id: req.body.parliament_id,
+      updated_by: req.user.id,
+      updated_at: new Date()
+    };
+
+    assembly = await Assembly.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     })

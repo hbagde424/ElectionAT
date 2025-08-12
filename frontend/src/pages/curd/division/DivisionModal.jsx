@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function DivisionModal({
     open,
@@ -20,7 +22,8 @@ export default function DivisionModal({
         name: '',
         division_code: '',
         state_id: '',
-        is_active: true
+        is_active: true,
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -30,14 +33,16 @@ export default function DivisionModal({
                 name: division.name || '',
                 division_code: division.division_code || '',
                 state_id: division.state_id?._id?.toString() || division.state_id?.toString() || '',
-                is_active: division.is_active !== undefined ? division.is_active : true
+                is_active: division.is_active !== undefined ? division.is_active : true,
+                description: division.description || ''
             });
         } else {
             setFormData({
                 name: '',
                 division_code: '',
                 state_id: '',
-                is_active: true
+                is_active: true,
+                description: ''
             });
         }
     }, [division]);
@@ -47,6 +52,13 @@ export default function DivisionModal({
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -187,6 +199,19 @@ export default function DivisionModal({
                             }
                             label="Active"
                         />
+                    </Grid>
+
+                    {/* Row 3: Description */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                theme="snow"
+                                placeholder="Enter description..."
+                            />
+                        </Stack>
                     </Grid>
                 </Grid>
             </DialogContent>

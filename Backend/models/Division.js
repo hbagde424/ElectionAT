@@ -7,6 +7,10 @@ const divisionSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Division name cannot exceed 100 characters']
   },
+  description: {
+    type: String,
+    default: ''
+  },
   division_code: {
     type: String,
     required: [true, 'Division code is required'],

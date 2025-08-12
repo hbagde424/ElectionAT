@@ -7,6 +7,10 @@ const parliamentSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
+  description: {
+    type: String,
+    default: ''
+  },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',

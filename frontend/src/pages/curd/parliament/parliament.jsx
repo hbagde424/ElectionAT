@@ -130,6 +130,22 @@ export default function ParliamentListPage() {
             )
         },
         {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
             header: 'Category',
             accessorKey: 'category',
             cell: ({ getValue }) => (
@@ -198,7 +214,7 @@ export default function ParliamentListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
@@ -263,6 +279,7 @@ export default function ParliamentListPage() {
         const allData = await fetchAllParliamentsForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             Category: item.category,
             'Regional Type': item.regional_type,
             State: item.state_id?.name || '',

@@ -10,12 +10,12 @@ const mapConfiguration = {
 };
 
 const MAPBOX_THEMES = {
-  light: 'mapbox://styles/mapbox/light-v10',
-  dark: 'mapbox://styles/mapbox/dark-v10',
-  streets: 'mapbox://styles/mapbox/streets-v11',
+//   light: 'mapbox://styles/mapbox/light-v10',
+//   dark: 'mapbox://styles/mapbox/dark-v10',
+//   streets: 'mapbox://styles/mapbox/streets-v11',
   outdoors: 'mapbox://styles/mapbox/outdoors-v11',
-  satellite: 'mapbox://styles/mapbox/satellite-v9',
-  satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+//   satellite: 'mapbox://styles/mapbox/satellite-v9',
+//   satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
 };
 
 export default function MapComponent() {

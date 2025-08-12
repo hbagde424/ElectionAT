@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function AssemblyModal({
     open,
@@ -20,6 +22,7 @@ export default function AssemblyModal({
 
     const [formData, setFormData] = useState({
         name: '',
+        description: '',
         type: 'Urban',
         category: 'General',
         state_id: '',
@@ -39,15 +42,17 @@ export default function AssemblyModal({
         if (assembly) {
             setFormData({
                 name: assembly.name || '',
+                description: assembly.description || '',
                 type: assembly.type || 'Urban',
                 category: assembly.category || 'General',
-                state_id: assembly.state_id?._id?.toString() || assembly.state_id?.toString() || '',
-                division_id: assembly.division_id?._id?.toString() || assembly.division_id?.toString() || '',
-                parliament_id: assembly.parliament_id?._id?.toString() || assembly.parliament_id?.toString() || ''
+                state_id: assembly.state_id?._id || assembly.state_id || '',
+                division_id: assembly.division_id?._id || assembly.division_id || '',
+                parliament_id: assembly.parliament_id?._id || assembly.parliament_id || ''
             });
         } else {
             setFormData({
                 name: '',
+                description: '',
                 type: 'Urban',
                 category: 'General',
                 state_id: '',
@@ -60,13 +65,7 @@ export default function AssemblyModal({
     // State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions?.filter(division => {
-                const divisionStateId = division.state_id?._id || division.state_id;
-                return divisionStateId === formData.state_id;
-            }) || [];
-            setFilteredDivisions(filtered);
-
-            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
+            if (formData.division_id && !divisions.find(d => d._id === formData.division_id)) {
                 setFormData(prev => ({
                     ...prev,
                     division_id: '',
@@ -106,6 +105,10 @@ export default function AssemblyModal({
             }));
         }
     }, [formData.division_id, parliaments]);
+    // Rich text editor change handler
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({ ...prev, description: value }));
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -193,7 +196,21 @@ export default function AssemblyModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 2: Type and Category */}
+                    {/* Row 2: Description Rich Text Editor */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 120 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 3: Type and Category */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Type</InputLabel>
@@ -240,7 +257,7 @@ export default function AssemblyModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 3: State and Division */}
+                    {/* Row 4: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>State</InputLabel>
@@ -290,7 +307,7 @@ export default function AssemblyModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: Parliament */}
+                    {/* Row 5: Parliament */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel required>Parliament</InputLabel>

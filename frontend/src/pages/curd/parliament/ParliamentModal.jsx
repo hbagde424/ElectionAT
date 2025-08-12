@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function ParliamentModal({
     open,
@@ -24,7 +26,8 @@ export default function ParliamentModal({
         regional_type: 'urban',
         state_id: '',
         division_id: '',
-        assembly_id: ''
+        assembly_id: '',
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -41,7 +44,8 @@ export default function ParliamentModal({
                 regional_type: parliament.regional_type || 'urban',
                 state_id: parliament.state_id?._id?.toString() || parliament.state_id?.toString() || '',
                 division_id: parliament.division_id?._id?.toString() || parliament.division_id?.toString() || '',
-                assembly_id: parliament.assembly_id?._id?.toString() || parliament.assembly_id?.toString() || ''
+                assembly_id: parliament.assembly_id?._id?.toString() || parliament.assembly_id?.toString() || '',
+                description: parliament.description || ''
             });
         } else {
             setFormData({
@@ -50,7 +54,8 @@ export default function ParliamentModal({
                 regional_type: 'urban',
                 state_id: '',
                 division_id: '',
-                assembly_id: ''
+                assembly_id: '',
+                description: ''
             });
         }
     }, [parliament]);
@@ -110,6 +115,13 @@ export default function ParliamentModal({
         setFormData(prev => ({
             ...prev,
             [name]: value
+        }));
+    };
+
+    const handleDescriptionChange = (value) => {
+        setFormData(prev => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -267,27 +279,18 @@ export default function ParliamentModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: Assembly (Optional) */}
-                    {/* <Grid item xs={12}>
+                    {/* Row 4: Description */}
+                    <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Assembly (Optional)</InputLabel>
-                            <FormControl fullWidth>
-                                <Select
-                                    name="assembly_id"
-                                    value={formData.assembly_id}
-                                    onChange={handleChange}
-                                    disabled={!formData.division_id}
-                                >
-                                    <MenuItem value="">Select Assembly (Optional)</MenuItem>
-                                    {filteredAssemblies.map(assembly => (
-                                        <MenuItem key={assembly._id} value={assembly._id}>
-                                            {assembly.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                theme="snow"
+                                placeholder="Enter description..."
+                            />
                         </Stack>
-                    </Grid> */}
+                    </Grid>
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
