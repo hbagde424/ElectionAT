@@ -40,7 +40,6 @@ const activePartyRoutes = require('./routes/activePartyRoutes');
 const accomplishedMLARoutes = require('./routes/accomplishedMLARoutes');
 const partyActivityRoutes = require('./routes/partyActivityRoutes');
 const userRoutes = require('./routes/userRoutes');
-const seedSuperAdmin = require('./utils/seedSuperAdmin')
 const regionCommitteeRoutes = require('./routes/regionCommitteeRoutes');
 const regionInchargeRoutes = require('./routes/regionInchargeRoutes');
 const hierarchyRoutes = require('./routes/hierarchyRoutes');
@@ -73,7 +72,6 @@ const path = require('path');
 // const mpPolygonRoutes = require('./routes/statePolygonRoutes');
 // Connect to database
 connectDB();
-seedSuperAdmin();
 const app = express();
 
 // Body parser

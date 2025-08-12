@@ -49,10 +49,10 @@ export default function StatesListPage() {
         }
     };
 
-    const fetchStates = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchStates = async (pageIndex, pageSize, searchTerm = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            const query = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
             const res = await fetch(`http://localhost:5000/api/states?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
@@ -66,10 +66,30 @@ export default function StatesListPage() {
         }
     };
 
+    const debouncedFetchStates = useRef(null);
+
     useEffect(() => {
-        fetchStates(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchUsers();
+        // Clear any existing timeout
+        if (debouncedFetchStates.current) {
+            clearTimeout(debouncedFetchStates.current);
+        }
+
+        // Set a new timeout
+        debouncedFetchStates.current = setTimeout(() => {
+            fetchStates(pagination.pageIndex, pagination.pageSize, globalFilter);
+        }, 300); // Wait for 300ms after the user stops typing
+
+        // Cleanup
+        return () => {
+            if (debouncedFetchStates.current) {
+                clearTimeout(debouncedFetchStates.current);
+            }
+        };
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
 
     const handleDeleteOpen = (id) => {
         setStateDeleteId(id);
@@ -141,12 +161,12 @@ export default function StatesListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-       
+
         {
             header: 'Actions',
             meta: { className: 'cell-center' },

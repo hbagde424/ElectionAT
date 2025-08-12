@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 // material-ui
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -18,6 +18,7 @@ export default function DebouncedInput({
   ...props
 }) {
   const [value, setValue] = useState(initialValue);
+  const inputRef = useRef(null);
 
   const handleInputChange = (event) => setValue(event.target.value);
 
@@ -30,6 +31,15 @@ export default function DebouncedInput({
       onFilterChange(value);
     }, debounce);
 
+    // Maintain focus after the debounce
+    if (inputRef.current && document.activeElement === inputRef.current) {
+      const position = inputRef.current.selectionStart;
+      setTimeout(() => {
+        inputRef.current.focus();
+        inputRef.current.setSelectionRange(position, position);
+      }, 0);
+    }
+
     return () => clearTimeout(timeout);
     // eslint-disable-next-line
   }, [value]);
@@ -37,8 +47,10 @@ export default function DebouncedInput({
   return (
     <OutlinedInput
       {...props}
+      inputRef={inputRef}
       value={value}
       onChange={handleInputChange}
+      autoFocus
       sx={{ minWidth: 100 }}
       {...(startAdornment && { startAdornment })}
       {...(size && { size })}
