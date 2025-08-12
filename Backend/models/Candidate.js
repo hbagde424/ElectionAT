@@ -46,6 +46,11 @@ const candidateSchema = new mongoose.Schema({
       message: props => `Invalid photo path: ${props.value}. Must be empty, a URL, or start with /uploads/candidate/`
     }
   },
+  party_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Party',
+    required: false
+  },
   is_active: {
     type: Boolean,
     default: true
