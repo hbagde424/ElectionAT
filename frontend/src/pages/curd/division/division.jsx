@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, MenuItem, TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -34,6 +34,7 @@ export default function DivisionListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [stateFilter, setStateFilter] = useState('');
 
     const fetchReferenceData = async () => {
         try {
@@ -63,11 +64,14 @@ export default function DivisionListPage() {
         }
     };
 
-    const fetchDivisions = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchDivisions = async (pageIndex, pageSize, globalFilter = '', stateFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/divisions?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const query = [];
+            if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+            const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+            const res = await fetch(`http://localhost:5000/api/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setDivisions(json.data);
@@ -81,9 +85,9 @@ export default function DivisionListPage() {
     };
 
     useEffect(() => {
-        fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter);
+        fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
 
     const handleDeleteOpen = (id) => {
         setDivisionDeleteId(id);
@@ -178,12 +182,12 @@ export default function DivisionListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-        
+
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -265,11 +269,27 @@ export default function DivisionListPage() {
         <>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${divisions.length} divisions...`}
-                    />
+                    <Stack direction="row" spacing={2}>
+                        <DebouncedInput
+                            value={globalFilter}
+                            onFilterChange={setGlobalFilter}
+                            placeholder={`Search ${divisions.length} divisions...`}
+                        />
+                        <TextField
+                            select
+                            label="Filter by State"
+                            value={stateFilter}
+                            onChange={(e) => setStateFilter(e.target.value)}
+                            sx={{ minWidth: 200 }}
+                        >
+                            <MenuItem value="">All States</MenuItem>
+                            {states.map((state) => (
+                                <MenuItem key={state._id} value={state._id}>
+                                    {state.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </Stack>
                     <Stack direction="row" spacing={1}>
                         <CSVLink
                             data={csvData}
