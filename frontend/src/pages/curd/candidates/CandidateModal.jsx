@@ -5,6 +5,8 @@ import {
     CircularProgress, Typography, Avatar
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 // Helper components
 const FormSelect = ({
@@ -72,6 +74,7 @@ export default function CandidateModal({
         assets: '',
         liabilities: '',
         education: '',
+        description: '',
         photo: '',
         is_active: true
     });
@@ -91,6 +94,7 @@ export default function CandidateModal({
                 assets: candidate.assets || '',
                 liabilities: candidate.liabilities || '',
                 education: candidate.education || '',
+                description: candidate.description || '',
                 photo: candidate.photo || '',
                 is_active: candidate.is_active !== undefined ? candidate.is_active : true
             });
@@ -103,6 +107,7 @@ export default function CandidateModal({
                 assets: '',
                 liabilities: '',
                 education: '',
+                description: '',
                 photo: '',
                 is_active: true
             });
@@ -163,6 +168,13 @@ export default function CandidateModal({
         if (submitError) setSubmitError('');
     };
 
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
+
     const handleSubmit = async () => {
         if (!validateForm()) return;
 
@@ -184,6 +196,7 @@ export default function CandidateModal({
             if (formData.assets) formDataToSend.append('assets', formData.assets);
             if (formData.liabilities) formDataToSend.append('liabilities', formData.liabilities);
             if (formData.education) formDataToSend.append('education', formData.education);
+            if (formData.description) formDataToSend.append('description', formData.description);
             if (photoFile) formDataToSend.append('photo', photoFile);
 
             // 4. Make the API request
@@ -342,6 +355,17 @@ export default function CandidateModal({
                             </Stack>
                         </Stack>
                     </Grid>
+                </Grid>
+                <Grid item xs={12}>
+                    <Stack spacing={1}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            theme="snow"
+                            placeholder="Enter candidate description..."
+                        />
+                    </Stack>
                 </Grid>
             </DialogContent>
 

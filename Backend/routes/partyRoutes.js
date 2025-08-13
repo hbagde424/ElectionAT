@@ -169,6 +169,10 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParty);
  *         founded_year:
  *           type: integer
  *           description: Year the party was founded
+ *         description:
+ *           type: string
+ *           description: Party description (HTML allowed)
+ *           example: "<p>Some description about the party.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created this record

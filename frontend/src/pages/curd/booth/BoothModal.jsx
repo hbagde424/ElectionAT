@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function BoothModal({
     open,
@@ -32,7 +34,8 @@ export default function BoothModal({
         parliament_id: '',
         assembly_id: '',
         block_id: '',
-        election_year: ''
+        election_year: '',
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -54,7 +57,8 @@ export default function BoothModal({
                 parliament_id: booth.parliament_id?._id?.toString() || booth.parliament_id?.toString() || '',
                 assembly_id: booth.assembly_id?._id?.toString() || booth.assembly_id?.toString() || '',
                 block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || '',
-                election_year: booth.election_year?._id?.toString() || booth.election_year?.toString() || ''
+                election_year: booth.election_year?._id?.toString() || booth.election_year?.toString() || '',
+                description: booth.description || ''
             });
         } else {
             setFormData({
@@ -68,7 +72,8 @@ export default function BoothModal({
                 parliament_id: '',
                 assembly_id: '',
                 block_id: '',
-                election_year: ''
+                election_year: '',
+                description: ''
             });
         }
     }, [booth]);
@@ -179,6 +184,14 @@ export default function BoothModal({
         }));
     };
 
+    // For ReactQuill editor
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
+
      
 
     const handleSubmit = async () => {
@@ -187,6 +200,7 @@ export default function BoothModal({
             'name', 'booth_number', 'full_address',
             'state_id', 'division_id', 'parliament_id',
             'assembly_id', 'block_id', 'election_year'
+            // description is optional
         ];
 
         for (const field of requiredFields) {
@@ -212,11 +226,13 @@ export default function BoothModal({
         }
 
         const userTracking = booth ? { updated_by: userId } : { created_by: userId };
+        // Always send description, even if unchanged or empty
         const submitData = {
             ...formData,
             ...userTracking,
             latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-            longitude: formData.longitude ? parseFloat(formData.longitude) : undefined
+            longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+            description: typeof formData.description === 'string' ? formData.description : ''
         };
 
         try {
@@ -248,6 +264,20 @@ export default function BoothModal({
             <DialogTitle>{booth ? 'Edit Booth' : 'Add Booth'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
+                    {/* Row: Description (Rich Text) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            {/* Use ReactQuill for rich text editing */}
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter booth description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
+                        </Stack>
+                    </Grid>
                     {/* Row 1: Name and Booth Number */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>

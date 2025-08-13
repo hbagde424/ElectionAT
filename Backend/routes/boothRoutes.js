@@ -362,6 +362,10 @@ router.get('/year/:yearId', getBoothsByYear);
  *           type: string
  *           description: Reference to Election Year
  *           example: "507f1f77bcf86cd799439017"
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

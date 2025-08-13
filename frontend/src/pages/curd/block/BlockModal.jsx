@@ -4,6 +4,8 @@ import {
     Switch, FormControlLabel, Chip, Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 // project imports
 import JWTContext from 'contexts/JWTContext';
@@ -29,6 +31,7 @@ export default function BlocksModal({
         division_id: '',
         parliament_id: '',
         assembly_id: '',
+        description: '',
         is_active: true
     });
     const [submitted, setSubmitted] = useState(false);
@@ -49,6 +52,7 @@ export default function BlocksModal({
                 division_id: block.division_id?._id?.toString() || block.division_id?.toString() || '',
                 parliament_id: block.parliament_id?._id?.toString() || block.parliament_id?.toString() || '',
                 assembly_id: block.assembly_id?._id?.toString() || block.assembly_id?.toString() || '',
+                description: block.description || '',
                 is_active: block.is_active !== undefined ? block.is_active : true
             });
         } else if (!block) {
@@ -59,10 +63,17 @@ export default function BlocksModal({
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
+                description: '',
                 is_active: true
             });
         }
     }, [block, states]);
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -371,6 +382,17 @@ export default function BlocksModal({
                             label="Active"
                         />
                     </Grid>
+                </Grid>
+                <Grid item xs={12}>
+                    <Stack spacing={1}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            theme="snow"
+                            placeholder="Enter block description..."
+                        />
+                    </Stack>
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>

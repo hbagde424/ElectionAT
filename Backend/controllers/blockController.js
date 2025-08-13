@@ -158,7 +158,9 @@ exports.createBlock = async (req, res, next) => {
 
     const blockData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+        description: req.body.description || '',
+
     };
 
     const block = await Block.create(blockData);
@@ -214,7 +216,9 @@ exports.updateBlock = async (req, res, next) => {
     // Set updated_by
     const updateData = {
       ...req.body,
-      updated_by: req.user.id
+      updated_by: req.user.id,
+      description: req.body.description || '',
+
     };
     req.body.updated_at = new Date();
 

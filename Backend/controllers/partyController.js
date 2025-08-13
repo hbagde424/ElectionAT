@@ -74,7 +74,8 @@ exports.createParty = async (req, res, next) => {
       abbreviation,
       symbol,
       founded_year,
-      created_by: req.user.id
+      created_by: req.user.id,
+      description: req.body.description || '',
     });
 
     res.status(201).json({
@@ -114,6 +115,7 @@ exports.updateParty = async (req, res, next) => {
     // Set updated_by from authenticated user
     req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
+    req.body.description = req.body.description || '';
 
     // Set user in locals for pre-save hook
     party._locals = { user: req.user };

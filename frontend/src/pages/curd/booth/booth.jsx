@@ -152,6 +152,23 @@ export default function BoothsListPage() {
             )
         },
         {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {/* Strip HTML tags for table preview */}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
             header: 'Booth Number',
             accessorKey: 'booth_number',
             cell: ({ getValue }) => (
@@ -372,6 +389,7 @@ export default function BoothsListPage() {
             // District: item.district_id?.name || '',
             Division: item.division_id?.name || '',
             State: item.state_id?.name || '',
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,

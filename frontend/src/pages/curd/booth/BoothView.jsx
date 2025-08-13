@@ -16,6 +16,7 @@ export default function BoothView({ data }) {
         });
     };
 
+
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
@@ -33,6 +34,25 @@ export default function BoothView({ data }) {
                 {/* Left Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Stack spacing={2}>
+                        {/* Description Field (HTML) */}
+                        {data.description && (
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                                <Box
+                                    sx={{
+                                        border: '1px solid #eee',
+                                        borderRadius: 1,
+                                        p: 1,
+                                        bgcolor: 'background.default',
+                                        maxHeight: 180,
+                                        overflow: 'auto',
+                                        mb: 2
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: data.description }}
+                                />
+                            </Box>
+                        )}
+
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <Location size="16" />
@@ -70,7 +90,8 @@ export default function BoothView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">

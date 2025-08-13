@@ -94,10 +94,12 @@ exports.createCandidate = async (req, res, next) => {
       });
     }
 
+
     let candidate;
     try {
       const candidateData = {
         ...req.body,
+        description: req.body.description || '',
         created_by: req.user.id
       };
 
@@ -141,9 +143,11 @@ exports.updateCandidate = async (req, res, next) => {
       });
     }
 
+
     // Prepare update data
     const updateData = {
       ...req.body,
+      description: req.body.description || '',
       updated_by: req.user.id
     };
 

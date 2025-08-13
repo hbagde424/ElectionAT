@@ -42,6 +42,10 @@ const blockSchema = new mongoose.Schema({
     ref: 'State',
     required: true
   },
+    description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

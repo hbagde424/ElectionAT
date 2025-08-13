@@ -20,6 +20,10 @@ const partySchema = new mongoose.Schema({
   founded_year: {
     type: Number
   },
+    description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
