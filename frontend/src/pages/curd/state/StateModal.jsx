@@ -4,6 +4,8 @@ import {
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function StateModal({
     open,
@@ -16,7 +18,8 @@ export default function StateModal({
 
     const [formData, setFormData] = useState({
         name: '',
-        is_active: true
+        is_active: true,
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -24,12 +27,14 @@ export default function StateModal({
         if (state) {
             setFormData({
                 name: state.name || '',
-                is_active: state.is_active !== undefined ? state.is_active : true
+                is_active: state.is_active !== undefined ? state.is_active : true,
+                description: state.description || ''
             });
         } else {
             setFormData({
                 name: '',
-                is_active: true
+                is_active: true,
+                description: ''
             });
         }
     }, [state]);
@@ -39,6 +44,13 @@ export default function StateModal({
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -111,6 +123,18 @@ export default function StateModal({
                                 error={submitted && !formData.name}
                                 helperText={submitted && !formData.name ? 'State name is required' : ''}
                                 placeholder="Enter state name"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                theme="snow"
+                                placeholder="Enter description..."
                             />
                         </Stack>
                     </Grid>

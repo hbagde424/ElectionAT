@@ -127,17 +127,23 @@ export default function StatesListPage() {
                 </Typography>
             )
         },
-        // {
-        //     header: 'Status',
-        //     accessorKey: 'is_active',
-        //     cell: ({ getValue }) => (
-        //         <Chip
-        //             label={getValue() ? 'Active' : 'Inactive'}
-        //             color={getValue() ? 'success' : 'error'}
-        //             size="small"
-        //         />
-        //     )
-        // },
+        {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {/* Strip HTML tags for table preview */}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -166,7 +172,6 @@ export default function StatesListPage() {
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -227,6 +232,7 @@ export default function StatesListPage() {
         const allData = await fetchAllStatesForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             Status: item.is_active ? 'Active' : 'Inactive',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at,

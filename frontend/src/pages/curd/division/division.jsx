@@ -126,6 +126,22 @@ export default function DivisionListPage() {
             )
         },
         {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
             header: 'Code',
             accessorKey: 'division_code',
             cell: ({ getValue }) => (
@@ -148,17 +164,6 @@ export default function DivisionListPage() {
                 />
             )
         },
-        // {
-        //     header: 'Status',
-        //     accessorKey: 'is_active',
-        //     cell: ({ getValue }) => (
-        //         <Chip
-        //             label={getValue() ? 'Active' : 'Inactive'}
-        //             color={getValue() ? 'success' : 'error'}
-        //             size="small"
-        //         />
-        //     )
-        // },
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -187,7 +192,6 @@ export default function DivisionListPage() {
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -248,9 +252,9 @@ export default function DivisionListPage() {
         const allData = await fetchAllDivisionsForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Division Code': item.division_code,
             State: item.state_id?.name || '',
-            // Status: item.is_active ? 'Active' : 'Inactive',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at,
             'Updated At': item.updated_at

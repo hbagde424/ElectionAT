@@ -124,6 +124,7 @@ exports.createParliament = async (req, res, next) => {
 
     const parliamentData = {
       ...req.body,
+      description: req.body.description || '',
       created_by: req.user.id
     };
 
@@ -184,7 +185,11 @@ exports.updateParliament = async (req, res, next) => {
     parliament._locals = { user: req.user };
     req.body.updated_at = new Date();
 
-    parliament = await Parliament.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = {
+      ...req.body,
+      description: req.body.description || '',
+    };
+    parliament = await Parliament.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     })

@@ -73,8 +73,10 @@ exports.createState = async (req, res, next) => {
       });
     }
 
+
     const stateData = {
       ...req.body,
+      description: req.body.description || '',
       created_by: req.user.id
     };
 
@@ -116,13 +118,13 @@ exports.updateState = async (req, res, next) => {
       });
     }
 
+
     const updateData = {
       ...req.body,
+      description: req.body.description || '',
       updated_by: req.user.id,
       updated_at: Date.now()
     };
-
-    req.body.updated_at = new Date();
 
 
     const updatedState = await State.findByIdAndUpdate(req.params.id, updateData, {

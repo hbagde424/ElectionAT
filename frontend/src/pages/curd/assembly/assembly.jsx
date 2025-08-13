@@ -222,6 +222,21 @@ export default function AssemblyListPage() {
             )
         },
         {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => {
+                const html = getValue() || '';
+                // Strip HTML tags for preview, show first 40 chars
+                const text = html.replace(/<[^>]+>/g, '').slice(0, 40);
+                return (
+                    <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={text}>
+                        {text || 'N/A'}
+                    </Typography>
+                );
+            }
+        },
+        
+        {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
@@ -310,6 +325,7 @@ export default function AssemblyListPage() {
         const allData = await fetchAllAssembliesForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            Description: item.description || '',
             Type: item.type,
             Category: item.category,
             State: item.state_id?.name || '',

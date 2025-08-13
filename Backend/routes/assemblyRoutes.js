@@ -288,6 +288,10 @@ router.get('/division/:divisionId', getAssembliesByDivision);
  *           type: string
  *           description: Assembly name
  *           example: "42nd Assembly District"
+ *         description:
+ *           type: string
+ *           description: Assembly description (HTML allowed)
+ *           example: "<p>This is a <b>rich text</b> description for the assembly.</p>"
  *         type:
  *           type: string
  *           enum: [Urban, Rural, Mixed]

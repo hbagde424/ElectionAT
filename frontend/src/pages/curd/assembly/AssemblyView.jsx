@@ -16,6 +16,7 @@ export default function AssemblyView({ data }) {
         });
     };
 
+
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
@@ -31,6 +32,16 @@ export default function AssemblyView({ data }) {
                     variant="outlined"
                 />
             </Stack>
+
+            {/* Description Section */}
+            {data.description && (
+                <Box mb={2}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box sx={{ border: '1px solid #eee', borderRadius: 1, p: 2, bgcolor: 'background.default', minHeight: 60 }}>
+                        <div dangerouslySetInnerHTML={{ __html: data.description }} />
+                    </Box>
+                </Box>
+            )}
 
             <Divider sx={{ mb: 2 }} />
 
@@ -49,7 +60,7 @@ export default function AssemblyView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">

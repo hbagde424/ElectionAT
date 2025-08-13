@@ -4,7 +4,8 @@ import ChangeTheme from 'sections/maps/change-theme copy';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip,
+    Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -19,9 +20,83 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 
+
 import WinningCandidateModal from './WinningCandidatesModal';
 import AlertWinningCandidateDelete from './AlertWinningCandidatesDelete';
 import WinningCandidateView from './WinningCandidatesView';
+
+// Beautiful details modal for State, Division, Parliament, Assembly, Party
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import PersonIcon from '@mui/icons-material/Person';
+
+const EntityDetailsModal = ({ open, onClose, details, title }) => {
+    if (!details) return null;
+
+    // Helper to show name if value is object with name, else string
+    const renderValue = (value) => {
+        if (value && typeof value === 'object') {
+            if (value.name) return value.name;
+            if (value.username) return value.username;
+            if (value.year) return value.year;
+            return JSON.stringify(value);
+        }
+        return String(value);
+    };
+
+    // Pick main fields to highlight at top
+    const mainField = details.name || details.abbreviation || details.title || '';
+    const subField = details.abbreviation && details.abbreviation !== details.name ? details.abbreviation : '';
+
+    // Fields to show in grid (skip _id, __v, etc)
+    const skipFields = ['_id', '__v', 'photo', 'symbol'];
+    const fields = Object.entries(details).filter(([key]) => !skipFields.includes(key));
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 0 }}>
+                <InfoOutlinedIcon color="primary" />
+                <Box sx={{ flexGrow: 1 }}>{title} Details</Box>
+            </DialogTitle>
+            <DialogContent dividers sx={{ background: '#f7f9fa', pt: 2 }}>
+                <Stack spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                    <Typography variant="h5" fontWeight={700} color="primary.main" gutterBottom>
+                        {mainField}
+                    </Typography>
+                    {subField && (
+                        <Chip label={subField} color="secondary" size="small" />
+                    )}
+                </Stack>
+                {/* Show description if present */}
+                {details.description && (
+                    <Box mb={2} sx={{ width: '100%' }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                        <Box sx={{ border: '1px solid #eee', borderRadius: 1, p: 2, bgcolor: 'background.default', minHeight: 60 }}>
+                            <div dangerouslySetInnerHTML={{ __html: details.description }} />
+                        </Box>
+                    </Box>
+                )}
+                <Grid container spacing={2}>
+                    {fields.map(([key, value]) => (
+                        key === 'name' || key === 'abbreviation' || key === 'description' ? null : (
+                            <Grid item xs={12} sm={6} key={key}>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: 13 }}>
+                                    {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500, fontSize: 15 }}>
+                                    {renderValue(value)}
+                                </Typography>
+                            </Grid>
+                        )
+                    ))}
+                </Grid>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose} color="primary" variant="contained">Close</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
 
 const mapConfiguration = {
   mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
@@ -29,19 +104,21 @@ const mapConfiguration = {
 };
 
 const MAPBOX_THEMES = {
-  light: 'mapbox://styles/mapbox/light-v10',
-  dark: 'mapbox://styles/mapbox/dark-v10',
-  streets: 'mapbox://styles/mapbox/streets-v11',
+//   light: 'mapbox://styles/mapbox/light-v10',
+//   dark: 'mapbox://styles/mapbox/dark-v10',
+//   streets: 'mapbox://styles/mapbox/streets-v11',
   outdoors: 'mapbox://styles/mapbox/outdoors-v11',
-  satellite: 'mapbox://styles/mapbox/satellite-v9',
-  satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+//   satellite: 'mapbox://styles/mapbox/satellite-v9',
+//   satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
 };
 
 export default function WinningCandidateListPage() {
     const theme = useTheme();
 
-    const [selectedCandidate, setSelectedCandidate] = useState(null);
-    const [openModal, setOpenModal] = useState(false);
+    const [selectedCandidate, setSelectedCandidate] = useState(null); // for edit modal
+    const [openModal, setOpenModal] = useState(false); // for edit modal
+    const [candidateDetails, setCandidateDetails] = useState(null); // for details modal
+    const [openDetailsModal, setOpenDetailsModal] = useState(false); // for details modal
     const [openDelete, setOpenDelete] = useState(false);
     const [candidateDeleteId, setCandidateDeleteId] = useState('');
     const [candidateList, setCandidateList] = useState([]);
@@ -56,6 +133,11 @@ export default function WinningCandidateListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+
+    // For entity popups
+    const [entityDetails, setEntityDetails] = useState(null);
+    const [openEntityModal, setOpenEntityModal] = useState(false);
+    const [entityTitle, setEntityTitle] = useState('');
 
     const fetchReferenceData = async () => {
         try {
@@ -148,6 +230,116 @@ export default function WinningCandidateListPage() {
         });
     };
 
+    // Candidate Details Modal (moved above columns for correct scope)
+    // Dedicated modal for full candidate details (fetched from API)
+    const CandidateDetailsModal = ({ open, onClose, details }) => {
+        if (!details) return null;
+        return (
+            <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ flexGrow: 1 }}>Candidate Details</Box>
+                </DialogTitle>
+                <DialogContent dividers sx={{ background: '#f7f9fa' }}>
+                    <Stack spacing={3} alignItems="center">
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                            {details.photo ? (
+                                <Box
+                                    component="img"
+                                    src={details.photo}
+                                    alt="Candidate"
+                                    sx={{ width: 110, height: 110, borderRadius: '50%', objectFit: 'cover', boxShadow: 2, mb: 1 }}
+                                />
+                            ) : (
+                                <Box sx={{ width: 110, height: 110, borderRadius: '50%', bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, color: 'grey.500', mb: 1 }}>
+                                    {details.name?.[0] || '?'}
+                                </Box>
+                            )}
+                            <Typography variant="h5" fontWeight={700} gutterBottom>{details.name}</Typography>
+                            <Chip label={details.is_active ? 'Active' : 'Inactive'} color={details.is_active ? 'success' : 'default'} size="small" sx={{ mt: 0.5 }} />
+                        </Box>
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Caste</Typography>
+                                <Typography variant="body1" fontWeight={500}>{details.caste || 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Criminal Cases</Typography>
+                                <Typography variant="body1" fontWeight={500}>{details.criminal_cases || 0}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Assets</Typography>
+                                <Typography variant="body1" fontWeight={500}>{details.assets || 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Liabilities</Typography>
+                                <Typography variant="body1" fontWeight={500}>{details.liabilities || 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="subtitle2" color="text.secondary">Education</Typography>
+                                <Typography variant="body1" fontWeight={500}>{details.education || 'N/A'}</Typography>
+                            </Grid>
+                        </Grid>
+                        <Divider sx={{ width: '100%', my: 2 }} />
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                                <Typography variant="body2">{formatDate(details.created_at)}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                                <Typography variant="body2">{formatDate(details.updated_at)}</Typography>
+                            </Grid>
+                        </Grid>
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onClose} color="primary" variant="contained">Close</Button>
+                </DialogActions>
+            </Dialog>
+        );
+    };
+
+    const handleEntityClick = async (type, id) => {
+        if (!id) return;
+        let url = '';
+        let title = '';
+        switch (type) {
+            case 'state':
+                url = `http://localhost:5000/api/states/${id}`;
+                title = 'State';
+                break;
+            case 'division':
+                url = `http://localhost:5000/api/divisions/${id}`;
+                title = 'Division';
+                break;
+            case 'parliament':
+                url = `http://localhost:5000/api/parliaments/${id}`;
+                title = 'Parliament';
+                break;
+            case 'assembly':
+                url = `http://localhost:5000/api/assemblies/${id}`;
+                title = 'Assembly';
+                break;
+            case 'party':
+                url = `http://localhost:5000/api/parties/${id}`;
+                title = 'Party';
+                break;
+            default:
+                return;
+        }
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+            if (json.success) {
+                setEntityDetails(json.data);
+                setEntityTitle(title);
+                setOpenEntityModal(true);
+            }
+        } catch (err) {
+            console.error(`Error fetching ${title} details:`, err);
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: '#',
@@ -157,23 +349,50 @@ export default function WinningCandidateListPage() {
         {
             header: 'Candidate',
             accessorKey: 'candidate_id',
-            cell: ({ getValue }) => (
-                <Typography fontWeight="medium">
-                    {getValue()?.name || 'N/A'}
-                </Typography>
-            )
+            cell: ({ getValue }) => {
+                const candidate = getValue();
+                return (
+                    <Typography
+                        fontWeight="medium"
+                        sx={{ cursor: candidate ? 'pointer' : 'default', color: candidate ? 'primary.main' : 'inherit', textDecoration: candidate ? 'underline' : 'none' }}
+                        onClick={async () => {
+                            if (candidate && candidate._id) {
+                                try {
+                                    const res = await fetch(`http://localhost:5000/api/candidates/${candidate._id}`);
+                                    const json = await res.json();
+                                    if (json.success) {
+                                        setCandidateDetails(json.data);
+                                        setOpenDetailsModal(true);
+                                    } else {
+                                        console.error('API did not return success for candidate details:', json);
+                                    }
+                                } catch (err) {
+                                    console.error('Error fetching candidate details:', err);
+                                }
+                            }
+                        }}
+                    >
+                        {candidate?.name || 'N/A'}
+                    </Typography>
+                );
+            }
         },
         {
             header: 'Party',
             accessorKey: 'party_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
+            cell: ({ getValue }) => {
+                const party = getValue();
+                return (
+                    <Chip
+                        label={party?.name || 'N/A'}
+                        color="primary"
+                        size="small"
+                        variant="outlined"
+                        sx={{ cursor: party?._id ? 'pointer' : 'default', textDecoration: party?._id ? 'underline' : 'none' }}
+                        onClick={() => party?._id && handleEntityClick('party', party._id)}
+                    />
+                );
+            }
         },
         {
             header: 'Year',
@@ -261,50 +480,70 @@ export default function WinningCandidateListPage() {
         {
             header: 'State',
             accessorKey: 'state_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
+            cell: ({ getValue }) => {
+                const state = getValue();
+                return (
+                    <Chip
+                        label={state?.name || 'N/A'}
+                        color="primary"
+                        size="small"
+                        variant="outlined"
+                        sx={{ cursor: state?._id ? 'pointer' : 'default', textDecoration: state?._id ? 'underline' : 'none' }}
+                        onClick={() => state?._id && handleEntityClick('state', state._id)}
+                    />
+                );
+            }
         },
         {
             header: 'Division',
             accessorKey: 'division_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="warning"
-                    size="small"
-                    variant="outlined"
-                />
-            )
+            cell: ({ getValue }) => {
+                const division = getValue();
+                return (
+                    <Chip
+                        label={division?.name || 'N/A'}
+                        color="warning"
+                        size="small"
+                        variant="outlined"
+                        sx={{ cursor: division?._id ? 'pointer' : 'default', textDecoration: division?._id ? 'underline' : 'none' }}
+                        onClick={() => division?._id && handleEntityClick('division', division._id)}
+                    />
+                );
+            }
         },
         {
             header: 'Parliament',
             accessorKey: 'parliament_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="secondary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
+            cell: ({ getValue }) => {
+                const parliament = getValue();
+                return (
+                    <Chip
+                        label={parliament?.name || 'N/A'}
+                        color="secondary"
+                        size="small"
+                        variant="outlined"
+                        sx={{ cursor: parliament?._id ? 'pointer' : 'default', textDecoration: parliament?._id ? 'underline' : 'none' }}
+                        onClick={() => parliament?._id && handleEntityClick('parliament', parliament._id)}
+                    />
+                );
+            }
         },
         {
             header: 'Assembly',
             accessorKey: 'assembly_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="info"
-                    size="small"
-                    variant="outlined"
-                />
-            )
+            cell: ({ getValue }) => {
+                const assembly = getValue();
+                return (
+                    <Chip
+                        label={assembly?.name || 'N/A'}
+                        color="info"
+                        size="small"
+                        variant="outlined"
+                        sx={{ cursor: assembly?._id ? 'pointer' : 'default', textDecoration: assembly?._id ? 'underline' : 'none' }}
+                        onClick={() => assembly?._id && handleEntityClick('assembly', assembly._id)}
+                    />
+                );
+            }
         },
         {
             header: 'Created By',
@@ -427,6 +666,25 @@ export default function WinningCandidateListPage() {
 
     return (
         <>
+            {/* Candidate Details Modal */}
+            {openDetailsModal && (
+                <CandidateDetailsModal
+                    open={openDetailsModal}
+                    onClose={() => setOpenDetailsModal(false)}
+                    details={candidateDetails}
+                />
+            )}
+
+            {/* Entity Details Modal (State, Division, Parliament, Assembly) */}
+            {openEntityModal && (
+                <EntityDetailsModal
+                    open={openEntityModal}
+                    onClose={() => setOpenEntityModal(false)}
+                    details={entityDetails}
+                    title={entityTitle}
+                />
+            )}
+
             <Grid item xs={12}>
                 <MainCard title="Theme Variants">
                     <MapContainerStyled>
