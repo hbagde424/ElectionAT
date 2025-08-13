@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -36,6 +36,15 @@ export default function ParliamentListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({
+        category: '',
+        regional_type: '',
+        state_id: '',
+        division_id: ''
+    });
+
+    const categoryOptions = ['RURAL', 'URBAN', 'SEMI-URBAN'];
+    const regionalTypeOptions = ['GENERAL', 'RESERVED', 'SC', 'ST'];
 
     const fetchReferenceData = async () => {
         try {
@@ -71,11 +80,18 @@ export default function ParliamentListPage() {
         }
     };
 
-    const fetchParliaments = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchParliaments = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/parliaments?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const queryParams = [];
+            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (currentFilters.category) queryParams.push(`category=${encodeURIComponent(currentFilters.category)}`);
+            if (currentFilters.regional_type) queryParams.push(`regional_type=${encodeURIComponent(currentFilters.regional_type)}`);
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`http://localhost:5000/api/parliaments?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setParliaments(json.data);
@@ -198,7 +214,7 @@ export default function ParliamentListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
@@ -283,31 +299,135 @@ export default function ParliamentListPage() {
 
     if (loading) return <EmptyReactTable />;
 
+    const handleFilterApply = () => {
+        fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+    };
+
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${parliaments.length} parliaments...`}
-                    />
-                    <Stack direction="row" spacing={1}>
-                        <CSVLink
-                            data={csvData}
-                            filename="parliaments_all.csv"
-                            style={{ display: 'none' }}
-                            ref={csvLinkRef}
-                        />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                        </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedParliament(null); setOpenModal(true); }}>
-                            Add Parliament
-                        </Button>
+                <Stack spacing={2} sx={{ padding: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                        <Typography variant="h5">Parliament List</Typography>
+                        <Stack direction="row" spacing={1}>
+                            <CSVLink
+                                data={csvData}
+                                filename="parliaments_all.csv"
+                                style={{ display: 'none' }}
+                                ref={csvLinkRef}
+                            />
+                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                            </Button>
+                            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedParliament(null); setOpenModal(true); }}>
+                                Add Parliament
+                            </Button>
+                        </Stack>
+                    </Stack>
+
+                    <Stack spacing={2}>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                            <DebouncedInput
+                                value={globalFilter}
+                                onFilterChange={setGlobalFilter}
+                                placeholder={`Search ${parliaments.length} parliaments...`}
+                                sx={{ flexGrow: 1 }}
+                            />
+                            <TextField
+                                select
+                                label="Category"
+                                value={filters.category}
+                                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                                sx={{ minWidth: 150 }}
+                            >
+                                <MenuItem value="">All Categories</MenuItem>
+                                {categoryOptions.map((option) => (
+                                    <MenuItem key={option} value={option}>
+                                        {option}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                label="Regional Type"
+                                value={filters.regional_type}
+                                onChange={(e) => setFilters(prev => ({ ...prev, regional_type: e.target.value }))}
+                                sx={{ minWidth: 150 }}
+                            >
+                                <MenuItem value="">All Types</MenuItem>
+                                {regionalTypeOptions.map((option) => (
+                                    <MenuItem key={option} value={option}>
+                                        {option}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                label="State"
+                                value={filters.state_id}
+                                onChange={(e) => {
+                                    setFilters(prev => ({
+                                        ...prev,
+                                        state_id: e.target.value,
+                                        division_id: '' // Reset division when state changes
+                                    }));
+                                }}
+                                sx={{ minWidth: 150 }}
+                            >
+                                <MenuItem value="">All States</MenuItem>
+                                {states.map((state) => (
+                                    <MenuItem key={state._id} value={state._id}>
+                                        {state.name}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                label="Division"
+                                value={filters.division_id}
+                                onChange={(e) => setFilters(prev => ({ ...prev, division_id: e.target.value }))}
+                                sx={{ minWidth: 150 }}
+                                disabled={!filters.state_id}
+                            >
+                                <MenuItem value="">All Divisions</MenuItem>
+                                {divisions
+                                    .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+                                    .map((division) => (
+                                        <MenuItem key={division._id} value={division._id}>
+                                            {division.name}
+                                        </MenuItem>
+                                    ))}
+                            </TextField>
+                            <Button
+                                variant="contained"
+                                onClick={handleFilterApply}
+                                sx={{ height: 40 }}
+                            >
+                                Apply Filters
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    setFilters({
+                                        category: '',
+                                        regional_type: '',
+                                        state_id: '',
+                                        division_id: ''
+                                    });
+                                    fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, {
+                                        category: '',
+                                        regional_type: '',
+                                        state_id: '',
+                                        division_id: ''
+                                    });
+                                }}
+                                sx={{ height: 40 }}
+                            >
+                                Clear Filters
+                            </Button>
+                        </Stack>
                     </Stack>
                 </Stack>
-
                 <ScrollX>
                     <TableContainer>
                         <Table>

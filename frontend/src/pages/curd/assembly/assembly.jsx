@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
+    Grid
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -36,6 +37,16 @@ export default function AssemblyListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({
+        type: '',
+        category: '',
+        state_id: '',
+        division_id: '',
+        parliament_id: ''
+    });
+
+    const typeOptions = ['Urban', 'Rural', 'Mixed'];
+    const categoryOptions = ['General', 'Reserved', 'Special'];
 
     const fetchReferenceData = async () => {
         try {
@@ -71,11 +82,19 @@ export default function AssemblyListPage() {
         }
     };
 
-    const fetchAssemblies = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchAssemblies = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/assemblies?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const queryParams = [];
+            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (currentFilters.type) queryParams.push(`type=${encodeURIComponent(currentFilters.type)}`);
+            if (currentFilters.category) queryParams.push(`category=${encodeURIComponent(currentFilters.category)}`);
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`http://localhost:5000/api/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setAssemblies(json.data);
@@ -143,7 +162,7 @@ export default function AssemblyListPage() {
                 </Typography>
             )
         },
-        
+
         {
             header: 'Type',
             accessorKey: 'type',
@@ -225,12 +244,12 @@ export default function AssemblyListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-       
+
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -311,30 +330,172 @@ export default function AssemblyListPage() {
 
     if (loading) return <EmptyReactTable />;
 
+    const handleFilterApply = () => {
+        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+    };
+
+    const handleClearFilter = () => {
+        setFilters({
+            type: '',
+            category: '',
+            state_id: '',
+            division_id: '',
+            parliament_id: ''
+        });
+        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, {
+            type: '',
+            category: '',
+            state_id: '',
+            division_id: '',
+            parliament_id: ''
+        });
+    };
+
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${assemblies.length} assemblies...`}
-                    />
-                    <Stack direction="row" spacing={1}>
-                        <CSVLink
-                            data={csvData}
-                            filename="assemblies_all.csv"
-                            style={{ display: 'none' }}
-                            ref={csvLinkRef}
+                <Stack spacing={2} sx={{ padding: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                        <Typography variant="h5">Assembly List</Typography>
+                        <Stack direction="row" spacing={1}>
+                            <CSVLink
+                                data={csvData}
+                                filename="assemblies_all.csv"
+                                style={{ display: 'none' }}
+                                ref={csvLinkRef}
+                            />
+                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                            </Button>
+                            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
+                                Add Assembly
+                            </Button>
+                        </Stack>
+                    </Stack>
+
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <DebouncedInput
+                            value={globalFilter}
+                            onFilterChange={setGlobalFilter}
+                            placeholder={`Search ${assemblies.length} assemblies...`}
+                            sx={{ width: '100%', maxWidth: 250 }}
                         />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                        </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
-                            Add Assembly
-                        </Button>
+                        <TextField
+                            select
+                            label="Type"
+                            value={filters.type}
+                            onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
+                            sx={{ minWidth: 120 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All Types</MenuItem>
+                            {typeOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            select
+                            label="Category"
+                            value={filters.category}
+                            onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
+                            sx={{ minWidth: 120 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All Categories</MenuItem>
+                            {categoryOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            select
+                            label="State"
+                            value={filters.state_id}
+                            onChange={(e) => {
+                                const newStateId = e.target.value;
+                                setFilters((prev) => ({
+                                    ...prev,
+                                    state_id: newStateId,
+                                    division_id: '', // Reset division when state changes
+                                    parliament_id: '' // Reset parliament when state changes
+                                }));
+                            }}
+                            sx={{ minWidth: 120 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All States</MenuItem>
+                            {states.map((state) => (
+                                <MenuItem key={state._id} value={state._id}>
+                                    {state.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            select
+                            label="Division"
+                            value={filters.division_id}
+                            onChange={(e) => {
+                                const newDivisionId = e.target.value;
+                                setFilters((prev) => ({
+                                    ...prev,
+                                    division_id: newDivisionId,
+                                    parliament_id: '' // Reset parliament when division changes
+                                }));
+                            }}
+                            sx={{ minWidth: 120 }}
+                            size="small"
+                            disabled={!filters.state_id}
+                        >
+                            <MenuItem value="">All Divisions</MenuItem>
+                            {divisions
+                                .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+                                .map((division) => (
+                                    <MenuItem key={division._id} value={division._id}>
+                                        {division.name}
+                                    </MenuItem>
+                                ))}
+                        </TextField>
+                        <TextField
+                            select
+                            label="Parliament"
+                            value={filters.parliament_id}
+                            onChange={(e) => setFilters((prev) => ({ ...prev, parliament_id: e.target.value }))}
+                            sx={{ minWidth: 120 }}
+                            size="small"
+                            disabled={!filters.division_id}
+                        >
+                            <MenuItem value="">All Parliaments</MenuItem>
+                            {parliaments
+                                .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+                                .map((parliament) => (
+                                    <MenuItem key={parliament._id} value={parliament._id}>
+                                        {parliament.name}
+                                    </MenuItem>
+                                ))}
+                        </TextField>
+                        <Stack direction="row" spacing={1}>
+                            <Button
+                                variant="outlined"
+                                onClick={handleClearFilter}
+                                size="small"
+                            >
+                                Clear Filters
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleFilterApply}
+                                size="small"
+                            >
+                                Clear Filters
+                            </Button>
+                        </Stack>
                     </Stack>
                 </Stack>
+
+
 
                 <ScrollX>
                     <TableContainer>
@@ -389,7 +550,7 @@ export default function AssemblyListPage() {
                         />
                     </Box>
                 </ScrollX>
-            </MainCard>
+            </MainCard >
 
             <AssemblyModal
                 open={openModal}
