@@ -1,7 +1,7 @@
- import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -38,6 +38,12 @@ export default function BlocksListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({
+        state_id: '',
+        division_id: '',
+        parliament_id: '',
+        assembly_id: ''
+    });
 
     const fetchReferenceData = async () => {
         try {
@@ -80,11 +86,18 @@ export default function BlocksListPage() {
         }
     };
 
-    const fetchBlocks = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchBlocks = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/blocks?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const queryParams = [];
+            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+            if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
+
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`http://localhost:5000/api/blocks?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setBlocks(json.data);
@@ -246,7 +259,7 @@ export default function BlocksListPage() {
                 </Typography>
             )
         },
-         {
+        {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
@@ -260,12 +273,12 @@ export default function BlocksListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-       
+
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -348,10 +361,30 @@ export default function BlocksListPage() {
 
     if (loading) return <EmptyReactTable />;
 
+    const handleFilterApply = () => {
+        fetchBlocks(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+    };
+
+    const handleClearFilter = () => {
+        setFilters({
+            state_id: '',
+            division_id: '',
+            parliament_id: '',
+            assembly_id: ''
+        });
+        fetchBlocks(pagination.pageIndex, pagination.pageSize, globalFilter, {
+            state_id: '',
+            division_id: '',
+            parliament_id: '',
+            assembly_id: ''
+        });
+    };
+
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
+
+                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
@@ -372,7 +405,121 @@ export default function BlocksListPage() {
                         </Button>
                     </Stack>
                 </Stack>
+                <Stack spacing={2} sx={{ padding: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
+                            <TextField
+                                select
+                                label="State"
+                                value={filters.state_id}
+                                onChange={(e) => {
+                                    setFilters(prev => ({
+                                        ...prev,
+                                        state_id: e.target.value,
+                                        division_id: '',
+                                        parliament_id: '',
+                                        assembly_id: ''
+                                    }));
+                                }}
+                                sx={{ minWidth: 150 }}
+                                size="small"
+                            >
+                                <MenuItem value="">All States</MenuItem>
+                                {states.map((state) => (
+                                    <MenuItem key={state._id} value={state._id}>
+                                        {state.name}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
 
+                            <TextField
+                                select
+                                label="Division"
+                                value={filters.division_id}
+                                onChange={(e) => {
+                                    setFilters(prev => ({
+                                        ...prev,
+                                        division_id: e.target.value,
+                                        parliament_id: '',
+                                        assembly_id: ''
+                                    }));
+                                }}
+                                sx={{ minWidth: 150 }}
+                                size="small"
+                                disabled={!filters.state_id}
+                            >
+                                <MenuItem value="">All Divisions</MenuItem>
+                                {divisions
+                                    .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+                                    .map((division) => (
+                                        <MenuItem key={division._id} value={division._id}>
+                                            {division.name}
+                                        </MenuItem>
+                                    ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Parliament"
+                                value={filters.parliament_id}
+                                onChange={(e) => {
+                                    setFilters(prev => ({
+                                        ...prev,
+                                        parliament_id: e.target.value,
+                                        assembly_id: ''
+                                    }));
+                                }}
+                                sx={{ minWidth: 150 }}
+                                size="small"
+                                disabled={!filters.division_id}
+                            >
+                                <MenuItem value="">All Parliaments</MenuItem>
+                                {parliaments
+                                    .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+                                    .map((parliament) => (
+                                        <MenuItem key={parliament._id} value={parliament._id}>
+                                            {parliament.name}
+                                        </MenuItem>
+                                    ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Assembly"
+                                value={filters.assembly_id}
+                                onChange={(e) => setFilters(prev => ({ ...prev, assembly_id: e.target.value }))}
+                                sx={{ minWidth: 150 }}
+                                size="small"
+                                disabled={!filters.parliament_id}
+                            >
+                                <MenuItem value="">All Assemblies</MenuItem>
+                                {assemblies
+                                    .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
+                                    .map((assembly) => (
+                                        <MenuItem key={assembly._id} value={assembly._id}>
+                                            {assembly.name}
+                                        </MenuItem>
+                                    ))}
+                            </TextField>
+
+                            <Button
+                                variant="contained"
+                                onClick={handleFilterApply}
+                                size="small"
+                            >
+                                Apply Filters
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={handleClearFilter}
+                                size="small"
+                            >
+                                Clear Filters
+                            </Button>
+                        </Stack>
+                    </Stack>
+
+                </Stack>
                 <ScrollX>
                     <TableContainer>
                         <Table>
