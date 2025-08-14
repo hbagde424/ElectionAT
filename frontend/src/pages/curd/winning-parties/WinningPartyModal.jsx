@@ -4,6 +4,8 @@ import {
     MenuItem, FormControl, FormHelperText, Alert, 
     CircularProgress, Typography
 } from '@mui/material';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState } from 'react';
 
 // Helper components to organize the code
@@ -125,7 +127,8 @@ export default function WinningPartyModal({
                 booth_id: '',
                 election_year: '',
                 votes: '',
-                margin: ''
+                margin: '',
+                description: ''
             };
         }
         
@@ -140,9 +143,17 @@ export default function WinningPartyModal({
             booth_id: winningParty.booth_id?._id || winningParty.booth_id || '',
             election_year: winningParty.election_year?._id || winningParty.election_year || '',
             votes: winningParty.votes || '',
-            margin: winningParty.margin || ''
+            margin: winningParty.margin || '',
+            description: winningParty.description || ''
         };
     }
+    // For ReactQuill editor
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // Reset form when modal opens/closes or winningParty changes
     useEffect(() => {
@@ -327,13 +338,18 @@ useEffect(() => {
                 : 'http://localhost:5000/api/winning-parties';
             const method = winningParty ? 'PUT' : 'POST';
 
+            const submitData = {
+                ...formData,
+                description: typeof formData.description === 'string' ? formData.description : ''
+            };
+
             const res = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             });
 
             const data = await res.json();
@@ -516,6 +532,19 @@ useEffect(() => {
                             type="number"
                             required
                         />
+                    </Grid>
+                    {/* Row: Description (Rich Text) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
+                        </Stack>
                     </Grid>
                 </Grid>
             </DialogContent>

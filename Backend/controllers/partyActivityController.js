@@ -1,7 +1,7 @@
 const PartyActivity = require('../models/partyActivity');
 const Party = require('../models/party');
 const State = require('../models/state');
-const Division = require('../models/Division');
+const Division = require('../models/division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');
@@ -150,7 +150,8 @@ exports.createPartyActivity = async (req, res, next) => {
 
     const activity = await PartyActivity.create({
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     });
 
     res.status(201).json({
@@ -199,7 +200,8 @@ exports.updatePartyActivity = async (req, res, next) => {
 
     activity = await PartyActivity.findByIdAndUpdate(req.params.id, {
       ...req.body,
-      updated_by: req.user.id
+      updated_by: req.user.id,
+       description: req.body.description || '',
     }, {
       new: true,
       runValidators: true

@@ -145,6 +145,7 @@ exports.createGovernment = async (req, res, next) => {
     const governmentData = {
       ...req.body,
       created_by: req.user.id,
+       description: req.body.description || '',
       updated_by: req.user.id
     };
 
@@ -199,6 +200,7 @@ exports.updateGovernment = async (req, res, next) => {
       });
     }
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     government = await Government.findByIdAndUpdate(req.params.id, req.body, {

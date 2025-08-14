@@ -5,7 +5,8 @@ import {
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { useEffect, useState, useContext } from 'react';
-
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 // project imports
 import JWTContext from 'contexts/JWTContext';
 
@@ -227,11 +228,20 @@ export default function EventModal({
         }
     }, [formData.block_id, booths]);
 
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: value
+        }));
+    };
+
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -409,14 +419,12 @@ export default function EventModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Description</InputLabel>
-                            <TextField
-                                name="description"
+                            <ReactQuill
+                                theme="snow"
                                 value={formData.description}
-                                onChange={handleChange}
-                                fullWidth
-                                multiline
-                                rows={3}
+                                onChange={handleDescriptionChange}
                                 placeholder="Enter event description"
+                                style={{ background: 'white' }}
                             />
                         </Stack>
                     </Grid>

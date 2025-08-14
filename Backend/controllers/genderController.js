@@ -168,7 +168,8 @@ exports.createGender = async (req, res, next) => {
 
     const genderData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const gender = await Gender.create(genderData);
@@ -224,6 +225,7 @@ exports.updateGender = async (req, res, next) => {
 
     // Add updated_by info
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     gender = await Gender.findByIdAndUpdate(req.params.id, req.body, {

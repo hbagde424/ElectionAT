@@ -33,7 +33,21 @@ const winningCandidateSchema = new mongoose.Schema({
   },
   poll_percentage: {
     type: String,
-    required: true
+    required: true,
+    set: function(val) {
+      if (typeof val === 'number') {
+        return val.toFixed(2) + '%';
+      }
+      if (typeof val === 'string') {
+        // If already ends with %, return as is, else append %
+        if (val.trim().endsWith('%')) return val;
+        // Try to parse as number and format
+        const num = parseFloat(val);
+        if (!isNaN(num)) return num.toFixed(2) + '%';
+        return val;
+      }
+      return val;
+    }
   },
   party_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -69,6 +83,10 @@ const winningCandidateSchema = new mongoose.Schema({
   margin_percentage: {
     type: String,
     required: true
+  },
+    description: {
+    type: String,
+    default: ''
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,

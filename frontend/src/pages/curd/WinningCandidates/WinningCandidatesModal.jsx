@@ -3,6 +3,8 @@ import {
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
     Box, Chip, Autocomplete
 } from '@mui/material';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
 
@@ -39,7 +41,8 @@ export default function WinningCandidateModal({
         state_id: '',
         division_id: '',
         parliament_id: '',
-        assembly_id: ''
+        assembly_id: '',
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -68,7 +71,8 @@ export default function WinningCandidateModal({
                 state_id: candidateEntry.state_id?._id?.toString() || candidateEntry.state_id?.toString() || '',
                 division_id: candidateEntry.division_id?._id?.toString() || candidateEntry.division_id?.toString() || '',
                 parliament_id: candidateEntry.parliament_id?._id?.toString() || candidateEntry.parliament_id?.toString() || '',
-                assembly_id: candidateEntry.assembly_id?._id?.toString() || candidateEntry.assembly_id?.toString() || ''
+                assembly_id: candidateEntry.assembly_id?._id?.toString() || candidateEntry.assembly_id?.toString() || '',
+                description: candidateEntry.description || ''
             });
         } else {
             setFormData({
@@ -86,10 +90,18 @@ export default function WinningCandidateModal({
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
-                assembly_id: ''
+                assembly_id: '',
+                description: ''
             });
         }
     }, [candidateEntry]);
+    // For ReactQuill editor
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -204,6 +216,21 @@ export default function WinningCandidateModal({
         }));
     };
 
+    // Helper to format poll_percentage as 'xx.xx%'
+    function formatPollPercentage(value) {
+        if (typeof value === 'number') {
+            return value.toFixed(2) + '%';
+        }
+        if (typeof value === 'string') {
+            let v = value.trim();
+            if (v.endsWith('%')) v = v.slice(0, -1);
+            const num = parseFloat(v);
+            if (!isNaN(num)) return num.toFixed(2) + '%';
+        }
+        return value;
+    }
+
+    const allowedElectionTypes = ['General', 'Bye', 'Midterm', 'Special'];
     const handleSubmit = async () => {
         setSubmitted(true);
         setErrorMessage(''); // Clear previous error
@@ -238,10 +265,20 @@ export default function WinningCandidateModal({
         }
 
         const userTracking = candidateEntry ? { updated_by: userId } : { created_by: userId };
+
+        // Filter type to only allowed values
+        const filteredType = Array.isArray(formData.type)
+            ? formData.type.filter(t => allowedElectionTypes.includes(t))
+            : ['General'];
+
         const submitData = {
             ...formData,
-            ...userTracking
+            ...userTracking,
+            type: filteredType.length > 0 ? filteredType : ['General'],
+            description: typeof formData.description === 'string' ? formData.description : ''
         };
+        // Always format poll_percentage before sending
+        submitData.poll_percentage = formatPollPercentage(formData.poll_percentage);
 
         try {
             const res = await fetch(url, {
@@ -590,6 +627,19 @@ export default function WinningCandidateModal({
                             {submitted && !formData.assembly_id && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Assembly is required</Box>
                             )}
+                        </Stack>
+                    </Grid>
+                    {/* Row: Description (Rich Text) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
                         </Stack>
                     </Grid>
                 </Grid>

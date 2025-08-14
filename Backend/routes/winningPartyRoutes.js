@@ -423,6 +423,10 @@ router.get('/booth/:boothId', getWinningPartiesByBooth);
  *           type: number
  *           description: Victory margin
  *           example: 2500
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

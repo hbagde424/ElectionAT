@@ -5,6 +5,8 @@ import {
     Box, Checkbox, FormGroup, FormControlLabel, Autocomplete
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
 const codingTypes = [
@@ -35,6 +37,7 @@ export default function CodingModal({
         instagram: '',
         twitter: '',
         whatsapp_number: '',
+        description: '',
         coding_types: [],
         state_id: '',
         division_id: '',
@@ -61,6 +64,7 @@ export default function CodingModal({
                 instagram: codingEntry.instagram || '',
                 twitter: codingEntry.twitter || '',
                 whatsapp_number: codingEntry.whatsapp_number || '',
+                description: codingEntry.description || '',
                 coding_types: codingEntry.coding_types || [],
                 state_id: codingEntry.state_id?._id?.toString() || codingEntry.state_id?.toString() || '',
                 division_id: codingEntry.division_id?._id?.toString() || codingEntry.division_id?.toString() || '',
@@ -78,6 +82,7 @@ export default function CodingModal({
                 instagram: '',
                 twitter: '',
                 whatsapp_number: '',
+                description: '',
                 coding_types: [],
                 state_id: '',
                 division_id: '',
@@ -88,6 +93,13 @@ export default function CodingModal({
             });
         }
     }, [codingEntry]);
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -407,6 +419,18 @@ export default function CodingModal({
                                 fullWidth
                             />
                         </Stack>
+                    </Grid>
+
+                    {/* Description (ReactQuill) */}
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter coding entry description"
+                            style={{ background: 'white' }}
+                        />
                     </Grid>
 
                     {/* Row 4: Coding Types */}

@@ -177,7 +177,8 @@ exports.createCasteList = async (req, res, next) => {
 
     const casteListData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const casteList = await CasteList.create(casteListData);
@@ -233,6 +234,7 @@ exports.updateCasteList = async (req, res, next) => {
 
     // Add updated_by info
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     casteList = await CasteList.findByIdAndUpdate(req.params.id, req.body, {

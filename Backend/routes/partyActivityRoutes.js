@@ -80,6 +80,10 @@ const { protect, authorize } = require('../middlewares/auth');
  *           items:
  *             type: string
  *             format: uri
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

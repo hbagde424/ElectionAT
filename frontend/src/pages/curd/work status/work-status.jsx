@@ -42,10 +42,10 @@ export default function WorkStatusListPage() {
     const fetchReferenceData = async () => {
         try {
             const [
-                statesRes, 
-                divisionsRes, 
-                parliamentsRes, 
-                assembliesRes, 
+                statesRes,
+                divisionsRes,
+                parliamentsRes,
+                assembliesRes,
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
@@ -58,10 +58,10 @@ export default function WorkStatusListPage() {
             ]);
 
             const [
-                statesData, 
-                divisionsData, 
-                parliamentsData, 
-                assembliesData, 
+                statesData,
+                divisionsData,
+                parliamentsData,
+                assembliesData,
                 blocksData,
                 boothsData
             ] = await Promise.all([
@@ -133,241 +133,258 @@ export default function WorkStatusListPage() {
     };
 
     const columns = useMemo(() => [
-    {
-        header: '#',
-        accessorKey: '_id',
-        cell: ({ row }) => <Typography>{row.index + 1}</Typography>
-    },
-    {
-        header: 'Work Name',
-        accessorKey: 'work_name',
-        cell: ({ getValue }) => (
-            <Typography sx={{
-                maxWidth: 200,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-            }}>
-                {getValue()}
-            </Typography>
-        )
-    },
-    {
-        header: 'Department',
-        accessorKey: 'department',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue() || 'N/A'}
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Status',
-        accessorKey: 'status',
-        cell: ({ getValue }) => {
-            const status = getValue();
-            let color = 'default';
-            if (status === 'Completed') color = 'success';
-            else if (status === 'In Progress') color = 'info';
-            else if (status === 'Pending') color = 'warning';
-            else if (status === 'Halted' || status === 'Cancelled') color = 'error';
-
-            return (
+        {
+            header: '#',
+            accessorKey: '_id',
+            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+        },
+        {
+            header: 'Work Name',
+            accessorKey: 'work_name',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Department',
+            accessorKey: 'department',
+            cell: ({ getValue }) => (
                 <Chip
-                    label={status}
-                    color={color}
+                    label={getValue() || 'N/A'}
                     size="small"
+                    variant="outlined"
                 />
-            );
+            )
+        },
+        {
+            header: 'Status',
+            accessorKey: 'status',
+            cell: ({ getValue }) => {
+                const status = getValue();
+                let color = 'default';
+                if (status === 'Completed') color = 'success';
+                else if (status === 'In Progress') color = 'info';
+                else if (status === 'Pending') color = 'warning';
+                else if (status === 'Halted' || status === 'Cancelled') color = 'error';
+
+                return (
+                    <Chip
+                        label={status}
+                        color={color}
+                        size="small"
+                    />
+                );
+            }
+        },
+        {
+            header: 'Fund Source',
+            accessorKey: 'approved_fund_from',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Falia',
+            accessorKey: 'falia',
+            cell: ({ getValue }) => (
+                <Typography>{getValue() || 'N/A'}</Typography>
+            )
+        },
+        // {
+        //     header: 'Description',
+        //     accessorKey: 'description',
+        //     cell: ({ getValue }) => (
+        //         <Typography sx={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        //             {getValue() || 'N/A'}
+        //         </Typography>
+        //     )
+        // },
+        {
+            header: 'Total Budget',
+            accessorKey: 'total_budget',
+            cell: ({ getValue }) => (
+                <Typography>{formatCurrency(getValue())}</Typography>
+            )
+        },
+        {
+            header: 'Spent Amount',
+            accessorKey: 'spent_amount',
+            cell: ({ getValue }) => (
+                <Typography>{formatCurrency(getValue())}</Typography>
+            )
+        },
+        {
+            header: 'Start Date',
+            accessorKey: 'start_date',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Expected End',
+            accessorKey: 'expected_end_date',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Actual End',
+            accessorKey: 'actual_end_date',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Booth',
+            accessorKey: 'booth_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.name || 'N/A'} {getValue()?.booth_number ? `(#${getValue()?.booth_number})` : ''}
+                </Typography>
+            )
+        },
+        {
+            header: 'Block',
+            accessorKey: 'block_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Assembly',
+            accessorKey: 'assembly_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                    color="info"
+                />
+            )
+        },
+        {
+            header: 'Parliament',
+            accessorKey: 'parliament_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                    color="secondary"
+                />
+            )
+        },
+        {
+            header: 'Division',
+            accessorKey: 'division_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                />
+            )
+        },
+        {
+            header: 'State',
+            accessorKey: 'state_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                />
+            )
+        },
+        {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {/* Strip HTML tags for table preview */}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
+            header: 'Created By',
+            accessorKey: 'created_by',
+            cell: ({ getValue }) => (
+                <Typography>{getValue()?.username || 'N/A'}</Typography>
+            )
+        },
+        {
+            header: 'Updated By',
+            accessorKey: 'updated_by',
+            cell: ({ getValue }) => (
+                <Typography>{getValue()?.username || 'N/A'}</Typography>
+            )
+        },
+        {
+            header: 'Created At',
+            accessorKey: 'created_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Actions',
+            meta: { className: 'cell-center' },
+            cell: ({ row }) => {
+                const isExpanded = row.getIsExpanded();
+                const expandIcon = isExpanded
+                    ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
+                    : <Eye />;
+                return (
+                    <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
+                            {expandIcon}
+                        </IconButton>
+                        <IconButton
+                            color="primary"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedWorkStatus(row.original);
+                                setOpenModal(true);
+                            }}
+                        >
+                            <Edit />
+                        </IconButton>
+                        <IconButton
+                            color="error"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOpen(row.original._id);
+                            }}
+                        >
+                            <Trash />
+                        </IconButton>
+                    </Stack>
+                );
+            }
         }
-    },
-    {
-        header: 'Fund Source',
-        accessorKey: 'approved_fund_from',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue() || 'N/A'}
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Falia',
-        accessorKey: 'falia',
-        cell: ({ getValue }) => (
-            <Typography>{getValue() || 'N/A'}</Typography>
-        )
-    },
-    {
-        header: 'Description',
-        accessorKey: 'description',
-        cell: ({ getValue }) => (
-            <Typography sx={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {getValue() || 'N/A'}
-            </Typography>
-        )
-    },
-    {
-        header: 'Total Budget',
-        accessorKey: 'total_budget',
-        cell: ({ getValue }) => (
-            <Typography>{formatCurrency(getValue())}</Typography>
-        )
-    },
-    {
-        header: 'Spent Amount',
-        accessorKey: 'spent_amount',
-        cell: ({ getValue }) => (
-            <Typography>{formatCurrency(getValue())}</Typography>
-        )
-    },
-    {
-        header: 'Start Date',
-        accessorKey: 'start_date',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-        header: 'Expected End',
-        accessorKey: 'expected_end_date',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-        header: 'Actual End',
-        accessorKey: 'actual_end_date',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-        header: 'Booth',
-        accessorKey: 'booth_id',
-        cell: ({ getValue }) => (
-            <Typography>
-                {getValue()?.name || 'N/A'} {getValue()?.booth_number ? `(#${getValue()?.booth_number})` : ''}
-            </Typography>
-        )
-    },
-    {
-        header: 'Block',
-        accessorKey: 'block_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                size="small"
-                variant="outlined"
-            />
-        )
-    },
-    {
-        header: 'Assembly',
-        accessorKey: 'assembly_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                size="small"
-                variant="outlined"
-                color="info"
-            />
-        )
-    },
-    {
-        header: 'Parliament',
-        accessorKey: 'parliament_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                size="small"
-                variant="outlined"
-                color="secondary"
-            />
-        )
-    },
-    {
-        header: 'Division',
-        accessorKey: 'division_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                size="small"
-                variant="outlined"
-                color="warning"
-            />
-        )
-    },
-    {
-        header: 'State',
-        accessorKey: 'state_id',
-        cell: ({ getValue }) => (
-            <Chip
-                label={getValue()?.name || 'N/A'}
-                size="small"
-                variant="outlined"
-                color="primary"
-            />
-        )
-    },
-    {
-        header: 'Created By',
-        accessorKey: 'created_by',
-        cell: ({ getValue }) => (
-            <Typography>{getValue()?.username || 'N/A'}</Typography>
-        )
-    },
-    {
-        header: 'Updated By',
-        accessorKey: 'updated_by',
-        cell: ({ getValue }) => (
-            <Typography>{getValue()?.username || 'N/A'}</Typography>
-        )
-    },
-    {
-        header: 'Created At',
-        accessorKey: 'created_at',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-        header: 'Updated At',
-        accessorKey: 'updated_at',
-        cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-        header: 'Actions',
-        meta: { className: 'cell-center' },
-        cell: ({ row }) => {
-            const isExpanded = row.getIsExpanded();
-            const expandIcon = isExpanded
-                ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-                : <Eye />;
-            return (
-                <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                    <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                        {expandIcon}
-                    </IconButton>
-                    <IconButton
-                        color="primary"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedWorkStatus(row.original);
-                            setOpenModal(true);
-                        }}
-                    >
-                        <Edit />
-                    </IconButton>
-                    <IconButton
-                        color="error"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteOpen(row.original._id);
-                        }}
-                    >
-                        <Trash />
-                    </IconButton>
-                </Stack>
-            );
-        }
-    }
-], [theme]);
+    ], [theme]);
 
 
     const table = useReactTable({
@@ -447,7 +464,7 @@ export default function WorkStatusListPage() {
                         onFilterChange={setGlobalFilter}
                         placeholder={`Search ${workStatuses.length} work statuses...`}
                     />
-                                        <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1}>
                         <CSVLink
                             data={csvData}
                             filename="work_status_all.csv"

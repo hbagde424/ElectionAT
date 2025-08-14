@@ -197,6 +197,23 @@ export default function PartyActivitiesView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
                             <Chip label={data.status?.toUpperCase() || 'N/A'} color={getStatusColor(data.status)} size="small" />
                         </Grid>
+                         {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
                         <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Created By</Typography>
                             <Typography variant="body1">{data.created_by?.username || 'N/A'}</Typography>

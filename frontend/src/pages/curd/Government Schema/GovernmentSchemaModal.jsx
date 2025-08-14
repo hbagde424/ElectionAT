@@ -4,6 +4,8 @@ import {
     Box, FormControlLabel, RadioGroup, Radio, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { DatePicker } from '@mui/x-date-pickers';
 import JWTContext from 'contexts/JWTContext';
 
@@ -25,6 +27,7 @@ export default function GovernmentModal({
         type: 'new',
         project_complete_date: null,
         amount: '',
+        description: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -44,6 +47,7 @@ export default function GovernmentModal({
                 type: government.type || 'new',
                 project_complete_date: government.project_complete_date || null,
                 amount: government.amount || '',
+                description: government.description || '',
                 state_id: government.state_id?._id?.toString() || government.state_id?.toString() || '',
                 division_id: government.division_id?._id?.toString() || government.division_id?.toString() || '',
                 parliament_id: government.parliament_id?._id?.toString() || government.parliament_id?.toString() || '',
@@ -55,6 +59,7 @@ export default function GovernmentModal({
                 type: 'new',
                 project_complete_date: null,
                 amount: '',
+                description: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -62,6 +67,13 @@ export default function GovernmentModal({
             });
         }
     }, [government]);
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -224,6 +236,17 @@ export default function GovernmentModal({
             <DialogTitle>{government ? 'Edit Government' : 'Add Government'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
+                    {/* Row 0: Description (ReactQuill) */}
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter government scheme description"
+                            style={{ background: 'white' }}
+                        />
+                    </Grid>
                     {/* Row 1: Name and Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>

@@ -198,7 +198,8 @@ exports.createCoding = async (req, res, next) => {
 
     const codingData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const coding = await Coding.create(codingData);
@@ -275,6 +276,7 @@ exports.updateCoding = async (req, res, next) => {
 
     // Add updated_by info
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     coding = await Coding.findByIdAndUpdate(req.params.id, req.body, {

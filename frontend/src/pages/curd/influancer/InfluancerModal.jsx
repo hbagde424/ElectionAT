@@ -4,6 +4,8 @@ import {
     Chip, Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
 export default function InfluencerModal({
@@ -27,6 +29,7 @@ export default function InfluencerModal({
         alternate_number: '',
         email: '',
         full_address: '',
+        description: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -50,6 +53,7 @@ export default function InfluencerModal({
                 alternate_number: influencer.alternate_number || '',
                 email: influencer.email || '',
                 full_address: influencer.full_address || '',
+                description: influencer.description || '',
                 state_id: influencer.state_id?._id?.toString() || influencer.state_id?.toString() || '',
                 division_id: influencer.division_id?._id?.toString() || influencer.division_id?.toString() || '',
                 parliament_id: influencer.parliament_id?._id?.toString() || influencer.parliament_id?.toString() || '',
@@ -64,6 +68,7 @@ export default function InfluencerModal({
                 alternate_number: '',
                 email: '',
                 full_address: '',
+                description: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -73,6 +78,13 @@ export default function InfluencerModal({
             });
         }
     }, [influencer]);
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -313,6 +325,7 @@ export default function InfluencerModal({
                             onChange={handleChange}
                         />
                     </Grid>
+
                     <Grid item xs={12}>
                         <TextField
                             fullWidth
@@ -324,6 +337,18 @@ export default function InfluencerModal({
                             rows={3}
                             error={submitted && !formData.full_address}
                             helperText={submitted && !formData.full_address ? 'Address is required' : ''}
+                        />
+                    </Grid>
+
+                    {/* Description (ReactQuill) */}
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter influencer description"
+                            style={{ background: 'white' }}
                         />
                     </Grid>
 

@@ -4,6 +4,8 @@ import {
     Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
 export default function GenderModal({
@@ -25,6 +27,7 @@ export default function GenderModal({
         male: 0,
         female: 0,
         others: 0,
+        description: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -46,6 +49,7 @@ export default function GenderModal({
                 male: genderEntry.male || 0,
                 female: genderEntry.female || 0,
                 others: genderEntry.others || 0,
+                description: genderEntry.description || '',
                 state_id: genderEntry.state_id?._id?.toString() || genderEntry.state_id?.toString() || '',
                 division_id: genderEntry.division_id?._id?.toString() || genderEntry.division_id?.toString() || '',
                 parliament_id: genderEntry.parliament_id?._id?.toString() || genderEntry.parliament_id?.toString() || '',
@@ -58,6 +62,7 @@ export default function GenderModal({
                 male: 0,
                 female: 0,
                 others: 0,
+                description: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -67,6 +72,13 @@ export default function GenderModal({
             });
         }
     }, [genderEntry]);
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -286,6 +298,17 @@ export default function GenderModal({
             <DialogTitle>{genderEntry ? 'Edit Gender Entry' : 'Add Gender Entry'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={4} mt={1}>
+                    {/* Description (ReactQuill) */}
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter gender entry description"
+                            style={{ background: 'white' }}
+                        />
+                    </Grid>
                     {/* Row 1: Male and Female Count */}
                     <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>

@@ -141,7 +141,8 @@ exports.createPotentialCandidate = async (req, res, next) => {
     const candidateData = {
       ...req.body,
       created_by: req.user.id,
-      updated_by: req.user.id
+      updated_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const candidate = await PotentialCandidate.create(candidateData);
@@ -204,6 +205,7 @@ exports.updatePotentialCandidate = async (req, res, next) => {
     }
 
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     candidate = await PotentialCandidate.findByIdAndUpdate(req.params.id, req.body, {

@@ -336,6 +336,10 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *         booth_id:
  *           type: string
  *           description: Reference to Booth
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created the record

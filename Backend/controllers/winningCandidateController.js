@@ -225,7 +225,8 @@ exports.createWinningCandidate = async (req, res, next) => {
 
     const winningCandidateData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const winningCandidate = await WinningCandidate.create(winningCandidateData);
@@ -316,6 +317,7 @@ exports.updateWinningCandidate = async (req, res, next) => {
       });
     }
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     winningCandidate = await WinningCandidate.findByIdAndUpdate(req.params.id, req.body, {

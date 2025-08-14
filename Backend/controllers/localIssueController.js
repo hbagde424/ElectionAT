@@ -157,7 +157,8 @@ exports.createLocalIssue = async (req, res, next) => {
 
     const localIssueData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const localIssue = await LocalIssue.create(localIssueData);
@@ -225,6 +226,7 @@ exports.updateLocalIssue = async (req, res, next) => {
     }
 
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     localIssue = await LocalIssue.findByIdAndUpdate(req.params.id, req.body, {

@@ -1,3 +1,4 @@
+
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
 import { CalendarTick, User } from 'iconsax-react';
 
@@ -26,6 +27,24 @@ export default function ElectionYearView({ data }) {
                     size="small"
                 />
             </Stack>
+
+            {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
 
             <Divider sx={{ mb: 2 }} />
 

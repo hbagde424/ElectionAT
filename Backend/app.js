@@ -187,4 +187,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // Error handler
 app.use(errorHandler);
 
+app.use((err, req, res, next) => {
+  if (err.name === 'ValidationError') {
+    // Send first validation error message only
+    const firstError = Object.values(err.errors)[0].message;
+    return res.status(400).json({ success: false, message: firstError });
+  }
+  res.status(500).json({ success: false, message: err.message || 'Server Error' });
+});
+
+
 module.exports = app;

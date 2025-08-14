@@ -194,6 +194,10 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteElectionYear);
  *           enum: [Assembly, Parliament]
  *           description: Type of election
  *           example: "Assembly"
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

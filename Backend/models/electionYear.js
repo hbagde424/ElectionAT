@@ -6,11 +6,16 @@ const electionYearSchema = new mongoose.Schema({
     required: true,
     unique: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return v.toString().length === 4 && v >= 1900 && v <= 2100;
       },
       message: props => `${props.value} is not a valid year!`
     }
+  },
+
+  description: {
+    type: String,
+    default: ''
   },
   election_type: {
     type: String,
@@ -36,7 +41,7 @@ const electionYearSchema = new mongoose.Schema({
   }
 });
 
-electionYearSchema.pre('save', function(next) {
+electionYearSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });

@@ -268,7 +268,8 @@ exports.createWinningParty = async (req, res, next) => {
 
     const winningPartyData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const winningParty = await WinningParty.create(winningPartyData);
@@ -333,6 +334,7 @@ exports.updateWinningParty = async (req, res, next) => {
       });
     }
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     winningParty = await WinningParty.findByIdAndUpdate(req.params.id, req.body, {
