@@ -115,30 +115,12 @@ const CandidateListPage = () => {
         {
             header: 'Photo',
             accessorKey: 'photo',
-
             cell: ({ getValue }) => {
                 const photoPath = getValue();
                 let photoUrl = '/default-avatar.png';
-
                 if (photoPath) {
                     photoUrl = photoPath;
-                    // Log the image URL for debugging
-                    console.log('Loading image from:', photoUrl);
-
-                    // Verify the image exists
-                    fetch(photoUrl, {
-                        method: 'HEAD',
-                        credentials: 'include',
-                        mode: 'cors'
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                console.error('Image not found:', response.status, response.statusText);
-                            }
-                        })
-                        .catch(error => console.error('Error checking image:', error));
                 }
-
                 return (
                     <Avatar
                         src={photoUrl}
@@ -154,19 +136,11 @@ const CandidateListPage = () => {
                             }
                         }}
                         onError={(e) => {
-                            console.error('Image load error for:', photoUrl);
-                            // Try to load the image directly to see any CORS or network errors
-                            const img = new Image();
-                            img.onerror = () => console.error('Failed to load image in background');
-                            img.src = photoUrl;
-                            // Set default avatar
                             e.target.src = '/default-avatar.png';
                         }}
                     />
                 );
             }
-
-
         },
         {
             header: 'Name',
@@ -174,6 +148,23 @@ const CandidateListPage = () => {
             cell: ({ getValue }) => (
                 <Typography fontWeight="medium">
                     {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {/* Strip HTML tags for table preview */}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
                 </Typography>
             )
         },
@@ -278,6 +269,7 @@ const CandidateListPage = () => {
         const allData = await fetchAllCandidatesForCsv();
         setCsvData(allData.map(item => ({
             'Name': item.name || '',
+            'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Party': item.party_id?.name || '',
             'State': item.state_id?.name || '',
             'Assembly': item.assembly_id?.name || '',

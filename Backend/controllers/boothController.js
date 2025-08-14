@@ -166,7 +166,9 @@ exports.createBooth = async (req, res, next) => {
 
     const boothData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+        description: req.body.description || '',
+
     };
 
     const booth = await Booth.create(boothData);
@@ -229,6 +231,8 @@ exports.updateBooth = async (req, res, next) => {
     }
     req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
+    req.body.description = req.body.description || '';
+
 
     booth = await Booth.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

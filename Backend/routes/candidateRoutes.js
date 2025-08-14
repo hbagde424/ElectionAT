@@ -318,6 +318,10 @@ router.get('/caste', getCandidatesByCaste);
  *           type: string
  *           description: Description of candidate's assets
  *           example: "House worth ₹50 lakh, agricultural land"
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         liabilities:
  *           type: string
  *           description: Description of candidate's liabilities

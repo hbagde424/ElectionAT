@@ -3,6 +3,8 @@ import {
     Grid, Stack, TextField, InputLabel, Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
 export default function PartyModal({
@@ -19,7 +21,8 @@ export default function PartyModal({
         name: '',
         abbreviation: '',
         symbol: '',
-        founded_year: ''
+        founded_year: '',
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -29,17 +32,25 @@ export default function PartyModal({
                 name: party.name || '',
                 abbreviation: party.abbreviation || '',
                 symbol: party.symbol || '',
-                founded_year: party.founded_year || ''
+                founded_year: party.founded_year || '',
+                description: party.description || ''
             });
         } else {
             setFormData({
                 name: '',
                 abbreviation: '',
                 symbol: '',
-                founded_year: ''
+                founded_year: '',
+                description: ''
             });
         }
     }, [party]);
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -165,6 +176,18 @@ export default function PartyModal({
                                 onChange={handleChange}
                                 fullWidth
                                 placeholder="Enter party symbol"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                theme="snow"
+                                placeholder="Enter party description..."
                             />
                         </Stack>
                     </Grid>

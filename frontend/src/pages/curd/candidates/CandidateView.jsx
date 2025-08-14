@@ -28,6 +28,16 @@ export default function CandidateView({ data }) {
                 />
             </Stack>
 
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Divider sx={{ mb: 1 }} />
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box sx={{ bgcolor: '#f9f9f9', borderRadius: 1, p: 2 }}>
+                        <div dangerouslySetInnerHTML={{ __html: data.description }} />
+                    </Box>
+                </Box>
+            )}
+
             <Divider sx={{ mb: 2 }} />
 
             <Grid container spacing={3}>

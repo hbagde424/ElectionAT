@@ -129,6 +129,23 @@ export default function PartyListPage() {
             )
         },
         {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {/* Strip HTML tags for table preview */}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
             header: 'Abbreviation',
             accessorKey: 'abbreviation',
             cell: ({ getValue }) => (
@@ -278,6 +295,7 @@ export default function PartyListPage() {
         const allData = await fetchAllPartiesForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             Abbreviation: item.abbreviation,
             Symbol: item.symbol || '',
             'Founded Year': item.founded_year || '',

@@ -27,6 +27,16 @@ export default function PartyView({ data }) {
                 />
             </Stack>
 
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Divider sx={{ mb: 1 }} />
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box sx={{ bgcolor: '#f9f9f9', borderRadius: 1, p: 2 }}>
+                        <div dangerouslySetInnerHTML={{ __html: data.description }} />
+                    </Box>
+                </Box>
+            )}
+
             <Divider sx={{ mb: 2 }} />
 
             <Grid container spacing={3}>
@@ -57,7 +67,7 @@ export default function PartyView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">

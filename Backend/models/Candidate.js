@@ -23,6 +23,10 @@ const candidateSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  description: {
+    type: String,
+    default: ''
+  },
   liabilities: {
     type: String,
     trim: true

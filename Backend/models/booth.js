@@ -56,6 +56,10 @@ const boothSchema = new mongoose.Schema({
     ref: 'ElectionYear', 
     required: true
   },
+    description: {
+    type: String,
+    default: ''
+  },
   updated_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

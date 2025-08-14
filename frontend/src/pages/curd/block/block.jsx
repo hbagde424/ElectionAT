@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip
@@ -135,6 +135,23 @@ export default function BlocksListPage() {
                     whiteSpace: 'nowrap'
                 }}>
                     {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {/* Strip HTML tags for table preview */}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
                 </Typography>
             )
         },
@@ -309,6 +326,7 @@ export default function BlocksListPage() {
         const allData = await fetchAllBlocksForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             Category: item.category,
             State: item.state_id?.name || '',
             Division: item.division_id?.name || '',
