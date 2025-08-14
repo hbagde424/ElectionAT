@@ -38,6 +38,24 @@ export default function CasteListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({
+        category: '',
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        block: '',
+        booth: ''
+    });
+
+    // States for filtered options
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
+    const [filteredParliaments, setFilteredParliaments] = useState([]);
+    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+    const [filteredBlocks, setFilteredBlocks] = useState([]);
+    const [filteredBooths, setFilteredBooths] = useState([]);
+
+    const categoryOptions = ['SC', 'ST', 'OBC', 'GENERAL'];
 
     const fetchReferenceData = async () => {
         try {
@@ -71,10 +89,100 @@ export default function CasteListPage() {
         }
     };
 
-    const fetchCasteList = async (pageIndex, pageSize, globalFilter = '') => {
+    // Handle state change
+    const handleStateChange = (stateId) => {
+        setFilters(prev => ({
+            ...prev,
+            state: stateId,
+            division: '',
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: ''
+        }));
+
+        // Filter divisions based on selected state
+        const filteredDivs = divisions.filter(div => div.state === stateId);
+        setFilteredDivisions(filteredDivs);
+        setFilteredParliaments([]);
+        setFilteredAssemblies([]);
+        setFilteredBlocks([]);
+        setFilteredBooths([]);
+    };
+
+    // Handle division change
+    const handleDivisionChange = (divisionId) => {
+        setFilters(prev => ({
+            ...prev,
+            division: divisionId,
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: ''
+        }));
+
+        // Filter parliaments based on selected division
+        const filteredParls = parliaments.filter(parl => parl.division === divisionId);
+        setFilteredParliaments(filteredParls);
+        setFilteredAssemblies([]);
+        setFilteredBlocks([]);
+        setFilteredBooths([]);
+    };
+
+    // Handle parliament change
+    const handleParliamentChange = (parliamentId) => {
+        setFilters(prev => ({
+            ...prev,
+            parliament: parliamentId,
+            assembly: '',
+            block: '',
+            booth: ''
+        }));
+
+        // Filter assemblies based on selected parliament
+        const filteredAsm = assemblies.filter(asm => asm.parliament === parliamentId);
+        setFilteredAssemblies(filteredAsm);
+        setFilteredBlocks([]);
+        setFilteredBooths([]);
+    };
+
+    // Handle assembly change
+    const handleAssemblyChange = (assemblyId) => {
+        setFilters(prev => ({
+            ...prev,
+            assembly: assemblyId,
+            block: '',
+            booth: ''
+        }));
+
+        // Filter blocks based on selected assembly
+        const filteredBlks = blocks.filter(blk => blk.assembly === assemblyId);
+        setFilteredBlocks(filteredBlks);
+        setFilteredBooths([]);
+    };
+
+    // Handle block change
+    const handleBlockChange = (blockId) => {
+        setFilters(prev => ({
+            ...prev,
+            block: blockId,
+            booth: ''
+        }));
+
+        // Filter booths based on selected block
+        const filteredBths = booths.filter(bth => bth.block === blockId);
+        setFilteredBooths(filteredBths);
+    };
+
+    const fetchCasteList = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            Object.entries(currentFilters).forEach(([key, value]) => {
+                if (value) {
+                    query += `&${key}=${encodeURIComponent(value)}`;
+                }
+            });
             const res = await fetch(`http://localhost:5000/api/caste-lists?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
@@ -89,7 +197,7 @@ export default function CasteListPage() {
     };
 
     useEffect(() => {
-        fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter);
+        fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
@@ -129,7 +237,7 @@ export default function CasteListPage() {
                 </Typography>
             )
         },
-         {
+        {
             header: 'percentage',
             accessorKey: 'percentage',
             cell: ({ getValue }) => (
@@ -152,9 +260,9 @@ export default function CasteListPage() {
                     size="small"
                     color={
                         getValue() === 'SC' ? 'primary' :
-                        getValue() === 'ST' ? 'secondary' :
-                        getValue() === 'OBC' ? 'warning' :
-                        'default'
+                            getValue() === 'ST' ? 'secondary' :
+                                getValue() === 'OBC' ? 'warning' :
+                                    'default'
                     }
                 />
             )
@@ -195,18 +303,18 @@ export default function CasteListPage() {
                 />
             )
         },
-      {
-      header: 'Assembly',
-      accessorKey: 'assembly',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="info"
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
+        {
+            header: 'Assembly',
+            accessorKey: 'assembly',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
         {
             header: 'Block',
             accessorKey: 'block',
@@ -231,7 +339,7 @@ export default function CasteListPage() {
                 />
             )
         },
-         {
+        {
             header: 'Booth Number',
             accessorKey: 'booth',
             cell: ({ getValue }) => (
@@ -252,7 +360,7 @@ export default function CasteListPage() {
                 </Typography>
             )
         },
-          {
+        {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
@@ -266,12 +374,12 @@ export default function CasteListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-{
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-        
+
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -357,27 +465,194 @@ export default function CasteListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${casteList.length} caste entries...`}
-                    />
-                    <Stack direction="row" spacing={1}>
-                        <CSVLink
-                            data={csvData}
-                            filename="caste_list_all.csv"
-                            style={{ display: 'none' }}
-                            ref={csvLinkRef}
-                        />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                        </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCaste(null); setOpenModal(true); }}>
-                            Add Caste Entry
-                        </Button>
+                <Box sx={{ p: 3 }}>
+                    <Stack spacing={2}>
+                        {/* Top Actions */}
+                        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                            <DebouncedInput
+                                value={globalFilter}
+                                onFilterChange={setGlobalFilter}
+                                placeholder={`Search ${casteList.length} caste entries...`}
+                            />
+                            <Stack direction="row" spacing={1}>
+                                <CSVLink
+                                    data={csvData}
+                                    filename="caste_list_all.csv"
+                                    style={{ display: 'none' }}
+                                    ref={csvLinkRef}
+                                />
+                                <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                    {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                                </Button>
+                                <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCaste(null); setOpenModal(true); }}>
+                                    Add Caste Entry
+                                </Button>
+                            </Stack>
+                        </Stack>
+
+                        {/* Filters */}
+                        <MainCard content={false} sx={{ p: 2 }}>
+                            <Stack spacing={2}>
+                                <Typography variant="h5">Filters</Typography>
+                                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Category</Typography>
+                                        <select
+                                            value={filters.category}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All Categories</option>
+                                            {categoryOptions.map((category) => (
+                                                <option key={category} value={category}>{category}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>State</Typography>
+                                        <select
+                                            value={filters.state}
+                                            onChange={(e) => handleStateChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All States</option>
+                                            {states.map((state) => (
+                                                <option key={state._id} value={state._id}>{state.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Division</Typography>
+                                        <select
+                                            value={filters.division}
+                                            onChange={(e) => handleDivisionChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                            disabled={!filters.state}
+                                        >
+                                            <option value="">All Divisions</option>
+                                            {filteredDivisions.map((division) => (
+                                                <option key={division._id} value={division._id}>{division.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Parliament</Typography>
+                                        <select
+                                            value={filters.parliament}
+                                            onChange={(e) => handleParliamentChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                            disabled={!filters.division}
+                                        >
+                                            <option value="">All Parliaments</option>
+                                            {filteredParliaments.map((parliament) => (
+                                                <option key={parliament._id} value={parliament._id}>{parliament.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Assembly</Typography>
+                                        <select
+                                            value={filters.assembly}
+                                            onChange={(e) => handleAssemblyChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                            disabled={!filters.parliament}
+                                        >
+                                            <option value="">All Assemblies</option>
+                                            {filteredAssemblies.map((assembly) => (
+                                                <option key={assembly._id} value={assembly._id}>{assembly.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Block</Typography>
+                                        <select
+                                            value={filters.block}
+                                            onChange={(e) => handleBlockChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                            disabled={!filters.assembly}
+                                        >
+                                            <option value="">All Blocks</option>
+                                            {filteredBlocks.map((block) => (
+                                                <option key={block._id} value={block._id}>{block.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Booth</Typography>
+                                        <select
+                                            value={filters.booth}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, booth: e.target.value }))}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                            disabled={!filters.block}
+                                        >
+                                            <option value="">All Booths</option>
+                                            {filteredBooths.map((booth) => (
+                                                <option key={booth._id} value={booth._id}>{booth.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                </Stack>
+                                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                                    <Button variant="outlined" onClick={() => {
+                                        const defaultFilters = {
+                                            category: '',
+                                            state: '',
+                                            division: '',
+                                            parliament: '',
+                                            assembly: '',
+                                            block: '',
+                                            booth: ''
+                                        };
+                                        setFilters(defaultFilters);
+                                        fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, defaultFilters);
+                                    }}>
+                                        Clear Filters
+                                    </Button>
+                                    <Button variant="contained" onClick={() => {
+                                        fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+                                    }}>
+                                        Apply Filters
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </MainCard>
                     </Stack>
-                </Stack>
+                </Box>
 
                 <ScrollX>
                     <TableContainer>

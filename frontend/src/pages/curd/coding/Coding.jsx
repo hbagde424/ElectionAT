@@ -39,6 +39,37 @@ export default function CodingListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        block: ''
+    });
+
+    const handleFilterChange = (field, value) => {
+        setFilters(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleApplyFilters = () => {
+        const newColumnFilters = Object.entries(filters)
+            .filter(([_, value]) => value !== '')
+            .map(([id, value]) => ({ id, value }));
+        setColumnFilters(newColumnFilters);
+    };
+
+    const handleClearFilters = () => {
+        setFilters({
+            state: '',
+            division: '',
+            parliament: '',
+            assembly: '',
+            block: ''
+        });
+        setColumnFilters([]);
+    };
+
+    const [columnFilters, setColumnFilters] = useState([]);
 
     const fetchReferenceData = async () => {
         try {
@@ -75,7 +106,15 @@ export default function CodingListPage() {
     const fetchCodingList = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+
+            // Add column filters to the query
+            columnFilters.forEach(filter => {
+                if (filter.value) {
+                    query += `&${filter.id}=${encodeURIComponent(filter.value)}`;
+                }
+            });
+
             const res = await fetch(`http://localhost:5000/api/codings?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
@@ -92,7 +131,7 @@ export default function CodingListPage() {
     useEffect(() => {
         fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters]);
 
     const handleDeleteOpen = (id) => {
         setCodingDeleteId(id);
@@ -114,7 +153,8 @@ export default function CodingListPage() {
         {
             header: '#',
             accessorKey: '_id',
-            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+            cell: ({ row }) => <Typography>{row.index + 1}</Typography>,
+            enableColumnFilter: false,
         },
         {
             header: 'Name',
@@ -271,11 +311,16 @@ export default function CodingListPage() {
     const table = useReactTable({
         data: codingList,
         columns,
-        state: { pagination, globalFilter },
+        state: {
+            pagination,
+            globalFilter,
+            columnFilters
+        },
         pageCount,
         manualPagination: true,
         onPaginationChange: setPagination,
         onGlobalFilterChange: setGlobalFilter,
+        onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -334,27 +379,139 @@ export default function CodingListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${codingList.length} coding entries...`}
-                    />
-                    <Stack direction="row" spacing={1}>
-                        <CSVLink
-                            data={csvData}
-                            filename="coding_list_all.csv"
-                            style={{ display: 'none' }}
-                            ref={csvLinkRef}
-                        />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                        </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCoding(null); setOpenModal(true); }}>
-                            Add Coding Entry
-                        </Button>
+                <Box sx={{ p: 3 }}>
+                    <Stack spacing={2}>
+                        {/* Top Actions */}
+                        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                            <DebouncedInput
+                                value={globalFilter}
+                                onFilterChange={setGlobalFilter}
+                                placeholder={`Search ${codingList.length} coding entries...`}
+                            />
+                            <Stack direction="row" spacing={1}>
+                                <CSVLink
+                                    data={csvData}
+                                    filename="coding_list_all.csv"
+                                    style={{ display: 'none' }}
+                                    ref={csvLinkRef}
+                                />
+                                <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                    {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                                </Button>
+                                <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCoding(null); setOpenModal(true); }}>
+                                    Add Coding Entry
+                                </Button>
+                            </Stack>
+                        </Stack>
+
+                        {/* Filters */}
+                        <MainCard content={false} sx={{ p: 2 }}>
+                            <Stack spacing={2}>
+                                <Typography variant="h5">Filters</Typography>
+                                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>State</Typography>
+                                        <select
+                                            value={filters.state}
+                                            onChange={(e) => handleFilterChange('state', e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All States</option>
+                                            {states.map((state) => (
+                                                <option key={state._id} value={state._id}>{state.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Division</Typography>
+                                        <select
+                                            value={filters.division}
+                                            onChange={(e) => handleFilterChange('division', e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All Divisions</option>
+                                            {divisions.map((division) => (
+                                                <option key={division._id} value={division._id}>{division.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Parliament</Typography>
+                                        <select
+                                            value={filters.parliament}
+                                            onChange={(e) => handleFilterChange('parliament', e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All Parliaments</option>
+                                            {parliaments.map((parliament) => (
+                                                <option key={parliament._id} value={parliament._id}>{parliament.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Assembly</Typography>
+                                        <select
+                                            value={filters.assembly}
+                                            onChange={(e) => handleFilterChange('assembly', e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All Assemblies</option>
+                                            {assemblies.map((assembly) => (
+                                                <option key={assembly._id} value={assembly._id}>{assembly.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                    <Box sx={{ minWidth: 200 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Block</Typography>
+                                        <select
+                                            value={filters.block}
+                                            onChange={(e) => handleFilterChange('block', e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        >
+                                            <option value="">All Blocks</option>
+                                            {blocks.map((block) => (
+                                                <option key={block._id} value={block._id}>{block.name}</option>
+                                            ))}
+                                        </select>
+                                    </Box>
+                                </Stack>
+                                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                                    <Button variant="outlined" onClick={handleClearFilters}>
+                                        Clear Filters
+                                    </Button>
+                                    <Button variant="contained" onClick={handleApplyFilters}>
+                                        Apply Filters
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </MainCard>
                     </Stack>
-                </Stack>
+                </Box>
 
                 <ScrollX>
                     <TableContainer>
