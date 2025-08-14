@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider
+  Button, Stack, Box, Typography, Divider, TextField, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
@@ -49,11 +49,22 @@ export default function AssemblyVotesListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [filters, setFilters] = useState({
+    state_id: '',
+    division_id: '',
+    parliament_id: '',
+    assembly_id: ''
+  });
 
-  const fetchVotes = async (pageIndex, pageSize) => {
+  const fetchVotes = async (pageIndex, pageSize, filterParams = filters) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/assembly-votes?page=${pageIndex + 1}&limit=${pageSize}`);
+      let url = `http://localhost:5000/api/assembly-votes?page=${pageIndex + 1}&limit=${pageSize}`;
+      if (filterParams.state_id) url += `&state_id=${filterParams.state_id}`;
+      if (filterParams.division_id) url += `&division_id=${filterParams.division_id}`;
+      if (filterParams.parliament_id) url += `&parliament_id=${filterParams.parliament_id}`;
+      if (filterParams.assembly_id) url += `&assembly_id=${filterParams.assembly_id}`;
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setVotes(json.data);
@@ -100,7 +111,7 @@ export default function AssemblyVotesListPage() {
       'Updated At': new Date(item.updated_at).toLocaleString()
     }));
     setCsvData(formattedData);
-    
+
     // Trigger download after a small delay to ensure state is updated
     setTimeout(() => {
       if (csvLinkRef.current) {
@@ -249,7 +260,7 @@ export default function AssemblyVotesListPage() {
       accessorKey: 'created_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
     },
-{
+    {
       header: 'Updated At',
       accessorKey: 'updated_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
@@ -317,7 +328,8 @@ export default function AssemblyVotesListPage() {
   return (
     <>
       <MainCard content={false}>
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
+
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
@@ -331,9 +343,9 @@ export default function AssemblyVotesListPage() {
               style={{ display: 'none' }}
               ref={csvLinkRef}
             />
-            <Button 
-              variant="outlined" 
-              onClick={handleDownloadCsv} 
+            <Button
+              variant="outlined"
+              onClick={handleDownloadCsv}
               disabled={csvLoading}
             >
               {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
@@ -343,7 +355,132 @@ export default function AssemblyVotesListPage() {
             </Button>
           </Stack>
         </Stack>
+        <Stack spacing={2} sx={{ padding: 3 }}>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
+            <TextField
+              select
+              label="State"
+              value={filters.state_id}
+              onChange={(e) => {
+                setFilters(prev => ({
+                  ...prev,
+                  state_id: e.target.value,
+                  division_id: '',
+                  parliament_id: '',
+                  assembly_id: ''
+                }));
+              }}
+              sx={{ minWidth: 150 }}
+              size="small"
+            >
+              <MenuItem value="">All States</MenuItem>
+              {states.map((state) => (
+                <MenuItem key={state._id} value={state._id}>
+                  {state.name}
+                </MenuItem>
+              ))}
+            </TextField>
 
+            <TextField
+              select
+              label="Division"
+              value={filters.division_id}
+              onChange={(e) => {
+                setFilters(prev => ({
+                  ...prev,
+                  division_id: e.target.value,
+                  parliament_id: '',
+                  assembly_id: ''
+                }));
+              }}
+              sx={{ minWidth: 150 }}
+              size="small"
+              disabled={!filters.state_id}
+            >
+              <MenuItem value="">All Divisions</MenuItem>
+              {divisions
+                .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+                .map((division) => (
+                  <MenuItem key={division._id} value={division._id}>
+                    {division.name}
+                  </MenuItem>
+                ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Parliament"
+              value={filters.parliament_id}
+              onChange={(e) => {
+                setFilters(prev => ({
+                  ...prev,
+                  parliament_id: e.target.value,
+                  assembly_id: ''
+                }));
+              }}
+              sx={{ minWidth: 150 }}
+              size="small"
+              disabled={!filters.division_id}
+            >
+              <MenuItem value="">All Parliaments</MenuItem>
+              {parliaments
+                .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+                .map((parliament) => (
+                  <MenuItem key={parliament._id} value={parliament._id}>
+                    {parliament.name}
+                  </MenuItem>
+                ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Assembly"
+              value={filters.assembly_id}
+              onChange={(e) => setFilters(prev => ({ ...prev, assembly_id: e.target.value }))}
+              sx={{ minWidth: 150 }}
+              size="small"
+              disabled={!filters.parliament_id}
+            >
+              <MenuItem value="">All Assemblies</MenuItem>
+              {assemblies
+                .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
+                .map((assembly) => (
+                  <MenuItem key={assembly._id} value={assembly._id}>
+                    {assembly.name}
+                  </MenuItem>
+                ))}
+            </TextField>
+
+            <Button
+              variant="contained"
+              onClick={() => fetchVotes(pagination.pageIndex, pagination.pageSize, filters)}
+              size="small"
+            >
+              Apply Filters
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setFilters({
+                  state_id: '',
+                  division_id: '',
+                  parliament_id: '',
+                  assembly_id: ''
+                });
+                fetchVotes(pagination.pageIndex, pagination.pageSize, {
+                  state_id: '',
+                  division_id: '',
+                  parliament_id: '',
+                  assembly_id: ''
+                });
+              }}
+              size="small"
+            >
+              Clear Filters
+            </Button>
+          </Stack>
+
+        </Stack>
         <ScrollX>
           <TableContainer>
             <Table>
