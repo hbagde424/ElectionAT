@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider
+  Button, Stack, Box, Typography, Divider, TextField, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
@@ -47,12 +47,27 @@ export default function BoothVolunteerListPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [globalFilter, setGlobalFilter] = useState('');
+  const [filters, setFilters] = useState({
+    state_id: '',
+    division_id: '',
+    parliament_id: '',
+    assembly_id: '',
+    block_id: '',
+    booth_id: ''
+  });
 
-  const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '') => {
+  const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '', filterParams = filters) => {
     setLoading(true);
     try {
-      const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-      const res = await fetch(`http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+      let url = `http://localhost:5000/api/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`;
+      if (globalFilter) url += `&search=${encodeURIComponent(globalFilter)}`;
+      if (filterParams.state_id) url += `&state_id=${filterParams.state_id}`;
+      if (filterParams.division_id) url += `&division_id=${filterParams.division_id}`;
+      if (filterParams.parliament_id) url += `&parliament_id=${filterParams.parliament_id}`;
+      if (filterParams.assembly_id) url += `&assembly_id=${filterParams.assembly_id}`;
+      if (filterParams.block_id) url += `&block_id=${filterParams.block_id}`;
+      if (filterParams.booth_id) url += `&booth_id=${filterParams.booth_id}`;
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setVolunteers(json.data);
@@ -445,29 +460,249 @@ export default function BoothVolunteerListPage() {
 
   if (loading) return <EmptyReactTable />;
 
+  const handleFilterApply = () => {
+    fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+  };
+
   return (
     <>
       <MainCard content={false}>
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+          sx={{ p: 2, gap: 2 }}
+        >
           <DebouncedInput
             value={globalFilter}
             onFilterChange={setGlobalFilter}
             placeholder={`Search ${volunteers.length} volunteers...`}
+            sx={{ width: { xs: '100%', sm: 250 } }}
           />
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            justifyContent="flex-end"
+          >
             <CSVLink
               data={csvData}
               filename="booth_volunteers_all.csv"
               style={{ display: 'none' }}
               ref={csvLinkRef}
             />
-            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+            <Button
+              variant="outlined"
+              onClick={handleDownloadCsv}
+              disabled={csvLoading}
+              size="small"
+            >
               {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
             </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVolunteer(null); setOpenModal(true); }}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setSelectedVolunteer(null);
+                setOpenModal(true);
+              }}
+              size="small"
+            >
               Add Volunteer
             </Button>
           </Stack>
+        </Stack>
+
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+        >
+          <TextField
+            select
+            label="State"
+            value={filters.state_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                state_id: e.target.value,
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+          >
+            <MenuItem value="">All States</MenuItem>
+            {states.map((state) => (
+              <MenuItem key={state._id} value={state._id}>
+                {state.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Division"
+            value={filters.division_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                division_id: e.target.value,
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.state_id}
+          >
+            <MenuItem value="">All Divisions</MenuItem>
+            {divisions
+              .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+              .map((division) => (
+                <MenuItem key={division._id} value={division._id}>
+                  {division.name}
+                </MenuItem>
+              ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Parliament"
+            value={filters.parliament_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                parliament_id: e.target.value,
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.division_id}
+          >
+            <MenuItem value="">All Parliaments</MenuItem>
+            {parliaments
+              .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+              .map((parliament) => (
+                <MenuItem key={parliament._id} value={parliament._id}>
+                  {parliament.name}
+                </MenuItem>
+              ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Assembly"
+            value={filters.assembly_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                assembly_id: e.target.value,
+                block_id: '',
+                booth_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.parliament_id}
+          >
+            <MenuItem value="">All Assemblies</MenuItem>
+            {assemblies
+              .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
+              .map((assembly) => (
+                <MenuItem key={assembly._id} value={assembly._id}>
+                  {assembly.name}
+                </MenuItem>
+              ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Block"
+            value={filters.block_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                block_id: e.target.value,
+                booth_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.assembly_id}
+          >
+            <MenuItem value="">All Blocks</MenuItem>
+            {blocks
+              .filter(block => !filters.assembly_id || block.assembly_id?._id === filters.assembly_id)
+              .map((block) => (
+                <MenuItem key={block._id} value={block._id}>
+                  {block.name}
+                </MenuItem>
+              ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Booth"
+            value={filters.booth_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                booth_id: e.target.value
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.block_id}
+          >
+            <MenuItem value="">All Booths</MenuItem>
+            {booths
+              .filter(booth => !filters.block_id || booth.block_id?._id === filters.block_id)
+              .map((booth) => (
+                <MenuItem key={booth._id} value={booth._id}>
+                  {booth.name} (#{booth.booth_number})
+                </MenuItem>
+              ))}
+          </TextField>
+
+          <Button variant="contained" onClick={handleFilterApply} size="small">
+            Apply
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilters({
+                state_id: '',
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+              });
+              fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter, {
+                state_id: '',
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: '',
+                booth_id: ''
+              });
+            }}
+            size="small"
+          >
+            Clear
+          </Button>
         </Stack>
 
         <ScrollX>

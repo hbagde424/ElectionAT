@@ -328,15 +328,24 @@ export default function AssemblyVotesListPage() {
   return (
     <>
       <MainCard content={false}>
-
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={40}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+          sx={{ p: 2 }}
+        >
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${votes.length} votes...`}
           />
-          <Stack direction="row" spacing={1}>
-            {/* Add CSV download button and hidden CSVLink */}
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            justifyContent="flex-end"
+          >
             <CSVLink
               data={csvData}
               filename="assembly_votes.csv"
@@ -347,15 +356,25 @@ export default function AssemblyVotesListPage() {
               variant="outlined"
               onClick={handleDownloadCsv}
               disabled={csvLoading}
+              size="small"
             >
               {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
             </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
+            <Button variant="contained"
+              startIcon={<Add />}
+              onClick={() => { setSelectedVote(null); setOpenModal(true); }}
+              size="small">
               Add Vote Record
             </Button>
           </Stack>
         </Stack>
-        <Stack spacing={2} sx={{ padding: 3 }}>
+
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ p: 2, flexWrap: 'wrap' }}
+        >
           <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
             <TextField
               select
@@ -456,7 +475,7 @@ export default function AssemblyVotesListPage() {
               onClick={() => fetchVotes(pagination.pageIndex, pagination.pageSize, filters)}
               size="small"
             >
-              Apply Filters
+              Apply
             </Button>
             <Button
               variant="outlined"
@@ -476,7 +495,7 @@ export default function AssemblyVotesListPage() {
               }}
               size="small"
             >
-              Clear Filters
+              Clear
             </Button>
           </Stack>
 

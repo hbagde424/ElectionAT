@@ -383,143 +383,170 @@ export default function BlocksListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Header: Search + CSV + Add */}
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={40}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    justifyContent="space-between"
+                    sx={{ p: 2 }}
+                >
 
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
                         placeholder={`Search ${blocks.length} blocks...`}
+                        style={{ flex: 1 }}
                     />
-                    <Stack direction="row" spacing={1}>
+
+                    <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="flex-end">
                         <CSVLink
                             data={csvData}
                             filename="blocks_all.csv"
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadCsv}
+                            disabled={csvLoading}
+                        >
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedBlock(null); setOpenModal(true); }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => {
+                                setSelectedBlock(null);
+                                setOpenModal(true);
+                            }}
+                        >
                             Add Block
                         </Button>
                     </Stack>
                 </Stack>
-                <Stack spacing={2} sx={{ padding: 3 }}>
-                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
-                            <TextField
-                                select
-                                label="State"
-                                value={filters.state_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        state_id: e.target.value,
-                                        division_id: '',
-                                        parliament_id: '',
-                                        assembly_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                            >
-                                <MenuItem value="">All States</MenuItem>
-                                {states.map((state) => (
-                                    <MenuItem key={state._id} value={state._id}>
-                                        {state.name}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
 
-                            <TextField
-                                select
-                                label="Division"
-                                value={filters.division_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        division_id: e.target.value,
-                                        parliament_id: '',
-                                        assembly_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.state_id}
-                            >
-                                <MenuItem value="">All Divisions</MenuItem>
-                                {divisions
-                                    .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
-                                    .map((division) => (
-                                        <MenuItem key={division._id} value={division._id}>
-                                            {division.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                {/* Filters */}
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: 'wrap' }}
+                >
+                    <TextField
+                        select
+                        label="State"
+                        value={filters.state_id}
+                        onChange={(e) =>
+                            setFilters((prev) => ({
+                                ...prev,
+                                state_id: e.target.value,
+                                division_id: '',
+                                parliament_id: '',
+                                assembly_id: ''
+                            }))
+                        }
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All States</MenuItem>
+                        {states.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>
+                                {state.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                label="Parliament"
-                                value={filters.parliament_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        parliament_id: e.target.value,
-                                        assembly_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.division_id}
-                            >
-                                <MenuItem value="">All Parliaments</MenuItem>
-                                {parliaments
-                                    .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
-                                    .map((parliament) => (
-                                        <MenuItem key={parliament._id} value={parliament._id}>
-                                            {parliament.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                    <TextField
+                        select
+                        label="Division"
+                        value={filters.division_id}
+                        onChange={(e) =>
+                            setFilters((prev) => ({
+                                ...prev,
+                                division_id: e.target.value,
+                                parliament_id: '',
+                                assembly_id: ''
+                            }))
+                        }
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.state_id}
+                    >
+                        <MenuItem value="">All Divisions</MenuItem>
+                        {divisions
+                            .filter(
+                                (division) =>
+                                    !filters.state_id || division.state_id?._id === filters.state_id
+                            )
+                            .map((division) => (
+                                <MenuItem key={division._id} value={division._id}>
+                                    {division.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                label="Assembly"
-                                value={filters.assembly_id}
-                                onChange={(e) => setFilters(prev => ({ ...prev, assembly_id: e.target.value }))}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.parliament_id}
-                            >
-                                <MenuItem value="">All Assemblies</MenuItem>
-                                {assemblies
-                                    .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
-                                    .map((assembly) => (
-                                        <MenuItem key={assembly._id} value={assembly._id}>
-                                            {assembly.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                    <TextField
+                        select
+                        label="Parliament"
+                        value={filters.parliament_id}
+                        onChange={(e) =>
+                            setFilters((prev) => ({
+                                ...prev,
+                                parliament_id: e.target.value,
+                                assembly_id: ''
+                            }))
+                        }
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.division_id}
+                    >
+                        <MenuItem value="">All Parliaments</MenuItem>
+                        {parliaments
+                            .filter(
+                                (parliament) =>
+                                    !filters.division_id || parliament.division_id?._id === filters.division_id
+                            )
+                            .map((parliament) => (
+                                <MenuItem key={parliament._id} value={parliament._id}>
+                                    {parliament.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
-                            <Button
-                                variant="contained"
-                                onClick={handleFilterApply}
-                                size="small"
-                            >
-                                Apply Filters
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={handleClearFilter}
-                                size="small"
-                            >
-                                Clear Filters
-                            </Button>
-                        </Stack>
-                    </Stack>
+                    <TextField
+                        select
+                        label="Assembly"
+                        value={filters.assembly_id}
+                        onChange={(e) =>
+                            setFilters((prev) => ({ ...prev, assembly_id: e.target.value }))
+                        }
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.parliament_id}
+                    >
+                        <MenuItem value="">All Assemblies</MenuItem>
+                        {assemblies
+                            .filter(
+                                (assembly) =>
+                                    !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id
+                            )
+                            .map((assembly) => (
+                                <MenuItem key={assembly._id} value={assembly._id}>
+                                    {assembly.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
+                    <Button variant="contained" onClick={handleFilterApply} size="small">
+                        Apply
+                    </Button>
+                    <Button variant="outlined" onClick={handleClearFilter} size="small">
+                        Clear
+                    </Button>
                 </Stack>
+
+                {/* Table */}
                 <ScrollX>
                     <TableContainer>
                         <Table>
@@ -530,11 +557,26 @@ export default function BlocksListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                                                sx={{
+                                                    cursor: header.column.getCanSort()
+                                                        ? 'pointer'
+                                                        : 'default'
+                                                }}
                                             >
-                                                <Stack direction="row" spacing={1} alignItems="center">
-                                                    <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
-                                                    {header.column.getCanSort() && <HeaderSort column={header.column} />}
+                                                <Stack
+                                                    direction="row"
+                                                    spacing={1}
+                                                    alignItems="center"
+                                                >
+                                                    <Box>
+                                                        {flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                    </Box>
+                                                    {header.column.getCanSort() && (
+                                                        <HeaderSort column={header.column} />
+                                                    )}
                                                 </Stack>
                                             </TableCell>
                                         ))}
@@ -547,13 +589,18 @@ export default function BlocksListPage() {
                                         <TableRow>
                                             {row.getVisibleCells().map((cell) => (
                                                 <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
                                                 </TableCell>
                                             ))}
                                         </TableRow>
                                         {row.getIsExpanded() && (
                                             <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
+                                                <TableCell
+                                                    colSpan={row.getVisibleCells().length}
+                                                >
                                                     <BlocksView data={row.original} />
                                                 </TableCell>
                                             </TableRow>
@@ -566,8 +613,12 @@ export default function BlocksListPage() {
                     <Divider />
                     <Box sx={{ p: 2 }}>
                         <TablePagination
-                            setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
-                            setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
+                            setPageSize={(size) =>
+                                setPagination((prev) => ({ ...prev, pageSize: size }))
+                            }
+                            setPageIndex={(index) =>
+                                setPagination((prev) => ({ ...prev, pageIndex: index }))
+                            }
                             getState={table.getState}
                             getPageCount={() => pageCount}
                         />
@@ -575,6 +626,7 @@ export default function BlocksListPage() {
                 </ScrollX>
             </MainCard>
 
+            {/* Modals */}
             <BlocksModal
                 open={openModal}
                 modalToggler={setOpenModal}
@@ -583,7 +635,6 @@ export default function BlocksListPage() {
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                // districts={districts}
                 users={users}
                 refresh={() => fetchBlocks(pagination.pageIndex, pagination.pageSize)}
             />
@@ -596,4 +647,5 @@ export default function BlocksListPage() {
             />
         </>
     );
+
 }

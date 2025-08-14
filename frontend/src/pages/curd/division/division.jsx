@@ -272,44 +272,112 @@ export default function DivisionListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <Stack direction="row" spacing={2}>
-                        <DebouncedInput
-                            value={globalFilter}
-                            onFilterChange={setGlobalFilter}
-                            placeholder={`Search ${divisions.length} divisions...`}
-                        />
-                        <TextField
-                            select
-                            label="Filter by State"
-                            value={stateFilter}
-                            onChange={(e) => setStateFilter(e.target.value)}
-                            sx={{ minWidth: 200 }}
-                        >
-                            <MenuItem value="">All States</MenuItem>
-                            {states.map((state) => (
-                                <MenuItem key={state._id} value={state._id}>
-                                    {state.name}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
+                {/* Header: Search + Filters + Actions */}
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={40}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    justifyContent="space-between"
+                    sx={{ p: 2 }}
+                >
+
+                    <DebouncedInput
+                        value={globalFilter}
+                        onFilterChange={setGlobalFilter}
+                        placeholder={`Search ${divisions.length} divisions...`}
+                    />
+
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        justifyContent="flex-end"
+                    >
                         <CSVLink
                             data={csvData}
                             filename="divisions_all.csv"
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadCsv}
+                            disabled={csvLoading}
+                            size="small"
+                        >
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedDivision(null); setOpenModal(true); }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => {
+                                setSelectedDivision(null);
+                                setOpenModal(true);
+                            }}
+                            size="small"
+                        >
                             Add Division
                         </Button>
                     </Stack>
                 </Stack>
+                {/* Filters */}
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: 'wrap' }}
+                >
+                    <TextField
+                        select
+                        label="State"
+                        value={stateFilter}
+                        onChange={(e) => setStateFilter(e.target.value)}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All States</MenuItem>
+                        {states.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>
+                                {state.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
+                    <Button
+                        variant="contained"
+                        onClick={() => fetchDivisions(
+                            pagination.pageIndex,
+                            pagination.pageSize,
+                            globalFilter,
+                            stateFilter
+                        )}
+                        size="small"
+                    >
+                        Apply
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setStateFilter('');
+                            setGlobalFilter('');
+                            fetchDivisions(
+                                pagination.pageIndex,
+                                pagination.pageSize,
+                                '',
+                                ''
+                            );
+                        }}
+                        size="small"
+                    >
+                        Clear
+                    </Button>
+                </Stack>
+
+
+
+
+
+                {/* Table */}
                 <ScrollX>
                     <TableContainer>
                         <Table>
@@ -320,11 +388,22 @@ export default function DivisionListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                                                sx={{
+                                                    cursor: header.column.getCanSort()
+                                                        ? 'pointer'
+                                                        : 'default'
+                                                }}
                                             >
                                                 <Stack direction="row" spacing={1} alignItems="center">
-                                                    <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
-                                                    {header.column.getCanSort() && <HeaderSort column={header.column} />}
+                                                    <Box>
+                                                        {flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                    </Box>
+                                                    {header.column.getCanSort() && (
+                                                        <HeaderSort column={header.column} />
+                                                    )}
                                                 </Stack>
                                             </TableCell>
                                         ))}
@@ -337,7 +416,10 @@ export default function DivisionListPage() {
                                         <TableRow>
                                             {row.getVisibleCells().map((cell) => (
                                                 <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
                                                 </TableCell>
                                             ))}
                                         </TableRow>
@@ -356,8 +438,12 @@ export default function DivisionListPage() {
                     <Divider />
                     <Box sx={{ p: 2 }}>
                         <TablePagination
-                            setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
-                            setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
+                            setPageSize={(size) =>
+                                setPagination((prev) => ({ ...prev, pageSize: size }))
+                            }
+                            setPageIndex={(index) =>
+                                setPagination((prev) => ({ ...prev, pageIndex: index }))
+                            }
                             getState={table.getState}
                             getPageCount={() => pageCount}
                         />
@@ -365,20 +451,26 @@ export default function DivisionListPage() {
                 </ScrollX>
             </MainCard>
 
+            {/* Modals */}
             <DivisionModal
                 open={openModal}
                 modalToggler={setOpenModal}
                 division={selectedDivision}
                 states={states}
-                refresh={() => fetchDivisions(pagination.pageIndex, pagination.pageSize)}
+                refresh={() =>
+                    fetchDivisions(pagination.pageIndex, pagination.pageSize)
+                }
             />
 
             <AlertDivisionDelete
                 id={divisionDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchDivisions(pagination.pageIndex, pagination.pageSize)}
+                refresh={() =>
+                    fetchDivisions(pagination.pageIndex, pagination.pageSize)
+                }
             />
         </>
     );
+
 }

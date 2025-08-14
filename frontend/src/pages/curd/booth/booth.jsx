@@ -445,170 +445,193 @@ export default function BoothsListPage() {
         <>
             <MainCard content={false}>
 
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                {/* Search + Actions */}
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    justifyContent="space-between"
+                    sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+                >
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
                         placeholder={`Search ${booths.length} booths...`}
+                        style={{ minWidth: 250 }}
                     />
-                    <Stack direction="row" spacing={1}>
+
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        justifyContent="flex-end"
+                    >
                         <CSVLink
                             data={csvData}
                             filename="booths_all.csv"
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadCsv}
+                            disabled={csvLoading}
+                            size="small"
+                        >
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedBooth(null); setOpenModal(true); }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => {
+                                setSelectedBooth(null);
+                                setOpenModal(true);
+                            }}
+                            size="small"
+                        >
                             Add Booth
                         </Button>
                     </Stack>
                 </Stack>
-                <Stack spacing={2} sx={{ padding: 3 }}>
-                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
-                            <TextField
-                                select
-                                label="State"
-                                value={filters.state_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        state_id: e.target.value,
-                                        division_id: '',
-                                        parliament_id: '',
-                                        assembly_id: '',
-                                        block_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                            >
-                                <MenuItem value="">All States</MenuItem>
-                                {states.map((state) => (
-                                    <MenuItem key={state._id} value={state._id}>
-                                        {state.name}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
 
-                            <TextField
-                                select
-                                label="Division"
-                                value={filters.division_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        division_id: e.target.value,
-                                        parliament_id: '',
-                                        assembly_id: '',
-                                        block_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.state_id}
-                            >
-                                <MenuItem value="">All Divisions</MenuItem>
-                                {divisions
-                                    .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
-                                    .map((division) => (
-                                        <MenuItem key={division._id} value={division._id}>
-                                            {division.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                {/* Filters */}
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+                >
+                    <TextField
+                        select
+                        label="State"
+                        value={filters.state_id}
+                        onChange={(e) => {
+                            setFilters(prev => ({
+                                ...prev,
+                                state_id: e.target.value,
+                                division_id: '',
+                                parliament_id: '',
+                                assembly_id: '',
+                                block_id: ''
+                            }));
+                        }}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All States</MenuItem>
+                        {states.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>
+                                {state.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                label="Parliament"
-                                value={filters.parliament_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        parliament_id: e.target.value,
-                                        assembly_id: '',
-                                        block_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.division_id}
-                            >
-                                <MenuItem value="">All Parliaments</MenuItem>
-                                {parliaments
-                                    .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
-                                    .map((parliament) => (
-                                        <MenuItem key={parliament._id} value={parliament._id}>
-                                            {parliament.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                    <TextField
+                        select
+                        label="Division"
+                        value={filters.division_id}
+                        onChange={(e) => {
+                            setFilters(prev => ({
+                                ...prev,
+                                division_id: e.target.value,
+                                parliament_id: '',
+                                assembly_id: '',
+                                block_id: ''
+                            }));
+                        }}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.state_id}
+                    >
+                        <MenuItem value="">All Divisions</MenuItem>
+                        {divisions
+                            .filter(d => !filters.state_id || d.state_id?._id === filters.state_id)
+                            .map((division) => (
+                                <MenuItem key={division._id} value={division._id}>
+                                    {division.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                label="Assembly"
-                                value={filters.assembly_id}
-                                onChange={(e) => {
-                                    setFilters(prev => ({
-                                        ...prev,
-                                        assembly_id: e.target.value,
-                                        block_id: ''
-                                    }));
-                                }}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.parliament_id}
-                            >
-                                <MenuItem value="">All Assemblies</MenuItem>
-                                {assemblies
-                                    .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
-                                    .map((assembly) => (
-                                        <MenuItem key={assembly._id} value={assembly._id}>
-                                            {assembly.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                    <TextField
+                        select
+                        label="Parliament"
+                        value={filters.parliament_id}
+                        onChange={(e) => {
+                            setFilters(prev => ({
+                                ...prev,
+                                parliament_id: e.target.value,
+                                assembly_id: '',
+                                block_id: ''
+                            }));
+                        }}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.division_id}
+                    >
+                        <MenuItem value="">All Parliaments</MenuItem>
+                        {parliaments
+                            .filter(p => !filters.division_id || p.division_id?._id === filters.division_id)
+                            .map((parliament) => (
+                                <MenuItem key={parliament._id} value={parliament._id}>
+                                    {parliament.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
-                            <TextField
-                                select
-                                label="Block"
-                                value={filters.block_id}
-                                onChange={(e) => setFilters(prev => ({ ...prev, block_id: e.target.value }))}
-                                sx={{ minWidth: 150 }}
-                                size="small"
-                                disabled={!filters.assembly_id}
-                            >
-                                <MenuItem value="">All Blocks</MenuItem>
-                                {blocks
-                                    .filter(block => !filters.assembly_id || block.assembly_id?._id === filters.assembly_id)
-                                    .map((block) => (
-                                        <MenuItem key={block._id} value={block._id}>
-                                            {block.name}
-                                        </MenuItem>
-                                    ))}
-                            </TextField>
+                    <TextField
+                        select
+                        label="Assembly"
+                        value={filters.assembly_id}
+                        onChange={(e) => {
+                            setFilters(prev => ({
+                                ...prev,
+                                assembly_id: e.target.value,
+                                block_id: ''
+                            }));
+                        }}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.parliament_id}
+                    >
+                        <MenuItem value="">All Assemblies</MenuItem>
+                        {assemblies
+                            .filter(a => !filters.parliament_id || a.parliament_id?._id === filters.parliament_id)
+                            .map((assembly) => (
+                                <MenuItem key={assembly._id} value={assembly._id}>
+                                    {assembly.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
-                            <Button
-                                variant="contained"
-                                onClick={handleFilterApply}
-                                size="small"
-                            >
-                                Apply Filters
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={handleClearFilter}
-                                size="small"
-                            >
-                                Clear Filters
-                            </Button>
-                        </Stack>
-                    </Stack>
+                    <TextField
+                        select
+                        label="Block"
+                        value={filters.block_id}
+                        onChange={(e) => setFilters(prev => ({ ...prev, block_id: e.target.value }))}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                        disabled={!filters.assembly_id}
+                    >
+                        <MenuItem value="">All Blocks</MenuItem>
+                        {blocks
+                            .filter(b => !filters.assembly_id || b.assembly_id?._id === filters.assembly_id)
+                            .map((block) => (
+                                <MenuItem key={block._id} value={block._id}>
+                                    {block.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
 
+                    <Button variant="contained" onClick={handleFilterApply} size="small">
+                        Apply
+                    </Button>
+                    <Button variant="outlined" onClick={handleClearFilter} size="small">
+                        Clear
+                    </Button>
                 </Stack>
+
+
                 <ScrollX>
                     <TableContainer>
                         <Table>
@@ -662,7 +685,7 @@ export default function BoothsListPage() {
                         />
                     </Box>
                 </ScrollX>
-            </MainCard>
+            </MainCard >
 
             <BoothModal
                 open={openModal}

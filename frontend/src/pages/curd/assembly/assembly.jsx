@@ -235,7 +235,7 @@ export default function AssemblyListPage() {
                 );
             }
         },
-        
+
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -370,148 +370,169 @@ export default function AssemblyListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Stack spacing={2} sx={{ padding: 3 }}>
-                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                        <Typography variant="h5">Assembly List</Typography>
-                        <Stack direction="row" spacing={1}>
-                            <CSVLink
-                                data={csvData}
-                                filename="assemblies_all.csv"
-                                style={{ display: 'none' }}
-                                ref={csvLinkRef}
-                            />
-                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                            </Button>
-                            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
-                                Add Assembly
-                            </Button>
-                        </Stack>
-                    </Stack>
+                {/* Header: Search + Actions */}
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    justifyContent="space-between"
+                    sx={{ p: 2, gap: 2 }}
+                >
+                    {/* Search Box */}
+                    <DebouncedInput
+                        value={globalFilter}
+                        onFilterChange={setGlobalFilter}
+                        placeholder={`Search ${assemblies.length} assemblies...`}
+                        sx={{ width: { xs: '100%', sm: 250 } }}
+                    />
 
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <DebouncedInput
-                            value={globalFilter}
-                            onFilterChange={setGlobalFilter}
-                            placeholder={`Search ${assemblies.length} assemblies...`}
-                            sx={{ width: '100%', maxWidth: 250 }}
+                    {/* Action Buttons */}
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        justifyContent="flex-end"
+                    >
+                        <CSVLink
+                            data={csvData}
+                            filename="assemblies_all.csv"
+                            style={{ display: 'none' }}
+                            ref={csvLinkRef}
                         />
-                        <TextField
-                            select
-                            label="Type"
-                            value={filters.type}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
-                            sx={{ minWidth: 120 }}
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadCsv}
+                            disabled={csvLoading}
                             size="small"
                         >
-                            <MenuItem value="">All Types</MenuItem>
-                            {typeOptions.map((option) => (
-                                <MenuItem key={option} value={option}>
-                                    {option}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                        <TextField
-                            select
-                            label="Category"
-                            value={filters.category}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-                            sx={{ minWidth: 120 }}
+                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                        </Button>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}
                             size="small"
                         >
-                            <MenuItem value="">All Categories</MenuItem>
-                            {categoryOptions.map((option) => (
-                                <MenuItem key={option} value={option}>
-                                    {option}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                        <TextField
-                            select
-                            label="State"
-                            value={filters.state_id}
-                            onChange={(e) => {
-                                const newStateId = e.target.value;
-                                setFilters((prev) => ({
-                                    ...prev,
-                                    state_id: newStateId,
-                                    division_id: '', // Reset division when state changes
-                                    parliament_id: '' // Reset parliament when state changes
-                                }));
-                            }}
-                            sx={{ minWidth: 120 }}
-                            size="small"
-                        >
-                            <MenuItem value="">All States</MenuItem>
-                            {states.map((state) => (
-                                <MenuItem key={state._id} value={state._id}>
-                                    {state.name}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                        <TextField
-                            select
-                            label="Division"
-                            value={filters.division_id}
-                            onChange={(e) => {
-                                const newDivisionId = e.target.value;
-                                setFilters((prev) => ({
-                                    ...prev,
-                                    division_id: newDivisionId,
-                                    parliament_id: '' // Reset parliament when division changes
-                                }));
-                            }}
-                            sx={{ minWidth: 120 }}
-                            size="small"
-                            disabled={!filters.state_id}
-                        >
-                            <MenuItem value="">All Divisions</MenuItem>
-                            {divisions
-                                .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
-                                .map((division) => (
-                                    <MenuItem key={division._id} value={division._id}>
-                                        {division.name}
-                                    </MenuItem>
-                                ))}
-                        </TextField>
-                        <TextField
-                            select
-                            label="Parliament"
-                            value={filters.parliament_id}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, parliament_id: e.target.value }))}
-                            sx={{ minWidth: 120 }}
-                            size="small"
-                            disabled={!filters.division_id}
-                        >
-                            <MenuItem value="">All Parliaments</MenuItem>
-                            {parliaments
-                                .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
-                                .map((parliament) => (
-                                    <MenuItem key={parliament._id} value={parliament._id}>
-                                        {parliament.name}
-                                    </MenuItem>
-                                ))}
-                        </TextField>
-                        <Stack direction="row" spacing={1}>
-                            <Button
-                                variant="outlined"
-                                onClick={handleClearFilter}
-                                size="small"
-                            >
-                                Clear Filters
-                            </Button>
-                            <Button
-                                variant="contained"
-                                onClick={handleFilterApply}
-                                size="small"
-                            >
-                                Clear Filters
-                            </Button>
-                        </Stack>
+                            Add Assembly
+                        </Button>
                     </Stack>
                 </Stack>
 
+                {/* Filters */}
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+                >
+                    <TextField
+                        select
+                        label="Type"
+                        value={filters.type}
+                        onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
+                        sx={{ minWidth: 120 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All Types</MenuItem>
+                        {typeOptions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                                {option}
+                            </MenuItem>
+                        ))}
+                    </TextField>
 
+                    <TextField
+                        select
+                        label="Category"
+                        value={filters.category}
+                        onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
+                        sx={{ minWidth: 120 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All Categories</MenuItem>
+                        {categoryOptions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                                {option}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField
+                        select
+                        label="State"
+                        value={filters.state_id}
+                        onChange={(e) => {
+                            const newStateId = e.target.value;
+                            setFilters((prev) => ({
+                                ...prev,
+                                state_id: newStateId,
+                                division_id: '',
+                                parliament_id: ''
+                            }));
+                        }}
+                        sx={{ minWidth: 120 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All States</MenuItem>
+                        {states.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>
+                                {state.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField
+                        select
+                        label="Division"
+                        value={filters.division_id}
+                        onChange={(e) => {
+                            const newDivisionId = e.target.value;
+                            setFilters((prev) => ({
+                                ...prev,
+                                division_id: newDivisionId,
+                                parliament_id: ''
+                            }));
+                        }}
+                        sx={{ minWidth: 120 }}
+                        size="small"
+                        disabled={!filters.state_id}
+                    >
+                        <MenuItem value="">All Divisions</MenuItem>
+                        {divisions
+                            .filter(d => !filters.state_id || d.state_id?._id === filters.state_id)
+                            .map((d) => (
+                                <MenuItem key={d._id} value={d._id}>
+                                    {d.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
+
+                    <TextField
+                        select
+                        label="Parliament"
+                        value={filters.parliament_id}
+                        onChange={(e) => setFilters((prev) => ({ ...prev, parliament_id: e.target.value }))}
+                        sx={{ minWidth: 120 }}
+                        size="small"
+                        disabled={!filters.division_id}
+                    >
+                        <MenuItem value="">All Parliaments</MenuItem>
+                        {parliaments
+                            .filter(p => !filters.division_id || p.division_id?._id === filters.division_id)
+                            .map((p) => (
+                                <MenuItem key={p._id} value={p._id}>
+                                    {p.name}
+                                </MenuItem>
+                            ))}
+                    </TextField>
+
+                    <Button variant="contained" onClick={handleFilterApply} size="small">
+                        Apply
+                    </Button>
+                    <Button variant="outlined" onClick={handleClearFilter} size="small">
+                        Clear
+                    </Button>
+                </Stack>
 
                 <ScrollX>
                     <TableContainer>

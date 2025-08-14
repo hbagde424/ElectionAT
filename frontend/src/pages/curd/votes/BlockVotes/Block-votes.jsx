@@ -332,14 +332,26 @@ export default function BlockVotesListPage() {
   return (
     <>
       <MainCard content={false}>
-
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={40}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+          sx={{ p: 2 }}
+        >
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${votes.length} votes...`}
+            sx={{ width: '100%', maxWidth: 250 }}
+
           />
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            justifyContent="flex-end"
+          >
             <CSVLink
               data={csvData}
               filename="block_votes.csv"
@@ -358,162 +370,166 @@ export default function BlockVotesListPage() {
             </Button>
           </Stack>
         </Stack>
-        <Stack spacing={2} sx={{ padding: 3 }}>
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
-            <TextField
-              select
-              label="State"
-              value={filters.state_id}
-              onChange={(e) => {
-                setFilters(prev => ({
-                  ...prev,
-                  state_id: e.target.value,
-                  division_id: '',
-                  parliament_id: '',
-                  assembly_id: '',
-                  block_id: ''
-                }));
-              }}
-              sx={{ minWidth: 150 }}
-              size="small"
-            >
-              <MenuItem value="">All States</MenuItem>
-              {states.map((state) => (
-                <MenuItem key={state._id} value={state._id}>
-                  {state.name}
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ p: 2, flexWrap: 'wrap' }}
+        >
+          <TextField
+            select
+            label="State"
+            value={filters.state_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                state_id: e.target.value,
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+          >
+            <MenuItem value="">All States</MenuItem>
+            {states.map((state) => (
+              <MenuItem key={state._id} value={state._id}>
+                {state.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Division"
+            value={filters.division_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                division_id: e.target.value,
+                parliament_id: '',
+                assembly_id: '',
+                block_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.state_id}
+          >
+            <MenuItem value="">All Divisions</MenuItem>
+            {divisions
+              .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+              .map((division) => (
+                <MenuItem key={division._id} value={division._id}>
+                  {division.name}
                 </MenuItem>
               ))}
-            </TextField>
+          </TextField>
 
-            <TextField
-              select
-              label="Division"
-              value={filters.division_id}
-              onChange={(e) => {
-                setFilters(prev => ({
-                  ...prev,
-                  division_id: e.target.value,
-                  parliament_id: '',
-                  assembly_id: '',
-                  block_id: ''
-                }));
-              }}
-              sx={{ minWidth: 150 }}
-              size="small"
-              disabled={!filters.state_id}
-            >
-              <MenuItem value="">All Divisions</MenuItem>
-              {divisions
-                .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
-                .map((division) => (
-                  <MenuItem key={division._id} value={division._id}>
-                    {division.name}
-                  </MenuItem>
-                ))}
-            </TextField>
+          <TextField
+            select
+            label="Parliament"
+            value={filters.parliament_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                parliament_id: e.target.value,
+                assembly_id: '',
+                block_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.division_id}
+          >
+            <MenuItem value="">All Parliaments</MenuItem>
+            {parliaments
+              .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+              .map((parliament) => (
+                <MenuItem key={parliament._id} value={parliament._id}>
+                  {parliament.name}
+                </MenuItem>
+              ))}
+          </TextField>
 
-            <TextField
-              select
-              label="Parliament"
-              value={filters.parliament_id}
-              onChange={(e) => {
-                setFilters(prev => ({
-                  ...prev,
-                  parliament_id: e.target.value,
-                  assembly_id: '',
-                  block_id: ''
-                }));
-              }}
-              sx={{ minWidth: 150 }}
-              size="small"
-              disabled={!filters.division_id}
-            >
-              <MenuItem value="">All Parliaments</MenuItem>
-              {parliaments
-                .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
-                .map((parliament) => (
-                  <MenuItem key={parliament._id} value={parliament._id}>
-                    {parliament.name}
-                  </MenuItem>
-                ))}
-            </TextField>
+          <TextField
+            select
+            label="Assembly"
+            value={filters.assembly_id}
+            onChange={(e) => {
+              setFilters(prev => ({
+                ...prev,
+                assembly_id: e.target.value,
+                block_id: ''
+              }));
+            }}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.parliament_id}
+          >
+            <MenuItem value="">All Assemblies</MenuItem>
+            {assemblies
+              .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
+              .map((assembly) => (
+                <MenuItem key={assembly._id} value={assembly._id}>
+                  {assembly.name}
+                </MenuItem>
+              ))}
+          </TextField>
 
-            <TextField
-              select
-              label="Assembly"
-              value={filters.assembly_id}
-              onChange={(e) => {
-                setFilters(prev => ({
-                  ...prev,
-                  assembly_id: e.target.value,
-                  block_id: ''
-                }));
-              }}
-              sx={{ minWidth: 150 }}
-              size="small"
-              disabled={!filters.parliament_id}
-            >
-              <MenuItem value="">All Assemblies</MenuItem>
-              {assemblies
-                .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
-                .map((assembly) => (
-                  <MenuItem key={assembly._id} value={assembly._id}>
-                    {assembly.name}
-                  </MenuItem>
-                ))}
-            </TextField>
+          <TextField
+            select
+            label="Block"
+            value={filters.block_id}
+            onChange={(e) => setFilters(prev => ({ ...prev, block_id: e.target.value }))}
+            sx={{ minWidth: 150 }}
+            size="small"
+            disabled={!filters.assembly_id}
+          >
+            <MenuItem value="">All Blocks</MenuItem>
+            {blocks
+              .filter(block => !filters.assembly_id || block.assembly_id?._id === filters.assembly_id)
+              .map((block) => (
+                <MenuItem key={block._id} value={block._id}>
+                  {block.name}
+                </MenuItem>
+              ))}
+          </TextField>
 
-            <TextField
-              select
-              label="Block"
-              value={filters.block_id}
-              onChange={(e) => setFilters(prev => ({ ...prev, block_id: e.target.value }))}
-              sx={{ minWidth: 150 }}
-              size="small"
-              disabled={!filters.assembly_id}
-            >
-              <MenuItem value="">All Blocks</MenuItem>
-              {blocks
-                .filter(block => !filters.assembly_id || block.assembly_id?._id === filters.assembly_id)
-                .map((block) => (
-                  <MenuItem key={block._id} value={block._id}>
-                    {block.name}
-                  </MenuItem>
-                ))}
-            </TextField>
-
-            <Button
-              variant="contained"
-              onClick={() => fetchVotes(pagination.pageIndex, pagination.pageSize, filters)}
-              size="small"
-            >
-              Apply Filters
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                setFilters({
-                  state_id: '',
-                  division_id: '',
-                  parliament_id: '',
-                  assembly_id: '',
-                  block_id: ''
-                });
-                fetchVotes(pagination.pageIndex, pagination.pageSize, {
-                  state_id: '',
-                  division_id: '',
-                  parliament_id: '',
-                  assembly_id: '',
-                  block_id: ''
-                });
-              }}
-              size="small"
-            >
-              Clear Filters
-            </Button>
-          </Stack>
-
+          <Button
+            variant="contained"
+            onClick={() => fetchVotes(pagination.pageIndex, pagination.pageSize, filters)}
+            size="small"
+          >
+            Apply
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilters({
+                state_id: '',
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: ''
+              });
+              fetchVotes(pagination.pageIndex, pagination.pageSize, {
+                state_id: '',
+                division_id: '',
+                parliament_id: '',
+                assembly_id: '',
+                block_id: ''
+              });
+            }}
+            size="small"
+          >
+            Clear
+          </Button>
         </Stack>
+
+
         <ScrollX>
           <TableContainer>
             <Table>
@@ -567,7 +583,7 @@ export default function BlockVotesListPage() {
             />
           </Box>
         </ScrollX>
-      </MainCard>
+      </MainCard >
 
       <BlockVotesModal
         open={openModal}
