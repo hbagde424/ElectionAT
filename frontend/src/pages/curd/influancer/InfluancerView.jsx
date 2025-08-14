@@ -59,6 +59,24 @@ export default function BoothView({ data }) {
                             </Box>
                         )}
 
+                         {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
+
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />

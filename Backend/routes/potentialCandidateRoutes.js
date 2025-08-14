@@ -325,6 +325,10 @@ router.get('/party/:partyId', getPotentialCandidatesByParty);
  *           type: string
  *           enum: [active, inactive, under_review]
  *           description: Current status of the potential candidate
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created the record

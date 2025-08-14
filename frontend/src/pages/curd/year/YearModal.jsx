@@ -1,7 +1,9 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
-    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl
+    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl, Box
 } from '@mui/material';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
 
@@ -16,7 +18,8 @@ export default function ElectionYearModal({
 
     const [formData, setFormData] = useState({
         year: '',
-        election_type: ''
+        election_type: '',
+        description: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -24,12 +27,14 @@ export default function ElectionYearModal({
         if (electionYear) {
             setFormData({
                 year: electionYear.year || '',
-                election_type: electionYear.election_type || ''
+                election_type: electionYear.election_type || '',
+                description: electionYear.description || ''
             });
         } else {
             setFormData({
                 year: '',
-                election_type: ''
+                election_type: '',
+                description: ''
             });
         }
     }, [electionYear]);
@@ -39,6 +44,13 @@ export default function ElectionYearModal({
         setFormData((prev) => ({
             ...prev,
             [name]: value
+        }));
+    };
+
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -71,7 +83,8 @@ export default function ElectionYearModal({
         const submitData = {
             ...formData,
             ...userTracking,
-            year: parseInt(formData.year)
+            year: parseInt(formData.year),
+            description: typeof formData.description === 'string' ? formData.description : ''
         };
 
         try {
@@ -103,6 +116,19 @@ export default function ElectionYearModal({
             <DialogTitle>{electionYear ? 'Edit Election Year' : 'Add Election Year'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
+                    {/* Description (Rich Text) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
+                        </Stack>
+                    </Grid>
                     {/* Year */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>

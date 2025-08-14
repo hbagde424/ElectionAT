@@ -328,6 +328,10 @@ router.get('/assembly/:assemblyId', getInfluencersByAssembly);
  *           type: string
  *           description: Reference to Booth
  *           example: "507f1f77bcf86cd799439010"
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

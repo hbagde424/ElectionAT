@@ -4,6 +4,8 @@ import {
     MenuItem, FormControl, FormHelperText, Alert, 
     CircularProgress, Typography
 } from '@mui/material';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 
@@ -104,7 +106,8 @@ export default function VisitModal({
                 remark: '',
                 longitude: '',
                 latitude: '',
-                locationName: ''
+                locationName: '',
+                description: ''
             };
         }
         
@@ -123,9 +126,17 @@ export default function VisitModal({
             remark: visit.remark || '',
             longitude: visit.longitude || '',
             latitude: visit.latitude || '',
-            locationName: visit.locationName || ''
+            locationName: visit.locationName || '',
+            description: visit.description || ''
         };
     }
+    // For ReactQuill editor
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // Reset form when modal opens/closes or visit changes
     useEffect(() => {
@@ -296,13 +307,17 @@ export default function VisitModal({
                 : 'http://localhost:5000/api/visits';
             const method = visit ? 'PUT' : 'POST';
 
+            const submitData = {
+                ...formData,
+                description: typeof formData.description === 'string' ? formData.description : ''
+            };
             const res = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             });
 
             const data = await res.json();
@@ -524,6 +539,19 @@ export default function VisitModal({
                         />
                     </Grid>
                     
+                    {/* Row: Description (Rich Text) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
+                        </Stack>
+                    </Grid>
                     <Grid item xs={12}>
                         <FormTextField
                             label="Declaration"

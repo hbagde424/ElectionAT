@@ -158,6 +158,23 @@ export default function WinningCandidateView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
+                         {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
                     </Stack>
                 </Grid>
             </Grid>

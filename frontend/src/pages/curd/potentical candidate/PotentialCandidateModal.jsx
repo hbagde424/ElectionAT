@@ -16,6 +16,8 @@ import {
     Box,
     Typography
 } from '@mui/material';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -45,7 +47,8 @@ export default function PotentialCandidateModal({
         cons: '',
         election_year_id: '',
         image: '',
-        status: 'under_review'
+        status: 'under_review',
+        description: ''
     });
 
     useEffect(() => {
@@ -65,7 +68,8 @@ export default function PotentialCandidateModal({
                 cons: candidate.cons || '',
                 election_year_id: candidate.election_year_id?._id || '',
                 image: candidate.image || '',
-                status: candidate.status || 'under_review'
+                status: candidate.status || 'under_review',
+                description: candidate.description || ''
             });
         } else {
             setFormData({
@@ -83,10 +87,18 @@ export default function PotentialCandidateModal({
                 cons: '',
                 election_year_id: '',
                 image: '',
-                status: 'under_review'
+                status: 'under_review',
+                description: ''
             });
         }
     }, [candidate]);
+    // For ReactQuill editor
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -129,13 +141,17 @@ console.log('Current election_year_id:', formData.election_year_id);
             : 'http://localhost:5000/api/potential-candidates';
 
         try {
+            const submitData = {
+                ...formData,
+                description: typeof formData.description === 'string' ? formData.description : ''
+            };
             const res = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             });
 
             if (res.ok) {
@@ -284,6 +300,17 @@ console.log('Current election_year_id:', formData.election_year_id);
                                 fullWidth
                                 multiline
                                 rows={3}
+                            />
+                        </Stack>
+                        {/* Row: Description (Rich Text) */}
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 100 }}
                             />
                         </Stack>
 

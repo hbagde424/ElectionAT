@@ -86,6 +86,10 @@ const visitSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Location name cannot exceed 200 characters']
   },
+    description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

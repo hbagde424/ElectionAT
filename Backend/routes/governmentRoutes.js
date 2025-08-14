@@ -312,6 +312,10 @@ router.get('/assembly/:assemblyId', getGovernmentsByAssembly);
  *           type: string
  *           description: Reference to Assembly
  *           example: "507f1f77bcf86cd799439012"
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

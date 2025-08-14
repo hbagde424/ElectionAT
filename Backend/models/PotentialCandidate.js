@@ -92,6 +92,10 @@ const potentialCandidateSchema = new mongoose.Schema({
     default: 'under_review',
     index: true
   },
+    description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

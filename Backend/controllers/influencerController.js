@@ -168,6 +168,7 @@ exports.createInfluencer = async (req, res, next) => {
     const influencerData = {
       ...req.body,
       created_by: req.user.id,
+       description: req.body.description || '',
       updated_by: req.user.id
     };
 
@@ -230,6 +231,7 @@ exports.updateInfluencer = async (req, res, next) => {
       });
     }
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     influencer = await Influencer.findByIdAndUpdate(req.params.id, req.body, {

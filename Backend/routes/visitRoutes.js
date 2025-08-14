@@ -480,6 +480,10 @@ router.get('/candidate/:candidateId/path', getCandidatePath);
  *               items:
  *                 type: number
  *           description: GeoJSON Point for geospatial queries
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

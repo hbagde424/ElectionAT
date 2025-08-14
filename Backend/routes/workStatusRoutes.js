@@ -485,6 +485,10 @@ router.get('/assembly/:assemblyId', getWorkStatusesByAssembly);
  *                 type: string
  *                 format: date-time
  *                 description: Upload timestamp
+ *           description:
+ *             type: string
+ *             description: Work status description (HTML allowed)
+ *             example: "<p>Some description about the work status.</p>"  
  *         created_by:
  *           type: string
  *           description: Reference to User who created

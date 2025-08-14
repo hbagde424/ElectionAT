@@ -150,84 +150,26 @@ exports.getWorkStatus = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createWorkStatus = async (req, res, next) => {
   try {
-    // Verify all references exist
-    const [
-      state,
-      division,
-      parliament,
-      assembly,
-      block,
-      booth
-    ] = await Promise.all([
-      State.findById(req.body.state_id),
-      Division.findById(req.body.division_id),
-      Parliament.findById(req.body.parliament_id),
-      Assembly.findById(req.body.assembly_id),
-      Block.findById(req.body.block_id),
-      Booth.findById(req.body.booth_id)
-    ]);
-
-    if (!state) {
-      return res.status(400).json({ success: false, message: 'State not found' });
+    // ✅ Validate date order first
+    if (req.body.expected_end_date && new Date(req.body.expected_end_date) < new Date(req.body.start_date)) {
+      return res.status(400).json({ success: false, message: 'Expected end date must be after start date' });
     }
-    if (!division) {
-      return res.status(400).json({ success: false, message: 'Division not found' });
-    }
-    if (!parliament) {
-      return res.status(400).json({ success: false, message: 'Parliament not found' });
-    }
-    if (!assembly) {
-      return res.status(400).json({ success: false, message: 'Assembly not found' });
-    }
-    if (!block) {
-      return res.status(400).json({ success: false, message: 'Block not found' });
-    }
-    if (!booth) {
-      return res.status(400).json({ success: false, message: 'Booth not found' });
-    }
-
-    // Check if user exists in request
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-
-    // Validate dates
-    if (new Date(req.body.expected_end_date) < new Date(req.body.start_date)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Expected end date must be after start date'
-      });
-    }
-
     if (req.body.actual_end_date && new Date(req.body.actual_end_date) < new Date(req.body.start_date)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Actual end date must be after start date'
-      });
+      return res.status(400).json({ success: false, message: 'Actual end date must be after start date' });
     }
 
-    // Validate spent amount
+    // ✅ Validate budget
     if (req.body.spent_amount > req.body.total_budget) {
-      return res.status(400).json({
-        success: false,
-        message: 'Spent amount cannot exceed total budget'
-      });
+      return res.status(400).json({ success: false, message: 'Spent amount cannot exceed total budget' });
     }
 
-    const workStatusData = {
+    const workStatus = await WorkStatus.create({
       ...req.body,
-      created_by: req.user.id
-    };
-
-    const workStatus = await WorkStatus.create(workStatusData);
-
-    res.status(201).json({
-      success: true,
-      data: workStatus
+      created_by: req.user.id,
+      description: req.body.description || ''
     });
+
+    res.status(201).json({ success: true, data: workStatus });
   } catch (err) {
     next(err);
   }
@@ -239,94 +181,33 @@ exports.createWorkStatus = async (req, res, next) => {
 exports.updateWorkStatus = async (req, res, next) => {
   try {
     let workStatus = await WorkStatus.findById(req.params.id);
-
     if (!workStatus) {
-      return res.status(404).json({
-        success: false,
-        message: 'Work status not found'
-      });
+      return res.status(404).json({ success: false, message: 'Work status not found' });
     }
 
-    // Verify all references exist if being updated
-    const verificationPromises = [];
-    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
-    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
-    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
-    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
-
-    const verificationResults = await Promise.all(verificationPromises);
-    
-    for (const result of verificationResults) {
-      if (!result) {
-        return res.status(400).json({
-          success: false,
-          message: `${result.modelName} not found`
-        });
-      }
-    }
-
-    // Validate dates if being updated
     const startDate = req.body.start_date ? new Date(req.body.start_date) : workStatus.start_date;
     const expectedEndDate = req.body.expected_end_date ? new Date(req.body.expected_end_date) : workStatus.expected_end_date;
-    
+
     if (expectedEndDate < startDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Expected end date must be after start date'
-      });
+      return res.status(400).json({ success: false, message: 'Expected end date must be after start date' });
     }
-
     if (req.body.actual_end_date && new Date(req.body.actual_end_date) < startDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Actual end date must be after start date'
-      });
+      return res.status(400).json({ success: false, message: 'Actual end date must be after start date' });
     }
 
-    // Validate budget if being updated
     const totalBudget = req.body.total_budget || workStatus.total_budget;
     const spentAmount = req.body.spent_amount || workStatus.spent_amount;
-    
     if (spentAmount > totalBudget) {
-      return res.status(400).json({
-        success: false,
-        message: 'Spent amount cannot exceed total budget'
-      });
+      return res.status(400).json({ success: false, message: 'Spent amount cannot exceed total budget' });
     }
 
-    // Set updated_by
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
+    workStatus = await WorkStatus.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updated_by: req.user.id, updated_at: new Date() },
+      { new: true, runValidators: true }
+    );
 
-    const updateData = {
-      ...req.body,
-      updated_by: req.user.id
-    };
-    req.body.updated_at = new Date();
-
-    workStatus = await WorkStatus.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true
-    })
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('booth_id', 'name booth_number')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
-
-    res.status(200).json({
-      success: true,
-      data: workStatus
-    });
+    res.status(200).json({ success: true, data: workStatus });
   } catch (err) {
     next(err);
   }

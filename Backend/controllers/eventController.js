@@ -150,6 +150,7 @@ exports.createEvent = async (req, res, next) => {
 
     // Add created_by from authenticated user
     req.body.created_by = req.user.id;
+    req.body.description = req.body.description || '';
 
     // Validate date range
     if (new Date(req.body.start_date) > new Date(req.body.end_date)) {
@@ -222,6 +223,7 @@ exports.updateEvent = async (req, res, next) => {
 
     // Add updated_by from authenticated user
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     event = await Event.findByIdAndUpdate(req.params.id, req.body, {

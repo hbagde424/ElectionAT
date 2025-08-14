@@ -4,7 +4,8 @@ import {
     Switch, FormControlLabel, Chip, Box
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
-
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 // project imports
 import JWTContext from 'contexts/JWTContext';
 
@@ -28,6 +29,7 @@ export default function CasteModal({
         category: 'General',
         percentage: '',
         caste: '',
+        description: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -52,6 +54,7 @@ export default function CasteModal({
                 category: casteEntry.category || 'General',
                 caste: casteEntry.caste || '',
                 percentage: percentageEntry.percentage || '',
+                description: casteEntry.description || '',
                 state_id: casteEntry.state_id?._id?.toString() || casteEntry.state_id?.toString() || '',
                 division_id: casteEntry.division_id?._id?.toString() || casteEntry.division_id?.toString() || '',
                 parliament_id: casteEntry.parliament_id?._id?.toString() || casteEntry.parliament_id?.toString() || '',
@@ -64,6 +67,7 @@ export default function CasteModal({
                 category: 'General',
                 caste: '',
                 percentage: '',
+                description: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -73,6 +77,13 @@ export default function CasteModal({
             });
         }
     }, [casteEntry]);
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
+        }));
+    };
 
     // State -> Division
     useEffect(() => {
@@ -338,6 +349,18 @@ export default function CasteModal({
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Category is required</Box>
                             )}
                         </Stack>
+                    </Grid>
+
+                    {/* Description (ReactQuill) */}
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter caste entry description"
+                            style={{ background: 'white' }}
+                        />
                     </Grid>
 
                     {/* Row 2: State and Division */}

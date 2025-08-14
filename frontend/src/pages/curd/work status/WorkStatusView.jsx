@@ -37,9 +37,9 @@ export default function WorkStatusView({ data }) {
                     label={data.status || 'N/A'}
                     color={
                         data.status === 'Completed' ? 'success' :
-                        data.status === 'In Progress' ? 'info' :
-                        data.status === 'Halted' ? 'warning' :
-                        data.status === 'Cancelled' ? 'error' : 'default'
+                            data.status === 'In Progress' ? 'info' :
+                                data.status === 'Halted' ? 'warning' :
+                                    data.status === 'Cancelled' ? 'error' : 'default'
                     }
                     size="small"
                 />
@@ -193,11 +193,11 @@ export default function WorkStatusView({ data }) {
                                     {data.documents.map((doc, index) => (
                                         <Stack key={index} direction="row" alignItems="center" spacing={1}>
                                             <DocumentText1 size="16" />
-                                            <Typography 
-                                                variant="body2" 
-                                                component="a" 
-                                                href={doc.url} 
-                                                target="_blank" 
+                                            <Typography
+                                                variant="body2"
+                                                component="a"
+                                                href={doc.url}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 sx={{ textDecoration: 'underline', color: 'primary.main' }}
                                             >
@@ -260,6 +260,23 @@ export default function WorkStatusView({ data }) {
                                         </Stack>
                                     </Stack>
                                 </Grid>
+                                {/* Description Field (HTML) */}
+                                {data.description && (
+                                    <Box sx={{ mb: 2 }}>
+                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                                        <Box
+                                            sx={{
+                                                border: '1px solid #eee',
+                                                borderRadius: 1,
+                                                p: 1,
+                                                bgcolor: 'background.default',
+                                                maxHeight: 180,
+                                                overflow: 'auto',
+                                            }}
+                                            dangerouslySetInnerHTML={{ __html: data.description }}
+                                        />
+                                    </Box>
+                                )}
                             </Grid>
                         </Box>
                     </Stack>

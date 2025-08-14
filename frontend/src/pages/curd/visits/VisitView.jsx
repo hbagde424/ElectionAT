@@ -146,6 +146,23 @@ export default function VisitView({ data }) {
                         </Box>
                     )}
                 </Grid>
+                 {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
 
                 <Grid item xs={12}>
                     {data.remark && (

@@ -100,6 +100,10 @@ const codingSchema = new mongoose.Schema({
     required: [true, 'Booth reference is required'],
     index: true
   },
+    description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

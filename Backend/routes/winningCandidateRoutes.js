@@ -672,6 +672,10 @@ router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear)
  *           type: string
  *           description: Winning margin percentage
  *           example: "10.00%"
+ *         description:
+ *           type: string
+ *           description: Candidate description (HTML allowed)
+ *           example: "<p>Some description about the candidate.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created

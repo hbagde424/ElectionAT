@@ -293,7 +293,8 @@ exports.createVisit = async (req, res, next) => {
 
     const visitData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+       description: req.body.description || '',
     };
 
     const visit = await Visit.create(visitData);
@@ -355,6 +356,7 @@ exports.updateVisit = async (req, res, next) => {
 
     // Set updated_by to current user
     req.body.updated_by = req.user.id;
+    req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
 
     visit = await Visit.findByIdAndUpdate(req.params.id, req.body, {

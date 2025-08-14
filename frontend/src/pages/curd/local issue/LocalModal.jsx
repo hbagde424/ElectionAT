@@ -4,6 +4,8 @@ import {
     Chip, Box, FormHelperText
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
 export default function LocalIssueModal({
@@ -218,11 +220,20 @@ export default function LocalIssueModal({
         }
     }, [formData.block_id, booths]);
 
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: value
+        }));
+    };
+
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -342,37 +353,14 @@ export default function LocalIssueModal({
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{localIssue ? 'Edit Local Issue' : 'Add Local Issue'}</DialogTitle>
-            <DialogContent  style="    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.57;
-    font-family: Inter var;
-    font-weight: 400;
-    min-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;" >
+            <DialogContent style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.57, fontFamily: 'Inter var', fontWeight: 400, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >
                 <Grid container spacing={2} mt={1}>
                     {/* Row 1: Issue Name and Department */}
-                    <Grid style="    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.57;
-    font-family: Inter var;
-    font-weight: 400;
-    min-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;" item xs={12} sm={6}>
+                    <Grid style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.57, fontFamily: 'Inter var', fontWeight: 400, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Issue Name</InputLabel>
-                            <TextField style="    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.57;
-    font-family: Inter var;
-    font-weight: 400;
-    min-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;"
+                            <TextField
+                                style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.57, fontFamily: 'Inter var', fontWeight: 400, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 name="issue_name"
                                 value={formData.issue_name}
                                 onChange={handleChange}
@@ -384,9 +372,7 @@ export default function LocalIssueModal({
                             />
                         </Stack>
                     </Grid>
-                    <style>
-                        
-                    </style>
+                    {/* style tag removed as it's not needed in JSX */}
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -453,18 +439,16 @@ export default function LocalIssueModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 3: Description */}
+                    {/* Row 3: Description (ReactQuill) */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Description</InputLabel>
-                            <TextField
-                                name="description"
+                            <ReactQuill
+                                theme="snow"
                                 value={formData.description}
-                                onChange={handleChange}
-                                fullWidth
-                                multiline
-                                rows={3}
+                                onChange={handleDescriptionChange}
                                 placeholder="Enter issue description"
+                                style={{ background: 'white' }}
                             />
                         </Stack>
                     </Grid>

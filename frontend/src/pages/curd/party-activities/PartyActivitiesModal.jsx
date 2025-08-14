@@ -8,7 +8,8 @@ import { useEffect, useState, useContext } from 'react';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 // project imports
 import JWTContext from 'contexts/JWTContext';
 
@@ -332,11 +333,20 @@ export default function PartyActivitiesModal({
         }
     }, [formData.block_id, booths]);
 
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    // For ReactQuill description
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -719,22 +729,20 @@ export default function PartyActivitiesModal({
                             </Stack>
                         </Grid>
 
-                        {/* Row 6: Description */}
+                        {/* Row 6: Description (ReactQuill) */}
                         <Grid item xs={12}>
                             <Stack spacing={1}>
                                 <InputLabel required>Description</InputLabel>
-                                <TextField
-                                    name="description"
+                                <ReactQuill
+                                    theme="snow"
                                     value={formData.description}
-                                    onChange={handleChange}
-                                    fullWidth
-                                    multiline
-                                    rows={3}
-                                    required
-                                    error={submitted && !formData.description}
-                                    helperText={submitted && !formData.description ? 'Description is required' : ''}
+                                    onChange={handleDescriptionChange}
                                     placeholder="Enter activity description"
+                                    style={{ background: 'white' }}
                                 />
+                                {submitted && !formData.description && (
+                                    <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Description is required</Box>
+                                )}
                             </Stack>
                         </Grid>
 

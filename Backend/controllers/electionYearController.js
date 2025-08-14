@@ -87,7 +87,8 @@ exports.createElectionYear = async (req, res, next) => {
 
     const electionYearData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user.id,
+      description: req.body.description || '',
     };
 
     const electionYear = await ElectionYear.create(electionYearData);
@@ -131,7 +132,8 @@ exports.updateElectionYear = async (req, res, next) => {
 
     const updateData = {
       ...req.body,
-      updated_by: req.user.id
+      updated_by: req.user.id,
+      description: req.body.description || '',
     };
 
     electionYear = await ElectionYear.findByIdAndUpdate(req.params.id, updateData, {

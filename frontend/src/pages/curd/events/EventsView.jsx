@@ -94,6 +94,24 @@ export default function EventView({ data }) {
                     </Stack>
                 </Grid>
 
+                 {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
+
                 {/* Right Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Stack spacing={2}>

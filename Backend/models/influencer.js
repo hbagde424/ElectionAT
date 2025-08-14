@@ -54,6 +54,10 @@ const influencerSchema = new mongoose.Schema({
     ref: 'Booth',
     required: true
   },
+    description: {
+    type: String,
+    default: ''
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

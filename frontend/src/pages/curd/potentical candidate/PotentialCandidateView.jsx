@@ -179,6 +179,24 @@ export default function PotentialCandidateView({ data }) {
             <Divider sx={{ my: 2 }} />
 
             {/* Metadata Section */}
+
+             {/* Description Field (HTML) */}
+            {data.description && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                    <Box
+                        sx={{
+                            border: '1px solid #eee',
+                            borderRadius: 1,
+                            p: 1,
+                            bgcolor: 'background.default',
+                            maxHeight: 180,
+                            overflow: 'auto',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: data.description }}
+                    />
+                </Box>
+            )}
             <Grid container spacing={2}>
                 <Grid item xs={12} sm={6} md={3}>
                     <Stack direction="row" alignItems="center" spacing={1}>
