@@ -16,21 +16,6 @@ import AnimateButton from 'components/@extended/AnimateButton';
 
 export default function NavCard() {
   return (
-    <MainCard sx={{ bgcolor: 'secondary.lighter', m: 3 }}>
-      <Stack alignItems="center" spacing={2.5}>
-        <CardMedia component="img" image={avatar} />
-        <Stack alignItems="center">
-          <Typography variant="h5">Need Support?</Typography>
-          <Typography variant="h6" color="secondary">
-            1 Day Response Time
-          </Typography>
-        </Stack>
-        <AnimateButton>
-          <Button variant="shadow" size="small" component={Link} href="https://phoenixcoded.authordesk.app/" target="_blank">
-            Get Support
-          </Button>
-        </AnimateButton>
-      </Stack>
-    </MainCard>
+    <></>
   );
 }
