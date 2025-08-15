@@ -1,6 +1,7 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar
+    Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar,
+    FormControl, InputLabel, Select, MenuItem, Grid
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -39,6 +40,31 @@ const WinningPartyListPage = () => {
     const [candidates, setCandidates] = useState([]);
     const [electionYears, setElectionYears] = useState([]);
 
+    // Filter states
+    const [filterValues, setFilterValues] = useState({
+        party: '',
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        block: '',
+        booth: '',
+        electionYear: '',
+        candidate: ''
+    });
+
+    const [appliedFilters, setAppliedFilters] = useState({
+        party: '',
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        block: '',
+        booth: '',
+        electionYear: '',
+        candidate: ''
+    });
+
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
@@ -47,8 +73,44 @@ const WinningPartyListPage = () => {
     const fetchWinningParties = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/winning-parties?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            let queryParams = [
+                `page=${pageIndex + 1}`,
+                `limit=${pageSize}`
+            ];
+
+            if (globalFilter) {
+                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            }
+
+            if (appliedFilters.party) {
+                queryParams.push(`party=${appliedFilters.party}`);
+            }
+            if (appliedFilters.state) {
+                queryParams.push(`state=${appliedFilters.state}`);
+            }
+            if (appliedFilters.division) {
+                queryParams.push(`division=${appliedFilters.division}`);
+            }
+            if (appliedFilters.parliament) {
+                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            }
+            if (appliedFilters.assembly) {
+                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            }
+            if (appliedFilters.block) {
+                queryParams.push(`block=${appliedFilters.block}`);
+            }
+            if (appliedFilters.booth) {
+                queryParams.push(`booth=${appliedFilters.booth}`);
+            }
+            if (appliedFilters.electionYear) {
+                queryParams.push(`electionYear=${appliedFilters.electionYear}`);
+            }
+            if (appliedFilters.candidate) {
+                queryParams.push(`candidate=${appliedFilters.candidate}`);
+            }
+
+            const res = await fetch(`http://localhost:5000/api/winning-parties?${queryParams.join('&')}`);
             const json = await res.json();
             if (json.success) {
                 setWinningParties(json.data);
@@ -64,7 +126,7 @@ const WinningPartyListPage = () => {
     const fetchReferenceData = async () => {
         try {
             const [
-                statesRes, divisionsRes, parliamentsRes, 
+                statesRes, divisionsRes, parliamentsRes,
                 assembliesRes, blocksRes, boothsRes,
                 partiesRes, candidatesRes, electionYearsRes
             ] = await Promise.all([
@@ -80,7 +142,7 @@ const WinningPartyListPage = () => {
             ]);
 
             const [
-                statesData, divisionsData, parliamentsData, 
+                statesData, divisionsData, parliamentsData,
                 assembliesData, blocksData, boothsData,
                 partiesData, candidatesData, electionYearsData
             ] = await Promise.all([
@@ -103,16 +165,43 @@ const WinningPartyListPage = () => {
             if (boothsData.success) setBooths(boothsData.data);
             if (partiesData.success) setParties(partiesData.data);
             if (candidatesData.success) setCandidates(candidatesData.data);
-            if (electionYearsData) setElectionYears(electionYearsData);
+            if (electionYearsData.success) setElectionYears(electionYearsData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
     };
 
+    const handleApplyFilters = () => {
+        setAppliedFilters(filterValues);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchWinningParties(0, 10, globalFilter);
+    };
+
+    const handleClearFilters = () => {
+        const emptyFilters = {
+            party: '',
+            state: '',
+            division: '',
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: '',
+            electionYear: '',
+            candidate: ''
+        };
+        setFilterValues(emptyFilters);
+        setAppliedFilters(emptyFilters);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchWinningParties(0, 10, globalFilter);
+    };
+
     useEffect(() => {
         fetchWinningParties(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    useEffect(() => {
+        fetchReferenceData();
+    }, []);
 
     const formatNumber = (number) => {
         if (!number) return 'N/A';
@@ -236,7 +325,7 @@ const WinningPartyListPage = () => {
                 </Typography>
             )
         },
-         {
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -254,33 +343,33 @@ const WinningPartyListPage = () => {
             )
         },
         {
-              header: 'Created By',
-              accessorKey: 'created_by',
-              cell: ({ getValue }) => (
+            header: 'Created By',
+            accessorKey: 'created_by',
+            cell: ({ getValue }) => (
                 <Typography>
-                  {getValue()?.username || 'N/A'}
+                    {getValue()?.username || 'N/A'}
                 </Typography>
-              )
-            },
-            {
-              header: 'Updated By',
-              accessorKey: 'updated_by',
-              cell: ({ getValue }) => (
-                <Typography>
-                  {getValue()?.username || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Created At',
-              accessorKey: 'created_at',
-              cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
-            },
+            )
+        },
         {
-              header: 'Updated At',
-              accessorKey: 'updated_at',
-              cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
-            },
+            header: 'Updated By',
+            accessorKey: 'updated_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Created At',
+            accessorKey: 'created_at',
+            cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
+        },
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -399,6 +488,154 @@ const WinningPartyListPage = () => {
                         </Button>
                     </Stack>
                 </Stack>
+
+                <Grid container spacing={2} sx={{ px: 3, pb: 3 }}>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Party</InputLabel>
+                            <Select
+                                value={filterValues.party}
+                                onChange={(e) => setFilterValues({ ...filterValues, party: e.target.value })}
+                                label="Party"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {parties.map((party) => (
+                                    <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>State</InputLabel>
+                            <Select
+                                value={filterValues.state}
+                                onChange={(e) => setFilterValues({ ...filterValues, state: e.target.value })}
+                                label="State"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {states.map((state) => (
+                                    <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Division</InputLabel>
+                            <Select
+                                value={filterValues.division}
+                                onChange={(e) => setFilterValues({ ...filterValues, division: e.target.value })}
+                                label="Division"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {divisions.map((division) => (
+                                    <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Parliament</InputLabel>
+                            <Select
+                                value={filterValues.parliament}
+                                onChange={(e) => setFilterValues({ ...filterValues, parliament: e.target.value })}
+                                label="Parliament"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {parliaments.map((parliament) => (
+                                    <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Assembly</InputLabel>
+                            <Select
+                                value={filterValues.assembly}
+                                onChange={(e) => setFilterValues({ ...filterValues, assembly: e.target.value })}
+                                label="Assembly"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {assemblies.map((assembly) => (
+                                    <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Block</InputLabel>
+                            <Select
+                                value={filterValues.block}
+                                onChange={(e) => setFilterValues({ ...filterValues, block: e.target.value })}
+                                label="Block"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {blocks.map((block) => (
+                                    <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Booth</InputLabel>
+                            <Select
+                                value={filterValues.booth}
+                                onChange={(e) => setFilterValues({ ...filterValues, booth: e.target.value })}
+                                label="Booth"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {booths.map((booth) => (
+                                    <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Election Year</InputLabel>
+                            <Select
+                                value={filterValues.electionYear}
+                                onChange={(e) => setFilterValues({ ...filterValues, electionYear: e.target.value })}
+                                label="Election Year"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {electionYears.map((year) => (
+                                    <MenuItem key={year._id} value={year._id}>{year.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <FormControl fullWidth size="small">
+                            <InputLabel>Candidate</InputLabel>
+                            <Select
+                                value={filterValues.candidate}
+                                onChange={(e) => setFilterValues({ ...filterValues, candidate: e.target.value })}
+                                label="Candidate"
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {candidates.map((candidate) => (
+                                    <MenuItem key={candidate._id} value={candidate._id}>{candidate.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <Stack direction="row" spacing={1}>
+                            <Button variant="contained" onClick={handleApplyFilters} sx={{ width: '50%' }}>
+                                Apply
+                            </Button>
+                            <Button variant="outlined" onClick={handleClearFilters} sx={{ width: '50%' }}>
+                                Clear
+                            </Button>
+                        </Stack>
+                    </Grid>
+                </Grid>
 
                 <ScrollX>
                     <TableContainer>

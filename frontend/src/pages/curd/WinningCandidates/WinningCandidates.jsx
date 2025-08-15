@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
-    Dialog, DialogTitle, DialogContent, DialogActions
+    Dialog, DialogTitle, DialogContent, DialogActions,
+    FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -99,17 +100,17 @@ const EntityDetailsModal = ({ open, onClose, details, title }) => {
 };
 
 const mapConfiguration = {
-  mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
-  minZoom: 1
+    mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
+    minZoom: 1
 };
 
 const MAPBOX_THEMES = {
-//   light: 'mapbox://styles/mapbox/light-v10',
-//   dark: 'mapbox://styles/mapbox/dark-v10',
-//   streets: 'mapbox://styles/mapbox/streets-v11',
-  outdoors: 'mapbox://styles/mapbox/outdoors-v11',
-//   satellite: 'mapbox://styles/mapbox/satellite-v9',
-//   satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+    //   light: 'mapbox://styles/mapbox/light-v10',
+    //   dark: 'mapbox://styles/mapbox/dark-v10',
+    //   streets: 'mapbox://styles/mapbox/streets-v11',
+    outdoors: 'mapbox://styles/mapbox/outdoors-v11',
+    //   satellite: 'mapbox://styles/mapbox/satellite-v9',
+    //   satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
 };
 
 export default function WinningCandidateListPage() {
@@ -134,6 +135,49 @@ export default function WinningCandidateListPage() {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
 
+    // Filter states
+    const [filterValues, setFilterValues] = useState({
+        party: '',
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        candidate: '',
+        electionYear: ''
+    });
+
+    const [appliedFilters, setAppliedFilters] = useState({
+        party: '',
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        candidate: '',
+        electionYear: ''
+    });
+
+    const handleApplyFilters = () => {
+        setAppliedFilters(filterValues);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchCandidateList(0, 10, globalFilter);
+    };
+
+    const handleClearFilters = () => {
+        const emptyFilters = {
+            party: '',
+            state: '',
+            division: '',
+            parliament: '',
+            assembly: '',
+            candidate: '',
+            electionYear: ''
+        };
+        setFilterValues(emptyFilters);
+        setAppliedFilters(emptyFilters);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchCandidateList(0, 10, globalFilter);
+    };
+
     // For entity popups
     const [entityDetails, setEntityDetails] = useState(null);
     const [openEntityModal, setOpenEntityModal] = useState(false);
@@ -155,9 +199,9 @@ export default function WinningCandidateListPage() {
                 fetch('http://localhost:5000/api/parliaments'),
                 fetch('http://localhost:5000/api/assemblies'),
                 fetch('http://localhost:5000/api/parties'),
-                    fetch('http://localhost:5000/api/candidates'),
+                fetch('http://localhost:5000/api/candidates'),
                 fetch('http://localhost:5000/api/election-years')
-            
+
             ]);
 
             const [
@@ -184,7 +228,7 @@ export default function WinningCandidateListPage() {
             if (assembliesData.success) setAssemblies(assembliesData.data);
             if (partiesData.success) setParties(partiesData.data);
             if (candidatesData.success) setCandidates(candidatesData.data);
-          
+
             if (yearsData.success) setYears(yearsData.data);
 
         } catch (error) {
@@ -195,8 +239,38 @@ export default function WinningCandidateListPage() {
     const fetchCandidateList = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/winning-candidates?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            let queryParams = [
+                `page=${pageIndex + 1}`,
+                `limit=${pageSize}`
+            ];
+
+            if (globalFilter) {
+                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            }
+
+            if (appliedFilters.party) {
+                queryParams.push(`party=${appliedFilters.party}`);
+            }
+            if (appliedFilters.state) {
+                queryParams.push(`state=${appliedFilters.state}`);
+            }
+            if (appliedFilters.division) {
+                queryParams.push(`division=${appliedFilters.division}`);
+            }
+            if (appliedFilters.parliament) {
+                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            }
+            if (appliedFilters.assembly) {
+                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            }
+            if (appliedFilters.candidate) {
+                queryParams.push(`candidate=${appliedFilters.candidate}`);
+            }
+            if (appliedFilters.electionYear) {
+                queryParams.push(`electionYear=${appliedFilters.electionYear}`);
+            }
+
+            const res = await fetch(`http://localhost:5000/api/winning-candidates?${queryParams.join('&')}`);
             const json = await res.json();
             if (json.success) {
                 setCandidateList(json.data);
@@ -421,12 +495,12 @@ export default function WinningCandidateListPage() {
             cell: ({ getValue }) => (
                 <Stack direction="row" spacing={0.5}>
                     {getValue()?.map((type, index) => (
-                        <Chip 
-                            key={index} 
-                            label={type} 
-                            size="small" 
-                            color="info" 
-                            variant="outlined" 
+                        <Chip
+                            key={index}
+                            label={type}
+                            size="small"
+                            color="info"
+                            variant="outlined"
                         />
                     ))}
                 </Stack>
@@ -545,7 +619,7 @@ export default function WinningCandidateListPage() {
                 );
             }
         },
-         {
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -710,26 +784,146 @@ export default function WinningCandidateListPage() {
                 </MainCard>
             </Grid>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${candidateList.length} winning candidate entries...`}
-                    />
-                    <Stack direction="row" spacing={1}>
-                        <CSVLink
-                            data={csvData}
-                            filename="winning_candidates_list_all.csv"
-                            style={{ display: 'none' }}
-                            ref={csvLinkRef}
+                <Stack spacing={2} sx={{ padding: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                        <DebouncedInput
+                            value={globalFilter}
+                            onFilterChange={setGlobalFilter}
+                            placeholder={`Search ${candidateList.length} winning candidate entries...`}
                         />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                        </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
-                            Add Winning Candidate
-                        </Button>
+                        <Stack direction="row" spacing={1}>
+                            <CSVLink
+                                data={csvData}
+                                filename="winning_candidates_list_all.csv"
+                                style={{ display: 'none' }}
+                                ref={csvLinkRef}
+                            />
+                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                            </Button>
+                            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
+                                Add Winning Candidate
+                            </Button>
+                        </Stack>
                     </Stack>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Party</InputLabel>
+                                <Select
+                                    value={filterValues.party}
+                                    onChange={(e) => setFilterValues({ ...filterValues, party: e.target.value })}
+                                    label="Party"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {parties.map((party) => (
+                                        <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>State</InputLabel>
+                                <Select
+                                    value={filterValues.state}
+                                    onChange={(e) => setFilterValues({ ...filterValues, state: e.target.value })}
+                                    label="State"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {states.map((state) => (
+                                        <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Division</InputLabel>
+                                <Select
+                                    value={filterValues.division}
+                                    onChange={(e) => setFilterValues({ ...filterValues, division: e.target.value })}
+                                    label="Division"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {divisions.map((division) => (
+                                        <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Parliament</InputLabel>
+                                <Select
+                                    value={filterValues.parliament}
+                                    onChange={(e) => setFilterValues({ ...filterValues, parliament: e.target.value })}
+                                    label="Parliament"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {parliaments.map((parliament) => (
+                                        <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Assembly</InputLabel>
+                                <Select
+                                    value={filterValues.assembly}
+                                    onChange={(e) => setFilterValues({ ...filterValues, assembly: e.target.value })}
+                                    label="Assembly"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {assemblies.map((assembly) => (
+                                        <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Candidate</InputLabel>
+                                <Select
+                                    value={filterValues.candidate}
+                                    onChange={(e) => setFilterValues({ ...filterValues, candidate: e.target.value })}
+                                    label="Candidate"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {candidates.map((candidate) => (
+                                        <MenuItem key={candidate._id} value={candidate._id}>{candidate.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Election Year</InputLabel>
+                                <Select
+                                    value={filterValues.electionYear}
+                                    onChange={(e) => setFilterValues({ ...filterValues, electionYear: e.target.value })}
+                                    label="Election Year"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {years.map((year) => (
+                                        <MenuItem key={year._id} value={year._id}>{year.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <Stack direction="row" spacing={1}>
+                                <Button variant="contained" onClick={handleApplyFilters} sx={{ width: '50%' }}>
+                                    Apply
+                                </Button>
+                                <Button variant="outlined" onClick={handleClearFilters} sx={{ width: '50%' }}>
+                                    Clear
+                                </Button>
+                            </Stack>
+                        </Grid>
+                    </Grid>
                 </Stack>
 
                 <ScrollX>

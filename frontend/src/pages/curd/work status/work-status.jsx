@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip,
+    FormControl, InputLabel, Select, MenuItem, Grid
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -38,6 +39,52 @@ export default function WorkStatusListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+
+    // Filter states
+    const [filterValues, setFilterValues] = useState({
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        block: '',
+        booth: '',
+        workType: '',
+        status: ''
+    });
+
+    const [appliedFilters, setAppliedFilters] = useState({
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        block: '',
+        booth: '',
+        workType: '',
+        status: ''
+    });
+
+    const handleApplyFilters = () => {
+        setAppliedFilters(filterValues);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchWorkStatuses(0, 10, globalFilter);
+    };
+
+    const handleClearFilters = () => {
+        const emptyFilters = {
+            state: '',
+            division: '',
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: '',
+            workType: '',
+            status: ''
+        };
+        setFilterValues(emptyFilters);
+        setAppliedFilters(emptyFilters);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchWorkStatuses(0, 10, globalFilter);
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -88,8 +135,41 @@ export default function WorkStatusListPage() {
     const fetchWorkStatuses = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/work-status?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            let queryParams = [
+                `page=${pageIndex + 1}`,
+                `limit=${pageSize}`
+            ];
+
+            if (globalFilter) {
+                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            }
+
+            if (appliedFilters.state) {
+                queryParams.push(`state=${appliedFilters.state}`);
+            }
+            if (appliedFilters.division) {
+                queryParams.push(`division=${appliedFilters.division}`);
+            }
+            if (appliedFilters.parliament) {
+                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            }
+            if (appliedFilters.assembly) {
+                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            }
+            if (appliedFilters.block) {
+                queryParams.push(`block=${appliedFilters.block}`);
+            }
+            if (appliedFilters.booth) {
+                queryParams.push(`booth=${appliedFilters.booth}`);
+            }
+            if (appliedFilters.workType) {
+                queryParams.push(`workType=${appliedFilters.workType}`);
+            }
+            if (appliedFilters.status) {
+                queryParams.push(`status=${appliedFilters.status}`);
+            }
+
+            const res = await fetch(`http://localhost:5000/api/work-status?${queryParams.join('&')}`);
             const json = await res.json();
             if (json.success) {
                 setWorkStatuses(json.data);
@@ -458,33 +538,172 @@ export default function WorkStatusListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${workStatuses.length} work statuses...`}
-                    />
-                    <Stack direction="row" spacing={1}>
-                        <CSVLink
-                            data={csvData}
-                            filename="work_status_all.csv"
-                            style={{ display: 'none' }}
-                            ref={csvLinkRef}
+                <Stack spacing={2} sx={{ padding: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                        <DebouncedInput
+                            value={globalFilter}
+                            onFilterChange={setGlobalFilter}
+                            placeholder={`Search ${workStatuses.length} work statuses...`}
                         />
-                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                        </Button>
-                        <Button
-                            variant="contained"
-                            startIcon={<Add />}
-                            onClick={() => {
-                                setSelectedWorkStatus(null);
-                                setOpenModal(true);
-                            }}
-                        >
-                            Add Work Status
-                        </Button>
+                        <Stack direction="row" spacing={1}>
+                            <CSVLink
+                                data={csvData}
+                                filename="work_status_all.csv"
+                                style={{ display: 'none' }}
+                                ref={csvLinkRef}
+                            />
+                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                            </Button>
+                            <Button
+                                variant="contained"
+                                startIcon={<Add />}
+                                onClick={() => {
+                                    setSelectedWorkStatus(null);
+                                    setOpenModal(true);
+                                }}
+                            >
+                                Add Work Status
+                            </Button>
+                        </Stack>
                     </Stack>
+
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>State</InputLabel>
+                                <Select
+                                    value={filterValues.state}
+                                    onChange={(e) => setFilterValues({ ...filterValues, state: e.target.value })}
+                                    label="State"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {states.map((state) => (
+                                        <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Division</InputLabel>
+                                <Select
+                                    value={filterValues.division}
+                                    onChange={(e) => setFilterValues({ ...filterValues, division: e.target.value })}
+                                    label="Division"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {divisions.map((division) => (
+                                        <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Parliament</InputLabel>
+                                <Select
+                                    value={filterValues.parliament}
+                                    onChange={(e) => setFilterValues({ ...filterValues, parliament: e.target.value })}
+                                    label="Parliament"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {parliaments.map((parliament) => (
+                                        <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Assembly</InputLabel>
+                                <Select
+                                    value={filterValues.assembly}
+                                    onChange={(e) => setFilterValues({ ...filterValues, assembly: e.target.value })}
+                                    label="Assembly"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {assemblies.map((assembly) => (
+                                        <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Block</InputLabel>
+                                <Select
+                                    value={filterValues.block}
+                                    onChange={(e) => setFilterValues({ ...filterValues, block: e.target.value })}
+                                    label="Block"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {blocks.map((block) => (
+                                        <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Booth</InputLabel>
+                                <Select
+                                    value={filterValues.booth}
+                                    onChange={(e) => setFilterValues({ ...filterValues, booth: e.target.value })}
+                                    label="Booth"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {booths.map((booth) => (
+                                        <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Work Type</InputLabel>
+                                <Select
+                                    value={filterValues.workType}
+                                    onChange={(e) => setFilterValues({ ...filterValues, workType: e.target.value })}
+                                    label="Work Type"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    <MenuItem value="infrastructure">Infrastructure</MenuItem>
+                                    <MenuItem value="social">Social</MenuItem>
+                                    <MenuItem value="education">Education</MenuItem>
+                                    <MenuItem value="health">Health</MenuItem>
+                                    <MenuItem value="other">Other</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Status</InputLabel>
+                                <Select
+                                    value={filterValues.status}
+                                    onChange={(e) => setFilterValues({ ...filterValues, status: e.target.value })}
+                                    label="Status"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    <MenuItem value="not_started">Not Started</MenuItem>
+                                    <MenuItem value="in_progress">In Progress</MenuItem>
+                                    <MenuItem value="completed">Completed</MenuItem>
+                                    <MenuItem value="delayed">Delayed</MenuItem>
+                                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <Stack direction="row" spacing={1}>
+                                <Button variant="contained" onClick={handleApplyFilters} sx={{ width: '50%' }}>
+                                    Apply
+                                </Button>
+                                <Button variant="outlined" onClick={handleClearFilters} sx={{ width: '50%' }}>
+                                    Clear
+                                </Button>
+                            </Stack>
+                        </Grid>
+                    </Grid>
                 </Stack>
 
                 <ScrollX>
