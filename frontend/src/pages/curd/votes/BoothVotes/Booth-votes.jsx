@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, FormControl, InputLabel, Select, MenuItem
+  Button, Stack, Box, Typography, Divider, TextField, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
@@ -356,29 +356,28 @@ export default function BoothVotesListPage() {
     <>
       <MainCard content={false}>
         <Stack
-          direction={{ xs: 'column', sm: 'row' }}
+          direction={{ xs: "column", sm: "row" }}
           spacing={2}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
+          alignItems={{ xs: "stretch", sm: "center" }}
           justifyContent="space-between"
           sx={{ p: 2, gap: 2 }}
         >
-
           <DebouncedInput
-            value={table.getState().globalFilter || ''}
+            value={table.getState().globalFilter || ""}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
             placeholder={`Search ${votes.length} votes...`}
           />
+
           <Stack
             direction="row"
             spacing={1}
             flexWrap="wrap"
             justifyContent="flex-end"
           >
-
             <CSVLink
               data={csvData}
               filename="booth_votes.csv"
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               ref={csvLinkRef}
             />
             <Button
@@ -386,92 +385,104 @@ export default function BoothVotesListPage() {
               onClick={handleDownloadCsv}
               disabled={csvLoading}
             >
-              {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
+              {csvLoading ? "Preparing CSV..." : "Download CSV"}
             </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedVote(null); setOpenModal(true); }}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setSelectedVote(null);
+                setOpenModal(true);
+              }}
+            >
               Add Booth Vote Record
             </Button>
-
           </Stack>
         </Stack>
+
         <Stack
           direction="row"
           spacing={2}
           alignItems="center"
-          sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+          sx={{ p: 2, flexWrap: "wrap", gap: 2 }}
         >
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Candidate</InputLabel>
-            <Select
-              value={tempFilters.candidate}
-              label="Candidate"
-              onChange={(e) => {
-                setTempFilters(prev => ({ ...prev, candidate: e.target.value }));
-              }}
-            >
-              <MenuItem value="">All Candidates</MenuItem>
-              {candidates.map((candidate) => (
-                <MenuItem key={candidate._id} value={candidate._id}>
-                  {candidate.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Candidate */}
+          <TextField
+            select
+            label="Candidate"
+            value={tempFilters.candidate}
+            onChange={(e) =>
+              setTempFilters((prev) => ({ ...prev, candidate: e.target.value }))
+            }
+            sx={{ minWidth: 180 }}
+            size="small"
+          >
+            <MenuItem value="">All Candidates</MenuItem>
+            {candidates.map((candidate) => (
+              <MenuItem key={candidate._id} value={candidate._id}>
+                {candidate.name}
+              </MenuItem>
+            ))}
+          </TextField>
 
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Booth</InputLabel>
-            <Select
-              value={tempFilters.booth}
-              label="Booth"
-              onChange={(e) => {
-                setTempFilters(prev => ({ ...prev, booth: e.target.value }));
-              }}
-            >
-              <MenuItem value="">All Booths</MenuItem>
-              {booths.map((booth) => (
-                <MenuItem key={booth._id} value={booth._id}>
-                  {booth.name} (No: {booth.booth_number})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Booth */}
+          <TextField
+            select
+            label="Booth"
+            value={tempFilters.booth}
+            onChange={(e) =>
+              setTempFilters((prev) => ({ ...prev, booth: e.target.value }))
+            }
+            sx={{ minWidth: 180 }}
+            size="small"
+          >
+            <MenuItem value="">All Booths</MenuItem>
+            {booths.map((booth) => (
+              <MenuItem key={booth._id} value={booth._id}>
+                {booth.name} (No: {booth.booth_number})
+              </MenuItem>
+            ))}
+          </TextField>
 
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Assembly</InputLabel>
-            <Select
-              value={tempFilters.assembly}
-              label="Assembly"
-              onChange={(e) => {
-                setTempFilters(prev => ({ ...prev, assembly: e.target.value }));
-              }}
-            >
-              <MenuItem value="">All Assemblies</MenuItem>
-              {assemblies.map((assembly) => (
-                <MenuItem key={assembly._id} value={assembly._id}>
-                  {assembly.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Assembly */}
+          <TextField
+            select
+            label="Assembly"
+            value={tempFilters.assembly}
+            onChange={(e) =>
+              setTempFilters((prev) => ({ ...prev, assembly: e.target.value }))
+            }
+            sx={{ minWidth: 180 }}
+            size="small"
+          >
+            <MenuItem value="">All Assemblies</MenuItem>
+            {assemblies.map((assembly) => (
+              <MenuItem key={assembly._id} value={assembly._id}>
+                {assembly.name}
+              </MenuItem>
+            ))}
+          </TextField>
 
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Party</InputLabel>
-            <Select
-              value={tempFilters.party}
-              label="Party"
-              onChange={(e) => {
-                setTempFilters(prev => ({ ...prev, party: e.target.value }));
-              }}
-            >
-              <MenuItem value="">All Parties</MenuItem>
-              {parties.map((party) => (
-                <MenuItem key={party._id} value={party._id}>
-                  {party.name} ({party.abbreviation})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Party */}
+          <TextField
+            select
+            label="Party"
+            value={tempFilters.party}
+            onChange={(e) =>
+              setTempFilters((prev) => ({ ...prev, party: e.target.value }))
+            }
+            sx={{ minWidth: 180 }}
+            size="small"
+          >
+            <MenuItem value="">All Parties</MenuItem>
+            {parties.map((party) => (
+              <MenuItem key={party._id} value={party._id}>
+                {party.name} ({party.abbreviation})
+              </MenuItem>
+            ))}
+          </TextField>
 
+          {/* Buttons */}
           <Button
             variant="contained"
             onClick={() => {
@@ -479,7 +490,7 @@ export default function BoothVotesListPage() {
               setSelectedBooth(tempFilters.booth);
               setSelectedAssembly(tempFilters.assembly);
               setSelectedParty(tempFilters.party);
-              setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }}
           >
             Apply
@@ -489,21 +500,22 @@ export default function BoothVotesListPage() {
             variant="outlined"
             onClick={() => {
               setTempFilters({
-                candidate: '',
-                booth: '',
-                assembly: '',
-                party: ''
+                candidate: "",
+                booth: "",
+                assembly: "",
+                party: "",
               });
-              setSelectedCandidate('');
-              setSelectedBooth('');
-              setSelectedAssembly('');
-              setSelectedParty('');
-              setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              setSelectedCandidate("");
+              setSelectedBooth("");
+              setSelectedAssembly("");
+              setSelectedParty("");
+              setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }}
           >
             Clear
           </Button>
         </Stack>
+
 
         <ScrollX>
           <TableContainer>

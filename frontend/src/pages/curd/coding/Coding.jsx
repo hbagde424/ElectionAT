@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -257,7 +257,7 @@ export default function CodingListPage() {
                 />
             )
         },
-         {
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -396,139 +396,148 @@ export default function CodingListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Box sx={{ p: 3 }}>
-                    <Stack spacing={2}>
-                        {/* Top Actions */}
-                        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                            <DebouncedInput
-                                value={globalFilter}
-                                onFilterChange={setGlobalFilter}
-                                placeholder={`Search ${codingList.length} coding entries...`}
-                            />
-                            <Stack direction="row" spacing={1}>
-                                <CSVLink
-                                    data={csvData}
-                                    filename="coding_list_all.csv"
-                                    style={{ display: 'none' }}
-                                    ref={csvLinkRef}
-                                />
-                                <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                                    {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                                </Button>
-                                <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCoding(null); setOpenModal(true); }}>
-                                    Add Coding Entry
-                                </Button>
-                            </Stack>
-                        </Stack>
 
-                        {/* Filters */}
-                        <MainCard content={false} sx={{ p: 2 }}>
-                            <Stack spacing={2}>
-                                <Typography variant="h5">Filters</Typography>
-                                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>State</Typography>
-                                        <select
-                                            value={filters.state}
-                                            onChange={(e) => handleFilterChange('state', e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All States</option>
-                                            {states.map((state) => (
-                                                <option key={state._id} value={state._id}>{state.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Division</Typography>
-                                        <select
-                                            value={filters.division}
-                                            onChange={(e) => handleFilterChange('division', e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All Divisions</option>
-                                            {divisions.map((division) => (
-                                                <option key={division._id} value={division._id}>{division.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Parliament</Typography>
-                                        <select
-                                            value={filters.parliament}
-                                            onChange={(e) => handleFilterChange('parliament', e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All Parliaments</option>
-                                            {parliaments.map((parliament) => (
-                                                <option key={parliament._id} value={parliament._id}>{parliament.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Assembly</Typography>
-                                        <select
-                                            value={filters.assembly}
-                                            onChange={(e) => handleFilterChange('assembly', e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All Assemblies</option>
-                                            {assemblies.map((assembly) => (
-                                                <option key={assembly._id} value={assembly._id}>{assembly.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Block</Typography>
-                                        <select
-                                            value={filters.block}
-                                            onChange={(e) => handleFilterChange('block', e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All Blocks</option>
-                                            {blocks.map((block) => (
-                                                <option key={block._id} value={block._id}>{block.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                </Stack>
-                                <Stack direction="row" spacing={2} justifyContent="flex-end">
-                                    <Button variant="outlined" onClick={handleClearFilters}>
-                                        Clear Filters
-                                    </Button>
-                                    <Button variant="contained" onClick={handleApplyFilters}>
-                                        Apply Filters
-                                    </Button>
-                                </Stack>
-                            </Stack>
-                        </MainCard>
+
+                <Stack spacing={2}>
+                    {/* Top Actions */}
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={2}
+                        alignItems={{ xs: "stretch", sm: "center" }}
+                        justifyContent="space-between"
+                        sx={{ p: 2 }}
+                    >
+                        <DebouncedInput
+                            value={globalFilter}
+                            onFilterChange={setGlobalFilter}
+                            placeholder={`Search ${codingList.length} coding entries...`}
+                        />
+
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            flexWrap="wrap"
+                            justifyContent="flex-end"
+                        >
+                            <CSVLink
+                                data={csvData}
+                                filename="coding_list_all.csv"
+                                style={{ display: "none" }}
+                                ref={csvLinkRef}
+                            />
+                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                                {csvLoading ? "Preparing CSV..." : "Download All CSV"}
+                            </Button>
+                            <Button
+                                variant="contained"
+                                startIcon={<Add />}
+                                onClick={() => {
+                                    setSelectedCoding(null);
+                                    setOpenModal(true);
+                                }}
+                            >
+                                Add Coding Entry
+                            </Button>
+                        </Stack>
                     </Stack>
-                </Box>
+
+                    {/* Filters */}
+                    <Stack
+                        direction="row"
+                        spacing={2}
+                        sx={{ p: 2, flexWrap: "wrap", gap: 2 }}
+                    >
+                        <TextField
+                            select
+                            label="State"
+                            value={filters.state}
+                            onChange={(e) => handleFilterChange("state", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All States</MenuItem>
+                            {states.map((state) => (
+                                <MenuItem key={state._id} value={state._id}>
+                                    {state.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Division"
+                            value={filters.division}
+                            onChange={(e) => handleFilterChange("division", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All Divisions</MenuItem>
+                            {divisions.map((division) => (
+                                <MenuItem key={division._id} value={division._id}>
+                                    {division.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Parliament"
+                            value={filters.parliament}
+                            onChange={(e) => handleFilterChange("parliament", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All Parliaments</MenuItem>
+                            {parliaments.map((parliament) => (
+                                <MenuItem key={parliament._id} value={parliament._id}>
+                                    {parliament.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Assembly"
+                            value={filters.assembly}
+                            onChange={(e) => handleFilterChange("assembly", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All Assemblies</MenuItem>
+                            {assemblies.map((assembly) => (
+                                <MenuItem key={assembly._id} value={assembly._id}>
+                                    {assembly.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Block"
+                            value={filters.block}
+                            onChange={(e) => handleFilterChange("block", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                        >
+                            <MenuItem value="">All Blocks</MenuItem>
+                            {blocks.map((block) => (
+                                <MenuItem key={block._id} value={block._id}>
+                                    {block.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <Stack direction="row" spacing={1} sx={{ minWidth: "fit-content" }}>
+                            <Button variant="outlined" onClick={handleClearFilters}>
+                                Clear
+                            </Button>
+                            <Button variant="contained" onClick={handleApplyFilters}>
+                                Apply
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </Stack>
+
 
                 <ScrollX>
                     <TableContainer>
@@ -583,7 +592,7 @@ export default function CodingListPage() {
                         />
                     </Box>
                 </ScrollX>
-            </MainCard>
+            </MainCard >
 
             <CodingModal
                 open={openModal}

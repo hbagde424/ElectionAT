@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -351,7 +351,7 @@ export default function CasteListPage() {
                 />
             )
         },
-         {
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -482,194 +482,186 @@ export default function CasteListPage() {
     return (
         <>
             <MainCard content={false}>
-                <Box sx={{ p: 3 }}>
-                    <Stack spacing={2}>
-                        {/* Top Actions */}
-                        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                            <DebouncedInput
-                                value={globalFilter}
-                                onFilterChange={setGlobalFilter}
-                                placeholder={`Search ${casteList.length} caste entries...`}
-                            />
-                            <Stack direction="row" spacing={1}>
-                                <CSVLink
-                                    data={csvData}
-                                    filename="caste_list_all.csv"
-                                    style={{ display: 'none' }}
-                                    ref={csvLinkRef}
-                                />
-                                <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
-                                    {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                                </Button>
-                                <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCaste(null); setOpenModal(true); }}>
-                                    Add Caste Entry
-                                </Button>
-                            </Stack>
-                        </Stack>
 
-                        {/* Filters */}
-                        <MainCard content={false} sx={{ p: 2 }}>
-                            <Stack spacing={2}>
-                                <Typography variant="h5">Filters</Typography>
-                                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Category</Typography>
-                                        <select
-                                            value={filters.category}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All Categories</option>
-                                            {categoryOptions.map((category) => (
-                                                <option key={category} value={category}>{category}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>State</Typography>
-                                        <select
-                                            value={filters.state}
-                                            onChange={(e) => handleStateChange(e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                        >
-                                            <option value="">All States</option>
-                                            {states.map((state) => (
-                                                <option key={state._id} value={state._id}>{state.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Division</Typography>
-                                        <select
-                                            value={filters.division}
-                                            onChange={(e) => handleDivisionChange(e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                            disabled={!filters.state}
-                                        >
-                                            <option value="">All Divisions</option>
-                                            {filteredDivisions.map((division) => (
-                                                <option key={division._id} value={division._id}>{division.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Parliament</Typography>
-                                        <select
-                                            value={filters.parliament}
-                                            onChange={(e) => handleParliamentChange(e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                            disabled={!filters.division}
-                                        >
-                                            <option value="">All Parliaments</option>
-                                            {filteredParliaments.map((parliament) => (
-                                                <option key={parliament._id} value={parliament._id}>{parliament.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Assembly</Typography>
-                                        <select
-                                            value={filters.assembly}
-                                            onChange={(e) => handleAssemblyChange(e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                            disabled={!filters.parliament}
-                                        >
-                                            <option value="">All Assemblies</option>
-                                            {filteredAssemblies.map((assembly) => (
-                                                <option key={assembly._id} value={assembly._id}>{assembly.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Block</Typography>
-                                        <select
-                                            value={filters.block}
-                                            onChange={(e) => handleBlockChange(e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                            disabled={!filters.assembly}
-                                        >
-                                            <option value="">All Blocks</option>
-                                            {filteredBlocks.map((block) => (
-                                                <option key={block._id} value={block._id}>{block.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                    <Box sx={{ minWidth: 200 }}>
-                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Booth</Typography>
-                                        <select
-                                            value={filters.booth}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, booth: e.target.value }))}
-                                            style={{
-                                                width: '100%',
-                                                padding: '8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid #ddd'
-                                            }}
-                                            disabled={!filters.block}
-                                        >
-                                            <option value="">All Booths</option>
-                                            {filteredBooths.map((booth) => (
-                                                <option key={booth._id} value={booth._id}>{booth.name}</option>
-                                            ))}
-                                        </select>
-                                    </Box>
-                                </Stack>
-                                <Stack direction="row" spacing={2} justifyContent="flex-end">
-                                    <Button variant="outlined" onClick={() => {
-                                        const defaultFilters = {
-                                            category: '',
-                                            state: '',
-                                            division: '',
-                                            parliament: '',
-                                            assembly: '',
-                                            block: '',
-                                            booth: ''
-                                        };
-                                        setFilters(defaultFilters);
-                                        fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, defaultFilters);
-                                    }}>
-                                        Clear Filters
-                                    </Button>
-                                    <Button variant="contained" onClick={() => {
-                                        fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
-                                    }}>
-                                        Apply Filters
-                                    </Button>
-                                </Stack>
-                            </Stack>
-                        </MainCard>
+                <Stack spacing={2}>
+                    {/* Top Actions */}
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={2}
+                        alignItems={{ xs: "stretch", sm: "center" }}
+                        justifyContent="space-between"
+                        sx={{ p: 2, gap: 2 }}
+                    >
+                        <DebouncedInput
+                            value={globalFilter}
+                            onFilterChange={setGlobalFilter}
+                            placeholder={`Search ${casteList.length} caste entries...`}
+                        />
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            flexWrap="wrap"
+                            justifyContent="flex-end"
+                        >
+                            <CSVLink
+                                data={csvData}
+                                filename="caste_list_all.csv"
+                                style={{ display: 'none' }}
+                                ref={csvLinkRef}
+                            />
+                            <Button
+                                variant="outlined"
+                                onClick={handleDownloadCsv}
+                                disabled={csvLoading}
+                            >
+                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                            </Button>
+                            <Button
+                                variant="contained"
+                                startIcon={<Add />}
+                                onClick={() => { setSelectedCaste(null); setOpenModal(true); }}
+                            >
+                                Add Caste Entry
+                            </Button>
+                        </Stack>
                     </Stack>
-                </Box>
+
+                    {/* Filters */}
+                    <Stack
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                        sx={{ p: 2, flexWrap: "wrap", gap: 2 }}
+                    >
+                        <FormControl sx={{ minWidth: 200 }} size="small">
+                            <InputLabel>Category</InputLabel>
+                            <Select
+                                value={filters.category}
+                                label="Category"
+                                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                            >
+                                <MenuItem value="">All Categories</MenuItem>
+                                {categoryOptions.map((category) => (
+                                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{ minWidth: 200 }} size="small">
+                            <InputLabel>State</InputLabel>
+                            <Select
+                                value={filters.state}
+                                label="State"
+                                onChange={(e) => handleStateChange(e.target.value)}
+                            >
+                                <MenuItem value="">All States</MenuItem>
+                                {states.map((state) => (
+                                    <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{ minWidth: 200 }} size="small" disabled={!filters.state}>
+                            <InputLabel>Division</InputLabel>
+                            <Select
+                                value={filters.division}
+                                label="Division"
+                                onChange={(e) => handleDivisionChange(e.target.value)}
+                            >
+                                <MenuItem value="">All Divisions</MenuItem>
+                                {filteredDivisions.map((division) => (
+                                    <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{ minWidth: 200 }} size="small" disabled={!filters.division}>
+                            <InputLabel>Parliament</InputLabel>
+                            <Select
+                                value={filters.parliament}
+                                label="Parliament"
+                                onChange={(e) => handleParliamentChange(e.target.value)}
+                            >
+                                <MenuItem value="">All Parliaments</MenuItem>
+                                {filteredParliaments.map((parliament) => (
+                                    <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{ minWidth: 200 }} size="small" disabled={!filters.parliament}>
+                            <InputLabel>Assembly</InputLabel>
+                            <Select
+                                value={filters.assembly}
+                                label="Assembly"
+                                onChange={(e) => handleAssemblyChange(e.target.value)}
+                            >
+                                <MenuItem value="">All Assemblies</MenuItem>
+                                {filteredAssemblies.map((assembly) => (
+                                    <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{ minWidth: 200 }} size="small" disabled={!filters.assembly}>
+                            <InputLabel>Block</InputLabel>
+                            <Select
+                                value={filters.block}
+                                label="Block"
+                                onChange={(e) => handleBlockChange(e.target.value)}
+                            >
+                                <MenuItem value="">All Blocks</MenuItem>
+                                {filteredBlocks.map((block) => (
+                                    <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl sx={{ minWidth: 200 }} size="small" disabled={!filters.block}>
+                            <InputLabel>Booth</InputLabel>
+                            <Select
+                                value={filters.booth}
+                                label="Booth"
+                                onChange={(e) => setFilters(prev => ({ ...prev, booth: e.target.value }))}
+                            >
+                                <MenuItem value="">All Booths</MenuItem>
+                                {filteredBooths.map((booth) => (
+                                    <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <Button
+                            variant="outlined"
+                            onClick={() => {
+                                const defaultFilters = {
+                                    category: '',
+                                    state: '',
+                                    division: '',
+                                    parliament: '',
+                                    assembly: '',
+                                    block: '',
+                                    booth: ''
+                                };
+                                setFilters(defaultFilters);
+                                fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, defaultFilters);
+                            }}
+                        >
+                            Clear
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={() => {
+                                fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+                            }}
+                        >
+                            Apply
+                        </Button>
+                    </Stack>
+                </Stack>
+
+
+
 
                 <ScrollX>
                     <TableContainer>
