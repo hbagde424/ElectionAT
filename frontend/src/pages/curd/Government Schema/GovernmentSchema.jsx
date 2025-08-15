@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -39,14 +39,98 @@ export default function GovernmentsListPage() {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
 
+    // Filter states
+    const [selectedState, setSelectedState] = useState('');
+    const [selectedDivision, setSelectedDivision] = useState('');
+    const [selectedParliament, setSelectedParliament] = useState('');
+    const [selectedAssembly, setSelectedAssembly] = useState('');
+    const [selectedType, setSelectedType] = useState('');
+
+    // Temporary filter states
+    const [tempFilters, setTempFilters] = useState({
+        state: '',
+        division: '',
+        parliament: '',
+        assembly: '',
+        type: ''
+    });
+
+    // Filtered arrays for cascading dropdowns
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
+    const [filteredParliaments, setFilteredParliaments] = useState([]);
+    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+
+    // State -> Division
+    useEffect(() => {
+        if (tempFilters.state) {
+            const filtered = divisions?.filter(division =>
+                division.state_id?._id === tempFilters.state ||
+                division.state_id === tempFilters.state
+            ) || [];
+            setFilteredDivisions(filtered);
+        } else {
+            setFilteredDivisions(divisions || []);
+        }
+        // Clear dependent fields when state changes
+        if (tempFilters.division) {
+            setTempFilters(prev => ({
+                ...prev,
+                division: '',
+                parliament: '',
+                assembly: ''
+            }));
+        }
+    }, [tempFilters.state, divisions]);
+
+    // Division -> Parliament
+    useEffect(() => {
+        if (tempFilters.division) {
+            const filtered = parliaments?.filter(parliament =>
+                parliament.division_id?._id === tempFilters.division ||
+                parliament.division_id === tempFilters.division
+            ) || [];
+            setFilteredParliaments(filtered);
+        } else {
+            setFilteredParliaments(parliaments || []);
+        }
+        // Clear dependent fields when division changes
+        if (tempFilters.parliament) {
+            setTempFilters(prev => ({
+                ...prev,
+                parliament: '',
+                assembly: ''
+            }));
+        }
+    }, [tempFilters.division, parliaments]);
+
+    // Parliament -> Assembly
+    useEffect(() => {
+        if (tempFilters.parliament) {
+            const filtered = assemblies?.filter(assembly =>
+                assembly.parliament_id?._id === tempFilters.parliament ||
+                assembly.parliament_id === tempFilters.parliament
+            ) || [];
+            setFilteredAssemblies(filtered);
+        } else {
+            setFilteredAssemblies(assemblies || []);
+        }
+        // Clear dependent fields when parliament changes
+        if (tempFilters.assembly) {
+            setTempFilters(prev => ({
+                ...prev,
+                assembly: ''
+            }));
+        }
+    }, [tempFilters.parliament, assemblies]);
+
     const fetchReferenceData = async () => {
         try {
             const [
-                statesRes, 
-                divisionsRes, 
-                parliamentsRes, 
-                assembliesRes, 
-               
+                statesRes,
+                divisionsRes,
+                parliamentsRes,
+                assembliesRes,
+
             ] = await Promise.all([
                 fetch('http://localhost:5000/api/states'),
                 fetch('http://localhost:5000/api/divisions'),
@@ -57,10 +141,10 @@ export default function GovernmentsListPage() {
             ]);
 
             const [
-                statesData, 
-                divisionsData, 
-                parliamentsData, 
-                assembliesData, 
+                statesData,
+                divisionsData,
+                parliamentsData,
+                assembliesData,
                 // blocksData,
                 // boothsData
             ] = await Promise.all([
@@ -87,7 +171,13 @@ export default function GovernmentsListPage() {
     const fetchGovernments = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            if (selectedState) query += `&state=${selectedState}`;
+            if (selectedDivision) query += `&division=${selectedDivision}`;
+            if (selectedParliament) query += `&parliament=${selectedParliament}`;
+            if (selectedAssembly) query += `&assembly=${selectedAssembly}`;
+            if (selectedType) query += `&type=${selectedType}`;
+
             const res = await fetch(`http://localhost:5000/api/governments?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
@@ -104,7 +194,16 @@ export default function GovernmentsListPage() {
     useEffect(() => {
         fetchGovernments(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [
+        pagination.pageIndex,
+        pagination.pageSize,
+        globalFilter,
+        selectedState,
+        selectedDivision,
+        selectedParliament,
+        selectedAssembly,
+        selectedType
+    ]);
 
     const handleDeleteOpen = (id) => {
         setGovernmentDeleteId(id);
@@ -247,7 +346,7 @@ export default function GovernmentsListPage() {
         //         />
         //     )
         // },
-         {
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -273,7 +372,7 @@ export default function GovernmentsListPage() {
                 </Typography>
             )
         },
-         {
+        {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
@@ -287,7 +386,7 @@ export default function GovernmentsListPage() {
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-         {
+        {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
@@ -399,6 +498,144 @@ export default function GovernmentsListPage() {
                             Add Government
                         </Button>
                     </Stack>
+                </Stack>
+
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: "wrap", gap: 2 }}
+                >
+                    {/* Type */}
+                    <TextField
+                        select
+                        label="Type"
+                        value={tempFilters.type}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, type: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All Types</MenuItem>
+                        <MenuItem value="new">New</MenuItem>
+                        <MenuItem value="old">Old</MenuItem>
+                    </TextField>
+
+                    {/* State */}
+                    <TextField
+                        select
+                        label="State"
+                        value={tempFilters.state}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, state: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All States</MenuItem>
+                        {states.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>
+                                {state.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    {/* Division */}
+                    <TextField
+                        select
+                        label="Division"
+                        value={tempFilters.division}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, division: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                        disabled={!tempFilters.state}
+                    >
+                        <MenuItem value="">All Divisions</MenuItem>
+                        {filteredDivisions.map((division) => (
+                            <MenuItem key={division._id} value={division._id}>
+                                {division.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    {/* Parliament */}
+                    <TextField
+                        select
+                        label="Parliament"
+                        value={tempFilters.parliament}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, parliament: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                        disabled={!tempFilters.division}
+                    >
+                        <MenuItem value="">All Parliaments</MenuItem>
+                        {filteredParliaments.map((parliament) => (
+                            <MenuItem key={parliament._id} value={parliament._id}>
+                                {parliament.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    {/* Assembly */}
+                    <TextField
+                        select
+                        label="Assembly"
+                        value={tempFilters.assembly}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, assembly: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                        disabled={!tempFilters.parliament}
+                    >
+                        <MenuItem value="">All Assemblies</MenuItem>
+                        {filteredAssemblies.map((assembly) => (
+                            <MenuItem key={assembly._id} value={assembly._id}>
+                                {assembly.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    {/* Apply and Clear Buttons */}
+                    <Button
+                        variant="contained"
+                        onClick={() => {
+                            setSelectedState(tempFilters.state);
+                            setSelectedDivision(tempFilters.division);
+                            setSelectedParliament(tempFilters.parliament);
+                            setSelectedAssembly(tempFilters.assembly);
+                            setSelectedType(tempFilters.type);
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                    >
+                        Apply Filters
+                    </Button>
+
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setTempFilters({
+                                state: '',
+                                division: '',
+                                parliament: '',
+                                assembly: '',
+                                type: ''
+                            });
+                            setSelectedState('');
+                            setSelectedDivision('');
+                            setSelectedParliament('');
+                            setSelectedAssembly('');
+                            setSelectedType('');
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                    >
+                        Clear Filters
+                    </Button>
                 </Stack>
 
                 <ScrollX>
