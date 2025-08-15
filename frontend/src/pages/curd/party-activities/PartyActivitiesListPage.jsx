@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField,
+    FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -41,6 +42,58 @@ export default function PartyActivitiesListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({});
+
+    // Handle filter changes
+    const handleFilterChange = (field, value) => {
+        const newFilters = { ...filters, [field]: value };
+
+        // Clear dependent fields when parent field changes
+        switch (field) {
+            case 'state_id':
+                newFilters.division_id = '';
+                newFilters.parliament_id = '';
+                newFilters.assembly_id = '';
+                newFilters.block_id = '';
+                newFilters.booth_id = '';
+                break;
+            case 'division_id':
+                newFilters.parliament_id = '';
+                newFilters.assembly_id = '';
+                newFilters.block_id = '';
+                newFilters.booth_id = '';
+                break;
+            case 'parliament_id':
+                newFilters.assembly_id = '';
+                newFilters.block_id = '';
+                newFilters.booth_id = '';
+                break;
+            case 'assembly_id':
+                newFilters.block_id = '';
+                newFilters.booth_id = '';
+                break;
+            case 'block_id':
+                newFilters.booth_id = '';
+                break;
+            default:
+                break;
+        }
+
+        setFilters(newFilters);
+    };
+
+    // Handle text filter changes
+    const handleTextFilterChange = (field, value) => {
+        setTextFilters(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Handle attendance range changes
+    const handleAttendanceChange = (type, value) => {
+        setTextFilters(prev => ({
+            ...prev,
+            attendance: { ...prev.attendance, [type]: value }
+        }));
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -98,8 +151,23 @@ export default function PartyActivitiesListPage() {
     const fetchPartyActivities = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/party-activities?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            // Build query parameters
+            const queryParams = new URLSearchParams({
+                page: pageIndex + 1,
+                limit: pageSize,
+                ...(globalFilter && { search: globalFilter }),
+                // Filters
+                ...(filters.state_id && { state_id: filters.state_id }),
+                ...(filters.division_id && { division_id: filters.division_id }),
+                ...(filters.parliament_id && { parliament_id: filters.parliament_id }),
+                ...(filters.assembly_id && { assembly_id: filters.assembly_id }),
+                ...(filters.block_id && { block_id: filters.block_id }),
+                ...(filters.booth_id && { booth_id: filters.booth_id }),
+                ...(filters.activity_type && { activity_type: filters.activity_type }),
+                ...(filters.status && { status: filters.status })
+            });
+
+            const res = await fetch(`http://localhost:5000/api/party-activities?${queryParams}`);
             const json = await res.json();
             if (json.success) {
                 setPartyActivities(json.data);
@@ -319,7 +387,7 @@ export default function PartyActivitiesListPage() {
                     : 'N/A'
             )
         },
-         {
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -473,10 +541,12 @@ export default function PartyActivitiesListPage() {
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
+
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
                         placeholder={`Search ${partyActivities.length} party activities...`}
                     />
+
                     <Stack direction="row" spacing={1}>
                         <CSVLink
                             data={csvData}
@@ -490,8 +560,180 @@ export default function PartyActivitiesListPage() {
                         <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedPartyActivity(null); setOpenModal(true); }}>
                             Add Party Activity
                         </Button>
+
                     </Stack>
                 </Stack>
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: "wrap", gap: 2 }}
+                >
+
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Activity Type</InputLabel>
+                        <Select
+                            value={filters?.activity_type || ''}
+                            onChange={(e) => handleFilterChange('activity_type', e.target.value)}
+                            label="Activity Type"
+                            size="small"
+                        >
+                            <MenuItem value="">All Types</MenuItem>
+                            <MenuItem value="meeting">Meeting</MenuItem>
+                            <MenuItem value="campaign">Campaign</MenuItem>
+                            <MenuItem value="rally">Rally</MenuItem>
+                            <MenuItem value="gathering">Gathering</MenuItem>
+                            <MenuItem value="other">Other</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {/* Status Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                            value={filters?.status || ''}
+                            onChange={(e) => handleFilterChange('status', e.target.value)}
+                            label="Status"
+                            size="small"
+                        >
+                            <MenuItem value="">All Status</MenuItem>
+                            <MenuItem value="scheduled">Scheduled</MenuItem>
+                            <MenuItem value="ongoing">Ongoing</MenuItem>
+                            <MenuItem value="completed">Completed</MenuItem>
+                            <MenuItem value="cancelled">Cancelled</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {/* State Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>State</InputLabel>
+                        <Select
+                            value={filters?.state_id || ''}
+                            onChange={(e) => handleFilterChange('state_id', e.target.value)}
+                            label="State"
+                            size="small"
+                        >
+                            <MenuItem value="">All States</MenuItem>
+                            {states?.map((state) => (
+                                <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Division Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Division</InputLabel>
+                        <Select
+                            value={filters?.division_id || ''}
+                            onChange={(e) => handleFilterChange('division_id', e.target.value)}
+                            label="Division"
+                            size="small"
+                            disabled={!filters?.state_id}
+                        >
+                            <MenuItem value="">All Divisions</MenuItem>
+                            {divisions?.filter(d => d.state_id?._id === filters?.state_id)
+                                .map((division) => (
+                                    <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                                ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Parliament Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Parliament</InputLabel>
+                        <Select
+                            value={filters?.parliament_id || ''}
+                            onChange={(e) => handleFilterChange('parliament_id', e.target.value)}
+                            label="Parliament"
+                            size="small"
+                            disabled={!filters?.division_id}
+                        >
+                            <MenuItem value="">All Parliaments</MenuItem>
+                            {parliaments?.filter(p => p.division_id?._id === filters?.division_id)
+                                .map((parliament) => (
+                                    <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                                ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Assembly Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Assembly</InputLabel>
+                        <Select
+                            value={filters?.assembly_id || ''}
+                            onChange={(e) => handleFilterChange('assembly_id', e.target.value)}
+                            label="Assembly"
+                            size="small"
+                            disabled={!filters?.parliament_id}
+                        >
+                            <MenuItem value="">All Assemblies</MenuItem>
+                            {assemblies?.filter(a => a.parliament_id?._id === filters?.parliament_id)
+                                .map((assembly) => (
+                                    <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                                ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Block Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Block</InputLabel>
+                        <Select
+                            value={filters?.block_id || ''}
+                            onChange={(e) => handleFilterChange('block_id', e.target.value)}
+                            label="Block"
+                            size="small"
+                            disabled={!filters?.assembly_id}
+                        >
+                            <MenuItem value="">All Blocks</MenuItem>
+                            {blocks?.filter(b => b.assembly_id?._id === filters?.assembly_id)
+                                .map((block) => (
+                                    <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                                ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Booth Filter */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel>Booth</InputLabel>
+                        <Select
+                            value={filters?.booth_id || ''}
+                            onChange={(e) => handleFilterChange('booth_id', e.target.value)}
+                            label="Booth"
+                            size="small"
+                            disabled={!filters?.block_id}
+                        >
+                            <MenuItem value="">All Booths</MenuItem>
+                            {booths?.filter(b => b.block_id?._id === filters?.block_id)
+                                .map((booth) => (
+                                    <MenuItem key={booth._id} value={booth._id}>
+                                        {booth.name} (No: {booth.booth_number})
+                                    </MenuItem>
+                                ))}
+                        </Select>
+                    </FormControl>
+
+                    <Button
+                        variant="contained"
+                        onClick={() => {
+                            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                            fetchPartyActivities(0, pagination.pageSize, globalFilter);
+                        }}
+                    >
+                        Apply
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setFilters({});
+                            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                            fetchPartyActivities(0, pagination.pageSize, '');
+                        }}
+                    >
+                        Clear
+                    </Button>
+                </Stack>
+
+
 
                 <ScrollX>
                     <TableContainer>
@@ -546,7 +788,7 @@ export default function PartyActivitiesListPage() {
                         />
                     </Box>
                 </ScrollX>
-            </MainCard>
+            </MainCard >
 
             <PartyActivitiesModal
                 open={openModal}

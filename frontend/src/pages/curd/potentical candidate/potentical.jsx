@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert
+  Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert,
+  FormControl, Select, MenuItem
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload } from 'iconsax-react';
@@ -42,12 +43,31 @@ export default function PotentialCandidateListPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [error, setError] = useState('');
+  const [filterValues, setFilterValues] = useState({
+    party: '',
+    constituency: '',
+    year: '',
+    status: ''
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    party: '',
+    constituency: '',
+    year: '',
+    status: ''
+  });
 
   const fetchCandidates = async (pageIndex, pageSize) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`http://localhost:5000/api/potential-candidates?page=${pageIndex + 1}&limit=${pageSize}`);
+      let url = `http://localhost:5000/api/potential-candidates?page=${pageIndex + 1}&limit=${pageSize}`;
+
+      if (appliedFilters.party) url += `&party_id=${appliedFilters.party}`;
+      if (appliedFilters.constituency) url += `&constituency_id=${appliedFilters.constituency}`;
+      if (appliedFilters.year) url += `&election_year_id=${appliedFilters.year}`;
+      if (appliedFilters.status) url += `&status=${appliedFilters.status}`;
+
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setCandidates(json.data);
@@ -84,8 +104,13 @@ export default function PotentialCandidateListPage() {
   };
 
   useEffect(() => {
-    fetchCandidates(pagination.pageIndex, pagination.pageSize);
+    // Only fetch reference data once when component mounts
     fetchReferenceData();
+  }, []); // Empty dependency array for one-time fetch
+
+  useEffect(() => {
+    // Fetch candidates only when pagination changes
+    fetchCandidates(pagination.pageIndex, pagination.pageSize);
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
@@ -94,6 +119,31 @@ export default function PotentialCandidateListPage() {
   };
 
   const handleDeleteClose = () => setOpenDelete(false);
+
+  const handleApplyFilters = () => {
+    // Update applied filters with current filter values
+    setAppliedFilters(filterValues);
+    // Reset to first page
+    setPagination({ pageIndex: 0, pageSize: 10 });
+    // Fetch with new filters
+    fetchCandidates(0, 10);
+  };
+
+  const handleClearFilters = () => {
+    // Clear both current and applied filters
+    const emptyFilters = {
+      party: '',
+      constituency: '',
+      year: '',
+      status: ''
+    };
+    setFilterValues(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    // Reset to first page
+    setPagination({ pageIndex: 0, pageSize: 10 });
+    // Fetch with cleared filters
+    fetchCandidates(0, 10);
+  };
 
   const handleCSVDownload = () => {
     if (candidates.length === 0) return;
@@ -334,23 +384,23 @@ export default function PotentialCandidateListPage() {
         );
       }
     },
-     {
-            header: 'Description',
-            accessorKey: 'description',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 250,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    fontStyle: 'italic',
-                    color: 'text.secondary'
-                }}>
-                    {/* Strip HTML tags for table preview */}
-                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
-                </Typography>
-            )
-        },
+    {
+      header: 'Description',
+      accessorKey: 'description',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 250,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          fontStyle: 'italic',
+          color: 'text.secondary'
+        }}>
+          {/* Strip HTML tags for table preview */}
+          {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+        </Typography>
+      )
+    },
     {
       header: 'Created By',
       accessorKey: 'created_by',
@@ -466,24 +516,103 @@ export default function PotentialCandidateListPage() {
           </Alert>
         )}
 
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-          <DebouncedInput
-            value={table.getState().globalFilter || ''}
-            onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${candidates.length} potential candidates...`}
-          />
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<DocumentDownload />}
-              onClick={handleCSVDownload}
-              disabled={candidates.length === 0}
-            >
-              Export CSV
-            </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
-              Add Candidate
-            </Button>
+        <Stack spacing={2} sx={{ padding: 3 }}>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+            <DebouncedInput
+              value={table.getState().globalFilter || ''}
+              onFilterChange={(value) => table.setGlobalFilter(String(value))}
+              placeholder={`Search ${candidates.length} potential candidates...`}
+            />
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={<DocumentDownload />}
+                onClick={handleCSVDownload}
+                disabled={candidates.length === 0}
+              >
+                Export CSV
+              </Button>
+              <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
+                Add Candidate
+              </Button>
+            </Stack>
+          </Stack>
+
+          <Stack direction="row" spacing={2}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Party</Typography>
+              <Select
+                value={filterValues.party}
+                onChange={(e) => setFilterValues(prev => ({ ...prev, party: e.target.value }))}
+                displayEmpty
+              >
+                <MenuItem value="">All Parties</MenuItem>
+                {parties.map((party) => (
+                  <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Constituency</Typography>
+              <Select
+                value={filterValues.constituency}
+                onChange={(e) => setFilterValues(prev => ({ ...prev, constituency: e.target.value }))}
+                displayEmpty
+              >
+                <MenuItem value="">All Constituencies</MenuItem>
+                {assemblies.map((assembly) => (
+                  <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Election Year</Typography>
+              <Select
+                value={filterValues.year}
+                onChange={(e) => setFilterValues(prev => ({ ...prev, year: e.target.value }))}
+                displayEmpty
+              >
+                <MenuItem value="">All Years</MenuItem>
+                {electionYears.map((year) => (
+                  <MenuItem key={year._id} value={year._id}>{year.year}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Status</Typography>
+              <Select
+                value={filterValues.status}
+                onChange={(e) => setFilterValues(prev => ({ ...prev, status: e.target.value }))}
+                displayEmpty
+
+              >
+                <MenuItem value="">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+                <MenuItem value="under_review">Under Review</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
+              <Button
+                variant="contained"
+                onClick={handleApplyFilters}
+                size="small"
+                color="primary"
+              >
+                Apply Filters
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleClearFilters}
+                size="small"
+              >
+                Clear Filters
+              </Button>
+            </Stack>
           </Stack>
         </Stack>
 
