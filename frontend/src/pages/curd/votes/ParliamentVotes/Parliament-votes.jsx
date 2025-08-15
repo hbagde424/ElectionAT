@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider
+  Button, Stack, Box, Typography, Divider, FormControl, InputLabel, Select, MenuItem,
+  TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
@@ -49,11 +50,148 @@ export default function ParliamentVotesListPage() {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [filters, setFilters] = useState({});
+  const [textFilters, setTextFilters] = useState({
+    state: '',
+    division: '',
+    parliament: '',
+    assembly: '',
+    block: '',
+    booth: '',
+    candidate: '',
+    votes: { min: '', max: '' }
+  });
+
+  // Handle text filter changes
+  const handleTextFilterChange = (field, value) => {
+    setTextFilters(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle votes range changes
+  const handleVotesChange = (type, value) => {
+    setTextFilters(prev => ({
+      ...prev,
+      votes: { ...prev.votes, [type]: value }
+    }));
+  };
+  const [searchText, setSearchText] = useState({
+    state: '',
+    division: '',
+    parliament: '',
+    assembly: '',
+    block: '',
+    booth: '',
+    candidate: '',
+    votes: { min: '', max: '' }
+  });
+  const [filteredDivisions, setFilteredDivisions] = useState([]);
+  const [filteredParliaments, setFilteredParliaments] = useState([]);
+  const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+  const [filteredBlocks, setFilteredBlocks] = useState([]);
+  const [filteredBooths, setFilteredBooths] = useState([]);
+
+  // Handle filter changes and update dependent dropdowns
+  const handleFilterChange = (field, value) => {
+    const newFilters = { ...filters, [field]: value };
+
+    // Clear dependent fields when parent field changes
+    switch (field) {
+      case 'state_id':
+        newFilters.division_id = '';
+        newFilters.parliament_id = '';
+        newFilters.assembly_id = '';
+        newFilters.block_id = '';
+        newFilters.booth_id = '';
+        break;
+      case 'division_id':
+        newFilters.parliament_id = '';
+        newFilters.assembly_id = '';
+        newFilters.block_id = '';
+        newFilters.booth_id = '';
+        break;
+      case 'parliament_id':
+        newFilters.assembly_id = '';
+        newFilters.block_id = '';
+        newFilters.booth_id = '';
+        break;
+      case 'assembly_id':
+        newFilters.block_id = '';
+        newFilters.booth_id = '';
+        break;
+      case 'block_id':
+        newFilters.booth_id = '';
+        break;
+      default:
+        break;
+    }
+
+    setFilters(newFilters);
+  };
+
+  // Update filtered options when filters change
+  useEffect(() => {
+    if (filters.state_id) {
+      const filtered = divisions?.filter(division => division.state_id?._id === filters.state_id) || [];
+      setFilteredDivisions(filtered);
+    } else {
+      setFilteredDivisions([]);
+    }
+  }, [filters.state_id, divisions]);
+
+  useEffect(() => {
+    if (filters.division_id) {
+      const filtered = parliaments?.filter(parliament => parliament.division_id?._id === filters.division_id) || [];
+      setFilteredParliaments(filtered);
+    } else {
+      setFilteredParliaments([]);
+    }
+  }, [filters.division_id, parliaments]);
+
+  useEffect(() => {
+    if (filters.parliament_id) {
+      const filtered = assemblies?.filter(assembly => assembly.parliament_id?._id === filters.parliament_id) || [];
+      setFilteredAssemblies(filtered);
+    } else {
+      setFilteredAssemblies([]);
+    }
+  }, [filters.parliament_id, assemblies]);
+
+  useEffect(() => {
+    if (filters.assembly_id) {
+      const filtered = blocks?.filter(block => block.assembly_id?._id === filters.assembly_id) || [];
+      setFilteredBlocks(filtered);
+    } else {
+      setFilteredBlocks([]);
+    }
+  }, [filters.assembly_id, blocks]);
+
+  useEffect(() => {
+    if (filters.block_id) {
+      const filtered = booths?.filter(booth => booth.block_id?._id === filters.block_id) || [];
+      setFilteredBooths(filtered);
+    } else {
+      setFilteredBooths([]);
+    }
+  }, [filters.block_id, booths]);
 
   const fetchVotes = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/parliament-votes?page=${pageIndex + 1}&limit=${pageSize}`);
+      // Build query string with filters
+      const queryParams = new URLSearchParams({
+        page: pageIndex + 1,
+        limit: pageSize,
+        ...(filters.state_id && { state_id: filters.state_id }),
+        ...(filters.division_id && { division_id: filters.division_id }),
+        ...(filters.parliament_id && { parliament_id: filters.parliament_id }),
+        ...(filters.assembly_id && { assembly_id: filters.assembly_id }),
+        ...(filters.block_id && { block_id: filters.block_id }),
+        ...(filters.booth_id && { booth_id: filters.booth_id }),
+        ...(filters.candidate_id && { candidate_id: filters.candidate_id }),
+        ...(filters.election_year_id && { election_year_id: filters.election_year_id })
+      });
+
+      const res = await fetch(`http://localhost:5000/api/parliament-votes?${queryParams}`);
       const json = await res.json();
       if (json.success) {
         setVotes(json.data);
@@ -101,7 +239,7 @@ export default function ParliamentVotesListPage() {
       'Updated At': new Date(item.updated_at).toLocaleString()
     }));
     setCsvData(formattedData);
-    
+
     setTimeout(() => {
       if (csvLinkRef.current) {
         csvLinkRef.current.link.click();
@@ -249,7 +387,7 @@ export default function ParliamentVotesListPage() {
       accessorKey: 'created_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
     },
-{
+    {
       header: 'Updated At',
       accessorKey: 'updated_at',
       cell: ({ getValue }) => <Typography>{new Date(getValue()).toLocaleString()}</Typography>
@@ -330,9 +468,9 @@ export default function ParliamentVotesListPage() {
               style={{ display: 'none' }}
               ref={csvLinkRef}
             />
-            <Button 
-              variant="outlined" 
-              onClick={handleDownloadCsv} 
+            <Button
+              variant="outlined"
+              onClick={handleDownloadCsv}
               disabled={csvLoading}
             >
               {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
@@ -342,6 +480,176 @@ export default function ParliamentVotesListPage() {
             </Button>
           </Stack>
         </Stack>
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ p: 2, flexWrap: "wrap", gap: 2 }}
+        >
+          <TextField
+            select
+            label="State"
+            value={filters?.state_id || ''}
+            onChange={(e) => handleFilterChange('state_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+          >
+            <MenuItem value="">All States</MenuItem>
+            {states?.map((state) => (
+              <MenuItem key={state._id} value={state._id}>
+                {state.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Division"
+            value={filters?.division_id || ''}
+            onChange={(e) => handleFilterChange('division_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+            disabled={!filters?.state_id}
+          >
+            <MenuItem value="">All Divisions</MenuItem>
+            {filteredDivisions?.map((division) => (
+              <MenuItem key={division._id} value={division._id}>
+                {division.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Parliament"
+            value={filters?.parliament_id || ''}
+            onChange={(e) => handleFilterChange('parliament_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+            disabled={!filters?.division_id}
+          >
+            <MenuItem value="">All Parliaments</MenuItem>
+            {filteredParliaments?.map((parliament) => (
+              <MenuItem key={parliament._id} value={parliament._id}>
+                {parliament.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Assembly"
+            value={filters?.assembly_id || ''}
+            onChange={(e) => handleFilterChange('assembly_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+            disabled={!filters?.parliament_id}
+          >
+            <MenuItem value="">All Assemblies</MenuItem>
+            {filteredAssemblies?.map((assembly) => (
+              <MenuItem key={assembly._id} value={assembly._id}>
+                {assembly.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Block"
+            value={filters?.block_id || ''}
+            onChange={(e) => handleFilterChange('block_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+            disabled={!filters?.assembly_id}
+          >
+            <MenuItem value="">All Blocks</MenuItem>
+            {filteredBlocks?.map((block) => (
+              <MenuItem key={block._id} value={block._id}>
+                {block.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Booth"
+            value={filters?.booth_id || ''}
+            onChange={(e) => handleFilterChange('booth_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+            disabled={!filters?.block_id}
+          >
+            <MenuItem value="">All Booths</MenuItem>
+            {filteredBooths?.map((booth) => (
+              <MenuItem key={booth._id} value={booth._id}>
+                {booth.name} (No: {booth.booth_number})
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Candidate"
+            value={filters?.candidate_id || ''}
+            onChange={(e) => handleFilterChange('candidate_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+          >
+            <MenuItem value="">All Candidates</MenuItem>
+            {candidates?.map((candidate) => (
+              <MenuItem key={candidate._id} value={candidate._id}>
+                {candidate.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Election Year"
+            value={filters?.election_year_id || ''}
+            onChange={(e) => handleFilterChange('election_year_id', e.target.value)}
+            sx={{ minWidth: 200 }}
+            size="small"
+          >
+            <MenuItem value="">All Years</MenuItem>
+            {electionYears?.map((year) => (
+              <MenuItem key={year._id} value={year._id}>
+                {year.year}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <Button
+            variant="contained"
+            onClick={() => {
+              setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              fetchVotes(0, pagination.pageSize);
+            }}
+          >
+            Apply
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilters({});
+              setFilteredDivisions([]);
+              setFilteredParliaments([]);
+              setFilteredAssemblies([]);
+              setFilteredBlocks([]);
+              setFilteredBooths([]);
+              setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              fetchVotes(0, pagination.pageSize);
+            }}
+          >
+            Clear
+          </Button>
+        </Stack>
+
+        <Divider />
+
+        {/* Search and Actions Section */}
+
 
         <ScrollX>
           <TableContainer>
@@ -396,7 +704,7 @@ export default function ParliamentVotesListPage() {
             />
           </Box>
         </ScrollX>
-      </MainCard>
+      </MainCard >
 
       <ParliamentVotesModal
         open={openModal}
