@@ -41,166 +41,147 @@ export default function WorkStatusListPage() {
     const [globalFilter, setGlobalFilter] = useState('');
 
     // Filter states
-    const [filterValues, setFilterValues] = useState({
-        state: '',
-        division: '',
-        parliament: '',
-        assembly: '',
-        block: '',
-        booth: '',
+    const [filters, setFilters] = useState({
+        state_id: '',
+        division_id: '',
+        parliament_id: '',
+        assembly_id: '',
+        block_id: '',
+        booth_id: '',
         workType: '',
         status: ''
     });
 
-    const [appliedFilters, setAppliedFilters] = useState({
-        state: '',
-        division: '',
-        parliament: '',
-        assembly: '',
-        block: '',
-        booth: '',
-        workType: '',
-        status: ''
-    });
+    const handleStateChange = (event) => {
+        const stateId = event.target.value;
+        const newFilters = {
+            ...filters,
+            state_id: stateId,
+            division_id: '',
+            parliament_id: '',
+            assembly_id: '',
+            block_id: '',
+            booth_id: ''
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
 
-    // Filtered lists based on parent selections
-    const [filteredDivisions, setFilteredDivisions] = useState([]);
-    const [filteredParliaments, setFilteredParliaments] = useState([]);
-    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
-    const [filteredBlocks, setFilteredBlocks] = useState([]);
-    const [filteredBooths, setFilteredBooths] = useState([]);
+    const handleDivisionChange = (event) => {
+        const divisionId = event.target.value;
+        const newFilters = {
+            ...filters,
+            division_id: divisionId,
+            parliament_id: '',
+            assembly_id: '',
+            block_id: '',
+            booth_id: ''
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
 
-    const handleApplyFilters = () => {
-        setAppliedFilters(filterValues);
-        setPagination({ pageIndex: 0, pageSize: 10 });
-        fetchWorkStatuses(0, 10, globalFilter);
+    const handleParliamentChange = (event) => {
+        const parliamentId = event.target.value;
+        const newFilters = {
+            ...filters,
+            parliament_id: parliamentId,
+            assembly_id: '',
+            block_id: '',
+            booth_id: ''
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
+
+    const handleAssemblyChange = (event) => {
+        const assemblyId = event.target.value;
+        const newFilters = {
+            ...filters,
+            assembly_id: assemblyId,
+            block_id: '',
+            booth_id: ''
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
+
+    const handleBlockChange = (event) => {
+        const blockId = event.target.value;
+        const newFilters = {
+            ...filters,
+            block_id: blockId,
+            booth_id: ''
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
+
+    const handleBoothChange = (event) => {
+        const boothId = event.target.value;
+        const newFilters = {
+            ...filters,
+            booth_id: boothId
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
+
+    const handleWorkTypeChange = (event) => {
+        const workType = event.target.value;
+        const newFilters = {
+            ...filters,
+            workType: workType
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+    };
+
+    const handleStatusChange = (event) => {
+        const status = event.target.value;
+        const newFilters = {
+            ...filters,
+            status: status
+        };
+        setFilters(newFilters);
+        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
     };
 
     const handleClearFilters = () => {
         const emptyFilters = {
-            state: '',
-            division: '',
-            parliament: '',
-            assembly: '',
-            block: '',
-            booth: '',
+            state_id: '',
+            division_id: '',
+            parliament_id: '',
+            assembly_id: '',
+            block_id: '',
+            booth_id: '',
             workType: '',
             status: ''
         };
-        setFilterValues(emptyFilters);
-        setAppliedFilters(emptyFilters);
+        setFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
-        // Reset filtered lists
-        setFilteredDivisions(divisions);
-        setFilteredParliaments(parliaments);
-        setFilteredAssemblies(assemblies);
-        setFilteredBlocks(blocks);
-        setFilteredBooths(booths);
-        fetchWorkStatuses(0, 10, globalFilter);
-    };
-
-    // Handle state change
-    const handleStateChange = (stateId) => {
-        const newFilterValues = {
-            ...filterValues,
-            state: stateId,
-            division: '',
-            parliament: '',
-            assembly: '',
-            block: '',
-            booth: ''
-        };
-        setFilterValues(newFilterValues);
-
-        // Filter divisions based on state
-        const newDivisions = divisions.filter(div => div.state_id === stateId);
-        setFilteredDivisions(newDivisions);
-        setFilteredParliaments([]);
-        setFilteredAssemblies([]);
-        setFilteredBlocks([]);
-        setFilteredBooths([]);
-    };
-
-    // Handle division change
-    const handleDivisionChange = (divisionId) => {
-        const newFilterValues = {
-            ...filterValues,
-            division: divisionId,
-            parliament: '',
-            assembly: '',
-            block: '',
-            booth: ''
-        };
-        setFilterValues(newFilterValues);
-
-        // Filter parliaments based on division
-        const newParliaments = parliaments.filter(parl => parl.division_id === divisionId);
-        setFilteredParliaments(newParliaments);
-        setFilteredAssemblies([]);
-        setFilteredBlocks([]);
-        setFilteredBooths([]);
-    };
-
-    // Handle parliament change
-    const handleParliamentChange = (parliamentId) => {
-        const newFilterValues = {
-            ...filterValues,
-            parliament: parliamentId,
-            assembly: '',
-            block: '',
-            booth: ''
-        };
-        setFilterValues(newFilterValues);
-
-        // Filter assemblies based on parliament
-        const newAssemblies = assemblies.filter(assembly => assembly.parliament_id === parliamentId);
-        setFilteredAssemblies(newAssemblies);
-        setFilteredBlocks([]);
-        setFilteredBooths([]);
-    };
-
-    // Handle assembly change
-    const handleAssemblyChange = (assemblyId) => {
-        const newFilterValues = {
-            ...filterValues,
-            assembly: assemblyId,
-            block: '',
-            booth: ''
-        };
-        setFilterValues(newFilterValues);
-
-        // Filter blocks based on assembly
-        const newBlocks = blocks.filter(block => block.assembly_id === assemblyId);
-        setFilteredBlocks(newBlocks);
-        setFilteredBooths([]);
-    };
-
-    // Handle block change
-    const handleBlockChange = (blockId) => {
-        const newFilterValues = {
-            ...filterValues,
-            block: blockId,
-            booth: ''
-        };
-        setFilterValues(newFilterValues);
-
-        // Filter booths based on block
-        const newBooths = booths.filter(booth => booth.block_id === blockId);
-        setFilteredBooths(newBooths);
+        fetchWorkStatuses(0, 10, globalFilter, emptyFilters);
     };
 
     const fetchReferenceData = async () => {
         try {
+            // Fetch states first
+            const statesRes = await fetch('http://localhost:5000/api/states');
+            const statesData = await statesRes.json();
+            console.log('States Data:', statesData);
+
+            // Fetch divisions next to see their structure
+            const divisionsRes = await fetch('http://localhost:5000/api/divisions');
+            const divisionsData = await divisionsRes.json();
+            console.log('Divisions Data:', divisionsData);
+
+            // Fetch the rest
             const [
-                statesRes,
-                divisionsRes,
                 parliamentsRes,
                 assembliesRes,
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
                 fetch('http://localhost:5000/api/parliaments'),
                 fetch('http://localhost:5000/api/assemblies'),
                 fetch('http://localhost:5000/api/blocks'),
@@ -208,15 +189,13 @@ export default function WorkStatusListPage() {
             ]);
 
             const [
-                statesData,
-                divisionsData,
+
                 parliamentsData,
                 assembliesData,
                 blocksData,
                 boothsData
             ] = await Promise.all([
-                statesRes.json(),
-                divisionsRes.json(),
+
                 parliamentsRes.json(),
                 assembliesRes.json(),
                 blocksRes.json(),
@@ -250,44 +229,25 @@ export default function WorkStatusListPage() {
         }
     };
 
-    const fetchWorkStatuses = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchWorkStatuses = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            let queryParams = [
-                `page=${pageIndex + 1}`,
-                `limit=${pageSize}`
-            ];
+            const queryParams = [];
+            queryParams.push(`page=${pageIndex + 1}`);
+            queryParams.push(`limit=${pageSize}`);
 
-            if (globalFilter) {
-                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
-            }
+            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+            if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
+            if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
+            if (currentFilters.booth_id) queryParams.push(`booth=${encodeURIComponent(currentFilters.booth_id)}`);
+            if (currentFilters.workType) queryParams.push(`workType=${encodeURIComponent(currentFilters.workType)}`);
+            if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
 
-            if (appliedFilters.state) {
-                queryParams.push(`state=${appliedFilters.state}`);
-            }
-            if (appliedFilters.division) {
-                queryParams.push(`division=${appliedFilters.division}`);
-            }
-            if (appliedFilters.parliament) {
-                queryParams.push(`parliament=${appliedFilters.parliament}`);
-            }
-            if (appliedFilters.assembly) {
-                queryParams.push(`assembly=${appliedFilters.assembly}`);
-            }
-            if (appliedFilters.block) {
-                queryParams.push(`block=${appliedFilters.block}`);
-            }
-            if (appliedFilters.booth) {
-                queryParams.push(`booth=${appliedFilters.booth}`);
-            }
-            if (appliedFilters.workType) {
-                queryParams.push(`workType=${appliedFilters.workType}`);
-            }
-            if (appliedFilters.status) {
-                queryParams.push(`status=${appliedFilters.status}`);
-            }
-
-            const res = await fetch(`http://localhost:5000/api/work-status?${queryParams.join('&')}`);
+            const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+            const res = await fetch(`http://localhost:5000/api/work-status${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setWorkStatuses(json.data);
@@ -691,8 +651,8 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>State</InputLabel>
                                 <Select
-                                    value={filterValues.state}
-                                    onChange={(e) => handleStateChange(e.target.value)}
+                                    value={filters.state_id}
+                                    onChange={handleStateChange}
                                     label="State"
                                 >
                                     <MenuItem value="">All</MenuItem>
@@ -706,13 +666,13 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Division</InputLabel>
                                 <Select
-                                    value={filterValues.division}
-                                    onChange={(e) => handleDivisionChange(e.target.value)}
+                                    value={filters.division_id}
+                                    onChange={handleDivisionChange}
                                     label="Division"
-                                    disabled={!filterValues.state}
+                                    disabled={!filters.state_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredDivisions.map((division) => (
+                                    {divisions.map((division) => (
                                         <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -722,13 +682,13 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Parliament</InputLabel>
                                 <Select
-                                    value={filterValues.parliament}
-                                    onChange={(e) => handleParliamentChange(e.target.value)}
+                                    value={filters.parliament_id}
+                                    onChange={handleParliamentChange}
                                     label="Parliament"
-                                    disabled={!filterValues.division}
+                                    disabled={!filters.division_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredParliaments.map((parliament) => (
+                                    {parliaments.map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -738,13 +698,13 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Assembly</InputLabel>
                                 <Select
-                                    value={filterValues.assembly}
-                                    onChange={(e) => handleAssemblyChange(e.target.value)}
+                                    value={filters.assembly_id}
+                                    onChange={handleAssemblyChange}
                                     label="Assembly"
-                                    disabled={!filterValues.parliament}
+                                    disabled={!filters.parliament_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredAssemblies.map((assembly) => (
+                                    {assemblies.map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -754,13 +714,13 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Block</InputLabel>
                                 <Select
-                                    value={filterValues.block}
-                                    onChange={(e) => handleBlockChange(e.target.value)}
+                                    value={filters.block_id}
+                                    onChange={handleBlockChange}
                                     label="Block"
-                                    disabled={!filterValues.assembly}
+                                    disabled={!filters.assembly_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredBlocks.map((block) => (
+                                    {blocks.map((block) => (
                                         <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -770,13 +730,13 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Booth</InputLabel>
                                 <Select
-                                    value={filterValues.booth}
-                                    onChange={(e) => setFilterValues({ ...filterValues, booth: e.target.value })}
+                                    value={filters.booth_id}
+                                    onChange={handleBoothChange}
                                     label="Booth"
-                                    disabled={!filterValues.block}
+                                    disabled={!filters.block_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredBooths.map((booth) => (
+                                    {booths.map((booth) => (
                                         <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -786,8 +746,8 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Work Type</InputLabel>
                                 <Select
-                                    value={filterValues.workType}
-                                    onChange={(e) => setFilterValues({ ...filterValues, workType: e.target.value })}
+                                    value={filters.workType}
+                                    onChange={handleWorkTypeChange}
                                     label="Work Type"
                                 >
                                     <MenuItem value="">All</MenuItem>
@@ -803,8 +763,8 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Status</InputLabel>
                                 <Select
-                                    value={filterValues.status}
-                                    onChange={(e) => setFilterValues({ ...filterValues, status: e.target.value })}
+                                    value={filters.status}
+                                    onChange={handleStatusChange}
                                     label="Status"
                                 >
                                     <MenuItem value="">All</MenuItem>
@@ -817,14 +777,13 @@ export default function WorkStatusListPage() {
                             </FormControl>
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
-                            <Stack direction="row" spacing={1}>
-                                <Button variant="contained" onClick={handleApplyFilters} sx={{ width: '50%' }}>
-                                    Apply
-                                </Button>
-                                <Button variant="outlined" onClick={handleClearFilters} sx={{ width: '50%' }}>
-                                    Clear
-                                </Button>
-                            </Stack>
+                            <Button
+                                variant="outlined"
+                                onClick={handleClearFilters}
+                                fullWidth
+                            >
+                                Clear Filters
+                            </Button>
                         </Grid>
                     </Grid>
                 </Stack>
