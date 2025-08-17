@@ -12,7 +12,6 @@ import {
 } from '@tanstack/react-table';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
@@ -20,6 +19,7 @@ import { CSVLink } from 'react-csv';
 import WorkStatusModal from './WorkStatusModal';
 import AlertWorkStatusDelete from './AlertWorkStatusDelete';
 import WorkStatusView from './WorkStatusView';
+import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 
 export default function WorkStatusListPage() {
     const theme = useTheme();
@@ -52,99 +52,101 @@ export default function WorkStatusListPage() {
         status: ''
     });
 
+    // Temporary filters for staging changes
+    const [tempFilters, setTempFilters] = useState({
+        state_id: '',
+        division_id: '',
+        parliament_id: '',
+        assembly_id: '',
+        block_id: '',
+        booth_id: '',
+        workType: '',
+        status: ''
+    });
+
     const handleStateChange = (event) => {
         const stateId = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             state_id: stateId,
             division_id: '',
             parliament_id: '',
             assembly_id: '',
             block_id: '',
             booth_id: ''
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleDivisionChange = (event) => {
         const divisionId = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             division_id: divisionId,
             parliament_id: '',
             assembly_id: '',
             block_id: '',
             booth_id: ''
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleParliamentChange = (event) => {
         const parliamentId = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             parliament_id: parliamentId,
             assembly_id: '',
             block_id: '',
             booth_id: ''
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleAssemblyChange = (event) => {
         const assemblyId = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             assembly_id: assemblyId,
             block_id: '',
             booth_id: ''
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleBlockChange = (event) => {
         const blockId = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             block_id: blockId,
             booth_id: ''
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleBoothChange = (event) => {
         const boothId = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             booth_id: boothId
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleWorkTypeChange = (event) => {
         const workType = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             workType: workType
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
     };
 
     const handleStatusChange = (event) => {
         const status = event.target.value;
-        const newFilters = {
-            ...filters,
+        setTempFilters({
+            ...tempFilters,
             status: status
-        };
-        setFilters(newFilters);
-        fetchWorkStatuses(0, pagination.pageSize, globalFilter, newFilters);
+        });
+    };
+
+    const handleApplyFilters = () => {
+        setFilters(tempFilters);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchWorkStatuses(0, 10, globalFilter, tempFilters);
     };
 
     const handleClearFilters = () => {
@@ -159,6 +161,7 @@ export default function WorkStatusListPage() {
             status: ''
         };
         setFilters(emptyFilters);
+        setTempFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchWorkStatuses(0, 10, globalFilter, emptyFilters);
     };
@@ -651,7 +654,7 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>State</InputLabel>
                                 <Select
-                                    value={filters.state_id}
+                                    value={tempFilters.state_id}
                                     onChange={handleStateChange}
                                     label="State"
                                 >
@@ -669,7 +672,7 @@ export default function WorkStatusListPage() {
                                     value={filters.division_id}
                                     onChange={handleDivisionChange}
                                     label="Division"
-                                    disabled={!filters.state_id}
+                                    disabled={!tempFilters.state_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
                                     {divisions.map((division) => (
@@ -682,10 +685,10 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Parliament</InputLabel>
                                 <Select
-                                    value={filters.parliament_id}
+                                    value={tempFilters.parliament_id}
                                     onChange={handleParliamentChange}
                                     label="Parliament"
-                                    disabled={!filters.division_id}
+                                    disabled={!tempFilters.division_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
                                     {parliaments.map((parliament) => (
@@ -698,10 +701,10 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Assembly</InputLabel>
                                 <Select
-                                    value={filters.assembly_id}
+                                    value={tempFilters.assembly_id}
                                     onChange={handleAssemblyChange}
                                     label="Assembly"
-                                    disabled={!filters.parliament_id}
+                                    disabled={!tempFilters.parliament_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
                                     {assemblies.map((assembly) => (
@@ -714,10 +717,10 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Block</InputLabel>
                                 <Select
-                                    value={filters.block_id}
+                                    value={tempFilters.block_id}
                                     onChange={handleBlockChange}
                                     label="Block"
-                                    disabled={!filters.assembly_id}
+                                    disabled={!tempFilters.assembly_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
                                     {blocks.map((block) => (
@@ -730,10 +733,10 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Booth</InputLabel>
                                 <Select
-                                    value={filters.booth_id}
+                                    value={tempFilters.booth_id}
                                     onChange={handleBoothChange}
                                     label="Booth"
-                                    disabled={!filters.block_id}
+                                    disabled={!tempFilters.block_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
                                     {booths.map((booth) => (
@@ -746,7 +749,7 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Work Type</InputLabel>
                                 <Select
-                                    value={filters.workType}
+                                    value={tempFilters.workType}
                                     onChange={handleWorkTypeChange}
                                     label="Work Type"
                                 >
@@ -763,7 +766,7 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Status</InputLabel>
                                 <Select
-                                    value={filters.status}
+                                    value={tempFilters.status}
                                     onChange={handleStatusChange}
                                     label="Status"
                                 >
