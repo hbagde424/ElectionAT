@@ -63,6 +63,13 @@ export default function WorkStatusListPage() {
         status: ''
     });
 
+    // Filtered lists based on parent selections
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
+    const [filteredParliaments, setFilteredParliaments] = useState([]);
+    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+    const [filteredBlocks, setFilteredBlocks] = useState([]);
+    const [filteredBooths, setFilteredBooths] = useState([]);
+
     const handleApplyFilters = () => {
         setAppliedFilters(filterValues);
         setPagination({ pageIndex: 0, pageSize: 10 });
@@ -83,7 +90,103 @@ export default function WorkStatusListPage() {
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
+        // Reset filtered lists
+        setFilteredDivisions(divisions);
+        setFilteredParliaments(parliaments);
+        setFilteredAssemblies(assemblies);
+        setFilteredBlocks(blocks);
+        setFilteredBooths(booths);
         fetchWorkStatuses(0, 10, globalFilter);
+    };
+
+    // Handle state change
+    const handleStateChange = (stateId) => {
+        const newFilterValues = {
+            ...filterValues,
+            state: stateId,
+            division: '',
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: ''
+        };
+        setFilterValues(newFilterValues);
+
+        // Filter divisions based on state
+        const newDivisions = divisions.filter(div => div.state_id === stateId);
+        setFilteredDivisions(newDivisions);
+        setFilteredParliaments([]);
+        setFilteredAssemblies([]);
+        setFilteredBlocks([]);
+        setFilteredBooths([]);
+    };
+
+    // Handle division change
+    const handleDivisionChange = (divisionId) => {
+        const newFilterValues = {
+            ...filterValues,
+            division: divisionId,
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: ''
+        };
+        setFilterValues(newFilterValues);
+
+        // Filter parliaments based on division
+        const newParliaments = parliaments.filter(parl => parl.division_id === divisionId);
+        setFilteredParliaments(newParliaments);
+        setFilteredAssemblies([]);
+        setFilteredBlocks([]);
+        setFilteredBooths([]);
+    };
+
+    // Handle parliament change
+    const handleParliamentChange = (parliamentId) => {
+        const newFilterValues = {
+            ...filterValues,
+            parliament: parliamentId,
+            assembly: '',
+            block: '',
+            booth: ''
+        };
+        setFilterValues(newFilterValues);
+
+        // Filter assemblies based on parliament
+        const newAssemblies = assemblies.filter(assembly => assembly.parliament_id === parliamentId);
+        setFilteredAssemblies(newAssemblies);
+        setFilteredBlocks([]);
+        setFilteredBooths([]);
+    };
+
+    // Handle assembly change
+    const handleAssemblyChange = (assemblyId) => {
+        const newFilterValues = {
+            ...filterValues,
+            assembly: assemblyId,
+            block: '',
+            booth: ''
+        };
+        setFilterValues(newFilterValues);
+
+        // Filter blocks based on assembly
+        const newBlocks = blocks.filter(block => block.assembly_id === assemblyId);
+        setFilteredBlocks(newBlocks);
+        setFilteredBooths([]);
+    };
+
+    // Handle block change
+    const handleBlockChange = (blockId) => {
+        const newFilterValues = {
+            ...filterValues,
+            block: blockId,
+            booth: ''
+        };
+        setFilterValues(newFilterValues);
+
+        // Filter booths based on block
+        const newBooths = booths.filter(booth => booth.block_id === blockId);
+        setFilteredBooths(newBooths);
     };
 
     const fetchReferenceData = async () => {
@@ -121,11 +224,26 @@ export default function WorkStatusListPage() {
             ]);
 
             if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
-            if (boothsData.success) setBooths(boothsData.data);
+            if (divisionsData.success) {
+                setDivisions(divisionsData.data);
+                setFilteredDivisions([]);
+            }
+            if (parliamentsData.success) {
+                setParliaments(parliamentsData.data);
+                setFilteredParliaments([]);
+            }
+            if (assembliesData.success) {
+                setAssemblies(assembliesData.data);
+                setFilteredAssemblies([]);
+            }
+            if (blocksData.success) {
+                setBlocks(blocksData.data);
+                setFilteredBlocks([]);
+            }
+            if (boothsData.success) {
+                setBooths(boothsData.data);
+                setFilteredBooths([]);
+            }
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -574,7 +692,7 @@ export default function WorkStatusListPage() {
                                 <InputLabel>State</InputLabel>
                                 <Select
                                     value={filterValues.state}
-                                    onChange={(e) => setFilterValues({ ...filterValues, state: e.target.value })}
+                                    onChange={(e) => handleStateChange(e.target.value)}
                                     label="State"
                                 >
                                     <MenuItem value="">All</MenuItem>
@@ -589,11 +707,12 @@ export default function WorkStatusListPage() {
                                 <InputLabel>Division</InputLabel>
                                 <Select
                                     value={filterValues.division}
-                                    onChange={(e) => setFilterValues({ ...filterValues, division: e.target.value })}
+                                    onChange={(e) => handleDivisionChange(e.target.value)}
                                     label="Division"
+                                    disabled={!filterValues.state}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {divisions.map((division) => (
+                                    {filteredDivisions.map((division) => (
                                         <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -604,11 +723,12 @@ export default function WorkStatusListPage() {
                                 <InputLabel>Parliament</InputLabel>
                                 <Select
                                     value={filterValues.parliament}
-                                    onChange={(e) => setFilterValues({ ...filterValues, parliament: e.target.value })}
+                                    onChange={(e) => handleParliamentChange(e.target.value)}
                                     label="Parliament"
+                                    disabled={!filterValues.division}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {parliaments.map((parliament) => (
+                                    {filteredParliaments.map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -619,11 +739,12 @@ export default function WorkStatusListPage() {
                                 <InputLabel>Assembly</InputLabel>
                                 <Select
                                     value={filterValues.assembly}
-                                    onChange={(e) => setFilterValues({ ...filterValues, assembly: e.target.value })}
+                                    onChange={(e) => handleAssemblyChange(e.target.value)}
                                     label="Assembly"
+                                    disabled={!filterValues.parliament}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {assemblies.map((assembly) => (
+                                    {filteredAssemblies.map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -634,11 +755,12 @@ export default function WorkStatusListPage() {
                                 <InputLabel>Block</InputLabel>
                                 <Select
                                     value={filterValues.block}
-                                    onChange={(e) => setFilterValues({ ...filterValues, block: e.target.value })}
+                                    onChange={(e) => handleBlockChange(e.target.value)}
                                     label="Block"
+                                    disabled={!filterValues.assembly}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {blocks.map((block) => (
+                                    {filteredBlocks.map((block) => (
                                         <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -651,9 +773,10 @@ export default function WorkStatusListPage() {
                                     value={filterValues.booth}
                                     onChange={(e) => setFilterValues({ ...filterValues, booth: e.target.value })}
                                     label="Booth"
+                                    disabled={!filterValues.block}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {booths.map((booth) => (
+                                    {filteredBooths.map((booth) => (
                                         <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                                     ))}
                                 </Select>
