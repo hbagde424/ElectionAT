@@ -777,13 +777,22 @@ export default function WorkStatusListPage() {
                             </FormControl>
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
-                            <Button
-                                variant="outlined"
-                                onClick={handleClearFilters}
-                                fullWidth
-                            >
-                                Clear Filters
-                            </Button>
+                            <Stack direction="row" spacing={1}>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => fetchWorkStatuses(0, pagination.pageSize, globalFilter, filters)}
+                                    sx={{ width: '50%' }}
+                                >
+                                    Apply
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    onClick={handleClearFilters}
+                                    sx={{ width: '50%' }}
+                                >
+                                    Clear
+                                </Button>
+                            </Stack>
                         </Grid>
                     </Grid>
                 </Stack>
