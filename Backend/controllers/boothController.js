@@ -13,7 +13,11 @@ exports.getBooths = async (req, res, next) => {
   try {
     // Pagination
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) ;
+    let limit = parseInt(req.query.limit);
+    // If limit is not provided or invalid, set a high default (e.g., 10000)
+    if (!limit || limit <= 0) {
+      limit = 10000;
+    }
     const skip = (page - 1) * limit;
 
     // Basic query
