@@ -87,7 +87,7 @@ export default function DivisionListPage() {
     useEffect(() => {
         fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
+    }, [pagination.pageIndex, pagination.pageSize]);
 
     const handleDeleteOpen = (id) => {
         setDivisionDeleteId(id);
@@ -331,7 +331,9 @@ export default function DivisionListPage() {
                         select
                         label="State"
                         value={stateFilter}
-                        onChange={(e) => setStateFilter(e.target.value)}
+                        onChange={(e) => {
+                            setStateFilter(e.target.value);
+                        }}
                         sx={{ minWidth: 150 }}
                         size="small"
                     >
