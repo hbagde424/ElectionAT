@@ -46,33 +46,33 @@ exports.getBoothSurveys = async (req, res, next) => {
     }
 
     // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+    if (req.query.state_id) {
+      query = query.where('state_id').equals(req.query.state_id);
     }
 
     // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+    if (req.query.division_id) {
+      query = query.where('division_id').equals(req.query.division_id);
     }
 
     // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+    if (req.query.parliament_id) {
+      query = query.where('parliament_id').equals(req.query.parliament_id);
     }
 
     // Filter by assembly
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+    if (req.query.assembly_id) {
+      query = query.where('assembly_id').equals(req.query.assembly_id);
     }
 
     // Filter by block
-    if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
+    if (req.query.block_id) {
+      query = query.where('block_id').equals(req.query.block_id);
     }
 
     // Filter by booth
-    if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
+    if (req.query.booth_id) {
+      query = query.where('booth_id').equals(req.query.booth_id);
     }
 
     // Filter by surveyor
@@ -83,7 +83,7 @@ exports.getBoothSurveys = async (req, res, next) => {
     // Filter by date range
     if (req.query.startDate && req.query.endDate) {
       query = query.where('survey_date').gte(new Date(req.query.startDate))
-                   .lte(new Date(req.query.endDate));
+        .lte(new Date(req.query.endDate));
     }
 
     const surveys = await query.skip(skip).limit(limit).exec();
@@ -229,7 +229,7 @@ exports.updateBoothSurvey = async (req, res, next) => {
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
