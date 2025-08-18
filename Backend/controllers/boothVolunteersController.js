@@ -31,6 +31,69 @@ exports.getBoothVolunteers = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
+    // Validate hierarchy if IDs are provided
+    if (req.query.booth_id) {
+      const booth = await Booth.findById(req.query.booth_id);
+      if (!booth) {
+        return res.status(404).json({
+          success: false,
+          error: 'Booth not found'
+        });
+      }
+      // Set all parent IDs based on the booth's hierarchy
+      req.query.block_id = booth.block_id;
+      req.query.assembly_id = booth.assembly_id;
+      req.query.parliament_id = booth.parliament_id;
+      req.query.division_id = booth.division_id;
+      req.query.state_id = booth.state_id;
+    } else if (req.query.block_id) {
+      const block = await Block.findById(req.query.block_id);
+      if (!block) {
+        return res.status(404).json({
+          success: false,
+          error: 'Block not found'
+        });
+      }
+      // Set parent IDs based on block's hierarchy
+      req.query.assembly_id = block.assembly_id;
+      req.query.parliament_id = block.parliament_id;
+      req.query.division_id = block.division_id;
+      req.query.state_id = block.state_id;
+    } else if (req.query.assembly_id) {
+      const assembly = await Assembly.findById(req.query.assembly_id);
+      if (!assembly) {
+        return res.status(404).json({
+          success: false,
+          error: 'Assembly not found'
+        });
+      }
+      // Set parent IDs based on assembly's hierarchy
+      req.query.parliament_id = assembly.parliament_id;
+      req.query.division_id = assembly.division_id;
+      req.query.state_id = assembly.state_id;
+    } else if (req.query.parliament_id) {
+      const parliament = await Parliament.findById(req.query.parliament_id);
+      if (!parliament) {
+        return res.status(404).json({
+          success: false,
+          error: 'Parliament not found'
+        });
+      }
+      // Set parent IDs based on parliament's hierarchy
+      req.query.division_id = parliament.division_id;
+      req.query.state_id = parliament.state_id;
+    } else if (req.query.division_id) {
+      const division = await Division.findById(req.query.division_id);
+      if (!division) {
+        return res.status(404).json({
+          success: false,
+          error: 'Division not found'
+        });
+      }
+      // Set state_id based on division's hierarchy
+      req.query.state_id = division.state_id;
+    }
+
     // Search functionality
     if (req.query.search) {
       query = query.find({
@@ -43,38 +106,38 @@ exports.getBoothVolunteers = async (req, res, next) => {
     }
 
     // Filter by booth
-    if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
+    if (req.query.booth_id) {
+      query = query.where('booth_id').equals(req.query.booth_id);
     }
 
     // Filter by party
-    if (req.query.party) {
-      query = query.where('party_id').equals(req.query.party);
+    if (req.query.party_id) {
+      query = query.where('party_id').equals(req.query.party_id);
     }
 
     // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+    if (req.query.state_id) {
+      query = query.where('state_id').equals(req.query.state_id);
     }
 
     // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+    if (req.query.division_id) {
+      query = query.where('division_id').equals(req.query.division_id);
     }
 
     // Filter by assembly
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+    if (req.query.assembly_id) {
+      query = query.where('assembly_id').equals(req.query.assembly_id);
     }
 
     // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+    if (req.query.parliament_id) {
+      query = query.where('parliament_id').equals(req.query.parliament_id);
     }
 
     // Filter by block
-    if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
+    if (req.query.block_id) {
+      query = query.where('block_id').equals(req.query.block_id);
     }
 
     // Filter by activity level
@@ -231,7 +294,7 @@ exports.updateBoothVolunteer = async (req, res, next) => {
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
