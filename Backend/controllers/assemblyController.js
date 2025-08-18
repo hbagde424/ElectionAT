@@ -30,14 +30,14 @@ exports.getAssemblies = async (req, res, next) => {
       query = query.find({ $text: { $search: req.query.search } });
     }
 
-    // Filter by type
+    // Filter by type (case-insensitive)
     if (req.query.type) {
-      query = query.where('type').equals(req.query.type);
+      query = query.find({ type: { $regex: `^${req.query.type}$`, $options: 'i' } });
     }
 
-    // Filter by category
+    // Filter by category (case-insensitive)
     if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
+      query = query.find({ category: { $regex: `^${req.query.category}$`, $options: 'i' } });
     }
 
     // Filter by state
