@@ -43,8 +43,9 @@ export default function ParliamentListPage() {
         division_id: ''
     });
 
-    const categoryOptions = ['RURAL', 'URBAN', 'SEMI-URBAN'];
-    const regionalTypeOptions = ['GENERAL', 'RESERVED', 'SC', 'ST'];
+    const categoryOptions = ['general', 'reserved', 'special'];
+    const regionalTypeOptions = ['urban', 'rural', 'mixed'];
+
 
     const fetchReferenceData = async () => {
         try {
