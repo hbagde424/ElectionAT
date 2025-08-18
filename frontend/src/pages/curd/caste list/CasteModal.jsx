@@ -53,7 +53,7 @@ export default function CasteModal({
             setFormData({
                 category: casteEntry.category || 'General',
                 caste: casteEntry.caste || '',
-                percentage: percentageEntry.percentage || '',
+                percentage: percentageEntry?.percentage || '',
                 description: casteEntry.description || '',
                 state_id: casteEntry.state_id?._id?.toString() || casteEntry.state_id?.toString() || '',
                 division_id: casteEntry.division_id?._id?.toString() || casteEntry.division_id?.toString() || '',
