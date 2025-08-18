@@ -26,14 +26,14 @@ exports.getParliaments = async (req, res, next) => {
       query = query.find({ name: { $regex: req.query.search, $options: 'i' } });
     }
 
-    // Filter by category
+    // Filter by category (case-insensitive)
     if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
+      query = query.find({ category: { $regex: `^${req.query.category}$`, $options: 'i' } });
     }
 
-    // Filter by regional type
+    // Filter by regional type (case-insensitive)
     if (req.query.regional_type) {
-      query = query.where('regional_type').equals(req.query.regional_type);
+      query = query.find({ regional_type: { $regex: `^${req.query.regional_type}$`, $options: 'i' } });
     }
 
     // Filter by state
