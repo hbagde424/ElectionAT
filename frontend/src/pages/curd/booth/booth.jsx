@@ -421,7 +421,8 @@ export default function BoothsListPage() {
     if (loading) return <EmptyReactTable />;
 
     const handleFilterApply = () => {
-        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        fetchBooths(0, pagination.pageSize, globalFilter, filters); // Use page index 0
     };
 
     const handleClearFilter = () => {
@@ -432,7 +433,8 @@ export default function BoothsListPage() {
             assembly_id: '',
             block_id: ''
         });
-        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, {
+        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        fetchBooths(0, pagination.pageSize, globalFilter, {
             state_id: '',
             division_id: '',
             parliament_id: '',
