@@ -318,7 +318,8 @@ export default function ParliamentListPage() {
     if (loading) return <EmptyReactTable />;
 
     const handleFilterApply = () => {
-        fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        fetchParliaments(0, pagination.pageSize, globalFilter, filters); // Use page index 0
     };
 
     return (
@@ -479,8 +480,9 @@ export default function ParliamentListPage() {
                                 state_id: '',
                                 division_id: ''
                             });
+                            setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
                             fetchParliaments(
-                                pagination.pageIndex,
+                                0,
                                 pagination.pageSize,
                                 globalFilter,
                                 {
