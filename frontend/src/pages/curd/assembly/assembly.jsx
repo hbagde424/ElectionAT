@@ -347,7 +347,8 @@ export default function AssemblyListPage() {
     if (loading) return <EmptyReactTable />;
 
     const handleFilterApply = () => {
-        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        fetchAssemblies(0, pagination.pageSize, globalFilter, filters); // Use page index 0
     };
 
     const handleClearFilter = () => {
@@ -358,7 +359,8 @@ export default function AssemblyListPage() {
             division_id: '',
             parliament_id: ''
         });
-        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, {
+        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        fetchAssemblies(0, pagination.pageSize, globalFilter, {
             type: '',
             category: '',
             state_id: '',
