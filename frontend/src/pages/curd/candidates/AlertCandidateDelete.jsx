@@ -5,7 +5,7 @@ import { Warning2 } from 'iconsax-react';
 export default function AlertCandidateDelete({ open, handleClose, id, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
-        const res = await fetch(`http://localhost:5000/api/candidates/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -54,3 +54,4 @@ export default function AlertCandidateDelete({ open, handleClose, id, refresh })
         </Dialog>
     );
 }
+

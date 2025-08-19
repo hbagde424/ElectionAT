@@ -25,3 +25,4 @@ MapControl.propTypes = {
   hideFullscreen: PropTypes.bool,
   hideNavigationn: PropTypes.bool
 };
+

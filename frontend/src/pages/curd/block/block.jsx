@@ -48,16 +48,16 @@ export default function BlocksListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                // fetch('http://localhost:5000/api/districts')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                // fetch('${import.meta.env.VITE_APP_API_URL}/districts')
             ]);
 
             const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch('http://localhost:5000/api/users', {
+                fetch('${import.meta.env.VITE_APP_API_URL}/users', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -97,7 +97,7 @@ export default function BlocksListPage() {
             if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`http://localhost:5000/api/blocks?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setBlocks(json.data);
@@ -319,7 +319,7 @@ export default function BlocksListPage() {
 
     const fetchAllBlocksForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/blocks?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/blocks?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

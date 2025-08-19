@@ -37,7 +37,7 @@ export default function StatesListPage() {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const res = await fetch('http://localhost:5000/api/users', {
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -53,7 +53,7 @@ export default function StatesListPage() {
         setLoading(true);
         try {
             const query = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
-            const res = await fetch(`http://localhost:5000/api/states?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setStates(json.data);
@@ -212,7 +212,7 @@ export default function StatesListPage() {
 
     const fetchAllStatesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/states?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

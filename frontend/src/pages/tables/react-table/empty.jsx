@@ -179,3 +179,4 @@ export default function EmptyReactTable() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

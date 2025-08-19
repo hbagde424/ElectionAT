@@ -545,3 +545,4 @@ export default function FormCustomerAdd({ customer, closeModal }) {
 }
 
 FormCustomerAdd.propTypes = { customer: PropTypes.any, closeModal: PropTypes.func };
+

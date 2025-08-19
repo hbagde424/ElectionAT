@@ -122,3 +122,4 @@ Transitions.propTypes = {
   direction: PropTypes.oneOf(['up', 'right', 'left', 'down']),
   others: PropTypes.any
 };
+

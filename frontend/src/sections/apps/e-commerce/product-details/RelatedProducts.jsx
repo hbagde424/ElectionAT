@@ -183,3 +183,4 @@ export default function RelatedProducts({ id }) {
 ListProduct.propTypes = { product: PropTypes.any };
 
 RelatedProducts.propTypes = { id: PropTypes.string };
+

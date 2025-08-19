@@ -173,3 +173,4 @@ export default function ProfileTabs({ focusInput }) {
 }
 
 ProfileTabs.propTypes = { focusInput: PropTypes.func };
+

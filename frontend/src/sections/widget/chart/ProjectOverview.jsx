@@ -176,3 +176,4 @@ export default function ProjectOverview() {
 }
 
 TaskStatusChart.propTypes = { color: PropTypes.string, data: PropTypes.array };
+

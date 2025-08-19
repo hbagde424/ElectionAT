@@ -161,7 +161,7 @@ export default function TotalIncome() {
 
   const fetchYears = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/election-years');
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
       const result = await res.json();
       const availableYears = result.data.map(d => d.year).sort((a, b) => b - a);
       setYears(availableYears);
@@ -176,7 +176,7 @@ export default function TotalIncome() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/winning-candidates/graph?year=${selectedYear}`);
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/graph?year=${selectedYear}`);
       const result = await res.json();
       setData(result.data);
     } catch (err) {
@@ -249,7 +249,7 @@ export default function TotalIncome() {
                 onClick={downloadFullChart}
                 startIcon={<ImportCurve />}
               >
-                
+
               </Button>
               <IconButton onClick={handleClick}>
                 <MoreIcon />
@@ -330,3 +330,4 @@ export default function TotalIncome() {
     </MainCard>
   );
 }
+

@@ -54,3 +54,4 @@ TableWidgetCard.propTypes = {
   children: PropTypes.any,
   invoice: PropTypes.string
 };
+

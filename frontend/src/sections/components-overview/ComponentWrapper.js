@@ -21,3 +21,4 @@ const ComponentWrapper = styled(Box)(({ theme }) => ({
 }));
 
 export default ComponentWrapper;
+

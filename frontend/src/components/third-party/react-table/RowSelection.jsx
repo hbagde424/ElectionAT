@@ -21,3 +21,4 @@ export default function RowSelection({ selected }) {
 }
 
 RowSelection.propTypes = { selected: PropTypes.number };
+

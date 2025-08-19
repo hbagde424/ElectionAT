@@ -25,3 +25,4 @@ export default function AuthSocButton({ children, ...other }) {
 }
 
 AuthSocButton.propTypes = { children: PropTypes.any, other: PropTypes.any };
+

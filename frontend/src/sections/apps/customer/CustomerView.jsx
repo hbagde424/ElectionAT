@@ -182,3 +182,4 @@ export default function CustomerView({ data }) {
 }
 
 CustomerView.propTypes = { data: PropTypes.any };
+

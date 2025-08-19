@@ -261,3 +261,4 @@ export default function CouponCode({ open, handleClose, setCoupon }) {
 }
 
 CouponCode.propTypes = { open: PropTypes.bool, handleClose: PropTypes.func, setCoupon: PropTypes.func };
+

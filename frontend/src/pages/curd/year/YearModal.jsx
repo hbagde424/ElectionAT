@@ -56,7 +56,7 @@ export default function ElectionYearModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        
+
         // Validation
         if (!formData.year || !formData.election_type) {
             return;
@@ -65,8 +65,8 @@ export default function ElectionYearModal({
         const method = electionYear ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = electionYear
-            ? `http://localhost:5000/api/election-years/${electionYear._id}`
-            : 'http://localhost:5000/api/election-years';
+            ? `${import.meta.env.VITE_APP_API_URL}/election-years/${electionYear._id}`
+            : `${import.meta.env.VITE_APP_API_URL}/election-years`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

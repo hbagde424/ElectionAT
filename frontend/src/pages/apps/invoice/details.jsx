@@ -312,3 +312,4 @@ export default function Details() {
 }
 
 PDFIconButton.propTypes = { list: PropTypes.any };
+

@@ -100,3 +100,4 @@ export default function SimpleDialogDemo() {
 }
 
 SimpleDialog.propTypes = { onClose: PropTypes.func, selectedValue: PropTypes.string, open: PropTypes.bool };
+

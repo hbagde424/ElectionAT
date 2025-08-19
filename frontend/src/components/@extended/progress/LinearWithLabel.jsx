@@ -20,3 +20,4 @@ export default function LinearWithLabel({ value, ...others }) {
 }
 
 LinearWithLabel.propTypes = { value: PropTypes.any, others: PropTypes.any };
+

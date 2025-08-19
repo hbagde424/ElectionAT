@@ -269,3 +269,4 @@ export default function CustomerPreview({ customer, open, onClose, editCustomer 
 }
 
 CustomerPreview.propTypes = { customer: PropTypes.any, open: PropTypes.bool, onClose: PropTypes.func, editCustomer: PropTypes.func };
+

@@ -72,3 +72,4 @@ function pointOnCircle({ center, angle, radius }) {
 GeoJSONAnimation.propTypes = { other: PropTypes.any };
 
 pointOnCircle.propTypes = { center: PropTypes.number, angle: PropTypes.number, radius: PropTypes.number };
+

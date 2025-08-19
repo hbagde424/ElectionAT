@@ -177,3 +177,4 @@ export default function ExpandingDetails() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

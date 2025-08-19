@@ -71,8 +71,8 @@ export default function PartyModal({
         const method = party ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = party
-            ? `http://localhost:5000/api/parties/${party._id}`
-            : 'http://localhost:5000/api/parties';
+            ? `${import.meta.env.VITE_APP_API_URL}/parties/${party._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/parties';
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

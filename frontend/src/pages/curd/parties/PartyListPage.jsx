@@ -37,7 +37,7 @@ export default function PartyListPage() {
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const usersRes = await fetch('http://localhost:5000/api/users', {
+            const usersRes = await fetch('${import.meta.env.VITE_APP_API_URL}/users', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -54,7 +54,7 @@ export default function PartyListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/parties?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 // Map parties with user details
@@ -266,7 +266,7 @@ export default function PartyListPage() {
 
     const fetchAllPartiesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/parties?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/parties?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data.map(party => {

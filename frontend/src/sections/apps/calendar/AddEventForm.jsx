@@ -398,3 +398,4 @@ export default function AddEventFrom({ event, range, onCancel, modalCallback }) 
 }
 
 AddEventFrom.propTypes = { event: PropTypes.any, range: PropTypes.any, onCancel: PropTypes.func, modalCallback: PropTypes.func };
+

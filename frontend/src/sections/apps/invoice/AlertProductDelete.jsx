@@ -60,3 +60,4 @@ export default function AlertProductDelete({ title, open, handleClose }) {
 }
 
 AlertProductDelete.propTypes = { title: PropTypes.string, open: PropTypes.bool, handleClose: PropTypes.func };
+

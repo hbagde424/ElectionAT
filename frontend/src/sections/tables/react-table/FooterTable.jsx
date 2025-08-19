@@ -161,3 +161,4 @@ export default function FooterTable() {
 FooterTable.propTypes = { getValue: PropTypes.func };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

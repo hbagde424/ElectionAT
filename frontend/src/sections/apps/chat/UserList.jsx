@@ -145,3 +145,4 @@ UserList.propTypes = {
   search: PropTypes.string,
   selectedUser: PropTypes.oneOfType([PropTypes.any, PropTypes.string])
 };
+

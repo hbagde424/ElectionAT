@@ -525,3 +525,4 @@ function LinearWithLabel({ value, ...others }) {
 ReactTable.propTypes = { data: PropTypes.array, columns: PropTypes.array };
 
 LinearWithLabel.propTypes = { value: PropTypes.any, others: PropTypes.any };
+

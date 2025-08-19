@@ -52,3 +52,4 @@ const chartsMap = {
 };
 
 export default chartsMap;
+

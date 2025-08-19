@@ -59,12 +59,12 @@ export default function BoothsListPage() {
                 blocksRes,
                 electionYearsRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/election-years')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/election-years')
             ]);
 
             const [
@@ -107,7 +107,7 @@ export default function BoothsListPage() {
             if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`http://localhost:5000/api/booths?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setBooths(json.data);
@@ -374,7 +374,7 @@ export default function BoothsListPage() {
 
     const fetchAllBoothsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/booths?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/booths?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

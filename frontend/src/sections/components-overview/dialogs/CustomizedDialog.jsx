@@ -91,3 +91,4 @@ export default function CustomizedDialogs() {
 }
 
 BootstrapDialogTitle.propTypes = { children: PropTypes.node, onClose: PropTypes.func, other: PropTypes.any };
+

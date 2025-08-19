@@ -22,3 +22,4 @@ export default function SimpleLayout({ layout = SimpleLayoutType.SIMPLE }) {
 }
 
 SimpleLayout.propTypes = { layout: PropTypes.any };
+

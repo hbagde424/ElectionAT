@@ -58,3 +58,4 @@ export default function ChatHeader({ loading, user, handleDrawerOpen }) {
 }
 
 ChatHeader.propTypes = { loading: PropTypes.bool, user: PropTypes.any, handleDrawerOpen: PropTypes.func };
+

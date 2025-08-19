@@ -121,3 +121,4 @@ export default function ConfirmationDialog() {
 }
 
 ConfirmationDialogRaw.propTypes = { onClose: PropTypes.func, value: PropTypes.string, open: PropTypes.bool, other: PropTypes.any };
+

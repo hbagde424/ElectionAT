@@ -608,3 +608,4 @@ export default function ComponentAvatar() {
     </ComponentSkeleton>
   );
 }
+

@@ -156,8 +156,8 @@ export default function BlockVotesModal({
     const method = vote ? 'PUT' : 'POST';
     const token = localStorage.getItem('serviceToken');
     const url = vote
-      ? `http://localhost:5000/api/block-votes/${vote._id}`
-      : 'http://localhost:5000/api/block-votes';
+      ? `${import.meta.env.VITE_APP_API_URL}/block-votes/${vote._id}`
+      : '${import.meta.env.VITE_APP_API_URL}/block-votes';
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const submitData = {

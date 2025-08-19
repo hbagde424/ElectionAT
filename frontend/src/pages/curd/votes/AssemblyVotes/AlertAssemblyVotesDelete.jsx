@@ -5,7 +5,7 @@ export default function AlertAssemblyVotesDelete({ id, open, handleClose, refres
   const handleDelete = async () => {
     const token = localStorage.getItem('serviceToken');
 
-    const res = await fetch(`http://localhost:5000/api/assembly-votes/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-votes/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

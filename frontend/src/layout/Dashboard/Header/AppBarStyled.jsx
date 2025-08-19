@@ -27,3 +27,4 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
 }));
 
 export default AppBarStyled;
+

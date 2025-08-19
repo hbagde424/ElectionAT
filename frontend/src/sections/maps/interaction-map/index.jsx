@@ -58,3 +58,4 @@ function InteractionMap({ ...other }) {
 export default memo(InteractionMap);
 
 InteractionMap.propTypes = { other: PropTypes.any };
+

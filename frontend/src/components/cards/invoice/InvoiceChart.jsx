@@ -123,3 +123,4 @@ export default function InvoiceChart({ color, data }) {
 }
 
 InvoiceChart.propTypes = { color: PropTypes.any, data: PropTypes.array };
+

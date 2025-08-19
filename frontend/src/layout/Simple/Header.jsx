@@ -402,3 +402,4 @@ export default function Header({ layout = 'landing', ...others }) {
 ElevationScroll.propTypes = { layout: PropTypes.string, children: PropTypes.node, window: PropTypes.any };
 
 Header.propTypes = { layout: PropTypes.string, others: PropTypes.any };
+

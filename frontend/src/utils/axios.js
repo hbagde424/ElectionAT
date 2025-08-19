@@ -44,3 +44,4 @@ export const fetcherPost = async (args) => {
 
   return res.data;
 };
+

@@ -162,3 +162,4 @@ ProductCard.propTypes = {
   salePrice: PropTypes.any,
   rating: PropTypes.any
 };
+

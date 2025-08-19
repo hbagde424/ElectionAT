@@ -182,7 +182,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadStateData = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/state-polygons');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/state-polygons`);
             if (!response.ok) {
                 throw new Error('Failed to fetch state data');
             }
@@ -229,7 +229,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadDivisionData = async (stateId) => {
         try {
-            const response = await fetch('http://localhost:5000/api/division-polygons');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/division-polygons`);
             if (!response.ok) {
                 throw new Error('Failed to fetch division data');
             }
@@ -300,7 +300,7 @@ function HierarchicalMap({ onRegionClick }) {
     const loadParliamentaryData = async (divisionName) => {
         try {
             const parliamentName = divisionName;
-            const response = await fetch(`http://localhost:5000/api/parliament-polygons/name/${parliamentName}`);
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons/name/${parliamentName}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch parliamentary data');
             }
@@ -475,7 +475,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadAssemblyData = async (vsCode) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/assembly-polygons/parliament/${vsCode}`);
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons/parliament/${vsCode}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch assembly data');
             }
@@ -514,7 +514,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadBlockData = async (assemblyId) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/block-polygons/booth/${assemblyId}`);
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch block data');
             }
@@ -552,7 +552,7 @@ function HierarchicalMap({ onRegionClick }) {
     const loadBoothData = async (BlockNumber) => {
         try {
 
-            const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${BlockNumber}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

@@ -180,3 +180,4 @@ export default function Content({ list }) {
 }
 
 Content.propTypes = { list: PropTypes.any };
+

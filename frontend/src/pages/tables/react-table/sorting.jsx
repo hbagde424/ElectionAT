@@ -174,3 +174,4 @@ export default function SortingTable() {
 SortingTable.propTypes = { getValue: PropTypes.func };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

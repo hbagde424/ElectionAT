@@ -311,3 +311,4 @@ BillingAddress.propTypes = {
   billingAddressHandler: PropTypes.func,
   removeProduct: PropTypes.func
 };
+

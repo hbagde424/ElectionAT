@@ -75,3 +75,4 @@ AnimateButton.propTypes = {
   offset: PropTypes.number,
   scale: PropTypes.object
 };
+

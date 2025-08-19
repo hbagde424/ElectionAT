@@ -217,3 +217,4 @@ LinearProgressWithLabel.propTypes = {
 };
 
 ProductReviews.propTypes = { product: PropTypes.any };
+

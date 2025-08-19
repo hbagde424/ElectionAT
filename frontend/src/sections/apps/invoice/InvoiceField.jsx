@@ -26,3 +26,4 @@ export default function InvoiceField({ onEditItem, cellData }) {
 }
 
 InvoiceField.propTypes = { onEditItem: PropTypes.any, cellData: PropTypes.any };
+

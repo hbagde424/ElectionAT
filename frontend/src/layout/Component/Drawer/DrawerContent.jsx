@@ -27,3 +27,4 @@ export default function DrawerContent({ searchValue }) {
 }
 
 DrawerContent.propTypes = { searchValue: PropTypes.string };
+

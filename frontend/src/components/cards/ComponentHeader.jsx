@@ -69,3 +69,4 @@ export default function ComponentHeader({ title, caption, directory, link }) {
 }
 
 ComponentHeader.propTypes = { title: PropTypes.string, caption: PropTypes.string, directory: PropTypes.string, link: PropTypes.string };
+

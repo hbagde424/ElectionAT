@@ -64,3 +64,4 @@ export default function StoryComment({ comment, profile }) {
 }
 
 StoryComment.propTypes = { comment: PropTypes.any, profile: PropTypes.any };
+

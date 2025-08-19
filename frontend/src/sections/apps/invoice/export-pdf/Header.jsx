@@ -115,3 +115,4 @@ export default function Header({ list }) {
 }
 
 Header.propTypes = { list: PropTypes.any };
+

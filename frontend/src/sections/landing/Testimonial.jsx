@@ -172,3 +172,4 @@ export default function TestimonialPage() {
 }
 
 Item.propTypes = { item: PropTypes.object };
+

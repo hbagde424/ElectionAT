@@ -186,3 +186,4 @@ export default function ColumnVisibility() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

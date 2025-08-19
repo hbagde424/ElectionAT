@@ -24,3 +24,4 @@ function ControlPanel({ mode, onModeChange }) {
 export default memo(ControlPanel);
 
 ControlPanel.propTypes = { mode: PropTypes.any, onModeChange: PropTypes.any };
+

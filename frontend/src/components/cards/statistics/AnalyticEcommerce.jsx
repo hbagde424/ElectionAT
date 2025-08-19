@@ -67,3 +67,4 @@ AnalyticEcommerce.propTypes = {
   isLoss: PropTypes.bool,
   extra: PropTypes.string
 };
+

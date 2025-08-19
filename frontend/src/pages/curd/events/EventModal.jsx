@@ -311,8 +311,8 @@ export default function EventModal({
         const method = event ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = event
-            ? `http://localhost:5000/api/events/${event._id}`
-            : 'http://localhost:5000/api/events';
+            ? `${import.meta.env.VITE_APP_API_URL}/events/${event._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/events';
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

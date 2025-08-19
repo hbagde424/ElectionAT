@@ -26,3 +26,4 @@ export default function AvatarStatus({ status }) {
 }
 
 AvatarStatus.propTypes = { status: PropTypes.string };
+

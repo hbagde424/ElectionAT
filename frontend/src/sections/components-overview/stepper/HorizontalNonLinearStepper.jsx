@@ -211,3 +211,4 @@ export default function HorizontalNonLinearStepper() {
 }
 
 StepWrapper.propTypes = { children: PropTypes.node, value: PropTypes.number, index: PropTypes.number, other: PropTypes.any };
+

@@ -106,3 +106,4 @@ export default function OrgChartPage() {
 SimpleTree.propTypes = { name: PropTypes.any };
 
 TreeCard.propTypes = { items: PropTypes.any };
+

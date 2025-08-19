@@ -52,3 +52,4 @@ const MiniDrawerStyled = styled(Drawer, { shouldForwardProp: (prop) => prop !== 
 }));
 
 export default MiniDrawerStyled;
+

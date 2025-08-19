@@ -38,3 +38,4 @@ export default function RejectionFiles({ fileRejections }) {
 }
 
 RejectionFiles.propTypes = { fileRejections: PropTypes.array };
+

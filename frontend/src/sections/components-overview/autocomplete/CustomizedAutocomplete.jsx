@@ -198,3 +198,4 @@ export default function CustomizedAutocomplete() {
 }
 
 Tag.propTypes = { label: PropTypes.string, onDelete: PropTypes.any, other: PropTypes.any };
+

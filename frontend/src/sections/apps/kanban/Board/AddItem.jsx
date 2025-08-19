@@ -146,3 +146,4 @@ export default function AddItem({ columnId }) {
 }
 
 AddItem.propTypes = { columnId: PropTypes.string };
+

@@ -267,3 +267,4 @@ const formsTables = {
 };
 
 export default formsTables;
+

@@ -211,3 +211,4 @@ export default function FilteringTable() {
 FilteringTable.propTypes = { getValue: PropTypes.func };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

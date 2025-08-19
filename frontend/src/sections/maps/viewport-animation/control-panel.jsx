@@ -26,3 +26,4 @@ function ControlPanel({ data, selectedCity, onSelectCity }) {
 export default memo(ControlPanel);
 
 ControlPanel.propTypes = { data: PropTypes.array, selectedCity: PropTypes.string, onSelectCity: PropTypes.func };
+

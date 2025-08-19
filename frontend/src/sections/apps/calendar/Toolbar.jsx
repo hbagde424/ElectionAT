@@ -109,3 +109,4 @@ Toolbar.propTypes = {
   onClickToday: PropTypes.func,
   onChangeView: PropTypes.func
 };
+

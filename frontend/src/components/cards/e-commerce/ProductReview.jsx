@@ -41,3 +41,4 @@ ProductReview.propTypes = {
   rating: PropTypes.number,
   review: PropTypes.string
 };
+

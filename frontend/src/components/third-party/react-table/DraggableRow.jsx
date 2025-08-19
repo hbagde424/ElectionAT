@@ -51,3 +51,4 @@ export default function DraggableRow({ row, reorderRow, children }) {
 }
 
 DraggableRow.propTypes = { row: PropTypes.object, reorderRow: PropTypes.func, children: PropTypes.node };
+

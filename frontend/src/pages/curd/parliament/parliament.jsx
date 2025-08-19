@@ -50,14 +50,14 @@ export default function ParliamentListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, assembliesRes] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/assemblies')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies')
             ]);
 
             const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch('http://localhost:5000/api/users', {
+                fetch('${import.meta.env.VITE_APP_API_URL}/users', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -92,7 +92,7 @@ export default function ParliamentListPage() {
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`http://localhost:5000/api/parliaments?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setParliaments(json.data);
@@ -276,7 +276,7 @@ export default function ParliamentListPage() {
 
     const fetchAllParliamentsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/parliaments?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/parliaments?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

@@ -166,3 +166,4 @@ TableWidgetCard.propTypes = {
   invoice: PropTypes.string,
   isActive: PropTypes.bool
 };
+

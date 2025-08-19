@@ -262,3 +262,4 @@ export default function UserDetails({ user, onClose }) {
 }
 
 UserDetails.propTypes = { user: PropTypes.any, onClose: PropTypes.func };
+

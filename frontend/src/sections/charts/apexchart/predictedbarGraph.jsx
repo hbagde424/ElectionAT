@@ -36,7 +36,7 @@ const columnChartOptions = {
       text: 'Assemblies Predicted to Win'
     },
     labels: {
-      formatter: function(val) {
+      formatter: function (val) {
         return val.toLocaleString();
       }
     }
@@ -46,7 +46,7 @@ const columnChartOptions = {
   },
   tooltip: {
     y: {
-      formatter: function(val) {
+      formatter: function (val) {
         return val.toLocaleString(); // Format tooltip numbers with commas
       }
     }
@@ -106,7 +106,7 @@ export default function PredictedPartyAssemblyCountChart2028() {
     setError(null);
     const fetchPredictedPartyAssemblyCount = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/winning-candidates/predicted-party-assembly-count');
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/predicted-party-assembly-count`);
         const data = response.data.data;
         const categories = data.map(item => item.party_name || 'Unknown');
         const assemblyCounts = data.map(item => item.assembly_count);
@@ -201,11 +201,11 @@ export default function PredictedPartyAssemblyCountChart2028() {
         <b>Predicted Party-wise Assembly Wins (2028)</b>
       </Box>
       <Box id="chart" sx={{ '& .apexcharts-legend': { flexDirection: matchDownMd ? 'column' : 'row' } }}>
-        <ReactApexChart 
-          options={options} 
-          series={series} 
-          type="bar" 
-          height={350} 
+        <ReactApexChart
+          options={options}
+          series={series}
+          type="bar"
+          height={350}
         />
       </Box>
     </Box>

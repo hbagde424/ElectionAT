@@ -74,3 +74,4 @@ export default function ProductView({ data }) {
 }
 
 ProductView.propTypes = { data: PropTypes.any };
+

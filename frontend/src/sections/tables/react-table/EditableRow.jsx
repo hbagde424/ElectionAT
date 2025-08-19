@@ -213,3 +213,4 @@ export default function EditableRow() {
 EditAction.propTypes = { row: PropTypes.object, table: PropTypes.object };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array, setData: PropTypes.any };
+

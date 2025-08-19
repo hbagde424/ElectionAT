@@ -276,3 +276,4 @@ export default function AddAddress({ address, open, handleClose, editAddress }) 
 }
 
 AddAddress.propTypes = { address: PropTypes.any, open: PropTypes.bool, handleClose: PropTypes.func, editAddress: PropTypes.func };
+

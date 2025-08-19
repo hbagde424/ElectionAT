@@ -163,3 +163,4 @@ export default function ColumnResizing() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

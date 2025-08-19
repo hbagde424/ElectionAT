@@ -41,3 +41,4 @@ export default function EditColumn({ column }) {
 }
 
 EditColumn.propTypes = { column: PropTypes.any };
+

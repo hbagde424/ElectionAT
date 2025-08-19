@@ -281,3 +281,4 @@ export default function Products() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array, title: PropTypes.string };
+

@@ -56,3 +56,4 @@ export default function HoverSocialCard({ primary, secondary, iconPrimary, color
 }
 
 HoverSocialCard.propTypes = { primary: PropTypes.any, secondary: PropTypes.any, iconPrimary: PropTypes.any, color: PropTypes.any };
+

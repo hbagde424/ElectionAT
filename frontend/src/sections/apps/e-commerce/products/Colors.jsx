@@ -87,3 +87,4 @@ Color.propTypes = {
 };
 
 Colors.propTypes = { colors: PropTypes.array, handelFilter: PropTypes.func };
+

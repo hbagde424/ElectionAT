@@ -353,3 +353,4 @@ NavGroup.propTypes = {
   setSelectedLevel: PropTypes.func,
   selectedLevel: PropTypes.number
 };
+

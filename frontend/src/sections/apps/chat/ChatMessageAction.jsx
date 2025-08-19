@@ -79,3 +79,4 @@ export default function ChatMessageAction({ index }) {
 }
 
 ChatMessageAction.propTypes = { index: PropTypes.number };
+

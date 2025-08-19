@@ -96,3 +96,4 @@ export async function deleteAddress(addressId) {
   //   const data = { addressId };
   //   await axios.post(endpoints.key + endpoints.delete, data);
 }
+

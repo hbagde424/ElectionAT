@@ -392,8 +392,8 @@ export default function PartyActivitiesModal({
         const method = partyActivity ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = partyActivity
-            ? `http://localhost:5000/api/party-activities/${partyActivity._id}`
-            : 'http://localhost:5000/api/party-activities';
+            ? `${import.meta.env.VITE_APP_API_URL}/party-activities/${partyActivity._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/party-activities';
 
         // Debug user information
         console.log('Party Activities HandleSubmit - User context:', user);
@@ -880,3 +880,4 @@ export default function PartyActivitiesModal({
         </LocalizationProvider>
     );
 }
+

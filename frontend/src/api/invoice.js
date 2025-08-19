@@ -186,3 +186,4 @@ export function handlerDelete(alertPopup) {
     false
   );
 }
+

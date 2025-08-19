@@ -293,3 +293,4 @@ export default function ExpandingSubTable() {
 RenderSubComponent.propTypes = { row: PropTypes.object };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array, loading: PropTypes.bool, isList: PropTypes.bool };
+

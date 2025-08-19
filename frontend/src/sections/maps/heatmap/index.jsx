@@ -81,3 +81,4 @@ function filterFeaturesByDay(featureCollection, time) {
 }
 
 Heatmap.propTypes = { other: PropTypes.any };
+

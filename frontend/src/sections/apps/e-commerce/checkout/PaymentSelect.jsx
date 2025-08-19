@@ -54,3 +54,4 @@ export default function PaymentSelect({ item }) {
 }
 
 PaymentSelect.propTypes = { item: PropTypes.any };
+

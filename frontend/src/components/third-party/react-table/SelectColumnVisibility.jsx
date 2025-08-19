@@ -74,3 +74,4 @@ SelectColumnVisibility.propTypes = {
   getToggleAllColumnsVisibilityHandler: PropTypes.func,
   getAllColumns: PropTypes.func
 };
+

@@ -63,3 +63,4 @@ export default function ProductEmpty({ handelFilter }) {
 }
 
 ProductEmpty.propTypes = { handelFilter: PropTypes.func };
+

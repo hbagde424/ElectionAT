@@ -220,3 +220,4 @@ export const cities = [
     longitude: 75.853789
   }
 ];
+

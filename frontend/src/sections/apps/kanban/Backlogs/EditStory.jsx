@@ -366,3 +366,4 @@ export default function EditStory({ story, open, handleDrawerOpen }) {
 }
 
 EditStory.propTypes = { story: PropTypes.any, open: PropTypes.bool, handleDrawerOpen: PropTypes.func };
+

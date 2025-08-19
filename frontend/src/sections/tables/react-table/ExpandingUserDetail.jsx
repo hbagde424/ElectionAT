@@ -185,3 +185,4 @@ export default function ExpandingUserDetail({ data }) {
 }
 
 ExpandingUserDetail.propTypes = { data: PropTypes.any };
+

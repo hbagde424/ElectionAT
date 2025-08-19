@@ -74,12 +74,12 @@ export default function CodingListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/booths')
             ]);
 
             const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
@@ -115,7 +115,7 @@ export default function CodingListPage() {
                 }
             });
 
-            const res = await fetch(`http://localhost:5000/api/codings?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setCodingList(json.data);
@@ -347,7 +347,7 @@ export default function CodingListPage() {
 
     const fetchAllCodingsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/codings?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/codings?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

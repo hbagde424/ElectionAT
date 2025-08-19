@@ -11,3 +11,4 @@ const DrawerHeaderStyled = styled(Box, { shouldForwardProp: (prop) => prop !== '
 }));
 
 export default DrawerHeaderStyled;
+

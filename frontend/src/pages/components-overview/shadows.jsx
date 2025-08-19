@@ -298,3 +298,4 @@ export default function ComponentShadow() {
 ShadowBox.propTypes = { shadow: PropTypes.string };
 
 CustomShadowBox.propTypes = { shadow: PropTypes.string, label: PropTypes.string, color: PropTypes.string, bgcolor: PropTypes.string };
+

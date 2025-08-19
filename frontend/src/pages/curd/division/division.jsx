@@ -39,12 +39,12 @@ export default function DivisionListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes] = await Promise.all([
-                fetch('http://localhost:5000/api/states')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states')
             ]);
 
             const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch('http://localhost:5000/api/users', {
+                fetch('${import.meta.env.VITE_APP_API_URL}/users', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -71,7 +71,7 @@ export default function DivisionListPage() {
             if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
             if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
             const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-            const res = await fetch(`http://localhost:5000/api/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setDivisions(json.data);
@@ -232,7 +232,7 @@ export default function DivisionListPage() {
 
     const fetchAllDivisionsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/divisions?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/divisions?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

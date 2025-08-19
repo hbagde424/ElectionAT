@@ -53,3 +53,4 @@ export default function EmptyTable({ msg }) {
 }
 
 EmptyTable.propTypes = { msg: PropTypes.string };
+

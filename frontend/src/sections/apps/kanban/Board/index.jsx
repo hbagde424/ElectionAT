@@ -164,3 +164,4 @@ export default function Board() {
     </Box>
   );
 }
+

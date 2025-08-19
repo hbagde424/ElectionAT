@@ -115,3 +115,4 @@ TablePagination.propTypes = {
   getState: PropTypes.func,
   initialPageSize: PropTypes.number
 };
+

@@ -607,3 +607,4 @@ export default function EditInvoice() {
 }
 
 EditForm.propTypes = { list: PropTypes.any, invoiceMaster: PropTypes.any };
+

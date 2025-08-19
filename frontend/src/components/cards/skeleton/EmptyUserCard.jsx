@@ -50,3 +50,4 @@ export default function EmptyUserCard({ title }) {
 }
 
 EmptyUserCard.propTypes = { title: PropTypes.string };
+

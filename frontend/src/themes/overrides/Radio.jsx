@@ -121,3 +121,4 @@ export default function Radio(theme) {
 }
 
 getColorStyle.propTypes = { color: PropTypes.any, theme: PropTypes.any };
+

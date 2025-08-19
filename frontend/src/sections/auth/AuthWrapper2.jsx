@@ -47,3 +47,4 @@ export default function AuthWrapper2({ children }) {
 }
 
 AuthWrapper2.propTypes = { children: PropTypes.node };
+

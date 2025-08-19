@@ -253,3 +253,4 @@ ProductFilterView.propTypes = {
   handelFilter: PropTypes.func,
   initialState: PropTypes.any
 };
+

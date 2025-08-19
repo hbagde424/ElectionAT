@@ -124,3 +124,4 @@ MainCard.propTypes = {
   modal: PropTypes.bool,
   others: PropTypes.any
 };
+

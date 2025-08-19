@@ -280,8 +280,8 @@ export default function CodingModal({
         const method = codingEntry ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = codingEntry
-            ? `http://localhost:5000/api/codings/${codingEntry._id}`
-            : 'http://localhost:5000/api/codings';
+            ? `${import.meta.env.VITE_APP_API_URL}/codings/${codingEntry._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/codings';
 
         let userId = user?._id || user?.id;
         if (!userId) {

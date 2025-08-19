@@ -164,3 +164,4 @@ export default function IncomeAreaChart({ slot, quantity }) {
 }
 
 IncomeAreaChart.propTypes = { slot: PropTypes.string, quantity: PropTypes.any };
+

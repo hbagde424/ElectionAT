@@ -90,3 +90,4 @@ function HighlightByFilter({ ...other }) {
 export default memo(HighlightByFilter);
 
 HighlightByFilter.propTypes = { other: PropTypes.any };
+

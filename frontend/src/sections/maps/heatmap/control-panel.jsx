@@ -71,3 +71,4 @@ ControlPanel.propTypes = {
   onChangeTime: PropTypes.func,
   onChangeAllDays: PropTypes.func
 };
+

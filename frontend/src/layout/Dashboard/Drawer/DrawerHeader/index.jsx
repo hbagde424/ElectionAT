@@ -37,3 +37,4 @@ export default function DrawerHeader({ open }) {
 }
 
 DrawerHeader.propTypes = { open: PropTypes.bool };
+

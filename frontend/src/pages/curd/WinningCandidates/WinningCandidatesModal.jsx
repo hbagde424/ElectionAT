@@ -251,8 +251,8 @@ export default function WinningCandidateModal({
         const method = candidateEntry ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = candidateEntry
-            ? `http://localhost:5000/api/winning-candidates/${candidateEntry._id}`
-            : 'http://localhost:5000/api/winning-candidates';
+            ? `${import.meta.env.VITE_APP_API_URL}/winning-candidates/${candidateEntry._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/winning-candidates';
 
         let userId = user?._id || user?.id;
         if (!userId) {

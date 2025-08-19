@@ -122,3 +122,4 @@ export default function CustomComponent() {
 }
 
 CustomNotistackExtended.propTypes = { id: PropTypes.any, message: PropTypes.any };
+

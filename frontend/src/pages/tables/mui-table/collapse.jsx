@@ -143,3 +143,4 @@ export default function TableCollapsible() {
 }
 
 Row.propTypes = { row: PropTypes.any };
+

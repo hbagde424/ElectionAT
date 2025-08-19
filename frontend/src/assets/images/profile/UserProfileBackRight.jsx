@@ -18,3 +18,4 @@ const UserProfileBackRight = () => {
 };
 
 export default UserProfileBackRight;
+

@@ -22,3 +22,4 @@ export default function Checkout() {
 
   return cartLoading ? loader : <CheckoutTab cart={cart} />;
 }
+

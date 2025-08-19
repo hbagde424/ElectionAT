@@ -118,3 +118,4 @@ export default function ChatHistory({ theme, user }) {
 }
 
 ChatHistory.propTypes = { theme: PropTypes.any, user: PropTypes.any };
+

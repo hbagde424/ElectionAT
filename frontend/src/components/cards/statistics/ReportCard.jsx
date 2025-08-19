@@ -31,3 +31,4 @@ export default function ReportCard({ primary, secondary, iconPrimary, color }) {
 }
 
 ReportCard.propTypes = { primary: PropTypes.any, secondary: PropTypes.any, iconPrimary: PropTypes.any, color: PropTypes.any };
+

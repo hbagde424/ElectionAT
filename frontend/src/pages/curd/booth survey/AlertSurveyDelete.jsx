@@ -23,7 +23,7 @@ export default function AlertBoothSurveyDelete({ id, open, handleClose, refresh 
         try {
             const token = localStorage.getItem('serviceToken');
 
-            const res = await fetch(`http://localhost:5000/api/booth-surveys/${id}`, {
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-surveys/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

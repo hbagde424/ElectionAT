@@ -237,3 +237,4 @@ export default function PartyActivitiesView({ data }) {
         </Box>
     );
 }
+

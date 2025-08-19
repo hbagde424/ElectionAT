@@ -132,12 +132,12 @@ export default function GovernmentsListPage() {
                 assembliesRes,
 
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                // fetch('http://localhost:5000/api/blocks'),
-                // fetch('http://localhost:5000/api/booths')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                // fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+                // fetch('${import.meta.env.VITE_APP_API_URL}/booths')
             ]);
 
             const [
@@ -178,7 +178,7 @@ export default function GovernmentsListPage() {
             if (selectedAssembly) query += `&assembly=${selectedAssembly}`;
             if (selectedType) query += `&type=${selectedType}`;
 
-            const res = await fetch(`http://localhost:5000/api/governments?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setGovernments(json.data);
@@ -431,7 +431,7 @@ export default function GovernmentsListPage() {
 
     const fetchAllGovernmentsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/governments?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/governments?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

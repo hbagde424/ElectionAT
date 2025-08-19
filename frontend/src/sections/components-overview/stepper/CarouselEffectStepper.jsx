@@ -103,3 +103,4 @@ export default function CarouselEffectStepper() {
 SampleNextArrow.propTypes = { className: PropTypes.any, style: PropTypes.any, onClick: PropTypes.any };
 
 SamplePrevArrow.propTypes = { className: PropTypes.any, style: PropTypes.any, onClick: PropTypes.any };
+

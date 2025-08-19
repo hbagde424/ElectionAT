@@ -63,3 +63,4 @@ const AuthBackground = () => {
 };
 
 export default AuthBackground;
+

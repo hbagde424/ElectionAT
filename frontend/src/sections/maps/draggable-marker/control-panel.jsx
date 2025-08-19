@@ -42,3 +42,4 @@ function ControlPanel({ events = {} }) {
 export default memo(ControlPanel);
 
 ControlPanel.propTypes = { events: PropTypes.object };
+

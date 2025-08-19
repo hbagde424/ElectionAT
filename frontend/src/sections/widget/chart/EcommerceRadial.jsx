@@ -100,3 +100,4 @@ export default function EcommerceRadial({ color }) {
 EcommerceDataChart.propTypes = { color: PropTypes.string };
 
 EcommerceRadial.propTypes = { color: PropTypes.string };
+

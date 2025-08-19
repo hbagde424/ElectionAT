@@ -245,3 +245,4 @@ export default function Grouping() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

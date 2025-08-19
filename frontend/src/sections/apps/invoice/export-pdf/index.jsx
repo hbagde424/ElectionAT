@@ -30,3 +30,4 @@ export default function ExportPDFView({ list }) {
 }
 
 ExportPDFView.propTypes = { list: PropTypes.any };
+

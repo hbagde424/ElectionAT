@@ -4,7 +4,7 @@ import { Warning2 } from 'iconsax-react';
 export default function AlertBoothDemographicsDelete({ id, open, handleClose, refresh }) {
     const handleDelete = async () => {
         const token = localStorage.getItem('serviceToken');
-        const res = await fetch(`http://localhost:5000/api/booth-demographics/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

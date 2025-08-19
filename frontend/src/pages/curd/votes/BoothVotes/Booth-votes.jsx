@@ -64,7 +64,7 @@ export default function BoothVotesListPage() {
   const fetchVotes = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      let url = `http://localhost:5000/api/booth-votes?page=${pageIndex + 1}&limit=${pageSize}`;
+      let url = `${import.meta.env.VITE_APP_API_URL}/booth-votes?page=${pageIndex + 1}&limit=${pageSize}`;
       if (selectedCandidate) url += `&candidate=${selectedCandidate}`;
       if (selectedBooth) url += `&booth=${selectedBooth}`;
       if (selectedAssembly) url += `&assembly=${selectedAssembly}`;
@@ -86,7 +86,7 @@ export default function BoothVotesListPage() {
   const fetchAllVotesForCsv = async () => {
     setCsvLoading(true);
     try {
-      let url = 'http://localhost:5000/api/booth-votes?all=true';
+      let url = '${import.meta.env.VITE_APP_API_URL}/booth-votes?all=true';
       if (selectedCandidate) url += `&candidate=${selectedCandidate}`;
       if (selectedBooth) url += `&booth=${selectedBooth}`;
       if (selectedAssembly) url += `&assembly=${selectedAssembly}`;
@@ -137,16 +137,16 @@ export default function BoothVotesListPage() {
   const fetchReferenceData = async () => {
     try {
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes, partiesRes] = await Promise.all([
-        fetch('http://localhost:5000/api/states'),
-        fetch('http://localhost:5000/api/divisions'),
-        fetch('http://localhost:5000/api/parliaments'),
-        fetch('http://localhost:5000/api/assemblies'),
-        fetch('http://localhost:5000/api/blocks'),
-        fetch('http://localhost:5000/api/booths'),
-        fetch('http://localhost:5000/api/candidates'),
-        fetch('http://localhost:5000/api/election-years'),
-        fetch('http://localhost:5000/api/users'),
-        fetch('http://localhost:5000/api/parties')
+        fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/booths'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/candidates'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/election-years'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/users'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/parties')
       ]);
 
       const statesJson = await statesRes.json();

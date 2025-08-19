@@ -215,3 +215,4 @@ InvoiceModal.propTypes = {
   items: PropTypes.any,
   onAddNextInvoice: PropTypes.any
 };
+

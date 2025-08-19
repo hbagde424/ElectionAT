@@ -370,3 +370,4 @@ export default function Login3() {
 }
 
 StepWrapper.propTypes = { children: PropTypes.node, value: PropTypes.number, index: PropTypes.number, other: PropTypes.any };
+

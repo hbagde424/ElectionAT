@@ -237,8 +237,8 @@ export default function InfluencerModal({
         const method = influencer ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = influencer
-            ? `http://localhost:5000/api/influencers/${influencer._id}`
-            : 'http://localhost:5000/api/influencers';
+            ? `${import.meta.env.VITE_APP_API_URL}/influencers/${influencer._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/influencers';
 
         let userId = user?._id || user?.id;
         if (!userId) {

@@ -26,3 +26,4 @@ export default function GuestGuard({ children }) {
 }
 
 GuestGuard.propTypes = { children: PropTypes.any };
+

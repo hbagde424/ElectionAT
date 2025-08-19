@@ -165,3 +165,4 @@ StyledTreeItem.propTypes = {
   labelText: PropTypes.string,
   other: PropTypes.any
 };
+

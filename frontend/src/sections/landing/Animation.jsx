@@ -34,3 +34,4 @@ export default function FadeInWhenVisible({ children }) {
 }
 
 FadeInWhenVisible.propTypes = { children: PropTypes.node };
+

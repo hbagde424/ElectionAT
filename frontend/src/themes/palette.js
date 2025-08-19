@@ -34,3 +34,4 @@ export default function Palette(mode, presetColor, themeContrast) {
     }
   });
 }
+

@@ -42,8 +42,8 @@ export default function LocalDynamicsModal({ open, modalToggler, localDynamics, 
         const method = localDynamics ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = localDynamics
-            ? `http://localhost:5000/api/local-dynamics/${localDynamics._id}`
-            : 'http://localhost:5000/api/local-dynamics';
+            ? `${import.meta.env.VITE_APP_API_URL}/local-dynamics/${localDynamics._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/local-dynamics';
 
         const res = await fetch(url, {
             method,
@@ -100,3 +100,4 @@ export default function LocalDynamicsModal({ open, modalToggler, localDynamics, 
         </Dialog>
     );
 }
+

@@ -169,12 +169,12 @@ export default function WorkStatusListPage() {
     const fetchReferenceData = async () => {
         try {
             // Fetch states first
-            const statesRes = await fetch('http://localhost:5000/api/states');
+            const statesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/states`);
             const statesData = await statesRes.json();
             console.log('States Data:', statesData);
 
             // Fetch divisions next to see their structure
-            const divisionsRes = await fetch('http://localhost:5000/api/divisions');
+            const divisionsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`);
             const divisionsData = await divisionsRes.json();
             console.log('Divisions Data:', divisionsData);
 
@@ -185,10 +185,10 @@ export default function WorkStatusListPage() {
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths')
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
             ]);
 
             const [
@@ -250,7 +250,7 @@ export default function WorkStatusListPage() {
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
 
             const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
-            const res = await fetch(`http://localhost:5000/api/work-status${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setWorkStatuses(json.data);
@@ -565,7 +565,7 @@ export default function WorkStatusListPage() {
 
     const fetchAllWorkStatusesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/work-status?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;
@@ -881,3 +881,4 @@ export default function WorkStatusListPage() {
         </>
     );
 }
+

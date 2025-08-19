@@ -75,8 +75,8 @@ export default function DivisionModal({
         const method = division ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = division
-            ? `http://localhost:5000/api/divisions/${division._id}`
-            : 'http://localhost:5000/api/divisions';
+            ? `${import.meta.env.VITE_APP_API_URL}/divisions/${division._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/divisions';
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

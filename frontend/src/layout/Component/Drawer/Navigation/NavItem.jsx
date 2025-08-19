@@ -66,3 +66,4 @@ export default function NavItem({ item }) {
 }
 
 NavItem.propTypes = { item: PropTypes.any };
+

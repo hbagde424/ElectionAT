@@ -141,3 +141,4 @@ export default function DenseTable() {
 DenseTable.propTypes = { getValue: PropTypes.func };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array, title: PropTypes.string };
+

@@ -12,3 +12,4 @@ const Loadable = (Component) => (props) => (
 );
 
 export default Loadable;
+

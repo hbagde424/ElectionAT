@@ -23,3 +23,4 @@ export default function LogoSection({ isIcon, sx, to }) {
 }
 
 LogoSection.propTypes = { isIcon: PropTypes.bool, sx: PropTypes.any, to: PropTypes.any };
+

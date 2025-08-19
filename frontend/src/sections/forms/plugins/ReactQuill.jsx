@@ -15,3 +15,4 @@ export default function ReactQuillDemo() {
   };
   return <ReactQuill value={text} onChange={handleChange} />;
 }
+

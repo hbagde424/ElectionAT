@@ -74,3 +74,4 @@ SelectColumnSorting.propTypes = {
   setSorting: PropTypes.func,
   size: PropTypes.string
 };
+

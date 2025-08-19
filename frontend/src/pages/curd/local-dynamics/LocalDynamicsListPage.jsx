@@ -35,7 +35,7 @@ export default function LocalDynamicsListPage() {
     const fetchLocalDynamics = async (pageIndex, pageSize) => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/local-dynamics?page=${pageIndex + 1}&limit=${pageSize}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-dynamics?page=${pageIndex + 1}&limit=${pageSize}`);
             const json = await res.json();
             if (json.success) {
                 setLocalDynamics(json.data);
@@ -235,3 +235,4 @@ export default function LocalDynamicsListPage() {
         </>
     );
 }
+

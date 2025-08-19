@@ -4,3 +4,4 @@ function getWindowScheme() {
 }
 
 export default getWindowScheme;
+

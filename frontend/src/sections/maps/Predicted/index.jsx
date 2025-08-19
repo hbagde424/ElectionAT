@@ -55,8 +55,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         setLoading(true);
 
         const [assemblyResponse, predictionResponse] = await Promise.all([
-          fetch('http://localhost:5000/api/assembly-polygons'),
-          fetch('http://localhost:5000/api/winning-candidates/predict/2028')
+          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`),
+          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/predict/2028`)
         ]);
 
         if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');
@@ -277,3 +277,4 @@ AssemblyConstituencyMap.propTypes = {
 };
 
 export default memo(AssemblyConstituencyMap);
+

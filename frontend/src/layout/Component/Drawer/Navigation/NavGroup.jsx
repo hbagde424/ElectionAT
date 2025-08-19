@@ -39,3 +39,4 @@ export default function NavGroup({ item }) {
 }
 
 NavGroup.propTypes = { item: PropTypes.any };
+

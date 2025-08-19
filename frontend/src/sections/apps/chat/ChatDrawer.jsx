@@ -238,3 +238,4 @@ ChatDrawer.propTypes = {
   setUser: PropTypes.func,
   selectedUser: PropTypes.oneOfType([PropTypes.any, PropTypes.string])
 };
+

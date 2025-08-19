@@ -188,3 +188,4 @@ export default function Items({ item, index }) {
 }
 
 Items.propTypes = { item: PropTypes.any, index: PropTypes.number };
+

@@ -14,3 +14,4 @@ export default function MapPopup({ sx, children, ...other }) {
 }
 
 MapPopup.propTypes = { sx: PropTypes.object, children: PropTypes.any, other: PropTypes.any };
+

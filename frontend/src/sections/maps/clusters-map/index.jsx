@@ -66,3 +66,4 @@ function MapClusters({ ...other }) {
 export default memo(MapClusters);
 
 MapClusters.propTypes = { other: PropTypes.any };
+

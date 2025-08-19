@@ -35,3 +35,4 @@ const Theme = (presetColor, mode) => {
 };
 
 export default Theme;
+

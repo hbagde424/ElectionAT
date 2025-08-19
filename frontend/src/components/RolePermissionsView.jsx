@@ -52,3 +52,4 @@ const RolePermissionsView = ({ role }) => {
 };
 
 export default RolePermissionsView;
+

@@ -33,3 +33,4 @@ export default function MapMarker({ ...other }) {
 }
 
 MapMarker.propTypes = { other: PropTypes.any };
+

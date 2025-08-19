@@ -51,14 +51,14 @@ export default function AssemblyListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments')
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`)
             ]);
 
             const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch('http://localhost:5000/api/users', {
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -85,6 +85,9 @@ export default function AssemblyListPage() {
     const fetchAssemblies = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
+            console.log('Fetching assemblies with params:', { pageIndex, pageSize, globalFilter, currentFilters });
+            console.log('API Base URL:', import.meta.env.VITE_APP_API_URL);
+
             const queryParams = [];
             if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             if (currentFilters.type) queryParams.push(`type=${encodeURIComponent(currentFilters.type)}`);
@@ -94,22 +97,38 @@ export default function AssemblyListPage() {
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`http://localhost:5000/api/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const url = `${import.meta.env.VITE_APP_API_URL}/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
+            console.log('Fetching assemblies from:', url);
+
+            const res = await fetch(url);
             const json = await res.json();
+            console.log('API response:', json);
+
             if (json.success) {
                 setAssemblies(json.data);
                 setPageCount(json.pages);
             }
         } catch (error) {
             console.error('Failed to fetch assemblies:', error);
+            console.error('Error details:', error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
+        // Initial load - only runs once
+        console.log('Initial load effect triggered');
+        fetchAssemblies(0, 10); // Default values for first load
         fetchReferenceData();
+    }, []); // Empty dependency array for initial load only
+
+    useEffect(() => {
+        // Runs when pagination or filters change
+        console.log('Pagination/filter change effect triggered', { pagination, globalFilter });
+        if (pagination.pageIndex !== undefined && pagination.pageSize !== undefined) {
+            fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
+        }
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     const handleDeleteOpen = (id) => {
@@ -305,7 +324,7 @@ export default function AssemblyListPage() {
 
     const fetchAllAssembliesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/assemblies?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

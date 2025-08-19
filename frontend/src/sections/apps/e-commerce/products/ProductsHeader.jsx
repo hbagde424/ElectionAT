@@ -121,3 +121,4 @@ export default function ProductsHeader({ filter, handleDrawerOpen, setFilter }) 
 }
 
 ProductsHeader.propTypes = { filter: PropTypes.any, handleDrawerOpen: PropTypes.func, setFilter: PropTypes.func };
+

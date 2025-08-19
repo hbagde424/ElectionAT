@@ -23,7 +23,7 @@ export default function AlertPotentialCandidateDelete({ id, open, handleClose, r
         try {
             const token = localStorage.getItem('serviceToken');
 
-            const res = await fetch(`http://localhost:5000/api/potential-candidates/${id}`, {
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/potential-candidates/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

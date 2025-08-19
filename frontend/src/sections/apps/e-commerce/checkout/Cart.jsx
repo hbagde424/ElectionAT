@@ -203,3 +203,4 @@ Increment.propTypes = {
 };
 
 Cart.propTypes = { checkout: PropTypes.any, onNext: PropTypes.func, removeProduct: PropTypes.func, updateQuantity: PropTypes.func };
+

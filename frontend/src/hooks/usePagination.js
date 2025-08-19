@@ -27,3 +27,4 @@ export default function usePagination(data, itemsPerPage) {
 
   return { next, prev, jump, currentData, currentPage, maxPage };
 }
+

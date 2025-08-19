@@ -100,3 +100,4 @@ export const getAvailableEntities = (role) => {
         ROLE_PERMISSIONS[role][entity].length > 0
     );
 };
+

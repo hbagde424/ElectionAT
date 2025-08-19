@@ -132,3 +132,4 @@ ProductFilterDrawer.propTypes = {
   setFilter: PropTypes.func,
   setLoading: PropTypes.func
 };
+

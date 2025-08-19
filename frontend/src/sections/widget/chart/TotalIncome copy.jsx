@@ -236,7 +236,7 @@ export default function TotalIncome() {
   // Fetch available years
   const fetchYears = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/election-years');
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
       if (!response.ok) {
         throw new Error('Failed to fetch election years');
       }
@@ -255,7 +255,7 @@ export default function TotalIncome() {
     try {
       setLoading(true);
       const yearParam = selectedYear ? `?year=${selectedYear}` : '';
-      const response = await fetch(`http://localhost:5000/api/winning-candidates/graph${yearParam}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/graph${yearParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch winning candidates');
       }
@@ -426,3 +426,4 @@ export default function TotalIncome() {
     </MainCard>
   );
 }
+

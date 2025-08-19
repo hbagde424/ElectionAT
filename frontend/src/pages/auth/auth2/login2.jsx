@@ -74,3 +74,4 @@ export default function Login2() {
     </AuthWrapper2>
   );
 }
+

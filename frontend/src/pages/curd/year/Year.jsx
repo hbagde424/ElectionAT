@@ -37,7 +37,7 @@ export default function ElectionYearsListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/election-years?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setElectionYears(json.data);
@@ -183,7 +183,7 @@ export default function ElectionYearsListPage() {
 
     const fetchAllElectionYearsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/election-years?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

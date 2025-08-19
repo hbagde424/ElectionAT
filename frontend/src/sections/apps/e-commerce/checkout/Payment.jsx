@@ -395,3 +395,4 @@ Payment.propTypes = {
   removeProduct: PropTypes.func,
   editAddress: PropTypes.func
 };
+

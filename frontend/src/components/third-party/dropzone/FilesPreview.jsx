@@ -112,3 +112,4 @@ export default function FilesPreview({ showList = false, files, onRemove, type }
 }
 
 FilesPreview.propTypes = { showList: PropTypes.bool, files: PropTypes.any, onRemove: PropTypes.any, type: PropTypes.any };
+

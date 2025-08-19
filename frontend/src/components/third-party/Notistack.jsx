@@ -52,3 +52,4 @@ export default function Notistack({ children }) {
 }
 
 Notistack.propTypes = { children: PropTypes.node };
+

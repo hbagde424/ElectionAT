@@ -27,3 +27,4 @@ export default function AuthGuard({ children }) {
 }
 
 AuthGuard.propTypes = { children: PropTypes.any };
+

@@ -60,3 +60,4 @@ export default function AlertColumnDelete({ title, open, handleClose }) {
 }
 
 AlertColumnDelete.propTypes = { title: PropTypes.string, open: PropTypes.bool, handleClose: PropTypes.func };
+

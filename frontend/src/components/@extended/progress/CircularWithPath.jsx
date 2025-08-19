@@ -64,3 +64,4 @@ CircularWithPath.propTypes = {
   sx: PropTypes.any,
   others: PropTypes.any
 };
+

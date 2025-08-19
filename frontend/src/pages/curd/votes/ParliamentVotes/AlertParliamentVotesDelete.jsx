@@ -4,7 +4,7 @@ export default function AlertParliamentVotesDelete({ id, open, handleClose, refr
   const handleDelete = async () => {
     const token = localStorage.getItem('serviceToken');
 
-    const res = await fetch(`http://localhost:5000/api/parliament-votes/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-votes/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

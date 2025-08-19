@@ -106,3 +106,4 @@ export default function AvatarUpload({ error, file, setFieldValue, sx }) {
 }
 
 AvatarUpload.propTypes = { error: PropTypes.any, file: PropTypes.any, setFieldValue: PropTypes.any, sx: PropTypes.any };
+

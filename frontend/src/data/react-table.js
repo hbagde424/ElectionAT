@@ -89,3 +89,4 @@ export default function makeData(...lens) {
 
   return makeDataLevel();
 }
+

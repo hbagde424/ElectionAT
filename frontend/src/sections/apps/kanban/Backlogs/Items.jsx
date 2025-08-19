@@ -168,3 +168,4 @@ export default function Items({ itemId, index }) {
 }
 
 Items.propTypes = { itemId: PropTypes.string, index: PropTypes.number };
+

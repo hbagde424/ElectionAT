@@ -18,3 +18,4 @@ export default function LinearWithIcon({ icon, value, ...others }) {
 }
 
 LinearWithIcon.propTypes = { icon: PropTypes.any, value: PropTypes.any, others: PropTypes.any };
+

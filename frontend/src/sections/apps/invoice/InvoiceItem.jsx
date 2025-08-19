@@ -140,3 +140,4 @@ InvoiceItem.propTypes = {
   errors: PropTypes.any,
   touched: PropTypes.any
 };
+

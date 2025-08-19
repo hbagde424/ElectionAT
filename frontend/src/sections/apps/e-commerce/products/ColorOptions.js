@@ -64,3 +64,4 @@ const ColorsOptions = [
 ];
 
 export default ColorsOptions;
+

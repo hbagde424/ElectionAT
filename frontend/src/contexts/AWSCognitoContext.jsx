@@ -239,3 +239,4 @@ export const AWSCognitoProvider = ({ children }) => {
 };
 
 export default AWSCognitoContext;
+

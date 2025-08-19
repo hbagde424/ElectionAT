@@ -67,3 +67,4 @@ DebouncedInput.propTypes = {
   size: PropTypes.string,
   props: PropTypes.any
 };
+

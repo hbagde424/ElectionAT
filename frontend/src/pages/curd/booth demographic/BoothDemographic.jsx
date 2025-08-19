@@ -49,12 +49,12 @@ export default function BoothDemographicsListPage() {
                 assembliesRes,
                 blocksRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/booths?all=true'),
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks')
+                fetch('${import.meta.env.VITE_APP_API_URL}/booths?all=true'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/blocks')
             ]);
 
             const [
@@ -89,7 +89,7 @@ export default function BoothDemographicsListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`http://localhost:5000/api/booth-demographics?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setDemographics(json.data);
@@ -336,7 +336,7 @@ export default function BoothDemographicsListPage() {
 
     const fetchAllDemographicsForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/booth-demographics?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/booth-demographics?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

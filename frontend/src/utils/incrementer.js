@@ -20,3 +20,4 @@ export default function incrementer(string) {
 
   return str.replace(/[0-9]/g, '').concat(number);
 }
+

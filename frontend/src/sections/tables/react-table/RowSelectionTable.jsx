@@ -212,3 +212,4 @@ export default function RowSelectionTable() {
 }
 
 ReactTable.propTypes = { data: PropTypes.array, columns: PropTypes.array };
+

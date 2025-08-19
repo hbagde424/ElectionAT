@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { 
+import {
   useTheme,
   useMediaQuery,
   Grid,
@@ -172,7 +172,7 @@ export default function TotalSeatsByParty() {
 
   const fetchYears = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/election-years');
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
       const result = await res.json();
       const availableYears = result.data.map(d => d.year).sort((a, b) => b - a);
       setYears(availableYears);
@@ -188,11 +188,11 @@ export default function TotalSeatsByParty() {
     try {
       setLoading(true);
       const yearParam = selectedYear ? `?year=${selectedYear}` : '';
-      const response = await fetch(`http://localhost:5000/api/winning-parties/graph${yearParam}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties/graph${yearParam}`);
       const result = await response.json();
       setData(result.data);
-      
-      const boothsResponse = await fetch(`http://localhost:5000/api/total-booths${yearParam}`);
+
+      const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/total-booths${yearParam}`);
       if (boothsResponse.ok) {
         const boothsData = await boothsResponse.json();
         setTotalBooths(boothsData.totalBooths || 0);
@@ -267,7 +267,7 @@ export default function TotalSeatsByParty() {
                 onClick={downloadFullChart}
                 startIcon={<ArrowCircleDown2 />}
               >
-                
+
               </Button>
               <IconButton onClick={handleClick}>
                 <MoreIcon />

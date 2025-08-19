@@ -62,3 +62,4 @@ function DraggableMarkers({ ...other }) {
 export default memo(DraggableMarkers);
 
 DraggableMarkers.propTypes = { other: PropTypes.any };
+

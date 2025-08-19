@@ -9,3 +9,4 @@ export default function IndeterminateCheckbox({ indeterminate, ...rest }) {
 }
 
 IndeterminateCheckbox.propTypes = { indeterminate: PropTypes.bool };
+

@@ -199,13 +199,13 @@ export default function InfluencersListPage() {
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/districts'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/districts'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/booths')
             ]);
 
             const [
@@ -251,7 +251,7 @@ export default function InfluencersListPage() {
             if (selectedBlock) query += `&block=${selectedBlock}`;
             if (selectedBooth) query += `&booth=${selectedBooth}`;
 
-            const res = await fetch(`http://localhost:5000/api/influencers?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setInfluencers(json.data);
@@ -491,7 +491,7 @@ export default function InfluencersListPage() {
 
     const fetchAllInfluencersForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/influencers?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/influencers?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

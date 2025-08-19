@@ -167,3 +167,4 @@ export default function ListSmallCard({ customer }) {
 }
 
 ListSmallCard.propTypes = { customer: PropTypes.any };
+

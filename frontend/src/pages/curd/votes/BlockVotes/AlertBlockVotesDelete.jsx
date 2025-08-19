@@ -4,7 +4,7 @@ export default function AlertBlockVotesDelete({ id, open, handleClose, refresh }
   const handleDelete = async () => {
     const token = localStorage.getItem('serviceToken');
 
-    const res = await fetch(`http://localhost:5000/api/block-votes/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-votes/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

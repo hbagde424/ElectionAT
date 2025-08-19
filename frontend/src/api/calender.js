@@ -99,3 +99,4 @@ export async function deleteEvent(eventId) {
   //   const data = { newEvent };
   //   await axios.post(endpoints.key + endpoints.delete, data);
 }
+

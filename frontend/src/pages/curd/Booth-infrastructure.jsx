@@ -369,3 +369,4 @@ export default function CustomerListPage() {
 }
 
 ReactTable.propTypes = { data: PropTypes.array, columns: PropTypes.array, modalToggler: PropTypes.func };
+

@@ -98,3 +98,4 @@ TextInput.propTypes = {
 };
 
 Filter.propTypes = { column: PropTypes.object, table: PropTypes.object };
+

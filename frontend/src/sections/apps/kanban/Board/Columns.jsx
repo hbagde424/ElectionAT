@@ -127,3 +127,4 @@ export default function Columns({ column, index }) {
 }
 
 Columns.propTypes = { column: PropTypes.any, index: PropTypes.number };
+

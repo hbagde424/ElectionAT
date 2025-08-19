@@ -72,3 +72,4 @@ function MarkersPopups({ data, ...other }) {
 export default memo(MarkersPopups);
 
 MarkersPopups.propTypes = { data: PropTypes.array, other: PropTypes.any };
+

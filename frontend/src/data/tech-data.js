@@ -167,3 +167,4 @@ export const techData = [
   //   free: null
   // }
 ];
+

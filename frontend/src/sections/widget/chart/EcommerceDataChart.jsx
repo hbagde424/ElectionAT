@@ -79,3 +79,4 @@ export default function EcommerceDataChart({ color, height }) {
 }
 
 EcommerceDataChart.propTypes = { color: PropTypes.string, height: PropTypes.number };
+

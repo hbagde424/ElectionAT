@@ -1327,3 +1327,4 @@ export default function ComponentSnackbar() {
     </ComponentSkeleton>
   );
 }
+

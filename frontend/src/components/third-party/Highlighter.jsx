@@ -53,3 +53,4 @@ export default function Highlighter({ codeString, codeHighlight }) {
 }
 
 Highlighter.propTypes = { codeString: PropTypes.string, codeHighlight: PropTypes.bool };
+

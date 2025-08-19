@@ -251,3 +251,4 @@ SelectColumnFilter.propTypes = { column: PropTypes.any };
 SliderColumnFilter.propTypes = { column: PropTypes.any };
 
 NumberRangeColumnFilter.propTypes = { column: PropTypes.any };
+

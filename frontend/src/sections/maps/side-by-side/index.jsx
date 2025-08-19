@@ -84,3 +84,4 @@ function SideBySide({ ...other }) {
 export default memo(SideBySide);
 
 SideBySide.propTypes = { other: PropTypes.any };
+

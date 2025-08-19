@@ -110,7 +110,7 @@ const WinningPartyListPage = () => {
                 queryParams.push(`candidate=${appliedFilters.candidate}`);
             }
 
-            const res = await fetch(`http://localhost:5000/api/winning-parties?${queryParams.join('&')}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties?${queryParams.join('&')}`);
             const json = await res.json();
             if (json.success) {
                 setWinningParties(json.data);
@@ -130,15 +130,15 @@ const WinningPartyListPage = () => {
                 assembliesRes, blocksRes, boothsRes,
                 partiesRes, candidatesRes, electionYearsRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths'),
-                fetch('http://localhost:5000/api/parties'),
-                fetch('http://localhost:5000/api/candidates'),
-                fetch('http://localhost:5000/api/election-years')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/booths'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parties'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/candidates'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/election-years')
             ]);
 
             const [
@@ -425,7 +425,7 @@ const WinningPartyListPage = () => {
 
     const fetchAllWinningPartiesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/winning-parties?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/winning-parties?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

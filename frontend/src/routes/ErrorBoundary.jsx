@@ -28,3 +28,4 @@ export default function ErrorBoundary() {
 
   return <Alert color="error">Under Maintenance</Alert>;
 }
+

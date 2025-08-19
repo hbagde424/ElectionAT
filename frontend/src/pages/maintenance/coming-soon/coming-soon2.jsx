@@ -100,3 +100,4 @@ export default function ComingSoon() {
 }
 
 TimerBox.propTypes = { count: PropTypes.number };
+

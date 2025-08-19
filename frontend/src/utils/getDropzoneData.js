@@ -19,3 +19,4 @@ export default function getDropzoneData(file, index) {
     lastModifiedDate: file.lastModifiedDate
   };
 }
+

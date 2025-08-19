@@ -215,8 +215,8 @@ export default function ElectionTypeModal({
         const method = electionType ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = electionType
-            ? `http://localhost:5000/api/election-types/${electionType._id}`
-            : 'http://localhost:5000/api/election-types';
+            ? `${import.meta.env.VITE_APP_API_URL}/election-types/${electionType._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/election-types';
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

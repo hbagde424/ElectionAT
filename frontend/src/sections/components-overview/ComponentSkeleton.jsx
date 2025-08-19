@@ -90,3 +90,4 @@ export default function ComponentSkeleton({ children }) {
 }
 
 ComponentSkeleton.propTypes = { children: PropTypes.node };
+

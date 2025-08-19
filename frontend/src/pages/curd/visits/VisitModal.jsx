@@ -303,8 +303,8 @@ export default function VisitModal({
         try {
             const token = localStorage.getItem('serviceToken');
             const url = visit 
-                ? `http://localhost:5000/api/visits/${visit._id}` 
-                : 'http://localhost:5000/api/visits';
+                ? `${import.meta.env.VITE_APP_API_URL}/visits/${visit._id}` 
+                : '${import.meta.env.VITE_APP_API_URL}/visits';
             const method = visit ? 'PUT' : 'POST';
 
             const submitData = {

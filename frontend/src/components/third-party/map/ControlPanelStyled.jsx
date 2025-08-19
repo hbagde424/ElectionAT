@@ -18,3 +18,4 @@ const ControlPanelStyled = styled(Box)(({ theme }) => ({
 }));
 
 export default ControlPanelStyled;
+

@@ -62,3 +62,4 @@ export default function ProfileCard({ focusInput }) {
 }
 
 ProfileCard.propTypes = { focusInput: PropTypes.func };
+

@@ -155,3 +155,4 @@ export default function EditableCell() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array, setData: PropTypes.any };
+

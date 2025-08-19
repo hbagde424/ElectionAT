@@ -213,3 +213,4 @@ export default function SalesChart() {
     </MainCard>
   );
 }
+

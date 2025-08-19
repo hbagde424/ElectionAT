@@ -246,8 +246,8 @@ export default function CasteModal({
         const method = casteEntry ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = casteEntry
-            ? `http://localhost:5000/api/caste-lists/${casteEntry._id}`
-            : 'http://localhost:5000/api/caste-lists';
+            ? `${import.meta.env.VITE_APP_API_URL}/caste-lists/${casteEntry._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/caste-lists';
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

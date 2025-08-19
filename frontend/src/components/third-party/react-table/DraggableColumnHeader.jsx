@@ -51,3 +51,4 @@ export default function DraggableColumnHeader({ header, table, children }) {
 }
 
 DraggableColumnHeader.propTypes = { header: PropTypes.object, table: PropTypes.object, children: PropTypes.node };
+

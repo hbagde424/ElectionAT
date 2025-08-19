@@ -21,3 +21,4 @@ function minLength(value) {
 }
 
 export { isNumber, isLowercaseChar, isUppercaseChar, isSpecialChar, minLength };
+

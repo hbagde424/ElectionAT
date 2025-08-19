@@ -60,3 +60,4 @@ export default function CustomerModal({ open, modalToggler, customer }) {
 }
 
 CustomerModal.propTypes = { open: PropTypes.bool, modalToggler: PropTypes.func, customer: PropTypes.any };
+

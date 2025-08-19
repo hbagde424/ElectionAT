@@ -53,3 +53,4 @@ export default function Navigation({ searchValue }) {
 }
 
 Navigation.propTypes = { searchValue: PropTypes.string };
+

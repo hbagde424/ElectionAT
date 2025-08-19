@@ -31,3 +31,4 @@ function ControlPanel({ themes, selectTheme, onChangeTheme }) {
 export default memo(ControlPanel);
 
 ControlPanel.propTypes = { themes: PropTypes.object, selectTheme: PropTypes.string, onChangeTheme: PropTypes.func };
+

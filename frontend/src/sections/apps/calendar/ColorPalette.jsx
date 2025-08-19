@@ -57,3 +57,4 @@ export default function ColorPalette({ color, value, isLight }) {
 }
 
 ColorPalette.propTypes = { color: PropTypes.string, value: PropTypes.string, isLight: PropTypes.bool };
+

@@ -436,3 +436,4 @@ export default function TabPayment() {
 }
 
 PaymentCard.propTypes = { card: PropTypes.any };
+

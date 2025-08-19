@@ -174,3 +174,4 @@ export default function ColumnDragDrop() {
 ColumnDragDrop.propTypes = { getValue: PropTypes.func };
 
 ReactTable.propTypes = { defaultColumns: PropTypes.array, data: PropTypes.array };
+

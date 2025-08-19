@@ -50,8 +50,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
       try {
         setLoading(true);
         const [assemblyResponse, candidatesResponse] = await Promise.all([
-          fetch('http://localhost:5000/api/assembly-polygons'),
-          fetch('http://localhost:5000/api/winning-candidates?all=true')
+          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`),
+          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`)
         ]);
         if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');
         if (!candidatesResponse.ok) throw new Error('Failed to fetch candidates data');
@@ -164,7 +164,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
 
   const handleFeatureClick = (e) => {
     if (!e.features?.length) return;
-    
+
     const feature = e.features[0];
     setPopupInfo({
       longitude: e.lngLat.lng,
@@ -173,24 +173,24 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
     });
   };
 
-    const getFilteredData = () => {
-      if (!assemblyData) return null;
+  const getFilteredData = () => {
+    if (!assemblyData) return null;
 
-      const filteredFeatures = assemblyData.features.filter(feature => {
-        const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
-        const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
-        // Fix: Compare year as string, and only match if filter is not 'all'
-        const yearValue = feature.properties?.electionYear?.toString();
-        const filterYear = filters.year?.toString();
-        const yearMatch = filterYear === 'all' || yearValue === filterYear;
-        return pcMatch && partyMatch && yearMatch;
-      });
+    const filteredFeatures = assemblyData.features.filter(feature => {
+      const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
+      const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
+      // Fix: Compare year as string, and only match if filter is not 'all'
+      const yearValue = feature.properties?.electionYear?.toString();
+      const filterYear = filters.year?.toString();
+      const yearMatch = filterYear === 'all' || yearValue === filterYear;
+      return pcMatch && partyMatch && yearMatch;
+    });
 
-      return {
-        type: 'FeatureCollection',
-        features: filteredFeatures
-      };
+    return {
+      type: 'FeatureCollection',
+      features: filteredFeatures
     };
+  };
 
   const getColorForFeature = (feature) => {
     return partyColors[feature.properties?.winningParty] || partyColors['default'];
@@ -346,9 +346,9 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                 <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>
                   {popupInfo.properties.AC_NAME || 'Assembly Constituency'}
                 </h4>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   marginBottom: '8px',
                   padding: '4px',
                   backgroundColor: getColorForFeature({ properties: popupInfo.properties }),
@@ -408,7 +408,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
             <Typography color="error" variant="body1">
               Error: {error}
             </Typography>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               style={{
                 marginTop: '8px',

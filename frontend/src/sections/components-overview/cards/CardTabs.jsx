@@ -81,3 +81,4 @@ export default function CardTabs({ activeTab }) {
 TabPanel.propTypes = { children: PropTypes.node, value: PropTypes.number, index: PropTypes.number, other: PropTypes.any };
 
 CardTabs.propTypes = { activeTab: PropTypes.number };
+

@@ -74,3 +74,4 @@ export default function OrderSummary({ checkout, show }) {
 }
 
 OrderSummary.propTypes = { checkout: PropTypes.any, show: PropTypes.bool };
+

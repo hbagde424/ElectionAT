@@ -111,3 +111,4 @@ export default function AcquisitionChart() {
 
   return <ReactApexChart options={options} series={series} type="bar" height={250} />;
 }
+

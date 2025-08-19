@@ -265,3 +265,4 @@ export default function ListCard({ customer }) {
 }
 
 ListCard.propTypes = { customer: PropTypes.any };
+

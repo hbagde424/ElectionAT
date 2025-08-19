@@ -104,3 +104,4 @@ EcommerceDataCard.propTypes = {
   iconPrimary: PropTypes.node,
   children: PropTypes.any
 };
+

@@ -48,3 +48,4 @@ export default function PlaceholderContent({ type }) {
 }
 
 PlaceholderContent.propTypes = { type: PropTypes.any };
+

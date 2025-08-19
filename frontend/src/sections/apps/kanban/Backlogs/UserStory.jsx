@@ -240,3 +240,4 @@ export default function UserStory({ story, index }) {
 }
 
 UserStory.propTypes = { story: PropTypes.any, index: PropTypes.number };
+

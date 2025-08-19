@@ -24,3 +24,4 @@ export default function UserAvatar({ user }) {
 }
 
 UserAvatar.propTypes = { user: PropTypes.any };
+

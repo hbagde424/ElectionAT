@@ -71,3 +71,4 @@ function ControlPanel({ settings, onChange }) {
 export default memo(ControlPanel);
 
 ControlPanel.propTypes = { settings: PropTypes.any, onChange: PropTypes.func };
+

@@ -179,3 +179,4 @@ export default function ProductImages({ product }) {
 }
 
 ProductImages.propTypes = { product: PropTypes.any };
+

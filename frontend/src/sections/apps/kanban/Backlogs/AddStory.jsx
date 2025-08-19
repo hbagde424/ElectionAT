@@ -306,3 +306,4 @@ export default function AddStory({ open, handleDrawerOpen }) {
 }
 
 AddStory.propTypes = { open: PropTypes.bool, handleDrawerOpen: PropTypes.func };
+

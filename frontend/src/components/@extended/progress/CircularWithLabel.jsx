@@ -29,3 +29,4 @@ export default function CircularWithLabel({ value, ...others }) {
 }
 
 CircularWithLabel.propTypes = { value: PropTypes.any, others: PropTypes.any };
+

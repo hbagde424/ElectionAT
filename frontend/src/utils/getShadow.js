@@ -28,3 +28,4 @@ export default function getShadow(theme, shadow) {
       return theme.customShadows.primary;
   }
 }
+

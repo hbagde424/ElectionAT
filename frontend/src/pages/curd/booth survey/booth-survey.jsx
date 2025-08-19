@@ -65,7 +65,7 @@ export default function BoothSurveyListPage() {
     setLoading(true);
     setError('');
     try {
-      let url = `http://localhost:5000/api/booth-surveys?page=${pageIndex + 1}&limit=${pageSize}`;
+      let url = `${import.meta.env.VITE_APP_API_URL}/booth-surveys?page=${pageIndex + 1}&limit=${pageSize}`;
       if (filterParams.state_id) url += `&state_id=${filterParams.state_id}`;
       if (filterParams.division_id) url += `&division_id=${filterParams.division_id}`;
       if (filterParams.parliament_id) url += `&parliament_id=${filterParams.parliament_id}`;
@@ -92,17 +92,17 @@ export default function BoothSurveyListPage() {
     try {
       const token = localStorage.getItem('serviceToken');
       const [boothsRes, usersRes, statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-        fetch('http://localhost:5000/api/booths'),
-        fetch('http://localhost:5000/api/users', {
+        fetch('${import.meta.env.VITE_APP_API_URL}/booths'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/users', {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch('http://localhost:5000/api/states'),
-        fetch('http://localhost:5000/api/divisions'),
-        fetch('http://localhost:5000/api/parliaments'),
-        fetch('http://localhost:5000/api/assemblies'),
-        fetch('http://localhost:5000/api/blocks')
+        fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/blocks')
       ]);
 
       const boothsJson = await boothsRes.json();

@@ -16,3 +16,4 @@ export default function ScrollTop({ children }) {
 }
 
 ScrollTop.propTypes = { children: PropTypes.oneOfType([PropTypes.node, PropTypes.any]) };
+

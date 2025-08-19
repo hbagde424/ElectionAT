@@ -180,3 +180,4 @@ export default function PaginationTable() {
 }
 
 ReactTable.propTypes = { data: PropTypes.array, columns: PropTypes.array, top: PropTypes.bool };
+

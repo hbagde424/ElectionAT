@@ -292,3 +292,4 @@ export default function AddItem({ open, handleDrawerOpen, storyId }) {
 }
 
 AddItem.propTypes = { open: PropTypes.bool, handleDrawerOpen: PropTypes.func, storyId: PropTypes.string };
+

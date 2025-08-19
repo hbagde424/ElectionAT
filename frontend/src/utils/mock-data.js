@@ -76,3 +76,4 @@ export default function mockData(index) {
     time: lodash.sampleSize(time)
   };
 }
+

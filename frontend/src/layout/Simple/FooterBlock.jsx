@@ -195,3 +195,4 @@ export default function FooterBlock({ isFull }) {
 }
 
 FooterBlock.propTypes = { isFull: PropTypes.bool };
+

@@ -174,8 +174,8 @@ export default function BlocksModal({
         const method = block ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = block
-            ? `http://localhost:5000/api/blocks/${block._id}`
-            : 'http://localhost:5000/api/blocks';
+            ? `${import.meta.env.VITE_APP_API_URL}/blocks/${block._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/blocks';
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

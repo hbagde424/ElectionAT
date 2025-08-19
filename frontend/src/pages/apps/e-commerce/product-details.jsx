@@ -180,3 +180,4 @@ export default function ProductDetails() {
 }
 
 TabPanel.propTypes = { children: PropTypes.any, value: PropTypes.any, index: PropTypes.any, other: PropTypes.any };
+

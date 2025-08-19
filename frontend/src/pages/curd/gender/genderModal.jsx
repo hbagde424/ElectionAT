@@ -250,8 +250,8 @@ export default function GenderModal({
         const method = genderEntry ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = genderEntry
-            ? `http://localhost:5000/api/genders/${genderEntry._id}`
-            : 'http://localhost:5000/api/genders';
+            ? `${import.meta.env.VITE_APP_API_URL}/genders/${genderEntry._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/genders';
 
         let userId = user?._id || user?.id;
         if (!userId) {

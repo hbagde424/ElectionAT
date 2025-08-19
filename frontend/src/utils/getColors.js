@@ -16,3 +16,4 @@ export default function getColors(theme, color) {
       return theme.palette.primary;
   }
 }
+

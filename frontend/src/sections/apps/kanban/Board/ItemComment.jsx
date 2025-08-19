@@ -64,3 +64,4 @@ export default function ItemComment({ comment, profile }) {
 }
 
 ItemComment.propTypes = { comment: PropTypes.any, profile: PropTypes.any };
+

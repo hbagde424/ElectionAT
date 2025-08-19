@@ -87,11 +87,11 @@ export default function BoothDemographicsModal({
         const fetchReferenceData = async () => {
             try {
                 const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-                    fetch('http://localhost:5000/api/states'),
-                    fetch('http://localhost:5000/api/divisions'),
-                    fetch('http://localhost:5000/api/parliaments'),
-                    fetch('http://localhost:5000/api/assemblies'),
-                    fetch('http://localhost:5000/api/blocks')
+                    fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                    fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                    fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                    fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                    fetch('${import.meta.env.VITE_APP_API_URL}/blocks')
                 ]);
 
                 const [statesData, divisionsData, parliamentsData, assembliesData, blocksData] = await Promise.all([
@@ -353,8 +353,8 @@ export default function BoothDemographicsModal({
         const method = demographics ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = demographics
-            ? `http://localhost:5000/api/booth-demographics/${demographics._id}`
-            : 'http://localhost:5000/api/booth-demographics';
+            ? `${import.meta.env.VITE_APP_API_URL}/booth-demographics/${demographics._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/booth-demographics';
 
         // Get user ID
         let userId = user?._id || user?.id;

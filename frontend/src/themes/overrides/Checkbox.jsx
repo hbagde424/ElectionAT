@@ -94,3 +94,4 @@ export default function Checkbox(theme) {
 }
 
 getColorStyle.propTypes = { color: PropTypes.any, theme: PropTypes.any };
+

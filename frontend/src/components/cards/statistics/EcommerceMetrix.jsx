@@ -65,3 +65,4 @@ EcommerceMetrix.propTypes = {
   iconPrimary: PropTypes.any,
   color: PropTypes.any
 };
+

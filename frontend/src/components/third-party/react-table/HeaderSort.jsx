@@ -49,3 +49,4 @@ export default function HeaderSort({ column, sort }) {
 SortToggler.propTypes = { type: PropTypes.any };
 
 HeaderSort.propTypes = { column: PropTypes.object, sort: PropTypes.bool };
+

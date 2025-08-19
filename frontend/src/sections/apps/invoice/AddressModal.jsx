@@ -132,3 +132,4 @@ function Address({ handlerAddress }) {
 AddressModal.propTypes = { open: PropTypes.bool, setOpen: PropTypes.func, handlerAddress: PropTypes.func };
 
 Address.propTypes = { handlerAddress: PropTypes.func };
+

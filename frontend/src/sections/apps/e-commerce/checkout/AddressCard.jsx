@@ -79,3 +79,4 @@ AddressCard.propTypes = {
   handleClickOpen: PropTypes.func,
   billingAddressHandler: PropTypes.func
 };
+

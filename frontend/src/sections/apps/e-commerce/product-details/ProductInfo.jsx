@@ -266,3 +266,4 @@ export default function ProductInfo({ product }) {
 Colors.propTypes = { checked: PropTypes.bool, colorsData: PropTypes.array };
 
 ProductInfo.propTypes = { product: PropTypes.any };
+

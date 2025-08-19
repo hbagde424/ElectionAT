@@ -221,3 +221,4 @@ export default function CustomerCard({ customer }) {
 }
 
 CustomerCard.propTypes = { customer: PropTypes.any };
+

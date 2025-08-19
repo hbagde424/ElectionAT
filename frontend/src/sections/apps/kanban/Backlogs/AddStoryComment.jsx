@@ -126,3 +126,4 @@ export default function AddStoryComment({ storyId }) {
 }
 
 AddStoryComment.propTypes = { storyId: PropTypes.string };
+

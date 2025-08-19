@@ -60,12 +60,12 @@ export default function CasteListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/blocks'),
-                fetch('http://localhost:5000/api/booths')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/booths')
             ]);
 
             const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
@@ -102,7 +102,7 @@ export default function CasteListPage() {
         }));
 
         // Filter divisions based on selected state
-        const filteredDivs = divisions.filter(div => div.state === stateId);
+        const filteredDivs = divisions.filter(div => div.state?._id === stateId);
         setFilteredDivisions(filteredDivs);
         setFilteredParliaments([]);
         setFilteredAssemblies([]);
@@ -183,7 +183,7 @@ export default function CasteListPage() {
                     query += `&${key}=${encodeURIComponent(value)}`;
                 }
             });
-            const res = await fetch(`http://localhost:5000/api/caste-lists?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setCasteList(json.data);
@@ -437,7 +437,7 @@ export default function CasteListPage() {
 
     const fetchAllCastesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/caste-lists?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/caste-lists?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

@@ -89,3 +89,4 @@ export default function OrderComplete({ open }) {
 }
 
 OrderComplete.propTypes = { open: PropTypes.bool };
+

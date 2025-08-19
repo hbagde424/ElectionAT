@@ -247,3 +247,4 @@ export default function NavItem({ item, level, isParents = false }) {
 }
 
 NavItem.propTypes = { item: PropTypes.any, level: PropTypes.number, isParents: PropTypes.bool };
+

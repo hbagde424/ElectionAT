@@ -24,3 +24,4 @@ export default function ChatMessageSend({ message, setMessage, handleEnter }) {
 }
 
 ChatMessageSend.propTypes = { message: PropTypes.string, setMessage: PropTypes.func, handleEnter: PropTypes.any };
+

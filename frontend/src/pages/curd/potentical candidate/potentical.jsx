@@ -60,7 +60,7 @@ export default function PotentialCandidateListPage() {
     setLoading(true);
     setError('');
     try {
-      let url = `http://localhost:5000/api/potential-candidates?page=${pageIndex + 1}&limit=${pageSize}`;
+      let url = `${import.meta.env.VITE_APP_API_URL}/potential-candidates?page=${pageIndex + 1}&limit=${pageSize}`;
 
       if (appliedFilters.party) url += `&party_id=${appliedFilters.party}`;
       if (appliedFilters.constituency) url += `&constituency_id=${appliedFilters.constituency}`;
@@ -86,9 +86,9 @@ export default function PotentialCandidateListPage() {
   const fetchReferenceData = async () => {
     try {
       const [partiesRes, assembliesRes, electionYearsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/parties'),
-        fetch('http://localhost:5000/api/assemblies'),
-        fetch('http://localhost:5000/api/election-years')
+        fetch('${import.meta.env.VITE_APP_API_URL}/parties'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+        fetch('${import.meta.env.VITE_APP_API_URL}/election-years')
       ]);
 
       const partiesJson = await partiesRes.json();

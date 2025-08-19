@@ -141,3 +141,4 @@ AddressForm.propTypes = {
   handleNext: PropTypes.func,
   setErrorIndex: PropTypes.func
 };
+

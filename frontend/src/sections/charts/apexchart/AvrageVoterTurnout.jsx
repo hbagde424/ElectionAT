@@ -36,7 +36,7 @@ const columnChartOptions = {
       text: 'Number of Voters'
     },
     labels: {
-      formatter: function(val) {
+      formatter: function (val) {
         return val.toLocaleString(); // Format numbers with commas
       }
     }
@@ -46,7 +46,7 @@ const columnChartOptions = {
   },
   tooltip: {
     y: {
-      formatter: function(val) {
+      formatter: function (val) {
         return val.toLocaleString(); // Format tooltip numbers with commas
       }
     }
@@ -105,16 +105,16 @@ export default function VoterTurnoutChart() {
     const fetchVoterTurnoutData = async () => {
       try {
         // First get all available years
-        const yearsResponse = await axios.get('http://localhost:5000/api/election-years');
+        const yearsResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/election-years`);
         const years = yearsResponse.data.data;
-        
+
         if (!years || years.length === 0) {
           throw new Error('No election years available');
         }
 
         // Fetch data for each year
-        const yearDataPromises = years.map(year => 
-          axios.get('http://localhost:5000/api/voter-turnout', {
+        const yearDataPromises = years.map(year =>
+          axios.get(`${import.meta.env.VITE_APP_API_URL}/voter-turnout`, {
             params: {
               year: year._id,
               limit: 10
@@ -123,12 +123,12 @@ export default function VoterTurnoutChart() {
         );
 
         const yearResponses = await Promise.all(yearDataPromises);
-        
+
         // Process data for each year
         const processedData = yearResponses.map((response, index) => {
           const yearData = response.data.data;
           const year = years[index].year;
-          
+
           if (!yearData || yearData.length === 0) {
             return null;
           }
@@ -235,11 +235,11 @@ export default function VoterTurnoutChart() {
 
   return (
     <Box id="chart" sx={{ '& .apexcharts-legend': { flexDirection: matchDownMd ? 'column' : 'row' } }}>
-      <ReactApexChart 
-        options={options} 
-        series={series} 
-        type="bar" 
-        height={350} 
+      <ReactApexChart
+        options={options}
+        series={series}
+        type="bar"
+        height={350}
       />
     </Box>
   );

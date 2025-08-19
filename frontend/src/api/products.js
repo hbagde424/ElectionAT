@@ -30,3 +30,4 @@ export async function getRelatedProducts(id) {
 export async function getProductReviews() {
   return await axios.get('/api/review/list');
 }
+

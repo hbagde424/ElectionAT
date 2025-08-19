@@ -293,3 +293,4 @@ EnhancedTableHead.propTypes = {
   rowCount: PropTypes.any,
   onRequestSort: PropTypes.any
 };
+

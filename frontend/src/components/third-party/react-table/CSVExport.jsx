@@ -27,3 +27,4 @@ export default function CSVExport({ data, filename, headers }) {
 }
 
 CSVExport.propTypes = { data: PropTypes.array, filename: PropTypes.string, headers: PropTypes.any };
+

@@ -502,3 +502,4 @@ NavCollapse.propTypes = {
   setSelectedLevel: PropTypes.func,
   selectedLevel: PropTypes.number
 };
+

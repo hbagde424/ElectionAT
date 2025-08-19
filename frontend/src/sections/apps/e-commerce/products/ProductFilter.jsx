@@ -239,3 +239,4 @@ Price.propTypes = { handelFilter: PropTypes.func, params: PropTypes.string };
 RatingSection.propTypes = { rating: PropTypes.number, handelFilter: PropTypes.func };
 
 ProductFilter.propTypes = { filter: PropTypes.any, handelFilter: PropTypes.func };
+

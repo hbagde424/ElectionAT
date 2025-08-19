@@ -65,3 +65,4 @@ export default function MainDrawer({ window }) {
 }
 
 MainDrawer.propTypes = { window: PropTypes.func };
+

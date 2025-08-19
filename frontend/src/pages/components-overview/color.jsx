@@ -263,3 +263,4 @@ ColorBox.propTypes = {
   dark: PropTypes.bool,
   main: PropTypes.bool
 };
+

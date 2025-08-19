@@ -85,3 +85,4 @@ DataCard.propTypes = {
   skype: PropTypes.any,
   root: PropTypes.any
 };
+

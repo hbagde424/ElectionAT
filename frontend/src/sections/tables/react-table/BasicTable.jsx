@@ -137,3 +137,4 @@ export default function BasicTable({ striped, title }) {
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array, striped: PropTypes.bool, title: PropTypes.string };
 
 BasicTable.propTypes = { striped: PropTypes.bool, title: PropTypes.string };
+

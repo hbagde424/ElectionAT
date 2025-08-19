@@ -254,7 +254,7 @@ export default function WorkStatusModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        
+
         // Validation
         const requiredFields = [
             'work_name', 'department', 'status', 'approved_fund_from',
@@ -262,7 +262,7 @@ export default function WorkStatusModal({
             'state_id', 'division_id', 'parliament_id',
             'assembly_id', 'block_id', 'booth_id'
         ];
-        
+
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -289,8 +289,8 @@ export default function WorkStatusModal({
         const method = workStatus ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = workStatus
-            ? `http://localhost:5000/api/work-status/${workStatus._id}`
-            : 'http://localhost:5000/api/work-status';
+            ? `${import.meta.env.VITE_APP_API_URL}/work-status/${workStatus._id}`
+            : `${import.meta.env.VITE_APP_API_URL}/work-status`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

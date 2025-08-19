@@ -56,3 +56,4 @@ AnalyticsDataCard.propTypes = {
   isLoss: PropTypes.bool,
   children: PropTypes.any
 };
+

@@ -77,3 +77,4 @@ export function handlerDrawerOpen(isDashboardDrawerOpened) {
     false
   );
 }
+

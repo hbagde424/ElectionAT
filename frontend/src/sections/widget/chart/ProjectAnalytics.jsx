@@ -333,3 +333,4 @@ export default function ProjectAnalytics() {
 }
 
 EcommerceDataChart.propTypes = { data: PropTypes.array };
+

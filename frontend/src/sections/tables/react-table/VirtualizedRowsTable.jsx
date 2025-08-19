@@ -173,3 +173,4 @@ export default function VirtualizedRowTable() {
 }
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

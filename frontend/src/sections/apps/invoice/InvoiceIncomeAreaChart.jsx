@@ -134,3 +134,4 @@ export default function InvoiceIncomeAreaChart({ series }) {
 }
 
 InvoiceIncomeAreaChart.propTypes = { series: PropTypes.any };
+

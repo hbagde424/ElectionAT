@@ -36,3 +36,4 @@ export default function AuthDivider({ children }) {
 }
 
 AuthDivider.propTypes = { children: PropTypes.node };
+

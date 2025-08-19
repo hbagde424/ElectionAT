@@ -117,3 +117,4 @@ export default function AddItemComment({ itemId }) {
 }
 
 AddItemComment.propTypes = { itemId: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]) };
+

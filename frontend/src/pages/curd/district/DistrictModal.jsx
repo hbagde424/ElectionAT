@@ -148,8 +148,8 @@ export default function DistrictModal({
         const method = district ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = district
-            ? `http://localhost:5000/api/districts/${district._id}`
-            : 'http://localhost:5000/api/districts';
+            ? `${import.meta.env.VITE_APP_API_URL}/districts/${district._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/districts';
 
         let userId = user?._id || user?.id;
         if (!userId) {

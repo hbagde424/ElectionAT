@@ -41,3 +41,4 @@ function ViewportAnimation({ data, ...other }) {
 export default memo(ViewportAnimation);
 
 ViewportAnimation.propTypes = { data: PropTypes.array, other: PropTypes.any };
+

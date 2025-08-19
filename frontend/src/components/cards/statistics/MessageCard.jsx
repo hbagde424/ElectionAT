@@ -59,3 +59,4 @@ MessageCard.propTypes = {
   src: PropTypes.string,
   actions: PropTypes.array
 };
+

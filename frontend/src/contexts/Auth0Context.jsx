@@ -112,3 +112,4 @@ export const Auth0Provider = ({ children }) => {
 };
 
 export default Auth0Context;
+

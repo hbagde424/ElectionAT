@@ -64,3 +64,4 @@ CardSecondaryAction.propTypes = {
   link: PropTypes.string,
   icon: PropTypes.oneOfType([PropTypes.node, PropTypes.string])
 };
+

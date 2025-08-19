@@ -195,3 +195,4 @@ export default function MonthlyRevenue() {
 MonthlyRevenue.propTypes = { value: PropTypes.array };
 
 ReactTable.propTypes = { columns: PropTypes.array, data: PropTypes.array };
+

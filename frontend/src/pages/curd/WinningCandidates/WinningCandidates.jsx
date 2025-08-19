@@ -194,13 +194,13 @@ export default function WinningCandidateListPage() {
                 candidatesRes,
                 yearsRes
             ] = await Promise.all([
-                fetch('http://localhost:5000/api/states'),
-                fetch('http://localhost:5000/api/divisions'),
-                fetch('http://localhost:5000/api/parliaments'),
-                fetch('http://localhost:5000/api/assemblies'),
-                fetch('http://localhost:5000/api/parties'),
-                fetch('http://localhost:5000/api/candidates'),
-                fetch('http://localhost:5000/api/election-years')
+                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/parties'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/candidates'),
+                fetch('${import.meta.env.VITE_APP_API_URL}/election-years')
 
             ]);
 
@@ -270,7 +270,7 @@ export default function WinningCandidateListPage() {
                 queryParams.push(`electionYear=${appliedFilters.electionYear}`);
             }
 
-            const res = await fetch(`http://localhost:5000/api/winning-candidates?${queryParams.join('&')}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?${queryParams.join('&')}`);
             const json = await res.json();
             if (json.success) {
                 setCandidateList(json.data);
@@ -379,23 +379,23 @@ export default function WinningCandidateListPage() {
         let title = '';
         switch (type) {
             case 'state':
-                url = `http://localhost:5000/api/states/${id}`;
+                url = `${import.meta.env.VITE_APP_API_URL}/states/${id}`;
                 title = 'State';
                 break;
             case 'division':
-                url = `http://localhost:5000/api/divisions/${id}`;
+                url = `${import.meta.env.VITE_APP_API_URL}/divisions/${id}`;
                 title = 'Division';
                 break;
             case 'parliament':
-                url = `http://localhost:5000/api/parliaments/${id}`;
+                url = `${import.meta.env.VITE_APP_API_URL}/parliaments/${id}`;
                 title = 'Parliament';
                 break;
             case 'assembly':
-                url = `http://localhost:5000/api/assemblies/${id}`;
+                url = `${import.meta.env.VITE_APP_API_URL}/assemblies/${id}`;
                 title = 'Assembly';
                 break;
             case 'party':
-                url = `http://localhost:5000/api/parties/${id}`;
+                url = `${import.meta.env.VITE_APP_API_URL}/parties/${id}`;
                 title = 'Party';
                 break;
             default:
@@ -432,7 +432,7 @@ export default function WinningCandidateListPage() {
                         onClick={async () => {
                             if (candidate && candidate._id) {
                                 try {
-                                    const res = await fetch(`http://localhost:5000/api/candidates/${candidate._id}`);
+                                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates/${candidate._id}`);
                                     const json = await res.json();
                                     if (json.success) {
                                         setCandidateDetails(json.data);
@@ -704,7 +704,7 @@ export default function WinningCandidateListPage() {
 
     const fetchAllCandidatesForCsv = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/winning-candidates?all=true');
+            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true');
             const json = await res.json();
             if (json.success) {
                 return json.data;

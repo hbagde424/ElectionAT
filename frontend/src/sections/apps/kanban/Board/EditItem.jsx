@@ -273,3 +273,4 @@ EditItem.propTypes = {
   columns: PropTypes.array,
   handleDrawerOpen: PropTypes.func
 };
+

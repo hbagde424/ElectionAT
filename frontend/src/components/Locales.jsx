@@ -47,3 +47,4 @@ export default function Locales({ children }) {
 }
 
 Locales.propTypes = { children: PropTypes.node };
+

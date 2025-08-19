@@ -81,3 +81,4 @@ const HierarchyStats = ({ level, selected, theme }) => {
 };
 
 export default HierarchyStats;
+

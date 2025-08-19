@@ -65,3 +65,4 @@ CustomTooltip.propTypes = {
   labelColor: PropTypes.oneOfType([PropTypes.string, PropTypes.any]),
   rest: PropTypes.any
 };
+

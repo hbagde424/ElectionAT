@@ -36,7 +36,7 @@ const columnChartOptions = {
       text: 'Number of Voters'
     },
     labels: {
-      formatter: function(val) {
+      formatter: function (val) {
         return val.toLocaleString(); // Format numbers with commas
       }
     }
@@ -46,7 +46,7 @@ const columnChartOptions = {
   },
   tooltip: {
     y: {
-      formatter: function(val) {
+      formatter: function (val) {
         return val.toLocaleString(); // Format tooltip numbers with commas
       }
     }
@@ -106,7 +106,7 @@ export default function PartyAssemblyCountChart() {
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const yearsResponse = await axios.get('http://localhost:5000/api/election-years');
+        const yearsResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/election-years`);
         const yearsData = yearsResponse.data.data;
         setYears(yearsData);
         if (yearsData && yearsData.length > 0) {
@@ -133,7 +133,7 @@ export default function PartyAssemblyCountChart() {
     setError(null);
     const fetchPartyAssemblyCount = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/winning-candidates/party-assembly-count', {
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/party-assembly-count`, {
           params: { year: selectedYear }
         });
         const data = response.data.data;
@@ -240,11 +240,11 @@ export default function PartyAssemblyCountChart() {
         </select>
       </Box>
       <Box id="chart" sx={{ '& .apexcharts-legend': { flexDirection: matchDownMd ? 'column' : 'row' } }}>
-        <ReactApexChart 
-          options={options} 
-          series={series} 
-          type="bar" 
-          height={350} 
+        <ReactApexChart
+          options={options}
+          series={series}
+          type="bar"
+          height={350}
         />
       </Box>
     </Box>

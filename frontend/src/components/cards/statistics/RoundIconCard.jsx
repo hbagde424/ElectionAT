@@ -46,3 +46,4 @@ RoundIconCard.propTypes = {
   color: PropTypes.string,
   bgcolor: PropTypes.string
 };
+

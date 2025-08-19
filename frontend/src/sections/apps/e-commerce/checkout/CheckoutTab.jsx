@@ -198,3 +198,4 @@ export default function CheckoutTab({ cart }) {
 TabPanel.propTypes = { children: PropTypes.any, value: PropTypes.any, index: PropTypes.any, other: PropTypes.any };
 
 CheckoutTab.propTypes = { cart: PropTypes.any };
+

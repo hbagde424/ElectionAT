@@ -178,3 +178,4 @@ export default function AuthLogin({ forgot }) {
 }
 
 AuthLogin.propTypes = { forgot: PropTypes.string };
+

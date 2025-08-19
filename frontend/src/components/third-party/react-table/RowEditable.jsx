@@ -182,3 +182,4 @@ export default function RowEditable({ getValue: initialValue, row, column: { id,
 }
 
 RowEditable.propTypes = { getValue: PropTypes.func, row: PropTypes.object, column: PropTypes.object, table: PropTypes.object };
+

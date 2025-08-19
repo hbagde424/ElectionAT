@@ -80,3 +80,4 @@ export default function PaymentCard({ type, paymentType, cardHandler }) {
 }
 
 PaymentCard.propTypes = { type: PropTypes.string, paymentType: PropTypes.string, cardHandler: PropTypes.func };
+

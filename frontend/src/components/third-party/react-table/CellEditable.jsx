@@ -173,3 +173,4 @@ export default function CellEditable({ getValue: initialValue, row: { index }, c
 }
 
 CellEditable.propTypes = { getValue: PropTypes.func, row: PropTypes.object, column: PropTypes.object, table: PropTypes.object };
+

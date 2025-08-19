@@ -212,8 +212,8 @@ export default function BoothModal({
         const method = booth ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = booth
-            ? `http://localhost:5000/api/booths/${booth._id}`
-            : 'http://localhost:5000/api/booths';
+            ? `${import.meta.env.VITE_APP_API_URL}/booths/${booth._id}`
+            : '${import.meta.env.VITE_APP_API_URL}/booths';
 
         let userId = user?._id || user?.id;
         if (!userId) {

@@ -65,3 +65,4 @@ export default function CustomAppBar() {
 }
 
 ElevationScroll.propTypes = { children: PropTypes.node, window: PropTypes.any };
+

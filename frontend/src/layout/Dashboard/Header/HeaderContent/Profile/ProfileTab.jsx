@@ -60,3 +60,4 @@ export default function ProfileTab({ handleLogout }) {
 }
 
 ProfileTab.propTypes = { handleLogout: PropTypes.func };
+

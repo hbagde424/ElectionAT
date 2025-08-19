@@ -28,10 +28,10 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadStateData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/state-polygons');
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/state-polygons`);
       if (!response.ok) throw new Error('Failed to fetch state data');
       const data = await response.json();
-      
+
       if (data.success && data.data?.length > 0) {
         setGeoJsonData(data.data[0]);
         setCurrentLevel('state');
@@ -45,7 +45,7 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadDivisionData = async (stateId) => {
     try {
-      const response = await fetch('http://localhost:5000/api/division-polygons');
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/division-polygons`);
       if (!response.ok) throw new Error('Failed to fetch division data');
       const data = await response.json();
 
@@ -60,7 +60,7 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadParliamentaryData = async (divisionName) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/parliament-polygons/name/${divisionName}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons/name/${divisionName}`);
       if (!response.ok) throw new Error('Failed to fetch parliamentary data');
       const data = await response.json();
 
@@ -75,7 +75,7 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadAssemblyData = async (vsCode) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/assembly-polygons/parliament/${vsCode}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons/parliament/${vsCode}`);
       if (!response.ok) throw new Error('Failed to fetch assembly data');
       const data = await response.json();
 
@@ -90,7 +90,7 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadBlockData = async (assemblyId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/block-polygons/booth/${assemblyId}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
       if (!response.ok) throw new Error('Failed to fetch block data');
       const data = await response.json();
 
@@ -105,7 +105,7 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadBoothData = async (BlockNumber) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/booth-polygons/block-number/${BlockNumber}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${BlockNumber}`);
       if (!response.ok) throw new Error('Failed to fetch booth data');
       const data = await response.json();
 
@@ -251,7 +251,7 @@ function ChangeTheme({ themes, ...other }) {
 
   const generatePopupContent = (properties, level) => {
     let content = `<div><strong>${properties.name || ''}</strong>`;
-    
+
     switch (level) {
       case 'state':
         content += `<p>State: ${properties.Name || ''}</p>`;
@@ -275,7 +275,7 @@ function ChangeTheme({ themes, ...other }) {
         content += `<p>Booth: ${properties.name || ''}</p>`;
         break;
     }
-    
+
     content += `<p style="color:#666;font-size:0.8em">Click to zoom in</p></div>`;
     return content;
   };
@@ -299,7 +299,7 @@ function ChangeTheme({ themes, ...other }) {
         {...other}
       >
         <MapControl />
-        
+
         {geoJsonData && (
           <Source type="geojson" data={geoJsonData}>
             <Layer

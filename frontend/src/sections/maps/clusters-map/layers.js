@@ -35,3 +35,4 @@ export const unclusteredPointLayer = {
     'circle-stroke-color': '#FFFFFF'
   }
 };
+

@@ -42,7 +42,7 @@ exports.getCasteLists = async (req, res, next) => {
 
     // Filter by category
     if (req.query.category) {
-      query = query.where('category').equals(req.query.category);
+      query = query.where('category').equals(new RegExp('^' + req.query.category + '$', 'i'));
     }
 
     if (req.query.percentage) {
@@ -178,7 +178,7 @@ exports.createCasteList = async (req, res, next) => {
     const casteListData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const casteList = await CasteList.create(casteListData);
@@ -222,7 +222,7 @@ exports.updateCasteList = async (req, res, next) => {
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({

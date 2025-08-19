@@ -63,8 +63,8 @@ export default function StateModal({
         const method = state ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
         const url = state
-            ? `http://localhost:5000/api/states/${state._id}`
-            : 'http://localhost:5000/api/states';
+            ? `${import.meta.env.VITE_APP_API_URL}/states/${state._id}`
+            : `${import.meta.env.VITE_APP_API_URL}/states`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

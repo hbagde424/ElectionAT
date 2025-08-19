@@ -35,3 +35,4 @@ Dot.propTypes = {
   sx: PropTypes.any,
   componentDiv: PropTypes.bool
 };
+

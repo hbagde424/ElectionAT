@@ -589,3 +589,4 @@ export default function UmbrellaTable() {
 EditAction.propTypes = { row: PropTypes.object, table: PropTypes.object };
 
 ReactTable.propTypes = { defaultColumns: PropTypes.array, data: PropTypes.array, setData: PropTypes.any };
+

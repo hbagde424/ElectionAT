@@ -121,3 +121,4 @@ PaymentForm.propTypes = {
   handleBack: PropTypes.func,
   setErrorIndex: PropTypes.func
 };
+
