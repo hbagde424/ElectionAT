@@ -56,7 +56,7 @@ export const JWTProvider = ({ children }) => {
         const serviceToken = window.localStorage.getItem('serviceToken');
         if (serviceToken && verifyToken(serviceToken)) {
           setSession(serviceToken);
-          const response = await axios.get('${import.meta.env.VITE_APP_API_URL}/users/me');
+          const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users/me`);
           const { user } = response.data;
           console.log('JWTContext - user from /me endpoint:', user);
           console.log('JWTContext - user keys:', user ? Object.keys(user) : 'No user');
@@ -88,7 +88,7 @@ export const JWTProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('${import.meta.env.VITE_APP_API_URL}/users/login', { email, password });
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/users/login`, { email, password });
 
       const { token, user } = response.data;
       console.log('JWTContext - login user:', user);
