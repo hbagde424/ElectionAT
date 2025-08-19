@@ -213,7 +213,7 @@ export default function BoothModal({
         const token = localStorage.getItem('serviceToken');
         const url = booth
             ? `${import.meta.env.VITE_APP_API_URL}/booths/${booth._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/booths';
+            : `${import.meta.env.VITE_APP_API_URL}/booths`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

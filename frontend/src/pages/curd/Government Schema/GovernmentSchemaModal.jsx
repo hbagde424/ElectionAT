@@ -187,7 +187,7 @@ export default function GovernmentModal({
         const token = localStorage.getItem('serviceToken');
         const url = government
             ? `${import.meta.env.VITE_APP_API_URL}/governments/${government._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/governments';
+            : `${import.meta.env.VITE_APP_API_URL}/governments`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

@@ -202,7 +202,7 @@ export default function CandidateModal({
             // 4. Make the API request
             const url = candidate
                 ? `${import.meta.env.VITE_APP_API_URL}/candidates/${candidate._id}`
-                : '${import.meta.env.VITE_APP_API_URL}/candidates';
+                : `${import.meta.env.VITE_APP_API_URL}/candidates`;
             const method = candidate ? 'PUT' : 'POST';
 
             const res = await fetch(url, {

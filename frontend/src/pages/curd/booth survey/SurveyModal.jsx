@@ -311,7 +311,7 @@ export default function BoothSurveyModal({
             const token = localStorage.getItem('serviceToken');
             const url = survey
                 ? `${import.meta.env.VITE_APP_API_URL}/booth-surveys/${survey._id}`
-                : '${import.meta.env.VITE_APP_API_URL}/booth-surveys';
+                : `${import.meta.env.VITE_APP_API_URL}/booth-surveys`;
 
             const payload = {
                 ...formData,

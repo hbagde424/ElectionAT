@@ -157,7 +157,7 @@ export default function BlockVotesModal({
     const token = localStorage.getItem('serviceToken');
     const url = vote
       ? `${import.meta.env.VITE_APP_API_URL}/block-votes/${vote._id}`
-      : '${import.meta.env.VITE_APP_API_URL}/block-votes';
+      : `${import.meta.env.VITE_APP_API_URL}/block-votes`;
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const submitData = {

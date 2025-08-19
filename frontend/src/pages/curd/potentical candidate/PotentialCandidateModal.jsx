@@ -138,7 +138,7 @@ console.log('Current election_year_id:', formData.election_year_id);
         const token = localStorage.getItem('serviceToken');
         const url = candidate
             ? `${import.meta.env.VITE_APP_API_URL}/potential-candidates/${candidate._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/potential-candidates';
+            : `${import.meta.env.VITE_APP_API_URL}/potential-candidates`;
 
         try {
             const submitData = {

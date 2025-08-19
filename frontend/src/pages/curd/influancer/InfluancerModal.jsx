@@ -238,7 +238,7 @@ export default function InfluencerModal({
         const token = localStorage.getItem('serviceToken');
         const url = influencer
             ? `${import.meta.env.VITE_APP_API_URL}/influencers/${influencer._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/influencers';
+            : `${import.meta.env.VITE_APP_API_URL}/influencers`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

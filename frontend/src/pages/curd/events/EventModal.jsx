@@ -312,7 +312,7 @@ export default function EventModal({
         const token = localStorage.getItem('serviceToken');
         const url = event
             ? `${import.meta.env.VITE_APP_API_URL}/events/${event._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/events';
+            : `${import.meta.env.VITE_APP_API_URL}/events`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

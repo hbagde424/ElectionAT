@@ -87,11 +87,11 @@ export default function BoothDemographicsModal({
         const fetchReferenceData = async () => {
             try {
                 const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-                    fetch('${import.meta.env.VITE_APP_API_URL}/states'),
-                    fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
-                    fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
-                    fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-                    fetch('${import.meta.env.VITE_APP_API_URL}/blocks')
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`)
                 ]);
 
                 const [statesData, divisionsData, parliamentsData, assembliesData, blocksData] = await Promise.all([
@@ -354,7 +354,7 @@ export default function BoothDemographicsModal({
         const token = localStorage.getItem('serviceToken');
         const url = demographics
             ? `${import.meta.env.VITE_APP_API_URL}/booth-demographics/${demographics._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/booth-demographics';
+            : `${import.meta.env.VITE_APP_API_URL}/booth-demographics`;
 
         // Get user ID
         let userId = user?._id || user?.id;

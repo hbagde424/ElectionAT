@@ -92,17 +92,17 @@ export default function BoothSurveyListPage() {
     try {
       const token = localStorage.getItem('serviceToken');
       const [boothsRes, usersRes, statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-        fetch('${import.meta.env.VITE_APP_API_URL}/booths'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/users', {
+        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch('${import.meta.env.VITE_APP_API_URL}/states'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/blocks')
+        fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`)
       ]);
 
       const boothsJson = await boothsRes.json();

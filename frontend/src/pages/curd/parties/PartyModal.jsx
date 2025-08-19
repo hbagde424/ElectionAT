@@ -72,7 +72,7 @@ export default function PartyModal({
         const token = localStorage.getItem('serviceToken');
         const url = party
             ? `${import.meta.env.VITE_APP_API_URL}/parties/${party._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/parties';
+            : `${import.meta.env.VITE_APP_API_URL}/parties`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

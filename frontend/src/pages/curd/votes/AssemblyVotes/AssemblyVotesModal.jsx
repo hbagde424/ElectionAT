@@ -163,7 +163,7 @@ export default function AssemblyVotesModal({
     const token = localStorage.getItem('serviceToken');
     const url = vote
       ? `${import.meta.env.VITE_APP_API_URL}/assembly-votes/${vote._id}`
-      : '${import.meta.env.VITE_APP_API_URL}/assembly-votes';
+      : `${import.meta.env.VITE_APP_API_URL}/assembly-votes`;
 
     // Get current user from token
     const currentUser = JSON.parse(localStorage.getItem('user'));

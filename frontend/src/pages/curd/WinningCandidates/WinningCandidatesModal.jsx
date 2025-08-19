@@ -252,7 +252,7 @@ export default function WinningCandidateModal({
         const token = localStorage.getItem('serviceToken');
         const url = candidateEntry
             ? `${import.meta.env.VITE_APP_API_URL}/winning-candidates/${candidateEntry._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/winning-candidates';
+            : `${import.meta.env.VITE_APP_API_URL}/winning-candidates`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

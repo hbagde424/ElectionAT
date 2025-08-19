@@ -251,7 +251,7 @@ export default function GenderModal({
         const token = localStorage.getItem('serviceToken');
         const url = genderEntry
             ? `${import.meta.env.VITE_APP_API_URL}/genders/${genderEntry._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/genders';
+            : `${import.meta.env.VITE_APP_API_URL}/genders`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

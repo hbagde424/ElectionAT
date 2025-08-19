@@ -212,7 +212,7 @@ export default function UserModal({
       const token = localStorage.getItem('serviceToken');
       const url = user
         ? `${import.meta.env.VITE_APP_API_URL}/users/${user._id}`
-        : '${import.meta.env.VITE_APP_API_URL}/users/register';
+        : `${import.meta.env.VITE_APP_API_URL}/users/register`;
 
       const currentUser = JSON.parse(localStorage.getItem('user'));
       // Get permissions based on role

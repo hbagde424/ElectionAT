@@ -335,7 +335,7 @@ useEffect(() => {
             const token = localStorage.getItem('serviceToken');
             const url = winningParty 
                 ? `${import.meta.env.VITE_APP_API_URL}/winning-parties/${winningParty._id}` 
-                : '${import.meta.env.VITE_APP_API_URL}/winning-parties';
+                : `${import.meta.env.VITE_APP_API_URL}/winning-parties`;
             const method = winningParty ? 'PUT' : 'POST';
 
             const submitData = {

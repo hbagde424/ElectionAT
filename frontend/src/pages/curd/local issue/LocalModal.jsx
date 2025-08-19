@@ -287,7 +287,7 @@ export default function LocalIssueModal({
         const token = localStorage.getItem('serviceToken');
         const url = localIssue
             ? `${import.meta.env.VITE_APP_API_URL}/local-issues/${localIssue._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/local-issues';
+            : `${import.meta.env.VITE_APP_API_URL}/local-issues`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

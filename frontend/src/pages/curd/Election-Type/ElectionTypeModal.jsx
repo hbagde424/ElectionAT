@@ -216,7 +216,7 @@ export default function ElectionTypeModal({
         const token = localStorage.getItem('serviceToken');
         const url = electionType
             ? `${import.meta.env.VITE_APP_API_URL}/election-types/${electionType._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/election-types';
+            : `${import.meta.env.VITE_APP_API_URL}/election-types`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

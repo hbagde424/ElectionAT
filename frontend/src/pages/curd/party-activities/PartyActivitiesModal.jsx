@@ -393,7 +393,7 @@ export default function PartyActivitiesModal({
         const token = localStorage.getItem('serviceToken');
         const url = partyActivity
             ? `${import.meta.env.VITE_APP_API_URL}/party-activities/${partyActivity._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/party-activities';
+            : `${import.meta.env.VITE_APP_API_URL}/party-activities`;
 
         // Debug user information
         console.log('Party Activities HandleSubmit - User context:', user);

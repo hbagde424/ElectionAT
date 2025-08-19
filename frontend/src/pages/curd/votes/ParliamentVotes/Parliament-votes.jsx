@@ -207,7 +207,7 @@ export default function ParliamentVotesListPage() {
   const fetchAllVotesForCsv = async () => {
     setCsvLoading(true);
     try {
-      const res = await fetch('${import.meta.env.VITE_APP_API_URL}/parliament-votes?all=true');
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-votes?all=true`);
       const json = await res.json();
       if (json.success) {
         return json.data;
@@ -250,15 +250,15 @@ export default function ParliamentVotesListPage() {
   const fetchReferenceData = async () => {
     try {
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
-        fetch('${import.meta.env.VITE_APP_API_URL}/states'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/booths'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/candidates'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/election-years'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/users')
+        fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/users`)
       ]);
 
       const statesJson = await statesRes.json();

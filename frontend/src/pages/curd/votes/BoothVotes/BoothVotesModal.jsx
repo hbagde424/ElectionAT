@@ -162,7 +162,7 @@ export default function BoothVotesModal({
     const token = localStorage.getItem('serviceToken');
     const url = vote
       ? `${import.meta.env.VITE_APP_API_URL}/booth-votes/${vote._id}`
-      : '${import.meta.env.VITE_APP_API_URL}/booth-votes';
+      : `${import.meta.env.VITE_APP_API_URL}/booth-votes`;
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const submitData = {

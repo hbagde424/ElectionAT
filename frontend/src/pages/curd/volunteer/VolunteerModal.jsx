@@ -303,7 +303,7 @@ export default function BoothVolunteerModal({
       const token = localStorage.getItem('serviceToken');
       const url = volunteer
         ? `${import.meta.env.VITE_APP_API_URL}/booth-volunteers/${volunteer._id}`
-        : '${import.meta.env.VITE_APP_API_URL}/booth-volunteers';
+        : `${import.meta.env.VITE_APP_API_URL}/booth-volunteers`;
 
       const currentUser = JSON.parse(localStorage.getItem('user'));
       const submitData = {

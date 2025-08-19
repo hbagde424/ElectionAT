@@ -149,7 +149,7 @@ export default function DistrictModal({
         const token = localStorage.getItem('serviceToken');
         const url = district
             ? `${import.meta.env.VITE_APP_API_URL}/districts/${district._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/districts';
+            : `${import.meta.env.VITE_APP_API_URL}/districts`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

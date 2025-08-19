@@ -86,9 +86,9 @@ export default function PotentialCandidateListPage() {
   const fetchReferenceData = async () => {
     try {
       const [partiesRes, assembliesRes, electionYearsRes] = await Promise.all([
-        fetch('${import.meta.env.VITE_APP_API_URL}/parties'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-        fetch('${import.meta.env.VITE_APP_API_URL}/election-years')
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parties`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
       ]);
 
       const partiesJson = await partiesRes.json();

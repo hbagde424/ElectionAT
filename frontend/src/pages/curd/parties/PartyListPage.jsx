@@ -37,7 +37,7 @@ export default function PartyListPage() {
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const usersRes = await fetch('${import.meta.env.VITE_APP_API_URL}/users', {
+            const usersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -266,7 +266,7 @@ export default function PartyListPage() {
 
     const fetchAllPartiesForCsv = async () => {
         try {
-            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/parties?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data.map(party => {

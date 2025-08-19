@@ -136,7 +136,7 @@ export default function ParliamentModal({
         const token = localStorage.getItem('serviceToken');
         const url = parliament 
             ? `${import.meta.env.VITE_APP_API_URL}/parliaments/${parliament._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/parliaments';
+            : `${import.meta.env.VITE_APP_API_URL}/parliaments`;
 
         let userId = user?._id || user?.id;
         if (!userId) {

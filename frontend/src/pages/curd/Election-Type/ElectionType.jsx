@@ -49,12 +49,12 @@ export default function ElectionTypesListPage() {
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/booths')
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
             ]);
 
             const [
@@ -282,7 +282,7 @@ export default function ElectionTypesListPage() {
 
     const fetchAllElectionTypesForCsv = async () => {
         try {
-            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/election-types?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-types?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

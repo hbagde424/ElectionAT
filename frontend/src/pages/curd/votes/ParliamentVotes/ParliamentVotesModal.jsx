@@ -144,7 +144,7 @@ export default function ParliamentVotesModal({
     const token = localStorage.getItem('serviceToken');
     const url = vote
       ? `${import.meta.env.VITE_APP_API_URL}/parliament-votes/${vote._id}`
-      : '${import.meta.env.VITE_APP_API_URL}/parliament-votes';
+      : `${import.meta.env.VITE_APP_API_URL}/parliament-votes`;
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const submitData = {

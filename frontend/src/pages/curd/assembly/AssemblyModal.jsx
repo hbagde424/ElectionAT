@@ -132,7 +132,7 @@ export default function AssemblyModal({
         const token = localStorage.getItem('serviceToken');
         const url = assembly
             ? `${import.meta.env.VITE_APP_API_URL}/assemblies/${assembly._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/assemblies';
+            : `${import.meta.env.VITE_APP_API_URL}/assemblies`;
 
         // Get user ID from context or localStorage
         let userId = user?._id || user?.id;

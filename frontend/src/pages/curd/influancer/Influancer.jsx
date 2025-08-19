@@ -199,13 +199,13 @@ export default function InfluencersListPage() {
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/districts'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/booths')
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/districts`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
             ]);
 
             const [
@@ -491,7 +491,7 @@ export default function InfluencersListPage() {
 
     const fetchAllInfluencersForCsv = async () => {
         try {
-            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/influencers?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

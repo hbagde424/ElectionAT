@@ -98,13 +98,13 @@ export default function PartyActivitiesListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
-                fetch('${import.meta.env.VITE_APP_API_URL}/states'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/divisions'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/parliaments'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/assemblies'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/blocks'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/booths'),
-                fetch('${import.meta.env.VITE_APP_API_URL}/parties')
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties`)
             ]);
 
             console.log('partiesRes', partiesRes);
@@ -112,7 +112,7 @@ export default function PartyActivitiesListPage() {
             const token = localStorage.getItem('serviceToken');
 
             const [usersRes] = await Promise.all([
-                fetch('${import.meta.env.VITE_APP_API_URL}/users', {
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -486,7 +486,7 @@ export default function PartyActivitiesListPage() {
     // Helper to fetch all party activities for CSV
     const fetchAllPartyActivitiesForCsv = async () => {
         try {
-            const res = await fetch('${import.meta.env.VITE_APP_API_URL}/party-activities?all=true');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

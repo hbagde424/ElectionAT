@@ -43,7 +43,7 @@ export default function LocalDynamicsModal({ open, modalToggler, localDynamics, 
         const token = localStorage.getItem('serviceToken');
         const url = localDynamics
             ? `${import.meta.env.VITE_APP_API_URL}/local-dynamics/${localDynamics._id}`
-            : '${import.meta.env.VITE_APP_API_URL}/local-dynamics';
+            : `${import.meta.env.VITE_APP_API_URL}/local-dynamics`;
 
         const res = await fetch(url, {
             method,
