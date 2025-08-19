@@ -64,114 +64,141 @@ export default function GenderListPage() {
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
+    // Previous values to detect changes
+    const prevStateRef = useRef('');
+    const prevDivisionRef = useRef('');
+    const prevParliamentRef = useRef('');
+    const prevAssemblyRef = useRef('');
+    const prevBlockRef = useRef('');
+
     // State -> Division
     useEffect(() => {
         if (tempFilters.state) {
-            const filtered = divisions?.filter(division =>
-                division.state_id?._id === tempFilters.state ||
-                division.state_id === tempFilters.state
-            ) || [];
+            const filtered = divisions?.filter(division => {
+                const matches = division.state_id?._id === tempFilters.state ||
+                    division.state_id === tempFilters.state;
+                return matches;
+            }) || [];
+
             setFilteredDivisions(filtered);
+
+            // Clear dependent fields only if state actually changed
+            if (prevStateRef.current !== tempFilters.state) {
+                setTempFilters(prev => ({
+                    ...prev,
+                    division: '',
+                    parliament: '',
+                    assembly: '',
+                    block: '',
+                    booth: ''
+                }));
+            }
         } else {
             setFilteredDivisions(divisions || []);
         }
-        // Clear dependent fields when state changes
-        if (tempFilters.division) {
-            setTempFilters(prev => ({
-                ...prev,
-                division: '',
-                parliament: '',
-                assembly: '',
-                block: '',
-                booth: ''
-            }));
-        }
+        prevStateRef.current = tempFilters.state;
     }, [tempFilters.state, divisions]);
 
     // Division -> Parliament
     useEffect(() => {
         if (tempFilters.division) {
-            const filtered = parliaments?.filter(parliament =>
-                parliament.division_id?._id === tempFilters.division ||
-                parliament.division_id === tempFilters.division
-            ) || [];
+            const filtered = parliaments?.filter(parliament => {
+                const matches = parliament.division_id?._id === tempFilters.division ||
+                    parliament.division_id === tempFilters.division;
+                return matches;
+            }) || [];
+
             setFilteredParliaments(filtered);
+
+            // Clear dependent fields only if division actually changed
+            if (prevDivisionRef.current !== tempFilters.division) {
+                setTempFilters(prev => ({
+                    ...prev,
+                    parliament: '',
+                    assembly: '',
+                    block: '',
+                    booth: ''
+                }));
+            }
         } else {
             setFilteredParliaments(parliaments || []);
         }
-        // Clear dependent fields when division changes
-        if (tempFilters.parliament) {
-            setTempFilters(prev => ({
-                ...prev,
-                parliament: '',
-                assembly: '',
-                block: '',
-                booth: ''
-            }));
-        }
+        prevDivisionRef.current = tempFilters.division;
     }, [tempFilters.division, parliaments]);
 
     // Parliament -> Assembly
     useEffect(() => {
         if (tempFilters.parliament) {
-            const filtered = assemblies?.filter(assembly =>
-                assembly.parliament_id?._id === tempFilters.parliament ||
-                assembly.parliament_id === tempFilters.parliament
-            ) || [];
+            const filtered = assemblies?.filter(assembly => {
+                const matches = assembly.parliament_id?._id === tempFilters.parliament ||
+                    assembly.parliament_id === tempFilters.parliament;
+                return matches;
+            }) || [];
+
             setFilteredAssemblies(filtered);
+
+            // Clear dependent fields only if parliament actually changed
+            if (prevParliamentRef.current !== tempFilters.parliament) {
+                setTempFilters(prev => ({
+                    ...prev,
+                    assembly: '',
+                    block: '',
+                    booth: ''
+                }));
+            }
         } else {
             setFilteredAssemblies(assemblies || []);
         }
-        // Clear dependent fields when parliament changes
-        if (tempFilters.assembly) {
-            setTempFilters(prev => ({
-                ...prev,
-                assembly: '',
-                block: '',
-                booth: ''
-            }));
-        }
+        prevParliamentRef.current = tempFilters.parliament;
     }, [tempFilters.parliament, assemblies]);
 
     // Assembly -> Block
     useEffect(() => {
         if (tempFilters.assembly) {
-            const filtered = blocks?.filter(block =>
-                block.assembly_id?._id === tempFilters.assembly ||
-                block.assembly_id === tempFilters.assembly
-            ) || [];
+            const filtered = blocks?.filter(block => {
+                const matches = block.assembly_id?._id === tempFilters.assembly ||
+                    block.assembly_id === tempFilters.assembly;
+                return matches;
+            }) || [];
+
             setFilteredBlocks(filtered);
+
+            // Clear dependent fields only if assembly actually changed
+            if (prevAssemblyRef.current !== tempFilters.assembly) {
+                setTempFilters(prev => ({
+                    ...prev,
+                    block: '',
+                    booth: ''
+                }));
+            }
         } else {
             setFilteredBlocks(blocks || []);
         }
-        // Clear dependent fields when assembly changes
-        if (tempFilters.block) {
-            setTempFilters(prev => ({
-                ...prev,
-                block: '',
-                booth: ''
-            }));
-        }
+        prevAssemblyRef.current = tempFilters.assembly;
     }, [tempFilters.assembly, blocks]);
 
     // Block -> Booth
     useEffect(() => {
         if (tempFilters.block) {
-            const filtered = booths?.filter(booth =>
-                booth.block_id?._id === tempFilters.block ||
-                booth.block_id === tempFilters.block
-            ) || [];
+            const filtered = booths?.filter(booth => {
+                const matches = booth.block_id?._id === tempFilters.block ||
+                    booth.block_id === tempFilters.block;
+                return matches;
+            }) || [];
+
             setFilteredBooths(filtered);
+
+            // Clear booth only if block actually changed
+            if (prevBlockRef.current !== tempFilters.block) {
+                setTempFilters(prev => ({
+                    ...prev,
+                    booth: ''
+                }));
+            }
         } else {
             setFilteredBooths(booths || []);
         }
-        // Clear booth when block changes
-        if (tempFilters.booth) {
-            setTempFilters(prev => ({
-                ...prev,
-                booth: ''
-            }));
-        }
+        prevBlockRef.current = tempFilters.block;
     }, [tempFilters.block, booths]);
 
     const fetchReferenceData = async () => {
@@ -210,12 +237,12 @@ export default function GenderListPage() {
         setLoading(true);
         try {
             let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            if (selectedState) query += `&state=${selectedState}`;
-            if (selectedDivision) query += `&division=${selectedDivision}`;
-            if (selectedParliament) query += `&parliament=${selectedParliament}`;
-            if (selectedAssembly) query += `&assembly=${selectedAssembly}`;
-            if (selectedBlock) query += `&block=${selectedBlock}`;
-            if (selectedBooth) query += `&booth=${selectedBooth}`;
+            if (selectedState) query += `&state_id=${selectedState}`;
+            if (selectedDivision) query += `&division_id=${selectedDivision}`;
+            if (selectedParliament) query += `&parliament_id=${selectedParliament}`;
+            if (selectedAssembly) query += `&assembly_id=${selectedAssembly}`;
+            if (selectedBlock) query += `&block_id=${selectedBlock}`;
+            if (selectedBooth) query += `&booth_id=${selectedBooth}`;
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
@@ -232,7 +259,6 @@ export default function GenderListPage() {
 
     useEffect(() => {
         fetchGenderList(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchReferenceData();
     }, [
         pagination.pageIndex,
         pagination.pageSize,
@@ -244,6 +270,11 @@ export default function GenderListPage() {
         selectedBlock,
         selectedBooth
     ]);
+
+    // Fetch reference data only once when component mounts
+    useEffect(() => {
+        fetchReferenceData();
+    }, []);
 
     const handleDeleteOpen = (id) => {
         setGenderDeleteId(id);
@@ -304,7 +335,7 @@ export default function GenderListPage() {
         },
         {
             header: 'State',
-            accessorKey: 'state',
+            accessorKey: 'state_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -316,7 +347,7 @@ export default function GenderListPage() {
         },
         {
             header: 'Division',
-            accessorKey: 'division',
+            accessorKey: 'division_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -328,7 +359,7 @@ export default function GenderListPage() {
         },
         {
             header: 'Parliament',
-            accessorKey: 'parliament',
+            accessorKey: 'parliament_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -340,7 +371,7 @@ export default function GenderListPage() {
         },
         {
             header: 'Assembly',
-            accessorKey: 'assembly',
+            accessorKey: 'assembly_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -352,7 +383,7 @@ export default function GenderListPage() {
         },
         {
             header: 'Block',
-            accessorKey: 'block',
+            accessorKey: 'block_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -364,7 +395,7 @@ export default function GenderListPage() {
         },
         {
             header: 'Booth',
-            accessorKey: 'booth',
+            accessorKey: 'booth_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.name || 'N/A'}
@@ -376,7 +407,7 @@ export default function GenderListPage() {
         },
         {
             header: 'Booth Number',
-            accessorKey: 'booth',
+            accessorKey: 'booth_id',
             cell: ({ getValue }) => (
                 <Chip
                     label={getValue()?.booth_number || 'N/A'}
@@ -494,13 +525,13 @@ export default function GenderListPage() {
             'Female Count': item.female,
             'others Count': item.others,
             'Total': item.male + item.female + item.others,
-            'State': item.state?.name || '',
-            'Division': item.division?.name || '',
-            'Parliament': item.parliament?.name || '',
-            'Assembly': item.assembly?.name || '',
-            'Block': item.block?.name || '',
-            'Booth': item.booth?.name || '',
-            'Booth Number': item.booth?.booth_number || '',
+            'State': item.state_id?.name || '',
+            'Division': item.division_id?.name || '',
+            'Parliament': item.parliament_id?.name || '',
+            'Assembly': item.assembly_id?.name || '',
+            'Block': item.block_id?.name || '',
+            'Booth': item.booth_id?.name || '',
+            'Booth Number': item.booth_id?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Created At': item.created_at
         })));

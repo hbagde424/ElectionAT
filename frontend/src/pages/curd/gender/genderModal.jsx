@@ -279,13 +279,14 @@ export default function GenderModal({
                 body: JSON.stringify(submitData)
             });
 
+            const responseData = await res.json();
+
             if (res.ok) {
                 modalToggler(false);
                 refresh();
             } else {
-                const errorData = await res.json();
-                console.error('Failed to submit gender entry:', errorData);
-                alert('Failed to save gender entry. Please check the form data.');
+                console.error('Failed to submit gender entry:', responseData);
+                alert(`Failed to save gender entry: ${responseData.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error submitting gender entry:', error);

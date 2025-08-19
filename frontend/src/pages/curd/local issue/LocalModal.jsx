@@ -3,7 +3,7 @@ import {
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
     Chip, Box, FormHelperText
 } from '@mui/material';
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
@@ -80,152 +80,139 @@ export default function LocalIssueModal({
         }
     }, [localIssue]);
 
-    // State -> Division
+    // State-based filtering with cascading refinement
     useEffect(() => {
+        // Don't run filtering if essential data is not loaded yet
+        if (!divisions || !parliaments || !assemblies || !blocks || !booths) {
+            console.log('Waiting for data to load...');
+            return;
+        }
+
         if (formData.state_id) {
-            const filtered = divisions?.filter(division => {
+            // Filter divisions by state
+            const filteredDivs = divisions?.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
                 return divisionStateId === formData.state_id;
             }) || [];
-            setFilteredDivisions(filtered);
+            setFilteredDivisions(filteredDivs);
 
-            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    division_id: '',
-                    parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
+            // Debug: Log when division is selected
+            if (formData.division_id) {
+                console.log('Division selected - filtering parliaments by division:', formData.division_id);
             }
+
+            // Filter parliaments by state and optionally by division
+            let filteredParls;
+            if (formData.division_id) {
+                // If division is selected, filter parliaments by that specific division
+                filteredParls = parliaments?.filter(parliament => {
+                    const divId = parliament.division_id?._id || parliament.division_id;
+                    return divId === formData.division_id;
+                }) || [];
+            } else {
+                // If no division selected, show all parliaments in the state
+                const stateDivisionIds = filteredDivs.map(div => div._id);
+                filteredParls = parliaments?.filter(parliament => {
+                    const divId = parliament.division_id?._id || parliament.division_id;
+                    return stateDivisionIds.includes(divId);
+                }) || [];
+            }
+            setFilteredParliaments(filteredParls);
+
+            // Filter assemblies by state and optionally by parliament/division
+            let filteredAssems;
+            if (formData.parliament_id) {
+                // If parliament is selected, filter assemblies by that specific parliament
+                filteredAssems = assemblies?.filter(assembly => {
+                    const parlId = assembly.parliament_id?._id || assembly.parliament_id;
+                    return parlId === formData.parliament_id;
+                }) || [];
+            } else {
+                // If no parliament selected, show assemblies based on available parliaments
+                const availableParliamentIds = filteredParls.map(parl => parl._id);
+                filteredAssems = assemblies?.filter(assembly => {
+                    const parlId = assembly.parliament_id?._id || assembly.parliament_id;
+                    return availableParliamentIds.includes(parlId);
+                }) || [];
+            }
+            setFilteredAssemblies(filteredAssems);
+
+            // Filter blocks by state and optionally by assembly/parliament/division
+            let filteredBlks;
+            if (formData.assembly_id) {
+                // If assembly is selected, filter blocks by that specific assembly
+                filteredBlks = blocks?.filter(block => {
+                    const assemId = block.assembly_id?._id || block.assembly_id;
+                    return assemId === formData.assembly_id;
+                }) || [];
+            } else {
+                // If no assembly selected, show blocks based on available assemblies
+                const availableAssemblyIds = filteredAssems.map(assem => assem._id);
+                filteredBlks = blocks?.filter(block => {
+                    const assemId = block.assembly_id?._id || block.assembly_id;
+                    return availableAssemblyIds.includes(assemId);
+                }) || [];
+            }
+            setFilteredBlocks(filteredBlks);
+
+            // Filter booths by state and optionally by block/assembly/parliament/division
+            let filteredBths;
+            if (formData.block_id) {
+                // If block is selected, filter booths by that specific block
+                filteredBths = booths?.filter(booth => {
+                    const blockId = booth.block_id?._id || booth.block_id;
+                    return blockId === formData.block_id;
+                }) || [];
+            } else {
+                // If no block selected, show booths based on available blocks
+                const availableBlockIds = filteredBlks.map(block => block._id);
+                filteredBths = booths?.filter(booth => {
+                    const blockId = booth.block_id?._id || booth.block_id;
+                    return availableBlockIds.includes(blockId);
+                }) || [];
+            }
+            setFilteredBooths(filteredBths);
+
         } else {
+            // If no state selected, clear all dropdown options
             setFilteredDivisions([]);
-            setFormData(prev => ({
-                ...prev,
-                division_id: '',
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.state_id, divisions]);
-
-    // Division -> Parliament
-    useEffect(() => {
-        if (formData.division_id) {
-            const filtered = parliaments?.filter(parliament => {
-                const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
-                return parliamentDivisionId === formData.division_id;
-            }) || [];
-            setFilteredParliaments(filtered);
-
-            if (formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    parliament_id: '',
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
-            }
-        } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({
-                ...prev,
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.division_id, parliaments]);
-
-    // Parliament -> Assembly
-    useEffect(() => {
-        if (formData.parliament_id) {
-            const filtered = assemblies?.filter(assembly => {
-                const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
-                return assemblyParliamentId === formData.parliament_id;
-            }) || [];
-            setFilteredAssemblies(filtered);
-
-            if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    assembly_id: '',
-                    block_id: '',
-                    booth_id: ''
-                }));
-            }
-        } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({
-                ...prev,
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.parliament_id, assemblies]);
-
-    // Assembly -> Block
-    useEffect(() => {
-        if (formData.assembly_id) {
-            const filtered = blocks?.filter(block => {
-                const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
-                return blockAssemblyId === formData.assembly_id;
-            }) || [];
-            setFilteredBlocks(filtered);
-
-            if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    block_id: '',
-                    booth_id: ''
-                }));
-            }
-        } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({
-                ...prev,
-                block_id: '',
-                booth_id: ''
-            }));
-        }
-    }, [formData.assembly_id, blocks]);
-
-    // Block -> Booth
-    useEffect(() => {
-        if (formData.block_id) {
-            const filtered = booths?.filter(booth => {
-                const boothBlockId = booth.block_id?._id || booth.block_id;
-                return boothBlockId === formData.block_id;
-            }) || [];
-            setFilteredBooths(filtered);
-
-            if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    booth_id: ''
-                }));
-            }
-        } else {
             setFilteredBooths([]);
-            setFormData(prev => ({
-                ...prev,
-                booth_id: ''
-            }));
         }
-    }, [formData.block_id, booths]);
-
+    }, [formData.state_id, formData.division_id, formData.parliament_id, formData.assembly_id, formData.block_id, divisions, parliaments, assemblies, blocks, booths]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        const updates = { [name]: value };
+
+        // Clear dependent fields based on hierarchy
+        if (name === 'state_id') {
+            updates.division_id = '';
+            updates.parliament_id = '';
+            updates.assembly_id = '';
+            updates.block_id = '';
+            updates.booth_id = '';
+        } else if (name === 'division_id') {
+            updates.parliament_id = '';
+            updates.assembly_id = '';
+            updates.block_id = '';
+            updates.booth_id = '';
+        } else if (name === 'parliament_id') {
+            updates.assembly_id = '';
+            updates.block_id = '';
+            updates.booth_id = '';
+        } else if (name === 'assembly_id') {
+            updates.block_id = '';
+            updates.booth_id = '';
+        } else if (name === 'block_id') {
+            updates.booth_id = '';
+        }
+
         setFormData((prev) => ({
             ...prev,
-            [name]: value
+            ...updates
         }));
     };
 
@@ -239,46 +226,46 @@ export default function LocalIssueModal({
 
     const validateForm = () => {
         const errors = {};
-        
+
         if (!formData.issue_name || formData.issue_name.trim() === '') {
             errors.issue_name = 'Issue name is required';
         }
-        
+
         if (!formData.department || formData.department.trim() === '') {
             errors.department = 'Department is required';
         }
-        
+
         if (!formData.state_id) {
             errors.state_id = 'State is required';
         }
-        
+
         if (!formData.division_id) {
             errors.division_id = 'Division is required';
         }
-        
+
         if (!formData.parliament_id) {
             errors.parliament_id = 'Parliament is required';
         }
-        
+
         if (!formData.assembly_id) {
             errors.assembly_id = 'Assembly is required';
         }
-        
+
         if (!formData.block_id) {
             errors.block_id = 'Block is required';
         }
-        
+
         if (!formData.booth_id) {
             errors.booth_id = 'Booth is required';
         }
-        
+
         return errors;
     };
 
     const handleSubmit = async () => {
         setSubmitted(true);
         const errors = validateForm();
-        
+
         if (Object.keys(errors).length > 0) {
             return;
         }
@@ -351,16 +338,21 @@ export default function LocalIssueModal({
     };
 
     return (
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
+        <Dialog
+            open={open}
+            onClose={() => modalToggler(false)}
+            fullWidth
+            maxWidth="md"
+            scroll="paper"
+        >
             <DialogTitle>{localIssue ? 'Edit Local Issue' : 'Add Local Issue'}</DialogTitle>
-            <DialogContent style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.57, fontFamily: 'Inter var', fontWeight: 400, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >
+            <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <Grid container spacing={2} mt={1}>
                     {/* Row 1: Issue Name and Department */}
-                    <Grid style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.57, fontFamily: 'Inter var', fontWeight: 400, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Issue Name</InputLabel>
                             <TextField
-                                style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.57, fontFamily: 'Inter var', fontWeight: 400, minWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 name="issue_name"
                                 value={formData.issue_name}
                                 onChange={handleChange}
@@ -402,9 +394,9 @@ export default function LocalIssueModal({
                                 >
                                     {statusOptions.map((status) => (
                                         <MenuItem key={status} value={status}>
-                                            <Chip 
-                                                label={status} 
-                                                size="small" 
+                                            <Chip
+                                                label={status}
+                                                size="small"
                                                 color={getStatusColor(status)}
                                                 sx={{ minWidth: 100 }}
                                             />
@@ -426,9 +418,9 @@ export default function LocalIssueModal({
                                 >
                                     {priorityOptions.map((priority) => (
                                         <MenuItem key={priority} value={priority}>
-                                            <Chip 
-                                                label={priority} 
-                                                size="small" 
+                                            <Chip
+                                                label={priority}
+                                                size="small"
                                                 color={getPriorityColor(priority)}
                                                 sx={{ minWidth: 100 }}
                                             />
@@ -510,7 +502,7 @@ export default function LocalIssueModal({
                                     name="parliament_id"
                                     value={formData.parliament_id}
                                     onChange={handleChange}
-                                    disabled={!formData.division_id}
+                                    disabled={!formData.state_id}
                                 >
                                     <MenuItem value="">Select Parliament</MenuItem>
                                     {filteredParliaments.map((parliament) => (
@@ -534,7 +526,7 @@ export default function LocalIssueModal({
                                     name="assembly_id"
                                     value={formData.assembly_id}
                                     onChange={handleChange}
-                                    disabled={!formData.parliament_id}
+                                    disabled={!formData.state_id}
                                 >
                                     <MenuItem value="">Select Assembly</MenuItem>
                                     {filteredAssemblies.map((assembly) => (
@@ -559,7 +551,7 @@ export default function LocalIssueModal({
                                     name="block_id"
                                     value={formData.block_id}
                                     onChange={handleChange}
-                                    disabled={!formData.assembly_id}
+                                    disabled={!formData.state_id}
                                 >
                                     <MenuItem value="">Select Block</MenuItem>
                                     {filteredBlocks.map((block) => (
@@ -583,7 +575,7 @@ export default function LocalIssueModal({
                                     name="booth_id"
                                     value={formData.booth_id}
                                     onChange={handleChange}
-                                    disabled={!formData.block_id}
+                                    disabled={!formData.state_id}
                                 >
                                     <MenuItem value="">Select Booth</MenuItem>
                                     {filteredBooths.map((booth) => (

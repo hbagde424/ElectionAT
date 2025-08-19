@@ -82,19 +82,6 @@ export default function PartyActivitiesListPage() {
         setFilters(newFilters);
     };
 
-    // Handle text filter changes
-    const handleTextFilterChange = (field, value) => {
-        setTextFilters(prev => ({ ...prev, [field]: value }));
-    };
-
-    // Handle attendance range changes
-    const handleAttendanceChange = (type, value) => {
-        setTextFilters(prev => ({
-            ...prev,
-            attendance: { ...prev.attendance, [type]: value }
-        }));
-    };
-
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
@@ -185,7 +172,7 @@ export default function PartyActivitiesListPage() {
     useEffect(() => {
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, filters]);
 
     const handleDeleteOpen = (id) => {
         setPartyActivityDeleteId(id);
@@ -579,11 +566,12 @@ export default function PartyActivitiesListPage() {
                             size="small"
                         >
                             <MenuItem value="">All Types</MenuItem>
+                            <MenuItem value="rally">Rally</MenuItem>
+                            <MenuItem value="sabha">Sabha</MenuItem>
                             <MenuItem value="meeting">Meeting</MenuItem>
                             <MenuItem value="campaign">Campaign</MenuItem>
-                            <MenuItem value="rally">Rally</MenuItem>
-                            <MenuItem value="gathering">Gathering</MenuItem>
-                            <MenuItem value="other">Other</MenuItem>
+                            <MenuItem value="door_to_door">Door to Door</MenuItem>
+                            <MenuItem value="press_conference">Press Conference</MenuItem>
                         </Select>
                     </FormControl>
 
@@ -631,10 +619,12 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.state_id}
                         >
                             <MenuItem value="">All Divisions</MenuItem>
-                            {divisions?.filter(d => d.state_id?._id === filters?.state_id)
-                                .map((division) => (
-                                    <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
-                                ))}
+                            {divisions?.filter(d => {
+                                const stateId = d.state_id?._id || d.state_id;
+                                return stateId === filters?.state_id;
+                            }).map((division) => (
+                                <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
 
@@ -649,10 +639,12 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.division_id}
                         >
                             <MenuItem value="">All Parliaments</MenuItem>
-                            {parliaments?.filter(p => p.division_id?._id === filters?.division_id)
-                                .map((parliament) => (
-                                    <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
-                                ))}
+                            {parliaments?.filter(p => {
+                                const divisionId = p.division_id?._id || p.division_id;
+                                return divisionId === filters?.division_id;
+                            }).map((parliament) => (
+                                <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
 
@@ -667,10 +659,12 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.parliament_id}
                         >
                             <MenuItem value="">All Assemblies</MenuItem>
-                            {assemblies?.filter(a => a.parliament_id?._id === filters?.parliament_id)
-                                .map((assembly) => (
-                                    <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
-                                ))}
+                            {assemblies?.filter(a => {
+                                const parliamentId = a.parliament_id?._id || a.parliament_id;
+                                return parliamentId === filters?.parliament_id;
+                            }).map((assembly) => (
+                                <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
 
@@ -685,10 +679,12 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.assembly_id}
                         >
                             <MenuItem value="">All Blocks</MenuItem>
-                            {blocks?.filter(b => b.assembly_id?._id === filters?.assembly_id)
-                                .map((block) => (
-                                    <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
-                                ))}
+                            {blocks?.filter(b => {
+                                const assemblyId = b.assembly_id?._id || b.assembly_id;
+                                return assemblyId === filters?.assembly_id;
+                            }).map((block) => (
+                                <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
 
@@ -703,12 +699,14 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.block_id}
                         >
                             <MenuItem value="">All Booths</MenuItem>
-                            {booths?.filter(b => b.block_id?._id === filters?.block_id)
-                                .map((booth) => (
-                                    <MenuItem key={booth._id} value={booth._id}>
-                                        {booth.name} (No: {booth.booth_number})
-                                    </MenuItem>
-                                ))}
+                            {booths?.filter(b => {
+                                const blockId = b.block_id?._id || b.block_id;
+                                return blockId === filters?.block_id;
+                            }).map((booth) => (
+                                <MenuItem key={booth._id} value={booth._id}>
+                                    {booth.name} (No: {booth.booth_number})
+                                </MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
 

@@ -31,31 +31,6 @@ export default function PartyActivitiesModal({
     const contextValue = useContext(JWTContext);
     const { user, isLoggedIn, isInitialized } = contextValue || {};
 
-    console.log('=== PARTY ACTIVITIES JWT CONTEXT DEBUG ===');
-    console.log('Full context value:', contextValue);
-    console.log('isLoggedIn:', isLoggedIn);
-    console.log('isInitialized:', isInitialized);
-    console.log('user from context:', user);
-    console.log('=== END PARTY ACTIVITIES JWT CONTEXT DEBUG ===');
-
-    // Debug logging to check user context and localStorage
-    console.log('=== PARTY ACTIVITIES USER DEBUG INFO ===');
-    console.log('JWTContext user:', user);
-    console.log('User ID:', user?._id);
-    console.log('User object keys:', user ? Object.keys(user) : 'No user');
-    console.log('localStorage serviceToken:', localStorage.getItem('serviceToken'));
-    console.log('localStorage user:', localStorage.getItem('user'));
-
-    // Try to parse localStorage user
-    try {
-        const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-        console.log('Parsed localStorage user:', localUser);
-    } catch (e) {
-        console.log('Failed to parse localStorage user:', e);
-    }
-    console.log('=== END PARTY ACTIVITIES DEBUG INFO ===');
-
-    console.log('partie111s', parties);
     const [formData, setFormData] = useState({
         party_id: '',
         state_id: '',
@@ -151,23 +126,16 @@ export default function PartyActivitiesModal({
     // Cascading dropdown logic: State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            console.log('State changed to:', formData.state_id);
-            console.log('Divisions available:', divisions);
-
             // Handle both string IDs and object references
             const filtered = divisions?.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
-                const matches = divisionStateId === formData.state_id;
-                console.log(`Division ${division.name}: state_id=${divisionStateId}, matches=${matches}`);
-                return matches;
+                return divisionStateId === formData.state_id;
             }) || [];
 
-            console.log('Filtered divisions:', filtered);
             setFilteredDivisions(filtered);
 
             // Only reset dependent fields if current selection is not valid
             if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
-                console.log('Resetting division and dependent fields - current division not valid');
                 setFormData(prev => ({
                     ...prev,
                     division_id: '',
@@ -178,7 +146,6 @@ export default function PartyActivitiesModal({
                 }));
             }
         } else {
-            console.log('No state selected, clearing divisions');
             setFilteredDivisions([]);
             setFormData(prev => ({
                 ...prev,
@@ -194,22 +161,15 @@ export default function PartyActivitiesModal({
     // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
-            console.log('Division changed to:', formData.division_id);
-            console.log('Parliaments available:', parliaments);
-
             // Handle both string IDs and object references
             const filtered = parliaments?.filter(parliament => {
                 const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
-                const matches = parliamentDivisionId === formData.division_id;
-                console.log(`Parliament ${parliament.name}: division_id=${parliamentDivisionId}, matches=${matches}`);
-                return matches;
+                return parliamentDivisionId === formData.division_id;
             }) || [];
 
-            console.log('Filtered parliaments:', filtered);
             setFilteredParliaments(filtered);
 
             if (formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
-                console.log('Resetting parliament and dependent fields - current parliament not valid');
                 setFormData(prev => ({
                     ...prev,
                     parliament_id: '',
@@ -219,7 +179,6 @@ export default function PartyActivitiesModal({
                 }));
             }
         } else {
-            console.log('No division selected, clearing parliaments');
             setFilteredParliaments([]);
             setFormData(prev => ({
                 ...prev,
@@ -377,10 +336,10 @@ export default function PartyActivitiesModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        // Validation: check all required fields
+        // Validation: check all required fields (excluding end_date and attendance_count which are optional)
         const requiredFields = [
             'party_id', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id',
-            'activity_type', 'title', 'description', 'activity_date', 'end_date', 'location', 'status', 'attendance_count'
+            'activity_type', 'title', 'description', 'activity_date', 'location', 'status'
         ];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
@@ -395,11 +354,6 @@ export default function PartyActivitiesModal({
             ? `${import.meta.env.VITE_APP_API_URL}/party-activities/${partyActivity._id}`
             : `${import.meta.env.VITE_APP_API_URL}/party-activities`;
 
-        // Debug user information
-        console.log('Party Activities HandleSubmit - User context:', user);
-        console.log('Party Activities HandleSubmit - User ID check:', user?._id);
-        console.log('Party Activities HandleSubmit - User ID (alternative):', user?.id);
-
         // Try to get user ID from different possible fields or fallback to localStorage
         let userId = user?._id || user?.id;
 
@@ -408,44 +362,22 @@ export default function PartyActivitiesModal({
             try {
                 const localUser = JSON.parse(localStorage.getItem('user') || '{}');
                 userId = localUser._id || localUser.id;
-                console.log('Party Activities Fallback - localStorage user:', localUser);
-                console.log('Party Activities Fallback - userId:', userId);
             } catch (e) {
-                console.error('Party Activities Failed to parse localStorage user:', e);
+                console.error('Failed to parse localStorage user:', e);
             }
         }
 
-        // Ensure userId is always set (temporary fix)
+        // Ensure userId is always set
         if (!userId) {
-            console.error('Party Activities User validation failed:', { contextUser: user, userId });
-
-            // TEMPORARY BYPASS FOR TESTING - Remove this after fixing user context
-            const tempUserId = "507f1f77bcf86cd799439022"; // Replace with a valid user ID from your database
-            console.warn('PARTY ACTIVITIES USING TEMPORARY USER ID FOR TESTING:', tempUserId);
-            userId = tempUserId;
-
-            // Uncomment the lines below to re-enable validation after fixing user context
-            // alert(`User not logged in. Please login again. Debug: contextUser=${!!user}, userId=${userId}`);
-            // return;
+            //  alert('User not logged in. Please login again.');
+            //  return;
         }
-
-        // Double-check userId is not empty string or null
-        if (!userId || userId === '' || userId === null || userId === undefined) {
-            console.error('Party Activities - userId is empty, using fallback');
-            userId = "507f1f77bcf86cd799439022"; // Fallback user ID
-        }
-
-        console.log('Party Activities - Final userId check:', userId);
-        console.log('Party Activities - userId type:', typeof userId);
-        console.log('Party Activities - Operation type:', partyActivity ? 'UPDATE' : 'CREATE');
 
         // Create user tracking object
         const userTracking = partyActivity ? { updated_by: userId } : { created_by: userId };
-        console.log('Party Activities - User tracking object:', userTracking);
 
         // Remove created_by and updated_by from formData to avoid override
         const { created_by, updated_by, ...cleanFormData } = formData;
-        console.log('Party Activities - Removed from formData:', { created_by, updated_by });
 
         const submitData = {
             ...cleanFormData,
@@ -454,13 +386,6 @@ export default function PartyActivitiesModal({
             end_date: formData.end_date ? formData.end_date.toISOString() : null,
             ...userTracking
         };
-
-        console.log('Party Activities - User ID being used:', userId);
-        console.log('Party Activities - Is update operation:', !!partyActivity);
-        console.log('Party Activities - User tracking field:', partyActivity ? 'updated_by' : 'created_by');
-        console.log('Party Activities payload:', submitData);
-        console.log('Party Activities - created_by in payload:', submitData.created_by);
-        console.log('Party Activities - updated_by in payload:', submitData.updated_by);
 
         try {
             const res = await fetch(url, {
@@ -805,16 +730,13 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Attendance Count</InputLabel>
+                                <InputLabel>Attendance Count</InputLabel>
                                 <TextField
                                     name="attendance_count"
                                     type="number"
                                     value={formData.attendance_count}
                                     onChange={handleChange}
                                     fullWidth
-                                    required
-                                    error={submitted && !formData.attendance_count}
-                                    helperText={submitted && !formData.attendance_count ? 'Attendance count is required' : ''}
                                     placeholder="Enter expected/actual attendance"
                                 />
                             </Stack>

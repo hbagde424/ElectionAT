@@ -19,12 +19,12 @@ exports.getGenders = async (req, res, next) => {
 
     // Basic query
     let query = Gender.find()
-      .populate('state', 'name')
-      .populate('division', 'name')
-      .populate('parliament', 'name')
-      .populate('assembly', 'name')
-      .populate('block', 'name')
-      .populate('booth', 'name booth_number')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ female: 1 });
@@ -41,33 +41,33 @@ exports.getGenders = async (req, res, next) => {
     }
 
     // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+    if (req.query.state_id) {
+      query = query.where('state_id').equals(req.query.state_id);
     }
 
     // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+    if (req.query.division_id) {
+      query = query.where('division_id').equals(req.query.division_id);
     }
 
     // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+    if (req.query.parliament_id) {
+      query = query.where('parliament_id').equals(req.query.parliament_id);
     }
 
     // Filter by assembly
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+    if (req.query.assembly_id) {
+      query = query.where('assembly_id').equals(req.query.assembly_id);
     }
 
     // Filter by block
-    if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
+    if (req.query.block_id) {
+      query = query.where('block_id').equals(req.query.block_id);
     }
 
     // Filter by booth
-    if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
+    if (req.query.booth_id) {
+      query = query.where('booth_id').equals(req.query.booth_id);
     }
 
     const genders = await query.skip(skip).limit(limit).exec();
@@ -92,12 +92,12 @@ exports.getGenders = async (req, res, next) => {
 exports.getGender = async (req, res, next) => {
   try {
     const gender = await Gender.findById(req.params.id)
-      .populate('state', 'name')
-      .populate('division', 'name')
-      .populate('parliament', 'name')
-      .populate('assembly', 'name')
-      .populate('block', 'name')
-      .populate('booth', 'name booth_number')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -169,7 +169,7 @@ exports.createGender = async (req, res, next) => {
     const genderData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const gender = await Gender.create(genderData);
@@ -213,7 +213,7 @@ exports.updateGender = async (req, res, next) => {
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
@@ -232,12 +232,12 @@ exports.updateGender = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-      .populate('state', 'name')
-      .populate('division', 'name')
-      .populate('parliament', 'name')
-      .populate('assembly', 'name')
-      .populate('block', 'name')
-      .populate('booth', 'name booth_number')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'name booth_number')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -325,7 +325,7 @@ exports.getGendersByState = async (req, res, next) => {
     }
 
     const genders = await Gender.find({ state_id: req.params.stateId })
-      .sort({ female: 1, male: 1, others:1 })
+      .sort({ female: 1, male: 1, others: 1 })
       .populate('division', 'name')
       .populate('booth', 'name booth_number');
 

@@ -43,6 +43,11 @@ exports.getEvents = async (req, res, next) => {
       query = query.where('status').equals(req.query.status);
     }
 
+    // Filter by state
+    if (req.query.state_id) {
+      query = query.where('state_id').equals(req.query.state_id);
+    }
+
     // Filter by division
     if (req.query.division_id) {
       query = query.where('division_id').equals(req.query.division_id);
@@ -230,7 +235,7 @@ exports.updateEvent = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-    .populate('state_id', 'name')
+      .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')

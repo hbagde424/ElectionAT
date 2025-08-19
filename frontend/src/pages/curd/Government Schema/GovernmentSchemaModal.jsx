@@ -172,11 +172,11 @@ export default function GovernmentModal({
         setSubmitted(true);
         // Validation
         const requiredFields = [
-            'name', 'type', 'amount', 
-            'state_id', 'division_id', 
+            'name', 'type', 'amount',
+            'state_id', 'division_id',
             'parliament_id', 'assembly_id'
         ];
-        
+
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -223,7 +223,10 @@ export default function GovernmentModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit government:', errorData);
-                alert('Failed to save government. Please check the form data.');
+
+                // Show specific error message from backend
+                const errorMessage = errorData.message || errorData.error || 'Failed to save government. Please check the form data.';
+                alert(`Error: ${errorMessage}`);
             }
         } catch (error) {
             console.error('Error submitting government:', error);

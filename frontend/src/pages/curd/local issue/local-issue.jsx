@@ -75,115 +75,57 @@ export default function LocalIssueListPage() {
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
-    // State -> Division
+    // State -> Enable all dropdowns and filter by state
     useEffect(() => {
         if (tempFilters.state) {
-            const filtered = divisions?.filter(division =>
+            // Filter divisions by state
+            const filteredDivs = divisions?.filter(division =>
                 division.state_id?._id === tempFilters.state ||
                 division.state_id === tempFilters.state
             ) || [];
-            setFilteredDivisions(filtered);
+            setFilteredDivisions(filteredDivs);
+
+            // Filter parliaments by state (through divisions)
+            const stateDivisionIds = filteredDivs.map(div => div._id);
+            const filteredParls = parliaments?.filter(parliament => {
+                const divId = parliament.division_id?._id || parliament.division_id;
+                return stateDivisionIds.includes(divId);
+            }) || [];
+            setFilteredParliaments(filteredParls);
+
+            // Filter assemblies by state (through parliaments)
+            const stateParliamentIds = filteredParls.map(parl => parl._id);
+            const filteredAssems = assemblies?.filter(assembly => {
+                const parlId = assembly.parliament_id?._id || assembly.parliament_id;
+                return stateParliamentIds.includes(parlId);
+            }) || [];
+            setFilteredAssemblies(filteredAssems);
+
+            // Filter blocks by state (through assemblies)
+            const stateAssemblyIds = filteredAssems.map(assem => assem._id);
+            const filteredBlks = blocks?.filter(block => {
+                const assemId = block.assembly_id?._id || block.assembly_id;
+                return stateAssemblyIds.includes(assemId);
+            }) || [];
+            setFilteredBlocks(filteredBlks);
+
+            // Filter booths by state (through blocks)
+            const stateBlockIds = filteredBlks.map(block => block._id);
+            const filteredBths = booths?.filter(booth => {
+                const blockId = booth.block_id?._id || booth.block_id;
+                return stateBlockIds.includes(blockId);
+            }) || [];
+            setFilteredBooths(filteredBths);
+
         } else {
+            // If no state selected, show all options
             setFilteredDivisions(divisions || []);
-        }
-        // Clear dependent fields when state changes
-        if (tempFilters.division) {
-            setTempFilters(prev => ({
-                ...prev,
-                division: '',
-                parliament: '',
-                assembly: '',
-                block: '',
-                booth: ''
-            }));
-        }
-    }, [tempFilters.state, divisions]);
-
-    // Division -> Parliament
-    useEffect(() => {
-        if (tempFilters.division) {
-            const filtered = parliaments?.filter(parliament =>
-                parliament.division_id?._id === tempFilters.division ||
-                parliament.division_id === tempFilters.division
-            ) || [];
-            setFilteredParliaments(filtered);
-        } else {
             setFilteredParliaments(parliaments || []);
-        }
-        // Clear dependent fields when division changes
-        if (tempFilters.parliament) {
-            setTempFilters(prev => ({
-                ...prev,
-                parliament: '',
-                assembly: '',
-                block: '',
-                booth: ''
-            }));
-        }
-    }, [tempFilters.division, parliaments]);
-
-    // Parliament -> Assembly
-    useEffect(() => {
-        if (tempFilters.parliament) {
-            const filtered = assemblies?.filter(assembly =>
-                assembly.parliament_id?._id === tempFilters.parliament ||
-                assembly.parliament_id === tempFilters.parliament
-            ) || [];
-            setFilteredAssemblies(filtered);
-        } else {
             setFilteredAssemblies(assemblies || []);
-        }
-        // Clear dependent fields when parliament changes
-        if (tempFilters.assembly) {
-            setTempFilters(prev => ({
-                ...prev,
-                assembly: '',
-                block: '',
-                booth: ''
-            }));
-        }
-    }, [tempFilters.parliament, assemblies]);
-
-    // Assembly -> Block
-    useEffect(() => {
-        if (tempFilters.assembly) {
-            const filtered = blocks?.filter(block =>
-                block.assembly_id?._id === tempFilters.assembly ||
-                block.assembly_id === tempFilters.assembly
-            ) || [];
-            setFilteredBlocks(filtered);
-        } else {
             setFilteredBlocks(blocks || []);
-        }
-        // Clear dependent fields when assembly changes
-        if (tempFilters.block) {
-            setTempFilters(prev => ({
-                ...prev,
-                block: '',
-                booth: ''
-            }));
-        }
-    }, [tempFilters.assembly, blocks]);
-
-    // Block -> Booth
-    useEffect(() => {
-        if (tempFilters.block) {
-            const filtered = booths?.filter(booth =>
-                booth.block_id?._id === tempFilters.block ||
-                booth.block_id === tempFilters.block
-            ) || [];
-            setFilteredBooths(filtered);
-        } else {
             setFilteredBooths(booths || []);
         }
-        // Clear booth when block changes
-        if (tempFilters.booth) {
-            setTempFilters(prev => ({
-                ...prev,
-                booth: ''
-            }));
-        }
-    }, [tempFilters.block, booths]);
+    }, [tempFilters.state, divisions, parliaments, assemblies, blocks, booths]);
 
     const fetchReferenceData = async () => {
         try {
@@ -227,12 +169,13 @@ export default function LocalIssueListPage() {
             if (selectedAssembly) query += `&assembly=${selectedAssembly}`;
             if (selectedBlock) query += `&block=${selectedBlock}`;
             if (selectedBooth) query += `&booth=${selectedBooth}`;
-            if (selectedStatus) query += `&status=${selectedStatus}`;
-            if (selectedPriority) query += `&priority=${selectedPriority}`;
-            if (selectedDepartment) query += `&department=${selectedDepartment}`;
+            if (selectedStatus) query += `&status=${encodeURIComponent(selectedStatus)}`;
+            if (selectedPriority) query += `&priority=${encodeURIComponent(selectedPriority)}`;
+            if (selectedDepartment) query += `&department=${encodeURIComponent(selectedDepartment)}`;
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
+
             if (json.success) {
                 setLocalIssues(json.data);
                 setPageCount(json.pages);
@@ -667,7 +610,7 @@ export default function LocalIssueListPage() {
                         value={tempFilters.parliament}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, parliament: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.division}
+                        disabled={!tempFilters.state}
                     >
                         <MenuItem value="">Select Parliament</MenuItem>
                         {filteredParliaments.map(parliament => (
@@ -682,7 +625,7 @@ export default function LocalIssueListPage() {
                         value={tempFilters.assembly}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, assembly: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.parliament}
+                        disabled={!tempFilters.state}
                     >
                         <MenuItem value="">Select Assembly</MenuItem>
                         {filteredAssemblies.map(assembly => (
@@ -697,7 +640,7 @@ export default function LocalIssueListPage() {
                         value={tempFilters.block}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, block: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.assembly}
+                        disabled={!tempFilters.state}
                     >
                         <MenuItem value="">Select Block</MenuItem>
                         {filteredBlocks.map(block => (
@@ -712,7 +655,7 @@ export default function LocalIssueListPage() {
                         value={tempFilters.booth}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, booth: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.block}
+                        disabled={!tempFilters.state}
                     >
                         <MenuItem value="">Select Booth</MenuItem>
                         {filteredBooths.map(booth => (

@@ -68,6 +68,9 @@ export default function InfluencersListPage() {
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
+    // Add useRef to track if reference data has been fetched
+    const referenceDataFetched = useRef(false);
+
     // State -> Division
     useEffect(() => {
         if (tempFilters.state) {
@@ -117,7 +120,7 @@ export default function InfluencersListPage() {
         }
     }, [tempFilters.division, parliaments]);
 
-    // Parliament -> Assembly and District
+    // Parliament -> Assembly (District filtering removed as influencer model doesn't have district_id)
     useEffect(() => {
         if (tempFilters.parliament) {
             const filteredAssembliesList = assemblies?.filter(assembly =>
@@ -126,11 +129,8 @@ export default function InfluencersListPage() {
             ) || [];
             setFilteredAssemblies(filteredAssembliesList);
 
-            const filteredDistrictsList = districts?.filter(district =>
-                district.parliament_id?._id === tempFilters.parliament ||
-                district.parliament_id === tempFilters.parliament
-            ) || [];
-            setFilteredDistricts(filteredDistrictsList);
+            // For influencers, districts are not directly linked, so show all districts for reference
+            setFilteredDistricts(districts || []);
         } else {
             setFilteredAssemblies(assemblies || []);
             setFilteredDistricts(districts || []);
@@ -147,18 +147,18 @@ export default function InfluencersListPage() {
         }
     }, [tempFilters.parliament, assemblies, districts]);
 
-    // Assembly & District -> Block
+    // Assembly -> Block (district filtering is just for display, doesn't affect API)
     useEffect(() => {
-        if (tempFilters.assembly || tempFilters.district) {
+        if (tempFilters.assembly) {
             const filtered = blocks?.filter(block =>
-                (tempFilters.assembly && (block.assembly_id?._id === tempFilters.assembly || block.assembly_id === tempFilters.assembly)) ||
-                (tempFilters.district && (block.district_id?._id === tempFilters.district || block.district_id === tempFilters.district))
+                block.assembly_id?._id === tempFilters.assembly ||
+                block.assembly_id === tempFilters.assembly
             ) || [];
             setFilteredBlocks(filtered);
         } else {
             setFilteredBlocks(blocks || []);
         }
-        // Clear dependent fields when assembly or district changes
+        // Clear dependent fields when assembly changes
         if (tempFilters.block) {
             setTempFilters(prev => ({
                 ...prev,
@@ -166,7 +166,7 @@ export default function InfluencersListPage() {
                 booth: ''
             }));
         }
-    }, [tempFilters.assembly, tempFilters.district, blocks]);
+    }, [tempFilters.assembly, blocks]);
 
     // Block -> Booth
     useEffect(() => {
@@ -247,7 +247,7 @@ export default function InfluencersListPage() {
             if (selectedDivision) query += `&division=${selectedDivision}`;
             if (selectedParliament) query += `&parliament=${selectedParliament}`;
             if (selectedAssembly) query += `&assembly=${selectedAssembly}`;
-            if (selectedDistrict) query += `&district=${selectedDistrict}`;
+            // Note: district filter is not supported by influencer model - skipping district
             if (selectedBlock) query += `&block=${selectedBlock}`;
             if (selectedBooth) query += `&booth=${selectedBooth}`;
 
@@ -265,8 +265,14 @@ export default function InfluencersListPage() {
     };
 
     useEffect(() => {
+        if (!referenceDataFetched.current) {
+            fetchReferenceData();
+            referenceDataFetched.current = true;
+        }
+    }, []);
+
+    useEffect(() => {
         fetchInfluencers(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchReferenceData();
     }, [
         pagination.pageIndex,
         pagination.pageSize,
@@ -519,7 +525,7 @@ export default function InfluencersListPage() {
             Division: item.division_id?.name || '',
             Parliament: item.parliament_id?.name || '',
             Assembly: item.assembly_id?.name || '',
-            District: item.district_id?.name || '',
+            // District: item.district_id?.name || '', // Not supported by influencer model
             Block: item.block_id?.name || '',
             Booth: item.booth_id?.name || '',
             Booth_Number: item.booth_id?.booth_number || '',
@@ -648,17 +654,18 @@ export default function InfluencersListPage() {
                         ))}
                     </TextField>
 
-                    {/* District */}
+                    {/* District - Note: Influencer model doesn't support district filtering, kept for reference only */}
                     <TextField
                         select
-                        label="District"
+                        label="District (Reference Only)"
                         value={tempFilters.district}
                         onChange={(e) =>
                             setTempFilters((prev) => ({ ...prev, district: e.target.value }))
                         }
                         sx={{ minWidth: 180 }}
                         size="small"
-                        disabled={!tempFilters.parliament}
+                        disabled={true}
+                        helperText="Not used for filtering"
                     >
                         <MenuItem value="">All Districts</MenuItem>
                         {filteredDistricts.map((district) => (
@@ -678,7 +685,7 @@ export default function InfluencersListPage() {
                         }
                         sx={{ minWidth: 180 }}
                         size="small"
-                        disabled={!tempFilters.assembly && !tempFilters.district}
+                        disabled={!tempFilters.assembly}
                     >
                         <MenuItem value="">All Blocks</MenuItem>
                         {filteredBlocks.map((block) => (

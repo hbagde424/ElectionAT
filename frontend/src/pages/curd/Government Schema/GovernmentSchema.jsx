@@ -60,6 +60,9 @@ export default function GovernmentsListPage() {
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
 
+    // Add useRef to track if reference data has been fetched
+    const referenceDataFetched = useRef(false);
+
     // State -> Division
     useEffect(() => {
         if (tempFilters.state) {
@@ -192,8 +195,14 @@ export default function GovernmentsListPage() {
     };
 
     useEffect(() => {
+        if (!referenceDataFetched.current) {
+            fetchReferenceData();
+            referenceDataFetched.current = true;
+        }
+    }, []);
+
+    useEffect(() => {
         fetchGovernments(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchReferenceData();
     }, [
         pagination.pageIndex,
         pagination.pageSize,
