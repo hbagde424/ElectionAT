@@ -35,6 +35,13 @@ export default function CodingListPage() {
     const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [booths, setBooths] = useState([]);
+
+    // Filtered dropdown data
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
+    const [filteredParliaments, setFilteredParliaments] = useState([]);
+    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+    const [filteredBlocks, setFilteredBlocks] = useState([]);
+
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -48,7 +55,74 @@ export default function CodingListPage() {
     });
 
     const handleFilterChange = (field, value) => {
-        setFilters(prev => ({ ...prev, [field]: value }));
+
+        let newFilters = { ...filters, [field]: value };
+
+        // Clear child selections when parent changes
+        if (field === 'state') {
+            newFilters = { ...newFilters, division: '', parliament: '', assembly: '', block: '' };
+            // Update filtered divisions based on selected state
+            if (value && divisions.length > 0) {
+
+                const stateDivisions = divisions.filter(division =>
+                    division.state_id === value || division.state_id?._id === value
+                );
+
+                setFilteredDivisions(stateDivisions);
+            } else {
+                setFilteredDivisions([]);
+            }
+            setFilteredParliaments([]);
+            setFilteredAssemblies([]);
+            setFilteredBlocks([]);
+        } else if (field === 'division') {
+            newFilters = { ...newFilters, parliament: '', assembly: '', block: '' };
+            // Update filtered parliaments based on selected division
+            if (value && parliaments.length > 0) {
+
+                const divisionParliaments = parliaments.filter(parliament =>
+                    parliament.division_id === value || parliament.division_id?._id === value
+                );
+
+                setFilteredParliaments(divisionParliaments);
+            } else {
+                setFilteredParliaments([]);
+            }
+            setFilteredAssemblies([]);
+            setFilteredBlocks([]);
+        } else if (field === 'parliament') {
+            newFilters = { ...newFilters, assembly: '', block: '' };
+            // Update filtered assemblies based on selected parliament
+            if (value && assemblies.length > 0) {
+
+                const parliamentAssemblies = assemblies.filter(assembly =>
+                    assembly.parliament_id === value || assembly.parliament_id?._id === value
+                );
+
+                setFilteredAssemblies(parliamentAssemblies);
+            } else {
+                setFilteredAssemblies([]);
+            }
+            setFilteredBlocks([]);
+        } else if (field === 'assembly') {
+            newFilters = { ...newFilters, block: '' };
+            // Update filtered blocks based on selected assembly
+            if (value && blocks.length > 0) {
+
+                const assemblyBlocks = blocks.filter(block =>
+                    block.assembly_id === value || block.assembly_id?._id === value
+                );
+
+                setFilteredBlocks(assemblyBlocks);
+            } else {
+                setFilteredBlocks([]);
+            }
+        }
+
+        setFilters(newFilters);
+
+        // Note: Filters are now only applied when Apply button is clicked
+        // Removed automatic filter application to match user requirement
     };
 
     const handleApplyFilters = () => {
@@ -67,6 +141,12 @@ export default function CodingListPage() {
             block: ''
         });
         setColumnFilters([]);
+
+        // Clear all filtered dropdowns
+        setFilteredDivisions([]);
+        setFilteredParliaments([]);
+        setFilteredAssemblies([]);
+        setFilteredBlocks([]);
     };
 
     const [columnFilters, setColumnFilters] = useState([]);
@@ -91,11 +171,24 @@ export default function CodingListPage() {
                 boothsRes.json()
             ]);
 
-            if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
+            if (statesData.success) {
+
+                setStates(statesData.data);
+            }
+            if (divisionsData.success) {
+
+                setDivisions(divisionsData.data);
+            }
+            if (parliamentsData.success) {
+
+                setParliaments(parliamentsData.data);
+            }
+            if (assembliesData.success) {
+                setAssemblies(assembliesData.data);
+            }
+            if (blocksData.success) {
+                setBlocks(blocksData.data);
+            }
             if (boothsData.success) setBooths(boothsData.data);
 
         } catch (error) {
@@ -111,6 +204,7 @@ export default function CodingListPage() {
             // Add column filters to the query
             columnFilters.forEach(filter => {
                 if (filter.value) {
+                    // Use the filter field names as expected by the backend
                     query += `&${filter.id}=${encodeURIComponent(filter.value)}`;
                 }
             });
@@ -118,8 +212,11 @@ export default function CodingListPage() {
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
+
                 setCodingList(json.data);
                 setPageCount(json.pages);
+            } else {
+                console.error('API Error:', json);
             }
         } catch (error) {
             console.error('Failed to fetch coding list:', error);
@@ -132,6 +229,11 @@ export default function CodingListPage() {
         fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters]);
+
+    // Reset to first page when filters change
+    useEffect(() => {
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
 
     const handleDeleteOpen = (id) => {
         setCodingDeleteId(id);
@@ -335,13 +437,12 @@ export default function CodingListPage() {
         },
         pageCount,
         manualPagination: true,
+        manualFiltering: true,
         onPaginationChange: setPagination,
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowCanExpand: () => true
     });
 
@@ -391,7 +492,10 @@ export default function CodingListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    if (loading) {
+        return <EmptyReactTable />;
+    }
+
 
     return (
         <>
@@ -470,9 +574,10 @@ export default function CodingListPage() {
                             onChange={(e) => handleFilterChange("division", e.target.value)}
                             sx={{ minWidth: 200 }}
                             size="small"
+                            disabled={!filters.state}
                         >
                             <MenuItem value="">All Divisions</MenuItem>
-                            {divisions.map((division) => (
+                            {filteredDivisions.map((division) => (
                                 <MenuItem key={division._id} value={division._id}>
                                     {division.name}
                                 </MenuItem>
@@ -486,9 +591,10 @@ export default function CodingListPage() {
                             onChange={(e) => handleFilterChange("parliament", e.target.value)}
                             sx={{ minWidth: 200 }}
                             size="small"
+                            disabled={!filters.division}
                         >
                             <MenuItem value="">All Parliaments</MenuItem>
-                            {parliaments.map((parliament) => (
+                            {filteredParliaments.map((parliament) => (
                                 <MenuItem key={parliament._id} value={parliament._id}>
                                     {parliament.name}
                                 </MenuItem>
@@ -502,9 +608,10 @@ export default function CodingListPage() {
                             onChange={(e) => handleFilterChange("assembly", e.target.value)}
                             sx={{ minWidth: 200 }}
                             size="small"
+                            disabled={!filters.parliament}
                         >
                             <MenuItem value="">All Assemblies</MenuItem>
-                            {assemblies.map((assembly) => (
+                            {filteredAssemblies.map((assembly) => (
                                 <MenuItem key={assembly._id} value={assembly._id}>
                                     {assembly.name}
                                 </MenuItem>
@@ -518,9 +625,10 @@ export default function CodingListPage() {
                             onChange={(e) => handleFilterChange("block", e.target.value)}
                             sx={{ minWidth: 200 }}
                             size="small"
+                            disabled={!filters.assembly}
                         >
                             <MenuItem value="">All Blocks</MenuItem>
-                            {blocks.map((block) => (
+                            {filteredBlocks.map((block) => (
                                 <MenuItem key={block._id} value={block._id}>
                                     {block.name}
                                 </MenuItem>
@@ -561,24 +669,32 @@ export default function CodingListPage() {
                                 ))}
                             </TableHead>
                             <TableBody>
-                                {table.getRowModel().rows.map((row) => (
-                                    <Fragment key={row.id}>
-                                        <TableRow>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                        {row.getIsExpanded() && (
+                                {table.getRowModel().rows.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} align="center">
+                                            <Typography>No data available</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    table.getRowModel().rows.map((row) => (
+                                        <Fragment key={row.id}>
                                             <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <CodingView data={row.original} />
-                                                </TableCell>
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell key={cell.id}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
-                                        )}
-                                    </Fragment>
-                                ))}
+                                            {row.getIsExpanded() && (
+                                                <TableRow>
+                                                    <TableCell colSpan={row.getVisibleCells().length}>
+                                                        <CodingView data={row.original} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </Fragment>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>

@@ -77,12 +77,31 @@ export default function CasteListPage() {
                 boothsRes.json()
             ]);
 
-            if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
-            if (boothsData.success) setBooths(boothsData.data);
+            if (statesData.success) {
+                console.log('States loaded:', statesData.data.length);
+                setStates(statesData.data);
+            }
+            if (divisionsData.success) {
+                console.log('Divisions loaded:', divisionsData.data.length);
+                console.log('First division structure:', divisionsData.data[0]);
+                setDivisions(divisionsData.data);
+            }
+            if (parliamentsData.success) {
+                console.log('Parliaments loaded:', parliamentsData.data.length);
+                setParliaments(parliamentsData.data);
+            }
+            if (assembliesData.success) {
+                console.log('Assemblies loaded:', assembliesData.data.length);
+                setAssemblies(assembliesData.data);
+            }
+            if (blocksData.success) {
+                console.log('Blocks loaded:', blocksData.data.length);
+                setBlocks(blocksData.data);
+            }
+            if (boothsData.success) {
+                console.log('Booths loaded:', boothsData.data.length);
+                setBooths(boothsData.data);
+            }
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -91,6 +110,9 @@ export default function CasteListPage() {
 
     // Handle state change
     const handleStateChange = (stateId) => {
+        console.log('State changed to:', stateId);
+        console.log('Available divisions:', divisions.length);
+
         setFilters(prev => ({
             ...prev,
             state: stateId,
@@ -102,7 +124,8 @@ export default function CasteListPage() {
         }));
 
         // Filter divisions based on selected state
-        const filteredDivs = divisions.filter(div => div.state?._id === stateId);
+        const filteredDivs = divisions.filter(div => div.state_id?._id === stateId);
+        console.log('Filtered divisions:', filteredDivs.length);
         setFilteredDivisions(filteredDivs);
         setFilteredParliaments([]);
         setFilteredAssemblies([]);
@@ -112,6 +135,9 @@ export default function CasteListPage() {
 
     // Handle division change
     const handleDivisionChange = (divisionId) => {
+        console.log('Division changed to:', divisionId);
+        console.log('Available parliaments:', parliaments.length);
+
         setFilters(prev => ({
             ...prev,
             division: divisionId,
@@ -122,7 +148,8 @@ export default function CasteListPage() {
         }));
 
         // Filter parliaments based on selected division
-        const filteredParls = parliaments.filter(parl => parl.division === divisionId);
+        const filteredParls = parliaments.filter(parl => parl.division_id?._id === divisionId);
+        console.log('Filtered parliaments:', filteredParls.length);
         setFilteredParliaments(filteredParls);
         setFilteredAssemblies([]);
         setFilteredBlocks([]);
@@ -140,7 +167,7 @@ export default function CasteListPage() {
         }));
 
         // Filter assemblies based on selected parliament
-        const filteredAsm = assemblies.filter(asm => asm.parliament === parliamentId);
+        const filteredAsm = assemblies.filter(asm => asm.parliament_id?._id === parliamentId);
         setFilteredAssemblies(filteredAsm);
         setFilteredBlocks([]);
         setFilteredBooths([]);
@@ -156,7 +183,7 @@ export default function CasteListPage() {
         }));
 
         // Filter blocks based on selected assembly
-        const filteredBlks = blocks.filter(blk => blk.assembly === assemblyId);
+        const filteredBlks = blocks.filter(blk => blk.assembly_id?._id === assemblyId);
         setFilteredBlocks(filteredBlks);
         setFilteredBooths([]);
     };
@@ -170,7 +197,7 @@ export default function CasteListPage() {
         }));
 
         // Filter booths based on selected block
-        const filteredBths = booths.filter(bth => bth.block === blockId);
+        const filteredBths = booths.filter(bth => bth.block_id?._id === blockId);
         setFilteredBooths(filteredBths);
     };
 
