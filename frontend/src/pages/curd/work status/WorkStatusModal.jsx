@@ -28,6 +28,7 @@ export default function WorkStatusModal({
         work_name: '',
         department: '',
         status: 'Pending',
+        work_type: '',
         approved_fund_from: '',
         total_budget: '',
         spent_amount: '',
@@ -54,6 +55,7 @@ export default function WorkStatusModal({
     const [filteredBooths, setFilteredBooths] = useState([]);
 
     const statusOptions = ['Pending', 'In Progress', 'Completed', 'Halted', 'Cancelled'];
+    const workTypeOptions = ['infrastructure', 'social', 'education', 'health', 'other'];
     const fundSourceOptions = ['vidhayak nidhi', 'swechcha nidhi'];
 
     useEffect(() => {
@@ -62,6 +64,7 @@ export default function WorkStatusModal({
                 work_name: workStatus.work_name || '',
                 department: workStatus.department || '',
                 status: workStatus.status || 'Pending',
+                work_type: workStatus.work_type || '',
                 approved_fund_from: workStatus.approved_fund_from || '',
                 total_budget: workStatus.total_budget || '',
                 spent_amount: workStatus.spent_amount || '',
@@ -83,6 +86,7 @@ export default function WorkStatusModal({
                 work_name: '',
                 department: '',
                 status: 'Pending',
+                work_type: '',
                 approved_fund_from: '',
                 total_budget: '',
                 spent_amount: '',
@@ -257,7 +261,7 @@ export default function WorkStatusModal({
 
         // Validation
         const requiredFields = [
-            'work_name', 'department', 'status', 'approved_fund_from',
+            'work_name', 'department', 'status', 'work_type', 'approved_fund_from',
             'total_budget', 'start_date', 'expected_end_date',
             'state_id', 'division_id', 'parliament_id',
             'assembly_id', 'block_id', 'booth_id'
@@ -340,9 +344,15 @@ export default function WorkStatusModal({
     };
 
     return (
-        <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
+        <Dialog
+            open={open}
+            onClose={() => modalToggler(false)}
+            fullWidth
+            maxWidth="md"
+            scroll="paper"
+        >
             <DialogTitle>{workStatus ? 'Edit Work Status' : 'Add Work Status'}</DialogTitle>
-            <DialogContent>
+            <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <Grid container spacing={2} mt={1}>
                     {/* Row 1: Work Name and Department */}
                     <Grid item xs={12} sm={6}>
@@ -377,7 +387,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 2: Status and Approved Fund From */}
+                    {/* Row 2: Status and Work Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Status</InputLabel>
@@ -398,6 +408,28 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Work Type</InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.work_type}>
+                                <Select
+                                    name="work_type"
+                                    value={formData.work_type}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <MenuItem value="">Select Work Type</MenuItem>
+                                    {workTypeOptions.map((option) => (
+                                        <MenuItem key={option} value={option}>
+                                            {option}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 3: Approved Fund From */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Approved Fund From</InputLabel>
@@ -473,7 +505,10 @@ export default function WorkStatusModal({
                                 value={formData.description}
                                 onChange={handleDescriptionChange}
                                 placeholder="Enter description"
-                                style={{ minHeight: 100 }}
+                                style={{
+                                    minHeight: 100,
+                                    background: 'white'
+                                }}
                             />
                         </Stack>
                     </Grid>

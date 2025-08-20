@@ -50,6 +50,12 @@ const router = express.Router();
  *           enum: [Pending, In Progress, Completed, Halted, Cancelled]
  *         description: Filter by status
  *       - in: query
+ *         name: workType
+ *         schema:
+ *           type: string
+ *           enum: [infrastructure, social, education, health, other]
+ *         description: Filter by work type
+ *       - in: query
  *         name: department
  *         schema:
  *           type: string

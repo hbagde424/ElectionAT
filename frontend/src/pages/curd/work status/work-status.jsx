@@ -208,23 +208,18 @@ export default function WorkStatusListPage() {
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) {
                 setDivisions(divisionsData.data);
-                setFilteredDivisions([]);
             }
             if (parliamentsData.success) {
                 setParliaments(parliamentsData.data);
-                setFilteredParliaments([]);
             }
             if (assembliesData.success) {
                 setAssemblies(assembliesData.data);
-                setFilteredAssemblies([]);
             }
             if (blocksData.success) {
                 setBlocks(blocksData.data);
-                setFilteredBlocks([]);
             }
             if (boothsData.success) {
                 setBooths(boothsData.data);
-                setFilteredBooths([]);
             }
 
         } catch (error) {
@@ -343,6 +338,18 @@ export default function WorkStatusListPage() {
                     />
                 );
             }
+        },
+        {
+            header: 'Work Type',
+            accessorKey: 'work_type',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                />
+            )
         },
         {
             header: 'Fund Source',
@@ -669,13 +676,16 @@ export default function WorkStatusListPage() {
                             <FormControl fullWidth size="small">
                                 <InputLabel>Division</InputLabel>
                                 <Select
-                                    value={filters.division_id}
+                                    value={tempFilters.division_id}
                                     onChange={handleDivisionChange}
                                     label="Division"
                                     disabled={!tempFilters.state_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {divisions.map((division) => (
+                                    {divisions.filter(division => {
+                                        const stateId = division.state_id?._id || division.state_id;
+                                        return stateId === tempFilters.state_id;
+                                    }).map((division) => (
                                         <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -691,7 +701,10 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.division_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {parliaments.map((parliament) => (
+                                    {parliaments.filter(parliament => {
+                                        const divisionId = parliament.division_id?._id || parliament.division_id;
+                                        return divisionId === tempFilters.division_id;
+                                    }).map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -707,7 +720,10 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.parliament_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {assemblies.map((assembly) => (
+                                    {assemblies.filter(assembly => {
+                                        const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                                        return parliamentId === tempFilters.parliament_id;
+                                    }).map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -723,7 +739,10 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.assembly_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {blocks.map((block) => (
+                                    {blocks.filter(block => {
+                                        const assemblyId = block.assembly_id?._id || block.assembly_id;
+                                        return assemblyId === tempFilters.assembly_id;
+                                    }).map((block) => (
                                         <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -739,7 +758,10 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.block_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {booths.map((booth) => (
+                                    {booths.filter(booth => {
+                                        const blockId = booth.block_id?._id || booth.block_id;
+                                        return blockId === tempFilters.block_id;
+                                    }).map((booth) => (
                                         <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -771,11 +793,11 @@ export default function WorkStatusListPage() {
                                     label="Status"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    <MenuItem value="not_started">Not Started</MenuItem>
-                                    <MenuItem value="in_progress">In Progress</MenuItem>
-                                    <MenuItem value="completed">Completed</MenuItem>
-                                    <MenuItem value="delayed">Delayed</MenuItem>
-                                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                                    <MenuItem value="Pending">Pending</MenuItem>
+                                    <MenuItem value="In Progress">In Progress</MenuItem>
+                                    <MenuItem value="Completed">Completed</MenuItem>
+                                    <MenuItem value="Halted">Halted</MenuItem>
+                                    <MenuItem value="Cancelled">Cancelled</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -783,7 +805,7 @@ export default function WorkStatusListPage() {
                             <Stack direction="row" spacing={1}>
                                 <Button
                                     variant="contained"
-                                    onClick={() => fetchWorkStatuses(0, pagination.pageSize, globalFilter, filters)}
+                                    onClick={handleApplyFilters}
                                     sx={{ width: '50%' }}
                                 >
                                     Apply

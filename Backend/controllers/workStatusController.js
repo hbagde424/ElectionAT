@@ -44,6 +44,11 @@ exports.getWorkStatuses = async (req, res, next) => {
       query = query.where('status').equals(req.query.status);
     }
 
+    // Filter by work_type
+    if (req.query.workType || req.query.work_type) {
+      query = query.where('work_type').equals(req.query.workType || req.query.work_type);
+    }
+
     // Filter by department
     if (req.query.department) {
       query = query.where('department').equals(req.query.department);

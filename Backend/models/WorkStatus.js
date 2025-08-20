@@ -24,6 +24,15 @@ const workStatusSchema = new mongoose.Schema({
     default: 'Pending',
     index: true
   },
+  work_type: {
+    type: String,
+    enum: {
+      values: ['infrastructure', 'social', 'education', 'health', 'other'],
+      message: 'Work type must be infrastructure, social, education, health, or other'
+    },
+    required: [true, 'Work type is required'],
+    index: true
+  },
   approved_fund_from: {
     type: String,
     enum: {
@@ -96,7 +105,7 @@ const workStatusSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-workStatusSchema.pre('save', function(next) {
+workStatusSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
