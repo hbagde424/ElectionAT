@@ -30,7 +30,6 @@ export default function WinningCandidateModal({
         candidate_id: '',
         party_id: '',
         year_id: '',
-        assembly_no: '',
         type: ['General'],
         poll_percentage: '',
         total_electors: '',
@@ -60,7 +59,6 @@ export default function WinningCandidateModal({
                 candidate_id: candidateEntry.candidate_id?._id?.toString() || candidateEntry.candidate_id?.toString() || '',
                 party_id: candidateEntry.party_id?._id?.toString() || candidateEntry.party_id?.toString() || '',
                 year_id: candidateEntry.year_id?._id?.toString() || candidateEntry.year_id?.toString() || '',
-                assembly_no: candidateEntry.assembly_no || '',
                 type: candidateEntry.type || ['General'],
                 poll_percentage: candidateEntry.poll_percentage || '',
                 total_electors: candidateEntry.total_electors || '',
@@ -79,7 +77,6 @@ export default function WinningCandidateModal({
                 candidate_id: '',
                 party_id: '',
                 year_id: '',
-                assembly_no: '',
                 type: ['General'],
                 poll_percentage: '',
                 total_electors: '',
@@ -236,11 +233,11 @@ export default function WinningCandidateModal({
         setErrorMessage(''); // Clear previous error
         // Validation
         const requiredFields = [
-            'candidate_id', 'party_id', 'year_id', 'assembly_no', 'type', 'poll_percentage',
-            'total_electors', 'total_votes', 'voting_percentage', 'margin', 'margin_percentage',
+            'candidate_id', 'party_id', 'year_id', 'type', 'poll_percentage',
+            'total_electors', 'voting_percentage', 'margin', 'margin_percentage',
             'state_id', 'division_id', 'parliament_id', 'assembly_id'
         ];
-        
+
         for (const field of requiredFields) {
             if (!formData[field] && formData[field] !== 0) {
                 setErrorMessage(`Missing required field: ${field}`);
@@ -384,21 +381,6 @@ export default function WinningCandidateModal({
                             {submitted && !formData.year_id && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Election year is required</Box>
                             )}
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel required>Assembly No</InputLabel>
-                            <TextField
-                                name="assembly_no"
-                                value={formData.assembly_no}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                error={submitted && !formData.assembly_no}
-                                helperText={submitted && !formData.assembly_no ? 'Assembly number is required' : ''}
-                            />
                         </Stack>
                     </Grid>
 
@@ -557,7 +539,7 @@ export default function WinningCandidateModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Division</InputLabel>
-                                                        <FormControl fullWidth required error={submitted && !formData.division_id}>
+                            <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
                                     value={formData.division_id}

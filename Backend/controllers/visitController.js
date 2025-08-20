@@ -49,8 +49,9 @@ exports.getVisits = async (req, res, next) => {
     }
 
     // Filter by work status
-    if (req.query.work_status) {
-      query = query.where('work_status').equals(req.query.work_status);
+    if (req.query.work_status || req.query.status) {
+      const statusValue = req.query.work_status || req.query.status;
+      query = query.where('work_status').equals(statusValue);
     }
 
     // Filter by candidate
@@ -62,14 +63,21 @@ exports.getVisits = async (req, res, next) => {
     // Handle both ID and name-based filtering for state
     if (req.query.state_id || req.query.state) {
       if (req.query.state) {
-        // Remove hyphens from the state name and convert to normal space
-        const stateName = req.query.state.replace(/-/g, ' ');
-        const state = await State.findOne({
-          name: { $regex: new RegExp('^' + stateName + '$', 'i') }
-        });
-        console.log('stateashok', stateName);
-        if (state) {
-          query = query.where('state_id').equals(state._id);
+        // Check if it's a valid ObjectId first
+        if (req.query.state.match(/^[0-9a-fA-F]{24}$/)) {
+          // It's an ObjectId, use it directly
+          query = query.where('state_id').equals(req.query.state);
+        } else {
+          // It's a name, search by name
+          // Remove hyphens from the state name and convert to normal space
+          const stateName = req.query.state.replace(/-/g, ' ');
+          const state = await State.findOne({
+            name: { $regex: new RegExp('^' + stateName + '$', 'i') }
+          });
+          console.log('stateashok', stateName);
+          if (state) {
+            query = query.where('state_id').equals(state._id);
+          }
         }
       } else {
         query = query.where('state_id').equals(req.query.state_id);
@@ -79,11 +87,18 @@ exports.getVisits = async (req, res, next) => {
     // Handle both ID and name-based filtering for division
     if (req.query.division_id || req.query.division) {
       if (req.query.division) {
-        const division = await Division.findOne({
-          name: { $regex: new RegExp('^' + req.query.division.replace(/-/g, ' ') + '$', 'i') }
-        });
-        if (division) {
-          query = query.where('division_id').equals(division._id);
+        // Check if it's a valid ObjectId first
+        if (req.query.division.match(/^[0-9a-fA-F]{24}$/)) {
+          // It's an ObjectId, use it directly
+          query = query.where('division_id').equals(req.query.division);
+        } else {
+          // It's a name, search by name
+          const division = await Division.findOne({
+            name: { $regex: new RegExp('^' + req.query.division.replace(/-/g, ' ') + '$', 'i') }
+          });
+          if (division) {
+            query = query.where('division_id').equals(division._id);
+          }
         }
       } else {
         query = query.where('division_id').equals(req.query.division_id);
@@ -93,11 +108,18 @@ exports.getVisits = async (req, res, next) => {
     // Handle both ID and name-based filtering for parliament
     if (req.query.parliament_id || req.query.parliament) {
       if (req.query.parliament) {
-        const parliament = await Parliament.findOne({
-          name: { $regex: new RegExp('^' + req.query.parliament.replace(/-/g, ' ') + '$', 'i') }
-        });
-        if (parliament) {
-          query = query.where('parliament_id').equals(parliament._id);
+        // Check if it's a valid ObjectId first
+        if (req.query.parliament.match(/^[0-9a-fA-F]{24}$/)) {
+          // It's an ObjectId, use it directly
+          query = query.where('parliament_id').equals(req.query.parliament);
+        } else {
+          // It's a name, search by name
+          const parliament = await Parliament.findOne({
+            name: { $regex: new RegExp('^' + req.query.parliament.replace(/-/g, ' ') + '$', 'i') }
+          });
+          if (parliament) {
+            query = query.where('parliament_id').equals(parliament._id);
+          }
         }
       } else {
         query = query.where('parliament_id').equals(req.query.parliament_id);
@@ -107,9 +129,12 @@ exports.getVisits = async (req, res, next) => {
     // Handle assembly filtering by number or id
     if (req.query.assembly_id || req.query.assembly) {
       if (req.query.assembly) {
-        // Check if it's a number
-        if (!isNaN(req.query.assembly)) {
-          // Search by assembly number
+        // Check if it's a valid ObjectId first
+        if (req.query.assembly.match(/^[0-9a-fA-F]{24}$/)) {
+          // It's an ObjectId, use it directly
+          query = query.where('assembly_id').equals(req.query.assembly);
+        } else if (!isNaN(req.query.assembly)) {
+          // It's a number, search by assembly number
           const assembly = await Assembly.findOne({
             assembly_number: req.query.assembly
           });
@@ -117,7 +142,7 @@ exports.getVisits = async (req, res, next) => {
             query = query.where('assembly_id').equals(assembly._id);
           }
         } else {
-          // Search by name
+          // It's a name, search by name
           const assembly = await Assembly.findOne({
             name: { $regex: new RegExp('^' + req.query.assembly.replace(/-/g, ' ') + '$', 'i') }
           });
@@ -133,53 +158,59 @@ exports.getVisits = async (req, res, next) => {
     // Handle block filtering
     if (req.query.block_id || req.query.block) {
       if (req.query.block) {
-        // Convert query to proper case and clean up
-        const blockName = req.query.block
-          .replace(/-/g, ' ')
-          .toLowerCase()
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+        // Check if it's a valid ObjectId first
+        if (req.query.block.match(/^[0-9a-fA-F]{24}$/)) {
+          // It's an ObjectId, use it directly
+          query = query.where('block_id').equals(req.query.block);
+        } else {
+          // It's a name, search by name
+          // Convert query to proper case and clean up
+          const blockName = req.query.block
+            .replace(/-/g, ' ')
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
 
-        const block = await Block.findOne({
-          $or: [
-            { name: blockName }, // Exact match with proper case
-            { name: { $regex: new RegExp('^' + req.query.block + '$', 'i') } } // Case-insensitive match
-          ]
-        });
-        if (block) {
-          query = query.where('block_id').equals(block._id);
+          const block = await Block.findOne({
+            $or: [
+              { name: blockName }, // Exact match with proper case
+              { name: { $regex: new RegExp('^' + req.query.block + '$', 'i') } } // Case-insensitive match
+            ]
+          });
+          if (block) {
+            query = query.where('block_id').equals(block._id);
+          }
         }
       } else {
         query = query.where('block_id').equals(req.query.block_id);
       }
     }
 
-    // Handle booth filtering (format: booth-NUMBER-NUMBER)
+    // Handle booth filtering
     if (req.query.booth_id || req.query.booth) {
       if (req.query.booth) {
-        // Handle format like 'booth-2-98'
-        const boothMatch = req.query.booth.match(/booth-(\d+)-(\d+)/);
-        if (boothMatch) {
-          const boothNumber = boothMatch[2]; // Get the last number
-          const booth = await Booth.findOne({
-            booth_number: boothNumber
-          });
-          if (booth) {
-            query = query.where('booth_id').equals(booth._id);
-          }
-        } else {
-          // Fallback to name search if format doesn't match
-          const booth = await Booth.findOne({
-            name: { $regex: new RegExp('^' + req.query.booth.replace(/-/g, ' ') + '$', 'i') }
-          });
-          if (booth) {
-            query = query.where('booth_id').equals(booth._id);
-          }
-        }
+        query = query.where('booth_id').equals(req.query.booth);
       } else {
         query = query.where('booth_id').equals(req.query.booth_id);
       }
+    }
+
+    // Filter by date range
+    if (req.query.startDate && req.query.endDate) {
+      const startDate = new Date(req.query.startDate);
+      const endDate = new Date(req.query.endDate);
+      // Set end date to end of day
+      endDate.setHours(23, 59, 59, 999);
+
+      query = query.where('date').gte(startDate).lte(endDate);
+    } else if (req.query.startDate) {
+      const startDate = new Date(req.query.startDate);
+      query = query.where('date').gte(startDate);
+    } else if (req.query.endDate) {
+      const endDate = new Date(req.query.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      query = query.where('date').lte(endDate);
     }
 
     // Filter by location proximity if lat/lng and radius provided
@@ -294,7 +325,7 @@ exports.createVisit = async (req, res, next) => {
     const visitData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const visit = await Visit.create(visitData);

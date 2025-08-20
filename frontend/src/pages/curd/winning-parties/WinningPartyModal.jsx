@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Grid, Stack, TextField, InputLabel, Select, 
-    MenuItem, FormControl, FormHelperText, Alert, 
+    Button, Grid, Stack, TextField, InputLabel, Select,
+    MenuItem, FormControl, FormHelperText, Alert,
     CircularProgress, Typography
 } from '@mui/material';
 import ReactQuill from 'react-quill';
@@ -9,16 +9,16 @@ import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState } from 'react';
 
 // Helper components to organize the code
-const FormSelect = ({ 
-    label, 
-    name, 
-    value, 
-    options, 
-    onChange, 
-    error, 
+const FormSelect = ({
+    label,
+    name,
+    value,
+    options,
+    onChange,
+    error,
     disabled,
     labelKey = 'name',
-    required = false 
+    required = false
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required}>{label}</InputLabel>
@@ -36,15 +36,15 @@ const FormSelect = ({
     </Stack>
 );
 
-const FormTextField = ({ 
-    label, 
-    name, 
-    value, 
-    onChange, 
-    error, 
+const FormTextField = ({
+    label,
+    name,
+    value,
+    onChange,
+    error,
     disabled,
     type = 'text',
-    required = false 
+    required = false
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required}>{label}</InputLabel>
@@ -61,28 +61,32 @@ const FormTextField = ({
     </Stack>
 );
 
-const ElectionYearSelect = ({ 
-    value, 
-    onChange, 
-    error, 
+const ElectionYearSelect = ({
+    value,
+    onChange,
+    error,
     disabled,
-    electionYears = [] 
-}) => (
-    <Stack spacing={1}>
-        <InputLabel required>Election Year</InputLabel>
-        <FormControl fullWidth error={!!error} disabled={disabled}>
-            <Select name="election_year" value={value} onChange={onChange}>
-                <MenuItem value=""><em>Select Election Year</em></MenuItem>
-                {electionYears.map((opt) => (
-                    <MenuItem key={opt._id} value={opt._id}>
-                        {`${opt.year} (${opt.election_type})`}
-                    </MenuItem>
-                ))}
-            </Select>
-            {error && <FormHelperText>{error}</FormHelperText>}
-        </FormControl>
-    </Stack>
-);
+    electionYears = []
+}) => {
+    console.log('Election Years111:', electionYears); // Added console log to debug electionYears
+
+    return (
+        <Stack spacing={1}>
+            <InputLabel required>Election Year</InputLabel>
+            <FormControl fullWidth error={!!error} disabled={disabled}>
+                <Select name="election_year" value={value} onChange={onChange}>
+                    <MenuItem value=""><em>Select Election Year</em></MenuItem>
+                    {electionYears.map((opt) => (
+                        <MenuItem key={opt._id} value={opt._id}>
+                            {`${opt.year} (${opt.election_type})`}
+                        </MenuItem>
+                    ))}
+                </Select>
+                {error && <FormHelperText>{error}</FormHelperText>}
+            </FormControl>
+        </Stack>
+    );
+};
 
 export default function WinningPartyModal({
     open,
@@ -99,19 +103,33 @@ export default function WinningPartyModal({
     electionYears = { data: [] },
     refresh
 }) {
+
+    // Debug - alert when modal opens to check data
+    useEffect(() => {
+        if (open) {
+            console.log('Modal opened with data:');
+            console.log('Candidates:', candidates.length, 'items');
+            console.log('Election Years:', electionYears.data?.length || 0, 'items');
+            console.log('Election Years structure:', electionYears);
+        }
+    }, [open, candidates, electionYears]);
+
+
+
+
     // Form state management
     const [formData, setFormData] = useState(initializeFormData(winningParty));
     const [errors, setErrors] = useState({});
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // Filtered data states
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
-    const [filteredCandidates, setFilteredCandidates] = useState([]);
+    const [filteredCandidates, setFilteredCandidates] = useState(candidates);
 
     // Initialize form data
     function initializeFormData(winningParty) {
@@ -131,7 +149,7 @@ export default function WinningPartyModal({
                 description: ''
             };
         }
-        
+
         return {
             candidate_id: winningParty.candidate_id?._id || winningParty.candidate_id || '',
             party_id: winningParty.party_id?._id || winningParty.party_id || '',
@@ -164,114 +182,119 @@ export default function WinningPartyModal({
         }
     }, [open, winningParty]);
 
+    // Initialize filtered candidates when candidates prop changes
+    useEffect(() => {
+        setFilteredCandidates(candidates);
+    }, [candidates]);
+
     // Filter dependent data based on selections
-   // State → Division filtering
-useEffect(() => {
-    if (formData.state_id) {
-        const filtered = divisions.filter(d => {
-            const divisionStateId = d.state_id?._id || d.state_id;
-            return divisionStateId?.toString() === formData.state_id.toString();
-        });
-        setFilteredDivisions(filtered);
-        
-        if (!filtered.some(d => d._id?.toString() === formData.division_id?.toString())) {
+    // State → Division filtering
+    useEffect(() => {
+        if (formData.state_id) {
+            const filtered = divisions.filter(d => {
+                const divisionStateId = d.state_id?._id || d.state_id;
+                return divisionStateId?.toString() === formData.state_id.toString();
+            });
+            setFilteredDivisions(filtered);
+
+            if (!filtered.some(d => d._id?.toString() === formData.division_id?.toString())) {
+                setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
+            }
+        } else {
+            setFilteredDivisions([]);
             setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
         }
-    } else {
-        setFilteredDivisions([]);
-        setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
-    }
-}, [formData.state_id, divisions]);
+    }, [formData.state_id, divisions]);
 
-// Division → Parliament filtering
-useEffect(() => {
-    if (formData.division_id) {
-        const filtered = parliaments.filter(p => {
-            const parliamentDivisionId = p.division_id?._id || p.division_id;
-            return parliamentDivisionId?.toString() === formData.division_id.toString();
-        });
-        setFilteredParliaments(filtered);
-        
-        if (!filtered.some(p => p._id?.toString() === formData.parliament_id?.toString())) {
+    // Division → Parliament filtering
+    useEffect(() => {
+        if (formData.division_id) {
+            const filtered = parliaments.filter(p => {
+                const parliamentDivisionId = p.division_id?._id || p.division_id;
+                return parliamentDivisionId?.toString() === formData.division_id.toString();
+            });
+            setFilteredParliaments(filtered);
+
+            if (!filtered.some(p => p._id?.toString() === formData.parliament_id?.toString())) {
+                setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
+            }
+        } else {
+            setFilteredParliaments([]);
             setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
         }
-    } else {
-        setFilteredParliaments([]);
-        setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
-    }
-}, [formData.division_id, parliaments]);
+    }, [formData.division_id, parliaments]);
 
-// Parliament → Assembly filtering
-useEffect(() => {
-    if (formData.parliament_id) {
-        const filtered = assemblies.filter(a => {
-            const assemblyParliamentId = a.parliament_id?._id || a.parliament_id;
-            return assemblyParliamentId?.toString() === formData.parliament_id.toString();
-        });
-        setFilteredAssemblies(filtered);
-        
-        if (!filtered.some(a => a._id?.toString() === formData.assembly_id?.toString())) {
+    // Parliament → Assembly filtering
+    useEffect(() => {
+        if (formData.parliament_id) {
+            const filtered = assemblies.filter(a => {
+                const assemblyParliamentId = a.parliament_id?._id || a.parliament_id;
+                return assemblyParliamentId?.toString() === formData.parliament_id.toString();
+            });
+            setFilteredAssemblies(filtered);
+
+            if (!filtered.some(a => a._id?.toString() === formData.assembly_id?.toString())) {
+                setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
+            }
+        } else {
+            setFilteredAssemblies([]);
             setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
         }
-    } else {
-        setFilteredAssemblies([]);
-        setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
-    }
-}, [formData.parliament_id, assemblies]);
+    }, [formData.parliament_id, assemblies]);
 
-// Assembly → Block filtering
-useEffect(() => {
-    if (formData.assembly_id) {
-        const filtered = blocks.filter(b => {
-            const blockAssemblyId = b.assembly_id?._id || b.assembly_id;
-            return blockAssemblyId?.toString() === formData.assembly_id.toString();
-        });
-        setFilteredBlocks(filtered);
-        
-        if (!filtered.some(b => b._id?.toString() === formData.block_id?.toString())) {
+    // Assembly → Block filtering
+    useEffect(() => {
+        if (formData.assembly_id) {
+            const filtered = blocks.filter(b => {
+                const blockAssemblyId = b.assembly_id?._id || b.assembly_id;
+                return blockAssemblyId?.toString() === formData.assembly_id.toString();
+            });
+            setFilteredBlocks(filtered);
+
+            if (!filtered.some(b => b._id?.toString() === formData.block_id?.toString())) {
+                setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
+            }
+        } else {
+            setFilteredBlocks([]);
             setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
         }
-    } else {
-        setFilteredBlocks([]);
-        setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
-    }
-}, [formData.assembly_id, blocks]);
+    }, [formData.assembly_id, blocks]);
 
-// Block → Booth filtering
-useEffect(() => {
-    if (formData.block_id) {
-        const filtered = booths.filter(b => {
-            const boothBlockId = b.block_id?._id || b.block_id;
-            return boothBlockId?.toString() === formData.block_id.toString();
-        });
-        setFilteredBooths(filtered);
-        
-        if (!filtered.some(b => b._id?.toString() === formData.booth_id?.toString())) {
+    // Block → Booth filtering
+    useEffect(() => {
+        if (formData.block_id) {
+            const filtered = booths.filter(b => {
+                const boothBlockId = b.block_id?._id || b.block_id;
+                return boothBlockId?.toString() === formData.block_id.toString();
+            });
+            setFilteredBooths(filtered);
+
+            if (!filtered.some(b => b._id?.toString() === formData.booth_id?.toString())) {
+                setFormData(prev => ({ ...prev, booth_id: '' }));
+            }
+        } else {
+            setFilteredBooths([]);
             setFormData(prev => ({ ...prev, booth_id: '' }));
         }
-    } else {
-        setFilteredBooths([]);
-        setFormData(prev => ({ ...prev, booth_id: '' }));
-    }
-}, [formData.block_id, booths]);
+    }, [formData.block_id, booths]);
 
-// Party → Candidate filtering
-useEffect(() => {
-    if (formData.party_id) {
-        const filtered = candidates.filter(c => {
-            const candidatePartyId = c.party_id?._id || c.party_id;
-            return candidatePartyId?.toString() === formData.party_id.toString();
-        });
-        setFilteredCandidates(filtered);
-        
-        if (!filtered.some(c => c._id?.toString() === formData.candidate_id?.toString())) {
+    // Party → Candidate filtering
+    useEffect(() => {
+        if (formData.party_id) {
+            const filtered = candidates.filter(c => {
+                const candidatePartyId = c.party_id?._id || c.party_id;
+                return candidatePartyId?.toString() === formData.party_id.toString();
+            });
+            setFilteredCandidates(filtered);
+
+            if (!filtered.some(c => c._id?.toString() === formData.candidate_id?.toString())) {
+                setFormData(prev => ({ ...prev, candidate_id: '' }));
+            }
+        } else {
+            setFilteredCandidates(candidates); // Show all candidates when no party is selected
             setFormData(prev => ({ ...prev, candidate_id: '' }));
         }
-    } else {
-        setFilteredCandidates([]);
-        setFormData(prev => ({ ...prev, candidate_id: '' }));
-    }
-}, [formData.party_id, candidates]);
+    }, [formData.party_id, candidates]);
 
     // Field validation
     const validateField = (name, value) => {
@@ -333,8 +356,8 @@ useEffect(() => {
 
         try {
             const token = localStorage.getItem('serviceToken');
-            const url = winningParty 
-                ? `${import.meta.env.VITE_APP_API_URL}/winning-parties/${winningParty._id}` 
+            const url = winningParty
+                ? `${import.meta.env.VITE_APP_API_URL}/winning-parties/${winningParty._id}`
                 : `${import.meta.env.VITE_APP_API_URL}/winning-parties`;
             const method = winningParty ? 'PUT' : 'POST';
 
@@ -385,7 +408,7 @@ useEffect(() => {
             <DialogTitle>
                 {winningParty ? 'Edit Winning Party Record' : 'Add Winning Party Record'}
             </DialogTitle>
-            
+
             <DialogContent>
                 {submitError && (
                     <Alert severity="error" sx={{ mb: 2 }}>
@@ -406,7 +429,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Division"
@@ -419,7 +442,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Parliament"
@@ -432,7 +455,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Assembly"
@@ -445,7 +468,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Block"
@@ -458,7 +481,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Booth"
@@ -471,7 +494,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Party"
@@ -484,7 +507,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Candidate"
@@ -497,7 +520,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <ElectionYearSelect
                             value={formData.election_year}
@@ -507,7 +530,7 @@ useEffect(() => {
                             electionYears={electionYears.data}
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Votes"
@@ -520,7 +543,7 @@ useEffect(() => {
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Margin"
@@ -548,7 +571,7 @@ useEffect(() => {
                     </Grid>
                 </Grid>
             </DialogContent>
-            
+
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)} disabled={isSubmitting}>
                     Cancel

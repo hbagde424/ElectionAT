@@ -15,8 +15,8 @@ exports.getParliaments = async (req, res, next) => {
 
     // Basic query
     let query = Parliament.find()
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
+      .populate('state_id', '_id name')
+      .populate('division_id', '_id name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -68,8 +68,8 @@ exports.getParliaments = async (req, res, next) => {
 exports.getParliament = async (req, res, next) => {
   try {
     const parliament = await Parliament.findById(req.params.id)
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
+      .populate('state_id', '_id name')
+      .populate('division_id', '_id name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 

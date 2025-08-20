@@ -43,6 +43,7 @@ export default function PartyActivitiesListPage() {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
     const [filters, setFilters] = useState({});
+    const [appliedFilters, setAppliedFilters] = useState({});
 
     // Handle filter changes
     const handleFilterChange = (field, value) => {
@@ -144,14 +145,14 @@ export default function PartyActivitiesListPage() {
                 limit: pageSize,
                 ...(globalFilter && { search: globalFilter }),
                 // Filters
-                ...(filters.state_id && { state_id: filters.state_id }),
-                ...(filters.division_id && { division_id: filters.division_id }),
-                ...(filters.parliament_id && { parliament_id: filters.parliament_id }),
-                ...(filters.assembly_id && { assembly_id: filters.assembly_id }),
-                ...(filters.block_id && { block_id: filters.block_id }),
-                ...(filters.booth_id && { booth_id: filters.booth_id }),
-                ...(filters.activity_type && { activity_type: filters.activity_type }),
-                ...(filters.status && { status: filters.status })
+                ...(appliedFilters.state_id && { state_id: appliedFilters.state_id }),
+                ...(appliedFilters.division_id && { division_id: appliedFilters.division_id }),
+                ...(appliedFilters.parliament_id && { parliament_id: appliedFilters.parliament_id }),
+                ...(appliedFilters.assembly_id && { assembly_id: appliedFilters.assembly_id }),
+                ...(appliedFilters.block_id && { block_id: appliedFilters.block_id }),
+                ...(appliedFilters.booth_id && { booth_id: appliedFilters.booth_id }),
+                ...(appliedFilters.activity_type && { activity_type: appliedFilters.activity_type }),
+                ...(appliedFilters.status && { status: appliedFilters.status })
             });
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?${queryParams}`);
@@ -172,7 +173,7 @@ export default function PartyActivitiesListPage() {
     useEffect(() => {
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, filters]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
     const handleDeleteOpen = (id) => {
         setPartyActivityDeleteId(id);
@@ -713,8 +714,8 @@ export default function PartyActivitiesListPage() {
                     <Button
                         variant="contained"
                         onClick={() => {
+                            setAppliedFilters(filters);
                             setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                            fetchPartyActivities(0, pagination.pageSize, globalFilter);
                         }}
                     >
                         Apply
@@ -723,8 +724,8 @@ export default function PartyActivitiesListPage() {
                         variant="outlined"
                         onClick={() => {
                             setFilters({});
+                            setAppliedFilters({});
                             setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                            fetchPartyActivities(0, pagination.pageSize, '');
                         }}
                     >
                         Clear

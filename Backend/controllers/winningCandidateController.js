@@ -57,7 +57,13 @@ exports.getWinningCandidates = async (req, res, next) => {
     if (req.query.type) {
       query = query.where('type').all([req.query.type]);
     }
-   
+    if (req.query.candidate) {
+      query = query.where('candidate_id').equals(req.query.candidate);
+    }
+    if (req.query.electionYear) {
+      query = query.where('year_id').equals(req.query.electionYear);
+    }
+
 
     let winningCandidates;
     if (req.query.all === 'true') {
@@ -226,7 +232,7 @@ exports.createWinningCandidate = async (req, res, next) => {
     const winningCandidateData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const winningCandidate = await WinningCandidate.create(winningCandidateData);
@@ -276,17 +282,6 @@ exports.updateWinningCandidate = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           message: 'Referenced document not found'
-        });
-      }
-    }
-
-    // Validate assembly_no if assembly is being updated
-    if (req.body.assembly_id) {
-      const assembly = await Assembly.findById(req.body.assembly_id);
-      if (req.body.assembly_no !== assembly.AC_NO) {
-        return res.status(400).json({
-          success: false,
-          message: 'Assembly number does not match the referenced assembly'
         });
       }
     }
@@ -464,7 +459,7 @@ exports.getWinningCandidatesByParty = async (req, res, next) => {
 // @desc    Get candidates by assembly and year with vote statistics
 // @route   GET /api/winning-candidates/assembly/:assemblyId/year/:yearId
 // @access  Public
- exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
+exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
   try {
     const assembly = await Assembly.findById(req.params.assemblyId);
     if (!assembly) {
@@ -542,7 +537,7 @@ exports.getWinningCandidatesByParty = async (req, res, next) => {
           party_symbol: candidate.party_id?.symbol || null,
           votes_received: candidate.total_votes,
           voting_percentage: candidate.voting_percentage,
-          assembly_no: candidate.assembly_no,
+          assembly_no: candidate.assembly_id?.AC_NO || null,
           election_type: candidate.type,
           poll_percentage: candidate.poll_percentage
         }))
@@ -716,12 +711,14 @@ exports.getPartyAssemblyCountByYear = async (req, res, next) => {
     // Aggregate: group by party, count unique assemblies for the given year
     const result = await WinningCandidate.aggregate([
       { $match: { year_id: yearObjId } },
-      { $group: {
+      {
+        $group: {
           _id: "$party_id",
           assemblies: { $addToSet: "$assembly_id" }
         }
       },
-      { $project: {
+      {
+        $project: {
           party_id: "$_id",
           assembly_count: { $size: "$assemblies" },
           _id: 0
