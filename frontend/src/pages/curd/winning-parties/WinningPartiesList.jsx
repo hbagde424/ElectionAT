@@ -65,6 +65,83 @@ const WinningPartyListPage = () => {
         candidate: ''
     });
 
+    // Filtered data for cascading dropdowns
+    const filteredDivisions = filterValues.state
+        ? divisions.filter(division => {
+            // Handle both populated and non-populated state_id
+            const stateId = division.state_id?._id || division.state_id;
+            return stateId === filterValues.state;
+        })
+        : divisions;
+
+    const filteredParliaments = filterValues.division
+        ? parliaments.filter(parliament => {
+            const divisionId = parliament.division_id?._id || parliament.division_id;
+            return divisionId === filterValues.division;
+        })
+        : filterValues.state
+            ? parliaments.filter(parliament => {
+                const stateId = parliament.state_id?._id || parliament.state_id;
+                return stateId === filterValues.state;
+            })
+            : parliaments;
+
+    const filteredAssemblies = filterValues.parliament
+        ? assemblies.filter(assembly => {
+            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+            return parliamentId === filterValues.parliament;
+        })
+        : filterValues.division
+            ? assemblies.filter(assembly => {
+                const divisionId = assembly.division_id?._id || assembly.division_id;
+                return divisionId === filterValues.division;
+            })
+            : filterValues.state
+                ? assemblies.filter(assembly => {
+                    const stateId = assembly.state_id?._id || assembly.state_id;
+                    return stateId === filterValues.state;
+                })
+                : assemblies;
+
+    const filteredBlocks = filterValues.assembly
+        ? blocks.filter(block => {
+            const assemblyId = block.assembly_id?._id || block.assembly_id;
+            return assemblyId === filterValues.assembly;
+        })
+        : filterValues.division
+            ? blocks.filter(block => {
+                const divisionId = block.division_id?._id || block.division_id;
+                return divisionId === filterValues.division;
+            })
+            : filterValues.state
+                ? blocks.filter(block => {
+                    const stateId = block.state_id?._id || block.state_id;
+                    return stateId === filterValues.state;
+                })
+                : blocks;
+
+    const filteredBooths = filterValues.block
+        ? booths.filter(booth => {
+            const blockId = booth.block_id?._id || booth.block_id;
+            return blockId === filterValues.block;
+        })
+        : filterValues.assembly
+            ? booths.filter(booth => {
+                const assemblyId = booth.assembly_id?._id || booth.assembly_id;
+                return assemblyId === filterValues.assembly;
+            })
+            : filterValues.division
+                ? booths.filter(booth => {
+                    const divisionId = booth.division_id?._id || booth.division_id;
+                    return divisionId === filterValues.division;
+                })
+                : filterValues.state
+                    ? booths.filter(booth => {
+                        const stateId = booth.state_id?._id || booth.state_id;
+                        return stateId === filterValues.state;
+                    })
+                    : booths;
+
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
@@ -195,9 +272,60 @@ const WinningPartyListPage = () => {
         fetchWinningParties(0, 10, globalFilter);
     };
 
+    // Handle cascading filter changes
+    const handleStateChange = (stateValue) => {
+        setFilterValues({
+            ...filterValues,
+            state: stateValue,
+            division: '', // Clear dependent filters
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: ''
+        });
+    };
+
+    const handleDivisionChange = (divisionValue) => {
+        setFilterValues({
+            ...filterValues,
+            division: divisionValue,
+            parliament: '', // Clear dependent filters
+            assembly: '',
+            block: '',
+            booth: ''
+        });
+    };
+
+    const handleParliamentChange = (parliamentValue) => {
+        setFilterValues({
+            ...filterValues,
+            parliament: parliamentValue,
+            assembly: '', // Clear dependent filters
+            block: '',
+            booth: ''
+        });
+    };
+
+    const handleAssemblyChange = (assemblyValue) => {
+        setFilterValues({
+            ...filterValues,
+            assembly: assemblyValue,
+            block: '', // Clear dependent filters
+            booth: ''
+        });
+    };
+
+    const handleBlockChange = (blockValue) => {
+        setFilterValues({
+            ...filterValues,
+            block: blockValue,
+            booth: '' // Clear dependent filters
+        });
+    };
+
     useEffect(() => {
         fetchWinningParties(pagination.pageIndex, pagination.pageSize, globalFilter);
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
     useEffect(() => {
         fetchReferenceData();
@@ -510,7 +638,7 @@ const WinningPartyListPage = () => {
                             <InputLabel>State</InputLabel>
                             <Select
                                 value={filterValues.state}
-                                onChange={(e) => setFilterValues({ ...filterValues, state: e.target.value })}
+                                onChange={(e) => handleStateChange(e.target.value)}
                                 label="State"
                             >
                                 <MenuItem value="">All</MenuItem>
@@ -525,11 +653,11 @@ const WinningPartyListPage = () => {
                             <InputLabel>Division</InputLabel>
                             <Select
                                 value={filterValues.division}
-                                onChange={(e) => setFilterValues({ ...filterValues, division: e.target.value })}
+                                onChange={(e) => handleDivisionChange(e.target.value)}
                                 label="Division"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {divisions.map((division) => (
+                                {filteredDivisions.map((division) => (
                                     <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                 ))}
                             </Select>
@@ -540,11 +668,11 @@ const WinningPartyListPage = () => {
                             <InputLabel>Parliament</InputLabel>
                             <Select
                                 value={filterValues.parliament}
-                                onChange={(e) => setFilterValues({ ...filterValues, parliament: e.target.value })}
+                                onChange={(e) => handleParliamentChange(e.target.value)}
                                 label="Parliament"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {parliaments.map((parliament) => (
+                                {filteredParliaments.map((parliament) => (
                                     <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                 ))}
                             </Select>
@@ -555,11 +683,11 @@ const WinningPartyListPage = () => {
                             <InputLabel>Assembly</InputLabel>
                             <Select
                                 value={filterValues.assembly}
-                                onChange={(e) => setFilterValues({ ...filterValues, assembly: e.target.value })}
+                                onChange={(e) => handleAssemblyChange(e.target.value)}
                                 label="Assembly"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {assemblies.map((assembly) => (
+                                {filteredAssemblies.map((assembly) => (
                                     <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                 ))}
                             </Select>
@@ -570,11 +698,11 @@ const WinningPartyListPage = () => {
                             <InputLabel>Block</InputLabel>
                             <Select
                                 value={filterValues.block}
-                                onChange={(e) => setFilterValues({ ...filterValues, block: e.target.value })}
+                                onChange={(e) => handleBlockChange(e.target.value)}
                                 label="Block"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {blocks.map((block) => (
+                                {filteredBlocks.map((block) => (
                                     <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                 ))}
                             </Select>
@@ -589,7 +717,7 @@ const WinningPartyListPage = () => {
                                 label="Booth"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {booths.map((booth) => (
+                                {filteredBooths.map((booth) => (
                                     <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                                 ))}
                             </Select>
@@ -605,7 +733,7 @@ const WinningPartyListPage = () => {
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {electionYears.map((year) => (
-                                    <MenuItem key={year._id} value={year._id}>{year.name}</MenuItem>
+                                    <MenuItem key={year._id} value={year._id}>{year.year}</MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -704,7 +832,7 @@ const WinningPartyListPage = () => {
                 booths={booths}
                 parties={parties}
                 candidates={candidates}
-                electionYears={electionYears}
+                electionYears={{ data: electionYears }}
                 refresh={() => fetchWinningParties(pagination.pageIndex, pagination.pageSize)}
             />
             <AlertWinningPartyDelete

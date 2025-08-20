@@ -21,10 +21,6 @@ const winningCandidateSchema = new mongoose.Schema({
     ref: 'Assembly',
     required: true
   },
-  assembly_no: {
-    type: String,
-    required: true
-  },
   type: {
     type: [String],
     required: true,
@@ -34,7 +30,7 @@ const winningCandidateSchema = new mongoose.Schema({
   poll_percentage: {
     type: String,
     required: true,
-    set: function(val) {
+    set: function (val) {
       if (typeof val === 'number') {
         return val.toFixed(2) + '%';
       }
@@ -84,7 +80,7 @@ const winningCandidateSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-    description: {
+  description: {
     type: String,
     default: ''
   },
@@ -107,7 +103,7 @@ const winningCandidateSchema = new mongoose.Schema({
   }
 });
 
-winningCandidateSchema.pre('save', function(next) {
+winningCandidateSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });

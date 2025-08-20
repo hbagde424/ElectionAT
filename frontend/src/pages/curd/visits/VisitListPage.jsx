@@ -90,6 +90,67 @@ const VisitListPage = () => {
         endDate: ''
     });
 
+    // Filtered data for cascading dropdowns
+    const filteredDivisions = filterValues.state
+        ? divisions.filter(division => {
+            const stateId = division.state_id?._id || division.state_id;
+            return stateId === filterValues.state;
+        })
+        : []; // Empty array when no state selected
+
+    const filteredParliaments = filterValues.division
+        ? parliaments.filter(parliament => {
+            const divisionId = parliament.division_id?._id || parliament.division_id;
+            return divisionId === filterValues.division;
+        })
+        : filterValues.state
+            ? parliaments.filter(parliament => {
+                const stateId = parliament.state_id?._id || parliament.state_id;
+                return stateId === filterValues.state;
+            })
+            : parliaments;
+
+    const filteredAssemblies = filterValues.parliament
+        ? assemblies.filter(assembly => {
+            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+            return parliamentId === filterValues.parliament;
+        })
+        : filterValues.division
+            ? assemblies.filter(assembly => {
+                const divisionId = assembly.division_id?._id || assembly.division_id;
+                return divisionId === filterValues.division;
+            })
+            : []; // Empty array when no division selected
+
+    const filteredBlocks = filterValues.assembly
+        ? blocks.filter(block => {
+            const assemblyId = block.assembly_id?._id || block.assembly_id;
+            return assemblyId === filterValues.assembly;
+        })
+        : filterValues.division
+            ? blocks.filter(block => {
+                const divisionId = block.division_id?._id || block.division_id;
+                return divisionId === filterValues.division;
+            })
+            : filterValues.state
+                ? blocks.filter(block => {
+                    const stateId = block.state_id?._id || block.state_id;
+                    return stateId === filterValues.state;
+                })
+                : blocks;
+
+    const filteredBooths = filterValues.block
+        ? booths.filter(booth => {
+            const blockId = booth.block_id?._id || booth.block_id;
+            return blockId === filterValues.block;
+        })
+        : filterValues.assembly
+            ? booths.filter(booth => {
+                const assemblyId = booth.assembly_id?._id || booth.assembly_id;
+                return assemblyId === filterValues.assembly;
+            })
+            : []; // Empty array when no assembly selected
+
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
@@ -279,7 +340,7 @@ const VisitListPage = () => {
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchMapVisits(selectedCandidate || null);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, selectedCandidate]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, selectedCandidate, appliedFilters]);
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -320,6 +381,57 @@ const VisitListPage = () => {
         setAppliedFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
+    };
+
+    // Handle cascading filter changes
+    const handleStateChange = (stateValue) => {
+        setFilterValues({
+            ...filterValues,
+            state: stateValue,
+            division: '', // Clear dependent filters
+            parliament: '',
+            assembly: '',
+            block: '',
+            booth: ''
+        });
+    };
+
+    const handleDivisionChange = (divisionValue) => {
+        setFilterValues({
+            ...filterValues,
+            division: divisionValue,
+            parliament: '', // Clear dependent filters
+            assembly: '',
+            block: '',
+            booth: ''
+        });
+    };
+
+    const handleParliamentChange = (parliamentValue) => {
+        setFilterValues({
+            ...filterValues,
+            parliament: parliamentValue,
+            assembly: '', // Clear dependent filters
+            block: '',
+            booth: ''
+        });
+    };
+
+    const handleAssemblyChange = (assemblyValue) => {
+        setFilterValues({
+            ...filterValues,
+            assembly: assemblyValue,
+            block: '', // Clear dependent filters
+            booth: ''
+        });
+    };
+
+    const handleBlockChange = (blockValue) => {
+        setFilterValues({
+            ...filterValues,
+            block: blockValue,
+            booth: '' // Clear dependent filters
+        });
     };
 
     const handleMarkerClick = (visit) => {
@@ -382,6 +494,33 @@ const VisitListPage = () => {
                     color={workStatusColor[getValue()] || 'default'}
                     size="small"
                 />
+            )
+        },
+        {
+            header: 'State',
+            accessorKey: 'state_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Division',
+            accessorKey: 'division_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Assembly',
+            accessorKey: 'assembly_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
             )
         },
         {
@@ -733,7 +872,7 @@ const VisitListPage = () => {
                                         <InputLabel>State</InputLabel>
                                         <Select
                                             value={filterValues.state}
-                                            onChange={(e) => setFilterValues(prev => ({ ...prev, state: e.target.value }))}
+                                            onChange={(e) => handleStateChange(e.target.value)}
                                             label="State"
                                         >
                                             <MenuItem value="">All States</MenuItem>
@@ -751,11 +890,14 @@ const VisitListPage = () => {
                                         <InputLabel>Division</InputLabel>
                                         <Select
                                             value={filterValues.division}
-                                            onChange={(e) => setFilterValues(prev => ({ ...prev, division: e.target.value }))}
+                                            onChange={(e) => handleDivisionChange(e.target.value)}
                                             label="Division"
+                                            disabled={!filterValues.state}
                                         >
-                                            <MenuItem value="">All Divisions</MenuItem>
-                                            {divisions.map((division) => (
+                                            <MenuItem value="">
+                                                {!filterValues.state ? "Select State First" : "All Divisions"}
+                                            </MenuItem>
+                                            {filteredDivisions.map((division) => (
                                                 <MenuItem key={division._id} value={division._id}>
                                                     {division.name}
                                                 </MenuItem>
@@ -769,11 +911,14 @@ const VisitListPage = () => {
                                         <InputLabel>Assembly</InputLabel>
                                         <Select
                                             value={filterValues.assembly}
-                                            onChange={(e) => setFilterValues(prev => ({ ...prev, assembly: e.target.value }))}
+                                            onChange={(e) => handleAssemblyChange(e.target.value)}
                                             label="Assembly"
+                                            disabled={!filterValues.division}
                                         >
-                                            <MenuItem value="">All Assemblies</MenuItem>
-                                            {assemblies.map((assembly) => (
+                                            <MenuItem value="">
+                                                {!filterValues.division ? "Select Division First" : "All Assemblies"}
+                                            </MenuItem>
+                                            {filteredAssemblies.map((assembly) => (
                                                 <MenuItem key={assembly._id} value={assembly._id}>
                                                     {assembly.name}
                                                 </MenuItem>
@@ -789,9 +934,12 @@ const VisitListPage = () => {
                                             value={filterValues.booth}
                                             onChange={(e) => setFilterValues(prev => ({ ...prev, booth: e.target.value }))}
                                             label="Booth"
+                                            disabled={!filterValues.assembly}
                                         >
-                                            <MenuItem value="">All Booths</MenuItem>
-                                            {booths.map((booth) => (
+                                            <MenuItem value="">
+                                                {!filterValues.assembly ? "Select Assembly First" : "All Booths"}
+                                            </MenuItem>
+                                            {filteredBooths.map((booth) => (
                                                 <MenuItem key={booth._id} value={booth._id}>
                                                     {booth.name}
                                                 </MenuItem>

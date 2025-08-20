@@ -109,9 +109,9 @@ export default function PotentialCandidateListPage() {
   }, []); // Empty dependency array for one-time fetch
 
   useEffect(() => {
-    // Fetch candidates only when pagination changes
+    // Fetch candidates only when pagination changes or filters are applied
     fetchCandidates(pagination.pageIndex, pagination.pageSize);
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, [pagination.pageIndex, pagination.pageSize, appliedFilters]);
 
   const handleDeleteOpen = (id) => {
     setDeleteId(id);
@@ -603,14 +603,14 @@ export default function PotentialCandidateListPage() {
                 size="small"
                 color="primary"
               >
-                Apply Filters
+                Apply
               </Button>
               <Button
                 variant="outlined"
                 onClick={handleClearFilters}
                 size="small"
               >
-                Clear Filters
+                Clear
               </Button>
             </Stack>
           </Stack>

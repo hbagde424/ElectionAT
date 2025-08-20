@@ -44,18 +44,21 @@ exports.getPotentialCandidates = async (req, res, next) => {
     }
 
     // Filter by party
-    if (req.query.party) {
-      query = query.where('party_id').equals(req.query.party);
+    if (req.query.party_id || req.query.party) {
+      const partyId = req.query.party_id || req.query.party;
+      query = query.where('party_id').equals(partyId);
     }
 
     // Filter by constituency
-    if (req.query.constituency) {
-      query = query.where('constituency_id').equals(req.query.constituency);
+    if (req.query.constituency_id || req.query.constituency) {
+      const constituencyId = req.query.constituency_id || req.query.constituency;
+      query = query.where('constituency_id').equals(constituencyId);
     }
 
     // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('election_year_id').equals(req.query.election_year);
+    if (req.query.election_year_id || req.query.election_year) {
+      const electionYearId = req.query.election_year_id || req.query.election_year;
+      query = query.where('election_year_id').equals(electionYearId);
     }
 
     const candidates = await query.skip(skip).limit(limit).exec();
@@ -118,8 +121,8 @@ exports.createPotentialCandidate = async (req, res, next) => {
       Party.findById(req.body.party_id),
       Assembly.findById(req.body.constituency_id),
       ElectionYear.findById(req.body.election_year_id),
-      req.body.supporter_candidates && req.body.supporter_candidates.length > 0 ? 
-        Candidate.find({ _id: { $in: req.body.supporter_candidates } }) : 
+      req.body.supporter_candidates && req.body.supporter_candidates.length > 0 ?
+        Candidate.find({ _id: { $in: req.body.supporter_candidates } }) :
         Promise.resolve([])
     ]);
 
@@ -142,7 +145,7 @@ exports.createPotentialCandidate = async (req, res, next) => {
       ...req.body,
       created_by: req.user.id,
       updated_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const candidate = await PotentialCandidate.create(candidateData);
@@ -186,7 +189,7 @@ exports.updatePotentialCandidate = async (req, res, next) => {
     }
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result || (result.found !== undefined && result.found !== result.expected)) {
         return res.status(400).json({

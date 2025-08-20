@@ -52,7 +52,7 @@ exports.getLocalIssues = async (req, res, next) => {
 
     // Filter by department
     if (req.query.department) {
-      query = query.where('department').equals(req.query.department);
+      query = query.where('department').regex(new RegExp(`^${req.query.department}$`, 'i'));
     }
 
     // Filter by geographical hierarchy
@@ -141,9 +141,9 @@ exports.createLocalIssue = async (req, res, next) => {
 
     // Verify division belongs to state
     if (division.state_id.toString() !== req.body.state_id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Division does not belong to selected state' 
+      return res.status(400).json({
+        success: false,
+        message: 'Division does not belong to selected state'
       });
     }
 
@@ -158,7 +158,7 @@ exports.createLocalIssue = async (req, res, next) => {
     const localIssueData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const localIssue = await LocalIssue.create(localIssueData);
@@ -196,7 +196,7 @@ exports.updateLocalIssue = async (req, res, next) => {
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
@@ -210,9 +210,9 @@ exports.updateLocalIssue = async (req, res, next) => {
     if (req.body.state_id && req.body.division_id) {
       const division = await Division.findById(req.body.division_id);
       if (division.state_id.toString() !== req.body.state_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Division does not belong to selected state' 
+        return res.status(400).json({
+          success: false,
+          message: 'Division does not belong to selected state'
         });
       }
     }

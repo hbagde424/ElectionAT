@@ -16,10 +16,10 @@ exports.getAssemblies = async (req, res, next) => {
 
     // Basic query
     let query = Assembly.find()
-      .populate('state_id', 'name')
-      .populate('district_id', 'name')
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
+      .populate('state_id', '_id name')
+      .populate('district_id', '_id name')
+      .populate('division_id', '_id name')
+      .populate('parliament_id', '_id name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')// Add population of updated_by
 
@@ -82,10 +82,10 @@ exports.getAssemblies = async (req, res, next) => {
 exports.getAssembly = async (req, res, next) => {
   try {
     const assembly = await Assembly.findById(req.params.id)
-      .populate('state_id', 'name')
-      .populate('district_id', 'name')
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
+      .populate('state_id', '_id name')
+      .populate('district_id', '_id name')
+      .populate('division_id', '_id name')
+      .populate('parliament_id', '_id name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username'); // Add population of updated_by
 
@@ -245,7 +245,7 @@ exports.updateAssembly = async (req, res, next) => {
       }
     }
 
-     // Set updated_by from authenticated user
+    // Set updated_by from authenticated user
     req.body.updated_by = req.user.id;
 
 

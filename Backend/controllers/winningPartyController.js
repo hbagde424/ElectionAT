@@ -135,8 +135,8 @@ exports.getWinningParties = async (req, res, next) => {
     }
 
     // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('election_year').equals(req.query.election_year);
+    if (req.query.electionYear) {
+      query = query.where('election_year').equals(req.query.electionYear);
     }
 
     // Filter by minimum votes
@@ -237,11 +237,11 @@ exports.createWinningParty = async (req, res, next) => {
     if (!block) missingRefs.push('Block');
     if (!booth) missingRefs.push('Booth');
     if (!electionYear) missingRefs.push('Election Year');
-    
+
     if (missingRefs.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `${missingRefs.join(', ')} not found` 
+      return res.status(400).json({
+        success: false,
+        message: `${missingRefs.join(', ')} not found`
       });
     }
 
@@ -269,7 +269,7 @@ exports.createWinningParty = async (req, res, next) => {
     const winningPartyData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const winningParty = await WinningParty.create(winningPartyData);
@@ -316,7 +316,7 @@ exports.updateWinningParty = async (req, res, next) => {
     if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
@@ -407,7 +407,7 @@ exports.getWinningPartiesByParty = async (req, res, next) => {
       });
     }
 
-    const winningParties = await WinningParty.find({ 
+    const winningParties = await WinningParty.find({
       party_id: req.params.partyId
     })
       .sort({ votes: -1 })
@@ -440,7 +440,7 @@ exports.getWinningPartiesByYear = async (req, res, next) => {
       });
     }
 
-    const winningParties = await WinningParty.find({ 
+    const winningParties = await WinningParty.find({
       election_year: req.params.yearId
     })
       .sort({ votes: -1 })
@@ -473,7 +473,7 @@ exports.getWinningPartiesByBooth = async (req, res, next) => {
       });
     }
 
-    const winningParties = await WinningParty.find({ 
+    const winningParties = await WinningParty.find({
       booth_id: req.params.boothId
     })
       .sort({ election_year: -1 })

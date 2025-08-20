@@ -41,14 +41,14 @@ exports.getPartyActivities = async (req, res, next) => {
 
     // Filters
     if (req.query.party) query = query.where('party_id').equals(req.query.party);
-    if (req.query.state) query = query.where('state_id').equals(req.query.state);
+    if (req.query.state_id) query = query.where('state_id').equals(req.query.state_id);
     if (req.query.activity_type) query = query.where('activity_type').equals(req.query.activity_type);
     if (req.query.status) query = query.where('status').equals(req.query.status);
 
     // Date range
     if (req.query.start_date && req.query.end_date) {
       query = query.where('activity_date').gte(new Date(req.query.start_date))
-                   .lte(new Date(req.query.end_date));
+        .lte(new Date(req.query.end_date));
     } else if (req.query.start_date) {
       query = query.where('activity_date').gte(new Date(req.query.start_date));
     } else if (req.query.end_date) {
@@ -56,11 +56,11 @@ exports.getPartyActivities = async (req, res, next) => {
     }
 
     // Geographical filters
-    if (req.query.division) query = query.where('division_id').equals(req.query.division);
-    if (req.query.parliament) query = query.where('parliament_id').equals(req.query.parliament);
-    if (req.query.assembly) query = query.where('assembly_id').equals(req.query.assembly);
-    if (req.query.block) query = query.where('block_id').equals(req.query.block);
-    if (req.query.booth) query = query.where('booth_id').equals(req.query.booth);
+    if (req.query.division_id) query = query.where('division_id').equals(req.query.division_id);
+    if (req.query.parliament_id) query = query.where('parliament_id').equals(req.query.parliament_id);
+    if (req.query.assembly_id) query = query.where('assembly_id').equals(req.query.assembly_id);
+    if (req.query.block_id) query = query.where('block_id').equals(req.query.block_id);
+    if (req.query.booth_id) query = query.where('booth_id').equals(req.query.booth_id);
 
     const activities = await query.skip(skip).limit(limit).exec();
     const total = await PartyActivity.countDocuments(query.getFilter());
@@ -151,7 +151,7 @@ exports.createPartyActivity = async (req, res, next) => {
     const activity = await PartyActivity.create({
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     });
 
     res.status(201).json({
@@ -188,7 +188,7 @@ exports.updatePartyActivity = async (req, res, next) => {
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
@@ -201,20 +201,20 @@ exports.updatePartyActivity = async (req, res, next) => {
     activity = await PartyActivity.findByIdAndUpdate(req.params.id, {
       ...req.body,
       updated_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     }, {
       new: true,
       runValidators: true
     })
-    .populate('party_id', 'name')
-    .populate('state_id', 'name')
-    .populate('division_id', 'name')
-    .populate('parliament_id', 'name')
-    .populate('assembly_id', 'name')
-    .populate('block_id', 'name')
-    .populate('booth_id', 'name booth_number')
-    .populate('created_by', 'username name')
-    .populate('updated_by', 'username name');
+      .populate('party_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'name booth_number')
+      .populate('created_by', 'username name')
+      .populate('updated_by', 'username name');
 
     res.status(200).json({
       success: true,
@@ -291,19 +291,19 @@ exports.getUpcomingPartyActivities = async (req, res, next) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const activities = await PartyActivity.find({ 
+    const activities = await PartyActivity.find({
       activity_date: { $gte: today },
       status: 'scheduled'
     })
-    .sort({ activity_date: 1 })
-    .populate('party_id', 'name')
-    .populate('state_id', 'name')
-    .populate('division_id', 'name')
-    .populate('parliament_id', 'name')
-    .populate('assembly_id', 'name')
-    .populate('block_id', 'name')
-    .populate('booth_id', 'name booth_number')
-    .limit(10);
+      .sort({ activity_date: 1 })
+      .populate('party_id', 'name')
+      .populate('state_id', 'name')
+      .populate('division_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('block_id', 'name')
+      .populate('booth_id', 'name booth_number')
+      .limit(10);
 
     res.status(200).json({
       success: true,

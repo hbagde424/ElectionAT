@@ -8,7 +8,7 @@ const populateDivision = (query) => {
   return query
     .populate({
       path: 'state_id',
-      select: 'name'
+      select: '_id name'
     })
     .populate({
       path: 'created_by',
@@ -171,7 +171,7 @@ exports.updateDivision = async (req, res, next) => {
       new: true,
       runValidators: true
     });
-    
+
     const populatedDivision = await populateDivision(Division.findById(division._id));
 
     res.status(200).json({
@@ -236,7 +236,7 @@ exports.getDivisionsByState = async (req, res, next) => {
 exports.debugDivision = async (req, res, next) => {
   try {
     const division = await Division.findById(req.params.id);
-    
+
     if (!division) {
       return next(new ErrorResponse('Division not found', 404));
     }
