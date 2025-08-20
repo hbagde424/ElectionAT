@@ -269,6 +269,7 @@ export default function WorkStatusModal({
 
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
+                alert(`Please fill in the required field: ${field.replace('_', ' ')}`);
                 return;
             }
         }
