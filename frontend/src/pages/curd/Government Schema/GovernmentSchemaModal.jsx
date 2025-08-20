@@ -42,10 +42,17 @@ export default function GovernmentModal({
 
     useEffect(() => {
         if (government) {
+            // Helper function to validate and parse date
+            const parseDate = (dateValue) => {
+                if (!dateValue) return null;
+                const date = new Date(dateValue);
+                return isNaN(date.getTime()) ? null : date;
+            };
+
             setFormData({
                 name: government.name || '',
                 type: government.type || 'new',
-                project_complete_date: government.project_complete_date || null,
+                project_complete_date: parseDate(government.project_complete_date),
                 amount: government.amount || '',
                 description: government.description || '',
                 state_id: government.state_id?._id?.toString() || government.state_id?.toString() || '',
