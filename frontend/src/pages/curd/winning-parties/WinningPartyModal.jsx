@@ -145,6 +145,7 @@ export default function WinningPartyModal({
                 booth_id: '',
                 election_year: '',
                 votes: '',
+                booth_number: '',
                 margin: '',
                 description: ''
             };
@@ -161,6 +162,7 @@ export default function WinningPartyModal({
             booth_id: winningParty.booth_id?._id || winningParty.booth_id || '',
             election_year: winningParty.election_year?._id || winningParty.election_year || '',
             votes: winningParty.votes || '',
+            booth_number: winningParty.booth_number || '',
             margin: winningParty.margin || '',
             description: winningParty.description || ''
         };
@@ -278,24 +280,6 @@ export default function WinningPartyModal({
         }
     }, [formData.block_id, booths]);
 
-    // Party → Candidate filtering
-    useEffect(() => {
-        if (formData.party_id) {
-            const filtered = candidates.filter(c => {
-                const candidatePartyId = c.party_id?._id || c.party_id;
-                return candidatePartyId?.toString() === formData.party_id.toString();
-            });
-            setFilteredCandidates(filtered);
-
-            if (!filtered.some(c => c._id?.toString() === formData.candidate_id?.toString())) {
-                setFormData(prev => ({ ...prev, candidate_id: '' }));
-            }
-        } else {
-            setFilteredCandidates(candidates); // Show all candidates when no party is selected
-            setFormData(prev => ({ ...prev, candidate_id: '' }));
-        }
-    }, [formData.party_id, candidates]);
-
     // Field validation
     const validateField = (name, value) => {
         const validations = {
@@ -312,6 +296,12 @@ export default function WinningPartyModal({
                 if (!value) return 'Votes count is required';
                 if (isNaN(value)) return 'Votes must be a number';
                 if (parseInt(value) < 0) return 'Votes cannot be negative';
+                return '';
+            },
+            booth_number: () => {
+                if (!value) return 'Booth number is required';
+                if (isNaN(value)) return 'Booth number must be a number';
+                if (parseInt(value) < 0) return 'Booth number cannot be negative';
                 return '';
             },
             margin: () => {
@@ -538,6 +528,19 @@ export default function WinningPartyModal({
                             value={formData.votes}
                             onChange={handleChange}
                             error={errors.votes}
+                            disabled={isSubmitting}
+                            type="number"
+                            required
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Booth Number"
+                            name="booth_number"
+                            value={formData.booth_number}
+                            onChange={handleChange}
+                            error={errors.booth_number}
                             disabled={isSubmitting}
                             type="number"
                             required

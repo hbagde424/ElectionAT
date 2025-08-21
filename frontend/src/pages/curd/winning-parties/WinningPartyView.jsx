@@ -44,24 +44,24 @@ export default function WinningPartyView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-                         {/* Description Field (HTML) */}
-            {data.description && (
-                <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
-                    <Box
-                        sx={{
-                            border: '1px solid #eee',
-                            borderRadius: 1,
-                            p: 1,
-                            bgcolor: 'background.default',
-                            maxHeight: 180,
-                            overflow: 'auto',
-                        }}
-                        dangerouslySetInnerHTML={{ __html: data.description }}
-                    />
-                </Box>
-            )}
-<Box>
+                        {/* Description Field (HTML) */}
+                        {data.description && (
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                                <Box
+                                    sx={{
+                                        border: '1px solid #eee',
+                                        borderRadius: 1,
+                                        p: 1,
+                                        bgcolor: 'background.default',
+                                        maxHeight: 180,
+                                        overflow: 'auto',
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: data.description }}
+                                />
+                            </Box>
+                        )}
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
@@ -153,6 +153,10 @@ export default function WinningPartyView({ data }) {
                         <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Margin</Typography>
                             <Typography variant="body1">{data.margin || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
+                            <Typography variant="body1">{data.booth_number || 'N/A'}</Typography>
                         </Grid>
                         {/* <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Record ID</Typography>

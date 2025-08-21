@@ -631,7 +631,7 @@ export default function WorkStatusListPage() {
                         <DebouncedInput
                             value={globalFilter}
                             onFilterChange={setGlobalFilter}
-                            placeholder={`Search ${workStatuses.length} work statuses...`}
+                            placeholder={`Search ${workStatuses.length} work status list...`}
                         />
                         <Stack direction="row" spacing={1}>
                             <CSVLink

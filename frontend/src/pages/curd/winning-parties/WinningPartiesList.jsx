@@ -419,10 +419,10 @@ const WinningPartyListPage = () => {
         },
         {
             header: 'Booth Number',
-            accessorKey: 'booth_id',
+            accessorKey: 'booth_number',
             cell: ({ getValue }) => (
                 <Typography>
-                    {getValue()?.booth_number ? `${getValue().booth_number}` : 'N/A'}
+                    {getValue() || 'N/A'}
                 </Typography>
             )
         },
@@ -575,7 +575,8 @@ const WinningPartyListPage = () => {
             'Parliament': item.parliament_id?.name || '',
             'Assembly': item.assembly_id?.name || '',
             'Block': item.block_id?.name || '',
-            'Booth': item.booth_id?.booth_number ? `#${item.booth_id.booth_number}` : '',
+            'Booth': item.booth_id?.name || '',
+            'Booth Number': item.booth_number || '',
             'Election Year': item.election_year?.year || '',
             'Votes': item.votes || 0,
             'Margin': item.margin || 0,
@@ -648,13 +649,14 @@ const WinningPartyListPage = () => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={3} sx={{ display: { xs: filterValues.state ? 'block' : 'none', md: 'block' } }}>
                         <FormControl fullWidth size="small">
                             <InputLabel>Division</InputLabel>
                             <Select
                                 value={filterValues.division}
                                 onChange={(e) => handleDivisionChange(e.target.value)}
                                 label="Division"
+                                disabled={!filterValues.state}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {filteredDivisions.map((division) => (
@@ -663,13 +665,14 @@ const WinningPartyListPage = () => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={3} sx={{ display: { xs: filterValues.state ? 'block' : 'none', md: 'block' } }}>
                         <FormControl fullWidth size="small">
                             <InputLabel>Parliament</InputLabel>
                             <Select
                                 value={filterValues.parliament}
                                 onChange={(e) => handleParliamentChange(e.target.value)}
                                 label="Parliament"
+                                disabled={!filterValues.state}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {filteredParliaments.map((parliament) => (
@@ -678,13 +681,14 @@ const WinningPartyListPage = () => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={3} sx={{ display: { xs: filterValues.state ? 'block' : 'none', md: 'block' } }}>
                         <FormControl fullWidth size="small">
                             <InputLabel>Assembly</InputLabel>
                             <Select
                                 value={filterValues.assembly}
                                 onChange={(e) => handleAssemblyChange(e.target.value)}
                                 label="Assembly"
+                                disabled={!filterValues.state}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {filteredAssemblies.map((assembly) => (
@@ -693,13 +697,14 @@ const WinningPartyListPage = () => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={3} sx={{ display: { xs: filterValues.state ? 'block' : 'none', md: 'block' } }}>
                         <FormControl fullWidth size="small">
                             <InputLabel>Block</InputLabel>
                             <Select
                                 value={filterValues.block}
                                 onChange={(e) => handleBlockChange(e.target.value)}
                                 label="Block"
+                                disabled={!filterValues.state}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {filteredBlocks.map((block) => (
@@ -708,13 +713,14 @@ const WinningPartyListPage = () => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={3} sx={{ display: { xs: filterValues.state ? 'block' : 'none', md: 'block' } }}>
                         <FormControl fullWidth size="small">
                             <InputLabel>Booth</InputLabel>
                             <Select
                                 value={filterValues.booth}
                                 onChange={(e) => setFilterValues({ ...filterValues, booth: e.target.value })}
                                 label="Booth"
+                                disabled={!filterValues.state}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {filteredBooths.map((booth) => (
