@@ -30,6 +30,11 @@ import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
 
 // Charts & Widgets
 import EcommerceDataCard from 'components/cards/statistics/EcommerceDataCard';
@@ -75,7 +80,99 @@ import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { TablePagination } from 'components/third-party/react-table';
 
+// Template Component for Dashboard Lists (Division Page Style)
+const DashboardListTemplate = ({
+  title,
+  data,
+  loading,
+  columns,
+  pagination,
+  setPagination,
+  pageCount
+}) => {
+  return (
+    <MainCard content={false}>
+      {/* Header */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        justifyContent="space-between"
+        sx={{ p: 2 }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          {title}
+        </Typography>
+        <Chip
+          label={`${data.length} Records`}
+          color="primary"
+          variant="outlined"
+        />
+      </Stack>
 
+      <Divider />
+
+      {/* Table */}
+      <ScrollX>
+        <TableContainer>
+          {loading ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  {columns.map((column, index) => (
+                    <TableCell key={index} sx={{ fontWeight: 600 }}>
+                      {column.header}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {data.map((row, rowIndex) => (
+                  <TableRow
+                    key={row._id || rowIndex}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                      }
+                    }}
+                  >
+                    {columns.map((column, colIndex) => (
+                      <TableCell key={colIndex}>
+                        {column.cell ? column.cell(row, rowIndex) : row[column.accessorKey]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TableContainer>
+
+        <Divider />
+
+        <Box sx={{ p: 2 }}>
+          <TablePagination
+            setPageSize={(size) =>
+              setPagination((prev) => ({ ...prev, pageSize: size }))
+            }
+            setPageIndex={(index) =>
+              setPagination((prev) => ({ ...prev, pageIndex: index }))
+            }
+            getState={() => ({
+              pagination,
+              globalFilter: ''
+            })}
+            getPageCount={() => pageCount}
+          />
+        </Box>
+      </ScrollX>
+    </MainCard>
+  );
+};
 
 export default function DashboardDefault() {
   const theme = useTheme();
@@ -980,1119 +1077,1199 @@ export default function DashboardDefault() {
         </EcommerceDataCard>
       </Grid>
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Recent Visits
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {loading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Candidate</TableCell>
-                    <TableCell>Post</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Booth</TableCell>
-                    <TableCell>Location</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {visits.map((visit, index) => (
-                    <TableRow key={visit._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={visit.candidate_id?.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{visit.candidate_id?.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{visit.post || 'N/A'}</TableCell>
-                      <TableCell>{new Date(visit.date).toLocaleDateString('en-IN')}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={visit.work_status?.toUpperCase() || 'N/A'}
-                          color={
-                            visit.work_status === 'complete' ? 'success' :
-                              visit.work_status === 'in progress' ? 'warning' :
-                                visit.work_status === 'approved' ? 'info' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{visit.booth_id?.name || 'N/A'}</TableCell>
-                      <TableCell>{visit.locationName || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => pageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Recent Visits"
+          data={visits}
+          loading={loading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Candidate',
+              accessorKey: 'candidate_id',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.candidate_id?.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.candidate_id?.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Post',
+              accessorKey: 'post',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.post || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Date',
+              accessorKey: 'date',
+              cell: (row) => (
+                <Typography>
+                  {new Date(row.date).toLocaleDateString('en-IN')}
+                </Typography>
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'work_status',
+              cell: (row) => (
+                <Chip
+                  label={row.work_status?.toUpperCase() || 'N/A'}
+                  color={
+                    row.work_status === 'complete' ? 'success' :
+                      row.work_status === 'in progress' ? 'warning' :
+                        row.work_status === 'approved' ? 'info' : 'default'
+                  }
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth_id',
+              cell: (row) => (
+                <Typography>
+                  {row.booth_id?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Location',
+              accessorKey: 'locationName',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.locationName || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={pagination}
+          setPagination={setPagination}
+          pageCount={pageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Recent Assembly Votes
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {assemblyVotesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Candidate</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Total Votes</TableCell>
-                    <TableCell>Election Year</TableCell>
-                    <TableCell>State</TableCell>
-                    <TableCell>Booth</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {assemblyVotes.map((vote, index) => (
-                    <TableRow key={vote._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={vote.candidate?.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{vote.candidate?.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{vote.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vote.total_votes?.toLocaleString() || '0'}
-                          color="primary"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{vote.election_year?.year || 'N/A'}</TableCell>
-                      <TableCell>{vote.state?.name || 'N/A'}</TableCell>
-                      <TableCell>{vote.booth?.name || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setAssemblyVotesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setAssemblyVotesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: assemblyVotesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => assemblyVotesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Recent Assembly Votes"
+          data={assemblyVotes}
+          loading={assemblyVotesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Candidate',
+              accessorKey: 'candidate',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.candidate?.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.candidate?.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Total Votes',
+              accessorKey: 'total_votes',
+              cell: (row) => (
+                <Chip
+                  label={row.total_votes?.toLocaleString() || '0'}
+                  color="success"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Election Year',
+              accessorKey: 'election_year',
+              cell: (row) => (
+                <Typography>
+                  {row.election_year?.year || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state',
+              cell: (row) => (
+                <Typography>
+                  {row.state?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth',
+              cell: (row) => (
+                <Typography>
+                  {row.booth?.name || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={assemblyVotesPagination}
+          setPagination={setAssemblyVotesPagination}
+          pageCount={assemblyVotesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Block Votes
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {blockVotesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Candidate</TableCell>
-                    <TableCell>Block</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Total Votes</TableCell>
-                    <TableCell>Election Year</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {blockVotes.map((vote, index) => (
-                    <TableRow key={vote._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={vote.candidate?.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{vote.candidate?.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{vote.block?.name || 'N/A'}</TableCell>
-                      <TableCell>{vote.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vote.total_votes?.toLocaleString() || '0'}
-                          color="warning"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{vote.election_year?.year || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setBlockVotesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setBlockVotesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: blockVotesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => blockVotesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Block Votes"
+          data={blockVotes}
+          loading={blockVotesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Candidate',
+              accessorKey: 'candidate',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.candidate?.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.candidate?.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Block',
+              accessorKey: 'block',
+              cell: (row) => (
+                <Chip
+                  label={row.block?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Total Votes',
+              accessorKey: 'total_votes',
+              cell: (row) => (
+                <Chip
+                  label={row.total_votes?.toLocaleString() || '0'}
+                  color="warning"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Election Year',
+              accessorKey: 'election_year',
+              cell: (row) => (
+                <Typography>
+                  {row.election_year?.year || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={blockVotesPagination}
+          setPagination={setBlockVotesPagination}
+          pageCount={blockVotesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Booth Votes
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {boothVotesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Candidate</TableCell>
-                    <TableCell>Booth</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Total Votes</TableCell>
-                    <TableCell>Election Year</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {boothVotes.map((vote, index) => (
-                    <TableRow key={vote._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={vote.candidate?.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{vote.candidate?.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{vote.booth?.name || 'N/A'}</TableCell>
-                      <TableCell>{vote.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vote.total_votes?.toLocaleString() || '0'}
-                          color="info"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{vote.election_year?.year || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setBoothVotesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setBoothVotesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: boothVotesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => boothVotesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Booth Votes"
+          data={boothVotes}
+          loading={boothVotesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Candidate',
+              accessorKey: 'candidate',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.candidate?.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.candidate?.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth',
+              cell: (row) => (
+                <Chip
+                  label={row.booth?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Total Votes',
+              accessorKey: 'total_votes',
+              cell: (row) => (
+                <Chip
+                  label={row.total_votes?.toLocaleString() || '0'}
+                  color="info"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Election Year',
+              accessorKey: 'election_year',
+              cell: (row) => (
+                <Typography>
+                  {row.election_year?.year || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={boothVotesPagination}
+          setPagination={setBoothVotesPagination}
+          pageCount={boothVotesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Booth Surveys
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {boothSurveysLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Survey Date</TableCell>
-                    <TableCell>Booth</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Surveyor</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {boothSurveys.map((survey, index) => (
-                    <TableRow key={survey._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{new Date(survey.survey_date).toLocaleDateString('en-IN') || 'N/A'}</TableCell>
-                      <TableCell>{survey.booth?.name || 'N/A'}</TableCell>
-                      <TableCell>{survey.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={survey.status?.toUpperCase() || 'N/A'}
-                          color={
-                            survey.status === 'completed' ? 'success' :
-                              survey.status === 'in_progress' ? 'warning' :
-                                survey.status === 'pending' ? 'error' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{survey.surveyor?.name || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setBoothSurveysPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setBoothSurveysPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: boothSurveysPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => boothSurveysPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Booth Surveys"
+          data={boothSurveys}
+          loading={boothSurveysLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Survey Date',
+              accessorKey: 'survey_date',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {new Date(row.survey_date).toLocaleDateString('en-IN') || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth',
+              cell: (row) => (
+                <Chip
+                  label={row.booth?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'status',
+              cell: (row) => (
+                <Chip
+                  label={row.status?.toUpperCase() || 'N/A'}
+                  color={
+                    row.status === 'completed' ? 'success' :
+                      row.status === 'in_progress' ? 'warning' :
+                        row.status === 'pending' ? 'error' : 'default'
+                  }
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Surveyor',
+              accessorKey: 'surveyor',
+              cell: (row) => (
+                <Typography>
+                  {row.surveyor?.name || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={boothSurveysPagination}
+          setPagination={setBoothSurveysPagination}
+          pageCount={boothSurveysPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Booth Volunteers
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {boothVolunteersLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Volunteer</TableCell>
-                    <TableCell>Booth</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Contact</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {boothVolunteers.map((volunteer, index) => (
-                    <TableRow key={volunteer._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={volunteer.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{volunteer.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{volunteer.booth?.name || 'N/A'}</TableCell>
-                      <TableCell>{volunteer.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={volunteer.role || 'N/A'}
-                          color="secondary"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{volunteer.contact || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setBoothVolunteersPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setBoothVolunteersPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: boothVolunteersPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => boothVolunteersPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Booth Volunteers"
+          data={boothVolunteers}
+          loading={boothVolunteersLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Volunteer',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth',
+              cell: (row) => (
+                <Chip
+                  label={row.booth?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Role',
+              accessorKey: 'role',
+              cell: (row) => (
+                <Chip
+                  label={row.role || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Contact',
+              accessorKey: 'contact',
+              cell: (row) => (
+                <Typography>
+                  {row.contact || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={boothVolunteersPagination}
+          setPagination={setBoothVolunteersPagination}
+          pageCount={boothVolunteersPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Caste Lists
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {casteListsLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Caste Name</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>State</TableCell>
-                    <TableCell>Code</TableCell>
-                    <TableCell>Description</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {casteLists.map((caste, index) => (
-                    <TableRow key={caste._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {caste.name || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={caste.category || 'N/A'}
-                          color={
-                            caste.category === 'SC' ? 'error' :
-                              caste.category === 'ST' ? 'warning' :
-                                caste.category === 'OBC' ? 'info' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{caste.state?.name || 'N/A'}</TableCell>
-                      <TableCell>{caste.code || 'N/A'}</TableCell>
-                      <TableCell>{caste.description || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setCasteListsPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setCasteListsPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: casteListsPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => casteListsPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Caste Lists"
+          data={casteLists}
+          loading={casteListsLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Caste Name',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Category',
+              accessorKey: 'category',
+              cell: (row) => (
+                <Chip
+                  label={row.category || 'N/A'}
+                  color={
+                    row.category === 'SC' ? 'error' :
+                      row.category === 'ST' ? 'warning' :
+                        row.category === 'OBC' ? 'info' : 'default'
+                  }
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state',
+              cell: (row) => (
+                <Typography>
+                  {row.state?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Code',
+              accessorKey: 'code',
+              cell: (row) => (
+                <Chip
+                  label={row.code || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Description',
+              accessorKey: 'description',
+              cell: (row) => (
+                <Typography>
+                  {row.description || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={casteListsPagination}
+          setPagination={setCasteListsPagination}
+          pageCount={casteListsPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Coding
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {codingsLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Code</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {codings.map((coding, index) => (
-                    <TableRow key={coding._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={coding.code || 'N/A'}
-                          color="primary"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{coding.description || 'N/A'}</TableCell>
-                      <TableCell>{coding.category || 'N/A'}</TableCell>
-                      <TableCell>{coding.type || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={coding.status ? 'Active' : 'Inactive'}
-                          color={coding.status ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setCodingsPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setCodingsPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: codingsPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => codingsPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Codings"
+          data={codings}
+          loading={codingsLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Code',
+              accessorKey: 'code',
+              cell: (row) => (
+                <Chip
+                  label={row.code || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Description',
+              accessorKey: 'description',
+              cell: (row) => (
+                <Typography>
+                  {row.description || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Category',
+              accessorKey: 'category',
+              cell: (row) => (
+                <Typography>
+                  {row.category || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Type',
+              accessorKey: 'type',
+              cell: (row) => (
+                <Typography>
+                  {row.type || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'status',
+              cell: (row) => (
+                <Chip
+                  label={row.status ? 'Active' : 'Inactive'}
+                  color={row.status ? 'success' : 'error'}
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={codingsPagination}
+          setPagination={setCodingsPagination}
+          pageCount={codingsPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Events
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {eventsLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Event Name</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {events.map((event, index) => (
-                    <TableRow key={event._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {event.name || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{new Date(event.date).toLocaleDateString('en-IN') || 'N/A'}</TableCell>
-                      <TableCell>{event.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={event.type || 'N/A'}
-                          color="info"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={event.status?.toUpperCase() || 'N/A'}
-                          color={
-                            event.status === 'completed' ? 'success' :
-                              event.status === 'ongoing' ? 'warning' :
-                                event.status === 'upcoming' ? 'info' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setEventsPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setEventsPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: eventsPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => eventsPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Events"
+          data={events}
+          loading={eventsLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Event Name',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Date',
+              accessorKey: 'date',
+              cell: (row) => (
+                <Typography>
+                  {new Date(row.date).toLocaleDateString('en-IN') || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Type',
+              accessorKey: 'type',
+              cell: (row) => (
+                <Chip
+                  label={row.type || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'status',
+              cell: (row) => (
+                <Chip
+                  label={row.status?.toUpperCase() || 'N/A'}
+                  color={
+                    row.status === 'completed' ? 'success' :
+                      row.status === 'ongoing' ? 'warning' :
+                        row.status === 'upcoming' ? 'info' : 'default'
+                  }
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={eventsPagination}
+          setPagination={setEventsPagination}
+          pageCount={eventsPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Genders
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {gendersLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Gender</TableCell>
-                    <TableCell>Code</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {genders.map((gender, index) => (
-                    <TableRow key={gender._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {gender.name || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={gender.code || 'N/A'}
-                          color="secondary"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{gender.description || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={gender.status ? 'Active' : 'Inactive'}
-                          color={gender.status ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setGendersPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setGendersPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: gendersPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => gendersPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Genders"
+          data={genders}
+          loading={gendersLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Gender',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Code',
+              accessorKey: 'code',
+              cell: (row) => (
+                <Chip
+                  label={row.code || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Description',
+              accessorKey: 'description',
+              cell: (row) => (
+                <Typography>
+                  {row.description || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'status',
+              cell: (row) => (
+                <Chip
+                  label={row.status ? 'Active' : 'Inactive'}
+                  color={row.status ? 'success' : 'error'}
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={gendersPagination}
+          setPagination={setGendersPagination}
+          pageCount={gendersPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Influencers
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {influencersLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Influencer</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Contact</TableCell>
-                    <TableCell>Influence Level</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {influencers.map((influencer, index) => (
-                    <TableRow key={influencer._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={influencer.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{influencer.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{influencer.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={influencer.category || 'N/A'}
-                          color="warning"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{influencer.contact || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={influencer.influence_level || 'N/A'}
-                          color={
-                            influencer.influence_level === 'high' ? 'error' :
-                              influencer.influence_level === 'medium' ? 'warning' :
-                                influencer.influence_level === 'low' ? 'info' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setInfluencersPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setInfluencersPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: influencersPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => influencersPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Influencers"
+          data={influencers}
+          loading={influencersLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Influencer',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Category',
+              accessorKey: 'category',
+              cell: (row) => (
+                <Chip
+                  label={row.category || 'N/A'}
+                  color="warning"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Contact',
+              accessorKey: 'contact',
+              cell: (row) => (
+                <Typography>
+                  {row.contact || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Influence Level',
+              accessorKey: 'influence_level',
+              cell: (row) => (
+                <Chip
+                  label={row.influence_level || 'N/A'}
+                  color={
+                    row.influence_level === 'high' ? 'error' :
+                      row.influence_level === 'medium' ? 'warning' :
+                        row.influence_level === 'low' ? 'info' : 'default'
+                  }
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={influencersPagination}
+          setPagination={setInfluencersPagination}
+          pageCount={influencersPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Local Issues
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {localIssuesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Issue Title</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Priority</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Date Reported</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {localIssues.map((issue, index) => (
-                    <TableRow key={issue._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {issue.title || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{issue.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={issue.priority || 'N/A'}
-                          color={
-                            issue.priority === 'high' ? 'error' :
-                              issue.priority === 'medium' ? 'warning' :
-                                issue.priority === 'low' ? 'info' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={issue.status?.toUpperCase() || 'N/A'}
-                          color={
-                            issue.status === 'resolved' ? 'success' :
-                              issue.status === 'in_progress' ? 'warning' :
-                                issue.status === 'pending' ? 'error' : 'default'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{new Date(issue.date_reported).toLocaleDateString('en-IN') || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setLocalIssuesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setLocalIssuesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: localIssuesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => localIssuesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Local Issues"
+          data={localIssues}
+          loading={localIssuesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Issue Title',
+              accessorKey: 'title',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.title || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Priority',
+              accessorKey: 'priority',
+              cell: (row) => (
+                <Chip
+                  label={row.priority || 'N/A'}
+                  color={
+                    row.priority === 'high' ? 'error' :
+                      row.priority === 'medium' ? 'warning' :
+                        row.priority === 'low' ? 'info' : 'default'
+                  }
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'status',
+              cell: (row) => (
+                <Chip
+                  label={row.status?.toUpperCase() || 'N/A'}
+                  color={
+                    row.status === 'resolved' ? 'success' :
+                      row.status === 'in_progress' ? 'warning' :
+                        row.status === 'pending' ? 'error' : 'default'
+                  }
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Date Reported',
+              accessorKey: 'date_reported',
+              cell: (row) => (
+                <Typography>
+                  {new Date(row.date_reported).toLocaleDateString('en-IN') || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={localIssuesPagination}
+          setPagination={setLocalIssuesPagination}
+          pageCount={localIssuesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Parliament Votes
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {parliamentVotesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Candidate</TableCell>
-                    <TableCell>Parliament</TableCell>
-                    <TableCell>Total Votes</TableCell>
-                    <TableCell>Election Year</TableCell>
-                    <TableCell>State</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {parliamentVotes.map((vote, index) => (
-                    <TableRow key={vote._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={vote.candidate?.photo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{vote.candidate?.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{vote.parliament?.name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vote.total_votes?.toLocaleString() || '0'}
-                          color="success"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{vote.election_year?.year || 'N/A'}</TableCell>
-                      <TableCell>{vote.state?.name || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setParliamentVotesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setParliamentVotesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: parliamentVotesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => parliamentVotesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Parliament Votes"
+          data={parliamentVotes}
+          loading={parliamentVotesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Candidate',
+              accessorKey: 'candidate',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.candidate?.photo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.candidate?.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Parliament',
+              accessorKey: 'parliament',
+              cell: (row) => (
+                <Chip
+                  label={row.parliament?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Total Votes',
+              accessorKey: 'total_votes',
+              cell: (row) => (
+                <Chip
+                  label={row.total_votes?.toLocaleString() || '0'}
+                  color="success"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Election Year',
+              accessorKey: 'election_year',
+              cell: (row) => (
+                <Typography>
+                  {row.election_year?.year || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state',
+              cell: (row) => (
+                <Typography>
+                  {row.state?.name || 'N/A'}
+                </Typography>
+              )
+            }
+          ]}
+          pagination={parliamentVotesPagination}
+          setPagination={setParliamentVotesPagination}
+          pageCount={parliamentVotesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Party Activities
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {partyActivitiesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Activity</TableCell>
-                    <TableCell>Party</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Type</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {partyActivities.map((activity, index) => (
-                    <TableRow key={activity._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {activity.name || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{activity.party?.name || 'N/A'}</TableCell>
-                      <TableCell>{activity.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>{new Date(activity.date).toLocaleDateString('en-IN') || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={activity.type || 'N/A'}
-                          color="secondary"
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setPartyActivitiesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setPartyActivitiesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: partyActivitiesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => partyActivitiesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Party Activities"
+          data={partyActivities}
+          loading={partyActivitiesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Activity',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Party',
+              accessorKey: 'party',
+              cell: (row) => (
+                <Typography>
+                  {row.party?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Date',
+              accessorKey: 'date',
+              cell: (row) => (
+                <Typography>
+                  {new Date(row.date).toLocaleDateString('en-IN') || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Type',
+              accessorKey: 'type',
+              cell: (row) => (
+                <Chip
+                  label={row.type || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={partyActivitiesPagination}
+          setPagination={setPartyActivitiesPagination}
+          pageCount={partyActivitiesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Winning Parties
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {winningPartiesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Party</TableCell>
-                    <TableCell>Assembly</TableCell>
-                    <TableCell>Parliament</TableCell>
-                    <TableCell>Election Year</TableCell>
-                    <TableCell>Vote Share (%)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {winningParties.map((party, index) => (
-                    <TableRow key={party._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={party.party?.logo} sx={{ width: 32, height: 32 }} />
-                          <Typography>{party.party?.name || 'N/A'}</Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{party.assembly?.name || 'N/A'}</TableCell>
-                      <TableCell>{party.parliament?.name || 'N/A'}</TableCell>
-                      <TableCell>{party.election_year?.year || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={`${party.vote_share || 0}%`}
-                          color="primary"
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setWinningPartiesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setWinningPartiesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: winningPartiesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => winningPartiesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Winning Parties"
+          data={winningParties}
+          loading={winningPartiesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Party',
+              accessorKey: 'party',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    src={row.party?.logo}
+                    sx={{ width: 32, height: 32 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.party?.name || 'N/A'}
+                  </Typography>
+                </Stack>
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Typography>
+                  {row.assembly?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Parliament',
+              accessorKey: 'parliament',
+              cell: (row) => (
+                <Typography>
+                  {row.parliament?.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Election Year',
+              accessorKey: 'election_year',
+              cell: (row) => (
+                <Typography>
+                  {row.election_year?.year || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Vote Share (%)',
+              accessorKey: 'vote_share',
+              cell: (row) => (
+                <Chip
+                  label={`${row.vote_share || 0}%`}
+                  color="primary"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={winningPartiesPagination}
+          setPagination={setWinningPartiesPagination}
+          pageCount={winningPartiesPageCount}
+        />
       </Grid>
 
       <Grid item xs={12} sm={12} lg={12}>
-        <Typography variant="h6" gutterBottom>
-          Work Status
-        </Typography>
-        <ScrollX>
-          <TableContainer>
-            {workStatusesLoading ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Status Name</TableCell>
-                    <TableCell>Code</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Color</TableCell>
-                    <TableCell>Active</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {workStatuses.map((status, index) => (
-                    <TableRow key={status._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {status.name || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={status.code || 'N/A'}
-                          color="info"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{status.description || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Box
-                          sx={{
-                            width: 20,
-                            height: 20,
-                            backgroundColor: status.color || '#gray',
-                            borderRadius: '50%',
-                            border: '1px solid #ddd'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={status.active ? 'Active' : 'Inactive'}
-                          color={status.active ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TableContainer>
-          <Box sx={{ p: 2 }}>
-            <TablePagination
-              setPageSize={(size) =>
-                setWorkStatusesPagination((prev) => ({ ...prev, pageSize: size }))
-              }
-              setPageIndex={(index) =>
-                setWorkStatusesPagination((prev) => ({ ...prev, pageIndex: index }))
-              }
-              getState={() => ({
-                pagination: workStatusesPagination,
-                globalFilter: ''
-              })}
-              getPageCount={() => workStatusesPageCount}
-            />
-          </Box>
-        </ScrollX>
+        <DashboardListTemplate
+          title="Work Status"
+          data={workStatuses}
+          loading={workStatusesLoading}
+          columns={[
+            {
+              header: '#',
+              accessorKey: 'index',
+              cell: (row, index) => <Typography>{index + 1}</Typography>
+            },
+            {
+              header: 'Status Name',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Code',
+              accessorKey: 'code',
+              cell: (row) => (
+                <Chip
+                  label={row.code || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Description',
+              accessorKey: 'description',
+              cell: (row) => (
+                <Typography>
+                  {row.description || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Color',
+              accessorKey: 'color',
+              cell: (row) => (
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: row.color || '#gray',
+                    borderRadius: '50%',
+                    border: '1px solid #ddd'
+                  }}
+                />
+              )
+            },
+            {
+              header: 'Status',
+              accessorKey: 'active',
+              cell: (row) => (
+                <Chip
+                  label={row.active ? 'Active' : 'Inactive'}
+                  color={row.active ? 'success' : 'error'}
+                  size="small"
+                  variant="filled"
+                />
+              )
+            }
+          ]}
+          pagination={workStatusesPagination}
+          setPagination={setWorkStatusesPagination}
+          pageCount={workStatusesPageCount}
+        />
       </Grid>
       {/* Row 2 */}
       <Grid item xs={12} md={8} lg={9}>
