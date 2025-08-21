@@ -8,6 +8,10 @@ const { specs, swaggerUi } = require('./config/swagger');
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+const permissionRoutes = require('./routes/permissionRoutes');
+const userRoleRoutes = require('./routes/userRoleRoutes');
 const mapRoutes = require('./routes/mapRoutes');
 const districtPolygonRoutes = require('./routes/districtpolygenRoutes');
 const divisionPolygonRoutes = require('./routes/divisionpolygenRoutes');
@@ -121,6 +125,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Mount routers
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/role-permissions', rolePermissionRoutes);
+app.use('/api/permissions', permissionRoutes);
+app.use('/api/user-roles', userRoleRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/district-polygons', districtPolygonRoutes);
 app.use('/api/division-polygons', divisionPolygonRoutes);

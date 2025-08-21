@@ -145,6 +145,11 @@ const WInningCandidateList = Loadable(lazy(() => import('pages/curd/WinningCandi
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
 // const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
 // const Statelist = Loadable(lazy(() => import('pages/curd/state/list')));
+// Role & Permission Management
+const RoleList = Loadable(lazy(() => import('pages/curd/role/RoleList')));
+const PermissionList = Loadable(lazy(() => import('pages/curd/permission/PermissionList')));
+const AssignPermissionToRole = Loadable(lazy(() => import('pages/curd/role/AssignPermissionToRole')));
+const AssignRoleToUser = Loadable(lazy(() => import('pages/curd/role/AssignRoleToUser')));
 const Division = Loadable(lazy(() => import('pages/curd/division/division')));
 const AssemblyVotes = Loadable(lazy(() => import('pages/curd/votes/AssemblyVotes/Assembly-votes')));
 const BoothVotes = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/Booth-votes')));
@@ -155,6 +160,7 @@ const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-su
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
 const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
+const Matrics = Loadable(lazy(() => import('pages/curd/role/RoleMatrix')));
 const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
 const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
 const Influancer = Loadable(lazy(() => import('pages/curd/influancer/Influancer')));
@@ -682,6 +688,22 @@ const MainRoutes = {
           path: 'Influancer',
           element: <Influancer />
         },
+         {
+            path: 'roles',
+            element: <RoleList />
+          },
+          {
+            path: 'permissions',
+            element: <PermissionList />
+          },
+          {
+            path: 'assign-permission-to-role',
+            element: <AssignPermissionToRole />
+          },
+          {
+            path: 'assign-role-to-user',
+            element: <AssignRoleToUser />
+          },
         {
           path: 'Local-Issue',
           element: <LocalIssue />
@@ -698,6 +720,12 @@ const MainRoutes = {
           path: 'Pontentcal-Candidate',
           element: <PolentialCandidate />
         },
+
+        {
+          path: 'Matrics',
+          element: <Matrics />
+        },
+
 
         {
           path: 'district',
