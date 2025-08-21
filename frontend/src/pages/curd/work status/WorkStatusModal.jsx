@@ -336,7 +336,9 @@ export default function WorkStatusModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit work status:', errorData);
-                alert('Failed to save work status. Please check the form data.');
+                // Show specific error message from backend
+                const errorMessage = errorData.message || errorData.error || 'Failed to save work status. Please check the form data.';
+                alert(`Error: ${errorMessage}`);
             }
         } catch (error) {
             console.error('Error submitting work status:', error);
