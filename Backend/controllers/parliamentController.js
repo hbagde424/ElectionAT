@@ -9,8 +9,18 @@ const User = require('../models/User');
 exports.getParliaments = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit);
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit);
+    // If searching, ignore pagination and return all results (set high limit)
+    const isSearching = !!req.query.search;
+    if (isSearching) {
+      limit = 10000;
+      page = 1;
+    } else {
+      if (!limit || limit <= 0) {
+        limit = 10000;
+      }
+    }
     const skip = (page - 1) * limit;
 
     // Basic query
@@ -21,9 +31,17 @@ exports.getParliaments = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
-    // Search functionality
+    // Enhanced search functionality: only apply regex to string fields
     if (req.query.search) {
-      query = query.find({ name: { $regex: req.query.search, $options: 'i' } });
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      query = query.find({
+        $or: [
+          { name: searchRegex },
+          { description: searchRegex },
+          { category: searchRegex },
+          { regional_type: searchRegex }
+        ]
+      });
     }
 
     // Filter by category (case-insensitive)

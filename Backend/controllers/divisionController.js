@@ -28,8 +28,18 @@ const populateDivision = (query) => {
 exports.getDivisions = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit);
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit);
+    // If searching, ignore pagination and return all results (set high limit)
+    const isSearching = !!req.query.search;
+    if (isSearching) {
+      limit = 10000;
+      page = 1;
+    } else {
+      if (!limit || limit <= 0) {
+        limit = 10000;
+      }
+    }
     const skip = (page - 1) * limit;
 
     // Basic query
@@ -37,12 +47,13 @@ exports.getDivisions = async (req, res, next) => {
     query = populateDivision(query);
     query = query.sort({ name: 1 });
 
-    // Search functionality
+    // Enhanced search functionality: only apply regex to string fields
     if (req.query.search) {
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
       query = query.find({
         $or: [
-          { name: { $regex: req.query.search, $options: 'i' } },
-          { division_code: { $regex: req.query.search, $options: 'i' } }
+          { name: searchRegex },
+          { division_code: searchRegex }
         ]
       });
     }

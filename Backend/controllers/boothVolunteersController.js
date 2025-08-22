@@ -18,29 +18,14 @@ exports.getBoothVolunteers = async (req, res, next) => {
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
-    // Basic query
-    let query = BoothVolunteers.find()
-      .populate('booth', 'name booth_number')
-      .populate('party', 'name symbol')
-      .populate('state', 'name')
-      .populate('division', 'name')
-      .populate('assembly', 'name')
-      .populate('parliament', 'name')
-      .populate('block', 'name')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .sort({ name: 1 });
-
-    // Validate hierarchy if IDs are provided
+    // Build search filter
+    let filter = {};
+    // Validate hierarchy if IDs are provided (unchanged)
     if (req.query.booth_id) {
       const booth = await Booth.findById(req.query.booth_id);
       if (!booth) {
-        return res.status(404).json({
-          success: false,
-          error: 'Booth not found'
-        });
+        return res.status(404).json({ success: false, error: 'Booth not found' });
       }
-      // Set all parent IDs based on the booth's hierarchy
       req.query.block_id = booth.block_id;
       req.query.assembly_id = booth.assembly_id;
       req.query.parliament_id = booth.parliament_id;
@@ -49,12 +34,8 @@ exports.getBoothVolunteers = async (req, res, next) => {
     } else if (req.query.block_id) {
       const block = await Block.findById(req.query.block_id);
       if (!block) {
-        return res.status(404).json({
-          success: false,
-          error: 'Block not found'
-        });
+        return res.status(404).json({ success: false, error: 'Block not found' });
       }
-      // Set parent IDs based on block's hierarchy
       req.query.assembly_id = block.assembly_id;
       req.query.parliament_id = block.parliament_id;
       req.query.division_id = block.division_id;
@@ -62,98 +43,129 @@ exports.getBoothVolunteers = async (req, res, next) => {
     } else if (req.query.assembly_id) {
       const assembly = await Assembly.findById(req.query.assembly_id);
       if (!assembly) {
-        return res.status(404).json({
-          success: false,
-          error: 'Assembly not found'
-        });
+        return res.status(404).json({ success: false, error: 'Assembly not found' });
       }
-      // Set parent IDs based on assembly's hierarchy
       req.query.parliament_id = assembly.parliament_id;
       req.query.division_id = assembly.division_id;
       req.query.state_id = assembly.state_id;
     } else if (req.query.parliament_id) {
       const parliament = await Parliament.findById(req.query.parliament_id);
       if (!parliament) {
-        return res.status(404).json({
-          success: false,
-          error: 'Parliament not found'
-        });
+        return res.status(404).json({ success: false, error: 'Parliament not found' });
       }
-      // Set parent IDs based on parliament's hierarchy
       req.query.division_id = parliament.division_id;
       req.query.state_id = parliament.state_id;
     } else if (req.query.division_id) {
       const division = await Division.findById(req.query.division_id);
       if (!division) {
-        return res.status(404).json({
-          success: false,
-          error: 'Division not found'
-        });
+        return res.status(404).json({ success: false, error: 'Division not found' });
       }
-      // Set state_id based on division's hierarchy
       req.query.state_id = division.state_id;
     }
 
-    // Search functionality
+    // Search functionality (robust, all string fields and referenced fields)
     if (req.query.search) {
-      query = query.find({
-        $or: [
-          { name: { $regex: req.query.search, $options: 'i' } },
-          { phone: { $regex: req.query.search, $options: 'i' } },
-          { email: { $regex: req.query.search, $options: 'i' } }
-        ]
-      });
+      const search = req.query.search;
+      const mongoose = require('mongoose');
+      const [boothIds, partyIds, stateIds, divisionIds, assemblyIds, parliamentIds, blockIds, userIds] = await Promise.all([
+        Booth.find({ $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { booth_number: { $regex: search, $options: 'i' } }
+        ] }, '_id').then(docs => docs.map(d => d._id)),
+        Party.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
+        State.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
+        Division.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
+        Assembly.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
+        Parliament.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
+        Block.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
+        User.find({ username: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id))
+      ]);
+      const orArr = [
+        { name: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } },
+        { area_responsibility: { $regex: search, $options: 'i' } },
+        { activity_level: { $regex: search, $options: 'i' } },
+        { remarks: { $regex: search, $options: 'i' } }
+      ];
+      if (boothIds.length) orArr.push({ booth_id: { $in: boothIds } });
+      if (partyIds.length) orArr.push({ party_id: { $in: partyIds } });
+      if (stateIds.length) orArr.push({ state_id: { $in: stateIds } });
+      if (divisionIds.length) orArr.push({ division_id: { $in: divisionIds } });
+      if (assemblyIds.length) orArr.push({ assembly_id: { $in: assemblyIds } });
+      if (parliamentIds.length) orArr.push({ parliament_id: { $in: parliamentIds } });
+      if (blockIds.length) orArr.push({ block_id: { $in: blockIds } });
+      if (userIds.length) orArr.push({ created_by: { $in: userIds } });
+      filter.$or = orArr;
     }
 
-    // Filter by booth
+    // Add filters
     if (req.query.booth_id) {
-      query = query.where('booth_id').equals(req.query.booth_id);
+      filter.booth_id = req.query.booth_id;
     }
-
-    // Filter by party
     if (req.query.party_id) {
-      query = query.where('party_id').equals(req.query.party_id);
+      filter.party_id = req.query.party_id;
     }
-
-    // Filter by state
     if (req.query.state_id) {
-      query = query.where('state_id').equals(req.query.state_id);
+      filter.state_id = req.query.state_id;
     }
-
-    // Filter by division
     if (req.query.division_id) {
-      query = query.where('division_id').equals(req.query.division_id);
+      filter.division_id = req.query.division_id;
     }
-
-    // Filter by assembly
     if (req.query.assembly_id) {
-      query = query.where('assembly_id').equals(req.query.assembly_id);
+      filter.assembly_id = req.query.assembly_id;
     }
-
-    // Filter by parliament
     if (req.query.parliament_id) {
-      query = query.where('parliament_id').equals(req.query.parliament_id);
+      filter.parliament_id = req.query.parliament_id;
     }
-
-    // Filter by block
     if (req.query.block_id) {
-      query = query.where('block_id').equals(req.query.block_id);
+      filter.block_id = req.query.block_id;
     }
-
-    // Filter by activity level
     if (req.query.activity) {
-      query = query.where('activity_level').equals(req.query.activity);
+      filter.activity_level = req.query.activity;
     }
 
-    const volunteers = await query.skip(skip).limit(limit).exec();
-    const total = await BoothVolunteers.countDocuments(query.getFilter());
+    // If searching, ignore pagination and return all results
+    let volunteers, total;
+    if (req.query.search) {
+      volunteers = await BoothVolunteers.find(filter)
+        .populate('booth', 'name booth_number')
+        .populate('party', 'name symbol')
+        .populate('state', 'name')
+        .populate('division', 'name')
+        .populate('assembly', 'name')
+        .populate('parliament', 'name')
+        .populate('block', 'name')
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ name: 1 })
+        .exec();
+      total = volunteers.length;
+    } else {
+      volunteers = await BoothVolunteers.find(filter)
+        .populate('booth', 'name booth_number')
+        .populate('party', 'name symbol')
+        .populate('state', 'name')
+        .populate('division', 'name')
+        .populate('assembly', 'name')
+        .populate('parliament', 'name')
+        .populate('block', 'name')
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit)
+        .exec();
+      total = await BoothVolunteers.countDocuments(filter);
+    }
 
     res.status(200).json({
       success: true,
       count: volunteers.length,
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages: limit ? Math.ceil(total / limit) : 1,
       data: volunteers
     });
   } catch (err) {

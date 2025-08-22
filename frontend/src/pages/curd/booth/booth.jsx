@@ -40,6 +40,8 @@ export default function BoothsListPage() {
         const saved = localStorage.getItem('boothPagination');
         return saved ? JSON.parse(saved) : { pageIndex: 0, pageSize: 10 };
     });
+    // Track if currently searching
+    const [isSearching, setIsSearching] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
     const [filters, setFilters] = useState({
         state_id: '',
@@ -99,7 +101,15 @@ export default function BoothsListPage() {
         setLoading(true);
         try {
             const queryParams = [];
-            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            let actualPageIndex = pageIndex;
+            let actualPageSize = pageSize;
+            let searching = false;
+            if (globalFilter) {
+                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+                actualPageIndex = 0;
+                actualPageSize = 10000;
+                searching = true;
+            }
             if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
@@ -107,11 +117,17 @@ export default function BoothsListPage() {
             if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?page=${actualPageIndex + 1}&limit=${actualPageSize}${queryString}`);
             const json = await res.json();
             if (json.success) {
                 setBooths(json.data);
-                setPageCount(json.pages);
+                setIsSearching(searching);
+                if (searching) {
+                    setPageCount(1);
+                    setPagination({ pageIndex: 0, pageSize: json.data.length || 1 });
+                } else {
+                    setPageCount(json.pages);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch booths:', error);
@@ -120,8 +136,17 @@ export default function BoothsListPage() {
         }
     };
 
+    // Track previous globalFilter to detect when search is cleared
+    const prevGlobalFilter = useRef('');
     useEffect(() => {
-        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter);
+        // Only reset pagination when search is cleared (from non-empty to empty)
+        if (prevGlobalFilter.current && !globalFilter) {
+            setPagination({ pageIndex: 0, pageSize: 10 });
+            setIsSearching(false);
+        } else {
+            fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter);
+        }
+        prevGlobalFilter.current = globalFilter;
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
@@ -363,7 +388,7 @@ export default function BoothsListPage() {
         state: { pagination, globalFilter },
         pageCount,
         manualPagination: true,
-        onPaginationChange: setPagination,
+        onPaginationChange: isSearching ? undefined : setPagination,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -679,12 +704,14 @@ export default function BoothsListPage() {
                     </TableContainer>
                     <Divider />
                     <Box sx={{ p: 2 }}>
-                        <TablePagination
-                            setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
-                            setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
-                            getState={table.getState}
-                            getPageCount={() => pageCount}
-                        />
+                        {!isSearching && (
+                            <TablePagination
+                                setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
+                                setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
+                                getState={table.getState}
+                                getPageCount={() => pageCount}
+                            />
+                        )}
                     </Box>
                 </ScrollX>
             </MainCard >

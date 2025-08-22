@@ -19,15 +19,34 @@ exports.getCandidates = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
-    // Search functionality
+    // Enhanced search functionality
     if (req.query.search) {
-      query = query.find({
-        $or: [
-          { name: { $regex: req.query.search, $options: 'i' } },
-          { caste: { $regex: req.query.search, $options: 'i' } },
-          { education: { $regex: req.query.search, $options: 'i' } }
-        ]
-      });
+      const searchRegex = new RegExp(req.query.search, 'i');
+      // Build $or array for all string fields
+      const orArray = [
+        { name: { $regex: searchRegex } },
+        { caste: { $regex: searchRegex } },
+        { education: { $regex: searchRegex } },
+        { assets: { $regex: searchRegex } },
+        { liabilities: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } }
+      ];
+
+      // Find party ids matching search
+      // const Party = require('../models/Party');
+      const User = require('../models/User');
+      const partyDocs = await Party.find({ name: { $regex: searchRegex } }, '_id');
+      if (partyDocs.length > 0) {
+        orArray.push({ party_id: { $in: partyDocs.map(p => p._id) } });
+      }
+      // Find user ids matching search (for created_by and updated_by)
+      const userDocs = await User.find({ username: { $regex: searchRegex } }, '_id');
+      if (userDocs.length > 0) {
+        orArray.push({ created_by: { $in: userDocs.map(u => u._id) } });
+        orArray.push({ updated_by: { $in: userDocs.map(u => u._id) } });
+      }
+
+      query = query.find({ $or: orArray });
     }
 
     // Filter by caste

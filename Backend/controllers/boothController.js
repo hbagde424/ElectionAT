@@ -12,68 +12,177 @@ const ElectionYear = require('../models/electionYear');
 exports.getBooths = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) || 1;
+    let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit);
-    // If limit is not provided or invalid, set a high default (e.g., 10000)
-    if (!limit || limit <= 0) {
+    // If searching, ignore pagination and return all results (set high limit)
+    const isSearching = !!req.query.search;
+    if (isSearching) {
       limit = 10000;
+      page = 1;
+    } else {
+      if (!limit || limit <= 0) {
+        limit = 10000;
+      }
     }
     const skip = (page - 1) * limit;
 
-    // Basic query
-    let query = Booth.find()
-      .populate('block_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('division_id', 'name')
-      .populate('state_id', 'name')
-      .populate('election_year', 'year')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .sort({ booth_number: 1 });
-
-    // Search functionality
+    // Enhanced search functionality: search across all table fields including populated references
+    let matchStage = {};
     if (req.query.search) {
-      query = query.find({
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      
+      // First, find related IDs from referenced collections that match the search
+      const [matchingBlocks, matchingAssemblies, matchingParliaments, 
+             matchingDivisions, matchingStates, matchingElectionYears] = await Promise.all([
+        Block.find({ name: searchRegex }).select('_id'),
+        Assembly.find({ name: searchRegex }).select('_id'),
+        Parliament.find({ name: searchRegex }).select('_id'),
+        Division.find({ name: searchRegex }).select('_id'),
+        State.find({ name: searchRegex }).select('_id'),
+        ElectionYear.find({ year: searchRegex }).select('_id')
+      ]);
+
+      // Extract just the IDs
+      const blockIds = matchingBlocks.map(b => b._id);
+      const assemblyIds = matchingAssemblies.map(a => a._id);
+      const parliamentIds = matchingParliaments.map(p => p._id);
+      const divisionIds = matchingDivisions.map(d => d._id);
+      const stateIds = matchingStates.map(s => s._id);
+      const electionYearIds = matchingElectionYears.map(y => y._id);
+
+      matchStage = {
         $or: [
-          { name: { $regex: req.query.search, $options: 'i' } },
-          { booth_number: { $regex: req.query.search, $options: 'i' } }
+          { name: searchRegex },
+          { booth_number: searchRegex },
+          { full_address: searchRegex },
+          { description: searchRegex },
+          { block_id: { $in: blockIds } },
+          { assembly_id: { $in: assemblyIds } },
+          { parliament_id: { $in: parliamentIds } },
+          { division_id: { $in: divisionIds } },
+          { state_id: { $in: stateIds } },
+          { election_year: { $in: electionYearIds } }
         ]
-      });
+      };
     }
 
-    // Filter by block
-    if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
-    }
+    // Build the aggregation pipeline
+    const aggregationPipeline = [
+      { $match: matchStage },
+      // Filter by block
+      ...(req.query.block ? [{ $match: { block_id: mongoose.Types.ObjectId(req.query.block) } }] : []),
+      // Filter by assembly
+      ...(req.query.assembly ? [{ $match: { assembly_id: mongoose.Types.ObjectId(req.query.assembly) } }] : []),
+      // Filter by parliament
+      ...(req.query.parliament ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
+      // Filter by division
+      ...(req.query.division ? [{ $match: { division_id: mongoose.Types.ObjectId(req.query.division) } }] : []),
+      // Filter by state
+      ...(req.query.state ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
+      // Filter by election year
+      ...(req.query.election_year ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
+      // Lookup all references
+      {
+        $lookup: {
+          from: 'blocks',
+          localField: 'block_id',
+          foreignField: '_id',
+          as: 'block_id'
+        }
+      },
+      { $unwind: { path: '$block_id', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'assemblies',
+          localField: 'assembly_id',
+          foreignField: '_id',
+          as: 'assembly_id'
+        }
+      },
+      { $unwind: { path: '$assembly_id', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'parliaments',
+          localField: 'parliament_id',
+          foreignField: '_id',
+          as: 'parliament_id'
+        }
+      },
+      { $unwind: { path: '$parliament_id', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'divisions',
+          localField: 'division_id',
+          foreignField: '_id',
+          as: 'division_id'
+        }
+      },
+      { $unwind: { path: '$division_id', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'state_id',
+          foreignField: '_id',
+          as: 'state_id'
+        }
+      },
+      { $unwind: { path: '$state_id', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'electionyears',
+          localField: 'election_year',
+          foreignField: '_id',
+          as: 'election_year'
+        }
+      },
+      { $unwind: { path: '$election_year', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'created_by',
+          foreignField: '_id',
+          as: 'created_by'
+        }
+      },
+      { $unwind: { path: '$created_by', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'updated_by',
+          foreignField: '_id',
+          as: 'updated_by'
+        }
+      },
+      { $unwind: { path: '$updated_by', preserveNullAndEmptyArrays: true } },
+      // Sort and paginate
+      { $sort: { booth_number: 1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ];
 
-    // Filter by assembly
-    if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
-    }
-
-    // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
-    }
-
-    // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
-    }
-
-    // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
-    }
-
-    // Filter by election year
-    if (req.query.election_year) {
-      query = query.where('election_year').equals(req.query.election_year);
-    }
-
-    const booths = await query.skip(skip).limit(limit).exec();
-    const total = await Booth.countDocuments(query.getFilter());
+    // Execute aggregation
+    const booths = await Booth.aggregate(aggregationPipeline);
+    
+    // Get total count for pagination
+    const countPipeline = [
+      { $match: matchStage },
+      // Filter by block
+      ...(req.query.block ? [{ $match: { block_id: mongoose.Types.ObjectId(req.query.block) } }] : []),
+      // Filter by assembly
+      ...(req.query.assembly ? [{ $match: { assembly_id: mongoose.Types.ObjectId(req.query.assembly) } }] : []),
+      // Filter by parliament
+      ...(req.query.parliament ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
+      // Filter by division
+      ...(req.query.division ? [{ $match: { division_id: mongoose.Types.ObjectId(req.query.division) } }] : []),
+      // Filter by state
+      ...(req.query.state ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
+      // Filter by election year
+      ...(req.query.election_year ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
+      { $count: "total" }
+    ];
+    
+    const totalResult = await Booth.aggregate(countPipeline);
+    const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
     res.status(200).json({
       success: true,
@@ -88,6 +197,7 @@ exports.getBooths = async (req, res, next) => {
   }
 };
 
+// The rest of your controller methods remain the same...
 // @desc    Get single booth
 // @route   GET /api/booths/:id
 // @access  Public

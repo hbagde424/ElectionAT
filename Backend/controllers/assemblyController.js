@@ -25,9 +25,18 @@ exports.getAssemblies = async (req, res, next) => {
 
       .sort({ name: 1 });
 
-    // Search functionality
+    // Enhanced search functionality: search across all string fields in the model
     if (req.query.search) {
-      query = query.find({ $text: { $search: req.query.search } });
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      query = query.find({
+        $or: [
+          { name: searchRegex },
+          { description: searchRegex },
+          { AC_NO: searchRegex },
+          { type: searchRegex },
+          { category: searchRegex }
+        ]
+      });
     }
 
     // Filter by type (case-insensitive)

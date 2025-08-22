@@ -26,9 +26,16 @@ exports.getBlocks = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
-    // Search functionality
+    // Enhanced search functionality: search across all string fields in the model
     if (req.query.search) {
-      query = query.find({ $text: { $search: req.query.search } });
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      query = query.find({
+        $or: [
+          { name: searchRegex },
+          { description: searchRegex },
+          { category: searchRegex }
+        ]
+      });
     }
 
     // Filter by category

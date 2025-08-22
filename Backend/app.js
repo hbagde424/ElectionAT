@@ -29,7 +29,7 @@ const boothDemographicsRoutes = require('./routes/boothDemographicsRoutes');
 const boothElectionStatsRoutes = require('./routes/boothElectionStatsRoutes');
 const voteShareRoutes = require('./routes/boothPartyVoteShareRoutes');
 const partyPresenceRoutes = require('./routes/boothPartyPresenceRoutes');
-// const candidateRoutes = require('./routes/candidateRoutes'); // Temporarily disabled - candidateUpload config missing
+const candidateRoutes = require('./routes/candidateRoutes');
 const boothVolunteersRoutes = require('./routes/boothVolunteersRoutes');
 const boothInfrastructureRoutes = require('./routes/boothInfrastructureRoutes');
 const votingTrendsRoutes = require('./routes/votingTrendsRoutes');
@@ -123,7 +123,7 @@ app.use(express.json({ limit: '50mb' })); // Add this line
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Mount routers
-// app.use('/api/candidates', candidateRoutes); // Temporarily disabled - candidateUpload config missing
+app.use('/api/candidates', candidateRoutes);
 app.use('/api/auth', authRoutes);
 // app.use('/api/roles', roleRoutes);
 // app.use('/api/role-permissions', rolePermissionRoutes);

@@ -17,84 +17,111 @@ exports.getBoothSurveys = async (req, res, next) => {
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
-    // Basic query
-    let query = BoothSurvey.find()
-      .populate('booth_id', 'name booth_number')
-      .populate('survey_done_by', 'name email')
-      .populate('state_id', 'name')
-      .populate('division_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('block_id', 'name')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .sort({ survey_date: -1 });
-
-    // Search functionality
+    // Build search filter
+    let filter = {};
     if (req.query.search) {
-      query = query.find({
-        $or: [
-          { remark: { $regex: req.query.search, $options: 'i' } },
-          { poll_result: { $regex: req.query.search, $options: 'i' } }
-        ]
-      });
+      const search = req.query.search;
+      const mongoose = require('mongoose');
+      // Find referenced IDs for string fields in related collections
+      const [boothIds, surveyorIds, stateIds, divisionIds, parliamentIds, assemblyIds, blockIds] = await Promise.all([
+        Booth.find({ $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { booth_number: { $regex: search, $options: 'i' } }
+        ] }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        User.find({ email: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        State.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        Division.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        Parliament.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        Assembly.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        Block.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+      ]);
+      const orArr = [
+        { remark: { $regex: search, $options: 'i' } },
+        { poll_result: { $regex: search, $options: 'i' } },
+        { status: { $regex: search, $options: 'i' } }
+      ];
+      if (boothIds.length) orArr.push({ booth_id: { $in: boothIds } });
+      if (surveyorIds.length) orArr.push({ survey_done_by: { $in: surveyorIds } });
+      if (stateIds.length) orArr.push({ state_id: { $in: stateIds } });
+      if (divisionIds.length) orArr.push({ division_id: { $in: divisionIds } });
+      if (parliamentIds.length) orArr.push({ parliament_id: { $in: parliamentIds } });
+      if (assemblyIds.length) orArr.push({ assembly_id: { $in: assemblyIds } });
+      if (blockIds.length) orArr.push({ block_id: { $in: blockIds } });
+      filter.$or = orArr;
     }
 
-    // Filter by status
+    // Add filters
     if (req.query.status) {
-      query = query.where('status').equals(req.query.status);
+      filter.status = req.query.status;
     }
-
-    // Filter by state
     if (req.query.state_id) {
-      query = query.where('state_id').equals(req.query.state_id);
+      filter.state_id = req.query.state_id;
     }
-
-    // Filter by division
     if (req.query.division_id) {
-      query = query.where('division_id').equals(req.query.division_id);
+      filter.division_id = req.query.division_id;
     }
-
-    // Filter by parliament
     if (req.query.parliament_id) {
-      query = query.where('parliament_id').equals(req.query.parliament_id);
+      filter.parliament_id = req.query.parliament_id;
     }
-
-    // Filter by assembly
     if (req.query.assembly_id) {
-      query = query.where('assembly_id').equals(req.query.assembly_id);
+      filter.assembly_id = req.query.assembly_id;
     }
-
-    // Filter by block
     if (req.query.block_id) {
-      query = query.where('block_id').equals(req.query.block_id);
+      filter.block_id = req.query.block_id;
     }
-
-    // Filter by booth
     if (req.query.booth_id) {
-      query = query.where('booth_id').equals(req.query.booth_id);
+      filter.booth_id = req.query.booth_id;
     }
-
-    // Filter by surveyor
     if (req.query.surveyor) {
-      query = query.where('survey_done_by').equals(req.query.surveyor);
+      filter.survey_done_by = req.query.surveyor;
     }
-
-    // Filter by date range
     if (req.query.startDate && req.query.endDate) {
-      query = query.where('survey_date').gte(new Date(req.query.startDate))
-        .lte(new Date(req.query.endDate));
+      filter.survey_date = {
+        $gte: new Date(req.query.startDate),
+        $lte: new Date(req.query.endDate)
+      };
     }
 
-    const surveys = await query.skip(skip).limit(limit).exec();
-    const total = await BoothSurvey.countDocuments(query.getFilter());
+    // If searching, ignore pagination and return all results
+    let surveys, total;
+    if (req.query.search) {
+      surveys = await BoothSurvey.find(filter)
+        .populate('booth_id', 'name booth_number')
+        .populate('survey_done_by', 'name email')
+        .populate('state_id', 'name')
+        .populate('division_id', 'name')
+        .populate('parliament_id', 'name')
+        .populate('assembly_id', 'name')
+        .populate('block_id', 'name')
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ survey_date: -1 })
+        .exec();
+      total = surveys.length;
+    } else {
+      surveys = await BoothSurvey.find(filter)
+        .populate('booth_id', 'name booth_number')
+        .populate('survey_done_by', 'name email')
+        .populate('state_id', 'name')
+        .populate('division_id', 'name')
+        .populate('parliament_id', 'name')
+        .populate('assembly_id', 'name')
+        .populate('block_id', 'name')
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ survey_date: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec();
+      total = await BoothSurvey.countDocuments(filter);
+    }
 
     res.status(200).json({
       success: true,
       count: surveys.length,
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages: limit ? Math.ceil(total / limit) : 1,
       data: surveys
     });
   } catch (err) {

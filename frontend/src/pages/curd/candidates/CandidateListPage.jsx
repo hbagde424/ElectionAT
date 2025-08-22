@@ -44,13 +44,24 @@ const CandidateListPage = () => {
     const fetchCandidates = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
+            let actualPageIndex = pageIndex;
+            let actualPageSize = pageSize;
+            // When searching, fetch all results on one page
+            if (globalFilter) {
+                actualPageIndex = 0;
+                actualPageSize = 10000; // Large enough to get all results
+            }
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`);
             const json = await res.json();
             if (json.success) {
-                console.log('Candidate data:', json.data); // Debug log to see raw data
                 setCandidates(json.data);
-                setPageCount(json.pages);
+                if (globalFilter) {
+                    setPageCount(1);
+                    setPagination({ pageIndex: 0, pageSize: 10000 });
+                } else {
+                    setPageCount(json.pages);
+                }
             }
         } catch (err) {
             console.error(err);
@@ -241,7 +252,7 @@ const CandidateListPage = () => {
         columns,
         state: { pagination, globalFilter },
         pageCount,
-        manualPagination: true,
+        manualPagination: !globalFilter,
         onPaginationChange: setPagination,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
