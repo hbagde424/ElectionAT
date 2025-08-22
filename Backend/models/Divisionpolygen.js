@@ -61,8 +61,7 @@ const DivisionpolygenSchema = new Schema({
       Division: {
         type: String,
         required: true,
-        trim: true,
-        index: true
+        trim: true
       },
       Parliament: {
         type: String,

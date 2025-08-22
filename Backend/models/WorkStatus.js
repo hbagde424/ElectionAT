@@ -80,7 +80,7 @@ const workStatusSchema = new mongoose.Schema({
   parliament_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Parliament', required: true, index: true },
   assembly_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Assembly', required: true, index: true },
   block_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Block', required: true, index: true },
-  booth_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Booth', required: true, index: true },
+  booth_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Booth', required: true },
 
   documents: [{
     name: { type: String, required: true, trim: true, maxlength: 200 },

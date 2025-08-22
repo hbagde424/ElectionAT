@@ -14,7 +14,6 @@ const divisionSchema = new mongoose.Schema({
   division_code: {
     type: String,
     required: [true, 'Division code is required'],
-    unique: true,
     trim: true,
     uppercase: true,
     maxlength: [20, 'Division code cannot exceed 20 characters']
@@ -22,8 +21,7 @@ const divisionSchema = new mongoose.Schema({
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',
-    required: [true, 'State reference is required'],
-    index: true
+    required: [true, 'State reference is required']
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,

@@ -322,8 +322,8 @@ router.get('/type/:type', getEventsByType);
  *           example: "incomplete"
  *         description:
  *           type: string
- *           description: Event description
- *           example: "Annual campaign rally with key speakers"
+ *           description: Event description (HTML allowed)
+ *           example: "<p>Some description about the event.</p>"
  *         start_date:
  *           type: string
  *           format: date-time
@@ -362,10 +362,7 @@ router.get('/type/:type', getEventsByType);
  *           type: string
  *           description: Reference to Booth
  *           example: "507f1f77bcf86cd799439015"
- *         description:
- *           type: string
- *           description: Candidate description (HTML allowed)
- *           example: "<p>Some description about the candidate.</p>"
+ *         # Removed duplicate 'description' property for candidate, only keep the above event description
  *         created_by:
  *           type: string
  *           description: Reference to User who created the event

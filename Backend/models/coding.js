@@ -61,8 +61,7 @@ const codingSchema = new mongoose.Schema({
         return v.length > 0;
       },
       message: props => 'At least one coding type is required'
-    },
-    index: true
+    }
   },
   state_id: {
     type: mongoose.Schema.Types.ObjectId,

@@ -77,8 +77,8 @@ blockSchema.pre('save', function (next) {
 
 // Indexes for search and filtering
 blockSchema.index({ name: 'text' });
-blockSchema.index({ assembly_id: 1 });
-blockSchema.index({ category: 1 });
-blockSchema.index({ is_active: 1 });
+ // blockSchema.index({ assembly_id: 1 }); // Removed duplicate index, use index: true in schema if needed
+ // blockSchema.index({ category: 1 }); // Removed duplicate index, use index: true in schema if needed
+ // blockSchema.index({ is_active: 1 }); // Removed duplicate index, use index: true in schema if needed
 
 module.exports = mongoose.model('Block', blockSchema);

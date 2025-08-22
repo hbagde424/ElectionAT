@@ -5,13 +5,13 @@ const activePartySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booth',
     required: [true, 'Booth reference is required'],
-    index: true
+    
   },
   party_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Party',
     required: [true, 'Party reference is required'],
-    index: true
+    
   },
   Active_status: {
     type: Boolean,

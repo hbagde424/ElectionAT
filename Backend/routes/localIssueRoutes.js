@@ -48,8 +48,8 @@ const router = express.Router();
  *         description: Filter by issue status
  *       - in: query
  *         name: priority
-          description: Issue description (HTML allowed)
-          example: "<p>Some description about the issue.</p>"
+ *         schema:
+ *           type: string
  *           enum: [Low, Medium, High, Critical]
  *         description: Filter by issue priority
  *       - in: query
@@ -306,9 +306,7 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *         department:
  *           type: string
  *           description: Department responsible for the issue
- *         description:
- *           type: string
- *           description: Detailed description of the issue
+ *         # description: Detailed description of the issue (removed duplicate)
  *         status:
  *           type: string
  *           enum: [Reported, In Progress, Resolved, Rejected]
@@ -337,8 +335,8 @@ router.get('/status/:status', getLocalIssuesByStatus);
  *           description: Reference to Booth
  *         description:
  *           type: string
- *           description: Candidate description (HTML allowed)
- *           example: "<p>Some description about the candidate.</p>"
+ *           description: Issue description (HTML allowed)
+ *           example: "<p>Some description about the issue.</p>"
  *         created_by:
  *           type: string
  *           description: Reference to User who created the record

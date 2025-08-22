@@ -6,19 +6,16 @@ const potentialCandidateSchema = new mongoose.Schema({
     required: [true, 'Name is required'],
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters'],
-    index: true
   },
   party_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Party',
     required: [true, 'Party reference is required'],
-    index: true
   },
   constituency_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assembly',
     required: [true, 'Constituency reference is required'],
-    index: true
   },
   history: {
     type: String,
@@ -65,7 +62,6 @@ const potentialCandidateSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ElectionYear',
     required: [true, 'Election year reference is required'],
-    index: true
   },
   supporter_candidates: [
     {
@@ -90,7 +86,6 @@ const potentialCandidateSchema = new mongoose.Schema({
       message: 'Status must be either active, inactive, or under_review'
     },
     default: 'under_review',
-    index: true
   },
     description: {
     type: String,

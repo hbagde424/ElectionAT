@@ -5,43 +5,43 @@ const assemblyVotesSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Candidate',
     required: [true, 'Candidate reference is required'],
-    index: true
+    
   },
   assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assembly',
     required: [true, 'Assembly constituency reference is required'],
-    index: true
+    
   },
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',
     required: [true, 'State reference is required'],
-    index: true
+    
   },
   parliament_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parliament',
     required: [true, 'Parliament reference is required'],
-    index: true
+    
   },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
     required: [true, 'Division reference is required'],
-    index: true
+    
   },
   block_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Block',
     required: [true, 'Block reference is required'],
-    index: true
+    
   },
   booth_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booth',
     required: [true, 'Booth reference is required'],
-    index: true
+    
   },
   total_votes: {
     type: Number,
@@ -56,7 +56,7 @@ const assemblyVotesSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ElectionYear',
     required: [true, 'Election year reference is required'],
-    index: true
+    
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
