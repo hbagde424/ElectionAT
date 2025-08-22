@@ -1,4 +1,4 @@
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const State = require('../models/state');
 const User = require('../models/User'); // Make sure to import your User model
 const ErrorResponse = require('../utils/errorResponse');

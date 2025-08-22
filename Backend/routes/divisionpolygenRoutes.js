@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const divisionPolygenController = require('../controllers/divisionPolygenController');
+const divisionPolygenController = require('../controllers/divisionpolygenController');
 
 /**
  * @swagger

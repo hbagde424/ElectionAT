@@ -1,7 +1,7 @@
 const Assembly = require('../models/assembly');
 const State = require('../models/state');
-const District = require('../models/district');
-const Division = require('../models/division');
+const District = require('../models/District');
+const Division = require('../models/Division');
 const Parliament = require('../models/parliament');
 
 // @desc    Get all assemblies

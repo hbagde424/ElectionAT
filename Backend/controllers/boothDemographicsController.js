@@ -1,7 +1,7 @@
 const BoothDemographics = require('../models/boothDemographics');
 const Booth = require('../models/booth');
 const State = require('../models/state');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
 const Block = require('../models/block');
@@ -207,7 +207,7 @@ exports.updateBoothDemographics = async (req, res, next) => {
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({

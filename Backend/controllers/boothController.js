@@ -2,7 +2,7 @@ const Booth = require('../models/booth');
 const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const State = require('../models/state');
 const ElectionYear = require('../models/electionYear');
 
@@ -171,7 +171,7 @@ exports.createBooth = async (req, res, next) => {
     const boothData = {
       ...req.body,
       created_by: req.user.id,
-        description: req.body.description || '',
+      description: req.body.description || '',
 
     };
 
@@ -216,7 +216,7 @@ exports.updateBooth = async (req, res, next) => {
     if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({

@@ -1,8 +1,8 @@
-const District = require('../models/district');
+const District = require('../models/District');
 const State = require('../models/state');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 
 // @desc    Get all districts
 // @route   GET /api/districts

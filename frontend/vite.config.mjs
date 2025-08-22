@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
   const API_URL = `${env.VITE_APP_BASE_NAME}`;
   const PORT = 3000;
 
+  console.log('Build mode:', mode);
+  console.log('Base path will be:', '/election/');
+
   return {
     server: {
       // this ensures that the browser opens upon server start
@@ -40,7 +43,16 @@ export default defineConfig(({ mode }) => {
         }
       ]
     },
-    base: API_URL,
-    plugins: [react(), jsconfigPaths()]
+    base: '/election/',
+    plugins: [react(), jsconfigPaths()],
+    build: {
+      rollupOptions: {
+        output: {
+          assetFileNames: 'assets/[name]-[hash][extname]',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js'
+        }
+      }
+    }
   };
 });

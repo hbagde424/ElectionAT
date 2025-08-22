@@ -1,6 +1,6 @@
-const Parliament = require('../models/parliament');
+const Parliament = require('../models/Parliament');
 const State = require('../models/state');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const User = require('../models/User');
 
 // @desc    Get all parliaments

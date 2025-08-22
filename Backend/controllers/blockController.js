@@ -2,7 +2,7 @@ const Block = require('../models/block');
 const Assembly = require('../models/assembly');
 const Parliament = require('../models/parliament');
 // const District = require('../models/district');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const State = require('../models/state');
 
 // @desc    Get all blocks
@@ -159,7 +159,7 @@ exports.createBlock = async (req, res, next) => {
     const blockData = {
       ...req.body,
       created_by: req.user.id,
-        description: req.body.description || '',
+      description: req.body.description || '',
 
     };
 

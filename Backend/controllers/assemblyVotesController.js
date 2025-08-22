@@ -3,7 +3,7 @@ const Candidate = require('../models/Candidate');
 const Assembly = require('../models/assembly');
 const State = require('../models/state');
 const Parliament = require('../models/parliament');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
 const ElectionYear = require('../models/electionYear');
@@ -239,7 +239,7 @@ exports.updateAssemblyVote = async (req, res, next) => {
     if (req.body.election_year_id) verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({

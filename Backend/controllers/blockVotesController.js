@@ -1,7 +1,7 @@
 const BlockVotes = require('../models/blockVotes');
 const Candidate = require('../models/Candidate');
 const State = require('../models/state');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const Parliament = require('../models/parliament');
 const Assembly = require('../models/assembly');
 const Block = require('../models/block');
@@ -239,7 +239,7 @@ exports.updateBlockVote = async (req, res, next) => {
     if (req.body.election_year_id) verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (!result) {
         return res.status(400).json({
