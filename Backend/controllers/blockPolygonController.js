@@ -50,7 +50,6 @@ exports.getPolygonsByBlock = async (req, res, next) => {
 exports.getPolygonsByBooth = async (req, res, next) => {
   try {
     const boothNumber = Number(req.params.boothNumber); // Convert to number
-    console.log('Fetching polygons for block number ashok:', boothNumber);
 
     const polygons = await BlockPolygon.aggregate([
       {

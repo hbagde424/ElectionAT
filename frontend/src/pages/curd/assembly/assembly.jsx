@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+    Table, TableBody, TableCe    useEffect(() => {
+        // Initial load
+        fetchAssemblies(0, 10); // Default values for first load
+        fetchReferenceData();
+    }, []); // Empty dependency array for initial load only
+
+useEffect(() => {
+    // Runs when pagination or filters change
+    if (pagination.pageIndex !== undefined && pagination.pageSize !== undefined) {
+        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
+    }
+}, [pagination.pageIndex, pagination.pageSize, globalFilter]); iner, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
     Grid
 } from '@mui/material';
@@ -85,9 +96,6 @@ export default function AssemblyListPage() {
     const fetchAssemblies = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            console.log('Fetching assemblies with params:', { pageIndex, pageSize, globalFilter, currentFilters });
-            console.log('API Base URL:', import.meta.env.VITE_APP_API_URL);
-
             const queryParams = [];
             if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             if (currentFilters.type) queryParams.push(`type=${encodeURIComponent(currentFilters.type)}`);
@@ -98,11 +106,9 @@ export default function AssemblyListPage() {
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const url = `${import.meta.env.VITE_APP_API_URL}/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
-            console.log('Fetching assemblies from:', url);
 
             const res = await fetch(url);
             const json = await res.json();
-            console.log('API response:', json);
 
             if (json.success) {
                 setAssemblies(json.data);
@@ -110,7 +116,6 @@ export default function AssemblyListPage() {
             }
         } catch (error) {
             console.error('Failed to fetch assemblies:', error);
-            console.error('Error details:', error);
         } finally {
             setLoading(false);
         }

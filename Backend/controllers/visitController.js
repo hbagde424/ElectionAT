@@ -74,7 +74,6 @@ exports.getVisits = async (req, res, next) => {
           const state = await State.findOne({
             name: { $regex: new RegExp('^' + stateName + '$', 'i') }
           });
-          console.log('stateashok', stateName);
           if (state) {
             query = query.where('state_id').equals(state._id);
           }

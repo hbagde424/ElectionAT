@@ -51,8 +51,6 @@ export const JWTProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
-    console.log('JWTContext - login attempt:', import.meta.env.VITE_APP_API_URL);
-
     const init = async () => {
       try {
         const serviceToken = window.localStorage.getItem('serviceToken');
@@ -60,10 +58,6 @@ export const JWTProvider = ({ children }) => {
           setSession(serviceToken);
           const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users/me`);
           const { user } = response.data;
-          console.log('JWTContext - user from /me endpoint:', user);
-          console.log('JWTContext - user keys:', user ? Object.keys(user) : 'No user');
-          console.log('JWTContext - user._id:', user?._id);
-          console.log('JWTContext - user.id:', user?.id);
 
           dispatch({
             type: LOGIN,
@@ -89,17 +83,10 @@ export const JWTProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-
-    console.log('JWTContext - login attempt:', import.meta.env.VITE_APP_API_URL);
-
     try {
       const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/users/login`, { email, password });
 
       const { token, user } = response.data;
-      console.log('JWTContext - login user:', user);
-      console.log('JWTContext - login user keys:', user ? Object.keys(user) : 'No user');
-      console.log('JWTContext - login user._id:', user?._id);
-      console.log('JWTContext - login user.id:', user?.id);
 
       // Use existing `setSession()` function with the new token
       setSession(token);
@@ -151,7 +138,7 @@ export const JWTProvider = ({ children }) => {
   };
 
   const resetPassword = async (email) => {
-    console.log('email - ', email);
+    // TODO: Implement password reset functionality
   };
 
   const updateProfile = () => { };

@@ -48,7 +48,6 @@ const CandidateListPage = () => {
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
-                console.log('Candidate data:', json.data); // Debug log to see raw data
                 setCandidates(json.data);
                 setPageCount(json.pages);
             }

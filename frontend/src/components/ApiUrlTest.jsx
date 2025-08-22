@@ -13,11 +13,9 @@ const ApiUrlTest = () => {
         try {
             // Test the environment variable
             const apiUrl = import.meta.env.VITE_APP_API_URL;
-            console.log('API URL from env:', apiUrl);
 
             // Test a simple API call
             const testEndpoint = `${apiUrl}/states`;
-            console.log('Testing endpoint:', testEndpoint);
 
             const response = await fetch(testEndpoint);
 

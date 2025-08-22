@@ -130,8 +130,6 @@ export default function PotentialCandidateModal({
             setFormData(prev => ({ ...prev, [name]: date }));
         }
     };
-    console.log('Election Years in Modal:', electionYears);
-console.log('Current election_year_id:', formData.election_year_id);
 
     const handleSubmit = async () => {
         const method = candidate ? 'PUT' : 'POST';
@@ -269,7 +267,7 @@ console.log('Current election_year_id:', formData.election_year_id);
                                             ))}
                                         </Select>
                                     </FormControl>
-                                    
+
                                 </Stack>
                             </Grid>
                             <Grid item xs={12} md={6}>
