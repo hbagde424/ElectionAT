@@ -1,5 +1,5 @@
 const AccomplishedMLA = require('../models/AccomplishedMLA');
-const Assembly = require('../models/assembly');
+const Assembly = require('../models/Assembly');
 const Party = require('../models/party');
 
 // @desc    Get all MLAs

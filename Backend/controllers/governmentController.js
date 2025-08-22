@@ -1,8 +1,8 @@
 const Government = require('../models/government');
 const State = require('../models/state');
-const Division = require('../models/division');
-const Parliament = require('../models/parliament');
-const Assembly = require('../models/assembly');
+const Division = require('../models/Division');
+const Parliament = require('../models/Parliament');
+const Assembly = require('../models/Assembly');
 
 // @desc    Get all government projects
 // @route   GET /api/governments

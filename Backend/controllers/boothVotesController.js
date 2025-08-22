@@ -1,9 +1,9 @@
 const BoothVotes = require('../models/boothVotes');
 const Candidate = require('../models/Candidate');
 const State = require('../models/state');
-const Division = require('../models/division');
-const Parliament = require('../models/parliament');
-const Assembly = require('../models/assembly');
+const Division = require('../models/Division');
+const Parliament = require('../models/Parliament');
+const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
 const ElectionYear = require('../models/electionYear');
@@ -21,7 +21,7 @@ exports.getBoothVotes = async (req, res, next) => {
 
     // Basic query
     let query = BoothVotes.find()
-     
+
       .populate('candidate', 'name')
       .populate('state', 'name')
       .populate('division', 'name')
@@ -64,10 +64,10 @@ exports.getBoothVotes = async (req, res, next) => {
       query = query.where('block_id').equals(req.query.block);
     }
 
-       if (req.query.party) {
+    if (req.query.party) {
       query = query.where('party_id').equals(req.query.party);
     }
-       if (req.query.booth) {
+    if (req.query.booth) {
       query = query.where('booth_id').equals(req.query.booth);
     }
 

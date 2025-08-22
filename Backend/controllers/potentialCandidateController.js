@@ -1,6 +1,6 @@
 const PotentialCandidate = require('../models/PotentialCandidate');
 const Party = require('../models/party');
-const Assembly = require('../models/assembly');
+const Assembly = require('../models/Assembly');
 const ElectionYear = require('../models/electionYear');
 const Candidate = require('../models/Candidate');
 const User = require('../models/User');

@@ -1,9 +1,9 @@
 const VotingTrends = require('../models/votingTrends');
 const Booth = require('../models/booth');
-const Assembly = require('../models/assembly');
-const Parliament = require('../models/parliament');
+const Assembly = require('../models/Assembly');
+const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
-const Division = require('../models/division');
+const Division = require('../models/Division');
 const Party = require('../models/party');
 
 // @desc    Get all voting trends

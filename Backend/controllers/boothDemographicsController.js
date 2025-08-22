@@ -2,8 +2,8 @@ const BoothDemographics = require('../models/boothDemographics');
 const Booth = require('../models/booth');
 const State = require('../models/state');
 const Division = require('../models/Division');
-const Assembly = require('../models/assembly');
-const Parliament = require('../models/parliament');
+const Assembly = require('../models/Assembly');
+const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
 
 // @desc    Get all booth demographics

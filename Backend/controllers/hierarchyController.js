@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
-const Division = require('../models/division');
-const Parliament = require('../models/parliament');
-const Assembly = require('../models/assembly');
+const Division = require('../models/Division');
+const Parliament = require('../models/Parliament');
+const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
 

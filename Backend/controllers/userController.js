@@ -2,10 +2,10 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const State = require('../models/state');
-const Division = require('../models/division');
-const Parliament = require('../models/parliament');
+const Division = require('../models/Division');
+const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
-const Assembly = require('../models/assembly');
+const Assembly = require('../models/Assembly');
 const Booth = require('../models/booth');
 
 // Generate JWT token

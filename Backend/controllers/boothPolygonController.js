@@ -1,6 +1,6 @@
 const BoothPolygon = require('../models/boothPolygon');
 const Booth = require('../models/booth');
-const Assembly = require('../models/assembly');
+const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 const ElectionYear = require('../models/electionYear');
 

@@ -2,9 +2,9 @@ const BoothVolunteers = require('../models/boothVolunteers');
 const Booth = require('../models/booth');
 const Party = require('../models/party');
 const State = require('../models/state');
-const Division = require('../models/division');
-const Assembly = require('../models/assembly');
-const Parliament = require('../models/parliament');
+const Division = require('../models/Division');
+const Assembly = require('../models/Assembly');
+const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
 const User = require('../models/User');
 

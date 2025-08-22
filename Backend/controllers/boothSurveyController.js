@@ -3,8 +3,8 @@ const Booth = require('../models/booth');
 const User = require('../models/User');
 const State = require('../models/state');
 const Division = require('../models/Division');
-const Parliament = require('../models/parliament');
-const Assembly = require('../models/assembly');
+const Parliament = require('../models/Parliament');
+const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 
 // @desc    Get all booth surveys

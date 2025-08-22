@@ -1,7 +1,7 @@
 const Block = require('../models/block');
-const Assembly = require('../models/assembly');
-const Parliament = require('../models/parliament');
-// const District = require('../models/district');
+const Assembly = require('../models/Assembly');
+const Parliament = require('../models/Parliament');
+// const District = require('../models/District');
 const Division = require('../models/Division');
 const State = require('../models/state');
 
