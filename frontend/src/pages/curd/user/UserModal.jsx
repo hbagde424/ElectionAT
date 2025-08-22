@@ -17,7 +17,8 @@ import {
   Autocomplete,
   Checkbox,
   FormControlLabel,
-  Chip
+  Chip,
+  Box
 } from '@mui/material';
 import { ROLES, PERMISSIONS, ROLE_PERMISSIONS, getAvailableEntities } from '../../../utils/rolePermissions';
 import { useEffect, useState } from 'react';
@@ -149,25 +150,25 @@ export default function UserModal({
       if (error) newErrors[field] = error;
     });
 
-    // Validate that appropriate IDs are selected based on role
+    // Validate that appropriate IDs are selected based on role (backend expects role values like 'Division', 'State', etc.)
     const role = formData.role;
     if (role) {
-      if (role === ROLES.STATE_ADMIN && formData.state_ids.length === 0) {
+      if (role === 'State' && formData.state_ids.length === 0) {
         newErrors.state_ids = 'State selection is required for State Admin';
       }
-      if (role === ROLES.DIVISION_ADMIN && formData.division_ids.length === 0) {
+      if (role === 'Division' && formData.division_ids.length === 0) {
         newErrors.division_ids = 'Division selection is required for Division Admin';
       }
-      if (role === ROLES.PARLIAMENT_ADMIN && formData.parliament_ids.length === 0) {
+      if (role === 'Parliament' && formData.parliament_ids.length === 0) {
         newErrors.parliament_ids = 'Parliament selection is required for Parliament Admin';
       }
-      if (role === ROLES.ASSEMBLY_ADMIN && formData.assembly_ids.length === 0) {
+      if (role === 'Assembly' && formData.assembly_ids.length === 0) {
         newErrors.assembly_ids = 'Assembly selection is required for Assembly Admin';
       }
-      if (role === ROLES.BLOCK_ADMIN && formData.block_ids.length === 0) {
+      if (role === 'Block' && formData.block_ids.length === 0) {
         newErrors.block_ids = 'Block selection is required for Block Admin';
       }
-      if (role === ROLES.BOOTH_ADMIN && formData.booth_ids.length === 0) {
+      if (role === 'Booth' && formData.booth_ids.length === 0) {
         newErrors.booth_ids = 'Booth selection is required for Booth Admin';
       }
     }
@@ -368,11 +369,15 @@ export default function UserModal({
                   label="Role *"
                 >
                   <MenuItem value="">Select Role</MenuItem>
-                  {Object.values(ROLES).map((role) => (
-                    <MenuItem key={role} value={role}>
-                      {role.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')}
-                    </MenuItem>
-                  ))}
+                  {/* Only use backend-compatible role values */}
+                  <MenuItem value="superAdmin">Super Admin</MenuItem>
+                  <MenuItem value="Admin">Admin</MenuItem>
+                  <MenuItem value="State">State Admin</MenuItem>
+                  <MenuItem value="Division">Division Admin</MenuItem>
+                  <MenuItem value="Parliament">Parliament Admin</MenuItem>
+                  <MenuItem value="Assembly">Assembly Admin</MenuItem>
+                  <MenuItem value="Block">Block Admin</MenuItem>
+                  <MenuItem value="Booth">Booth Admin</MenuItem>
                 </Select>
                 {formData.role && (
                   <Box sx={{ mt: 2 }}>

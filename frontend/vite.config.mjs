@@ -16,7 +16,10 @@ export default defineConfig(({ mode }) => {
       open: true,
       // this sets a default port to 3000
       port: PORT,
-      host: true
+      host: true,
+      proxy: {
+        '/api': 'http://localhost:5000'
+      }
     },
     preview: {
       open: true,
