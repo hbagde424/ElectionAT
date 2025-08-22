@@ -51,6 +51,8 @@ export const JWTProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
+    console.log('JWTContext - login attempt:', import.meta.env.VITE_APP_API_URL);
+
     const init = async () => {
       try {
         const serviceToken = window.localStorage.getItem('serviceToken');
@@ -87,6 +89,9 @@ export const JWTProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
+
+    console.log('JWTContext - login attempt:', import.meta.env.VITE_APP_API_URL);
+
     try {
       const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/users/login`, { email, password });
 
