@@ -1,17 +1,6 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
-    Table, TableBody, TableCe    useEffect(() => {
-        // Initial load
-        fetchAssemblies(0, 10); // Default values for first load
-        fetchReferenceData();
-    }, []); // Empty dependency array for initial load only
-
-useEffect(() => {
-    // Runs when pagination or filters change
-    if (pagination.pageIndex !== undefined && pagination.pageSize !== undefined) {
-        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
-    }
-}, [pagination.pageIndex, pagination.pageSize, globalFilter]); iner, TableHead, TableRow,
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
     Grid
 } from '@mui/material';
@@ -122,15 +111,13 @@ export default function AssemblyListPage() {
     };
 
     useEffect(() => {
-        // Initial load - only runs once
-        console.log('Initial load effect triggered');
+        // Initial load
         fetchAssemblies(0, 10); // Default values for first load
         fetchReferenceData();
     }, []); // Empty dependency array for initial load only
 
     useEffect(() => {
         // Runs when pagination or filters change
-        console.log('Pagination/filter change effect triggered', { pagination, globalFilter });
         if (pagination.pageIndex !== undefined && pagination.pageSize !== undefined) {
             fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
         }
