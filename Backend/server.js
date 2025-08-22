@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config();
+
 const app = require('./app');
 const http = require('http');
 const config = require('./config/config');
@@ -5,9 +8,13 @@ const config = require('./config/config');
 // Set NODE_ENV if not set
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
-const server = http.createServer(app);
+// Debug environment variables (remove in production if needed)
+console.log('Environment variables loaded:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set (hidden for security)' : 'NOT SET');
 
-require('dotenv').config();
+const server = http.createServer(app);
 
 // Connect to database first
 require('./config/db')()

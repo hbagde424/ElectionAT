@@ -18,6 +18,7 @@ exports.getWinningCandidates = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
+    // Add timeout to the query
     let query = WinningCandidate.find()
       .populate('state_id', 'name')
       .populate('division_id', 'name')
@@ -28,6 +29,7 @@ exports.getWinningCandidates = async (req, res, next) => {
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
+      .maxTimeMS(30000) // Set 30 second timeout
       .sort({ total_votes: -1 });
 
     if (req.query.search) {
@@ -83,6 +85,26 @@ exports.getWinningCandidates = async (req, res, next) => {
       data: winningCandidates
     });
   } catch (err) {
+    console.error('WinningCandidate Controller Error:', err);
+
+    // Handle specific MongoDB timeout errors
+    if (err.name === 'MongoServerError' || err.message.includes('buffering timed out')) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection timeout. Please try again later.',
+        details: 'The database query took too long to execute.'
+      });
+    }
+
+    // Handle other MongoDB errors
+    if (err.name === 'MongoError' || err.name === 'MongoTimeoutError') {
+      return res.status(500).json({
+        success: false,
+        error: 'Database error occurred.',
+        details: err.message
+      });
+    }
+
     next(err);
   }
 };
