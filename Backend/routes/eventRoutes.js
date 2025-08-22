@@ -16,12 +16,11 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Events
- *   description: Event management
  */
 
 /**
- * @swagger
- * /api/events:
+            description: Event description (HTML allowed)
+            example: "<p>Some description about the event.</p>"
  *   get:
  *     summary: Get all events
  *     tags: [Events]

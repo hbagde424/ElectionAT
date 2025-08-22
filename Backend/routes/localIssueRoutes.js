@@ -45,12 +45,11 @@ const router = express.Router();
  *         name: status
  *         schema:
  *           type: string
- *           enum: [Reported, In Progress, Resolved, Rejected]
  *         description: Filter by issue status
  *       - in: query
  *         name: priority
- *         schema:
- *           type: string
+          description: Issue description (HTML allowed)
+          example: "<p>Some description about the issue.</p>"
  *           enum: [Low, Medium, High, Critical]
  *         description: Filter by issue priority
  *       - in: query
