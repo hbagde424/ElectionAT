@@ -1,0 +1,18 @@
+# Root .htaccess for domain root (if your app is in /election/ subdirectory)
+# This file should be placed in the root of public_html
+
+Options -MultiViews
+RewriteEngine On
+
+# Redirect root to /election/ subdirectory (optional)
+# Uncomment the following lines if you want yourdomain.com to redirect to yourdomain.com/election/
+# RewriteCond %{REQUEST_URI} !^/election/
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^(.*)$ /election/ [R=301,L]
+
+# If accessing /election/* directly
+RewriteCond %{REQUEST_URI} ^/election/(.*)$
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^election/(.*)$ /election/index.html [QSA,L]
