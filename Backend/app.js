@@ -8,10 +8,10 @@ const { specs, swaggerUi } = require('./config/swagger');
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
-const roleRoutes = require('./routes/roleRoutes');
-const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
-const permissionRoutes = require('./routes/permissionRoutes');
-const userRoleRoutes = require('./routes/userRoleRoutes');
+//const roleRoutes = require('./routes/roleRoutes');
+//const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+//const permissionRoutes = require('./routes/permissionRoutes');
+//const userRoleRoutes = require('./routes/userRoleRoutes');
 const mapRoutes = require('./routes/mapRoutes');
 const districtPolygonRoutes = require('./routes/districtpolygenRoutes');
 const divisionPolygonRoutes = require('./routes/divisionpolygenRoutes');
@@ -29,7 +29,7 @@ const boothDemographicsRoutes = require('./routes/boothDemographicsRoutes');
 const boothElectionStatsRoutes = require('./routes/boothElectionStatsRoutes');
 const voteShareRoutes = require('./routes/boothPartyVoteShareRoutes');
 const partyPresenceRoutes = require('./routes/boothPartyPresenceRoutes');
-const candidateRoutes = require('./routes/candidateRoutes');
+// const candidateRoutes = require('./routes/candidateRoutes'); // Temporarily disabled - candidateUpload config missing
 const boothVolunteersRoutes = require('./routes/boothVolunteersRoutes');
 const boothInfrastructureRoutes = require('./routes/boothInfrastructureRoutes');
 const votingTrendsRoutes = require('./routes/votingTrendsRoutes');
@@ -69,8 +69,8 @@ const influencerRoutes = require('./routes/influencerRoutes');
 const codingRoutes = require('./routes/codingRoutes');
 const boothPolygonRoutes = require('./routes/boothPolygonsRoutes');
 const winningCandidateRoutes = require('./routes/winningCandidateRoutes');
-const indiaPolygonRoutes = require('./routes/indiaPolygonRoutes');
-const voterTurnoutRoutes = require('./routes/voterTurnout');
+//const indiaPolygonRoutes = require('./routes/indiaPolygonRoutes');
+//const voterTurnoutRoutes = require('./routes/voterTurnout');
 // const indiaPolygonRoutes from "./routes/indiaPolygonRoutes.js";
 const path = require('path');
 // const mpPolygonRoutes = require('./routes/statePolygonRoutes');
@@ -123,12 +123,12 @@ app.use(express.json({ limit: '50mb' })); // Add this line
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Mount routers
-app.use('/api/candidates', candidateRoutes);
+// app.use('/api/candidates', candidateRoutes); // Temporarily disabled - candidateUpload config missing
 app.use('/api/auth', authRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/role-permissions', rolePermissionRoutes);
-app.use('/api/permissions', permissionRoutes);
-app.use('/api/user-roles', userRoleRoutes);
+// app.use('/api/roles', roleRoutes);
+// app.use('/api/role-permissions', rolePermissionRoutes);
+// app.use('/api/permissions', permissionRoutes);
+// app.use('/api/user-roles', userRoleRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/district-polygons', districtPolygonRoutes);
 app.use('/api/division-polygons', divisionPolygonRoutes);
@@ -186,8 +186,8 @@ app.use('/api/influencers', influencerRoutes);
 app.use('/api/codings', codingRoutes);
 app.use('/api/booth-polygons', boothPolygonRoutes);
 app.use('/api/winning-candidates', winningCandidateRoutes);
-app.use('/api/india-polygon', indiaPolygonRoutes);
-app.use('/api/voter-turnout', voterTurnoutRoutes);
+// app.use('/api/india-polygon', indiaPolygonRoutes);
+// app.use('/api/voter-turnout', voterTurnoutRoutes);
 // app.use('/api/mp-polygon', mpPolygonRoutes);
 // Serve static files from the public directory
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
