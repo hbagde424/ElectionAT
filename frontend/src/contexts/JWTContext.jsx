@@ -55,24 +55,26 @@ export const JWTProvider = ({ children }) => {
       try {
         const serviceToken = window.localStorage.getItem('serviceToken');
         if (serviceToken && verifyToken(serviceToken)) {
+          // Skip API validation on startup, just check token validity
           setSession(serviceToken);
-          const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users/me`);
-          const { user } = response.data;
-
           dispatch({
             type: LOGIN,
             payload: {
               isLoggedIn: true,
-              user
+              user: { name: 'User' } // Placeholder user until API validates
             }
           });
         } else {
+          // Clear invalid token
+          localStorage.removeItem('serviceToken');
           dispatch({
             type: LOGOUT
           });
         }
       } catch (err) {
-        console.error(err);
+        console.error('JWT initialization error:', err);
+        // Clear any invalid tokens
+        localStorage.removeItem('serviceToken');
         dispatch({
           type: LOGOUT
         });
