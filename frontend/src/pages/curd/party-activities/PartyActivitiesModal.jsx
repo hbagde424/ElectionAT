@@ -204,7 +204,6 @@ export default function PartyActivitiesModal({
                 }));
             }
         } else {
-            console.log('No parliament selected, clearing assemblies');
             setFilteredAssemblies([]);
             setFormData(prev => ({
                 ...prev,

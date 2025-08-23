@@ -95,7 +95,6 @@ export default function PartyActivitiesListPage() {
                 fetch(`${import.meta.env.VITE_APP_API_URL}/parties`)
             ]);
 
-            console.log('partiesRes', partiesRes);
 
             const token = localStorage.getItem('serviceToken');
 

@@ -160,7 +160,6 @@ export default function BoothVotesListPage() {
       const usersJson = await usersRes.json();
       const partiesJson = await partiesRes.json();
 
-      console.log('Fetched reference data:', candidatesJson.data);
 
       if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);

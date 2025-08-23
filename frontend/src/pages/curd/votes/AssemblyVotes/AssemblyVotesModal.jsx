@@ -30,7 +30,6 @@ export default function AssemblyVotesModal({
   users,
   refresh
 }) {
-  console.log('years', electionYears);
   const [formData, setFormData] = useState({
     candidate_id: '',
     assembly_id: '',

@@ -163,12 +163,7 @@ export default function WinningCandidateListPage() {
             const stateId = division.state_id?._id || division.state_id;
             const matches = stateId === filterValues.state;
             if (process.env.NODE_ENV === 'development') {
-                console.log('Division filter:', {
-                    divisionName: division.name,
-                    stateId,
-                    filterValue: filterValues.state,
-                    matches
-                });
+
             }
             return matches;
         })
@@ -290,7 +285,6 @@ export default function WinningCandidateListPage() {
             if (yearsData.success) {
                 setYears(yearsData.data);
                 if (process.env.NODE_ENV === 'development') {
-                    console.log('Years loaded:', yearsData.data);
                 }
             }
 
@@ -349,7 +343,6 @@ export default function WinningCandidateListPage() {
             if (appliedFilters.electionYear) {
                 queryParams.push(`electionYear=${appliedFilters.electionYear}`);
                 if (process.env.NODE_ENV === 'development') {
-                    console.log('Election Year filter applied:', appliedFilters.electionYear);
                 }
             }
 

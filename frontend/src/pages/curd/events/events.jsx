@@ -277,10 +277,8 @@ export default function EventListPage() {
 
     // Debug useEffect to track when selectedDivision changes
     useEffect(() => {
-        console.log('selectedDivision changed to:', selectedDivision);
         if (selectedDivision) {
             const selectedDivisionData = divisions?.find(d => d._id === selectedDivision);
-            console.log('Selected division data:', selectedDivisionData);
         }
     }, [selectedDivision, divisions]);
 
