@@ -89,13 +89,6 @@ export default function BoothVotesModal({
     }
   }, [formData.election_year_id, candidates]);
 
-
-  console.log("candidates Data:", candidates);
-  console.log("Matching", {
-    selected: formData.election_year_id,
-    inCandidate: candidates?.[0]?.election_year_id
-  });
-
   useEffect(() => {
     if (formData.state_id) {
       const filtered = divisions?.filter(division => division.state_id?._id === formData.state_id) || [];

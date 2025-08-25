@@ -99,10 +99,10 @@ export const Auth0Provider = ({ children }) => {
   };
 
   const resetPassword = async (email) => {
-    console.log('email - ', email);
+    // TODO: Implement password reset functionality
   };
 
-  const updateProfile = () => {};
+  const updateProfile = () => { };
 
   if (state.isInitialized !== undefined && !state.isInitialized) {
     return <Loader />;

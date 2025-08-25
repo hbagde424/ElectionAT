@@ -321,7 +321,6 @@ export default function BoothDemographicsModal({
     };
 
     const handleSubmit = async () => {
-        console.log('Submit button clicked'); // Check if handler is triggered
         setSubmitted(true);
         setLoading(true);
 
@@ -333,7 +332,6 @@ export default function BoothDemographicsModal({
             'male_electors', 'female_electors'
         ];
 
-        console.log('Form data:', formData); // Log current form data
 
         const hasErrors = requiredFields.some(field => {
             if (field.includes('.')) {
@@ -344,11 +342,6 @@ export default function BoothDemographicsModal({
             const value = formData[field];
             return value === '' || value === null || value === undefined || isNaN(value);
         });
-
-        console.log('Validation hasErrors:', hasErrors); // Log validation result
-
-
-        console.log('Preparing to submit data...'); // Confirm we're proceeding to submit
 
         const method = demographics ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');

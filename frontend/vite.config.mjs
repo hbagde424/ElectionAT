@@ -10,9 +10,6 @@ export default defineConfig(({ mode }) => {
   const API_URL = `${env.VITE_APP_BASE_NAME}`;
   const PORT = 3000;
 
-  console.log('Build mode:', mode);
-  console.log('Base path will be:', '/election/');
-
   return {
     server: {
       // this ensures that the browser opens upon server start

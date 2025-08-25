@@ -171,12 +171,10 @@ export default function WorkStatusListPage() {
             // Fetch states first
             const statesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/states`);
             const statesData = await statesRes.json();
-            console.log('States Data:', statesData);
 
             // Fetch divisions next to see their structure
             const divisionsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`);
             const divisionsData = await divisionsRes.json();
-            console.log('Divisions Data:', divisionsData);
 
             // Fetch the rest
             const [

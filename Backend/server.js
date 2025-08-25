@@ -10,11 +10,6 @@ const connectDB = require("./config/db");
 // Set NODE_ENV if not set
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
-// Debug environment variables (safe log)
-console.log("Environment variables loaded:");
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("PORT:", process.env.PORT || 5000);
-console.log("MONGO_URI:", process.env.MONGO_URI ? "Set (hidden)" : "NOT SET");
 
 // Create HTTP server
 const server = http.createServer(app);

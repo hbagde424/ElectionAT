@@ -44,7 +44,6 @@ const candidateSchema = new mongoose.Schema({
         if (v === '') return true;
         if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(v)) return true;
         if (v.startsWith('/uploads/candidate/')) return true;
-        console.log('Photo validation failed:', v);
         return false;
       },
       message: props => `Invalid photo path: ${props.value}. Must be empty, a URL, or start with /uploads/candidate/`

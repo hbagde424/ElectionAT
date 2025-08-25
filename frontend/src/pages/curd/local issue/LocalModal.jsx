@@ -84,7 +84,6 @@ export default function LocalIssueModal({
     useEffect(() => {
         // Don't run filtering if essential data is not loaded yet
         if (!divisions || !parliaments || !assemblies || !blocks || !booths) {
-            console.log('Waiting for data to load...');
             return;
         }
 
@@ -98,7 +97,6 @@ export default function LocalIssueModal({
 
             // Debug: Log when division is selected
             if (formData.division_id) {
-                console.log('Division selected - filtering parliaments by division:', formData.division_id);
             }
 
             // Filter parliaments by state and optionally by division

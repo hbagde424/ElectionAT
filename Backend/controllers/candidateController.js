@@ -10,7 +10,7 @@ exports.getCandidates = async (req, res, next) => {
   try {
     // Pagination
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) ;
+    const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
     // Basic query
@@ -126,11 +126,9 @@ exports.createCandidate = async (req, res, next) => {
       // Handle file upload
       if (req.file) {
         candidateData.photo = `${config.BASE_URL}/uploads/candidate/${req.file.filename}`;
-        console.log('Setting photo path:', candidateData.photo);
       }
 
       candidate = await Candidate.create(candidateData);
-      console.log('Created candidate:', candidate);
     } catch (error) {
       console.error('Validation error:', error.message);
       return res.status(400).json({
@@ -185,7 +183,6 @@ exports.updateCandidate = async (req, res, next) => {
           // Check if file exists before attempting to delete
           if (fs.existsSync(oldPath)) {
             fs.unlinkSync(oldPath);
-            console.log('Successfully deleted old image:', oldPath);
           }
         } catch (error) {
           console.error('Error deleting old image:', error);
@@ -235,7 +232,6 @@ exports.deleteCandidate = async (req, res, next) => {
 
         if (fs.existsSync(imagePath)) {
           fs.unlinkSync(imagePath);
-          console.log('Successfully deleted image file:', imagePath);
         }
       } catch (error) {
         console.error('Error deleting image file:', error);

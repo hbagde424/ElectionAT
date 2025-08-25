@@ -193,6 +193,15 @@ apiRouter.use('/winning-candidates', winningCandidateRoutes);
 // Mount the API router on both /api and /backend/api paths
 app.use('/api', apiRouter);
 app.use('/backend/api', apiRouter);
+
+// Add a simple health check route
+app.get('/', (req, res) => {
+  res.json({ message: 'ElectionAT Backend is running!', status: 'OK' });
+});
+
+app.get('/api', (req, res) => {
+  res.json({ message: 'ElectionAT API is running!', status: 'OK' });
+});
 // app.use('/api/india-polygon', indiaPolygonRoutes);
 // app.use('/api/voter-turnout', voterTurnoutRoutes);
 // app.use('/api/mp-polygon', mpPolygonRoutes);

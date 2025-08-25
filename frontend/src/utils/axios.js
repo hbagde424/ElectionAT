@@ -20,8 +20,8 @@ axiosServices.interceptors.request.use(
 axiosServices.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response.status === 401 && !window.location.href.includes('/login')) {
-      window.location.pathname = '/maintenance/500';
+    if (error.response && error.response.status === 401 && !window.location.href.includes('/login')) {
+      window.location.pathname = '/election/login';
     }
     return Promise.reject((error.response && error.response.data) || 'Wrong Services');
   }

@@ -103,7 +103,6 @@ exports.getAssembliesByParliament = async (req, res) => {
   try {
     const { pc_name } = req.params;
     const pcNo = Number(pc_name); // Convert string to number
-    console.log('ashok_pc_no:', pcNo);
 
     const assemblies = await Assembly.aggregate([
       {
@@ -149,4 +148,3 @@ exports.getAssembliesByParliament = async (req, res) => {
 
 
 
-console.log('Assembly Controller loaded with keys:', Object.keys(module.exports));

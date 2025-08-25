@@ -78,28 +78,21 @@ export default function CasteListPage() {
             ]);
 
             if (statesData.success) {
-                console.log('States loaded:', statesData.data.length);
                 setStates(statesData.data);
             }
             if (divisionsData.success) {
-                console.log('Divisions loaded:', divisionsData.data.length);
-                console.log('First division structure:', divisionsData.data[0]);
                 setDivisions(divisionsData.data);
             }
             if (parliamentsData.success) {
-                console.log('Parliaments loaded:', parliamentsData.data.length);
                 setParliaments(parliamentsData.data);
             }
             if (assembliesData.success) {
-                console.log('Assemblies loaded:', assembliesData.data.length);
                 setAssemblies(assembliesData.data);
             }
             if (blocksData.success) {
-                console.log('Blocks loaded:', blocksData.data.length);
                 setBlocks(blocksData.data);
             }
             if (boothsData.success) {
-                console.log('Booths loaded:', boothsData.data.length);
                 setBooths(boothsData.data);
             }
 
@@ -110,8 +103,6 @@ export default function CasteListPage() {
 
     // Handle state change
     const handleStateChange = (stateId) => {
-        console.log('State changed to:', stateId);
-        console.log('Available divisions:', divisions.length);
 
         setFilters(prev => ({
             ...prev,
@@ -125,7 +116,6 @@ export default function CasteListPage() {
 
         // Filter divisions based on selected state
         const filteredDivs = divisions.filter(div => div.state_id?._id === stateId);
-        console.log('Filtered divisions:', filteredDivs.length);
         setFilteredDivisions(filteredDivs);
         setFilteredParliaments([]);
         setFilteredAssemblies([]);
@@ -135,8 +125,6 @@ export default function CasteListPage() {
 
     // Handle division change
     const handleDivisionChange = (divisionId) => {
-        console.log('Division changed to:', divisionId);
-        console.log('Available parliaments:', parliaments.length);
 
         setFilters(prev => ({
             ...prev,
@@ -149,7 +137,6 @@ export default function CasteListPage() {
 
         // Filter parliaments based on selected division
         const filteredParls = parliaments.filter(parl => parl.division_id?._id === divisionId);
-        console.log('Filtered parliaments:', filteredParls.length);
         setFilteredParliaments(filteredParls);
         setFilteredAssemblies([]);
         setFilteredBlocks([]);

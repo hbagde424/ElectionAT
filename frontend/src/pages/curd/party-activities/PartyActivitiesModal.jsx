@@ -73,8 +73,6 @@ export default function PartyActivitiesModal({
         if (partyActivity && Array.isArray(states) && states.length > 0) {
             const state_id = partyActivity.state_id?._id?.toString() || partyActivity.state_id?.toString() || '';
             const division_id = partyActivity.division_id?._id?.toString() || partyActivity.division_id?.toString() || '';
-            console.log('DEBUG: Setting formData.state_id:', state_id);
-            console.log('DEBUG: Setting formData.division_id:', division_id);
             setFormData({
                 party_id: partyActivity.party_id?._id?.toString() || partyActivity.party_id?.toString() || '',
                 state_id,
@@ -118,10 +116,6 @@ export default function PartyActivitiesModal({
             });
         }
     }, [partyActivity, states]);
-
-    // Add debug logs before rendering dropdowns
-    console.log('DEBUG: formData.state_id', formData.state_id, 'states', states);
-    console.log('DEBUG: formData.division_id', formData.division_id, 'filteredDivisions', filteredDivisions);
 
     // Cascading dropdown logic: State -> Division
     useEffect(() => {
@@ -193,22 +187,15 @@ export default function PartyActivitiesModal({
     // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id) {
-            console.log('Parliament changed to:', formData.parliament_id);
-            console.log('Assemblies available:', assemblies);
-
             // Handle both string IDs and object references
             const filtered = assemblies?.filter(assembly => {
                 const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
-                const matches = assemblyParliamentId === formData.parliament_id;
-                console.log(`Assembly ${assembly.name}: parliament_id=${assemblyParliamentId}, matches=${matches}`);
-                return matches;
+                return assemblyParliamentId === formData.parliament_id;
             }) || [];
 
-            console.log('Filtered assemblies:', filtered);
             setFilteredAssemblies(filtered);
 
             if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
-                console.log('Resetting assembly and dependent fields - current assembly not valid');
                 setFormData(prev => ({
                     ...prev,
                     assembly_id: '',
@@ -217,7 +204,6 @@ export default function PartyActivitiesModal({
                 }));
             }
         } else {
-            console.log('No parliament selected, clearing assemblies');
             setFilteredAssemblies([]);
             setFormData(prev => ({
                 ...prev,
@@ -231,22 +217,15 @@ export default function PartyActivitiesModal({
     // Assembly -> Block
     useEffect(() => {
         if (formData.assembly_id) {
-            console.log('Assembly changed to:', formData.assembly_id);
-            console.log('Blocks available:', blocks);
-
             // Handle both string IDs and object references
             const filtered = blocks?.filter(block => {
                 const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
-                const matches = blockAssemblyId === formData.assembly_id;
-                console.log(`Block ${block.name}: assembly_id=${blockAssemblyId}, matches=${matches}`);
-                return matches;
+                return blockAssemblyId === formData.assembly_id;
             }) || [];
 
-            console.log('Filtered blocks:', filtered);
             setFilteredBlocks(filtered);
 
             if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
-                console.log('Resetting block and dependent fields - current block not valid');
                 setFormData(prev => ({
                     ...prev,
                     block_id: '',
@@ -254,7 +233,6 @@ export default function PartyActivitiesModal({
                 }));
             }
         } else {
-            console.log('No assembly selected, clearing blocks');
             setFilteredBlocks([]);
             setFormData(prev => ({
                 ...prev,
@@ -267,26 +245,18 @@ export default function PartyActivitiesModal({
     // Block -> Booth
     useEffect(() => {
         if (formData.block_id) {
-            console.log('Block changed to:', formData.block_id);
-            console.log('Booths available:', booths);
-
             // Handle both string IDs and object references
             const filtered = booths?.filter(booth => {
                 const boothBlockId = booth.block_id?._id || booth.block_id;
-                const matches = boothBlockId === formData.block_id;
-                console.log(`Booth ${booth.name}: block_id=${boothBlockId}, matches=${matches}`);
-                return matches;
+                return boothBlockId === formData.block_id;
             }) || [];
 
-            console.log('Filtered booths:', filtered);
             setFilteredBooths(filtered);
 
             if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
-                console.log('Resetting booth - current booth not valid');
                 setFormData(prev => ({ ...prev, booth_id: '' }));
             }
         } else {
-            console.log('No block selected, clearing booths');
             setFilteredBooths([]);
             setFormData(prev => ({ ...prev, booth_id: '' }));
         }

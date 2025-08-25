@@ -68,8 +68,6 @@ const ElectionYearSelect = ({
     disabled,
     electionYears = []
 }) => {
-    console.log('Election Years111:', electionYears); // Added console log to debug electionYears
-
     return (
         <Stack spacing={1}>
             <InputLabel required>Election Year</InputLabel>
@@ -104,13 +102,10 @@ export default function WinningPartyModal({
     refresh
 }) {
 
-    // Debug - alert when modal opens to check data
+    // Auto-populate form when editing
     useEffect(() => {
         if (open) {
-            console.log('Modal opened with data:');
-            console.log('Candidates:', candidates.length, 'items');
-            console.log('Election Years:', electionYears.data?.length || 0, 'items');
-            console.log('Election Years structure:', electionYears);
+            // Modal opened
         }
     }, [open, candidates, electionYears]);
 

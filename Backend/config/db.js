@@ -10,10 +10,7 @@ const connectDB = async () => {
       maxPoolSize: 10, // Maintain up to 10 socket connections
       heartbeatFrequencyMS: 10000, // Send a ping every 10 seconds
     };
-    console.log("MongoDB connection options:", options);
-    console.log("Connecting to MongoDB URI:", process.env.MONGO_URI);
     const connection = await mongoose.connect(process.env.MONGO_URI, options);
-    console.log("MongoDB connection established:", connection);
     console.log(`MongoDB Connected to ${connection.connection.host}`);
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
