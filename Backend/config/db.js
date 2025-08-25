@@ -3,8 +3,18 @@ const config = require('./config');
 
 const connectDB = async () => {
   try {
-  await mongoose.connect(config.MONGO_URI);
-    console.log(`MongoDB Connected to ${mongoose.connection.host}`);
+    const options = {
+      bufferCommands: false, // Disable mongoose buffering
+      serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
+      socketTimeoutMS: 45000, // Close connections after 45 seconds of inactivity
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      heartbeatFrequencyMS: 10000, // Send a ping every 10 seconds
+    };
+    console.log("MongoDB connection options:", options);
+    console.log("Connecting to MongoDB URI:", process.env.MONGO_URI);
+    const connection = await mongoose.connect(process.env.MONGO_URI, options);
+    console.log("MongoDB connection established:", connection);
+    console.log(`MongoDB Connected to ${connection.connection.host}`);
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
     process.exit(1);
