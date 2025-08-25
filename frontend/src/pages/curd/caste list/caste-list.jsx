@@ -168,11 +168,6 @@ export default function CasteListPage() {
             block: '',
             booth: ''
         }));
-
-        // Filter blocks based on selected assembly
-        const filteredBlks = blocks.filter(blk => blk.assembly_id?._id === assemblyId);
-        setFilteredBlocks(filteredBlks);
-        setFilteredBooths([]);
     };
 
     // Handle block change
@@ -182,11 +177,29 @@ export default function CasteListPage() {
             block: blockId,
             booth: ''
         }));
-
-        // Filter booths based on selected block
-        const filteredBths = booths.filter(bth => bth.block_id?._id === blockId);
-        setFilteredBooths(filteredBths);
     };
+
+    // Update filteredBlocks when assembly or blocks change
+    useEffect(() => {
+        if (filters.assembly) {
+            const filteredBlks = blocks.filter(blk => blk.assembly_id?._id === filters.assembly);
+            setFilteredBlocks(filteredBlks);
+        } else {
+            setFilteredBlocks([]);
+        }
+        // Reset filteredBooths if assembly changes
+        setFilteredBooths([]);
+    }, [filters.assembly, blocks]);
+
+    // Update filteredBooths when block or booths change
+    useEffect(() => {
+        if (filters.block) {
+            const filteredBths = booths.filter(bth => bth.block_id?._id === filters.block);
+            setFilteredBooths(filteredBths);
+        } else {
+            setFilteredBooths([]);
+        }
+    }, [filters.block, booths]);
 
     const fetchCasteList = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
