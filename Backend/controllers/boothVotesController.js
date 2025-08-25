@@ -20,19 +20,25 @@ exports.getBoothVotes = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Basic query
-    let query = BoothVotes.find()
-
-      .populate('candidate', 'name')
-      .populate('state', 'name')
-      .populate('division', 'name')
-      .populate('parliament', 'name')
-      .populate('assembly', 'name')
-      .populate('block', 'name')
-      .populate('booth', 'name booth_number')
-      .populate('election_year', 'year')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .sort({ total_votes: -1 });
+      let query = BoothVotes.find()
+        .populate({
+          path: 'candidate',
+          select: 'name party_id',
+          populate: {
+            path: 'party_id',
+            select: 'name abbreviation'
+          }
+        })
+        .populate('state', 'name')
+        .populate('division', 'name')
+        .populate('parliament', 'name')
+        .populate('assembly', 'name')
+        .populate('block', 'name')
+        .populate('booth', 'name booth_number')
+        .populate('election_year', 'year')
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ total_votes: -1 });
 
     // Filter by candidate
     if (req.query.candidate) {
