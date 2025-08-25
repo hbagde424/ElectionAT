@@ -126,7 +126,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const apiRouter = express.Router();
 
 // Mount routers on the apiRouter (without /api prefix)
-// apiRouter.use('/candidates', candidateRoutes); // Temporarily disabled - candidateUpload config missing
+apiRouter.use('/candidates', candidateRoutes); // Enabled for frontend data fetching
 apiRouter.use('/auth', authRoutes);
 // app.use('/api/roles', roleRoutes);
 apiRouter.use('/auth', authRoutes);
