@@ -12,13 +12,42 @@ const {
   getWinningCandidatesByAssembly,
   getWinningCandidatesByParliament,
   getWinningCandidatesByParty,
-  getCandidatesByAssemblyAndYear,
+  getCandidates// Base routes using express.Router().route() for cleaner route definitions
+router.route('/')
+  .get(getWinningCandidates)
+  .post(protect, authorize('superAdmin'), createWinningCandidate);
+
+/**
+ * @swaggersemblyAndYear,
   getPartyAssemblyCountByYear,
-  predictWinningPartyForNextYear
+  predictWinningPartyForNextYear,
+  getPredictedPartyAssemblyCount2028
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
-const router = express.Router();
+// Create router with options to prevent path-to-regexp issues
+const router = express.Router({ 
+  strict: true,
+  caseSensitive: true
+});
+
+// Middleware to validate ID parameters
+const validateId = (req, res, next) => {
+  const id = req.params.id;
+  if (!id || !/^[a-zA-Z0-9-_]+$/.test(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid ID format' });
+  }
+  next();
+};
+
+// Middleware to validate assembly ID parameters
+const validateAssemblyId = (req, res, next) => {
+  const assemblyId = req.params.assemblyId;
+  if (!assemblyId || !/^[a-zA-Z0-9-_]+$/.test(assemblyId)) {
+    return res.status(400).json({ success: false, message: 'Invalid assembly ID format' });
+  }
+  next();
+};
 const { registerRoute } = require('./routeHelpers');
 
 // Initialize router with parameter checking

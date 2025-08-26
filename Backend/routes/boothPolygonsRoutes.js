@@ -10,6 +10,40 @@ const {
 } = require('../controllers/boothPolygonController');
 
 const router = express.Router();
+const { createSafeHandler } = require('../middlewares/paramSanitizer');
+
+// Apply parameter validation to common parameters
+router.param('id', (req, res, next, id) => {
+  if (!id || !/^[a-zA-Z0-9-_]+$/.test(id)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid ID format'
+    });
+  }
+  next();
+});
+
+router.param('blockName', (req, res, next, blockName) => {
+  if (!blockName || typeof blockName !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid block name'
+    });
+  }
+  next();
+});
+
+router.param('acNo', (req, res, next, acNo) => {
+  const parsedAcNo = parseInt(acNo, 10);
+  if (isNaN(parsedAcNo)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid assembly number'
+    });
+  }
+  req.params.acNo = parsedAcNo;
+  next();
+});
 
 /**
  * @swagger
@@ -97,7 +131,7 @@ const router = express.Router();
  *                     pages:
  *                       type: integer
  */
-router.get('/', getBoothPolygons);
+router.get('/', createSafeHandler(getBoothPolygons));
 
 /**
  * @swagger
@@ -121,7 +155,7 @@ router.get('/', getBoothPolygons);
  *       404:
  *         description: Booth polygon not found
  */
-router.get('/:id', getBoothPolygon);
+router.get('/:id', createSafeHandler(getBoothPolygon));
 
 /**
  * @swagger
@@ -151,7 +185,7 @@ router.get('/:id', getBoothPolygon);
  *                   items:
  *                     $ref: '#/components/schemas/BoothPolygonFeature'
  */
-router.get('/assembly/:acNo', getBoothPolygonsByAssembly);
+router.get('/assembly/:acNo', createSafeHandler(getBoothPolygonsByAssembly));
 
 /**
  * @swagger
@@ -187,7 +221,7 @@ router.get('/assembly/:acNo', getBoothPolygonsByAssembly);
  *       400:
  *         description: Bad request when block name is empty
  */
-router.get('/block/:blockName', getBoothPolygonsByBlock);
+router.get('/block/:blockName', createSafeHandler(getBoothPolygonsByBlock));
 
 /**
  * @swagger

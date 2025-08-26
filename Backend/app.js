@@ -253,6 +253,17 @@ mountRoute('/codings', codingRoutes);
 mountRoute('/booth-polygons', boothPolygonRoutes);
 mountRoute('/winning-candidates', winningCandidateRoutes);
 
+// Add global parameter sanitization
+const { sanitizeParam } = require('./middlewares/paramSanitizer');
+app.use((req, res, next) => {
+  if (req.params) {
+    Object.keys(req.params).forEach(key => {
+      req.params[key] = sanitizeParam(req.params[key]);
+    });
+  }
+  next();
+});
+
 // Mount the API router
 app.use('/api', apiRouter);
 
