@@ -19,6 +19,15 @@ const {
 const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
+const { registerRoute } = require('./routeHelpers');
+
+// Initialize router with parameter checking
+router.param('id', (req, res, next, id) => {
+  if (!id || !/^[a-zA-Z0-9-_]+$/.test(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid ID format' });
+  }
+  next();
+});
 
 /**
  * @swagger
@@ -109,7 +118,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-router.get('/', getWinningCandidates);
+registerRoute(router, 'GET', '/', getWinningCandidates);
 
 /**
  * @swagger
@@ -145,7 +154,7 @@ router.get('/', getWinningCandidates);
  *                       assembly_count:
  *                         type: integer
  */
-router.get('/predicted-party-assembly-count', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
+router.get('/party-assembly-predictions', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
 
 
 /**
@@ -193,8 +202,12 @@ router.get('/predicted-party-assembly-count', require('../controllers/winningCan
  *                       win_count:
  *                         type: integer
  */
-router.get('/predict/2028', require('../controllers/winningCandidateController').predictWinningPartyForNextYear);
-
+// Use a query parameter instead of hardcoded year
+router.get('/predict', (req, res, next) => {
+  // Default to 2028 if no year provided
+  req.query.year = req.query.year || '2028';
+  require('../controllers/winningCandidateController').predictWinningPartyForNextYear(req, res, next);
+});
 
 /**
  * @swagger
@@ -473,7 +486,13 @@ router.get('/assembly/:assemblyId', getWinningCandidatesByAssembly);
  *       404:
  *         description: Parliament not found
  */
-router.get('/parliament/:parliamentId', getWinningCandidatesByParliament);
+registerRoute(router, 'GET', '/parliament/:parliamentId', (req, res, next) => {
+  const { parliamentId } = req.params;
+  if (!parliamentId || typeof parliamentId !== 'string') {
+    return res.status(400).json({ success: false, message: 'Invalid parliament ID' });
+  }
+  getWinningCandidatesByParliament(req, res, next);
+});
 
 /**
  * @swagger
@@ -588,7 +607,14 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
  *       404:
  *         description: Assembly, year or candidates not found
  */
-router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
+router.get('/assembly-by-year', (req, res, next) => {
+  // Convert query params to route params format that the controller expects
+  req.params = {
+    assemblyId: req.query.assembly,
+    yearId: req.query.year
+  };
+  getCandidatesByAssemblyAndYear(req, res, next);
+});
 
 /**
  * @swagger

@@ -4,7 +4,7 @@ const config = require('./config');
 const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
-    console.log('Database URI:', config.MONGO_URI.split('@')[1]); // Log only the host part, not credentials
+    console.log('Database URI:', process.env.MONGO_URI); // Log only the host part, not credentials
 
     const options = {
       bufferCommands: false, // Disable mongoose buffering
@@ -15,8 +15,8 @@ const connectDB = async () => {
       retryWrites: true,
       w: 'majority'
     };
-
-    const connection = await mongoose.connect(config.MONGO_URI, options);
+    console.log('Attempting to connect to MongoDB...');
+    const connection = await mongoose.connect(process.env.MONGO_URI, options);
     console.log(`MongoDB Connected successfully to ${connection.connection.host}`);
 
     // Test the connection by running a simple query
