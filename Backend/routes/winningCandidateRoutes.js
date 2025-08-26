@@ -2,20 +2,44 @@
 
 
 const express = require('express');
-const {
-  getWinningCandidates,
-  getWinningCandidatesForGraph,
-  getWinningCandidate,
-  createWinningCandidate,
-  updateWinningCandidate,
-  deleteWinningCandidate,
-  getWinningCandidatesByAssembly,
-  getWinningCandidatesByParliament,
-  getWinningCandidatesByParty,
-  getCandidates// Base routes using express.Router().route() for cleaner route definitions
-router.route('/')
-  .get(getWinningCandidates)
-  .post(protect, authorize('superAdmin'), createWinningCandidate);
+const winningCandidateController = require('../controllers/winningCandidateController');
+const { protect, authorize } = require('../middlewares/auth');
+const escapeRouteParams = require('../middlewares/escapeRouteParams');
+
+// Create router with options to prevent path-to-regexp issues
+const router = express.Router({
+  strict: true,
+  caseSensitive: true
+});
+
+// Apply parameter escaping middleware
+router.use(escapeRouteParams);
+
+// Base routes
+router.get('/', winningCandidateController.getWinningCandidates);
+router.post('/', protect, authorize('superAdmin'), winningCandidateController.createWinningCandidate);
+
+// Graph and prediction routes
+router.get('/graph', winningCandidateController.getWinningCandidatesForGraph);
+router.get('/party-assembly-predictions', winningCandidateController.getPredictedPartyAssemblyCount2028);
+router.get('/predict', (req, res, next) => {
+  req.query.year = req.query.year || '2028';
+  winningCandidateController.predictWinningPartyForNextYear(req, res, next);
+});
+
+// Assembly routes
+router.get('/assembly', (req, res, next) => {
+  const { assemblyId, yearId } = req.query;
+  if (!assemblyId || !yearId) {
+    return res.status(400).json({ success: false, message: 'Assembly ID and year ID are required' });
+  }
+  winningCandidateController.getCandidatesByAssemblyAndYear(req, res, next);
+});
+
+// Individual candidate routes
+router.get('/:id', winningCandidateController.getWinningCandidate);
+router.put('/:id', protect, authorize('superAdmin'), winningCandidateController.updateWinningCandidate);
+router.delete('/:id', protect, authorize('superAdmin'), winningCandidateController.deleteWinningCandidate);
 
 /**
  * @swaggersemblyAndYear,

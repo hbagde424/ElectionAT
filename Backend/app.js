@@ -137,11 +137,17 @@ app.use((req, res, next) => {
 });
 
 // Create an Express Router to handle all API routes with strict routing
+const escapeRouteParams = require('./middlewares/escapeRouteParams');
+
+// Initialize the router with strict options and parameter escaping
 const apiRouter = express.Router({
   strict: true,
   caseSensitive: true,
   mergeParams: false
 });
+
+// Add parameter escaping middleware to the router
+apiRouter.use(escapeRouteParams);
 
 // Middleware to sanitize route parameters
 const sanitizeParams = (req, res, next) => {
