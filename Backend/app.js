@@ -88,11 +88,19 @@ if (process.env.NODE_ENV === 'development') {
 
 // Enable CORS
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'https://mbnmediaconsulting.in'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Add Cache-Control headers to prevent caching
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Expires', '0');
+  res.set('Pragma', 'no-cache');
+  next();
+});
 
 // Set security headers with proper configuration for images
 app.use(helmet({
@@ -190,23 +198,19 @@ apiRouter.use('/codings', codingRoutes);
 apiRouter.use('/booth-polygons', boothPolygonRoutes);
 apiRouter.use('/winning-candidates', winningCandidateRoutes);
 
-// Mount the API router on both /api and /backend/api paths
+// Mount the API router
 app.use('/api', apiRouter);
-app.use('/backend/api', apiRouter);
 
-// Add a simple health check route
-app.get('/', (req, res) => {
-  res.json({ message: 'ElectionAT Backend is running!', status: 'OK' });
-});
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/api', (req, res) => {
-  res.json({ message: 'ElectionAT API is running!', status: 'OK' });
-});
-// app.use('/api/india-polygon', indiaPolygonRoutes);
-// app.use('/api/voter-turnout', voterTurnoutRoutes);
-// app.use('/api/mp-polygon', mpPolygonRoutes);
-// Serve static files from the public directory
+// Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Handle React routing, return all requests to React app
+app.get(['/election/*', '/election'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Error handler
 app.use(errorHandler);

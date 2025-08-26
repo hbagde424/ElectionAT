@@ -3,7 +3,25 @@
     "jsx": "react",
     "target": "esnext",
     "module": "commonjs",
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["./src/*"],
+      "api/*": ["./src/api/*"],
+      "assets/*": ["./src/assets/*"],
+      "components/*": ["./src/components/*"],
+      "config/*": ["./src/config/*"],
+      "contexts/*": ["./src/contexts/*"],
+      "data/*": ["./src/data/*"],
+      "hooks/*": ["./src/hooks/*"],
+      "layout/*": ["./src/layout/*"],
+      "menu-items/*": ["./src/menu-items/*"],
+      "pages/*": ["./src/pages/*"],
+      "routes/*": ["./src/routes/*"],
+      "sections/*": ["./src/sections/*"],
+      "store/*": ["./src/store/*"],
+      "themes/*": ["./src/themes/*"],
+      "utils/*": ["./src/utils/*"]
+    }
   },
   "include": [
     "src/**/*"

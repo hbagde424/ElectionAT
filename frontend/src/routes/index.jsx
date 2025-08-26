@@ -32,7 +32,7 @@ const router = createBrowserRouter(
     ComponentsRoutes,
     MainRoutes
   ],
-  { basename: import.meta.env.VITE_APP_BASE_NAME }
+  { basename: '/election' }
 );
 
 export default router;

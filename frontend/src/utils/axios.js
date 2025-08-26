@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const axiosServices = axios.create({ baseURL: import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api' });
+const axiosServices = axios.create({
+  baseURL: import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  }
+});
 
 // ==============================|| AXIOS - FOR MOCK SERVICES ||============================== //
 

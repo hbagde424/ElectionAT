@@ -14,11 +14,16 @@ const Year = require('../models/electionYear');
 // @access  Public
 exports.getWinningCandidates = async (req, res, next) => {
   try {
+    console.log('Getting winning candidates with query:', req.query);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
-    // Add timeout to the query
+    // First check if we have any data in the collection
+    const totalDocuments = await WinningCandidate.countDocuments();
+    console.log('Total documents in collection:', totalDocuments);
+
+    // Add timeout and debug the query
     let query = WinningCandidate.find()
       .populate('state_id', 'name')
       .populate('division_id', 'name')
@@ -31,6 +36,9 @@ exports.getWinningCandidates = async (req, res, next) => {
       .populate('updated_by', 'username')
       .maxTimeMS(30000) // Set 30 second timeout
       .sort({ total_votes: -1 });
+
+    // Log the mongoose query before execution
+    console.log('Mongoose query:', query.getFilter());
 
     if (req.query.search) {
       query = query.find({
@@ -68,22 +76,63 @@ exports.getWinningCandidates = async (req, res, next) => {
 
 
     let winningCandidates;
-    if (req.query.all === 'true') {
-      winningCandidates = await query.exec();
-    } else {
-      winningCandidates = await query.skip(skip).limit(limit).exec();
+    try {
+      console.log('Executing query with skip:', skip, 'limit:', limit);
+
+      // Execute query with proper error handling
+      if (req.query.all === 'true') {
+        winningCandidates = await query.lean().exec();
+      } else {
+        winningCandidates = await query.skip(skip).limit(limit).lean().exec();
+      }
+
+      console.log('Query executed successfully. Found records:', winningCandidates?.length || 0);
+
+      // Debug first record if available
+      if (winningCandidates && winningCandidates.length > 0) {
+        console.log('Sample record:', JSON.stringify(winningCandidates[0], null, 2));
+      }
+
+      const total = await WinningCandidate.countDocuments(query.getFilter());
+      console.log('Total matching records:', total);
+
+      // Check if populated fields are present
+      const sampleRecord = winningCandidates[0];
+      if (sampleRecord) {
+        console.log('Populated fields check:', {
+          state: !!sampleRecord.state_id,
+          division: !!sampleRecord.division_id,
+          parliament: !!sampleRecord.parliament_id,
+          assembly: !!sampleRecord.assembly_id,
+          party: !!sampleRecord.party_id,
+          year: !!sampleRecord.year_id,
+          candidate: !!sampleRecord.candidate_id
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        count: winningCandidates.length,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        data: winningCandidates
+      });
+    } catch (queryErr) {
+      console.error('Query execution error:', queryErr);
+
+      // Check for specific error types
+      if (queryErr.name === 'MongooseError' || queryErr.name === 'MongoServerError') {
+        return res.status(500).json({
+          success: false,
+          error: 'Database query failed',
+          details: queryErr.message,
+          code: queryErr.code
+        });
+      }
+
+      throw queryErr; // Re-throw if it's not a database error
     }
-
-    const total = await WinningCandidate.countDocuments(query.getFilter());
-
-    res.status(200).json({
-      success: true,
-      count: winningCandidates.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      data: winningCandidates
-    });
   } catch (err) {
     console.error('WinningCandidate Controller Error:', err);
 
