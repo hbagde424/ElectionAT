@@ -280,7 +280,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Handle React routing, return all requests to React app
-app.get(['/election/*', '/election'], (req, res) => {
+app.get(['/election/:path(*)', '/election'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

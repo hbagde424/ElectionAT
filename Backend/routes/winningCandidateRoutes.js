@@ -2,161 +2,23 @@
 
 
 const express = require('express');
-const router = express.Router();
-const controller = require('../controllers/winningCandidateController');
-const { protect, authorize } = require('../middlewares/auth');
-
-// Simple middleware to validate parameters
-const validateParam = (param) => {
-  return typeof param === 'string' && /^[a-zA-Z0-9-_]+$/.test(param);
-};
-// Basic CRUD operations
-router.get('/', controller.getWinningCandidates);
-router.post('/', protect, authorize('superAdmin'), controller.createWinningCandidate);
-
-// Graph and stats routes
-router.get('/graph', controller.getWinningCandidatesForGraph);
-router.get('/party-assembly-count', controller.getPartyAssemblyCountByYear);
-router.get('/party-assembly-predictions', controller.getPredictedPartyAssemblyCount2028);
-
-// Prediction routes
-router.get('/predict', (req, res, next) => {
-  req.query.year = req.query.year || '2028';
-  controller.predictWinningPartyForNextYear(req, res, next);
-});
-
-// Assembly routes
-router.get('/assembly-by-year', (req, res, next) => {
-  const { assembly, year } = req.query;
-  if (!assembly || !year) {
-    return res.status(400).json({
-      success: false,
-      message: 'Assembly and year parameters are required'
-    });
-  }
-  req.params = { assemblyId: assembly, yearId: year };
-  controller.getCandidatesByAssemblyAndYear(req, res, next);
-});
-
-// Routes with URL parameters
-router.get('/assembly/:assemblyId', (req, res, next) => {
-  if (!validateParam(req.params.assemblyId)) {
-    return res.status(400).json({ success: false, message: 'Invalid assembly ID' });
-  }
-  controller.getWinningCandidatesByAssembly(req, res, next);
-});
-
-router.get('/parliament/:parliamentId', (req, res, next) => {
-  if (!validateParam(req.params.parliamentId)) {
-    return res.status(400).json({ success: false, message: 'Invalid parliament ID' });
-  }
-  controller.getWinningCandidatesByParliament(req, res, next);
-});
-
-router.get('/party/:partyId', (req, res, next) => {
-  if (!validateParam(req.params.partyId)) {
-    return res.status(400).json({ success: false, message: 'Invalid party ID' });
-  }
-  controller.getWinningCandidatesByParty(req, res, next);
-});
-
-// Individual candidate routes with ID parameter
-router.get('/:id', (req, res, next) => {
-  if (!validateParam(req.params.id)) {
-    return res.status(400).json({ success: false, message: 'Invalid candidate ID' });
-  }
-  controller.getWinningCandidate(req, res, next);
-});
-
-router.put('/:id', protect, authorize('superAdmin'), (req, res, next) => {
-  if (!validateParam(req.params.id)) {
-    return res.status(400).json({ success: false, message: 'Invalid candidate ID' });
-  }
-  controller.updateWinningCandidate(req, res, next);
-});
-
-router.delete('/:id', protect, authorize('superAdmin'), (req, res, next) => {
-  if (!validateParam(req.params.id)) {
-    return res.status(400).json({ success: false, message: 'Invalid candidate ID' });
-  }
-  controller.deleteWinningCandidate(req, res, next);
-});
-
-module.exports = router;
-
-// Graph and prediction routes
-router.get('/graph', getWinningCandidatesForGraph);
-router.get('/party-assembly-predictions', getPredictedPartyAssemblyCount2028);
-router.get('/predict', (req, res, next) => {
-  req.query.year = req.query.year || '2028';
-  predictWinningPartyForNextYear(req, res, next);
-});
-
-// Assembly routes
-router.get('/assembly-by-year', (req, res, next) => {
-  const { assembly, year } = req.query;
-  if (!assembly || !year) {
-    return res.status(400).json({
-      success: false,
-      message: 'Assembly and year parameters are required'
-    });
-  }
-  req.params = { assemblyId: assembly, yearId: year };
-  getCandidatesByAssemblyAndYear(req, res, next);
-});
-
-router.get('/assembly/:assemblyId', validateParams, getWinningCandidatesByAssembly);
-router.get('/party/:partyId', validateParams, getWinningCandidatesByParty);
-
-// Individual candidate routes
-router.route('/:id')
-  .all(validateParams)
-  .get(getWinningCandidate)
-  .put(protect, authorize('superAdmin'), updateWinningCandidate)
-  .delete(protect, authorize('superAdmin'), deleteWinningCandidate);
-
-module.exports = router;
-
-/**
- * @swaggersemblyAndYear,
+const {
+  getWinningCandidates,
+  getWinningCandidatesForGraph,
+  getWinningCandidate,
+  createWinningCandidate,
+  updateWinningCandidate,
+  deleteWinningCandidate,
+  getWinningCandidatesByAssembly,
+  getWinningCandidatesByParliament,
+  getWinningCandidatesByParty,
+  getCandidatesByAssemblyAndYear,
   getPartyAssemblyCountByYear,
-  predictWinningPartyForNextYear,
-  getPredictedPartyAssemblyCount2028
+  predictWinningPartyForNextYear
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
-// Create router with options to prevent path-to-regexp issues
-const router = express.Router({ 
-  strict: true,
-  caseSensitive: true
-});
-
-// Middleware to validate ID parameters
-const validateId = (req, res, next) => {
-  const id = req.params.id;
-  if (!id || !/^[a-zA-Z0-9-_]+$/.test(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid ID format' });
-  }
-  next();
-};
-
-// Middleware to validate assembly ID parameters
-const validateAssemblyId = (req, res, next) => {
-  const assemblyId = req.params.assemblyId;
-  if (!assemblyId || !/^[a-zA-Z0-9-_]+$/.test(assemblyId)) {
-    return res.status(400).json({ success: false, message: 'Invalid assembly ID format' });
-  }
-  next();
-};
-// No routeHelpers needed, using standard Express routing
-
-// Initialize router with parameter checking
-router.param('id', (req, res, next, id) => {
-  if (!id || !/^[a-zA-Z0-9-_]+$/.test(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid ID format' });
-  }
-  next();
-});
+const router = express.Router();
 
 /**
  * @swagger
@@ -247,7 +109,7 @@ router.param('id', (req, res, next, id) => {
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-router.get('/', winningCandidateController.getWinningCandidates);
+router.get('/', getWinningCandidates);
 
 /**
  * @swagger
@@ -283,7 +145,7 @@ router.get('/', winningCandidateController.getWinningCandidates);
  *                       assembly_count:
  *                         type: integer
  */
-router.get('/party-assembly-predictions', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
+router.get('/predicted-party-assembly-count', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
 
 
 /**
@@ -331,12 +193,8 @@ router.get('/party-assembly-predictions', require('../controllers/winningCandida
  *                       win_count:
  *                         type: integer
  */
-// Use a query parameter instead of hardcoded year
-router.get('/predict', (req, res, next) => {
-  // Default to 2028 if no year provided
-  req.query.year = req.query.year || '2028';
-  require('../controllers/winningCandidateController').predictWinningPartyForNextYear(req, res, next);
-});
+router.get('/predict/2028', require('../controllers/winningCandidateController').predictWinningPartyForNextYear);
+
 
 /**
  * @swagger
@@ -615,13 +473,7 @@ router.get('/assembly/:assemblyId', getWinningCandidatesByAssembly);
  *       404:
  *         description: Parliament not found
  */
-router.get('/parliament/:parliamentId', (req, res, next) => {
-  const { parliamentId } = req.params;
-  if (!parliamentId || typeof parliamentId !== 'string') {
-    return res.status(400).json({ success: false, message: 'Invalid parliament ID' });
-  }
-  getWinningCandidatesByParliament(req, res, next);
-});
+router.get('/parliament/:parliamentId', getWinningCandidatesByParliament);
 
 /**
  * @swagger
@@ -736,14 +588,7 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
  *       404:
  *         description: Assembly, year or candidates not found
  */
-router.get('/assembly-by-year', (req, res, next) => {
-  // Convert query params to route params format that the controller expects
-  req.params = {
-    assemblyId: req.query.assembly,
-    yearId: req.query.year
-  };
-  getCandidatesByAssemblyAndYear(req, res, next);
-});
+router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
 
 /**
  * @swagger

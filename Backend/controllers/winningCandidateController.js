@@ -195,6 +195,206 @@ exports.getWinningCandidatesForGraph = async (req, res, next) => {
 // @desc    Get single winning candidate
 // @route   GET /api/winning-candidates/:id
 // @access  Public
+// Get party-wise assembly count for a specific year
+exports.getPartyAssemblyCountByYear = async (req, res, next) => {
+  try {
+    const { year } = req.query;
+    if (!year) {
+      return res.status(400).json({
+        success: false,
+        message: 'Year parameter is required'
+      });
+    }
+
+    const yearDoc = await Year.findOne({ year });
+    if (!yearDoc) {
+      return res.status(404).json({
+        success: false,
+        message: `No data found for year ${year}`
+      });
+    }
+
+    const result = await WinningCandidate.aggregate([
+      { $match: { year_id: yearDoc._id } },
+      {
+        $group: {
+          _id: '$party_id',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'parties',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'party'
+        }
+      },
+      { $unwind: '$party' },
+      {
+        $project: {
+          party_name: '$party.name',
+          count: 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Predict party assembly count for 2028
+exports.getPredictedPartyAssemblyCount2028 = async (req, res, next) => {
+  try {
+    // Here you would implement your prediction logic
+    // For now, we'll return a simplified response
+    const predictions = await WinningCandidate.aggregate([
+      {
+        $lookup: {
+          from: 'electionyears',
+          localField: 'year_id',
+          foreignField: '_id',
+          as: 'year'
+        }
+      },
+      { $unwind: '$year' },
+      {
+        $group: {
+          _id: {
+            party: '$party_id',
+            year: '$year.year'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'parties',
+          localField: '_id.party',
+          foreignField: '_id',
+          as: 'party'
+        }
+      },
+      { $unwind: '$party' },
+      {
+        $project: {
+          party_name: '$party.name',
+          year: '$_id.year',
+          count: 1
+        }
+      },
+      { $sort: { year: -1, count: -1 } }
+    ]);
+
+    // Use the historical data to make simple predictions
+    const latestYear = Math.max(...predictions.map(p => p.year));
+    const predictedCounts = predictions
+      .filter(p => p.year === latestYear)
+      .map(p => ({
+        party_name: p.party_name,
+        predicted_count: Math.round(p.count * 1.1) // Simple 10% growth prediction
+      }));
+
+    res.status(200).json({
+      success: true,
+      year: 2028,
+      data: predictedCounts
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Predict winning party for next election year
+exports.predictWinningPartyForNextYear = async (req, res, next) => {
+  try {
+    const { year } = req.query;
+    if (!year) {
+      return res.status(400).json({
+        success: false,
+        message: 'Year parameter is required'
+      });
+    }
+
+    const yearDoc = await Year.findOne({ year });
+    if (!yearDoc) {
+      return res.status(404).json({
+        success: false,
+        message: `No data found for year ${year}`
+      });
+    }
+
+    // Implement your prediction logic here
+    const predictions = await WinningCandidate.aggregate([
+      { $match: { year_id: yearDoc._id } },
+      {
+        $group: {
+          _id: '$party_id',
+          seats: { $sum: 1 },
+          total_votes: { $sum: '$total_votes' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'parties',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'party'
+        }
+      },
+      { $unwind: '$party' },
+      {
+        $project: {
+          party_name: '$party.name',
+          seats: 1,
+          total_votes: 1,
+          predicted_growth: { $multiply: ['$seats', 1.1] } // Simple 10% growth prediction
+        }
+      },
+      { $sort: { seats: -1 } }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      prediction_year: parseInt(year),
+      data: predictions
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get candidates by assembly and year
+exports.getCandidatesByAssemblyAndYear = async (req, res, next) => {
+  try {
+    const { assemblyId, yearId } = req.params;
+
+    const candidates = await WinningCandidate.find({
+      assembly_id: assemblyId,
+      year_id: yearId
+    })
+      .populate('candidate_id', 'name')
+      .populate('party_id', 'name')
+      .populate('assembly_id', 'name AC_NO')
+      .populate('year_id', 'year')
+      .sort({ total_votes: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: candidates.length,
+      data: candidates
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get single winning candidate
 exports.getWinningCandidate = async (req, res, next) => {
   try {
     const winningCandidate = await WinningCandidate.findById(req.params.id)
