@@ -2,44 +2,120 @@
 
 
 const express = require('express');
-const winningCandidateController = require('../controllers/winningCandidateController');
+const router = express.Router();
+const controller = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
-const escapeRouteParams = require('../middlewares/escapeRouteParams');
 
-// Create router with options to prevent path-to-regexp issues
-const router = express.Router({
-  strict: true,
-  caseSensitive: true
-});
+// Simple middleware to validate parameters
+const validateParam = (param) => {
+  return typeof param === 'string' && /^[a-zA-Z0-9-_]+$/.test(param);
+};
+// Basic CRUD operations
+router.get('/', controller.getWinningCandidates);
+router.post('/', protect, authorize('superAdmin'), controller.createWinningCandidate);
 
-// Apply parameter escaping middleware
-router.use(escapeRouteParams);
+// Graph and stats routes
+router.get('/graph', controller.getWinningCandidatesForGraph);
+router.get('/party-assembly-count', controller.getPartyAssemblyCountByYear);
+router.get('/party-assembly-predictions', controller.getPredictedPartyAssemblyCount2028);
 
-// Base routes
-router.get('/', winningCandidateController.getWinningCandidates);
-router.post('/', protect, authorize('superAdmin'), winningCandidateController.createWinningCandidate);
-
-// Graph and prediction routes
-router.get('/graph', winningCandidateController.getWinningCandidatesForGraph);
-router.get('/party-assembly-predictions', winningCandidateController.getPredictedPartyAssemblyCount2028);
+// Prediction routes
 router.get('/predict', (req, res, next) => {
   req.query.year = req.query.year || '2028';
-  winningCandidateController.predictWinningPartyForNextYear(req, res, next);
+  controller.predictWinningPartyForNextYear(req, res, next);
 });
 
 // Assembly routes
-router.get('/assembly', (req, res, next) => {
-  const { assemblyId, yearId } = req.query;
-  if (!assemblyId || !yearId) {
-    return res.status(400).json({ success: false, message: 'Assembly ID and year ID are required' });
+router.get('/assembly-by-year', (req, res, next) => {
+  const { assembly, year } = req.query;
+  if (!assembly || !year) {
+    return res.status(400).json({
+      success: false,
+      message: 'Assembly and year parameters are required'
+    });
   }
-  winningCandidateController.getCandidatesByAssemblyAndYear(req, res, next);
+  req.params = { assemblyId: assembly, yearId: year };
+  controller.getCandidatesByAssemblyAndYear(req, res, next);
 });
 
+// Routes with URL parameters
+router.get('/assembly/:assemblyId', (req, res, next) => {
+  if (!validateParam(req.params.assemblyId)) {
+    return res.status(400).json({ success: false, message: 'Invalid assembly ID' });
+  }
+  controller.getWinningCandidatesByAssembly(req, res, next);
+});
+
+router.get('/parliament/:parliamentId', (req, res, next) => {
+  if (!validateParam(req.params.parliamentId)) {
+    return res.status(400).json({ success: false, message: 'Invalid parliament ID' });
+  }
+  controller.getWinningCandidatesByParliament(req, res, next);
+});
+
+router.get('/party/:partyId', (req, res, next) => {
+  if (!validateParam(req.params.partyId)) {
+    return res.status(400).json({ success: false, message: 'Invalid party ID' });
+  }
+  controller.getWinningCandidatesByParty(req, res, next);
+});
+
+// Individual candidate routes with ID parameter
+router.get('/:id', (req, res, next) => {
+  if (!validateParam(req.params.id)) {
+    return res.status(400).json({ success: false, message: 'Invalid candidate ID' });
+  }
+  controller.getWinningCandidate(req, res, next);
+});
+
+router.put('/:id', protect, authorize('superAdmin'), (req, res, next) => {
+  if (!validateParam(req.params.id)) {
+    return res.status(400).json({ success: false, message: 'Invalid candidate ID' });
+  }
+  controller.updateWinningCandidate(req, res, next);
+});
+
+router.delete('/:id', protect, authorize('superAdmin'), (req, res, next) => {
+  if (!validateParam(req.params.id)) {
+    return res.status(400).json({ success: false, message: 'Invalid candidate ID' });
+  }
+  controller.deleteWinningCandidate(req, res, next);
+});
+
+module.exports = router;
+
+// Graph and prediction routes
+router.get('/graph', getWinningCandidatesForGraph);
+router.get('/party-assembly-predictions', getPredictedPartyAssemblyCount2028);
+router.get('/predict', (req, res, next) => {
+  req.query.year = req.query.year || '2028';
+  predictWinningPartyForNextYear(req, res, next);
+});
+
+// Assembly routes
+router.get('/assembly-by-year', (req, res, next) => {
+  const { assembly, year } = req.query;
+  if (!assembly || !year) {
+    return res.status(400).json({
+      success: false,
+      message: 'Assembly and year parameters are required'
+    });
+  }
+  req.params = { assemblyId: assembly, yearId: year };
+  getCandidatesByAssemblyAndYear(req, res, next);
+});
+
+router.get('/assembly/:assemblyId', validateParams, getWinningCandidatesByAssembly);
+router.get('/party/:partyId', validateParams, getWinningCandidatesByParty);
+
 // Individual candidate routes
-router.get('/:id', winningCandidateController.getWinningCandidate);
-router.put('/:id', protect, authorize('superAdmin'), winningCandidateController.updateWinningCandidate);
-router.delete('/:id', protect, authorize('superAdmin'), winningCandidateController.deleteWinningCandidate);
+router.route('/:id')
+  .all(validateParams)
+  .get(getWinningCandidate)
+  .put(protect, authorize('superAdmin'), updateWinningCandidate)
+  .delete(protect, authorize('superAdmin'), deleteWinningCandidate);
+
+module.exports = router;
 
 /**
  * @swaggersemblyAndYear,
@@ -72,7 +148,7 @@ const validateAssemblyId = (req, res, next) => {
   }
   next();
 };
-const { registerRoute } = require('./routeHelpers');
+// No routeHelpers needed, using standard Express routing
 
 // Initialize router with parameter checking
 router.param('id', (req, res, next, id) => {
@@ -171,7 +247,7 @@ router.param('id', (req, res, next, id) => {
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-registerRoute(router, 'GET', '/', getWinningCandidates);
+router.get('/', winningCandidateController.getWinningCandidates);
 
 /**
  * @swagger
@@ -539,7 +615,7 @@ router.get('/assembly/:assemblyId', getWinningCandidatesByAssembly);
  *       404:
  *         description: Parliament not found
  */
-registerRoute(router, 'GET', '/parliament/:parliamentId', (req, res, next) => {
+router.get('/parliament/:parliamentId', (req, res, next) => {
   const { parliamentId } = req.params;
   if (!parliamentId || typeof parliamentId !== 'string') {
     return res.status(400).json({ success: false, message: 'Invalid parliament ID' });
