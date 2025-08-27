@@ -5,14 +5,12 @@ const boothSurveySchema = new mongoose.Schema({
   booth_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booth',
-    required: [true, 'Booth reference is required'],
-    index: true
+    required: [true, 'Booth reference is required']
   },
   survey_done_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Surveyor reference is required'],
-    index: true
+    required: [true, 'Surveyor reference is required']
   },
   survey_date: {
     type: Date,
@@ -22,8 +20,7 @@ const boothSurveySchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'],
-    default: 'Pending',
-    index: true
+    default: 'Pending'
   },
   remark: {
     type: String,
@@ -38,32 +35,27 @@ const boothSurveySchema = new mongoose.Schema({
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',
-    required: [true, 'State reference is required'],
-    index: true
+    required: [true, 'State reference is required']
   },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
-    required: [true, 'Division reference is required'],
-    index: true
+    required: [true, 'Division reference is required']
   },
   parliament_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parliament',
-    required: [true, 'Parliament reference is required'],
-    index: true
+    required: [true, 'Parliament reference is required']
   },
   assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assembly',
-    required: [true, 'Assembly reference is required'],
-    index: true
+    required: [true, 'Assembly reference is required']
   },
   block_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Block',
-    required: [true, 'Block reference is required'],
-    index: true
+    required: [true, 'Block reference is required']
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
@@ -88,7 +80,7 @@ const boothSurveySchema = new mongoose.Schema({
 });
 
 // Update timestamp before saving
-boothSurveySchema.pre('save', function(next) {
+boothSurveySchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
@@ -96,12 +88,12 @@ boothSurveySchema.pre('save', function(next) {
 // Indexes for better performance
 boothSurveySchema.index({ booth_id: 1, status: 1 });
 boothSurveySchema.index({ survey_done_by: 1, survey_date: -1 });
-boothSurveySchema.index({ 
+boothSurveySchema.index({
   state_id: 1,
-  division_id: 1, 
-  parliament_id: 1, 
-  assembly_id: 1, 
-  block_id: 1 
+  division_id: 1,
+  parliament_id: 1,
+  assembly_id: 1,
+  block_id: 1
 });
 
 // Virtual population

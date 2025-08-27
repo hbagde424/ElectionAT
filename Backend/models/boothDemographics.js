@@ -120,7 +120,6 @@ const boothDemographicsSchema = new mongoose.Schema({
 });
 
 // Indexes
-boothDemographicsSchema.index({ booth_id: 1 });
 boothDemographicsSchema.index({ state_id: 1 });
 boothDemographicsSchema.index({ division_id: 1 });
 boothDemographicsSchema.index({ assembly_id: 1 });
@@ -128,7 +127,7 @@ boothDemographicsSchema.index({ parliament_id: 1 });
 boothDemographicsSchema.index({ block_id: 1 });
 
 // Auto-fill geo IDs from Booth if missing
-boothDemographicsSchema.pre('save', async function(next) {
+boothDemographicsSchema.pre('save', async function (next) {
   try {
     if (!this.state_id || !this.division_id || !this.assembly_id || !this.parliament_id || !this.block_id) {
       const booth = await mongoose.model('Booth').findById(this.booth_id)
@@ -141,10 +140,10 @@ boothDemographicsSchema.pre('save', async function(next) {
         this.block_id = this.block_id || booth.block_id;
       }
     }
-    
+
     // Set updated_at timestamp
     this.updated_at = Date.now();
-    
+
     next();
   } catch (err) {
     next(err);

@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => {
         }
       ]
     },
-    base: '/election/',
+    base: '/',
     plugins: [react(), jsconfigPaths()],
     build: {
       rollupOptions: {

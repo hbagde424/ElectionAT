@@ -1,7 +1,7 @@
 // server.js
 
 // Load environment variables first
-require("dotenv").config();
+require("dotenv").config({ path: __dirname + '/.env' });
 
 const http = require("http");
 const app = require("./app");
@@ -38,17 +38,20 @@ const debugRoutes = (app) => {
 const server = http.createServer(app);
 
 // Start server only after DB connection
+// Start server only after DB connection
 const startServer = async () => {
   try {
     await connectDB(); // waits for MongoDB Atlas connection
-    // Debug routes before starting server
-    console.log('Registered Routes:');
-    debugRoutes(app);
-    server.listen(process.env.PORT || 5000, () => {
-      console.log(
-        `🚀 Server running in ${process.env.NODE_ENV} mode on port ${process.env.PORT || 5000
-        }`
-      );
+
+    // 🚀 Always use process.env.PORT (CapRover sets this)
+    const PORT = process.env.PORT;
+    if (!PORT) {
+      console.error("❌ PORT not set in environment variables! Exiting...");
+      process.exit(1);
+    }
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
     });
   } catch (err) {
     console.error("❌ Failed to start server:", err.message);

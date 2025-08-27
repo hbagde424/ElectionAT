@@ -19,17 +19,30 @@ const connectDB = async () => {
     const connection = await mongoose.connect(process.env.MONGO_URI, options);
     console.log(`MongoDB Connected successfully to ${connection.connection.host}`);
 
+    // Wait for the connection to be ready and ensure db is available
+    await new Promise((resolve) => {
+      if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+        resolve();
+      } else {
+        mongoose.connection.once('connected', resolve);
+      }
+    });
+
     // Test the connection by running a simple query
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    console.log('Available collections:', collections.map(c => c.name).join(', '));
+    if (mongoose.connection.db) {
+      const collections = await mongoose.connection.db.listCollections().toArray();
+      console.log('Available collections:', collections.map(c => c.name).join(', '));
 
-    // Specifically check for winningcandidates collection
-    const hasWinningCandidates = collections.some(c => c.name === 'winningcandidates');
-    console.log('winningcandidates collection exists:', hasWinningCandidates);
+      // Specifically check for winningcandidates collection
+      const hasWinningCandidates = collections.some(c => c.name === 'winningcandidates');
+      console.log('winningcandidates collection exists:', hasWinningCandidates);
 
-    if (hasWinningCandidates) {
-      const count = await mongoose.connection.db.collection('winningcandidates').countDocuments();
-      console.log('Number of documents in winningcandidates:', count);
+      if (hasWinningCandidates) {
+        const count = await mongoose.connection.db.collection('winningcandidates').countDocuments();
+        console.log('Number of documents in winningcandidates:', count);
+      }
+    } else {
+      console.log('Database connection established but db object not available yet');
     }
 
   } catch (err) {

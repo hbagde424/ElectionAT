@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const errorHandler = require('./middlewares/errorHandler');
 const connectDB = require('./config/db');
 const { specs, swaggerUi } = require('./config/swagger');
-
+const utilsRoutes = require("./routes/utilsRoutes");
 // Route files
 const authRoutes = require('./routes/authRoutes');
 //const roleRoutes = require('./routes/roleRoutes');
@@ -86,6 +86,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+
 // Enable CORS
 app.use(cors({
   origin: ['http://localhost:3000', 'https://mbnmediaconsulting.in'],
@@ -117,7 +118,11 @@ app.use(helmet({
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  const allowedOrigins = ['http://localhost:3000', 'https://mbnmediaconsulting.in'];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
@@ -130,229 +135,112 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use(express.json({ limit: '50mb' })); // Add this line
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Add route debugging middleware
-app.use((req, res, next) => {
-  console.log(`Route being accessed: ${req.method} ${req.path}`);
-  next();
-});
-
-// Create an Express Router to handle all API routes with strict routing
-const escapeRouteParams = require('./middlewares/escapeRouteParams');
-
-// Initialize the router with strict options and parameter escaping
-const apiRouter = express.Router({
-  strict: true,
-  caseSensitive: true,
-  mergeParams: false
-});
-
-// Add parameter escaping middleware to the router
-apiRouter.use(escapeRouteParams);
-
-// Middleware to sanitize route parameters
-const sanitizeParams = (req, res, next) => {
-  if (req.params) {
-    Object.keys(req.params).forEach(key => {
-      if (typeof req.params[key] === 'string') {
-        req.params[key] = req.params[key].replace(/[^\w\-\.\/]/g, '');
-      }
-    });
-  }
-  next();
-};
-
-// Apply sanitization middleware to all routes
-apiRouter.use(sanitizeParams);
-
+// Create an Express Router to handle all API routes
+const apiRouter = express.Router();
+if (process.env.NODE_ENV === "development") {
+  apiRouter.use('/utils', utilsRoutes);
+}
 // Mount routers on the apiRouter (without /api prefix)
-// Add error handling wrapper for routes
-const wrapAsync = fn => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+apiRouter.use('/candidates', candidateRoutes); // Enabled for frontend data fetching
+apiRouter.use('/auth', authRoutes);
+// app.use('/api/roles', roleRoutes);
+apiRouter.use('/auth', authRoutes);
+// apiRouter.use('/roles', roleRoutes);
+// apiRouter.use('/role-permissions', rolePermissionRoutes);
+// apiRouter.use('/permissions', permissionRoutes);
+// apiRouter.use('/user-roles', userRoleRoutes);
+apiRouter.use('/map', mapRoutes);
+apiRouter.use('/district-polygons', districtPolygonRoutes);
+apiRouter.use('/division-polygons', divisionPolygonRoutes);
+apiRouter.use('/assembly-polygons', assembliesRoutes);
+apiRouter.use('/local-dynamics', localDynamicsRoutes);
+apiRouter.use('/states', stateRoutes);
+apiRouter.use('/divisions', divisionRoutes);
+apiRouter.use('/parliaments', parliamentRoutes);
+apiRouter.use('/parliament-polygons', parliamentPolygonRoutes);
+apiRouter.use('/districts', districtRoutes);
+apiRouter.use('/assemblies', assemblyRoutes);
+apiRouter.use('/booths', boothRoutes);
+apiRouter.use('/parties', partyRoutes);
+apiRouter.use('/booth-surveys', boothSurveyRoutes);
+apiRouter.use('/local-news', localNewsRoutes);
+apiRouter.use('/active-parties', activePartyRoutes);
+apiRouter.use('/accomplished-mlas', accomplishedMLARoutes);
+apiRouter.use('/booth-demographics', boothDemographicsRoutes);
+apiRouter.use('/booth-stats', boothElectionStatsRoutes);
+apiRouter.use('/vote-shares', voteShareRoutes);
+apiRouter.use('/party-presence', partyPresenceRoutes);
+apiRouter.use('/blocks', blockRoutes);
+apiRouter.use('/years', yearRoutes);
+apiRouter.use('/booth-volunteers', boothVolunteersRoutes);
+apiRouter.use('/booth-infrastructure', boothInfrastructureRoutes);
+apiRouter.use('/voting-trends', votingTrendsRoutes);
+apiRouter.use('/booth-admin', boothAdminRoutes);
+apiRouter.use('/winning-parties', winningPartyRoutes);
+apiRouter.use('/party-activities', partyActivityRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/region-committees', regionCommitteeRoutes);
+apiRouter.use('/region-incharges', regionInchargeRoutes);
+apiRouter.use('/hierarchy', hierarchyRoutes);
+apiRouter.use('/visits', visitRoutes);
+apiRouter.use('/booth-votes', boothVotesRoutes);
+apiRouter.use('/block-votes', blockVotesRoutes);
+apiRouter.use('/assembly-votes', assemblyVotesRoutes);
+apiRouter.use('/parliament-votes', parliamentVotesRoutes);
+apiRouter.use('/state-polygons', statePolygonRoutes);
+apiRouter.use('/election-years', electionYearRoutes);
+apiRouter.use('/potential-candidates', potentialCandidateRoutes);
+apiRouter.use('/work-status', workStatusRoutes);
+apiRouter.use('/caste-lists', casteListRoutes);
+apiRouter.use('/local-issues', localIssueRoutes);
+apiRouter.use('/events', eventRoutes);
+apiRouter.use('/event-types', eventTypeRoutes);
+apiRouter.use('/statuses', statusRoutes);
+apiRouter.use('/block-polygons', blockPolygonRoutes);
+apiRouter.use('/genders', genderRoutes);
+apiRouter.use('/election-types', electionTypeRoutes);
+apiRouter.use('/governments', governmentRoutes);
+apiRouter.use('/influencers', influencerRoutes);
+apiRouter.use('/codings', codingRoutes);
+apiRouter.use('/booth-polygons', boothPolygonRoutes);
+apiRouter.use('/winning-candidates', winningCandidateRoutes);
 
-const mountRoute = (path, router) => {
-  try {
-    console.log(`Mounting route: ${path}`);
-    // Ensure path starts with a slash
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+// Mount the API router on both /api and /backend/api paths
+app.use('/api', apiRouter);
+app.use('/backend/api', apiRouter);
 
-    // Add middleware to log and validate route parameters
-    apiRouter.use(normalizedPath, (req, res, next) => {
-      console.log(`Accessing ${normalizedPath} with URL: ${req.url}`);
-      // Log any route parameters
-      if (Object.keys(req.params).length > 0) {
-        console.log('Route parameters:', req.params);
-      }
-      next();
-    }, router);
-
-  } catch (err) {
-    console.error(`Error mounting route ${path}:`, err);
-    throw err;
-  }
-};
-
-// Mount routes with error handling
-mountRoute('/candidates', candidateRoutes);
-mountRoute('/auth', authRoutes);
-// Commented routes
-// mountRoute('/roles', roleRoutes);
-// mountRoute('/role-permissions', rolePermissionRoutes);
-// mountRoute('/permissions', permissionRoutes);
-// mountRoute('/user-roles', userRoleRoutes);
-// Mount core routes
-mountRoute('/map', mapRoutes);
-mountRoute('/district-polygons', districtPolygonRoutes);
-mountRoute('/division-polygons', divisionPolygonRoutes);
-mountRoute('/assembly-polygons', assembliesRoutes);
-mountRoute('/local-dynamics', localDynamicsRoutes);
-mountRoute('/states', stateRoutes);
-mountRoute('/divisions', divisionRoutes);
-mountRoute('/parliaments', parliamentRoutes);
-mountRoute('/parliament-polygons', parliamentPolygonRoutes);
-mountRoute('/districts', districtRoutes);
-mountRoute('/assemblies', assemblyRoutes);
-mountRoute('/booths', boothRoutes);
-mountRoute('/parties', partyRoutes);
-mountRoute('/booth-surveys', boothSurveyRoutes);
-mountRoute('/local-news', localNewsRoutes);
-mountRoute('/active-parties', activePartyRoutes);
-mountRoute('/accomplished-mlas', accomplishedMLARoutes);
-// Mount demographic and statistics routes
-mountRoute('/booth-demographics', boothDemographicsRoutes);
-mountRoute('/booth-stats', boothElectionStatsRoutes);
-mountRoute('/vote-shares', voteShareRoutes);
-mountRoute('/party-presence', partyPresenceRoutes);
-mountRoute('/blocks', blockRoutes);
-mountRoute('/years', yearRoutes);
-mountRoute('/booth-volunteers', boothVolunteersRoutes);
-mountRoute('/booth-infrastructure', boothInfrastructureRoutes);
-mountRoute('/voting-trends', votingTrendsRoutes);
-mountRoute('/booth-admin', boothAdminRoutes);
-mountRoute('/winning-parties', winningPartyRoutes);
-mountRoute('/party-activities', partyActivityRoutes);
-mountRoute('/users', userRoutes);
-mountRoute('/region-committees', regionCommitteeRoutes);
-mountRoute('/region-incharges', regionInchargeRoutes);
-mountRoute('/hierarchy', hierarchyRoutes);
-// Mount remaining routes
-mountRoute('/visits', visitRoutes);
-mountRoute('/booth-votes', boothVotesRoutes);
-mountRoute('/block-votes', blockVotesRoutes);
-mountRoute('/assembly-votes', assemblyVotesRoutes);
-mountRoute('/parliament-votes', parliamentVotesRoutes);
-mountRoute('/state-polygons', statePolygonRoutes);
-mountRoute('/election-years', electionYearRoutes);
-mountRoute('/potential-candidates', potentialCandidateRoutes);
-mountRoute('/work-status', workStatusRoutes);
-mountRoute('/caste-lists', casteListRoutes);
-mountRoute('/local-issues', localIssueRoutes);
-mountRoute('/events', eventRoutes);
-mountRoute('/event-types', eventTypeRoutes);
-mountRoute('/statuses', statusRoutes);
-mountRoute('/block-polygons', blockPolygonRoutes);
-mountRoute('/genders', genderRoutes);
-mountRoute('/election-types', electionTypeRoutes);
-mountRoute('/governments', governmentRoutes);
-mountRoute('/influencers', influencerRoutes);
-mountRoute('/codings', codingRoutes);
-mountRoute('/booth-polygons', boothPolygonRoutes);
-mountRoute('/winning-candidates', winningCandidateRoutes);
-
-// Add global parameter sanitization
-const { sanitizeParam } = require('./middlewares/paramSanitizer');
-app.use((req, res, next) => {
-  if (req.params) {
-    Object.keys(req.params).forEach(key => {
-      req.params[key] = sanitizeParam(req.params[key]);
-    });
-  }
-  next();
+// Add a simple health check route
+app.get('/', (req, res) => {
+  res.json({ message: 'ElectionAT Backend is running!', status: 'OK' });
 });
 
-// Mount the API router
-app.use('/api', apiRouter);
-
-// Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve uploaded files
+app.get('/api', (req, res) => {
+  res.json({ message: 'ElectionAT API is running!', status: 'OK' });
+});
+// app.use('/api/india-polygon', indiaPolygonRoutes);
+// app.use('/api/voter-turnout', voterTurnoutRoutes);
+// app.use('/api/mp-polygon', mpPolygonRoutes);
+// Serve static files from the public directory
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
+// Serve static files from the React app build directory
+app.use('/election', express.static(path.join(__dirname, 'public')));
+
 // Handle React routing, return all requests to React app
-app.get(['/election/:path(*)', '/election'], (req, res) => {
+app.get('/election/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Custom error handler for path-to-regexp errors
-app.use((err, req, res, next) => {
-  console.error('Error details:', {
-    name: err.name,
-    message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method,
-    params: req.params,
-    path: req.path
-  });
+// Error handler
+app.use(errorHandler);
 
-  if (err instanceof TypeError && err.message.includes('Missing parameter name')) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid route pattern',
-      path: req.path,
-      details: 'The request URL contains invalid characters or malformed parameters'
-    });
-  }
-  next(err);
-});
-
-// Error handlers
-app.use((err, req, res, next) => {
-  // Log the error for debugging
-  console.error('Error occurred:', {
-    name: err.name,
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-    params: req.params
-  });
-  next(err);
-});
-
-// Handle path-to-regexp errors specifically
-app.use((err, req, res, next) => {
-  if (err instanceof TypeError && err.message.includes('Missing parameter name')) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid route configuration',
-      details: err.message,
-      path: req.path
-    });
-  }
-  next(err);
-});
-
-// Handle validation errors
 app.use((err, req, res, next) => {
   if (err.name === 'ValidationError') {
+    // Send first validation error message only
     const firstError = Object.values(err.errors)[0].message;
     return res.status(400).json({ success: false, message: firstError });
   }
-  next(err);
-});
-
-// Final error handler
-app.use(errorHandler);
-
-// Catch-all error handler
-app.use((err, req, res, next) => {
-  res.status(500).json({
-    success: false,
-    message: err.message || 'Server Error',
-    path: req.path
-  });
+  res.status(500).json({ success: false, message: err.message || 'Server Error' });
 });
 
 

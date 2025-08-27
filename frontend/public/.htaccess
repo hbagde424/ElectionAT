@@ -3,11 +3,10 @@
   RewriteEngine On
   
   # Handle Angular and React Routes
-#  RewriteBase /election/
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-#  RewriteRule . /election/index.html [L]
+  RewriteRule . /index.html [L]
 </IfModule>
 
 # Security Headers
