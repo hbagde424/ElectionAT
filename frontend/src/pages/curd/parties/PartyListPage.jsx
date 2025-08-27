@@ -57,19 +57,8 @@ export default function PartyListPage() {
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
-                // Map parties with user details
-                const partiesWithUsers = json.data.map(party => {
-                    const createdByUser = users.find(user => user._id === party.created_by);
-                    const updatedByUser = party.updated_by ? users.find(user => user._id === party.updated_by) : null;
-                    
-                    return {
-                        ...party,
-                        created_by: createdByUser || { username: 'N/A' },
-                        updated_by: updatedByUser || null
-                    };
-                });
-                
-                setParties(partiesWithUsers);
+                // If API already returns user objects for created_by/updated_by, use as-is
+                setParties(json.data);
                 setPageCount(json.pages);
             }
         } catch (error) {
@@ -112,7 +101,11 @@ export default function PartyListPage() {
         {
             header: '#',
             accessorKey: '_id',
-            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+               cell: ({ row, table }) => {
+                    const { pageIndex, pageSize } = table.getState().pagination;
+                    const serialNumber = pageIndex * pageSize + row.index + 1;
+                    return <Typography>{serialNumber}</Typography>;
+                }
         },
         {
             header: 'Name',

@@ -5,15 +5,45 @@ const Party = require('../models/party');
 // @access  Public
 exports.getParties = async (req, res, next) => {
   try {
-    const parties = await Party.find()
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .sort({ name: 1 });
-      
+    let { page = 1, limit = 10, search = '', all = false } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { abbreviation: { $regex: search, $options: 'i' } },
+          { symbol: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+
+    let parties, total, pages;
+    if (all === 'true') {
+      parties = await Party.find(query)
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ name: 1 });
+      total = parties.length;
+      pages = 1;
+    } else {
+      total = await Party.countDocuments(query);
+      pages = Math.ceil(total / limit);
+      parties = await Party.find(query)
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username')
+        .sort({ name: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
+    }
+
     res.status(200).json({
       success: true,
       count: parties.length,
-      data: parties
+      data: parties,
+      pages
     });
   } catch (err) {
     next(err);
