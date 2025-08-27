@@ -144,7 +144,6 @@ if (process.env.NODE_ENV === "development") {
 apiRouter.use('/candidates', candidateRoutes); // Enabled for frontend data fetching
 apiRouter.use('/auth', authRoutes);
 // app.use('/api/roles', roleRoutes);
-apiRouter.use('/auth', authRoutes);
 // apiRouter.use('/roles', roleRoutes);
 // apiRouter.use('/role-permissions', rolePermissionRoutes);
 // apiRouter.use('/permissions', permissionRoutes);
