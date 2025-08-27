@@ -11,28 +11,6 @@ const connectDB = require("./config/db");
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
 
-// Debug route registration
-const debugRoutes = (app) => {
-  function print(path, layer) {
-    if (layer.route) {
-      layer.route.stack.forEach(print.bind(null, path.concat(split(layer.route.path))));
-    } else if (layer.name === 'router' && layer.handle.stack) {
-      layer.handle.stack.forEach(print.bind(null, path.concat(split(layer.regexp))));
-    }
-  }
-
-  function split(thing) {
-    if (typeof thing === 'string') return thing.split('/');
-    if (thing.fast_slash) return '';
-    var match = thing.toString()
-      .replace('\\/?', '')
-      .replace('(?=\\/|$)', '$')
-      .match(/^\/\^((?:\\[.*+?^${}()|[\]\\\/]|[^.*+?^${}()|[\]\\\/])*)\$\//);
-    return match ? match[1].replace(/\\(.)/g, '$1').split('/') : '<complex:' + thing.toString() + '>';
-  }
-
-  app._router.stack.forEach(print.bind(null, []));
-};
 
 // Create HTTP server
 const server = http.createServer(app);

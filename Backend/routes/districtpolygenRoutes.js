@@ -185,8 +185,9 @@ router.get('/district/:district', districtPolygenController.getDistrictPolygensB
  *       500:
  *         description: Server error
  */
-router.get('/contains/:coordinates', (req, res, next) => {
-    const [lng, lat] = req.params.coordinates.split(',');
+router.get('/contains', (req, res, next) => {
+    const { coordinates } = req.query;
+    const [lng, lat] = coordinates.split(',');
     req.params.lng = lng;
     req.params.lat = lat;
     districtPolygenController.getDistrictPolygensContainingPoint(req, res, next);
