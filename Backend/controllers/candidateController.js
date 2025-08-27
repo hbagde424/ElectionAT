@@ -125,7 +125,7 @@ exports.createCandidate = async (req, res, next) => {
       const config = require('../config/config');
       // Handle file upload
       if (req.file) {
-        candidateData.photo = `${config.BASE_URL}/uploads/candidate/${req.file.filename}`;
+    candidateData.photo = `/uploads/candidate/${req.file.filename}`;
       }
 
       candidate = await Candidate.create(candidateData);
@@ -170,8 +170,7 @@ exports.updateCandidate = async (req, res, next) => {
 
     // If a new photo is uploaded
     if (req.file) {
-      const config = require('../config/config');
-      updateData.photo = `${config.BASE_URL}/uploads/candidate/${req.file.filename}`;
+      updateData.photo = `/uploads/candidate/${req.file.filename}`;
 
       // Delete old photo file if it exists
       if (candidate.photo) {
