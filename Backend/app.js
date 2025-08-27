@@ -78,6 +78,17 @@ const path = require('path');
 connectDB();
 const app = express();
 
+// Enable CORS as early as possible
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://mbnmediaconsulting.in'],
+  credentials: true
+}));
+// Handle preflight requests for all routes
+app.options('*', cors({
+  origin: ['http://localhost:3000', 'https://mbnmediaconsulting.in'],
+  credentials: true
+}));
+
 // Body parser
 app.use(express.json());
 
@@ -85,15 +96,6 @@ app.use(express.json());
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
-
-
-// Enable CORS
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://mbnmediaconsulting.in'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
 
 // Add Cache-Control headers to prevent caching
 app.use((req, res, next) => {
@@ -117,16 +119,6 @@ app.use(helmet({
 // Serve static files from uploads directory
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/uploads', (req, res, next) => {
-  const allowedOrigins = ['http://localhost:3000', 'https://mbnmediaconsulting.in'];
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-});
 
 // Add Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
