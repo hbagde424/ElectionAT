@@ -458,7 +458,7 @@ const VisitListPage = () => {
         setSelectedTheme(theme);
     };
 
-    // const defaultAvatar = 'https://ui-avatars.com/api/?name=Candidate&background=random';
+    const defaultAvatar = 'https://ui-avatars.com/api/?name=Candidate&background=random';
 
     // Fallback avatar component
     const CandidateAvatar = ({ src, size = 32 }) => {
@@ -478,11 +478,11 @@ const VisitListPage = () => {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Candidate',
@@ -650,7 +650,7 @@ const VisitListPage = () => {
                 <Grid item xs={12}>
                     <MainCard
                         title="Visit Locations Map"
-                        
+
                     >
                         <MapContainerStyled>
                             <Map
@@ -701,7 +701,7 @@ const VisitListPage = () => {
                                         <CandidateAvatar src={visit.candidate_id?.photo} size={32} />
                                     </Marker>
                                 ))}
-                                
+
 
                                 {/* Popup when a marker is clicked */}
                                 {popupInfo && (
