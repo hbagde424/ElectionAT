@@ -240,8 +240,8 @@ export default function VisitModal({
             division_id: () => !value && 'Division selection is required',
             assembly_id: () => !value && 'Assembly selection is required',
             parliament_id: () => !value && 'Parliament selection is required',
-            block_id: () => !value && 'Block selection is required',
-            booth_id: () => !value && 'Booth selection is required',
+            // block_id: () => !value && 'Block selection is required', // Made optional
+            // booth_id: () => !value && 'Booth selection is required', // Made optional
             candidate_id: () => !value && 'Candidate selection is required',
             post: () => {
                 if (!value) return 'Post is required';
@@ -309,8 +309,21 @@ export default function VisitModal({
 
             const submitData = {
                 ...formData,
-                description: typeof formData.description === 'string' ? formData.description : ''
+                description: typeof formData.description === 'string' ? formData.description : '',
+                // Convert empty strings to null for ObjectId fields
+                block_id: formData.block_id || null,
+                booth_id: formData.booth_id || null
             };
+            
+            // Remove null values to avoid sending them to backend
+            Object.keys(submitData).forEach(key => {
+                if (submitData[key] === null || submitData[key] === '') {
+                    if (key === 'block_id' || key === 'booth_id') {
+                        delete submitData[key];
+                    }
+                }
+            });
+
             const res = await fetch(url, {
                 method,
                 headers: {
@@ -423,7 +436,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.block_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
                     
@@ -436,7 +448,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.booth_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
                     
@@ -493,7 +504,8 @@ export default function VisitModal({
                                 { _id: 'announced', name: 'Announced' },
                                 { _id: 'approved', name: 'Approved' },
                                 { _id: 'in progress', name: 'In Progress' },
-                                { _id: 'complete', name: 'Complete' }
+                                { _id: 'complete', name: 'Complete' },
+                                { _id: 'N/A', name: 'N/A' }
                             ]}
                             onChange={handleChange}
                             error={errors.work_status}
@@ -548,21 +560,9 @@ export default function VisitModal({
                                 value={formData.description}
                                 onChange={handleDescriptionChange}
                                 placeholder="Enter description (optional)"
-                                style={{ minHeight: 100 }}
+                                style={{ minHeight: 200 }}
                             />
                         </Stack>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <FormTextField
-                            label="Declaration"
-                            name="declaration"
-                            value={formData.declaration}
-                            onChange={handleChange}
-                            error={errors.declaration}
-                            disabled={isSubmitting}
-                            multiline
-                            rows={3}
-                        />
                     </Grid>
                     
                     <Grid item xs={12}>
@@ -574,7 +574,7 @@ export default function VisitModal({
                             error={errors.remark}
                             disabled={isSubmitting}
                             multiline
-                            rows={3}
+                            rows={7}
                         />
                     </Grid>
                 </Grid>

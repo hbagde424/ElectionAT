@@ -278,6 +278,14 @@ exports.getVisit = async (req, res, next) => {
 // @access  Private (Admin/SuperAdmin)
 exports.createVisit = async (req, res, next) => {
   try {
+    // Clean up empty strings for ObjectId fields
+    if (req.body.block_id === '' || req.body.block_id === null) {
+      delete req.body.block_id;
+    }
+    if (req.body.booth_id === '' || req.body.booth_id === null) {
+      delete req.body.booth_id;
+    }
+
     // Verify all references exist
     const [
       state,
@@ -293,8 +301,8 @@ exports.createVisit = async (req, res, next) => {
       Division.findById(req.body.division_id),
       Assembly.findById(req.body.assembly_id),
       Parliament.findById(req.body.parliament_id),
-      Block.findById(req.body.block_id),
-      Booth.findById(req.body.booth_id),
+      req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null), // Optional
+      req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null), // Optional
       Candidate.findById(req.body.candidate_id),
       User.findById(req.user.id)
     ]);
@@ -303,8 +311,8 @@ exports.createVisit = async (req, res, next) => {
     if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
     if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
     if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
-    if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
-    if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+    if (req.body.block_id && !block) return res.status(400).json({ success: false, message: 'Block not found' });
+    if (req.body.booth_id && !booth) return res.status(400).json({ success: false, message: 'Booth not found' });
     if (!candidate) return res.status(400).json({ success: false, message: 'Candidate not found' });
     if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
@@ -352,6 +360,14 @@ exports.updateVisit = async (req, res, next) => {
       });
     }
 
+    // Clean up empty strings for ObjectId fields
+    if (req.body.block_id === '' || req.body.block_id === null) {
+      delete req.body.block_id;
+    }
+    if (req.body.booth_id === '' || req.body.booth_id === null) {
+      delete req.body.booth_id;
+    }
+
     // Verify all references exist if being updated
     const verificationPromises = [];
     if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
@@ -364,13 +380,28 @@ exports.updateVisit = async (req, res, next) => {
 
     const verificationResults = await Promise.all(verificationPromises);
 
-    for (const result of verificationResults) {
-      if (!result) {
-        return res.status(400).json({
-          success: false,
-          message: `${result.modelName} not found`
-        });
-      }
+    // Check each verification result individually (block and booth are optional)
+    let index = 0;
+    if (req.body.state_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'State not found' });
+    }
+    if (req.body.division_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
+    if (req.body.assembly_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Assembly not found' });
+    }
+    if (req.body.parliament_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
+    }
+    if (req.body.block_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Block not found' });
+    }
+    if (req.body.booth_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Booth not found' });
+    }
+    if (req.body.candidate_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Candidate not found' });
     }
 
     // Update location object if coordinates are provided

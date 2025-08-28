@@ -20,7 +20,8 @@ export default function VisitView({ data }) {
         'announced': 'default',
         'approved': 'info',
         'in progress': 'warning',
-        'complete': 'success'
+        'complete': 'success',
+        'N/A': 'default'
     };
 
     return (
@@ -134,21 +135,9 @@ export default function VisitView({ data }) {
                 </Grid>
 
                 {/* Full width fields */}
-                <Grid item xs={12}>
-                    {data.declaration && (
-                        <Box>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Declaration
-                            </Typography>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                {data.declaration}
-                            </Typography>
-                        </Box>
-                    )}
-                </Grid>
                  {/* Description Field (HTML) */}
             {data.description && (
-                <Box sx={{ mb: 2 }}>
+                <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
                     <Box
                         sx={{
@@ -156,12 +145,13 @@ export default function VisitView({ data }) {
                             borderRadius: 1,
                             p: 1,
                             bgcolor: 'background.default',
-                            maxHeight: 180,
+                            maxHeight: 400,
+                            minHeight: 150,
                             overflow: 'auto',
                         }}
                         dangerouslySetInnerHTML={{ __html: data.description }}
                     />
-                </Box>
+                </Grid>
             )}
 
                 <Grid item xs={12}>
@@ -170,9 +160,21 @@ export default function VisitView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                 Remark
                             </Typography>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                {data.remark}
-                            </Typography>
+                            <Box
+                                sx={{
+                                    border: '1px solid #eee',
+                                    borderRadius: 1,
+                                    p: 2,
+                                    bgcolor: 'background.default',
+                                    maxHeight: 300,
+                                    overflow: 'auto',
+                                    minHeight: 120
+                                }}
+                            >
+                                <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                                    {data.remark}
+                                </Typography>
+                            </Box>
                         </Box>
                     )}
                 </Grid>

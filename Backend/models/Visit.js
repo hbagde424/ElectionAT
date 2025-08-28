@@ -28,13 +28,13 @@ const visitSchema = new mongoose.Schema({
   block_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Block',
-    required: [true, 'Block reference is required'],
+    required: false, // Made optional
     index: true
   },
   booth_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booth',
-    required: [true, 'Booth reference is required'],
+    required: false, // Made optional
     index: true
   },
   candidate_id: {
@@ -54,7 +54,7 @@ const visitSchema = new mongoose.Schema({
   },
   work_status: {
     type: String,
-    enum: ['announced', 'approved', 'in progress', 'complete'],
+    enum: ['announced', 'approved', 'in progress', 'complete', 'N/A'],
     default: 'announced',
     required: [true, 'Work status is required']
   },
