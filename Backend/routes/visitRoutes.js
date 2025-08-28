@@ -410,8 +410,6 @@ router.get('/candidate/:candidateId/path', getCandidatePath);
  *         - division_id
  *         - assembly_id
  *         - parliament_id
- *         - block_id
- *         - booth_id
  *         - candidate_id
  *         - post
  *         - date
@@ -432,10 +430,10 @@ router.get('/candidate/:candidateId/path', getCandidatePath);
  *           description: Reference to Parliament
  *         block_id:
  *           type: string
- *           description: Reference to Block
+ *           description: (Optional) Reference to Block
  *         booth_id:
  *           type: string
- *           description: Reference to Booth
+ *           description: (Optional) Reference to Booth
  *         candidate_id:
  *           type: string
  *           description: Reference to Candidate

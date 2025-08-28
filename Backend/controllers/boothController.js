@@ -30,17 +30,17 @@ exports.getBooths = async (req, res, next) => {
     let matchStage = {};
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' };
-      
+
       // First, find related IDs from referenced collections that match the search
-      const [matchingBlocks, matchingAssemblies, matchingParliaments, 
-             matchingDivisions, matchingStates, matchingElectionYears] = await Promise.all([
-        Block.find({ name: searchRegex }).select('_id'),
-        Assembly.find({ name: searchRegex }).select('_id'),
-        Parliament.find({ name: searchRegex }).select('_id'),
-        Division.find({ name: searchRegex }).select('_id'),
-        State.find({ name: searchRegex }).select('_id'),
-        ElectionYear.find({ year: searchRegex }).select('_id')
-      ]);
+      const [matchingBlocks, matchingAssemblies, matchingParliaments,
+        matchingDivisions, matchingStates, matchingElectionYears] = await Promise.all([
+          Block.find({ name: searchRegex }).select('_id'),
+          Assembly.find({ name: searchRegex }).select('_id'),
+          Parliament.find({ name: searchRegex }).select('_id'),
+          Division.find({ name: searchRegex }).select('_id'),
+          State.find({ name: searchRegex }).select('_id'),
+          ElectionYear.find({ year: searchRegex }).select('_id')
+        ]);
 
       // Extract just the IDs
       const blockIds = matchingBlocks.map(b => b._id);
@@ -76,7 +76,17 @@ exports.getBooths = async (req, res, next) => {
       // Filter by parliament
       ...(req.query.parliament ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
       // Filter by division
-      ...(req.query.division ? [{ $match: { division_id: mongoose.Types.ObjectId(req.query.division) } }] : []),
+      ...(req.query.division ? [
+        (() => {
+          const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+          if (isObjectId) {
+            return { $match: { division_id: mongoose.Types.ObjectId(req.query.division) } };
+          } else {
+            // Will be replaced below after async lookup
+            return null;
+          }
+        })()
+      ].filter(Boolean) : []),
       // Filter by state
       ...(req.query.state ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
       // Filter by election year
@@ -162,7 +172,7 @@ exports.getBooths = async (req, res, next) => {
 
     // Execute aggregation
     const booths = await Booth.aggregate(aggregationPipeline);
-    
+
     // Get total count for pagination
     const countPipeline = [
       { $match: matchStage },
@@ -173,14 +183,24 @@ exports.getBooths = async (req, res, next) => {
       // Filter by parliament
       ...(req.query.parliament ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
       // Filter by division
-      ...(req.query.division ? [{ $match: { division_id: mongoose.Types.ObjectId(req.query.division) } }] : []),
+      ...(req.query.division ? [
+        (() => {
+          const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+          if (isObjectId) {
+            return { $match: { division_id: mongoose.Types.ObjectId(req.query.division) } };
+          } else {
+            // Will be replaced below after async lookup
+            return null;
+          }
+        })()
+      ].filter(Boolean) : []),
       // Filter by state
       ...(req.query.state ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
       // Filter by election year
       ...(req.query.election_year ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
       { $count: "total" }
     ];
-    
+
     const totalResult = await Booth.aggregate(countPipeline);
     const total = totalResult.length > 0 ? totalResult[0].total : 0;
 

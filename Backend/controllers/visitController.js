@@ -311,8 +311,8 @@ exports.createVisit = async (req, res, next) => {
     if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
     if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
     if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
-    if (req.body.block_id && !block) return res.status(400).json({ success: false, message: 'Block not found' });
-    if (req.body.booth_id && !booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+    // if (req.body.block_id && !block) return res.status(400).json({ success: false, message: 'Block not found' });
+    // if (req.body.booth_id && !booth) return res.status(400).json({ success: false, message: 'Booth not found' });
     if (!candidate) return res.status(400).json({ success: false, message: 'Candidate not found' });
     if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 

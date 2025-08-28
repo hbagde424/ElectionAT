@@ -43,7 +43,11 @@ exports.getDivisions = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Basic query
-    let query = Division.find();
+    let filter = {};
+    if (req.query.division) {
+      filter.name = req.query.division;
+    }
+    let query = Division.find(filter);
     query = populateDivision(query);
     query = query.sort({ name: 1 });
 

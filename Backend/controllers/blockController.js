@@ -60,7 +60,25 @@ exports.getBlocks = async (req, res, next) => {
 
     // Filter by division
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by state
@@ -76,13 +94,27 @@ exports.getBlocks = async (req, res, next) => {
     const blocks = await query.skip(skip).limit(limit).exec();
     const total = await Block.countDocuments(query.getFilter());
 
+    // Add division_name as a top-level property for each block
+    const blocksWithDivisionName = await Promise.all(blocks.map(async (block) => {
+      const blockObj = block.toObject();
+      if (blockObj.division_id && typeof blockObj.division_id === 'object') {
+        blockObj.division_name = blockObj.division_id.name;
+      } else if (blockObj.division_id) {
+        // If not populated, fetch division
+        const division = await Division.findById(blockObj.division_id);
+        blockObj.division_name = division ? division.name : null;
+      } else {
+        blockObj.division_name = null;
+      }
+      return blockObj;
+    }));
     res.status(200).json({
       success: true,
-      count: blocks.length,
+      count: blocksWithDivisionName.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: blocks
+      data: blocksWithDivisionName
     });
   } catch (err) {
     next(err);

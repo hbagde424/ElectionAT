@@ -53,9 +53,28 @@ exports.getAssemblyVotes = async (req, res, next) => {
       query = query.where('parliament_id').equals(req.query.parliament);
     }
 
-    // Filter by division
+    // Filter by division (support both ObjectId and name)
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      // If it's a valid ObjectId, use as is; otherwise, look up by name
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by block

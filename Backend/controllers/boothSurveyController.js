@@ -24,10 +24,12 @@ exports.getBoothSurveys = async (req, res, next) => {
       const mongoose = require('mongoose');
       // Find referenced IDs for string fields in related collections
       const [boothIds, surveyorIds, stateIds, divisionIds, parliamentIds, assemblyIds, blockIds] = await Promise.all([
-        Booth.find({ $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { booth_number: { $regex: search, $options: 'i' } }
-        ] }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        Booth.find({
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { booth_number: { $regex: search, $options: 'i' } }
+          ]
+        }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
         User.find({ email: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
         State.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
         Division.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
@@ -57,8 +59,26 @@ exports.getBoothSurveys = async (req, res, next) => {
     if (req.query.state_id) {
       filter.state_id = req.query.state_id;
     }
-    if (req.query.division_id) {
-      filter.division_id = req.query.division_id;
+    if (req.query.division) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        filter.division_id = req.query.division;
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          filter.division_id = divisionDoc._id;
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
     if (req.query.parliament_id) {
       filter.parliament_id = req.query.parliament_id;

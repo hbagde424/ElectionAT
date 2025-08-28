@@ -20,25 +20,25 @@ exports.getBoothVotes = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Basic query
-      let query = BoothVotes.find()
-        .populate({
-          path: 'candidate',
-          select: 'name party_id',
-          populate: {
-            path: 'party_id',
-            select: 'name abbreviation'
-          }
-        })
-        .populate('state', 'name')
-        .populate('division', 'name')
-        .populate('parliament', 'name')
-        .populate('assembly', 'name')
-        .populate('block', 'name')
-        .populate('booth', 'name booth_number')
-        .populate('election_year', 'year')
-        .populate('created_by', 'username')
-        .populate('updated_by', 'username')
-        .sort({ total_votes: -1 });
+    let query = BoothVotes.find()
+      .populate({
+        path: 'candidate',
+        select: 'name party_id',
+        populate: {
+          path: 'party_id',
+          select: 'name abbreviation'
+        }
+      })
+      .populate('state', 'name')
+      .populate('division', 'name')
+      .populate('parliament', 'name')
+      .populate('assembly', 'name')
+      .populate('block', 'name')
+      .populate('booth', 'name booth_number')
+      .populate('election_year', 'year')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+      .sort({ total_votes: -1 });
 
     // Filter by candidate
     if (req.query.candidate) {
@@ -52,7 +52,25 @@ exports.getBoothVotes = async (req, res, next) => {
 
     // Filter by division
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by parliament
@@ -100,13 +118,28 @@ exports.getBoothVotes = async (req, res, next) => {
     const votes = await query.skip(skip).limit(limit).exec();
     const total = await BoothVotes.countDocuments(query.getFilter());
 
+    // Populate division info for each booth vote
+    const populatedVotes = await Promise.all(votes.map(async (bv) => {
+      const bvObj = bv.toObject();
+      if (bv.division_id) {
+        const division = await Division.findById(bv.division_id);
+        bvObj.division = division ? {
+          _id: division._id,
+          name: division.name,
+          division_code: division.division_code,
+          description: division.description
+        } : null;
+      }
+      return bvObj;
+    }));
+
     res.status(200).json({
       success: true,
-      count: votes.length,
+      count: populatedVotes.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: votes
+      data: populatedVotes
     });
   } catch (err) {
     next(err);

@@ -61,7 +61,25 @@ exports.getParliaments = async (req, res, next) => {
 
     // Filter by division
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     const parliaments = await query.skip(skip).limit(limit).exec();

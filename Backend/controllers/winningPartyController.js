@@ -72,6 +72,7 @@ exports.getWinningPartysForGraph = async (req, res, next) => {
 // @desc    Get all winning party records
 // @route   GET /api/winning-parties
 // @access  Public
+const { getStateIdByName } = require('../utils/stateUtils');
 exports.getWinningParties = async (req, res, next) => {
   try {
     // Pagination
@@ -114,9 +115,22 @@ exports.getWinningParties = async (req, res, next) => {
       query = query.where('parliament_id').equals(req.query.parliament);
     }
 
-    // Filter by state
+    // Filter by state (ObjectId or name)
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      const stateParam = req.query.state;
+      // If it's a valid ObjectId, use directly, else try to resolve by name
+      if (/^[0-9a-fA-F]{24}$/.test(stateParam)) {
+        query = query.where('state_id').equals(stateParam);
+      } else {
+        const stateId = await getStateIdByName(stateParam);
+        if (!stateId) {
+          return res.status(404).json({
+            success: false,
+            message: `State not found for name: ${stateParam}`
+          });
+        }
+        query = query.where('state_id').equals(stateId);
+      }
     }
 
     // Filter by division
