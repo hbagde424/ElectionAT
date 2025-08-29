@@ -8,10 +8,11 @@ const { specs, swaggerUi } = require('./config/swagger');
 const utilsRoutes = require("./routes/utilsRoutes");
 // Route files
 const authRoutes = require('./routes/authRoutes');
-//const roleRoutes = require('./routes/roleRoutes');
-//const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
-//const permissionRoutes = require('./routes/permissionRoutes');
-//const userRoleRoutes = require('./routes/userRoleRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+const permissionRoutes = require('./routes/permissionRoutes');
+const userRoleRoutes = require('./routes/userRoleRoutes');
+const rbacRoutes = require('./routes/rbacRoutes');
 const mapRoutes = require('./routes/mapRoutes');
 const districtPolygonRoutes = require('./routes/districtpolygenRoutes');
 const divisionPolygonRoutes = require('./routes/divisionpolygenRoutes');
@@ -143,11 +144,11 @@ if (process.env.NODE_ENV === "development") {
 // Mount routers on the apiRouter (without /api prefix)
 apiRouter.use('/candidates', candidateRoutes); // Enabled for frontend data fetching
 apiRouter.use('/auth', authRoutes);
-// app.use('/api/roles', roleRoutes);
-// apiRouter.use('/roles', roleRoutes);
-// apiRouter.use('/role-permissions', rolePermissionRoutes);
-// apiRouter.use('/permissions', permissionRoutes);
-// apiRouter.use('/user-roles', userRoleRoutes);
+apiRouter.use('/roles', roleRoutes);
+apiRouter.use('/role-permissions', rolePermissionRoutes);
+apiRouter.use('/permissions', permissionRoutes);
+apiRouter.use('/user-roles', userRoleRoutes);
+apiRouter.use('/rbac', rbacRoutes);
 apiRouter.use('/map', mapRoutes);
 apiRouter.use('/district-polygons', districtPolygonRoutes);
 apiRouter.use('/division-polygons', divisionPolygonRoutes);

@@ -8,9 +8,21 @@ const {
   getUser,
   updateUser,
   deleteUser,
-  toggleActive
+  toggleActive,
+  getUserPermissions,
+  getDashboard,
+  getDashboardStats,
+  assignRole,
+  removeRole,
+  getUserRoles,
+  initRBAC
 } = require('../controllers/userController');
-const { protect, authorize } = require('../middlewares/auth');
+const { 
+  getRBACMetrics, 
+  getRolePermissionMatrix, 
+  getUserAccessReport 
+} = require('../controllers/rbacMetricsController');
+const { protect, authorize, requirePermission, requireRole, requireSuperAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -310,6 +322,472 @@ router.delete('/:id', protect, authorize('superAdmin', 'Admin'), deleteUser);
  *         description: User not found
  */
 router.put('/:id/toggle-active', protect, authorize('superAdmin', 'Admin'), toggleActive);
+
+// RBAC Routes
+
+/**
+ * @swagger
+ * /api/users/dashboard:
+ *   get:
+ *     summary: Get user dashboard data with roles and permissions
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data with user permissions and accessible scopes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         username:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         mobile:
+ *                           type: string
+ *                     roles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           role:
+ *                             type: string
+ *                           scope:
+ *                             type: string
+ *                     permissions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     accessibleScopes:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/dashboard', protect, getDashboard);
+
+/**
+ * @swagger
+ * /api/users/stats:
+ *   get:
+ *     summary: Get system statistics (for API connection testing)
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: System statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalUsers:
+ *                       type: number
+ *                     totalRoles:
+ *                       type: number
+ *                     totalPermissions:
+ *                       type: number
+ *                     activeUsers:
+ *                       type: number
+ *                     systemStatus:
+ *                       type: string
+ */
+router.get('/stats', getDashboardStats);
+
+/**
+ * @swagger
+ * /api/users/{id}/permissions:
+ *   get:
+ *     summary: Get user permissions
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     permissions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     rolePermissions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     roles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User not found
+ */
+router.get('/:id/permissions', protect, getUserPermissions);
+
+/**
+ * @swagger
+ * /api/users/{id}/roles:
+ *   get:
+ *     summary: Get user roles
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User roles with scope information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       role:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                       scope:
+ *                         type: object
+ *                         properties:
+ *                           type:
+ *                             type: string
+ *                           id:
+ *                             type: string
+ *                           details:
+ *                             type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User not found
+ */
+router.get('/:id/roles', protect, getUserRoles);
+
+/**
+ * @swagger
+ * /api/users/{id}/assign-role:
+ *   post:
+ *     summary: Assign role to user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roleId:
+ *                 type: string
+ *                 description: Role ID to assign
+ *               scopeType:
+ *                 type: string
+ *                 enum: [State, Division, Assembly, Parliament, Block, Booth]
+ *                 description: Scope type for the role
+ *               scopeId:
+ *                 type: string
+ *                 description: Scope ID for the role
+ *             required:
+ *               - roleId
+ *               - scopeType
+ *               - scopeId
+ *     responses:
+ *       200:
+ *         description: Role assigned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid input or role already assigned
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User or role not found
+ */
+router.post('/:id/assign-role', protect, requirePermission('user.update'), assignRole);
+
+/**
+ * @swagger
+ * /api/users/{id}/remove-role:
+ *   delete:
+ *     summary: Remove role from user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roleId:
+ *                 type: string
+ *                 description: Role ID to remove
+ *               scopeType:
+ *                 type: string
+ *                 enum: [State, Division, Assembly, Parliament, Block, Booth]
+ *                 description: Scope type for the role
+ *               scopeId:
+ *                 type: string
+ *                 description: Scope ID for the role
+ *             required:
+ *               - roleId
+ *               - scopeType
+ *               - scopeId
+ *     responses:
+ *       200:
+ *         description: Role removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Role assignment not found
+ */
+router.delete('/:id/remove-role', protect, requirePermission('user.update'), removeRole);
+
+/**
+ * @swagger
+ * /api/users/init-rbac:
+ *   post:
+ *     summary: Initialize RBAC system (SuperAdmin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: RBAC system initialized successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied - SuperAdmin role required
+ */
+router.post('/init-rbac', protect, requireSuperAdmin, initRBAC);
+
+// Metrics and Analytics Routes
+
+/**
+ * @swagger
+ * /api/users/rbac-metrics:
+ *   get:
+ *     summary: Get RBAC system metrics and analytics
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: RBAC metrics data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overview:
+ *                       type: object
+ *                       properties:
+ *                         totalUsers:
+ *                           type: number
+ *                         totalRoles:
+ *                           type: number
+ *                         totalPermissions:
+ *                           type: number
+ *                         totalRoleAssignments:
+ *                           type: number
+ *                         inactiveUsersCount:
+ *                           type: number
+ *                     distributions:
+ *                       type: object
+ *                     analytics:
+ *                       type: object
+ *                     recent:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
+router.get('/rbac-metrics', protect, requirePermission('system.admin'), getRBACMetrics);
+
+/**
+ * @swagger
+ * /api/users/role-permission-matrix:
+ *   get:
+ *     summary: Get role-permission matrix
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Role-permission matrix
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     roles:
+ *                       type: number
+ *                     permissions:
+ *                       type: number
+ *                     matrix:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
+router.get('/role-permission-matrix', protect, requirePermission('system.admin'), getRolePermissionMatrix);
+
+/**
+ * @swagger
+ * /api/users/{userId}/access-report:
+ *   get:
+ *     summary: Get detailed access report for a user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User access report
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                     roles:
+ *                       type: array
+ *                     permissions:
+ *                       type: object
+ *                     summary:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User not found
+ */
+router.get('/:userId/access-report', protect, requirePermission('user.read'), getUserAccessReport);
 
 /**
  * @swagger

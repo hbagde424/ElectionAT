@@ -101,4 +101,53 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+// Method to get user permissions
+userSchema.methods.getPermissions = async function() {
+  const UserRole = require('./UserRole');
+  const RolePermission = require('./RolePermission');
+  
+  // Get all user roles
+  const userRoles = await UserRole.find({ user: this._id }).populate('role');
+  
+  // Get all permissions for these roles
+  const roleIds = userRoles.map(ur => ur.role._id);
+  const rolePermissions = await RolePermission.find({ 
+    role: { $in: roleIds } 
+  }).populate('permission');
+  
+  // Extract unique permissions
+  const permissions = [...new Set(rolePermissions.map(rp => rp.permission.name))];
+  
+  return {
+    permissions,
+    rolePermissions: rolePermissions.map(rp => ({
+      permission: rp.permission.name,
+      role: userRoles.find(ur => ur.role._id.toString() === rp.role.toString())?.role?.name,
+      level: rp.permission.level
+    }))
+  };
+};
+
+// Method to check if user has specific permission
+userSchema.methods.hasPermission = async function(permissionName, level = null) {
+  const userPermissions = await this.getPermissions();
+  
+  if (level) {
+    return userPermissions.rolePermissions.some(rp => 
+      rp.permission === permissionName && rp.level === level
+    );
+  }
+  
+  return userPermissions.permissions.includes(permissionName);
+};
+
+// Method to get user roles with scope
+userSchema.methods.getUserRoles = async function() {
+  const UserRole = require('./UserRole');
+  
+  return await UserRole.find({ user: this._id })
+    .populate('role')
+    .populate('scope_id');
+};
+
 module.exports = mongoose.model('User', userSchema);

@@ -5,6 +5,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import MainRoutes from './MainRoutes';
 import LoginRoutes from './LoginRoutes';
 import ComponentsRoutes from './ComponentsRoutes';
+import RBACRoutes from './RBACRoutes';
 import { Navigate } from 'react-router-dom';
 
 import { SimpleLayoutType } from 'config';
@@ -30,6 +31,7 @@ const router = createBrowserRouter(
     },
     LoginRoutes,
     ComponentsRoutes,
+    RBACRoutes,
     MainRoutes
   ],
   { basename: '/election' }

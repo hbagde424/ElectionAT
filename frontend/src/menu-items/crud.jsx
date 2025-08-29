@@ -338,6 +338,43 @@ const CRUDMenu = {
       type: 'item',
       url: '/assign-role-to-user',
       icon: icons.User,
+    },
+    // RBAC System Menu Items
+    {
+      id: 'rbac-system',
+      title: <FormattedMessage id="RBAC System" defaultMessage="RBAC System" />,
+      type: 'collapse',
+      icon: icons.Shield,
+      children: [
+        {
+          id: 'rbac-dashboard',
+          title: <FormattedMessage id="RBAC Dashboard" defaultMessage="RBAC Dashboard" />,
+          type: 'item',
+          url: '/rbac/dashboard',
+          icon: icons.ChartSquare,
+        },
+        {
+          id: 'rbac-users',
+          title: <FormattedMessage id="User Management" defaultMessage="User Management" />,
+          type: 'item',
+          url: '/rbac/users',
+          icon: icons.People,
+        },
+        {
+          id: 'rbac-roles',
+          title: <FormattedMessage id="Role Management" defaultMessage="Role Management" />,
+          type: 'item',
+          url: '/rbac/roles',
+          icon: icons.SecurityUser,
+        },
+        {
+          id: 'rbac-login',
+          title: <FormattedMessage id="RBAC Login" defaultMessage="RBAC Login" />,
+          type: 'item',
+          url: '/rbac/login',
+          icon: icons.User,
+        }
+      ]
     }
   ]
 };

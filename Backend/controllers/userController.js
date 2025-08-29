@@ -7,6 +7,10 @@ const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
 const Assembly = require('../models/Assembly');
 const Booth = require('../models/booth');
+const RBACService = require('../utils/rbac');
+const UserRole = require('../models/UserRole');
+const Role = require('../models/Role');
+const Permission = require('../models/Permission');
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -438,6 +442,293 @@ exports.toggleActive = async (req, res, next) => {
         id: user._id,
         isActive: user.isActive
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// RBAC Related Functions
+
+// @desc    Get user permissions
+// @route   GET /api/users/:id/permissions
+// @access  Private
+exports.getUserPermissions = async (req, res, next) => {
+  try {
+    const userId = req.params.id || req.user.id;
+    
+    // Check if user can view this data
+    if (userId !== req.user.id && !await req.user.hasPermission('user.read')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const permissions = await user.getPermissions();
+    const userRoles = await user.getUserRoles();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        userId: user._id,
+        username: user.username,
+        permissions: permissions.permissions,
+        rolePermissions: permissions.rolePermissions,
+        roles: userRoles.map(ur => ({
+          role: ur.role.name,
+          scope: `${ur.scope_type}:${ur.scope_id}`
+        }))
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get user dashboard data
+// @route   GET /api/users/dashboard
+// @access  Private
+exports.getDashboard = async (req, res, next) => {
+  try {
+    // Get basic dashboard data
+    const dashboardData = await RBACService.getUserDashboardData(req.user.id);
+    
+    // Get additional stats for dashboard
+    const [totalUsers, totalRoles, totalPermissions, activeUsers] = await Promise.all([
+      User.countDocuments(),
+      Role.countDocuments(),
+      Permission.countDocuments(),
+      User.countDocuments({ isActive: true })
+    ]);
+
+    const stats = {
+      totalUsers,
+      totalRoles,
+      totalPermissions,
+      activeUsers,
+      inactiveUsers: totalUsers - activeUsers
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...dashboardData,
+        stats
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get dashboard stats (public endpoint for testing API connection)
+// @route   GET /api/users/stats
+// @access  Public (for API connection testing)
+exports.getDashboardStats = async (req, res, next) => {
+  try {
+    const [totalUsers, totalRoles, totalPermissions, activeUsers] = await Promise.all([
+      User.countDocuments(),
+      Role.countDocuments(),
+      Permission.countDocuments(),
+      User.countDocuments({ isActive: true })
+    ]);
+
+    const stats = {
+      totalUsers,
+      totalRoles,
+      totalPermissions,
+      activeUsers,
+      inactiveUsers: totalUsers - activeUsers,
+      systemStatus: 'operational'
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get stats'
+    });
+  }
+};
+
+// @desc    Assign role to user
+// @route   POST /api/users/:id/assign-role
+// @access  Private (Admin/SuperAdmin)
+exports.assignRole = async (req, res, next) => {
+  try {
+    const { roleId, scopeType, scopeId } = req.body;
+    const userId = req.params.id;
+
+    // Check if user has permission to assign roles
+    if (!await req.user.hasPermission('user.update')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Cannot assign roles.'
+      });
+    }
+
+    const user = await User.findById(userId);
+    const role = await Role.findById(roleId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        message: 'Role not found'
+      });
+    }
+
+    // Check if assignment already exists
+    const existingAssignment = await UserRole.findOne({
+      user: userId,
+      role: roleId,
+      scope_type: scopeType,
+      scope_id: scopeId
+    });
+
+    if (existingAssignment) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already has this role for this scope'
+      });
+    }
+
+    await RBACService.assignRoleToUser(userId, role.name, scopeType, scopeId);
+
+    res.status(200).json({
+      success: true,
+      message: `Role ${role.name} assigned to user successfully`
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Remove role from user
+// @route   DELETE /api/users/:id/remove-role
+// @access  Private (Admin/SuperAdmin)
+exports.removeRole = async (req, res, next) => {
+  try {
+    const { roleId, scopeType, scopeId } = req.body;
+    const userId = req.params.id;
+
+    // Check if user has permission to modify roles
+    if (!await req.user.hasPermission('user.update')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Cannot remove roles.'
+      });
+    }
+
+    const assignment = await UserRole.findOneAndDelete({
+      user: userId,
+      role: roleId,
+      scope_type: scopeType,
+      scope_id: scopeId
+    });
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Role assignment not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Role removed from user successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get user roles
+// @route   GET /api/users/:id/roles
+// @access  Private
+exports.getUserRoles = async (req, res, next) => {
+  try {
+    const userId = req.params.id || req.user.id;
+    
+    // Check if user can view this data
+    if (userId !== req.user.id && !await req.user.hasPermission('user.read')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userRoles = await user.getUserRoles();
+
+    res.status(200).json({
+      success: true,
+      data: userRoles.map(ur => ({
+        id: ur._id,
+        role: {
+          id: ur.role._id,
+          name: ur.role.name,
+          description: ur.role.description
+        },
+        scope: {
+          type: ur.scope_type,
+          id: ur.scope_id,
+          details: ur.scope_id // This will be populated with actual scope details
+        }
+      }))
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Initialize RBAC system
+// @route   POST /api/users/init-rbac
+// @access  Private (SuperAdmin only)
+exports.initRBAC = async (req, res, next) => {
+  try {
+    // Check if user is SuperAdmin
+    const userRoles = await req.user.getUserRoles();
+    const isSuperAdmin = userRoles.some(ur => ur.role.name === 'SuperAdmin');
+    
+    if (!isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. SuperAdmin role required.'
+      });
+    }
+
+    await RBACService.initializeDefaultData();
+    await RBACService.setupDefaultRolePermissions();
+
+    res.status(200).json({
+      success: true,
+      message: 'RBAC system initialized successfully'
     });
   } catch (err) {
     next(err);
