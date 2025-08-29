@@ -22,6 +22,7 @@ export default function AssemblyModal({
 
     const [formData, setFormData] = useState({
         name: '',
+        AC_NO: '',
         description: '',
         type: 'Urban',
         category: 'General',
@@ -42,6 +43,7 @@ export default function AssemblyModal({
         if (assembly) {
             setFormData({
                 name: assembly.name || '',
+                AC_NO: assembly.AC_NO || '',
                 description: assembly.description || '',
                 type: assembly.type || 'Urban',
                 category: assembly.category || 'General',
@@ -52,6 +54,7 @@ export default function AssemblyModal({
         } else {
             setFormData({
                 name: '',
+                AC_NO: '',
                 description: '',
                 type: 'Urban',
                 category: 'General',
@@ -65,7 +68,15 @@ export default function AssemblyModal({
     // State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            if (formData.division_id && !divisions.find(d => d._id === formData.division_id)) {
+            // Filter divisions for selected state
+            const filtered = divisions?.filter(div => {
+                const divStateId = div.state_id?._id || div.state_id;
+                return divStateId === formData.state_id;
+            }) || [];
+            setFilteredDivisions(filtered);
+
+            // If selected division is not in filtered, reset
+            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
                 setFormData(prev => ({
                     ...prev,
                     division_id: '',
@@ -121,7 +132,7 @@ export default function AssemblyModal({
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation
-        const requiredFields = ['name', 'type', 'category', 'state_id', 'division_id', 'parliament_id'];
+        const requiredFields = ['name', 'AC_NO', 'type', 'category', 'state_id', 'division_id', 'parliament_id'];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -166,7 +177,7 @@ export default function AssemblyModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit assembly:', errorData);
-                alert('Failed to save assembly. Please check the form data.');
+                alert(errorData?.message || 'Failed to save assembly. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting assembly:', error);
@@ -179,8 +190,8 @@ export default function AssemblyModal({
             <DialogTitle>{assembly ? 'Edit Assembly' : 'Add Assembly'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {/* Row 1: Name */}
-                    <Grid item xs={12}>
+                    {/* Row 1: Name and AC_NO */}
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Assembly Name</InputLabel>
                             <TextField
@@ -192,6 +203,21 @@ export default function AssemblyModal({
                                 error={submitted && !formData.name}
                                 helperText={submitted && !formData.name ? 'Assembly name is required' : ''}
                                 placeholder="Enter assembly name"
+                            />
+                        </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Assembly AC_NO</InputLabel>
+                            <TextField
+                                name="AC_NO"
+                                value={formData.AC_NO}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.AC_NO}
+                                helperText={submitted && !formData.AC_NO ? 'AC_NO is required' : ''}
+                                placeholder="Enter assembly AC_NO"
                             />
                         </Stack>
                     </Grid>

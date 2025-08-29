@@ -58,8 +58,10 @@ export default function BoothVotesListPage() {
     candidate: '',
     booth: '',
     assembly: '',
-    party: ''
+    party: '',
+    party_name: ''
   });
+  const [selectedPartyName, setSelectedPartyName] = useState('');
 
   const fetchVotes = async (pageIndex, pageSize) => {
     setLoading(true);
@@ -69,6 +71,7 @@ export default function BoothVotesListPage() {
       if (selectedBooth) url += `&booth=${selectedBooth}`;
       if (selectedAssembly) url += `&assembly=${selectedAssembly}`;
       if (selectedParty) url += `&party=${selectedParty}`;
+      if (selectedPartyName) url += `&party_name=${encodeURIComponent(selectedPartyName)}`;
 
       const res = await fetch(url);
       const json = await res.json();
@@ -195,11 +198,11 @@ export default function BoothVotesListPage() {
     {
       header: '#',
       accessorKey: '_id',
-         cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+      cell: ({ row, table }) => {
+        const { pageIndex, pageSize } = table.getState().pagination;
+        const serialNumber = pageIndex * pageSize + row.index + 1;
+        return <Typography>{serialNumber}</Typography>;
+      }
     },
     {
       header: 'Candidate',
@@ -477,6 +480,14 @@ export default function BoothVotesListPage() {
             sx={{ minWidth: 180 }}
             size="small"
           >
+            <TextField
+              label="Candidate Party Name"
+              value={tempFilters.party_name}
+              onChange={(e) => setTempFilters((prev) => ({ ...prev, party_name: e.target.value }))}
+              sx={{ minWidth: 180 }}
+              size="small"
+              placeholder="Enter party name"
+            />
             <MenuItem value="">All Parties</MenuItem>
             {parties.map((party) => (
               <MenuItem key={party._id} value={party._id}>
@@ -493,6 +504,7 @@ export default function BoothVotesListPage() {
               setSelectedBooth(tempFilters.booth);
               setSelectedAssembly(tempFilters.assembly);
               setSelectedParty(tempFilters.party);
+              setSelectedPartyName(tempFilters.party_name);
               setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }}
           >
@@ -507,11 +519,13 @@ export default function BoothVotesListPage() {
                 booth: "",
                 assembly: "",
                 party: "",
+                party_name: ""
               });
               setSelectedCandidate("");
               setSelectedBooth("");
               setSelectedAssembly("");
               setSelectedParty("");
+              setSelectedPartyName("");
               setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }}
           >

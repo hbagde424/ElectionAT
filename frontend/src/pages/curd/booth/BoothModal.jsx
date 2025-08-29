@@ -192,7 +192,7 @@ export default function BoothModal({
         }));
     };
 
-     
+
 
     const handleSubmit = async () => {
         setSubmitted(true);
@@ -225,7 +225,7 @@ export default function BoothModal({
             }
         }
 
-        const userTracking = booth ? { updated_by: userId } : { created_by: userId };
+        const userTracking = booth ? { updated_by: String(userId) } : { created_by: String(userId) };
         // Always send description, even if unchanged or empty
         const submitData = {
             ...formData,
@@ -234,7 +234,11 @@ export default function BoothModal({
             longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
             description: typeof formData.description === 'string' ? formData.description : ''
         };
-
+        // Remove undefined lat/lng so backend doesn't get undefined
+        if (!submitData.latitude && submitData.latitude !== 0) delete submitData.latitude;
+        if (!submitData.longitude && submitData.longitude !== 0) delete submitData.longitude;
+        console.log('Submitting booth:', submitData);
+        console.log('Token:', token);
         try {
             const res = await fetch(url, {
                 method,
@@ -251,7 +255,7 @@ export default function BoothModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit booth:', errorData);
-                alert('Failed to save booth. Please check the form data.');
+                alert(errorData?.message || 'Failed to save booth. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting booth:', error);
@@ -486,7 +490,7 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-<Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Election Year</InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.election_year}>

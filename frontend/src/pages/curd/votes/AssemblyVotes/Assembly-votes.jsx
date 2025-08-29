@@ -174,11 +174,11 @@ export default function AssemblyVotesListPage() {
     {
       header: '#',
       accessorKey: '_id',
-         cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+      cell: ({ row, table }) => {
+        const { pageIndex, pageSize } = table.getState().pagination;
+        const serialNumber = pageIndex * pageSize + row.index + 1;
+        return <Typography>{serialNumber}</Typography>;
+      }
     },
     {
       header: 'Candidate',
@@ -422,7 +422,7 @@ export default function AssemblyVotesListPage() {
             >
               <MenuItem value="">All Divisions</MenuItem>
               {divisions
-                .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+                .filter(division => !filters.state_id || String(division.state_id?._id || division.state_id) === String(filters.state_id))
                 .map((division) => (
                   <MenuItem key={division._id} value={division._id}>
                     {division.name}
@@ -447,7 +447,7 @@ export default function AssemblyVotesListPage() {
             >
               <MenuItem value="">All Parliaments</MenuItem>
               {parliaments
-                .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+                .filter(parliament => !filters.division_id || String(parliament.division_id?._id || parliament.division_id) === String(filters.division_id))
                 .map((parliament) => (
                   <MenuItem key={parliament._id} value={parliament._id}>
                     {parliament.name}
@@ -466,7 +466,7 @@ export default function AssemblyVotesListPage() {
             >
               <MenuItem value="">All Assemblies</MenuItem>
               {assemblies
-                .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
+                .filter(assembly => !filters.parliament_id || String(assembly.parliament_id?._id || assembly.parliament_id) === String(filters.parliament_id))
                 .map((assembly) => (
                   <MenuItem key={assembly._id} value={assembly._id}>
                     {assembly.name}

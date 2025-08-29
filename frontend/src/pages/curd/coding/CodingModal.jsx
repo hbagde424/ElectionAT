@@ -1,3 +1,7 @@
+const codingTypes = [
+    'BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM',
+    'वरिष्ठ', 'युवा', 'वोटर प्रभारी'
+];
 // codingModal.js
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
@@ -9,10 +13,6 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
-const codingTypes = [
-    'BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 
-    'वरिष्ठ', 'युवा', 'वोटर प्रभारी'
-];
 
 export default function CodingModal({
     open,
@@ -28,6 +28,9 @@ export default function CodingModal({
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
+
+
+    // Validate mobile and WhatsApp number fields
 
     const [formData, setFormData] = useState({
         name: '',
@@ -46,7 +49,13 @@ export default function CodingModal({
         block_id: '',
         booth_id: ''
     });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
     const [submitted, setSubmitted] = useState(false);
+    const [backendError, setBackendError] = useState('');
 
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
@@ -241,13 +250,7 @@ export default function CodingModal({
         }
     }, [formData.block_id, booths]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value
-        }));
-    };
+    // Remove duplicate handleChange definition if present
 
     const handleCodingTypeChange = (type) => {
         setFormData(prev => {
@@ -263,14 +266,15 @@ export default function CodingModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        
+        setBackendError('');
+
         // Validation
         const requiredFields = [
-            'name', 'mobile', 'coding_types', 
-            'state_id', 'division_id', 'parliament_id', 
+            'name', 'mobile', 'coding_types',
+            'state_id', 'division_id', 'parliament_id',
             'assembly_id', 'block_id', 'booth_id'
         ];
-        
+
         for (const field of requiredFields) {
             if (!formData[field] || (field === 'coding_types' && formData[field].length === 0)) {
                 return;
@@ -313,13 +317,27 @@ export default function CodingModal({
                 modalToggler(false);
                 refresh();
             } else {
-                const errorData = await res.json();
-                console.error('Failed to submit coding entry:', errorData);
-                alert('Failed to save coding entry. Please check the form data.');
+                // Always try to show the API error message if present
+                let errorMsg = 'Failed to save coding entry. Please check the form data.';
+                try {
+                    const errorData = await res.json();
+                    if (errorData && (errorData.message || errorData.error)) {
+                        errorMsg = errorData.message || errorData.error;
+                    } else {
+                        errorMsg = JSON.stringify(errorData);
+                    }
+                    console.error('Failed to submit coding entry:', errorData);
+                } catch (jsonErr) {
+                    // If not JSON, try to get raw text
+                    const rawText = await res.text();
+                    errorMsg = rawText || errorMsg;
+                    console.error('Failed to parse error as JSON. Raw response:', rawText);
+                }
+                setBackendError(errorMsg);
             }
         } catch (error) {
             console.error('Error submitting coding entry:', error);
-            alert('An error occurred while saving the coding entry.');
+            setBackendError('An error occurred while saving the coding entry.');
         }
     };
 
@@ -327,6 +345,9 @@ export default function CodingModal({
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{codingEntry ? 'Edit Coding Entry' : 'Add Coding Entry'}</DialogTitle>
             <DialogContent>
+                {backendError && (
+                    <Box sx={{ color: 'error.main', mb: 2, fontWeight: 500 }}>{backendError}</Box>
+                )}
                 <Grid container spacing={3} mt={1}>
                     {/* Row 1: Name and Mobile */}
                     <Grid item xs={12} sm={6}>

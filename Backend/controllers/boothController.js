@@ -66,31 +66,26 @@ exports.getBooths = async (req, res, next) => {
       };
     }
 
+    // Helper to validate ObjectId
+    const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
+
     // Build the aggregation pipeline
     const aggregationPipeline = [
       { $match: matchStage },
       // Filter by block
-      ...(req.query.block ? [{ $match: { block_id: mongoose.Types.ObjectId(req.query.block) } }] : []),
+      ...(req.query.block && isValidObjectId(req.query.block) ? [{ $match: { block_id: mongoose.Types.ObjectId(req.query.block) } }] : []),
       // Filter by assembly
-      ...(req.query.assembly ? [{ $match: { assembly_id: mongoose.Types.ObjectId(req.query.assembly) } }] : []),
+      ...(req.query.assembly && isValidObjectId(req.query.assembly) ? [{ $match: { assembly_id: mongoose.Types.ObjectId(req.query.assembly) } }] : []),
       // Filter by parliament
-      ...(req.query.parliament ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
+      ...(req.query.parliament && isValidObjectId(req.query.parliament) ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
       // Filter by division
-      ...(req.query.division ? [
-        (() => {
-          const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
-          if (isObjectId) {
-            return { $match: { division_id: mongoose.Types.ObjectId(req.query.division) } };
-          } else {
-            // Will be replaced below after async lookup
-            return null;
-          }
-        })()
-      ].filter(Boolean) : []),
+      ...(req.query.division && isValidObjectId(req.query.division) ? [
+        { $match: { division_id: mongoose.Types.ObjectId(req.query.division) } }
+      ] : []),
       // Filter by state
-      ...(req.query.state ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
+      ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
       // Filter by election year
-      ...(req.query.election_year ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
+      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
       // Lookup all references
       {
         $lookup: {

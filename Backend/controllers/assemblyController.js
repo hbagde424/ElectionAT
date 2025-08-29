@@ -14,63 +14,62 @@ exports.getAssemblies = async (req, res, next) => {
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
-    // Basic query
-    let query = Assembly.find()
+    // Build filter object
+    const filter = {};
+
+    // Enhanced search functionality: search across all string fields in the model
+    if (req.query.search) {
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      filter.$or = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { AC_NO: searchRegex },
+        { type: searchRegex },
+        { category: searchRegex }
+      ];
+    }
+
+    // Filter by type (case-insensitive)
+    if (req.query.type) {
+      filter.type = { $regex: `^${req.query.type}$`, $options: 'i' };
+    }
+
+    // Filter by category (case-insensitive)
+    if (req.query.category) {
+      filter.category = { $regex: `^${req.query.category}$`, $options: 'i' };
+    }
+
+    // Filter by state
+    if (req.query.state_id) {
+      filter.state_id = req.query.state_id;
+    }
+
+    // Filter by district
+    if (req.query.district) {
+      filter.district_id = req.query.district;
+    }
+
+    // Filter by division
+    if (req.query.division) {
+      filter.division_id = req.query.division;
+    }
+
+    // Filter by parliament
+    if (req.query.parliament) {
+      filter.parliament_id = req.query.parliament;
+    }
+
+    let query = Assembly.find(filter)
       .populate('state_id', '_id name')
       .populate('district_id', '_id name')
       .populate('division_id', '_id name')
       .populate('parliament_id', '_id name')
       .populate('created_by', 'username')
-      .populate('updated_by', 'username')// Add population of updated_by
-
+      .populate('updated_by', 'username')
       .sort({ name: 1 });
 
-    // Enhanced search functionality: search across all string fields in the model
-    if (req.query.search) {
-      const searchRegex = { $regex: req.query.search, $options: 'i' };
-      query = query.find({
-        $or: [
-          { name: searchRegex },
-          { description: searchRegex },
-          { AC_NO: searchRegex },
-          { type: searchRegex },
-          { category: searchRegex }
-        ]
-      });
-    }
-
-    // Filter by type (case-insensitive)
-    if (req.query.type) {
-      query = query.find({ type: { $regex: `^${req.query.type}$`, $options: 'i' } });
-    }
-
-    // Filter by category (case-insensitive)
-    if (req.query.category) {
-      query = query.find({ category: { $regex: `^${req.query.category}$`, $options: 'i' } });
-    }
-
-    // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
-    }
-
-    // Filter by district
-    if (req.query.district) {
-      query = query.where('district_id').equals(req.query.district);
-    }
-
-    // Filter by division
-    if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
-    }
-
-    // Filter by parliament
-    if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
-    }
-
     const assemblies = await query.skip(skip).limit(limit).exec();
-    const total = await Assembly.countDocuments(query.getFilter());
+    const total = await Assembly.countDocuments(filter);
 
     res.status(200).json({
       success: true,

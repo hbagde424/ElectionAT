@@ -67,7 +67,7 @@ export default function BoothSurveyListPage() {
     try {
       let url = `${import.meta.env.VITE_APP_API_URL}/booth-surveys?page=${pageIndex + 1}&limit=${pageSize}`;
       if (filterParams.state_id) url += `&state_id=${filterParams.state_id}`;
-      if (filterParams.division_id) url += `&division_id=${filterParams.division_id}`;
+      if (filterParams.division_id) url += `&division=${filterParams.division_id}`;
       if (filterParams.parliament_id) url += `&parliament_id=${filterParams.parliament_id}`;
       if (filterParams.assembly_id) url += `&assembly_id=${filterParams.assembly_id}`;
       if (filterParams.block_id) url += `&block_id=${filterParams.block_id}`;

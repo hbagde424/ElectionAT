@@ -45,6 +45,42 @@ exports.getBoothVotes = async (req, res, next) => {
       query = query.where('candidate_id').equals(req.query.candidate);
     }
 
+    // Filter by candidate party name (partial, case-insensitive)
+    if (req.query.party_name) {
+      // Find all party IDs matching the name
+      const Party = require('../models/Party');
+      const partyDocs = await Party.find({ name: { $regex: req.query.party_name, $options: 'i' } }, '_id');
+      const partyIds = partyDocs.map(p => p._id);
+      if (partyIds.length > 0) {
+        // Find all candidate IDs with those party IDs
+        const candidateDocs = await Candidate.find({ party_id: { $in: partyIds } }, '_id');
+        const candidateIds = candidateDocs.map(c => c._id);
+        if (candidateIds.length > 0) {
+          query = query.where('candidate_id').in(candidateIds);
+        } else {
+          // No candidates, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      } else {
+        // No parties, return empty result
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          total: 0,
+          page,
+          pages: 0,
+          data: []
+        });
+      }
+    }
+
     // Filter by state
     if (req.query.state) {
       query = query.where('state_id').equals(req.query.state);

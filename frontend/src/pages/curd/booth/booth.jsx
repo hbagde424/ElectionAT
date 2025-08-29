@@ -175,11 +175,11 @@ export default function BoothsListPage() {
         {
             header: '#',
             accessorKey: '_id',
-                cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -447,11 +447,11 @@ export default function BoothsListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+
 
     const handleFilterApply = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
-        fetchBooths(0, pagination.pageSize, globalFilter, filters); // Use page index 0
+        fetchBooths(0, pagination.pageSize, globalFilter, filters);
     };
 
     const handleClearFilter = () => {
@@ -472,6 +472,9 @@ export default function BoothsListPage() {
         });
     };
 
+
+
+    if (loading) return <EmptyReactTable />;
     return (
         <>
             <MainCard content={false}>

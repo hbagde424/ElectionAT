@@ -44,8 +44,8 @@ exports.getAssemblyVotes = async (req, res, next) => {
     }
 
     // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+    if (req.query.state_id) {
+      query = query.where('state_id').equals(req.query.state_id);
     }
 
     // Filter by parliament

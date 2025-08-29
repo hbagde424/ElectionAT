@@ -89,7 +89,7 @@ export default function AssemblyListPage() {
             if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             if (currentFilters.type) queryParams.push(`type=${encodeURIComponent(currentFilters.type)}`);
             if (currentFilters.category) queryParams.push(`category=${encodeURIComponent(currentFilters.category)}`);
-            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.state_id) queryParams.push(`state_id=${encodeURIComponent(currentFilters.state_id)}`);
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
 
@@ -143,11 +143,11 @@ export default function AssemblyListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
