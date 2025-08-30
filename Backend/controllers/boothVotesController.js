@@ -20,6 +20,7 @@ exports.getBoothVotes = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Basic query
+
     let query = BoothVotes.find()
       .populate({
         path: 'candidate',
@@ -40,105 +41,112 @@ exports.getBoothVotes = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ total_votes: -1 });
 
-    // Filter by candidate
-    if (req.query.candidate) {
-      query = query.where('candidate_id').equals(req.query.candidate);
-    }
+    // Debug: log incoming query params
+    console.log('Incoming booth-votes query:', req.query);
 
-    // Filter by candidate party name (partial, case-insensitive)
-    if (req.query.party_name) {
-      // Find all party IDs matching the name
-      const Party = require('../models/Party');
-      const partyDocs = await Party.find({ name: { $regex: req.query.party_name, $options: 'i' } }, '_id');
-      const partyIds = partyDocs.map(p => p._id);
-      if (partyIds.length > 0) {
-        // Find all candidate IDs with those party IDs
-        const candidateDocs = await Candidate.find({ party_id: { $in: partyIds } }, '_id');
-        const candidateIds = candidateDocs.map(c => c._id);
-        if (candidateIds.length > 0) {
-          query = query.where('candidate_id').in(candidateIds);
-        } else {
-          // No candidates, return empty result
-          return res.status(200).json({
-            success: true,
-            count: 0,
-            total: 0,
-            page,
-            pages: 0,
-            data: []
-          });
-        }
-      } else {
-        // No parties, return empty result
-        return res.status(200).json({
-          success: true,
-          count: 0,
-          total: 0,
-          page,
-          pages: 0,
-          data: []
-        });
-      }
-    }
 
-    // Filter by state
-    if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
-    }
-
-    // Filter by division
-    if (req.query.division) {
-      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+    // Helper function for ObjectId or name lookup (normalize dashes to spaces)
+    const handleIdOrName = async (param, model, idField, nameField = 'name') => {
+      if (!req.query[param]) return null;
+      let value = req.query[param];
+      value = value.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(value);
       if (isObjectId) {
-        query = query.where('division_id').equals(req.query.division);
+        return value;
+        console.log(`Resolved ${param} name '${value}' to id:`, doc ? doc._id : null);
       } else {
-        const divisionDoc = await Division.findOne({ name: req.query.division });
-        if (divisionDoc) {
-          query = query.where('division_id').equals(divisionDoc._id);
-        } else {
-          // No such division, return empty result
-          return res.status(200).json({
-            success: true,
-            count: 0,
-            total: 0,
-            page,
-            pages: 0,
-            data: []
-          });
-        }
+        // Support "like" (case-insensitive partial match) for name
+        const doc = await model.findOne({ [nameField]: { $regex: value, $options: 'i' } });
+        return doc ? doc._id : null;
+      }
+    };
+
+    // Candidate
+    if (req.query.candidate) {
+      const candidateId = await handleIdOrName('candidate', Candidate, 'candidate_id');
+      if (candidateId) {
+        query = query.where('candidate_id').equals(candidateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
 
-    // Filter by parliament
+    // State
+    if (req.query.state) {
+      const stateId = await handleIdOrName('state', State, 'state_id');
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
+    }
+
+    // Division
+    if (req.query.division) {
+      const divisionId = await handleIdOrName('division', Division, 'division_id');
+      if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
+    }
+
+    // Parliament
     if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+      const parliamentId = await handleIdOrName('parliament', Parliament, 'parliament_id');
+      if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by assembly
+    // Assembly
     if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+      const assemblyId = await handleIdOrName('assembly', Assembly, 'assembly_id');
+      if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by block
+    // Block
     if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
+      const blockId = await handleIdOrName('block', Block, 'block_id');
+      if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    if (req.query.party) {
-      query = query.where('party_id').equals(req.query.party);
-    }
+    // Booth
     if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
+      const boothId = await handleIdOrName('booth', Booth, 'booth_id');
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by booth
-    if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
-    }
-
-    // Filter by election year
+    // Election Year
     if (req.query.year) {
-      query = query.where('election_year_id').equals(req.query.year);
+      // Try both _id and year field
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.year);
+      let yearId = null;
+      if (isObjectId) {
+        yearId = req.query.year;
+      } else {
+        const yearDoc = await ElectionYear.findOne({ year: req.query.year });
+        yearId = yearDoc ? yearDoc._id : null;
+      }
+      if (yearId) {
+        query = query.where('election_year_id').equals(yearId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     // Filter by minimum votes
@@ -150,6 +158,9 @@ exports.getBoothVotes = async (req, res, next) => {
     if (req.query.maxVotes) {
       query = query.where('total_votes').lte(parseInt(req.query.maxVotes));
     }
+
+    // Debug: log final mongoose query filter
+    console.log('BoothVotes mongoose query filter:', query.getFilter());
 
     const votes = await query.skip(skip).limit(limit).exec();
     const total = await BoothVotes.countDocuments(query.getFilter());

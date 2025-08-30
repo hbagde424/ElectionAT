@@ -33,44 +33,106 @@ exports.getParliamentVotes = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ total_votes: -1 });
 
-    // Filter by candidate
-    if (req.query.candidate_id) {
-      query = query.where('candidate_id').equals(req.query.candidate_id);
+
+    // Helper function for ObjectId or name lookup (normalize dashes to spaces)
+    const handleIdOrName = async (param, model, nameField = 'name') => {
+      if (!req.query[param]) return null;
+      let value = req.query[param];
+      value = value.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(value);
+      if (isObjectId) {
+        return value;
+      } else {
+        const doc = await model.findOne({ [nameField]: { $regex: value, $options: 'i' } });
+        return doc ? doc._id : null;
+      }
+    };
+
+    // Candidate
+    if (req.query.candidate || req.query.candidate_id) {
+      const candidateId = await handleIdOrName('candidate', Candidate) || await handleIdOrName('candidate_id', Candidate);
+      if (candidateId) {
+        query = query.where('candidate_id').equals(candidateId);
+      } else if (req.query.candidate || req.query.candidate_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by parliament
-    if (req.query.parliament_id) {
-      query = query.where('parliament_id').equals(req.query.parliament_id);
+    // State
+    if (req.query.state || req.query.state_id) {
+      const stateId = await handleIdOrName('state', State) || await handleIdOrName('state_id', State);
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else if (req.query.state || req.query.state_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by state
-    if (req.query.state_id) {
-      query = query.where('state_id').equals(req.query.state_id);
+    // Division
+    if (req.query.division || req.query.division_id) {
+      const divisionId = await handleIdOrName('division', Division) || await handleIdOrName('division_id', Division);
+      if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else if (req.query.division || req.query.division_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by division
-    if (req.query.division_id) {
-      query = query.where('division_id').equals(req.query.division_id);
+    // Parliament
+    if (req.query.parliament || req.query.parliament_id) {
+      const parliamentId = await handleIdOrName('parliament', Parliament) || await handleIdOrName('parliament_id', Parliament);
+      if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else if (req.query.parliament || req.query.parliament_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by assembly
-    if (req.query.assembly_id) {
-      query = query.where('assembly_id').equals(req.query.assembly_id);
+    // Assembly
+    if (req.query.assembly || req.query.assembly_id) {
+      const assemblyId = await handleIdOrName('assembly', Assembly) || await handleIdOrName('assembly_id', Assembly);
+      if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else if (req.query.assembly || req.query.assembly_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by block
-    if (req.query.block_id) {
-      query = query.where('block_id').equals(req.query.block_id);
+    // Block
+    if (req.query.block || req.query.block_id) {
+      const blockId = await handleIdOrName('block', Block) || await handleIdOrName('block_id', Block);
+      if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else if (req.query.block || req.query.block_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by booth
-    if (req.query.booth_id) {
-      query = query.where('booth_id').equals(req.query.booth_id);
+    // Booth
+    if (req.query.booth || req.query.booth_id) {
+      const boothId = await handleIdOrName('booth', Booth) || await handleIdOrName('booth_id', Booth);
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else if (req.query.booth || req.query.booth_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by election year
-    if (req.query.election_year_id) {
-      query = query.where('election_year_id').equals(req.query.election_year_id);
+    // Election Year
+    if (req.query.year || req.query.election_year_id) {
+      let yearId = null;
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.year || req.query.election_year_id);
+      if (isObjectId) {
+        yearId = req.query.year || req.query.election_year_id;
+      } else {
+        const yearDoc = await ElectionYear.findOne({ year: req.query.year || req.query.election_year_id });
+        yearId = yearDoc ? yearDoc._id : null;
+      }
+      if (yearId) {
+        query = query.where('election_year_id').equals(yearId);
+      } else if (req.query.year || req.query.election_year_id) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     // Filter by minimum votes

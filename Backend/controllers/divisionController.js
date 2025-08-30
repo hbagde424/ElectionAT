@@ -62,9 +62,22 @@ exports.getDivisions = async (req, res, next) => {
       });
     }
 
-    // Filter by state
+    // Filter by state (ObjectId or name, dash-to-space, case-insensitive)
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      let stateValue = req.query.state.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(stateValue);
+      let stateId = null;
+      if (isObjectId) {
+        stateId = stateValue;
+      } else {
+        const stateDoc = await State.findOne({ name: { $regex: stateValue, $options: 'i' } });
+        stateId = stateDoc ? stateDoc._id : null;
+      }
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     const divisions = await query.skip(skip).limit(limit).exec();

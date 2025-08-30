@@ -51,34 +51,79 @@ exports.getCodings = async (req, res, next) => {
       query = query.where('coding_types').all(types);
     }
 
-    // Filter by state
+
+    // Helper function for ObjectId or name lookup (normalize dashes to spaces)
+    const handleIdOrName = async (param, model, nameField = 'name') => {
+      if (!req.query[param]) return null;
+      let value = req.query[param];
+      value = value.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(value);
+      if (isObjectId) {
+        return value;
+      } else {
+        const doc = await model.findOne({ [nameField]: { $regex: value, $options: 'i' } });
+        return doc ? doc._id : null;
+      }
+    };
+
+    // State
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      const stateId = await handleIdOrName('state', State);
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by division
+    // Division
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const divisionId = await handleIdOrName('division', Division);
+      if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by parliament
+    // Parliament
     if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+      const parliamentId = await handleIdOrName('parliament', Parliament);
+      if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by assembly
+    // Assembly
     if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+      const assemblyId = await handleIdOrName('assembly', Assembly);
+      if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by block
+    // Block
     if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
+      const blockId = await handleIdOrName('block', Block);
+      if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by booth
+    // Booth
     if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
+      const boothId = await handleIdOrName('booth', Booth);
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     const codings = await query.skip(skip).limit(limit).exec();
@@ -135,7 +180,7 @@ exports.createCoding = async (req, res, next) => {
   try {
     // Validate coding types
     const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
-    
+
     if (!req.body.coding_types || !Array.isArray(req.body.coding_types)) {
       return res.status(400).json({
         success: false,
@@ -199,7 +244,7 @@ exports.createCoding = async (req, res, next) => {
     const codingData = {
       ...req.body,
       created_by: req.user.id,
-       description: req.body.description || '',
+      description: req.body.description || '',
     };
 
     const coding = await Coding.create(codingData);
@@ -236,7 +281,7 @@ exports.updateCoding = async (req, res, next) => {
     // Validate coding types if being updated
     if (req.body.coding_types) {
       const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
-      
+
       if (!Array.isArray(req.body.coding_types)) {
         return res.status(400).json({
           success: false,
@@ -264,7 +309,7 @@ exports.updateCoding = async (req, res, next) => {
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
 
     const verificationResults = await Promise.all(verificationPromises);
-    
+
     for (const result of verificationResults) {
       if (result === null) {
         return res.status(400).json({
@@ -396,7 +441,7 @@ exports.getCodingsByState = async (req, res, next) => {
 exports.getCodingsByType = async (req, res, next) => {
   try {
     const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
-    
+
     if (!validTypes.includes(req.params.type)) {
       return res.status(400).json({
         success: false,
@@ -426,7 +471,7 @@ exports.getCodingsByTypes = async (req, res, next) => {
   try {
     const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
     const types = req.params.types.split(',');
-    
+
     // Validate all types
     for (const type of types) {
       if (!validTypes.includes(type)) {
@@ -459,7 +504,7 @@ exports.getCodingsByAnyTypes = async (req, res, next) => {
   try {
     const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
     const types = req.params.types.split(',');
-    
+
     // Validate all types
     for (const type of types) {
       if (!validTypes.includes(type)) {
