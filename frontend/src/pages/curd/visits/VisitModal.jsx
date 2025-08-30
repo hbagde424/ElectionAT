@@ -453,7 +453,7 @@ export default function VisitModal({
 
                     <Grid item xs={12} sm={6}>
                         <FormSelect
-                            label="Candidate"
+                            label="Politician"
                             name="candidate_id"
                             value={formData.candidate_id}
                             options={candidates}
