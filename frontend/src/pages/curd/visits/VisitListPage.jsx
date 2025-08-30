@@ -3,8 +3,7 @@ import {
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Grid,
     IconButton, Select, MenuItem, FormControl, InputLabel, TextField
 } from '@mui/material';
-import { Autocomplete } from '@mui/material';
-import { useEffect, useMemo, useState, Fragment, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -31,9 +30,12 @@ const mapConfiguration = {
 };
 
 const MAPBOX_THEMES = {
-    streets: 'mapbox://styles/mapbox/streets-v11',
-    satellite: 'mapbox://styles/mapbox/satellite-v9',
-    satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+    // light: 'mapbox://styles/mapbox/light-v10',
+    // dark: 'mapbox://styles/mapbox/dark-v10',
+    // streets: 'mapbox://styles/mapbox/streets-v11',
+    outdoors: 'mapbox://styles/mapbox/outdoors-v11',
+    // satellite: 'mapbox://styles/mapbox/satellite-v9',
+    // satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
 };
 
 const VisitListPage = () => {
@@ -152,16 +154,7 @@ const VisitListPage = () => {
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
-    
-    // Create a ref to store current appliedFilters
-    const appliedFiltersRef = useRef(appliedFilters);
-    
-    useEffect(() => {
-        appliedFiltersRef.current = appliedFilters;
-    }, [appliedFilters]);
-
-    const fetchVisits = useCallback(async (pageIndex, pageSize, globalFilter = '') => {
+    const csvLinkRef = useRef(); const fetchVisits = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
             let queryParams = [
@@ -173,63 +166,55 @@ const VisitListPage = () => {
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             }
 
-            // Use ref to get current appliedFilters
-            const currentFilters = appliedFiltersRef.current;
-            
-            if (currentFilters.candidate) {
-                queryParams.push(`candidate=${currentFilters.candidate}`);
+            if (appliedFilters.candidate) {
+                queryParams.push(`candidate=${appliedFilters.candidate}`);
             }
-            if (currentFilters.status) {
-                queryParams.push(`status=${currentFilters.status}`);
+            if (appliedFilters.status) {
+                queryParams.push(`status=${appliedFilters.status}`);
             }
-            if (currentFilters.state) {
-                queryParams.push(`state=${currentFilters.state}`);
+            if (appliedFilters.state) {
+                queryParams.push(`state=${appliedFilters.state}`);
             }
-            if (currentFilters.division) {
-                queryParams.push(`division=${currentFilters.division}`);
+            if (appliedFilters.division) {
+                queryParams.push(`division=${appliedFilters.division}`);
             }
-            if (currentFilters.parliament) {
-                queryParams.push(`parliament=${currentFilters.parliament}`);
+            if (appliedFilters.parliament) {
+                queryParams.push(`parliament=${appliedFilters.parliament}`);
             }
-            if (currentFilters.assembly) {
-                queryParams.push(`assembly=${currentFilters.assembly}`);
+            if (appliedFilters.assembly) {
+                queryParams.push(`assembly=${appliedFilters.assembly}`);
             }
-            if (currentFilters.block) {
-                queryParams.push(`block=${currentFilters.block}`);
+            if (appliedFilters.block) {
+                queryParams.push(`block=${appliedFilters.block}`);
             }
-            if (currentFilters.booth) {
-                queryParams.push(`booth=${currentFilters.booth}`);
+            if (appliedFilters.booth) {
+                queryParams.push(`booth=${appliedFilters.booth}`);
             }
-            if (currentFilters.startDate) {
-                queryParams.push(`startDate=${currentFilters.startDate}`);
+            if (appliedFilters.startDate) {
+                queryParams.push(`startDate=${appliedFilters.startDate}`);
             }
-            if (currentFilters.endDate) {
-                queryParams.push(`endDate=${currentFilters.endDate}`);
+            if (appliedFilters.endDate) {
+                queryParams.push(`endDate=${appliedFilters.endDate}`);
             }
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/visits?${queryParams.join('&')}`);
             const json = await res.json();
-            
             if (json.success) {
                 setVisits(json.data);
-                setPageCount(json.pages || Math.ceil(json.total / pageSize));
+                setPageCount(json.pages);
             }
         } catch (err) {
-            console.error('Error fetching visits:', err);
+            console.error(err);
         } finally {
             setLoading(false);
         }
-    }, []);
+    };
 
-    // Fetch map visits with candidate and date filters
-    const fetchMapVisits = async (candidateId = null, startDate = '', endDate = '') => {
+    const fetchMapVisits = async (candidateId = null) => {
         try {
-            let url = `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
-            const params = [];
-            if (candidateId) params.push(`candidate=${candidateId}`);
-            if (startDate) params.push(`startDate=${startDate}`);
-            if (endDate) params.push(`endDate=${endDate}`);
-            if (params.length > 0) url += `&${params.join('&')}`;
+            const url = candidateId
+                ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${candidateId}`
+                : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
 
             const res = await fetch(url);
             const json = await res.json();
@@ -351,29 +336,11 @@ const VisitListPage = () => {
         }
     };
 
-    // Only fetch visits when pagination, globalFilter change
     useEffect(() => {
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
-
-    // Separate useEffect for appliedFilters to reset pagination to 0
-    // useEffect(() => {
-    //     console.log('Filters changed, resetting to page 0');
-    //     setPagination(prev => ({ ...prev, pageIndex: 0 }));
-    // }, [appliedFilters]);
-
-    // Fetch map visits when candidate or date filters change
-    useEffect(() => {
-        fetchMapVisits(
-            appliedFilters.candidate || null,
-            appliedFilters.startDate || '',
-            appliedFilters.endDate || ''
-        );
-    }, [appliedFilters.candidate, appliedFilters.startDate, appliedFilters.endDate]);
-
-    useEffect(() => {
+        fetchMapVisits(selectedCandidate || null);
         fetchReferenceData();
-    }, []);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, selectedCandidate, appliedFilters]);
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -392,8 +359,9 @@ const VisitListPage = () => {
     };
 
     const handleApplyFilters = () => {
-        setAppliedFilters({ ...filterValues });
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setAppliedFilters(filterValues);
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchVisits(0, 10, globalFilter);
     };
 
     const handleClearFilters = () => {
@@ -411,7 +379,8 @@ const VisitListPage = () => {
         };
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        fetchVisits(0, 10, globalFilter);
     };
 
     // Handle cascading filter changes
@@ -477,39 +446,24 @@ const VisitListPage = () => {
         setSelectedTheme(theme);
     };
 
-    const defaultAvatar = 'https://ui-avatars.com/api/?name=Candidate&background=random';
-
-    // Fallback avatar component
-    const CandidateAvatar = ({ src, size = 32 }) => {
-        const [imgSrc, setImgSrc] = useState(src || defaultAvatar);
-        useEffect(() => {
-            setImgSrc(src || defaultAvatar);
-        }, [src]);
-        return (
-            <Avatar
-                src={imgSrc}
-                sx={{ width: size, height: size }}
-                onError={() => setImgSrc(defaultAvatar)}
-            />
-        );
-    };
     const columns = useMemo(() => [
         {
             header: '#',
             accessorKey: '_id',
-            cell: ({ row, table }) => {
-                const { pageIndex, pageSize } = table.getState().pagination;
-                const serialNumber = pageIndex * pageSize + row.index + 1;
-                return <Typography>{serialNumber}</Typography>;
-            }
+            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
         },
         {
-            header: 'Politician',
+            header: 'Candidate',
             accessorKey: 'candidate_id',
             cell: ({ getValue }) => (
                 <Stack direction="row" alignItems="center" spacing={1}>
-                    <CandidateAvatar src={getValue()?.photo} size={32} />
-                    <Typography fontWeight="medium">{getValue()?.name || 'N/A'}</Typography>
+                    <Avatar
+                        src={getValue()?.photo}
+                        sx={{ width: 32, height: 32 }}
+                    />
+                    <Typography fontWeight="medium">
+                        {getValue()?.name || 'N/A'}
+                    </Typography>
                 </Stack>
             )
         },
@@ -546,40 +500,36 @@ const VisitListPage = () => {
             header: 'State',
             accessorKey: 'state_id',
             cell: ({ getValue }) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    {getValue()?.photo && <Avatar src={getValue().photo} sx={{ width: 28, height: 28 }} />}
-                    <Typography>{getValue()?.name || 'N/A'}</Typography>
-                </Stack>
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
             )
         },
         {
             header: 'Division',
             accessorKey: 'division_id',
             cell: ({ getValue }) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    {getValue()?.photo && <Avatar src={getValue().photo} sx={{ width: 28, height: 28 }} />}
-                    <Typography>{getValue()?.name || 'N/A'}</Typography>
-                </Stack>
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
             )
         },
         {
             header: 'Assembly',
             accessorKey: 'assembly_id',
             cell: ({ getValue }) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    {getValue()?.photo && <Avatar src={getValue().photo} sx={{ width: 28, height: 28 }} />}
-                    <Typography>{getValue()?.name || 'N/A'}</Typography>
-                </Stack>
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
             )
         },
         {
             header: 'Booth',
             accessorKey: 'booth_id',
             cell: ({ getValue }) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    {getValue()?.photo && <Avatar src={getValue().photo} sx={{ width: 28, height: 28 }} />}
-                    <Typography>{getValue()?.name || 'N/A'}</Typography>
-                </Stack>
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
             )
         },
         {
@@ -652,7 +602,6 @@ const VisitListPage = () => {
         state: { pagination, globalFilter },
         pageCount,
         manualPagination: true,
-        manualFiltering: true,
         onPaginationChange: setPagination,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
@@ -670,7 +619,29 @@ const VisitListPage = () => {
                 <Grid item xs={12}>
                     <MainCard
                         title="Visit Locations Map"
-
+                        secondary={
+                            <FormControl sx={{ minWidth: 200 }} size="small">
+                                <InputLabel id="candidate-select-label">Filter by Candidate</InputLabel>
+                                <Select
+                                    labelId="candidate-select-label"
+                                    value={selectedCandidate}
+                                    onChange={handleCandidateChange}
+                                    label="Filter by Candidate"
+                                >
+                                    <MenuItem value="">
+                                        <em>All Candidates</em>
+                                    </MenuItem>
+                                    {candidates.map((candidate) => (
+                                        <MenuItem key={candidate._id} value={candidate._id}>
+                                            <Stack direction="row" alignItems="center" spacing={1}>
+                                                <Avatar src={candidate.photo} sx={{ width: 24, height: 24 }} />
+                                                <Typography>{candidate.name}</Typography>
+                                            </Stack>
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        }
                     >
                         <MapContainerStyled>
                             <Map
@@ -706,11 +677,7 @@ const VisitListPage = () => {
                                         longitude={visit.longitude}
                                         latitude={visit.latitude}
                                         anchor="bottom"
-                                        onClick={(e) => {
-                                            if (e && e.originalEvent) {
-                                                e.originalEvent.stopPropagation();
-                                                e.originalEvent.preventDefault();
-                                            }
+                                        onClick={() => {
                                             setPopupInfo({
                                                 longitude: visit.longitude,
                                                 latitude: visit.latitude,
@@ -718,10 +685,17 @@ const VisitListPage = () => {
                                             });
                                         }}
                                     >
-                                        <CandidateAvatar src={visit.candidate_id?.photo} size={32} />
+                                        <Avatar
+                                            src={visit.candidate_id?.photo}
+                                            sx={{
+                                                width: 32,
+                                                height: 32,
+                                                border: `2px solid ${theme.palette.primary.main}`,
+                                                cursor: 'pointer'
+                                            }}
+                                        />
                                     </Marker>
                                 ))}
-
 
                                 {/* Popup when a marker is clicked */}
                                 {popupInfo && (
@@ -734,7 +708,7 @@ const VisitListPage = () => {
                                     >
                                         <Box sx={{ p: 1 }}>
                                             <Stack direction="row" spacing={1} alignItems="center">
-                                                <CandidateAvatar src={popupInfo.visit.candidate_id?.photo} size={48} />
+                                                <Avatar src={popupInfo.visit.candidate_id?.photo} sx={{ width: 48, height: 48 }} />
                                                 <Box>
                                                     <Typography fontWeight="bold">{popupInfo.visit.candidate_id?.name}</Typography>
                                                     <Typography variant="body2" color="text.secondary">{popupInfo.visit.post || 'N/A'}</Typography>
@@ -793,11 +767,7 @@ const VisitListPage = () => {
                             <Box sx={{ position: 'absolute', bottom: 20, left: 20, zIndex: 1 }}>
                                 <Button
                                     variant="contained"
-                                    onClick={() => fetchMapVisits(
-                                        appliedFilters.candidate || null,
-                                        appliedFilters.startDate || '',
-                                        appliedFilters.endDate || ''
-                                    )}
+                                    onClick={() => fetchMapVisits(selectedCandidate || null)}
                                     size="small"
                                 >
                                     Refresh Map Data
@@ -813,11 +783,7 @@ const VisitListPage = () => {
                             <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                                 <DebouncedInput
                                     value={globalFilter}
-                                    onFilterChange={(val) => {
-                                        // Reset pagination to first page when searching
-                                        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-                                        setGlobalFilter(val);
-                                    }}
+                                    onFilterChange={setGlobalFilter}
                                     placeholder={`Search ${visits.length} records...`}
                                 />
                                 <Stack direction="row" spacing={1}>
@@ -840,20 +806,21 @@ const VisitListPage = () => {
                             <Grid container spacing={2}>
                                 {/* First Row */}
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <Autocomplete
-                                        options={candidates}
-                                        getOptionLabel={(option) => option.name || ''}
-                                        value={candidates.find(c => c._id === filterValues.candidate) || null}
-                                        onChange={(event, newValue) => {
-                                            setFilterValues(prev => ({ ...prev, candidate: newValue ? newValue._id : '' }));
-                                        }}
-                                        isOptionEqualToValue={(option, value) => option._id === value._id}
-                                        renderInput={(params) => (
-                                            <TextField {...params} label="Politician" size="small" />
-                                        )}
-                                        sx={{ minWidth: 200 }}
-                                        clearOnEscape
-                                    />
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Candidate</InputLabel>
+                                        <Select
+                                            value={filterValues.candidate}
+                                            onChange={(e) => setFilterValues(prev => ({ ...prev, candidate: e.target.value }))}
+                                            label="Candidate"
+                                        >
+                                            <MenuItem value="">All Candidates</MenuItem>
+                                            {candidates.map((candidate) => (
+                                                <MenuItem key={candidate._id} value={candidate._id}>
+                                                    {candidate.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 </Grid>
 
                                 <Grid item xs={12} sm={6} md={3}>
@@ -874,27 +841,29 @@ const VisitListPage = () => {
                                 </Grid>
 
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <TextField
-                                        label="Start Date"
-                                        type="date"
-                                        value={filterValues.startDate}
-                                        onChange={(e) => setFilterValues(prev => ({ ...prev, startDate: e.target.value }))}
-                                        size="small"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }}
-                                    />
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Start Date</InputLabel>
+                                        <TextField
+                                            type="date"
+                                            value={filterValues.startDate}
+                                            onChange={(e) => setFilterValues(prev => ({ ...prev, startDate: e.target.value }))}
+                                            size="small"
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </FormControl>
                                 </Grid>
 
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <TextField
-                                        label="End Date"
-                                        type="date"
-                                        value={filterValues.endDate}
-                                        onChange={(e) => setFilterValues(prev => ({ ...prev, endDate: e.target.value }))}
-                                        size="small"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }}
-                                    />
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>End Date</InputLabel>
+                                        <TextField
+                                            type="date"
+                                            value={filterValues.endDate}
+                                            onChange={(e) => setFilterValues(prev => ({ ...prev, endDate: e.target.value }))}
+                                            size="small"
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </FormControl>
                                 </Grid>
 
                                 {/* Second Row */}
@@ -1046,20 +1015,9 @@ const VisitListPage = () => {
                             <Divider />
                             <Box sx={{ p: 2 }}>
                                 <TablePagination
-                                    setPageSize={(size) => {
-                                        setPagination((prev) => ({ 
-                                            ...prev, 
-                                            pageSize: size, 
-                                            pageIndex: 0 
-                                        }));
-                                    }}
-                                    setPageIndex={(index) => {
-                                        setPagination((prev) => ({ 
-                                            ...prev, 
-                                            pageIndex: index 
-                                        }));
-                                    }}
-                                    getState={() => table.getState()}
+                                    setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
+                                    setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
+                                    getState={table.getState}
                                     getPageCount={() => pageCount}
                                 />
                             </Box>
@@ -1081,11 +1039,7 @@ const VisitListPage = () => {
                 candidates={candidates}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(
-                        appliedFilters.candidate || null,
-                        appliedFilters.startDate || '',
-                        appliedFilters.endDate || ''
-                    );
+                    fetchMapVisits(selectedCandidate || null);
                 }}
             />
             <AlertVisitDelete
@@ -1094,11 +1048,7 @@ const VisitListPage = () => {
                 id={deleteAlert.id}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(
-                        appliedFilters.candidate || null,
-                        appliedFilters.startDate || '',
-                        appliedFilters.endDate || ''
-                    );
+                    fetchMapVisits(selectedCandidate || null);
                 }}
             />
         </>
