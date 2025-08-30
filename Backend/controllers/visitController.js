@@ -18,7 +18,13 @@ exports.getVisits = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
-    // Basic query
+    // Build filter object for counting
+    let filter = {};
+
+    // Handle all query parameter for fetching all data without pagination
+    const fetchAll = req.query.all === 'true';
+
+    // Basic query for main data fetch
     let query = Visit.find()
       .populate('state_id', 'name')
       .populate('division_id', 'name')
@@ -31,32 +37,51 @@ exports.getVisits = async (req, res, next) => {
         select: 'name photo mobile caste education',
         options: { strictPopulate: false }  // <- ye ensure karega error na aaye agar document missing ho
       })
-
-
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ date: -1 });
 
     // Search functionality
     if (req.query.search) {
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      
+      // First find candidates that match the search term
+      const matchingCandidates = await Candidate.find({
+        name: searchRegex
+      }).select('_id');
+      
+      const candidateIds = matchingCandidates.map(c => c._id);
+      
+      const searchConditions = [
+        { post: searchRegex },
+        { locationName: searchRegex },
+        { declaration: searchRegex },
+        { remark: searchRegex }
+      ];
+      
+      // Add candidate search if we found matching candidates
+      if (candidateIds.length > 0) {
+        searchConditions.push({ candidate_id: { $in: candidateIds } });
+      }
+      
       query = query.find({
-        $or: [
-          { 'candidate_id.name': { $regex: req.query.search, $options: 'i' } },
-          { post: { $regex: req.query.search, $options: 'i' } },
-          { locationName: { $regex: req.query.search, $options: 'i' } }
-        ]
+        $or: searchConditions
       });
+      
+      filter.$or = searchConditions;
     }
 
     // Filter by work status
     if (req.query.work_status || req.query.status) {
       const statusValue = req.query.work_status || req.query.status;
       query = query.where('work_status').equals(statusValue);
+      filter.work_status = statusValue;
     }
 
     // Filter by candidate
     if (req.query.candidate) {
       query = query.where('candidate_id').equals(req.query.candidate);
+      filter.candidate_id = req.query.candidate;
     }
 
     // Region-based filters
@@ -67,6 +92,7 @@ exports.getVisits = async (req, res, next) => {
         if (req.query.state.match(/^[0-9a-fA-F]{24}$/)) {
           // It's an ObjectId, use it directly
           query = query.where('state_id').equals(req.query.state);
+          filter.state_id = req.query.state;
         } else {
           // It's a name, search by name
           // Remove hyphens from the state name and convert to normal space
@@ -76,10 +102,12 @@ exports.getVisits = async (req, res, next) => {
           });
           if (state) {
             query = query.where('state_id').equals(state._id);
+            filter.state_id = state._id;
           }
         }
       } else {
         query = query.where('state_id').equals(req.query.state_id);
+        filter.state_id = req.query.state_id;
       }
     }
 
@@ -90,6 +118,7 @@ exports.getVisits = async (req, res, next) => {
         if (req.query.division.match(/^[0-9a-fA-F]{24}$/)) {
           // It's an ObjectId, use it directly
           query = query.where('division_id').equals(req.query.division);
+          filter.division_id = req.query.division;
         } else {
           // It's a name, search by name
           const division = await Division.findOne({
@@ -97,10 +126,12 @@ exports.getVisits = async (req, res, next) => {
           });
           if (division) {
             query = query.where('division_id').equals(division._id);
+            filter.division_id = division._id;
           }
         }
       } else {
         query = query.where('division_id').equals(req.query.division_id);
+        filter.division_id = req.query.division_id;
       }
     }
 
@@ -111,6 +142,7 @@ exports.getVisits = async (req, res, next) => {
         if (req.query.parliament.match(/^[0-9a-fA-F]{24}$/)) {
           // It's an ObjectId, use it directly
           query = query.where('parliament_id').equals(req.query.parliament);
+          filter.parliament_id = req.query.parliament;
         } else {
           // It's a name, search by name
           const parliament = await Parliament.findOne({
@@ -118,10 +150,12 @@ exports.getVisits = async (req, res, next) => {
           });
           if (parliament) {
             query = query.where('parliament_id').equals(parliament._id);
+            filter.parliament_id = parliament._id;
           }
         }
       } else {
         query = query.where('parliament_id').equals(req.query.parliament_id);
+        filter.parliament_id = req.query.parliament_id;
       }
     }
 
@@ -132,6 +166,7 @@ exports.getVisits = async (req, res, next) => {
         if (req.query.assembly.match(/^[0-9a-fA-F]{24}$/)) {
           // It's an ObjectId, use it directly
           query = query.where('assembly_id').equals(req.query.assembly);
+          filter.assembly_id = req.query.assembly;
         } else if (!isNaN(req.query.assembly)) {
           // It's a number, search by assembly number
           const assembly = await Assembly.findOne({
@@ -139,6 +174,7 @@ exports.getVisits = async (req, res, next) => {
           });
           if (assembly) {
             query = query.where('assembly_id').equals(assembly._id);
+            filter.assembly_id = assembly._id;
           }
         } else {
           // It's a name, search by name
@@ -147,10 +183,12 @@ exports.getVisits = async (req, res, next) => {
           });
           if (assembly) {
             query = query.where('assembly_id').equals(assembly._id);
+            filter.assembly_id = assembly._id;
           }
         }
       } else {
         query = query.where('assembly_id').equals(req.query.assembly_id);
+        filter.assembly_id = req.query.assembly_id;
       }
     }
 
@@ -161,6 +199,7 @@ exports.getVisits = async (req, res, next) => {
         if (req.query.block.match(/^[0-9a-fA-F]{24}$/)) {
           // It's an ObjectId, use it directly
           query = query.where('block_id').equals(req.query.block);
+          filter.block_id = req.query.block;
         } else {
           // It's a name, search by name
           // Convert query to proper case and clean up
@@ -179,10 +218,12 @@ exports.getVisits = async (req, res, next) => {
           });
           if (block) {
             query = query.where('block_id').equals(block._id);
+            filter.block_id = block._id;
           }
         }
       } else {
         query = query.where('block_id').equals(req.query.block_id);
+        filter.block_id = req.query.block_id;
       }
     }
 
@@ -190,8 +231,10 @@ exports.getVisits = async (req, res, next) => {
     if (req.query.booth_id || req.query.booth) {
       if (req.query.booth) {
         query = query.where('booth_id').equals(req.query.booth);
+        filter.booth_id = req.query.booth;
       } else {
         query = query.where('booth_id').equals(req.query.booth_id);
+        filter.booth_id = req.query.booth_id;
       }
     }
 
@@ -203,13 +246,16 @@ exports.getVisits = async (req, res, next) => {
       endDate.setHours(23, 59, 59, 999);
 
       query = query.where('date').gte(startDate).lte(endDate);
+      filter.date = { $gte: startDate, $lte: endDate };
     } else if (req.query.startDate) {
       const startDate = new Date(req.query.startDate);
       query = query.where('date').gte(startDate);
+      filter.date = { $gte: startDate };
     } else if (req.query.endDate) {
       const endDate = new Date(req.query.endDate);
       endDate.setHours(23, 59, 59, 999);
       query = query.where('date').lte(endDate);
+      filter.date = { $lte: endDate };
     }
 
     // Filter by location proximity if lat/lng and radius provided
@@ -223,19 +269,43 @@ exports.getVisits = async (req, res, next) => {
         spherical: true,
         maxDistance: radius
       });
+      
+      filter.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          },
+          $maxDistance: radius * 6378100 // Convert back to meters for count query
+        }
+      };
     }
 
-    const visits = await query.skip(skip).limit(limit).exec();
-    const total = await Visit.countDocuments(query.getFilter());
+    // If fetchAll is true, skip pagination
+    if (fetchAll) {
+      const visits = await query.exec();
+      const total = await Visit.countDocuments(filter);
 
-    res.status(200).json({
-      success: true,
-      count: visits.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      data: visits
-    });
+      res.status(200).json({
+        success: true,
+        count: visits.length,
+        total,
+        data: visits
+      });
+    } else {
+      // Apply pagination
+      const visits = await query.skip(skip).limit(limit).exec();
+      const total = await Visit.countDocuments(filter);
+
+      res.status(200).json({
+        success: true,
+        count: visits.length,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        data: visits
+      });
+    }
   } catch (err) {
     next(err);
   }

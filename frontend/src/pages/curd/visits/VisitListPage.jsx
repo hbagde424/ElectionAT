@@ -4,7 +4,7 @@ import {
     IconButton, Select, MenuItem, FormControl, InputLabel, TextField
 } from '@mui/material';
 import { Autocomplete } from '@mui/material';
-import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef, useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -152,7 +152,16 @@ const VisitListPage = () => {
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef(); const fetchVisits = async (pageIndex, pageSize, globalFilter = '') => {
+    const csvLinkRef = useRef();
+    
+    // Create a ref to store current appliedFilters
+    const appliedFiltersRef = useRef(appliedFilters);
+    
+    useEffect(() => {
+        appliedFiltersRef.current = appliedFilters;
+    }, [appliedFilters]);
+
+    const fetchVisits = useCallback(async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
             let queryParams = [
@@ -164,49 +173,53 @@ const VisitListPage = () => {
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             }
 
-            if (appliedFilters.candidate) {
-                queryParams.push(`candidate=${appliedFilters.candidate}`);
+            // Use ref to get current appliedFilters
+            const currentFilters = appliedFiltersRef.current;
+            
+            if (currentFilters.candidate) {
+                queryParams.push(`candidate=${currentFilters.candidate}`);
             }
-            if (appliedFilters.status) {
-                queryParams.push(`status=${appliedFilters.status}`);
+            if (currentFilters.status) {
+                queryParams.push(`status=${currentFilters.status}`);
             }
-            if (appliedFilters.state) {
-                queryParams.push(`state=${appliedFilters.state}`);
+            if (currentFilters.state) {
+                queryParams.push(`state=${currentFilters.state}`);
             }
-            if (appliedFilters.division) {
-                queryParams.push(`division=${appliedFilters.division}`);
+            if (currentFilters.division) {
+                queryParams.push(`division=${currentFilters.division}`);
             }
-            if (appliedFilters.parliament) {
-                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            if (currentFilters.parliament) {
+                queryParams.push(`parliament=${currentFilters.parliament}`);
             }
-            if (appliedFilters.assembly) {
-                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            if (currentFilters.assembly) {
+                queryParams.push(`assembly=${currentFilters.assembly}`);
             }
-            if (appliedFilters.block) {
-                queryParams.push(`block=${appliedFilters.block}`);
+            if (currentFilters.block) {
+                queryParams.push(`block=${currentFilters.block}`);
             }
-            if (appliedFilters.booth) {
-                queryParams.push(`booth=${appliedFilters.booth}`);
+            if (currentFilters.booth) {
+                queryParams.push(`booth=${currentFilters.booth}`);
             }
-            if (appliedFilters.startDate) {
-                queryParams.push(`startDate=${appliedFilters.startDate}`);
+            if (currentFilters.startDate) {
+                queryParams.push(`startDate=${currentFilters.startDate}`);
             }
-            if (appliedFilters.endDate) {
-                queryParams.push(`endDate=${appliedFilters.endDate}`);
+            if (currentFilters.endDate) {
+                queryParams.push(`endDate=${currentFilters.endDate}`);
             }
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/visits?${queryParams.join('&')}`);
             const json = await res.json();
+            
             if (json.success) {
                 setVisits(json.data);
-                setPageCount(json.pages);
+                setPageCount(json.pages || Math.ceil(json.total / pageSize));
             }
         } catch (err) {
-            console.error(err);
+            console.error('Error fetching visits:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // Fetch map visits with candidate and date filters
     const fetchMapVisits = async (candidateId = null, startDate = '', endDate = '') => {
@@ -338,10 +351,16 @@ const VisitListPage = () => {
         }
     };
 
-    // Only fetch visits when pagination, globalFilter, or appliedFilters change
+    // Only fetch visits when pagination, globalFilter change
     useEffect(() => {
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    // Separate useEffect for appliedFilters to reset pagination to 0
+    // useEffect(() => {
+    //     console.log('Filters changed, resetting to page 0');
+    //     setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    // }, [appliedFilters]);
 
     // Fetch map visits when candidate or date filters change
     useEffect(() => {
@@ -374,7 +393,7 @@ const VisitListPage = () => {
 
     const handleApplyFilters = () => {
         setAppliedFilters({ ...filterValues });
-        setPagination({ pageIndex: 0, pageSize: 10 });
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
     const handleClearFilters = () => {
@@ -392,7 +411,7 @@ const VisitListPage = () => {
         };
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
-        setPagination({ pageIndex: 0, pageSize: 10 });
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
     // Handle cascading filter changes
@@ -485,7 +504,7 @@ const VisitListPage = () => {
             }
         },
         {
-            header: 'Candidate',
+            header: 'Politician',
             accessorKey: 'candidate_id',
             cell: ({ getValue }) => (
                 <Stack direction="row" alignItems="center" spacing={1}>
@@ -633,6 +652,7 @@ const VisitListPage = () => {
         state: { pagination, globalFilter },
         pageCount,
         manualPagination: true,
+        manualFiltering: true,
         onPaginationChange: setPagination,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
@@ -794,6 +814,7 @@ const VisitListPage = () => {
                                 <DebouncedInput
                                     value={globalFilter}
                                     onFilterChange={(val) => {
+                                        // Reset pagination to first page when searching
                                         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                                         setGlobalFilter(val);
                                     }}
@@ -828,7 +849,7 @@ const VisitListPage = () => {
                                         }}
                                         isOptionEqualToValue={(option, value) => option._id === value._id}
                                         renderInput={(params) => (
-                                            <TextField {...params} label="Candidate" size="small" />
+                                            <TextField {...params} label="Politician" size="small" />
                                         )}
                                         sx={{ minWidth: 200 }}
                                         clearOnEscape
@@ -1025,9 +1046,20 @@ const VisitListPage = () => {
                             <Divider />
                             <Box sx={{ p: 2 }}>
                                 <TablePagination
-                                    setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
-                                    setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
-                                    getState={table.getState}
+                                    setPageSize={(size) => {
+                                        setPagination((prev) => ({ 
+                                            ...prev, 
+                                            pageSize: size, 
+                                            pageIndex: 0 
+                                        }));
+                                    }}
+                                    setPageIndex={(index) => {
+                                        setPagination((prev) => ({ 
+                                            ...prev, 
+                                            pageIndex: index 
+                                        }));
+                                    }}
+                                    getState={() => table.getState()}
                                     getPageCount={() => pageCount}
                                 />
                             </Box>
