@@ -22,6 +22,7 @@ export default function AssemblyModal({
 
     const [formData, setFormData] = useState({
         name: '',
+        AC_NO: '',
         description: '',
         type: 'Urban',
         category: 'General',
@@ -42,6 +43,7 @@ export default function AssemblyModal({
         if (assembly) {
             setFormData({
                 name: assembly.name || '',
+                AC_NO: assembly.AC_NO || '',
                 description: assembly.description || '',
                 type: assembly.type || 'Urban',
                 category: assembly.category || 'General',
@@ -52,6 +54,7 @@ export default function AssemblyModal({
         } else {
             setFormData({
                 name: '',
+                AC_NO: '',
                 description: '',
                 type: 'Urban',
                 category: 'General',
@@ -121,7 +124,7 @@ export default function AssemblyModal({
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation
-        const requiredFields = ['name', 'type', 'category', 'state_id', 'division_id', 'parliament_id'];
+        const requiredFields = ['name', 'AC_NO', 'type', 'category', 'state_id', 'division_id', 'parliament_id'];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -179,8 +182,8 @@ export default function AssemblyModal({
             <DialogTitle>{assembly ? 'Edit Assembly' : 'Add Assembly'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {/* Row 1: Name */}
-                    <Grid item xs={12}>
+                    {/* Row 1: Name & Assembly NO */}
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Assembly Name</InputLabel>
                             <TextField
@@ -192,6 +195,21 @@ export default function AssemblyModal({
                                 error={submitted && !formData.name}
                                 helperText={submitted && !formData.name ? 'Assembly name is required' : ''}
                                 placeholder="Enter assembly name"
+                            />
+                        </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Assembly NO</InputLabel>
+                            <TextField
+                                name="AC_NO"
+                                value={formData.AC_NO}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.AC_NO}
+                                helperText={submitted && !formData.AC_NO ? 'Assembly NO is required' : ''}
+                                placeholder="Enter assembly number"
                             />
                         </Stack>
                     </Grid>

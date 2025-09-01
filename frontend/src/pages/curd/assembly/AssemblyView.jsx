@@ -21,6 +21,14 @@ export default function AssemblyView({ data }) {
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
                 <Typography variant="h6">{data.name || 'Untitled Assembly'}</Typography>
+                {data.AC_NO && (
+                    <Chip
+                        label={`Assembly NO: ${data.AC_NO}`}
+                        color="info"
+                        size="small"
+                        variant="outlined"
+                    />
+                )}
                 <Chip
                     label={data.type?.toUpperCase() || 'N/A'}
                     size="small"
