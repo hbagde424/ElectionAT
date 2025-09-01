@@ -190,11 +190,7 @@ export default function AssemblyModal({
             <DialogTitle>{assembly ? 'Edit Assembly' : 'Add Assembly'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-<<<<<<< HEAD
-                    {/* Row 1: Name & Assembly NO */}
-=======
                     {/* Row 1: Name and AC_NO */}
->>>>>>> harish
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Assembly Name <span style={{ color: 'red' }}>*</span></InputLabel>
@@ -212,11 +208,7 @@ export default function AssemblyModal({
                     </Grid>
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-<<<<<<< HEAD
-                            <InputLabel required>Assembly NO</InputLabel>
-=======
                             <InputLabel>Assembly AC NO <span style={{ color: 'red' }}>*</span></InputLabel>
->>>>>>> harish
                             <TextField
                                 name="AC_NO"
                                 value={formData.AC_NO}
@@ -224,17 +216,11 @@ export default function AssemblyModal({
                                 fullWidth
                                 required
                                 error={submitted && !formData.AC_NO}
-<<<<<<< HEAD
-                                helperText={submitted && !formData.AC_NO ? 'Assembly NO is required' : ''}
-                                placeholder="Enter assembly number"
-=======
-                                helperText={submitted && !formData.AC_NO ? 'AC_NO is required' : ''}
-                                placeholder="Enter assembly AC_NO"
->>>>>>> harish
+                                helperText={submitted && !formData.AC_NO ? 'Assembly AC NO is required' : ''}
+                                placeholder="Enter assembly AC NO"
                             />
                         </Stack>
                     </Grid>
-
                     {/* Row 2: Description Rich Text Editor */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
