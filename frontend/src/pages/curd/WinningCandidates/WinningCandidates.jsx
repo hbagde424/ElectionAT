@@ -78,7 +78,7 @@ const EntityDetailsModal = ({ open, onClose, details, title }) => {
                     </Box>
                 )}
                 <Grid container spacing={2}>
-                    {fields.map(([key, value]) => (
+                    {Array.isArray(fields) && fields.map(([key, value]) => (
                         key === 'name' || key === 'abbreviation' || key === 'description' ? null : (
                             <Grid item xs={12} sm={6} key={key}>
                                 <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: 13 }}>
@@ -497,7 +497,11 @@ export default function WinningCandidateListPage() {
         {
             header: '#',
             accessorKey: '_id',
-            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Candidate',
@@ -576,7 +580,7 @@ export default function WinningCandidateListPage() {
             accessorKey: 'type',
             cell: ({ getValue }) => (
                 <Stack direction="row" spacing={0.5}>
-                    {getValue()?.map((type, index) => (
+                    {(Array.isArray(getValue()) ? getValue() : []).map((type, index) => (
                         <Chip
                             key={index}
                             label={type}

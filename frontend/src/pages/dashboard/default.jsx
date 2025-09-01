@@ -1000,21 +1000,11 @@ export default function DashboardDefault() {
         <Booth />
       </Grid>
 
-      <Grid item xs={12} md={6}>
-        <MainCard title="average Voter Turnout">
-          <ApexColumnChart />
-        </MainCard>
-      </Grid>
-
-
-      <Grid item xs={12} sm={6} >
-        <BoothSurveyListPage />
-      </Grid>
 
 
 
       {/* Row 1 */}
-      <Grid item xs={12} sm={6} lg={3}>
+      {/* <Grid item xs={12} sm={6} lg={3}>
         <EcommerceDataCard
           title="All Earnings"
           count="$3000"
@@ -1075,7 +1065,11 @@ export default function DashboardDefault() {
         >
           <EcommerceDataChart color={theme.palette.error.dark} />
         </EcommerceDataCard>
-      </Grid>
+      </Grid> */}
+
+
+
+
       <Grid item xs={12} sm={12} lg={12}>
         <DashboardListTemplate
           title="Recent Visits"

@@ -43,34 +43,79 @@ exports.getEvents = async (req, res, next) => {
       query = query.where('status').equals(req.query.status);
     }
 
-    // Filter by state
-    if (req.query.state_id) {
-      query = query.where('state_id').equals(req.query.state_id);
+
+    // Helper function for ObjectId or name lookup (normalize dashes to spaces)
+    const handleIdOrName = async (param, model, nameField = 'name') => {
+      if (!req.query[param]) return null;
+      let value = req.query[param];
+      value = value.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(value);
+      if (isObjectId) {
+        return value;
+      } else {
+        const doc = await model.findOne({ [nameField]: { $regex: value, $options: 'i' } });
+        return doc ? doc._id : null;
+      }
+    };
+
+    // State
+    if (req.query.state_id || req.query.state) {
+      const stateId = await handleIdOrName('state_id', State) || await handleIdOrName('state', State);
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else if (req.query.state_id || req.query.state) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by division
-    if (req.query.division_id) {
-      query = query.where('division_id').equals(req.query.division_id);
+    // Division
+    if (req.query.division_id || req.query.division) {
+      const divisionId = await handleIdOrName('division_id', Division) || await handleIdOrName('division', Division);
+      if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else if (req.query.division_id || req.query.division) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by parliament
-    if (req.query.parliament_id) {
-      query = query.where('parliament_id').equals(req.query.parliament_id);
+    // Parliament
+    if (req.query.parliament_id || req.query.parliament) {
+      const parliamentId = await handleIdOrName('parliament_id', Parliament) || await handleIdOrName('parliament', Parliament);
+      if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else if (req.query.parliament_id || req.query.parliament) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by assembly
-    if (req.query.assembly_id) {
-      query = query.where('assembly_id').equals(req.query.assembly_id);
+    // Assembly
+    if (req.query.assembly_id || req.query.assembly) {
+      const assemblyId = await handleIdOrName('assembly_id', Assembly) || await handleIdOrName('assembly', Assembly);
+      if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else if (req.query.assembly_id || req.query.assembly) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by block
-    if (req.query.block_id) {
-      query = query.where('block_id').equals(req.query.block_id);
+    // Block
+    if (req.query.block_id || req.query.block) {
+      const blockId = await handleIdOrName('block_id', Block) || await handleIdOrName('block', Block);
+      if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else if (req.query.block_id || req.query.block) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by booth
-    if (req.query.booth_id) {
-      query = query.where('booth_id').equals(req.query.booth_id);
+    // Booth
+    if (req.query.booth_id || req.query.booth) {
+      const boothId = await handleIdOrName('booth_id', Booth) || await handleIdOrName('booth', Booth);
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else if (req.query.booth_id || req.query.booth) {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     // Filter by date range

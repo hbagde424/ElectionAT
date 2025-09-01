@@ -192,7 +192,7 @@ export default function BoothModal({
         }));
     };
 
-     
+
 
     const handleSubmit = async () => {
         setSubmitted(true);
@@ -225,7 +225,7 @@ export default function BoothModal({
             }
         }
 
-        const userTracking = booth ? { updated_by: userId } : { created_by: userId };
+        const userTracking = booth ? { updated_by: String(userId) } : { created_by: String(userId) };
         // Always send description, even if unchanged or empty
         const submitData = {
             ...formData,
@@ -234,7 +234,11 @@ export default function BoothModal({
             longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
             description: typeof formData.description === 'string' ? formData.description : ''
         };
-
+        // Remove undefined lat/lng so backend doesn't get undefined
+        if (!submitData.latitude && submitData.latitude !== 0) delete submitData.latitude;
+        if (!submitData.longitude && submitData.longitude !== 0) delete submitData.longitude;
+        console.log('Submitting booth:', submitData);
+        console.log('Token:', token);
         try {
             const res = await fetch(url, {
                 method,
@@ -251,7 +255,7 @@ export default function BoothModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit booth:', errorData);
-                alert('Failed to save booth. Please check the form data.');
+                alert(errorData?.message || 'Failed to save booth. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting booth:', error);
@@ -281,7 +285,7 @@ export default function BoothModal({
                     {/* Row 1: Name and Booth Number */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Booth Name</InputLabel>
+                            <InputLabel>Booth Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -297,7 +301,7 @@ export default function BoothModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Booth Number</InputLabel>
+                            <InputLabel>Booth Number <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="booth_number"
                                 value={formData.booth_number}
@@ -314,7 +318,7 @@ export default function BoothModal({
                     {/* Row 2: Full Address */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>Full Address</InputLabel>
+                            <InputLabel>Full Address <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="full_address"
                                 value={formData.full_address}
@@ -362,7 +366,7 @@ export default function BoothModal({
                     {/* Row 4: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -386,7 +390,7 @@ export default function BoothModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -412,7 +416,7 @@ export default function BoothModal({
                     {/* Row 5: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"
@@ -437,7 +441,7 @@ export default function BoothModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                 <Select
                                     name="assembly_id"
@@ -463,7 +467,7 @@ export default function BoothModal({
                     {/* Row 6: Block */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
+                            <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.block_id}>
                                 <Select
                                     name="block_id"
@@ -486,9 +490,9 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-<Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Election Year</InputLabel>
+                            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.election_year}>
                                 <Select
                                     name="election_year"

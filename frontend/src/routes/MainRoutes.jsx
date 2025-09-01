@@ -143,8 +143,6 @@ const WInningCandidateList = Loadable(lazy(() => import('pages/curd/WinningCandi
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
-// const Stateadd = Loadable(lazy(() => import('pages/curd/state/add')));
-// const Statelist = Loadable(lazy(() => import('pages/curd/state/list')));
 // Role & Permission Management
 const RoleList = Loadable(lazy(() => import('pages/curd/role/RoleList')));
 const PermissionList = Loadable(lazy(() => import('pages/curd/permission/PermissionList')));
@@ -688,22 +686,22 @@ const MainRoutes = {
           path: 'Influancer',
           element: <Influancer />
         },
-         {
-            path: 'roles',
-            element: <RoleList />
-          },
-          {
-            path: 'permissions',
-            element: <PermissionList />
-          },
-          {
-            path: 'assign-permission-to-role',
-            element: <AssignPermissionToRole />
-          },
-          {
-            path: 'assign-role-to-user',
-            element: <AssignRoleToUser />
-          },
+        {
+          path: 'roles',
+          element: <RoleList />
+        },
+        {
+          path: 'permissions',
+          element: <PermissionList />
+        },
+        {
+          path: 'assign-permission-to-role',
+          element: <AssignPermissionToRole />
+        },
+        {
+          path: 'assign-role-to-user',
+          element: <AssignRoleToUser />
+        },
         {
           path: 'Local-Issue',
           element: <LocalIssue />

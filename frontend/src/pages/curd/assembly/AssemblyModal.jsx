@@ -68,7 +68,15 @@ export default function AssemblyModal({
     // State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            if (formData.division_id && !divisions.find(d => d._id === formData.division_id)) {
+            // Filter divisions for selected state
+            const filtered = divisions?.filter(div => {
+                const divStateId = div.state_id?._id || div.state_id;
+                return divStateId === formData.state_id;
+            }) || [];
+            setFilteredDivisions(filtered);
+
+            // If selected division is not in filtered, reset
+            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
                 setFormData(prev => ({
                     ...prev,
                     division_id: '',
@@ -169,7 +177,7 @@ export default function AssemblyModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit assembly:', errorData);
-                alert('Failed to save assembly. Please check the form data.');
+                alert(errorData?.message || 'Failed to save assembly. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting assembly:', error);
@@ -182,10 +190,14 @@ export default function AssemblyModal({
             <DialogTitle>{assembly ? 'Edit Assembly' : 'Add Assembly'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
+<<<<<<< HEAD
                     {/* Row 1: Name & Assembly NO */}
+=======
+                    {/* Row 1: Name and AC_NO */}
+>>>>>>> harish
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly Name</InputLabel>
+                            <InputLabel>Assembly Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -200,7 +212,11 @@ export default function AssemblyModal({
                     </Grid>
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
+<<<<<<< HEAD
                             <InputLabel required>Assembly NO</InputLabel>
+=======
+                            <InputLabel>Assembly AC NO <span style={{ color: 'red' }}>*</span></InputLabel>
+>>>>>>> harish
                             <TextField
                                 name="AC_NO"
                                 value={formData.AC_NO}
@@ -208,8 +224,13 @@ export default function AssemblyModal({
                                 fullWidth
                                 required
                                 error={submitted && !formData.AC_NO}
+<<<<<<< HEAD
                                 helperText={submitted && !formData.AC_NO ? 'Assembly NO is required' : ''}
                                 placeholder="Enter assembly number"
+=======
+                                helperText={submitted && !formData.AC_NO ? 'AC_NO is required' : ''}
+                                placeholder="Enter assembly AC_NO"
+>>>>>>> harish
                             />
                         </Stack>
                     </Grid>
@@ -231,7 +252,7 @@ export default function AssemblyModal({
                     {/* Row 3: Type and Category */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Type</InputLabel>
+                            <InputLabel>Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.type}>
                                 <Select
                                     name="type"
@@ -254,7 +275,7 @@ export default function AssemblyModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Category</InputLabel>
+                            <InputLabel>Category <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.category}>
                                 <Select
                                     name="category"
@@ -278,7 +299,7 @@ export default function AssemblyModal({
                     {/* Row 4: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -302,7 +323,7 @@ export default function AssemblyModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -328,7 +349,7 @@ export default function AssemblyModal({
                     {/* Row 5: Parliament */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"

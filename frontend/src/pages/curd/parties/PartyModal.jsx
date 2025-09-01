@@ -62,7 +62,7 @@ export default function PartyModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        
+
         // Validation
         if (!formData.name || !formData.abbreviation) {
             return;
@@ -122,7 +122,7 @@ export default function PartyModal({
                 <Grid container spacing={2} mt={1}>
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>Party Name</InputLabel>
+                            <InputLabel>Party Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -138,7 +138,7 @@ export default function PartyModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Abbreviation</InputLabel>
+                            <InputLabel>Abbreviation <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="abbreviation"
                                 value={formData.abbreviation}

@@ -22,6 +22,7 @@ export default function StateModal({
         description: ''
     });
     const [submitted, setSubmitted] = useState(false);
+    const [serverError, setServerError] = useState('');
 
     useEffect(() => {
         if (state) {
@@ -59,12 +60,17 @@ export default function StateModal({
         if (!formData.name || formData.name.trim() === '') {
             return;
         }
-
-        const method = state ? 'PUT' : 'POST';
-        const token = localStorage.getItem('serviceToken');
+        setServerError('');
+        if (!formData.name || formData.name.trim() === '') {
+            return;
+        }
         const url = state
             ? `${import.meta.env.VITE_APP_API_URL}/states/${state._id}`
             : `${import.meta.env.VITE_APP_API_URL}/states`;
+
+
+        const method = state ? 'PUT' : 'POST';
+        const token = localStorage.getItem('serviceToken');
 
         let userId = user?._id || user?.id;
         if (!userId) {
@@ -97,12 +103,13 @@ export default function StateModal({
                 refresh();
             } else {
                 const errorData = await res.json();
+                setServerError(errorData.message || 'Failed to save state.');
                 console.error('Failed to submit state:', errorData);
-                alert('Failed to save state. Please check the form data.');
+                //  alert('Failed to save state. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting state:', error);
-            alert('An error occurred while saving the state.');
+            // alert('An error occurred while saving the state.');
         }
     };
 
@@ -110,10 +117,15 @@ export default function StateModal({
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="sm">
             <DialogTitle>{state ? 'Edit State' : 'Add State'}</DialogTitle>
             <DialogContent>
+                {serverError && (
+                    <div style={{ color: 'red', marginBottom: 12, fontWeight: 500 }}>
+                        {serverError}
+                    </div>
+                )}
                 <Grid container spacing={2} mt={1}>
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>State Name</InputLabel>
+                            <InputLabel>State Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}

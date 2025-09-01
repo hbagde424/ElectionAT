@@ -269,7 +269,7 @@ export default function WorkStatusModal({
 
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
-                alert(`Please fill in the required field: ${field.replace('_', ' ')}`);
+                //  alert(`Please fill in the required field: ${field.replace('_', ' ')}`);
                 return;
             }
         }
@@ -360,7 +360,7 @@ export default function WorkStatusModal({
                     {/* Row 1: Work Name and Department */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Work Name</InputLabel>
+                            <InputLabel>Work Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="work_name"
                                 value={formData.work_name}
@@ -376,7 +376,7 @@ export default function WorkStatusModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Department</InputLabel>
+                            <InputLabel>Department <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="department"
                                 value={formData.department}
@@ -393,7 +393,7 @@ export default function WorkStatusModal({
                     {/* Row 2: Status and Work Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Status</InputLabel>
+                            <InputLabel>Status <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.status}>
                                 <Select
                                     name="status"
@@ -413,7 +413,7 @@ export default function WorkStatusModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Work Type</InputLabel>
+                            <InputLabel>Work Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.work_type}>
                                 <Select
                                     name="work_type"
@@ -435,7 +435,7 @@ export default function WorkStatusModal({
                     {/* Row 3: Approved Fund From */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Approved Fund From</InputLabel>
+                            <InputLabel>Approved Fund From <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.approved_fund_from}>
                                 <Select
                                     name="approved_fund_from"
@@ -457,7 +457,7 @@ export default function WorkStatusModal({
                     {/* Row 3: Budget and Spent Amount */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Total Budget</InputLabel>
+                            <InputLabel>Total Budget <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="total_budget"
                                 value={formData.total_budget}
@@ -519,7 +519,7 @@ export default function WorkStatusModal({
                     {/* Row 5: Dates */}
                     <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
-                            <InputLabel required>Start Date</InputLabel>
+                            <InputLabel>Start Date <span style={{ color: 'red' }}>*</span></InputLabel>
                             <DatePicker
                                 value={formData.start_date}
                                 onChange={(date) => handleDateChange('start_date', date)}
@@ -538,7 +538,7 @@ export default function WorkStatusModal({
 
                     <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
-                            <InputLabel required>Expected End Date</InputLabel>
+                            <InputLabel>Expected End Date <span style={{ color: 'red' }}>*</span></InputLabel>
                             <DatePicker
                                 value={formData.expected_end_date}
                                 onChange={(date) => handleDateChange('expected_end_date', date)}
@@ -576,7 +576,7 @@ export default function WorkStatusModal({
                     {/* Row 6: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -600,7 +600,7 @@ export default function WorkStatusModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -626,7 +626,7 @@ export default function WorkStatusModal({
                     {/* Row 7: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"
@@ -651,7 +651,7 @@ export default function WorkStatusModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                 <Select
                                     name="assembly_id"
@@ -677,7 +677,7 @@ export default function WorkStatusModal({
                     {/* Row 8: Block and Booth */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
+                            <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.block_id}>
                                 <Select
                                     name="block_id"
@@ -702,7 +702,7 @@ export default function WorkStatusModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Booth</InputLabel>
+                            <InputLabel>Booth <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.booth_id}>
                                 <Select
                                     name="booth_id"

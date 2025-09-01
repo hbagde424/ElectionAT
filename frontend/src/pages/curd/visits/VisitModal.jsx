@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Grid, Stack, TextField, InputLabel, Select, 
-    MenuItem, FormControl, FormHelperText, Alert, 
+    Button, Grid, Stack, TextField, InputLabel, Select,
+    MenuItem, FormControl, FormHelperText, Alert,
     CircularProgress, Typography
 } from '@mui/material';
 import ReactQuill from 'react-quill';
@@ -10,16 +10,16 @@ import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 
 // Form Components (previously imported from FormComponents.jsx)
-const FormSelect = ({ 
-    label, 
-    name, 
-    value, 
-    options, 
-    onChange, 
-    error, 
+const FormSelect = ({
+    label,
+    name,
+    value,
+    options,
+    onChange,
+    error,
     disabled,
     labelKey = 'name',
-    required = false 
+    required = false
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required}>{label}</InputLabel>
@@ -37,15 +37,15 @@ const FormSelect = ({
     </Stack>
 );
 
-const FormTextField = ({ 
-    label, 
-    name, 
-    value, 
-    onChange, 
-    error, 
+const FormTextField = ({
+    label,
+    name,
+    value,
+    onChange,
+    error,
     disabled,
     type = 'text',
-    required = false 
+    required = false
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required}>{label}</InputLabel>
@@ -80,7 +80,7 @@ export default function VisitModal({
     const [errors, setErrors] = useState({});
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // Filtered data states
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
@@ -110,7 +110,7 @@ export default function VisitModal({
                 description: ''
             };
         }
-        
+
         return {
             state_id: visit.state_id?._id || visit.state_id || '',
             division_id: visit.division_id?._id || visit.division_id || '',
@@ -155,7 +155,7 @@ export default function VisitModal({
                 return divisionStateId?.toString() === formData.state_id.toString();
             });
             setFilteredDivisions(filtered);
-            
+
             if (!filtered.some(d => d._id?.toString() === formData.division_id?.toString())) {
                 setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
             }
@@ -172,7 +172,7 @@ export default function VisitModal({
                 return parliamentDivisionId?.toString() === formData.division_id.toString();
             });
             setFilteredParliaments(filtered);
-            
+
             if (!filtered.some(p => p._id?.toString() === formData.parliament_id?.toString())) {
                 setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
             }
@@ -189,7 +189,7 @@ export default function VisitModal({
                 return assemblyParliamentId?.toString() === formData.parliament_id.toString();
             });
             setFilteredAssemblies(filtered);
-            
+
             if (!filtered.some(a => a._id?.toString() === formData.assembly_id?.toString())) {
                 setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
             }
@@ -206,7 +206,7 @@ export default function VisitModal({
                 return blockAssemblyId?.toString() === formData.assembly_id.toString();
             });
             setFilteredBlocks(filtered);
-            
+
             if (!filtered.some(b => b._id?.toString() === formData.block_id?.toString())) {
                 setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
             }
@@ -223,7 +223,7 @@ export default function VisitModal({
                 return boothBlockId?.toString() === formData.block_id.toString();
             });
             setFilteredBooths(filtered);
-            
+
             if (!filtered.some(b => b._id?.toString() === formData.booth_id?.toString())) {
                 setFormData(prev => ({ ...prev, booth_id: '' }));
             }
@@ -240,8 +240,8 @@ export default function VisitModal({
             division_id: () => !value && 'Division selection is required',
             assembly_id: () => !value && 'Assembly selection is required',
             parliament_id: () => !value && 'Parliament selection is required',
-            block_id: () => !value && 'Block selection is required',
-            booth_id: () => !value && 'Booth selection is required',
+            // block_id: () => !value && 'Block selection is required', // Made optional
+            // booth_id: () => !value && 'Booth selection is required', // Made optional
             candidate_id: () => !value && 'Candidate selection is required',
             post: () => {
                 if (!value) return 'Post is required';
@@ -253,12 +253,12 @@ export default function VisitModal({
             declaration: () => value.length > 500 && 'Declaration cannot exceed 500 characters',
             remark: () => value.length > 500 && 'Remark cannot exceed 500 characters',
             longitude: () => {
-                if (value && (isNaN(value) || value < -180 || value > 180)) 
+                if (value && (isNaN(value) || value < -180 || value > 180))
                     return 'Longitude must be between -180 and 180';
                 return '';
             },
             latitude: () => {
-                if (value && (isNaN(value) || value < -90 || value > 90)) 
+                if (value && (isNaN(value) || value < -90 || value > 90))
                     return 'Latitude must be between -90 and 90';
                 return '';
             },
@@ -302,15 +302,28 @@ export default function VisitModal({
 
         try {
             const token = localStorage.getItem('serviceToken');
-            const url = visit 
-                ? `${import.meta.env.VITE_APP_API_URL}/visits/${visit._id}` 
+            const url = visit
+                ? `${import.meta.env.VITE_APP_API_URL}/visits/${visit._id}`
                 : `${import.meta.env.VITE_APP_API_URL}/visits`;
             const method = visit ? 'PUT' : 'POST';
 
             const submitData = {
                 ...formData,
-                description: typeof formData.description === 'string' ? formData.description : ''
+                description: typeof formData.description === 'string' ? formData.description : '',
+                // Convert empty strings to null for ObjectId fields
+                block_id: formData.block_id || null,
+                booth_id: formData.booth_id || null
             };
+
+            // Remove null values to avoid sending them to backend
+            Object.keys(submitData).forEach(key => {
+                if (submitData[key] === null || submitData[key] === '') {
+                    if (key === 'block_id' || key === 'booth_id') {
+                        delete submitData[key];
+                    }
+                }
+            });
+
             const res = await fetch(url, {
                 method,
                 headers: {
@@ -353,8 +366,8 @@ export default function VisitModal({
             <DialogTitle>
                 {visit ? 'Edit Visit Record' : 'Add Visit Record'}
             </DialogTitle>
-            
-            <DialogContent>
+
+            <DialogContent sx={{ maxHeight: '90vh' }}>
                 {submitError && (
                     <Alert severity="error" sx={{ mb: 2 }}>
                         {submitError}
@@ -374,7 +387,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Division"
@@ -387,7 +400,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Parliament"
@@ -400,7 +413,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Assembly"
@@ -413,7 +426,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Block"
@@ -423,10 +436,9 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.block_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Booth"
@@ -436,13 +448,12 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.booth_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
-                            label="Candidate"
+                            label="Politician"
                             name="candidate_id"
                             value={formData.candidate_id}
                             options={candidates}
@@ -452,7 +463,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Post"
@@ -464,7 +475,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel required>Date</InputLabel>
@@ -483,7 +494,7 @@ export default function VisitModal({
                             />
                         </Stack>
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormSelect
                             label="Work Status"
@@ -493,7 +504,8 @@ export default function VisitModal({
                                 { _id: 'announced', name: 'Announced' },
                                 { _id: 'approved', name: 'Approved' },
                                 { _id: 'in progress', name: 'In Progress' },
-                                { _id: 'complete', name: 'Complete' }
+                                { _id: 'complete', name: 'Complete' },
+                                { _id: 'N/A', name: 'N/A' }
                             ]}
                             onChange={handleChange}
                             error={errors.work_status}
@@ -501,7 +513,7 @@ export default function VisitModal({
                             required
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Longitude"
@@ -513,7 +525,7 @@ export default function VisitModal({
                             type="number"
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="Latitude"
@@ -525,7 +537,7 @@ export default function VisitModal({
                             type="number"
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12}>
                         <FormTextField
                             label="Location Name"
@@ -538,7 +550,8 @@ export default function VisitModal({
                             rows={2}
                         />
                     </Grid>
-                    
+
+
                     {/* Row: Description (Rich Text) */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
@@ -548,23 +561,27 @@ export default function VisitModal({
                                 value={formData.description}
                                 onChange={handleDescriptionChange}
                                 placeholder="Enter description (optional)"
-                                style={{ minHeight: 100 }}
+                                style={{ minHeight: 200, height: 200 }}
                             />
                         </Stack>
                     </Grid>
+
+                    {/* Add space between Description and Declaration */}
+                    <Grid item xs={12} style={{ marginTop: 24 }} />
+
                     <Grid item xs={12}>
                         <FormTextField
                             label="Declaration"
                             name="declaration"
                             value={formData.declaration}
                             onChange={handleChange}
-                            error={errors.declaration}
+                            error={errors.remark}
                             disabled={isSubmitting}
                             multiline
-                            rows={3}
+                            rows={7}
                         />
                     </Grid>
-                    
+
                     <Grid item xs={12}>
                         <FormTextField
                             label="Remark"
@@ -574,12 +591,12 @@ export default function VisitModal({
                             error={errors.remark}
                             disabled={isSubmitting}
                             multiline
-                            rows={3}
+                            rows={7}
                         />
                     </Grid>
                 </Grid>
             </DialogContent>
-            
+
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)} disabled={isSubmitting}>
                     Cancel

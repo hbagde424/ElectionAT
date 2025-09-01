@@ -5,32 +5,107 @@ const State = require('../models/state');
 // @access  Public
 exports.getStates = async (req, res, next) => {
   try {
+    const Division = require('../models/Division');
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
-    let query = State.find()
+    let stateFilter = {};
+    let divisionFilter = {};
+
+    // If filtering by division name
+    if (req.query.division) {
+      divisionFilter.name = req.query.division;
+    }
+
+    // If search by state name
+    if (req.query.search) {
+      stateFilter.name = { $regex: req.query.search, $options: 'i' };
+    }
+
+    // If filtering by division, find matching divisions and their state_ids
+    if (Object.keys(divisionFilter).length > 0) {
+      const divisions = await Division.find(divisionFilter);
+      if (divisions.length === 0) {
+        // No matching divisions, return empty
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          total: 0,
+          page,
+          pages: 0,
+          data: []
+        });
+      }
+      const stateIds = divisions.map(d => d.state_id);
+      stateFilter._id = { $in: stateIds };
+    }
+
+    // Query states
+    let query = State.find(stateFilter)
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
-    if (req.query.search) {
-      query = query.find({
-        name: { $regex: req.query.search, $options: 'i' }
+    const states = await query.skip(skip).limit(limit).exec();
+    const total = await State.countDocuments(stateFilter);
+
+    // For each state, include its divisions
+    const stateIds = states.map(s => s._id);
+    const divisionsByState = await Division.find({ state_id: { $in: stateIds } });
+    const divisionsMap = {};
+    divisionsByState.forEach(div => {
+      const sid = div.state_id.toString();
+      if (!divisionsMap[sid]) divisionsMap[sid] = [];
+      divisionsMap[sid].push({
+        _id: div._id,
+        name: div.name,
+        division_code: div.division_code,
+        description: div.description
+      });
+    });
+
+    let responseData;
+    if (req.query.division) {
+      // Flat structure: one object per matching division, with parent state info
+      responseData = [];
+      states.forEach(s => {
+        const sObj = s.toObject();
+        const divisions = (divisionsMap[s._id.toString()] || []).filter(div => div.name.toLowerCase() === req.query.division.toLowerCase());
+        divisions.forEach(div => {
+          responseData.push({
+            state_id: sObj._id,
+            state_name: sObj.name,
+            division_id: div._id,
+            division_name: div.name,
+            division_code: div.division_code,
+            description: div.description
+          });
+        });
+      });
+      return res.status(200).json({
+        success: true,
+        count: responseData.length,
+        total: responseData.length,
+        page,
+        pages: 1,
+        data: responseData
+      });
+    } else {
+      let statesWithDivisions = states.map(s => {
+        const sObj = s.toObject();
+        sObj.divisions = divisionsMap[s._id.toString()] || [];
+        return sObj;
+      });
+      res.status(200).json({
+        success: true,
+        count: statesWithDivisions.length,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        data: statesWithDivisions
       });
     }
-
-    const states = await query.skip(skip).limit(limit).exec();
-    const total = await State.countDocuments(query.getFilter());
-
-    res.status(200).json({
-      success: true,
-      count: states.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      data: states
-    });
   } catch (err) {
     next(err);
   }

@@ -26,6 +26,7 @@ export default function DivisionModal({
         description: ''
     });
     const [submitted, setSubmitted] = useState(false);
+    const [serverError, setServerError] = useState('');
 
     useEffect(() => {
         if (division) {
@@ -64,6 +65,7 @@ export default function DivisionModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
+        setServerError('');
         // Validation
         const requiredFields = ['name', 'division_code', 'state_id'];
         for (const field of requiredFields) {
@@ -114,13 +116,20 @@ export default function DivisionModal({
                 modalToggler(false);
                 refresh();
             } else {
-                const errorData = await res.json();
-                console.error('Failed to submit division:', errorData);
-                alert('Failed to save division. Please check the form data.');
+                let errorMsg = 'Failed to save division. Please check the form data.';
+                try {
+                    const errorData = await res.json();
+                    errorMsg = errorData?.message || JSON.stringify(errorData) || errorMsg;
+                    setServerError(errorMsg);
+                } catch (e) {
+                    // ignore JSON parse error
+                }
+                setServerError(errorMsg);
+                console.error('Failed to submit division:', errorMsg);
             }
         } catch (error) {
             console.error('Error submitting division:', error);
-            alert('An error occurred while saving the division.');
+            setServerError('An error occurred while saving the division.');
         }
     };
 
@@ -128,11 +137,24 @@ export default function DivisionModal({
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
             <DialogTitle>{division ? 'Edit Division' : 'Add Division'}</DialogTitle>
             <DialogContent>
+                {serverError && (
+                    <div style={{ color: 'red', marginBottom: 12, fontWeight: 500 }}>
+                        {/* Show only the error message if it's a JSON string */}
+                        {(() => {
+                            try {
+                                const errObj = JSON.parse(serverError);
+                                return errObj.error || serverError;
+                            } catch {
+                                return serverError;
+                            }
+                        })()}
+                    </div>
+                )}
                 <Grid container spacing={2} mt={1}>
                     {/* Row 1: Name and Division Code */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division Name</InputLabel>
+                            <InputLabel>Division Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -148,7 +170,7 @@ export default function DivisionModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division Code</InputLabel>
+                            <InputLabel>Division Code <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="division_code"
                                 value={formData.division_code}
@@ -166,7 +188,7 @@ export default function DivisionModal({
                     {/* Row 2: State */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"

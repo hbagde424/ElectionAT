@@ -72,6 +72,7 @@ exports.getWinningPartysForGraph = async (req, res, next) => {
 // @desc    Get all winning party records
 // @route   GET /api/winning-parties
 // @access  Public
+const { getStateIdByName } = require('../utils/stateUtils');
 exports.getWinningParties = async (req, res, next) => {
   try {
     // Pagination
@@ -94,49 +95,116 @@ exports.getWinningParties = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ votes: -1 });
 
-    // Filter by candidate
+
+    // Helper function for ObjectId or name lookup (normalize dashes to spaces)
+    const handleIdOrName = async (param, model, nameField = 'name') => {
+      if (!req.query[param]) return null;
+      let value = req.query[param];
+      value = value.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(value);
+      if (isObjectId) {
+        return value;
+      } else {
+        const doc = await model.findOne({ [nameField]: { $regex: value, $options: 'i' } });
+        return doc ? doc._id : null;
+      }
+    };
+
+    // Candidate
     if (req.query.candidate) {
-      query = query.where('candidate_id').equals(req.query.candidate);
+      const candidateId = await handleIdOrName('candidate', Candidate);
+      if (candidateId) {
+        query = query.where('candidate_id').equals(candidateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by party
+    // Party
     if (req.query.party) {
-      query = query.where('party_id').equals(req.query.party);
+      const partyId = await handleIdOrName('party', Party);
+      if (partyId) {
+        query = query.where('party_id').equals(partyId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by assembly
+    // Assembly
     if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+      const assemblyId = await handleIdOrName('assembly', Assembly);
+      if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by parliament
+    // Parliament
     if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+      const parliamentId = await handleIdOrName('parliament', Parliament);
+      if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by state
+    // State
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      const stateId = await handleIdOrName('state', State);
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by division
+    // Division
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const divisionId = await handleIdOrName('division', Division);
+      if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by block
+    // Block
     if (req.query.block) {
-      query = query.where('block_id').equals(req.query.block);
+      const blockId = await handleIdOrName('block', Block);
+      if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by booth
+    // Booth
     if (req.query.booth) {
-      query = query.where('booth_id').equals(req.query.booth);
+      const boothId = await handleIdOrName('booth', Booth);
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
-    // Filter by election year
+    // Election Year
     if (req.query.electionYear) {
-      query = query.where('election_year').equals(req.query.electionYear);
+      let yearId = null;
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.electionYear);
+      if (isObjectId) {
+        yearId = req.query.electionYear;
+      } else {
+        const yearDoc = await ElectionYear.findOne({ year: req.query.electionYear });
+        yearId = yearDoc ? yearDoc._id : null;
+      }
+      if (yearId) {
+        query = query.where('election_year').equals(yearId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     // Filter by minimum votes

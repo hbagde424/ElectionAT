@@ -30,9 +30,22 @@ exports.getDistricts = async (req, res, next) => {
       query = query.find({ name: { $regex: req.query.search, $options: 'i' } });
     }
 
-    // Filter by state
+    // Filter by state (ObjectId or name, dash-to-space, case-insensitive)
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      let stateValue = req.query.state.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(stateValue);
+      let stateId = null;
+      if (isObjectId) {
+        stateId = stateValue;
+      } else {
+        const stateDoc = await State.findOne({ name: { $regex: stateValue, $options: 'i' } });
+        stateId = stateDoc ? stateDoc._id : null;
+      }
+      if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
     }
 
     // Filter by assembly
@@ -47,19 +60,51 @@ exports.getDistricts = async (req, res, next) => {
 
     // Filter by division
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     const districts = await query.skip(skip).limit(limit).exec();
     const total = await District.countDocuments(query.getFilter());
 
+    // Add division_name as a top-level property for each district
+    const districtsWithDivisionName = await Promise.all(districts.map(async (district) => {
+      const districtObj = district.toObject();
+      if (districtObj.division_id && typeof districtObj.division_id === 'object') {
+        districtObj.division_name = districtObj.division_id.name;
+      } else if (districtObj.division_id) {
+        // If not populated, fetch division
+        const division = await Division.findById(districtObj.division_id);
+        districtObj.division_name = division ? division.name : null;
+      } else {
+        districtObj.division_name = null;
+      }
+      return districtObj;
+    }));
     res.status(200).json({
       success: true,
-      count: districts.length,
+      count: districtsWithDivisionName.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: districts
+      data: districtsWithDivisionName
     });
   } catch (err) {
     next(err);

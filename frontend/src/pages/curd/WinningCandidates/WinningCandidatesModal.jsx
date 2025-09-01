@@ -312,7 +312,7 @@ export default function WinningCandidateModal({
                     {/* Row 1: Party and Candidate */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Party</InputLabel>
+                            <InputLabel>Party <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.party_id}>
                                 <Select
                                     name="party_id"
@@ -336,7 +336,7 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Candidate</InputLabel>
+                            <InputLabel>Candidate <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.candidate_id}>
                                 <Select
                                     name="candidate_id"
@@ -362,7 +362,7 @@ export default function WinningCandidateModal({
                     {/* Row 2: Year and Assembly No */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Election Year</InputLabel>
+                            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.year_id}>
                                 <Select
                                     name="year_id"
@@ -387,7 +387,7 @@ export default function WinningCandidateModal({
                     {/* Row 3: Election Type and Poll Percentage */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Election Type</InputLabel>
+                            <InputLabel>Election Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Autocomplete
                                 multiple
                                 options={electionTypes}
@@ -415,7 +415,7 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Poll Percentage</InputLabel>
+                            <InputLabel>Poll Percentage <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="poll_percentage"
                                 value={formData.poll_percentage}
@@ -432,7 +432,7 @@ export default function WinningCandidateModal({
                     {/* Row 4: Total Electors and Total Votes */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Total Electors</InputLabel>
+                            <InputLabel>Total Electors <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="total_electors"
                                 value={formData.total_electors}
@@ -447,7 +447,7 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Total Votes</InputLabel>
+                            <InputLabel>Total Votes <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="total_votes"
                                 type="number"
@@ -465,7 +465,7 @@ export default function WinningCandidateModal({
                     {/* Row 5: Voting Percentage and Margin */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Voting Percentage</InputLabel>
+                            <InputLabel>Voting Percentage <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="voting_percentage"
                                 value={formData.voting_percentage}
@@ -480,7 +480,7 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Margin</InputLabel>
+                            <InputLabel>Margin <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="margin"
                                 type="number"
@@ -498,7 +498,7 @@ export default function WinningCandidateModal({
                     {/* Row 6: Margin Percentage */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Margin Percentage</InputLabel>
+                            <InputLabel>Margin Percentage <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="margin_percentage"
                                 value={formData.margin_percentage}
@@ -514,7 +514,7 @@ export default function WinningCandidateModal({
                     {/* Row 7: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -538,7 +538,7 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -564,7 +564,7 @@ export default function WinningCandidateModal({
                     {/* Row 8: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"
@@ -589,7 +589,7 @@ export default function WinningCandidateModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                 <Select
                                     name="assembly_id"

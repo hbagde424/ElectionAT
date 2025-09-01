@@ -209,7 +209,11 @@ export default function PartyActivitiesListPage() {
         {
             header: '#',
             accessorKey: '_id',
-            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+               cell: ({ row, table }) => {
+                    const { pageIndex, pageSize } = table.getState().pagination;
+                    const serialNumber = pageIndex * pageSize + row.index + 1;
+                    return <Typography>{serialNumber}</Typography>;
+                }
         },
         {
             header: 'Title',

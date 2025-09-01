@@ -134,7 +134,7 @@ export default function ParliamentModal({
 
         const method = parliament ? 'PUT' : 'POST';
         const token = localStorage.getItem('serviceToken');
-        const url = parliament 
+        const url = parliament
             ? `${import.meta.env.VITE_APP_API_URL}/parliaments/${parliament._id}`
             : `${import.meta.env.VITE_APP_API_URL}/parliaments`;
 
@@ -185,7 +185,7 @@ export default function ParliamentModal({
                     {/* Row 1: Name */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament Name</InputLabel>
+                            <InputLabel>Parliament Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -201,7 +201,7 @@ export default function ParliamentModal({
                     {/* Row 2: Category and Regional Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Category</InputLabel>
+                            <InputLabel>Category <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.category}>
                                 <Select
                                     name="category"
@@ -220,7 +220,7 @@ export default function ParliamentModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Regional Type</InputLabel>
+                            <InputLabel>Regional Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.regional_type}>
                                 <Select
                                     name="regional_type"
@@ -240,7 +240,7 @@ export default function ParliamentModal({
                     {/* Row 3: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -260,7 +260,7 @@ export default function ParliamentModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"

@@ -68,10 +68,12 @@ exports.getBoothVolunteers = async (req, res, next) => {
       const search = req.query.search;
       const mongoose = require('mongoose');
       const [boothIds, partyIds, stateIds, divisionIds, assemblyIds, parliamentIds, blockIds, userIds] = await Promise.all([
-        Booth.find({ $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { booth_number: { $regex: search, $options: 'i' } }
-        ] }, '_id').then(docs => docs.map(d => d._id)),
+        Booth.find({
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { booth_number: { $regex: search, $options: 'i' } }
+          ]
+        }, '_id').then(docs => docs.map(d => d._id)),
         Party.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
         State.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
         Division.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => d._id)),
@@ -100,27 +102,56 @@ exports.getBoothVolunteers = async (req, res, next) => {
       filter.$or = orArr;
     }
 
-    // Add filters
-    if (req.query.booth_id) {
-      filter.booth_id = req.query.booth_id;
+
+    // Helper function for ObjectId or name lookup (normalize dashes to spaces)
+    const handleIdOrName = async (param, model, nameField = 'name') => {
+      if (!req.query[param]) return null;
+      let value = req.query[param];
+      value = value.replace(/-/g, ' ');
+      const isObjectId = /^[a-f\d]{24}$/i.test(value);
+      if (isObjectId) {
+        return value;
+      } else {
+        const doc = await model.findOne({ [nameField]: { $regex: value, $options: 'i' } });
+        return doc ? doc._id : null;
+      }
+    };
+
+    // Add filters (support both ObjectId and name for all params)
+    if (req.query.booth_id || req.query.booth) {
+      const boothId = await handleIdOrName('booth_id', Booth) || await handleIdOrName('booth', Booth);
+      if (boothId) filter.booth_id = boothId;
+      else if (req.query.booth_id || req.query.booth) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.party_id) {
-      filter.party_id = req.query.party_id;
+    if (req.query.party_id || req.query.party) {
+      const partyId = await handleIdOrName('party_id', Party) || await handleIdOrName('party', Party);
+      if (partyId) filter.party_id = partyId;
+      else if (req.query.party_id || req.query.party) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.state_id) {
-      filter.state_id = req.query.state_id;
+    if (req.query.state_id || req.query.state) {
+      const stateId = await handleIdOrName('state_id', State) || await handleIdOrName('state', State);
+      if (stateId) filter.state_id = stateId;
+      else if (req.query.state_id || req.query.state) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.division_id) {
-      filter.division_id = req.query.division_id;
+    if (req.query.division_id || req.query.division) {
+      const divisionId = await handleIdOrName('division_id', Division) || await handleIdOrName('division', Division);
+      if (divisionId) filter.division_id = divisionId;
+      else if (req.query.division_id || req.query.division) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.assembly_id) {
-      filter.assembly_id = req.query.assembly_id;
+    if (req.query.assembly_id || req.query.assembly) {
+      const assemblyId = await handleIdOrName('assembly_id', Assembly) || await handleIdOrName('assembly', Assembly);
+      if (assemblyId) filter.assembly_id = assemblyId;
+      else if (req.query.assembly_id || req.query.assembly) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.parliament_id) {
-      filter.parliament_id = req.query.parliament_id;
+    if (req.query.parliament_id || req.query.parliament) {
+      const parliamentId = await handleIdOrName('parliament_id', Parliament) || await handleIdOrName('parliament', Parliament);
+      if (parliamentId) filter.parliament_id = parliamentId;
+      else if (req.query.parliament_id || req.query.parliament) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.block_id) {
-      filter.block_id = req.query.block_id;
+    if (req.query.block_id || req.query.block) {
+      const blockId = await handleIdOrName('block_id', Block) || await handleIdOrName('block', Block);
+      if (blockId) filter.block_id = blockId;
+      else if (req.query.block_id || req.query.block) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
     if (req.query.activity) {
       filter.activity_level = req.query.activity;

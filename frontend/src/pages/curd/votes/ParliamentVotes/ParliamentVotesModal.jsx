@@ -173,7 +173,7 @@ export default function ParliamentVotesModal({
       <DialogContent>
         <Stack spacing={2} mt={2}>
           <FormControl fullWidth>
-            <InputLabel>State</InputLabel>
+            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="state_id"
               value={formData.state_id}
@@ -190,7 +190,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Division</InputLabel>
+            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="division_id"
               value={formData.division_id}
@@ -208,7 +208,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Parliament</InputLabel>
+            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="parliament_id"
               value={formData.parliament_id}
@@ -226,7 +226,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Assembly</InputLabel>
+            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="assembly_id"
               value={formData.assembly_id}
@@ -244,7 +244,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Block</InputLabel>
+            <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="block_id"
               value={formData.block_id}
@@ -262,7 +262,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Booth</InputLabel>
+            <InputLabel>Booth <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="booth_id"
               value={formData.booth_id}
@@ -280,7 +280,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Candidate</InputLabel>
+            <InputLabel>Candidate <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="candidate_id"
               value={formData.candidate_id}
@@ -297,7 +297,7 @@ export default function ParliamentVotesModal({
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Election Year</InputLabel>
+            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
             <Select
               name="election_year_id"
               value={formData.election_year_id || ''}
@@ -316,7 +316,7 @@ export default function ParliamentVotesModal({
 
           <TextField
             name="total_votes"
-            label="Total Votes"
+            label="Total Votes *"
             type="number"
             value={formData.total_votes}
             onChange={handleChange}

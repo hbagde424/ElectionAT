@@ -116,23 +116,11 @@ export default function ElectionYearModal({
             <DialogTitle>{electionYear ? 'Edit Election Year' : 'Add Election Year'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {/* Description (Rich Text) */}
-                    <Grid item xs={12}>
-                        <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
-                            <ReactQuill
-                                theme="snow"
-                                value={formData.description}
-                                onChange={handleDescriptionChange}
-                                placeholder="Enter description (optional)"
-                                style={{ minHeight: 100 }}
-                            />
-                        </Stack>
-                    </Grid>
+
                     {/* Year */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Year</InputLabel>
+                            <InputLabel>Year <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="year"
                                 value={formData.year}
@@ -151,7 +139,7 @@ export default function ElectionYearModal({
                     {/* Election Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Election Type</InputLabel>
+                            <InputLabel>Election Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.election_type}>
                                 <Select
                                     name="election_type"
@@ -167,6 +155,19 @@ export default function ElectionYearModal({
                             {submitted && !formData.election_type && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Election type is required</Box>
                             )}
+                        </Stack>
+                    </Grid>
+                    {/* Description (Rich Text) */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
                         </Stack>
                     </Grid>
                 </Grid>

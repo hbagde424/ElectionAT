@@ -4,5 +4,5 @@ module.exports = {
   JWT_EXPIRE: process.env.JWT_EXPIRE || '30d',
   NODE_ENV: process.env.NODE_ENV || 'production',
   PORT: process.env.PORT || 5000,
-  BASE_URL: process.env.BASE_URL || 'https://mbnmediaconsulting.in/backend'
+  BASE_URL: process.env.BASE_URL || 'https://myhostmanager.co.in/backend'
 };

@@ -3,9 +3,6 @@ const config = require('./config');
 
 const connectDB = async () => {
   try {
-    console.log('Attempting to connect to MongoDB...');
-    console.log('Database URI:', process.env.MONGO_URI); // Log only the host part, not credentials
-
     const options = {
       bufferCommands: false, // Disable mongoose buffering
       serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
@@ -15,9 +12,7 @@ const connectDB = async () => {
       retryWrites: true,
       w: 'majority'
     };
-    console.log('Attempting to connect to MongoDB...');
-    const connection = await mongoose.connect(process.env.MONGO_URI, options);
-    console.log(`MongoDB Connected successfully to ${connection.connection.host}`);
+    await mongoose.connect(process.env.MONGO_URI, options);
 
     // Wait for the connection to be ready and ensure db is available
     await new Promise((resolve) => {
@@ -30,17 +25,7 @@ const connectDB = async () => {
 
     // Test the connection by running a simple query
     if (mongoose.connection.db) {
-      const collections = await mongoose.connection.db.listCollections().toArray();
-      console.log('Available collections:', collections.map(c => c.name).join(', '));
-
-      // Specifically check for winningcandidates collection
-      const hasWinningCandidates = collections.some(c => c.name === 'winningcandidates');
-      console.log('winningcandidates collection exists:', hasWinningCandidates);
-
-      if (hasWinningCandidates) {
-        const count = await mongoose.connection.db.collection('winningcandidates').countDocuments();
-        console.log('Number of documents in winningcandidates:', count);
-      }
+      await mongoose.connection.db.listCollections().toArray();
     } else {
       console.log('Database connection established but db object not available yet');
     }
