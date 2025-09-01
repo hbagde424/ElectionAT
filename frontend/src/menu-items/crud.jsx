@@ -169,7 +169,7 @@ const CRUDMenu = {
     },
     {
       id: 'candidates',
-      title: <FormattedMessage id="Candidates" />,
+      title: <FormattedMessage id="politician" />,
       type: 'item',
       url: '/candidates',
       icon: icons.UserOctagon, // Candidate profile
