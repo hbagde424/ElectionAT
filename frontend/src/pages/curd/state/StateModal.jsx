@@ -125,7 +125,7 @@ export default function StateModal({
                 <Grid container spacing={2} mt={1}>
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>State Name</InputLabel>
+                            <InputLabel>State Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}

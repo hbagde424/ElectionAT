@@ -391,7 +391,7 @@ export default function PartyActivitiesModal({
                         {/* Row 1: Party and State */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Party</InputLabel>
+                                <InputLabel>Party <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.party_id}>
                                     <Select
                                         name="party_id"
@@ -416,7 +416,7 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>State</InputLabel>
+                                <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.state_id}>
                                     <Select
                                         name="state_id"
@@ -442,7 +442,7 @@ export default function PartyActivitiesModal({
                         {/* Row 2: Division and Parliament */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Division</InputLabel>
+                                <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.division_id}>
                                     <Select
                                         name="division_id"
@@ -467,7 +467,7 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Parliament</InputLabel>
+                                <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                     <Select
                                         name="parliament_id"
@@ -493,7 +493,7 @@ export default function PartyActivitiesModal({
                         {/* Row 3: Assembly and Block */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Assembly</InputLabel>
+                                <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                     <Select
                                         name="assembly_id"
@@ -518,7 +518,7 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Block</InputLabel>
+                                <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.block_id}>
                                     <Select
                                         name="block_id"
@@ -544,7 +544,7 @@ export default function PartyActivitiesModal({
                         {/* Row 4: Booth and Activity Type */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Booth</InputLabel>
+                                <InputLabel>Booth <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.booth_id}>
                                     <Select
                                         name="booth_id"
@@ -569,7 +569,7 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Activity Type</InputLabel>
+                                <InputLabel>Activity Type <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.activity_type}>
                                     <Select
                                         name="activity_type"
@@ -594,7 +594,7 @@ export default function PartyActivitiesModal({
                         {/* Row 5: Title and Location */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Title</InputLabel>
+                                <InputLabel>Title <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <TextField
                                     name="title"
                                     value={formData.title}
@@ -610,7 +610,7 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Location</InputLabel>
+                                <InputLabel>Location <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <TextField
                                     name="location"
                                     value={formData.location}
@@ -627,7 +627,7 @@ export default function PartyActivitiesModal({
                         {/* Row 6: Description (ReactQuill) */}
                         <Grid item xs={12}>
                             <Stack spacing={1}>
-                                <InputLabel required>Description</InputLabel>
+                                <InputLabel>Description <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <ReactQuill
                                     theme="snow"
                                     value={formData.description}
@@ -644,7 +644,7 @@ export default function PartyActivitiesModal({
                         {/* Row 7: Activity Dates */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Activity Start Date & Time</InputLabel>
+                                <InputLabel>Activity Start Date & Time <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <DateTimePicker
                                     value={formData.activity_date}
                                     onChange={handleDateChange}
@@ -655,7 +655,7 @@ export default function PartyActivitiesModal({
 
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Activity End Date & Time</InputLabel>
+                                <InputLabel>Activity End Date & Time <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <DateTimePicker
                                     value={formData.end_date}
                                     onChange={handleEndDateChange}
@@ -668,7 +668,7 @@ export default function PartyActivitiesModal({
                         {/* Row 8: Status and Attendance */}
                         <Grid item xs={12} sm={6}>
                             <Stack spacing={1}>
-                                <InputLabel required>Status</InputLabel>
+                                <InputLabel>Status <span style={{ color: 'red' }}>*</span></InputLabel>
                                 <FormControl fullWidth required error={submitted && !formData.status}>
                                     <Select
                                         name="status"

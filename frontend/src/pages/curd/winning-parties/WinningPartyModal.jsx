@@ -70,7 +70,7 @@ const ElectionYearSelect = ({
 }) => {
     return (
         <Stack spacing={1}>
-            <InputLabel required>Election Year</InputLabel>
+            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
             <FormControl fullWidth error={!!error} disabled={disabled}>
                 <Select name="election_year" value={value} onChange={onChange}>
                     <MenuItem value=""><em>Select Election Year</em></MenuItem>

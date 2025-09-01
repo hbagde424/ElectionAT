@@ -179,7 +179,7 @@ export default function PotentialCandidateModal({
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Candidate Name</InputLabel>
+                                    <InputLabel>Candidate Name <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <TextField
                                         name="name"
                                         value={formData.name}
@@ -206,7 +206,7 @@ export default function PotentialCandidateModal({
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Party</InputLabel>
+                                    <InputLabel>Party <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <FormControl fullWidth>
                                         <Select
                                             name="party_id"
@@ -226,7 +226,7 @@ export default function PotentialCandidateModal({
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Constituency</InputLabel>
+                                    <InputLabel>Constituency <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <FormControl fullWidth>
                                         <Select
                                             name="constituency_id"
@@ -249,9 +249,8 @@ export default function PotentialCandidateModal({
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Election Year</InputLabel>
+                                    <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <FormControl fullWidth>
-                                        <InputLabel>Election Year</InputLabel>
                                         <Select
                                             name="election_year_id"
                                             value={formData.election_year_id}
@@ -272,7 +271,7 @@ export default function PotentialCandidateModal({
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Status</InputLabel>
+                                    <InputLabel>Status <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <FormControl fullWidth>
                                         <Select
                                             name="status"
@@ -316,7 +315,7 @@ export default function PotentialCandidateModal({
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Post Name</InputLabel>
+                                    <InputLabel>Post Name <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <TextField
                                         name="post_details.postname"
                                         value={formData.post_details.postname}
@@ -328,7 +327,7 @@ export default function PotentialCandidateModal({
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Place</InputLabel>
+                                    <InputLabel>Place <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <TextField
                                         name="post_details.place"
                                         value={formData.post_details.place}

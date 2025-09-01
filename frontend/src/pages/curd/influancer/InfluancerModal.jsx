@@ -227,7 +227,7 @@ export default function InfluencerModal({
             'state_id', 'division_id', 'parliament_id',
             'assembly_id', 'block_id', 'booth_id'
         ];
-        
+
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -288,7 +288,7 @@ export default function InfluencerModal({
                     <Grid item xs={12} md={6}>
                         <TextField
                             fullWidth
-                            label="Name"
+                            label="Name *"
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
@@ -299,7 +299,7 @@ export default function InfluencerModal({
                     <Grid item xs={12} md={6}>
                         <TextField
                             fullWidth
-                            label="Contact Number"
+                            label="Contact Number *"
                             name="contact_number"
                             value={formData.contact_number}
                             onChange={handleChange}
@@ -329,7 +329,7 @@ export default function InfluencerModal({
                     <Grid item xs={12}>
                         <TextField
                             fullWidth
-                            label="Full Address"
+                            label="Full Address *"
                             name="full_address"
                             value={formData.full_address}
                             onChange={handleChange}
@@ -355,7 +355,7 @@ export default function InfluencerModal({
                     {/* Location Hierarchy */}
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth error={submitted && !formData.state_id}>
-                            <InputLabel>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Select
                                 name="state_id"
                                 value={formData.state_id}
@@ -378,7 +378,7 @@ export default function InfluencerModal({
 
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth error={submitted && !formData.division_id}>
-                            <InputLabel>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Select
                                 name="division_id"
                                 value={formData.division_id}
@@ -402,7 +402,7 @@ export default function InfluencerModal({
 
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth error={submitted && !formData.parliament_id}>
-                            <InputLabel>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Select
                                 name="parliament_id"
                                 value={formData.parliament_id}
@@ -426,7 +426,7 @@ export default function InfluencerModal({
 
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth error={submitted && !formData.assembly_id}>
-                            <InputLabel>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Select
                                 name="assembly_id"
                                 value={formData.assembly_id}
@@ -450,7 +450,7 @@ export default function InfluencerModal({
 
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth error={submitted && !formData.block_id}>
-                            <InputLabel>Block</InputLabel>
+                            <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Select
                                 name="block_id"
                                 value={formData.block_id}
@@ -474,7 +474,7 @@ export default function InfluencerModal({
 
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth error={submitted && !formData.booth_id}>
-                            <InputLabel>Booth</InputLabel>
+                            <InputLabel>Booth <span style={{ color: 'red' }}>*</span></InputLabel>
                             <Select
                                 name="booth_id"
                                 value={formData.booth_id}

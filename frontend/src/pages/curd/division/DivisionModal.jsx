@@ -154,7 +154,7 @@ export default function DivisionModal({
                     {/* Row 1: Name and Division Code */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division Name</InputLabel>
+                            <InputLabel>Division Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -170,7 +170,7 @@ export default function DivisionModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division Code</InputLabel>
+                            <InputLabel>Division Code <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="division_code"
                                 value={formData.division_code}
@@ -188,7 +188,7 @@ export default function DivisionModal({
                     {/* Row 2: State */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"

@@ -132,7 +132,7 @@ export default function ElectionYearModal({
                     {/* Year */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Year</InputLabel>
+                            <InputLabel>Year <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="year"
                                 value={formData.year}
@@ -151,7 +151,7 @@ export default function ElectionYearModal({
                     {/* Election Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Election Type</InputLabel>
+                            <InputLabel>Election Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.election_type}>
                                 <Select
                                     name="election_type"

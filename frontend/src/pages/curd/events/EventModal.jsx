@@ -254,56 +254,56 @@ export default function EventModal({
 
     const validateForm = () => {
         const errors = {};
-        
+
         if (!formData.name || formData.name.trim() === '') {
             errors.name = 'Event name is required';
         }
-        
+
         if (!formData.start_date) {
             errors.start_date = 'Start date is required';
         }
-        
+
         if (!formData.end_date) {
             errors.end_date = 'End date is required';
         } else if (formData.start_date && formData.end_date < formData.start_date) {
             errors.end_date = 'End date must be after start date';
         }
-        
+
         if (!formData.location || formData.location.trim() === '') {
             errors.location = 'Location is required';
         }
-        
+
         if (!formData.state_id) {
             errors.state_id = 'State is required';
         }
-        
+
         if (!formData.division_id) {
             errors.division_id = 'Division is required';
         }
-        
+
         if (!formData.parliament_id) {
             errors.parliament_id = 'Parliament is required';
         }
-        
+
         if (!formData.assembly_id) {
             errors.assembly_id = 'Assembly is required';
         }
-        
+
         if (!formData.block_id) {
             errors.block_id = 'Block is required';
         }
-        
+
         if (!formData.booth_id) {
             errors.booth_id = 'Booth is required';
         }
-        
+
         return errors;
     };
 
     const handleSubmit = async () => {
         setSubmitted(true);
         const errors = validateForm();
-        
+
         if (Object.keys(errors).length > 0) {
             return;
         }
@@ -363,7 +363,7 @@ export default function EventModal({
                     {/* Row 1: Name and Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Event Name</InputLabel>
+                            <InputLabel>Event Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -379,7 +379,7 @@ export default function EventModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Event Type</InputLabel>
+                            <InputLabel>Event Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required>
                                 <Select
                                     name="type"
@@ -432,7 +432,7 @@ export default function EventModal({
                     {/* Row 3: Dates */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Start Date</InputLabel>
+                            <InputLabel>Start Date <span style={{ color: 'red' }}>*</span></InputLabel>
                             <DatePicker
                                 value={formData.start_date}
                                 onChange={(date) => handleDateChange('start_date', date)}
@@ -450,7 +450,7 @@ export default function EventModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>End Date</InputLabel>
+                            <InputLabel>End Date <span style={{ color: 'red' }}>*</span></InputLabel>
                             <DatePicker
                                 value={formData.end_date}
                                 onChange={(date) => handleDateChange('end_date', date)}
@@ -462,7 +462,7 @@ export default function EventModal({
                                         error={submitted && (!formData.end_date || (formData.start_date && formData.end_date < formData.start_date))}
                                         helperText={
                                             submitted && !formData.end_date ? 'End date is required' :
-                                            submitted && formData.start_date && formData.end_date < formData.start_date ? 'End date must be after start date' : ''
+                                                submitted && formData.start_date && formData.end_date < formData.start_date ? 'End date must be after start date' : ''
                                         }
                                     />
                                 )}
@@ -473,7 +473,7 @@ export default function EventModal({
                     {/* Row 4: Location and State */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Location</InputLabel>
+                            <InputLabel>Location <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="location"
                                 value={formData.location}
@@ -489,7 +489,7 @@ export default function EventModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -513,7 +513,7 @@ export default function EventModal({
                     {/* Row 5: Division and Parliament */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -537,7 +537,7 @@ export default function EventModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"
@@ -562,7 +562,7 @@ export default function EventModal({
                     {/* Row 6: Assembly and Block */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                 <Select
                                     name="assembly_id"
@@ -586,7 +586,7 @@ export default function EventModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
+                            <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.block_id}>
                                 <Select
                                     name="block_id"
@@ -611,7 +611,7 @@ export default function EventModal({
                     {/* Row 7: Booth */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Booth</InputLabel>
+                            <InputLabel>Booth <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.booth_id}>
                                 <Select
                                     name="booth_id"

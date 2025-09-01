@@ -231,7 +231,7 @@ export default function BlocksModal({
                     {/* Row 1: Name and Category */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Block Name</InputLabel>
+                            <InputLabel>Block Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -247,7 +247,7 @@ export default function BlocksModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Category</InputLabel>
+                            <InputLabel>Category <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.category}>
                                 <Select
                                     name="category"
@@ -271,7 +271,7 @@ export default function BlocksModal({
                     {/* Row 2: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -295,7 +295,7 @@ export default function BlocksModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -321,7 +321,7 @@ export default function BlocksModal({
                     {/* Row 3: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"
@@ -346,7 +346,7 @@ export default function BlocksModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                 <Select
                                     name="assembly_id"

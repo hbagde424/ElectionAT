@@ -352,7 +352,7 @@ export default function CodingModal({
                     {/* Row 1: Name and Mobile */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Name</InputLabel>
+                            <InputLabel>Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="name"
                                 value={formData.name}
@@ -367,7 +367,7 @@ export default function CodingModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Mobile</InputLabel>
+                            <InputLabel>Mobile <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="mobile"
                                 value={formData.mobile}
@@ -457,7 +457,7 @@ export default function CodingModal({
                     {/* Row 4: Coding Types */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel required>Coding Types</InputLabel>
+                            <InputLabel>Coding Types <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormGroup row>
                                 {codingTypes.map((type) => (
                                     <FormControlLabel
@@ -482,7 +482,7 @@ export default function CodingModal({
                     {/* Row 5: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>State</InputLabel>
+                            <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
                                 <Select
                                     name="state_id"
@@ -506,7 +506,7 @@ export default function CodingModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Division</InputLabel>
+                            <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
                                 <Select
                                     name="division_id"
@@ -532,7 +532,7 @@ export default function CodingModal({
                     {/* Row 6: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Parliament</InputLabel>
+                            <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
                                 <Select
                                     name="parliament_id"
@@ -557,7 +557,7 @@ export default function CodingModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Assembly</InputLabel>
+                            <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
                                 <Select
                                     name="assembly_id"
@@ -583,7 +583,7 @@ export default function CodingModal({
                     {/* Row 7: Block and Booth */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
+                            <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.block_id}>
                                 <Select
                                     name="block_id"
@@ -608,7 +608,7 @@ export default function CodingModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Booth</InputLabel>
+                            <InputLabel>Booth <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.booth_id}>
                                 <Select
                                     name="booth_id"
