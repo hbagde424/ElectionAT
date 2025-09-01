@@ -195,6 +195,7 @@ export default function BoothsListPage() {
                 </Typography>
             )
         },
+
         {
             header: 'Description',
             accessorKey: 'description',
@@ -257,6 +258,7 @@ export default function BoothsListPage() {
                     {getValue()}
                 </Typography>
             )
+
         },
         {
             header: 'Block',

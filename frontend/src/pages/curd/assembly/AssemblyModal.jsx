@@ -208,7 +208,7 @@ export default function AssemblyModal({
                     </Grid>
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel>Assembly AC_NO <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <InputLabel>Assembly AC NO <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="AC_NO"
                                 value={formData.AC_NO}

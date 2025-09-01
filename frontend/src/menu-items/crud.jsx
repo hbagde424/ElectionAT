@@ -2,7 +2,7 @@
 import { FormattedMessage } from 'react-intl';
 
 // assets - using only confirmed existing icons from your list
-import { 
+import {
   DocumentCode2,
   HierarchySquare3,
   Building,
@@ -54,7 +54,7 @@ const icons = {
   Chart: Chart,
   ClipboardText: ClipboardText,
   Award: Award,
-  
+
   // Additional icons for specific use cases
   Home: Home,
   LikeTag: LikeTag,
@@ -137,7 +137,7 @@ const CRUDMenu = {
       url: '/Assembly-Votes',
       icon: icons.LikeTag, // Voting representation
     },
-    
+
     {
       id: 'Block-Votes',
       title: <FormattedMessage id="Block-Votes" />,
@@ -145,7 +145,7 @@ const CRUDMenu = {
       url: '/Block-Votes',
       icon: icons.ChartSquare, // Voting data
     },
-    
+
     {
       id: 'Booth-Survey',
       title: <FormattedMessage id="Booth-Survey" />,
@@ -182,15 +182,15 @@ const CRUDMenu = {
       icon: icons.HierarchySqu, // Hierarchical list
     },
 
-     {
+    {
       id: 'Coding',
       title: <FormattedMessage id="Coding" />,
       type: 'item',
       url: '/Coding',
       icon: icons.Calendar,
     },
-    
-    
+
+
     {
       id: 'Events',
       title: <FormattedMessage id="Events" />,
@@ -198,7 +198,7 @@ const CRUDMenu = {
       url: '/Events',
       icon: icons.Calendar,
     },
-     {
+    {
       id: 'Gender',
       title: <FormattedMessage id="Gender" />,
       type: 'item',
@@ -226,7 +226,7 @@ const CRUDMenu = {
       url: '/Local-Issue',
       icon: icons.Flag,
     },
-    
+
     {
       id: 'Parliament-Votes',
       title: <FormattedMessage id="Parliament-Votes" />,
@@ -254,13 +254,6 @@ const CRUDMenu = {
       type: 'item',
       url: '/Pontentcal-Candidate',
       icon: icons.User,
-    },
-    {
-      id: 'state',
-      title: <FormattedMessage id="State" />,
-      type: 'item',
-      url: '/state',
-      icon: icons.Location,
     },
     {
       id: 'Users',
