@@ -8,10 +8,10 @@ const { specs, swaggerUi } = require('./config/swagger');
 const utilsRoutes = require("./routes/utilsRoutes");
 // Route files
 const authRoutes = require('./routes/authRoutes');
-//const roleRoutes = require('./routes/roleRoutes');
-//const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
-//const permissionRoutes = require('./routes/permissionRoutes');
-//const userRoleRoutes = require('./routes/userRoleRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+const permissionRoutes = require('./routes/permissionRoutes');
+const userRoleRoutes = require('./routes/userRoleRoutes');
 const mapRoutes = require('./routes/mapRoutes');
 const districtPolygonRoutes = require('./routes/districtpolygenRoutes');
 const divisionPolygonRoutes = require('./routes/divisionpolygenRoutes');
@@ -44,6 +44,7 @@ const activePartyRoutes = require('./routes/activePartyRoutes');
 const accomplishedMLARoutes = require('./routes/accomplishedMLARoutes');
 const partyActivityRoutes = require('./routes/partyActivityRoutes');
 const userRoutes = require('./routes/userRoutes');
+const userHierarchyRoutes = require('./routes/userHierarchyRoutes');
 const regionCommitteeRoutes = require('./routes/regionCommitteeRoutes');
 const regionInchargeRoutes = require('./routes/regionInchargeRoutes');
 const hierarchyRoutes = require('./routes/hierarchyRoutes');
@@ -135,12 +136,10 @@ if (process.env.NODE_ENV === "development") {
 // Mount routers on the apiRouter (without /api prefix)
 apiRouter.use('/candidates', candidateRoutes); // Enabled for frontend data fetching
 apiRouter.use('/auth', authRoutes);
-// app.use('/api/roles', roleRoutes);
-apiRouter.use('/auth', authRoutes);
-// apiRouter.use('/roles', roleRoutes);
-// apiRouter.use('/role-permissions', rolePermissionRoutes);
-// apiRouter.use('/permissions', permissionRoutes);
-// apiRouter.use('/user-roles', userRoleRoutes);
+apiRouter.use('/roles', roleRoutes);
+apiRouter.use('/role-permissions', rolePermissionRoutes);
+apiRouter.use('/permissions', permissionRoutes);
+apiRouter.use('/user-roles', userRoleRoutes);
 apiRouter.use('/map', mapRoutes);
 apiRouter.use('/district-polygons', districtPolygonRoutes);
 apiRouter.use('/division-polygons', divisionPolygonRoutes);
@@ -171,6 +170,7 @@ apiRouter.use('/booth-admin', boothAdminRoutes);
 apiRouter.use('/winning-parties', winningPartyRoutes);
 apiRouter.use('/party-activities', partyActivityRoutes);
 apiRouter.use('/users', userRoutes);
+apiRouter.use('/user-hierarchy', userHierarchyRoutes);
 apiRouter.use('/region-committees', regionCommitteeRoutes);
 apiRouter.use('/region-incharges', regionInchargeRoutes);
 apiRouter.use('/hierarchy', hierarchyRoutes);

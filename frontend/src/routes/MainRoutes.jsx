@@ -153,7 +153,7 @@ const AssemblyVotes = Loadable(lazy(() => import('pages/curd/votes/AssemblyVotes
 const BoothVotes = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/Booth-votes')));
 const BlockVotes = Loadable(lazy(() => import('pages/curd/votes/BlockVotes/Block-votes')));
 const ParliamentVotes = Loadable(lazy(() => import('pages/curd/votes/ParliamentVotes/Parliament-votes')));
-const Users = Loadable(lazy(() => import('pages/curd/user/user')));
+const Users = Loadable(lazy(() => import('pages/curd/user/Users')));
 const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));

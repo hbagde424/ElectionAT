@@ -56,6 +56,149 @@ export default function UserModal({
   // Get available entities based on selected role
   const availableEntities = formData.role ? getAvailableEntities(formData.role) : [];
 
+  // Cascading filter functions
+  const getFilteredDivisions = () => {
+    if (!formData.state_ids.length) return divisions || [];
+    return (divisions || []).filter(division => {
+      // Handle populated state_id field
+      const stateId = division.state_id && typeof division.state_id === 'object'
+        ? division.state_id._id
+        : division.state_id;
+      return formData.state_ids.includes(stateId);
+    });
+  };
+
+  const getFilteredParliaments = () => {
+    const filteredDivisions = getFilteredDivisions();
+    if (!formData.division_ids.length) {
+      // If no divisions selected, filter by states
+      if (!formData.state_ids.length) return parliaments || [];
+      return (parliaments || []).filter(parliament => {
+        const stateId = parliament.state_id && typeof parliament.state_id === 'object'
+          ? parliament.state_id._id
+          : parliament.state_id;
+        return formData.state_ids.includes(stateId);
+      });
+    }
+    return (parliaments || []).filter(parliament => {
+      const divisionId = parliament.division_id && typeof parliament.division_id === 'object'
+        ? parliament.division_id._id
+        : parliament.division_id;
+      return formData.division_ids.includes(divisionId);
+    });
+  };
+
+  const getFilteredAssemblies = () => {
+    if (!formData.parliament_ids.length) {
+      // Filter by divisions or states
+      const filteredDivisions = getFilteredDivisions();
+      if (!formData.division_ids.length) {
+        if (!formData.state_ids.length) return assemblies || [];
+        return (assemblies || []).filter(assembly => {
+          const stateId = assembly.state_id && typeof assembly.state_id === 'object'
+            ? assembly.state_id._id
+            : assembly.state_id;
+          return formData.state_ids.includes(stateId);
+        });
+      }
+      return (assemblies || []).filter(assembly => {
+        const divisionId = assembly.division_id && typeof assembly.division_id === 'object'
+          ? assembly.division_id._id
+          : assembly.division_id;
+        return formData.division_ids.includes(divisionId);
+      });
+    }
+    return (assemblies || []).filter(assembly => {
+      const parliamentId = assembly.parliament_id && typeof assembly.parliament_id === 'object'
+        ? assembly.parliament_id._id
+        : assembly.parliament_id;
+      return formData.parliament_ids.includes(parliamentId);
+    });
+  };
+
+  const getFilteredBlocks = () => {
+    if (!formData.assembly_ids.length) {
+      // Filter by higher levels
+      const filteredParliaments = getFilteredParliaments();
+      if (!formData.parliament_ids.length) {
+        const filteredDivisions = getFilteredDivisions();
+        if (!formData.division_ids.length) {
+          if (!formData.state_ids.length) return blocks || [];
+          return (blocks || []).filter(block => {
+            const stateId = block.state_id && typeof block.state_id === 'object'
+              ? block.state_id._id
+              : block.state_id;
+            return formData.state_ids.includes(stateId);
+          });
+        }
+        return (blocks || []).filter(block => {
+          const divisionId = block.division_id && typeof block.division_id === 'object'
+            ? block.division_id._id
+            : block.division_id;
+          return formData.division_ids.includes(divisionId);
+        });
+      }
+      return (blocks || []).filter(block => {
+        const parliamentId = block.parliament_id && typeof block.parliament_id === 'object'
+          ? block.parliament_id._id
+          : block.parliament_id;
+        return formData.parliament_ids.includes(parliamentId);
+      });
+    }
+    return (blocks || []).filter(block => {
+      const assemblyId = block.assembly_id && typeof block.assembly_id === 'object'
+        ? block.assembly_id._id
+        : block.assembly_id;
+      return formData.assembly_ids.includes(assemblyId);
+    });
+  };
+
+  const getFilteredBooths = () => {
+    if (!formData.block_ids.length) {
+      // Filter by higher levels
+      const filteredAssemblies = getFilteredAssemblies();
+      if (!formData.assembly_ids.length) {
+        const filteredParliaments = getFilteredParliaments();
+        if (!formData.parliament_ids.length) {
+          const filteredDivisions = getFilteredDivisions();
+          if (!formData.division_ids.length) {
+            if (!formData.state_ids.length) return booths || [];
+            return (booths || []).filter(booth => {
+              const stateId = booth.state_id && typeof booth.state_id === 'object'
+                ? booth.state_id._id
+                : booth.state_id;
+              return formData.state_ids.includes(stateId);
+            });
+          }
+          return (booths || []).filter(booth => {
+            const divisionId = booth.division_id && typeof booth.division_id === 'object'
+              ? booth.division_id._id
+              : booth.division_id;
+            return formData.division_ids.includes(divisionId);
+          });
+        }
+        return (booths || []).filter(booth => {
+          const parliamentId = booth.parliament_id && typeof booth.parliament_id === 'object'
+            ? booth.parliament_id._id
+            : booth.parliament_id;
+          return formData.parliament_ids.includes(parliamentId);
+        });
+      }
+      return (booths || []).filter(booth => {
+        const assemblyId = booth.assembly_id && typeof booth.assembly_id === 'object'
+          ? booth.assembly_id._id
+          : booth.assembly_id;
+        return formData.assembly_ids.includes(assemblyId);
+      });
+    }
+    return (booths || []).filter(booth => {
+      const blockId = booth.block_id && typeof booth.block_id === 'object'
+        ? booth.block_id._id
+        : booth.block_id;
+      return formData.block_ids.includes(blockId);
+    });
+  };
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -194,7 +337,34 @@ export default function UserModal({
     }
     if (submitError) setSubmitError('');
 
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+
+      // Clear dependent selections when parent changes
+      if (name === 'state_ids') {
+        newData.division_ids = [];
+        newData.parliament_ids = [];
+        newData.assembly_ids = [];
+        newData.block_ids = [];
+        newData.booth_ids = [];
+      } else if (name === 'division_ids') {
+        newData.parliament_ids = [];
+        newData.assembly_ids = [];
+        newData.block_ids = [];
+        newData.booth_ids = [];
+      } else if (name === 'parliament_ids') {
+        newData.assembly_ids = [];
+        newData.block_ids = [];
+        newData.booth_ids = [];
+      } else if (name === 'assembly_ids') {
+        newData.block_ids = [];
+        newData.booth_ids = [];
+      } else if (name === 'block_ids') {
+        newData.booth_ids = [];
+      }
+
+      return newData;
+    });
   };
 
   const handleSelectAll = (name, options) => {
@@ -264,14 +434,17 @@ export default function UserModal({
   };
 
   const renderAutocomplete = (name, label, options, selectedIds, allLabel) => {
-    const selectedOptions = options.filter(option => selectedIds.includes(option._id));
+    // Ensure options is an array and selectedIds is an array
+    const safeOptions = Array.isArray(options) ? options : [];
+    const safeSelectedIds = Array.isArray(selectedIds) ? selectedIds : [];
+    const selectedOptions = safeOptions.filter(option => safeSelectedIds.includes(option._id));
 
     return (
       <Stack direction="column" spacing={1}>
         <Autocomplete
           multiple
-          options={options}
-          getOptionLabel={(option) => option.name}
+          options={safeOptions}
+          getOptionLabel={(option) => option.name || ''}
           value={selectedOptions}
           onChange={(e, newValue) => {
             const newIds = newValue.map(v => v._id);
@@ -430,13 +603,13 @@ export default function UserModal({
             label="Active User"
           />
 
-          {/* All geographical selectors - no hierarchical filtering */}
+          {/* Geographical selectors with cascading filtering */}
           {renderAutocomplete('state_ids', 'States', states, formData.state_ids, 'All States')}
-          {renderAutocomplete('division_ids', 'Divisions', divisions, formData.division_ids, 'All Divisions')}
-          {renderAutocomplete('parliament_ids', 'Parliaments', parliaments, formData.parliament_ids, 'All Parliaments')}
-          {renderAutocomplete('assembly_ids', 'Assemblies', assemblies, formData.assembly_ids, 'All Assemblies')}
-          {renderAutocomplete('block_ids', 'Blocks', blocks, formData.block_ids, 'All Blocks')}
-          {renderAutocomplete('booth_ids', 'Booths', booths, formData.booth_ids, 'All Booths')}
+          {renderAutocomplete('division_ids', 'Divisions', getFilteredDivisions(), formData.division_ids, 'All Divisions')}
+          {renderAutocomplete('parliament_ids', 'Parliaments', getFilteredParliaments(), formData.parliament_ids, 'All Parliaments')}
+          {renderAutocomplete('assembly_ids', 'Assemblies', getFilteredAssemblies(), formData.assembly_ids, 'All Assemblies')}
+          {renderAutocomplete('block_ids', 'Blocks', getFilteredBlocks(), formData.block_ids, 'All Blocks')}
+          {renderAutocomplete('booth_ids', 'Booths', getFilteredBooths(), formData.booth_ids, 'All Booths')}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
