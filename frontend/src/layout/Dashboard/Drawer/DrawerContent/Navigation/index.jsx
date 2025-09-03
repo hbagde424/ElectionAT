@@ -10,6 +10,8 @@ import Typography from '@mui/material/Typography';
 // project-imports
 import NavItem from './NavItem';
 import NavGroup from './NavGroup';
+import PermissionNavGroup from 'components/permission/PermissionNavGroup';
+import { PermissionProvider } from 'contexts/PermissionContext';
 import menuItem from 'menu-items';
 import { MenuFromAPI } from 'menu-items/dashboard';
 
@@ -89,7 +91,7 @@ export default function Navigation() {
           );
         }
         return (
-          <NavGroup
+          <PermissionNavGroup
             key={item.id}
             selectedID={selectedID}
             setSelectedID={setSelectedID}
@@ -113,15 +115,17 @@ export default function Navigation() {
   });
 
   return (
-    <Box
-      sx={{
-        pt: drawerOpen ? (isHorizontal ? 0 : 2) : 0,
-        '& > ul:first-of-type': { mt: 0 },
-        display: isHorizontal ? { xs: 'block', lg: 'flex' } : 'block'
-      }}
-    >
-      {navGroups}
-    </Box>
+    <PermissionProvider>
+      <Box
+        sx={{
+          pt: drawerOpen ? (isHorizontal ? 0 : 2) : 0,
+          '& > ul:first-of-type': { mt: 0 },
+          display: isHorizontal ? { xs: 'block', lg: 'flex' } : 'block'
+        }}
+      >
+        {navGroups}
+      </Box>
+    </PermissionProvider>
   );
 }
 

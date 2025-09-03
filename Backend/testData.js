@@ -3,7 +3,7 @@ require('dotenv').config({ path: __dirname + '/.env' });
 const mongoose = require('mongoose');
 const Role = require('./models/Role');
 const Permission = require('./models/Permission');
-const RolePermission = require('./models/RolePermission');
+const RolePermission = require('./models/RolePermission'); qazqwqwqwss
 
 const createTestData = async () => {
     try {

@@ -86,7 +86,7 @@ export const JWTProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/users/login`, { email, password });
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/login`, { email, password });
 
       const { token, user } = response.data;
 

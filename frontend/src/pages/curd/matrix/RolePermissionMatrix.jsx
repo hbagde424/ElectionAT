@@ -14,6 +14,7 @@ import {
     Alert
 } from '@mui/material';
 import axiosServices from 'utils/axios';
+import { usePermissions } from 'contexts/PermissionContext';
 
 const RolePermissionMatrix = () => {
     const [roles, setRoles] = useState([]);
@@ -21,6 +22,8 @@ const RolePermissionMatrix = () => {
     const [rolePermissions, setRolePermissions] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    const { hasPermission } = usePermissions();
 
     useEffect(() => {
         fetchData();
@@ -63,6 +66,12 @@ const RolePermissionMatrix = () => {
     };
 
     const handlePermissionChange = async (roleId, permissionId, checked) => {
+        // Check if user has permission to modify role-permission assignments
+        if (!hasPermission('role_permission_manage')) {
+            setError('You do not have permission to modify role-permission assignments.');
+            return;
+        }
+
         try {
             if (checked) {
                 await axiosServices.post('/role-permissions', { roleId, permissionId });
@@ -110,6 +119,8 @@ const RolePermissionMatrix = () => {
                                         <Checkbox
                                             checked={!!(rolePermissions[role._id] && rolePermissions[role._id][permission._id])}
                                             onChange={(e) => handlePermissionChange(role._id, permission._id, e.target.checked)}
+                                            disabled={!hasPermission('role_permission_manage')}
+                                            title={!hasPermission('role_permission_manage') ? 'You do not have permission to modify role-permission assignments' : ''}
                                         />
                                     </TableCell>
                                 ))}
