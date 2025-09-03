@@ -107,7 +107,9 @@ export const PermissionProvider = ({ children }) => {
 
         const result = permissionNames.some(permission => hasPermission(permission));
         return result;
-    };    // Check if user has all of the specified permissions
+    };
+
+    // Check if user has all of the specified permissions
     const hasAllPermissions = (permissionNames) => {
         if (!Array.isArray(permissionNames)) return false;
 

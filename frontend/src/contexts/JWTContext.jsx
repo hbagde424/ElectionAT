@@ -103,6 +103,9 @@ export const JWTProvider = ({ children }) => {
       // Use existing `setSession()` function with the new token
       setSession(token);
 
+      // Store user data in localStorage for PermissionContext
+      localStorage.setItem('user', JSON.stringify(user));
+
       dispatch({
         type: LOGIN,
         payload: {
@@ -148,6 +151,7 @@ export const JWTProvider = ({ children }) => {
 
   const logout = () => {
     setSession(null);
+    localStorage.removeItem('user'); // Remove user data from localStorage
     dispatch({ type: LOGOUT });
   };
 
