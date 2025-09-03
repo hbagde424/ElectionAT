@@ -297,40 +297,13 @@ const CRUDMenu = {
       url: '/Year',
       icon: icons.ClipboardTick // Completed work
     },
+
     {
-      id: 'Matrics',
-      title: <FormattedMessage id="Matrics" defaultMessage="Matrics" />,
+      id: 'matrix',
+      title: <FormattedMessage id="Permission Matrix" defaultMessage="Permission Matrix" />,
       type: 'item',
       url: '/Matrics',
-      icon: icons.SecurityUser,
-    },
-    {
-      id: 'roles',
-      title: <FormattedMessage id="Roles" defaultMessage="Roles" />,
-      type: 'item',
-      url: '/roles',
-      icon: icons.SecurityUser,
-    },
-    {
-      id: 'permissions',
-      title: <FormattedMessage id="Permissions" defaultMessage="Permissions" />,
-      type: 'item',
-      url: '/permissions',
-      icon: icons.Shield,
-    },
-    {
-      id: 'assign-permission-to-role',
-      title: <FormattedMessage id="Assign Permission to Role" defaultMessage="Assign Permission to Role" />,
-      type: 'item',
-      url: '/assign-permission-to-role',
       icon: icons.ShieldSearch,
-    },
-    {
-      id: 'assign-role-to-user',
-      title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
-      type: 'item',
-      url: '/assign-role-to-user',
-      icon: icons.User,
     }
   ]
 };

@@ -148,6 +148,7 @@ const RoleList = Loadable(lazy(() => import('pages/curd/role/RoleList')));
 const PermissionList = Loadable(lazy(() => import('pages/curd/permission/PermissionList')));
 const AssignPermissionToRole = Loadable(lazy(() => import('pages/curd/role/AssignPermissionToRole')));
 const AssignRoleToUser = Loadable(lazy(() => import('pages/curd/role/AssignRoleToUser')));
+const Matrix = Loadable(lazy(() => import('pages/curd/matrix/Matrix')));
 const Division = Loadable(lazy(() => import('pages/curd/division/division')));
 const AssemblyVotes = Loadable(lazy(() => import('pages/curd/votes/AssemblyVotes/Assembly-votes')));
 const BoothVotes = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/Booth-votes')));
@@ -721,7 +722,7 @@ const MainRoutes = {
 
         {
           path: 'Matrics',
-          element: <Matrics />
+          element: <Matrix />
         },
 
 

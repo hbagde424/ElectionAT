@@ -21,12 +21,8 @@ const startServer = async () => {
   try {
     await connectDB(); // waits for MongoDB Atlas connection
 
-    // 🚀 Always use process.env.PORT (CapRover sets this)
-    const PORT = process.env.PORT;
-    if (!PORT) {
-      console.error("❌ PORT not set in environment variables! Exiting...");
-      process.exit(1);
-    }
+    // Use PORT from environment or default to 5000
+    const PORT = process.env.PORT || 5000;
 
     server.listen(PORT, () => {
       console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);

@@ -7,6 +7,7 @@ router.post('/', userRoleController.assignUserRole);
 router.delete('/', userRoleController.removeUserRole);
 router.get('/user/:userId', userRoleController.getUserRoles);
 router.get('/role/:roleId', userRoleController.getRoleUsers);
+router.get('/', userRoleController.getAllUserRoles);
 
 // Legacy routes for backward compatibility
 router.post('/assign', userRoleController.assignRole);

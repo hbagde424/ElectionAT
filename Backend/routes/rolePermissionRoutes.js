@@ -3,5 +3,6 @@ const router = express.Router();
 const rolePermissionController = require('../controllers/rolePermissionController');
 
 router.get('/:roleId', rolePermissionController.getRolePermissions);
+router.get('/', rolePermissionController.getAllRolePermissions);
 
 module.exports = router;

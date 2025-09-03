@@ -134,6 +134,22 @@ exports.getRoleUsers = async (req, res) => {
   }
 };
 
+// Get all user-role assignments
+exports.getAllUserRoles = async (req, res) => {
+  try {
+    const userRoles = await UserRole.find().populate('user', 'name username email').populate('role');
+    res.json({
+      success: true,
+      data: userRoles
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+};
+
 // Legacy method - keeping for backward compatibility
 exports.assignRole = async (req, res) => {
   try {

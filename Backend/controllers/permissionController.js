@@ -14,9 +14,15 @@ exports.createPermission = async (req, res) => {
 exports.getPermissions = async (req, res) => {
   try {
     const permissions = await Permission.find();
-    res.json(permissions);
+    res.json({
+      success: true,
+      data: permissions
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 };
 
