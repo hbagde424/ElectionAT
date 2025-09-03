@@ -35,18 +35,10 @@ const RolePermissionMatrix = () => {
                 axiosServices.get('/role-permissions')
             ]);
 
-            console.log('Roles response:', rolesRes.data);
-            console.log('Permissions response:', permissionsRes.data);
-            console.log('Role-Permissions response:', rolePermissionsRes.data);
-
             // Handle both response formats: {data: []} or direct array []
             const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data.data || []);
             const permissionsData = Array.isArray(permissionsRes.data) ? permissionsRes.data : (permissionsRes.data.data || []);
             const rolePermissionsData = Array.isArray(rolePermissionsRes.data) ? rolePermissionsRes.data : (rolePermissionsRes.data.data || []);
-
-            console.log('Processed roles:', rolesData);
-            console.log('Processed permissions:', permissionsData);
-            console.log('Processed role-permissions:', rolePermissionsData);
 
             setRoles(rolesData);
             setPermissions(permissionsData);
@@ -93,10 +85,6 @@ const RolePermissionMatrix = () => {
 
     if (loading) return <CircularProgress />;
     if (error) return <Alert severity="error">{error}</Alert>;
-
-    console.log('Current state - Roles:', roles);
-    console.log('Current state - Permissions:', permissions);
-    console.log('Current state - RolePermissions:', rolePermissions);
 
     return (
         <Box>
