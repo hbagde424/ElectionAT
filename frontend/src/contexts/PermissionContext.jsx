@@ -22,7 +22,8 @@ export const PermissionProvider = ({ children }) => {
     const getCurrentUser = () => {
         try {
             const userData = localStorage.getItem('user');
-            return userData ? JSON.parse(userData) : null;
+            const user = userData ? JSON.parse(userData) : null;
+            return user;
         } catch (error) {
             console.error('Error parsing user data:', error);
             return null;
@@ -83,18 +84,39 @@ export const PermissionProvider = ({ children }) => {
     // Check if user has a specific permission
     const hasPermission = (permissionName) => {
         if (!permissionName) return false;
+
+        // Grant all permissions to Super Admin
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.email === 'superadmin@example.com') {
+            return true;
+        }
+
         return userPermissions.includes(permissionName);
     };
 
     // Check if user has any of the specified permissions
     const hasAnyPermission = (permissionNames) => {
         if (!Array.isArray(permissionNames)) return false;
-        return permissionNames.some(permission => hasPermission(permission));
-    };
 
-    // Check if user has all of the specified permissions
+        // Grant all permissions to Super Admin
+        const currentUser = getCurrentUser();
+
+        if (currentUser && currentUser.email === 'superadmin@example.com') {
+            return true;
+        }
+
+        const result = permissionNames.some(permission => hasPermission(permission));
+        return result;
+    };    // Check if user has all of the specified permissions
     const hasAllPermissions = (permissionNames) => {
         if (!Array.isArray(permissionNames)) return false;
+
+        // Grant all permissions to Super Admin
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.email === 'superadmin@example.com') {
+            return true;
+        }
+
         return permissionNames.every(permission => hasPermission(permission));
     };
 

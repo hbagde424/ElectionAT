@@ -60,29 +60,54 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
   try {
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Request body:', req.body);
+    console.log('Request headers:', req.headers);
+
     const { email, password } = req.body;
+    console.log('Extracted email:', email);
+    console.log('Extracted password:', password ? '[PROVIDED]' : '[MISSING]');
 
     // Validate email & password
     if (!email || !password) {
+      console.log('❌ Missing email or password');
       return res.status(400).json({ success: false, message: 'Please provide email and password' });
     }
 
     // Check for user
+    console.log('🔍 Looking for user with email:', email);
     const user = await User.findOne({ email }).select('+password');
+    console.log('👤 User found:', !!user);
+
     if (!user) {
+      console.log('❌ User not found in database');
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    console.log('📋 User details:');
+    console.log('  - Email:', user.email);
+    console.log('  - Username:', user.username);
+    console.log('  - Role:', user.role);
+    console.log('  - Active:', user.isActive);
+    console.log('  - Has password:', !!user.password);
+
     // Check if user is active
     if (!user.isActive) {
+      console.log('❌ User account is deactivated');
       return res.status(401).json({ success: false, message: 'User account is deactivated' });
     }
 
     // Check if password matches
+    console.log('🔐 Testing password comparison...');
     const isMatch = await user.comparePassword(password);
+    console.log('🔐 Password match result:', isMatch);
+
     if (!isMatch) {
+      console.log('❌ Password does not match');
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+
+    console.log('✅ Password matches! Generating token...');
 
     // Create token
     const token = generateToken(user._id);
@@ -117,7 +142,7 @@ exports.login = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    
+
     let assemblyMap = null;
     if (user.role === 'assembly') {
       assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: user.regionIds } }); // updated to check in array

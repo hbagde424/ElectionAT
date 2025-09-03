@@ -79,6 +79,7 @@ const CRUDMenu = {
   title: <FormattedMessage id="CRUD" />,
   type: 'group',
   icon: icons.CURd,
+  permissions: ['all.access', 'system.admin'], // Super Admin can see this group
   children: [
     {
       id: 'state',
@@ -86,6 +87,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/state',
       icon: icons.Location,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'division',
@@ -93,6 +95,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/division',
       icon: icons.Bank, // Administrative division
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'parliament',
@@ -100,6 +103,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/parliament',
       icon: icons.Building,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
 
     {
@@ -108,6 +112,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/assembly',
       icon: icons.Courthouse, // Government building
+      permissions: ['all.access', 'system.admin', 'assembly.view']
     },
     {
       id: 'district',
@@ -115,6 +120,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/district',
       icon: icons.Location,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'block',
@@ -122,6 +128,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/block',
       icon: icons.Location, // Geographical block
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'booth',
@@ -129,6 +136,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/booth',
       icon: icons.Home, // Polling booth
+      permissions: ['all.access', 'system.admin', 'booths.view']
     },
     {
       id: 'Assembly-Votes',
@@ -136,6 +144,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Assembly-Votes',
       icon: icons.LikeTag, // Voting representation
+      permissions: ['all.access', 'system.admin', 'assembly.view']
     },
 
     {
@@ -144,6 +153,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Block-Votes',
       icon: icons.ChartSquare, // Voting data
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
 
     {
@@ -152,6 +162,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Booth-Survey',
       icon: icons.ClipboardText, // Survey form
+      permissions: ['all.access', 'system.admin', 'booths.view']
     },
     {
       id: 'booth-volunteer',
@@ -159,6 +170,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/booth-volunteer',
       icon: icons.Profile2User, // Volunteer staff
+      permissions: ['all.access', 'system.admin', 'booths.view']
     },
     {
       id: 'Booth-votes',
@@ -166,6 +178,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Booth-votes',
       icon: icons.Ticket, // Voting ticket
+      permissions: ['all.access', 'system.admin', 'booths.view']
     },
     {
       id: 'candidates',
@@ -173,6 +186,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/candidates',
       icon: icons.UserOctagon, // Candidate profile
+      permissions: ['all.access', 'system.admin', 'candidates.view']
     },
     {
       id: 'Caste-List',
@@ -180,6 +194,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Caste-List',
       icon: icons.HierarchySqu, // Hierarchical list
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
 
     {
@@ -188,6 +203,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Coding',
       icon: icons.Calendar,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
 
 
@@ -197,6 +213,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Events',
       icon: icons.Calendar,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Gender',
@@ -204,6 +221,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Gender',
       icon: icons.Calendar,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Government-Schema',
@@ -211,6 +229,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Government-Schema',
       icon: icons.Calendar,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Influancer',
@@ -218,6 +237,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Influancer',
       icon: icons.Calendar,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Local-Issue',
@@ -225,6 +245,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Local-Issue',
       icon: icons.Flag,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
 
     {
@@ -233,6 +254,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Parliament-Votes',
       icon: icons.TrendUp, // Voting trends
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'parties',
@@ -247,6 +269,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/party-activities',
       icon: icons.TaskSquare, // Party activities
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Pontentcal-Candidate',
@@ -254,6 +277,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Pontentcal-Candidate',
       icon: icons.User,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Users',
@@ -261,6 +285,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Users',
       icon: icons.People,
+      permissions: ['all.access', 'system.admin', 'users.view']
     },
     {
       id: 'visits',
@@ -268,6 +293,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/visits',
       icon: icons.ReceiptText, // Visit records
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'WinningPartiesList',
@@ -275,6 +301,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/WinningPartiesList',
       icon: icons.Award,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'WInningCandidateList',
@@ -282,20 +309,23 @@ const CRUDMenu = {
       type: 'item',
       url: '/WInningCandidateList',
       icon: icons.Award,
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Work-Status',
       title: <FormattedMessage id="Work-Status" />,
       type: 'item',
       url: '/Work-Status',
-      icon: icons.ClipboardTick // Completed work
+      icon: icons.ClipboardTick, // Completed work
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
     {
       id: 'Year',
       title: <FormattedMessage id="Year" />,
       type: 'item',
       url: '/Year',
-      icon: icons.ClipboardTick // Completed work
+      icon: icons.ClipboardTick, // Completed work
+      permissions: ['all.access', 'system.admin', 'elections.view']
     },
 
     {
@@ -304,6 +334,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Matrics',
       icon: icons.ShieldSearch,
+      permissions: ['all.access', 'system.admin', 'permissions.view']
     }
   ]
 };

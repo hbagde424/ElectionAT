@@ -79,7 +79,7 @@ export default function PermissionNavGroup({
     const drawerOpen = menuMaster.isDashboardDrawerOpened;
 
     const downLG = useMediaQuery(theme.breakpoints.down('lg'));
-    const { hasPermission } = usePermissions();
+    const { hasPermission, hasAnyPermission } = usePermissions();
 
     const [anchorEl, setAnchorEl] = useState(null);
     const [currentItem, setCurrentItem] = useState(item);
@@ -105,20 +105,31 @@ export default function PermissionNavGroup({
 
     // multi-level
     const isParent = currentItem.children?.some((child) => {
+        if (child.permissions && Array.isArray(child.permissions)) {
+            return hasAnyPermission(child.permissions);
+        }
+        // Fallback to old system if no permissions property
         return hasPermission(getPermissionName(child.url || child.id));
     });
 
     // Filter children based on permissions
     const getFilteredChildren = () => {
-        if (!currentItem.children) return [];
+        if (!currentItem.children) {
+            return [];
+        }
 
-        return currentItem.children.filter((menuItem) => {
+        const filtered = currentItem.children.filter((menuItem) => {
+            // Use the permissions property if available
+            if (menuItem.permissions && Array.isArray(menuItem.permissions)) {
+                return hasAnyPermission(menuItem.permissions);
+            }
+            // Fallback to old permission system
             const requiredPermission = getPermissionName(menuItem.url || menuItem.id);
             return hasPermission(requiredPermission);
         });
-    };
 
-    useEffect(() => {
+        return filtered;
+    }; useEffect(() => {
         const filteredChildren = getFilteredChildren();
         if (filteredChildren.length > 0) {
             currentItem.children.some((child) => {
@@ -150,6 +161,15 @@ export default function PermissionNavGroup({
 
     // Check if current group has any accessible children
     const filteredChildren = getFilteredChildren();
+
+    // Check if user has permission to see this group
+    if (currentItem.permissions && Array.isArray(currentItem.permissions)) {
+        const groupAccess = hasAnyPermission(currentItem.permissions);
+        if (!groupAccess) {
+            return null; // Don't render the group if user doesn't have permission
+        }
+    }
+
     if (filteredChildren.length === 0) {
         return null; // Don't render the group if no children are accessible
     }
@@ -200,8 +220,14 @@ export default function PermissionNavGroup({
             )}
             <List key={itemRem.title} sx={{ py: 0 }}>
                 {itemRem.elements?.map((menu) => {
-                    const requiredPermission = getPermissionName(menu.url || menu.id);
-                    if (!hasPermission(requiredPermission)) return null;
+                    // Check permissions using the new system first
+                    if (menu.permissions && Array.isArray(menu.permissions)) {
+                        if (!hasAnyPermission(menu.permissions)) return null;
+                    } else {
+                        // Fallback to old permission system
+                        const requiredPermission = getPermissionName(menu.url || menu.id);
+                        if (!hasPermission(requiredPermission)) return null;
+                    }
 
                     switch (menu.type) {
                         case 'collapse':

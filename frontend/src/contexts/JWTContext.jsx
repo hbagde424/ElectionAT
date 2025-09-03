@@ -86,9 +86,19 @@ export const JWTProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('Frontend login attempt:', { email, password });
+      console.log('API URL:', import.meta.env.VITE_APP_API_URL);
+      console.log('Full login URL:', `${import.meta.env.VITE_APP_API_URL}/auth/login`);
+
       const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/login`, { email, password });
 
+      console.log('Login response:', response);
+      console.log('Login response data:', response.data);
+
       const { token, user } = response.data;
+
+      console.log('Extracted token:', token);
+      console.log('Extracted user:', user);
 
       // Use existing `setSession()` function with the new token
       setSession(token);
@@ -101,6 +111,8 @@ export const JWTProvider = ({ children }) => {
         }
       });
     } catch (error) {
+      console.error('Frontend login error:', error);
+      console.error('Error response:', error.response);
       throw new Error(error.response?.data?.message || 'Login failed');
     }
   };

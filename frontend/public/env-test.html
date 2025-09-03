@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Environment Test</title>
+</head>
+
+<body>
+    <h1>Frontend Environment Test</h1>
+    <div id="env-info"></div>
+
+    <script>
+        document.getElementById('env-info').innerHTML = `
+            <p><strong>Base URL from import.meta.env:</strong> ${import.meta.env.VITE_APP_API_URL || 'undefined'}</p>
+            <p><strong>All environment variables:</strong></p>
+            <pre>${JSON.stringify(import.meta.env, null, 2)}</pre>
+        `;
+
+        // Test login API call
+        fetch(`${import.meta.env.VITE_APP_API_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: 'admin@example.com',
+                password: 'password123'
+            })
+        })
+            .then(response => {
+                console.log('Login test response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Login test response data:', data);
+                document.getElementById('env-info').innerHTML += `
+                <p><strong>Login API Test:</strong> SUCCESS</p>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            })
+            .catch(error => {
+                console.error('Login test error:', error);
+                document.getElementById('env-info').innerHTML += `
+                <p><strong>Login API Test:</strong> FAILED</p>
+                <p>Error: ${error.message}</p>
+            `;
+            });
+    </script>
+</body>
+
+</html>
