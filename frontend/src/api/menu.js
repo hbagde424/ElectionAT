@@ -10,7 +10,7 @@ const initialState = {
 };
 
 export const endpoints = {
-  key: 'api/menu',
+  key: 'menu',
   master: 'master',
   dashboard: '/dashboard' // server URL
 };

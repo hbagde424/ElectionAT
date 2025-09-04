@@ -9,7 +9,7 @@ const initialState = {
 };
 
 export const endpoints = {
-  key: 'api/customer',
+  key: 'customer',
   list: '/list', // server URL
   modal: '/modal', // server URL
   insert: '/insert', // server URL

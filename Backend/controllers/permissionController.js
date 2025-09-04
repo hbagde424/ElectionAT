@@ -3,11 +3,32 @@ const Permission = require('../models/Permission');
 // CRUD for Permission
 exports.createPermission = async (req, res) => {
   try {
-    const permission = new Permission(req.body);
+    const { name, description, level } = req.body;
+
+    // Validate required fields
+    if (!name || !level) {
+      return res.status(400).json({
+        error: 'Name and level are required fields'
+      });
+    }
+
+    const permission = new Permission({ name, description, level });
     await permission.save();
-    res.status(201).json(permission);
+
+    res.status(201).json({
+      success: true,
+      data: permission
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.code === 11000) {
+      // Duplicate key error
+      return res.status(400).json({
+        error: 'Permission name already exists'
+      });
+    }
+    res.status(400).json({
+      error: err.message
+    });
   }
 };
 
@@ -28,18 +49,61 @@ exports.getPermissions = async (req, res) => {
 
 exports.updatePermission = async (req, res) => {
   try {
-    const permission = await Permission.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(permission);
+    const { name, description, level } = req.body;
+
+    // Validate required fields
+    if (!name || !level) {
+      return res.status(400).json({
+        error: 'Name and level are required fields'
+      });
+    }
+
+    const permission = await Permission.findByIdAndUpdate(
+      req.params.id,
+      { name, description, level },
+      { new: true, runValidators: true }
+    );
+
+    if (!permission) {
+      return res.status(404).json({
+        error: 'Permission not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: permission
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.code === 11000) {
+      // Duplicate key error
+      return res.status(400).json({
+        error: 'Permission name already exists'
+      });
+    }
+    res.status(400).json({
+      error: err.message
+    });
   }
 };
 
 exports.deletePermission = async (req, res) => {
   try {
-    await Permission.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Permission deleted' });
+    const permission = await Permission.findByIdAndDelete(req.params.id);
+
+    if (!permission) {
+      return res.status(404).json({
+        error: 'Permission not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Permission deleted successfully'
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({
+      error: err.message
+    });
   }
 };

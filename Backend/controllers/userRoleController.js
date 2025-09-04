@@ -137,12 +137,28 @@ exports.getRoleUsers = async (req, res) => {
 // Get all user-role assignments
 exports.getAllUserRoles = async (req, res) => {
   try {
+    console.log('getAllUserRoles called');
     const userRoles = await UserRole.find().populate('user', 'name username email').populate('role');
+
+    console.log('Raw user-roles data:', JSON.stringify(userRoles, null, 2));
+
+    // Filter out records with null user or role (orphaned records)
+    const validUserRoles = userRoles.filter(ur => {
+      const isValid = ur.user && ur.role;
+      if (!isValid) {
+        console.log('Filtering out invalid user-role:', ur._id, 'user:', ur.user, 'role:', ur.role);
+      }
+      return isValid;
+    });
+
+    console.log(`Found ${userRoles.length} total user-roles, ${validUserRoles.length} valid`);
+
     res.json({
       success: true,
-      data: userRoles
+      data: validUserRoles
     });
   } catch (err) {
+    console.error('Error in getAllUserRoles:', err);
     res.status(500).json({
       success: false,
       error: err.message

@@ -21,7 +21,7 @@ const initialState = {
 };
 
 export const endpoints = {
-  key: 'api/invoice',
+  key: 'invoice',
   actions: 'actions',
   list: '/list', // server URL
   insert: '/insert', // server URL

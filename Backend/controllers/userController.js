@@ -224,6 +224,9 @@ exports.getUsers = async (req, res, next) => {
       query.role = req.query.role;
     }
 
+    console.log('Users query:', query);
+    console.log('User authentication:', req.user ? `User: ${req.user.username}, Role: ${req.user.role}` : 'No authentication');
+
     const users = await User.find(query)
       .select('-password')
       .populate('state_ids', 'name')
@@ -238,6 +241,8 @@ exports.getUsers = async (req, res, next) => {
 
     const total = await User.countDocuments(query);
 
+    console.log(`Found ${users.length} users out of ${total} total matching query`);
+
     res.status(200).json({
       success: true,
       count: users.length,
@@ -247,7 +252,35 @@ exports.getUsers = async (req, res, next) => {
       data: users
     });
   } catch (err) {
+    console.error('Error in getUsers:', err);
     next(err);
+  }
+};
+
+// @desc    Get all users for role assignment (no authentication restrictions)
+// @route   GET /api/users/for-roles
+// @access  Public (for UserRoleAssigner component)
+exports.getUsersForRoles = async (req, res, next) => {
+  try {
+    console.log('getUsersForRoles called');
+
+    const users = await User.find({})
+      .select('_id username email mobile role')
+      .lean();
+
+    console.log(`Found ${users.length} users for role assignment`);
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (err) {
+    console.error('Error in getUsersForRoles:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 };
 

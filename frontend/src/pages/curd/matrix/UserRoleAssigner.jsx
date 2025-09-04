@@ -33,27 +33,69 @@ const UserRoleAssigner = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [usersRes, rolesRes, userRolesRes] = await Promise.all([
-                axiosServices.get('/users'),
-                axiosServices.get('/roles'),
-                axiosServices.get('/user-roles')
-            ]);
+            setError('');
 
-            setUsers(usersRes.data.data || usersRes.data);
-            setRoles(rolesRes.data.data || rolesRes.data);
+            console.log('Fetching users...');
+            const usersRes = await axiosServices.get('/users/for-roles');
+            console.log('Users response:', usersRes.data);
+
+            console.log('Fetching roles...');
+            const rolesRes = await axiosServices.get('/roles');
+            console.log('Roles response:', rolesRes.data);
+
+            console.log('Fetching user-roles...');
+            const userRolesRes = await axiosServices.get('/user-roles');
+            console.log('User-roles response:', userRolesRes.data);
+
+            const usersData = usersRes.data.data || usersRes.data;
+            const rolesData = rolesRes.data.data || rolesRes.data;
+            const userRolesData = userRolesRes.data.data || userRolesRes.data;
+
+            console.log('Processed data:', {
+                users: Array.isArray(usersData) ? usersData.length : 'Not an array',
+                roles: Array.isArray(rolesData) ? rolesData.length : 'Not an array',
+                userRoles: Array.isArray(userRolesData) ? userRolesData.length : 'Not an array'
+            });
+
+            // Validate data arrays
+            if (!Array.isArray(usersData)) {
+                throw new Error('Users data is not an array');
+            }
+            if (!Array.isArray(rolesData)) {
+                throw new Error('Roles data is not an array');
+            }
+            if (!Array.isArray(userRolesData)) {
+                throw new Error('User-roles data is not an array');
+            }
+
+            setUsers(usersData);
+            setRoles(rolesData);
 
             const urMap = {};
-            (userRolesRes.data.data || userRolesRes.data).forEach(ur => {
-                if (!urMap[ur.user._id]) {
-                    urMap[ur.user._id] = [];
-                }
-                urMap[ur.user._id].push(ur.role._id);
-            });
+
+            // Ensure userRolesData is an array and handle empty/null data
+            if (Array.isArray(userRolesData) && userRolesData.length > 0) {
+                userRolesData.forEach(ur => {
+                    // Skip if user or role is null (orphaned records)
+                    if (!ur.user || !ur.role || !ur.user._id || !ur.role._id) {
+                        console.warn('Skipping invalid user-role record:', ur);
+                        return;
+                    }
+
+                    if (!urMap[ur.user._id]) {
+                        urMap[ur.user._id] = [];
+                    }
+                    urMap[ur.user._id].push(ur.role._id);
+                });
+            } else {
+                console.log('No user-roles data found or data is empty');
+            }
+
             setUserRoles(urMap);
 
         } catch (err) {
-            setError('Failed to fetch data. Please try again.');
-            console.error(err);
+            console.error('Error in fetchData:', err);
+            setError(`Failed to fetch data: ${err.response?.data?.error || err.message || 'Please try again.'}`);
         } finally {
             setLoading(false);
         }

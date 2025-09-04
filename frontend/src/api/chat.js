@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { fetcher, fetcherPost } from 'utils/axios';
 
 export const endpoints = {
-  key: 'api/chat',
+  key: 'chat',
   list: '/users', // server URL
   update: '/filter' // server URL
 };

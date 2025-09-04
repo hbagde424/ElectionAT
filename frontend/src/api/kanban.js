@@ -11,7 +11,7 @@ const initialState = {
 };
 
 export const endpoints = {
-  key: 'api/kanban',
+  key: 'kanban',
   master: 'master',
   list: '/backlogs', // server URL
   addColumn: '/add-column', // server URL

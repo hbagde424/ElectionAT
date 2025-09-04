@@ -5,6 +5,7 @@ const {
   getMe,
   updateMe,
   getUsers,
+  getUsersForRoles,
   getUser,
   updateUser,
   deleteUser,
@@ -183,6 +184,9 @@ router.put('/me', protect, updateMe);
  *       401:
  *         description: Unauthorized
  */
+// Route for UserRoleAssigner component - no authentication required
+router.get('/for-roles', getUsersForRoles);
+
 // Temporarily remove auth for testing - TODO: Add back authentication
 router.get('/', getUsers);
 

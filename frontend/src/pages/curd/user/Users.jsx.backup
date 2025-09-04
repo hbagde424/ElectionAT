@@ -47,8 +47,8 @@ import JWTContext from 'contexts/JWTContext';
 
 // Import existing components
 import UserModal from './UserModal';
-// import AlertUserDelete from './AlertUserDelete';
-// import UserView from './UserView';
+import AlertUserDelete from './AlertUserDelete';
+import UserView from './UserView';
 
 const Users = () => {
     const theme = useTheme();
@@ -786,23 +786,23 @@ const Users = () => {
             )}
 
             {/* User View */}
-            {/* {userView && (
+            {userView && (
                 <UserView
                     open={userView}
                     setOpen={setUserView}
                     selectedUser={selectedUser}
                 />
-            )} */}
+            )}
 
             {/* Delete Dialog */}
-            {/* {deleteDialog && (
+            {deleteDialog && (
                 <AlertUserDelete
                     open={deleteDialog}
                     setOpen={setDeleteDialog}
                     userId={selectedUser?._id}
                     fetchUsers={fetchUsers}
                 />
-            )} */}
+            )}
         </Box>
     );
 };

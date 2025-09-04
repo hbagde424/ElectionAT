@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -11,8 +11,12 @@ import {
     Paper,
     Checkbox,
     CircularProgress,
-    Alert
+    Alert,
+    TextField,
+    InputAdornment,
+    Grid
 } from '@mui/material';
+import { Search } from '@mui/icons-material';
 import axiosServices from 'utils/axios';
 import { usePermissions } from 'contexts/PermissionContext';
 
@@ -22,6 +26,8 @@ const RolePermissionMatrix = () => {
     const [rolePermissions, setRolePermissions] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [permissionFilter, setPermissionFilter] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
 
     const { hasPermission } = usePermissions();
 
@@ -92,18 +98,85 @@ const RolePermissionMatrix = () => {
         }
     };
 
+    // Filter functions using useMemo for better performance
+    const filteredPermissions = useMemo(() => {
+        if (!permissions || permissions.length === 0) return [];
+        if (!permissionFilter) return permissions;
+        return permissions.filter(permission =>
+            permission && permission.name && permission.name.toLowerCase().includes(permissionFilter.toLowerCase())
+        );
+    }, [permissions, permissionFilter]);
+
+    const filteredRoles = useMemo(() => {
+        if (!roles || roles.length === 0) return [];
+        if (!roleFilter) return roles;
+        return roles.filter(role =>
+            role && role.name && role.name.toLowerCase().includes(roleFilter.toLowerCase())
+        );
+    }, [roles, roleFilter]);
+
     if (loading) return <CircularProgress />;
     if (error) return <Alert severity="error">{error}</Alert>;
 
     return (
         <Box>
             <Typography variant="h5" mb={2}>Role-Permission Matrix</Typography>
+
+            {/* Filter Controls */}
+            <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label="Filter Permissions"
+                        value={permissionFilter}
+                        onChange={(e) => setPermissionFilter(e.target.value)}
+                        placeholder="Search permissions..."
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search />
+                                </InputAdornment>
+                            ),
+                        }}
+                        size="small"
+                    />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label="Filter Roles"
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                        placeholder="Search roles..."
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search />
+                                </InputAdornment>
+                            ),
+                        }}
+                        size="small"
+                    />
+                </Grid>
+                {(permissionFilter || roleFilter) && (
+                    <Grid item xs={12}>
+                        <Typography variant="body2" color="primary">
+                            {permissionFilter && `Filtering permissions: "${permissionFilter}"`}
+                            {permissionFilter && roleFilter && ' | '}
+                            {roleFilter && `Filtering roles: "${roleFilter}"`}
+                        </Typography>
+                    </Grid>
+                )}
+            </Grid>
+
             <TableContainer component={Paper}>
                 <Table stickyHeader>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>Permissions</TableCell>
-                            {roles.map((role) => (
+                            <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>
+                                Permissions ({filteredPermissions.length}{permissions.length !== filteredPermissions.length ? ` of ${permissions.length}` : ''})
+                            </TableCell>
+                            {filteredRoles.map((role) => (
                                 <TableCell key={role._id} align="center" sx={{ fontWeight: 'bold' }}>
                                     {role.name}
                                 </TableCell>
@@ -111,10 +184,19 @@ const RolePermissionMatrix = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {permissions.map((permission) => (
+                        {filteredPermissions.map((permission) => (
                             <TableRow key={permission._id}>
-                                <TableCell>{permission.name}</TableCell>
-                                {roles.map((role) => (
+                                <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {permission.name}
+                                    </Typography>
+                                    {permission.description && (
+                                        <Typography variant="caption" color="text.secondary">
+                                            {permission.description}
+                                        </Typography>
+                                    )}
+                                </TableCell>
+                                {filteredRoles.map((role) => (
                                     <TableCell key={role._id} align="center">
                                         <Checkbox
                                             checked={!!(rolePermissions[role._id] && rolePermissions[role._id][permission._id])}
@@ -129,6 +211,22 @@ const RolePermissionMatrix = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {filteredPermissions.length === 0 && permissionFilter && (
+                <Box mt={2}>
+                    <Alert severity="info">
+                        No permissions found matching "{permissionFilter}". Try adjusting your search.
+                    </Alert>
+                </Box>
+            )}
+
+            {filteredRoles.length === 0 && roleFilter && (
+                <Box mt={2}>
+                    <Alert severity="info">
+                        No roles found matching "{roleFilter}". Try adjusting your search.
+                    </Alert>
+                </Box>
+            )}
         </Box>
     );
 };

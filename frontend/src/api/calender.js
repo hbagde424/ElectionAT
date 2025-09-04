@@ -10,7 +10,7 @@ import { fetcher } from 'utils/axios';
 // ----------------------------------------------------------------------
 
 export const endpoints = {
-  key: 'api/calendar/events',
+  key: 'calendar/events',
   add: '/add', // server URL
   udpate: '/update', // server URL
   delete: '/delete' // server URL

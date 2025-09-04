@@ -33,6 +33,14 @@ exports.createRolePermission = async (req, res) => {
   try {
     const { roleId, permissionId } = req.body;
 
+    // Validate required fields
+    if (!roleId || !permissionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'roleId and permissionId are required'
+      });
+    }
+
     // Check if assignment already exists
     const existingAssignment = await RolePermission.findOne({
       role: roleId,
@@ -58,6 +66,7 @@ exports.createRolePermission = async (req, res) => {
       data: rolePermission
     });
   } catch (err) {
+    console.error('Error creating role-permission:', err);
     res.status(400).json({
       success: false,
       error: err.message
@@ -69,6 +78,14 @@ exports.createRolePermission = async (req, res) => {
 exports.deleteRolePermission = async (req, res) => {
   try {
     const { roleId, permissionId } = req.body;
+
+    // Validate required fields
+    if (!roleId || !permissionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'roleId and permissionId are required'
+      });
+    }
 
     const deletedAssignment = await RolePermission.findOneAndDelete({
       role: roleId,
@@ -88,6 +105,7 @@ exports.deleteRolePermission = async (req, res) => {
       data: deletedAssignment
     });
   } catch (err) {
+    console.error('Error deleting role-permission:', err);
     res.status(400).json({
       success: false,
       error: err.message

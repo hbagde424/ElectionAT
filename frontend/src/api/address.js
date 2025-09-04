@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { fetcher } from 'utils/axios';
 
 export const endpoints = {
-  key: 'api/address',
+  key: 'address',
   list: '/list', // server URL
   insert: '/new', // server URL
   update: '/edit', // server URL
