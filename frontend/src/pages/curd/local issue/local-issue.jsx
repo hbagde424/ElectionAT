@@ -173,12 +173,29 @@ export default function LocalIssueListPage() {
             if (selectedPriority) query += `&priority=${encodeURIComponent(selectedPriority)}`;
             if (selectedDepartment) query += `&department=${encodeURIComponent(selectedDepartment)}`;
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            // When searching, fetch all results on first page
+            let currentPage = pageIndex + 1;
+            let currentLimit = pageSize;
+            if (globalFilter) {
+                currentPage = 1;
+                currentLimit = 10000; // Get all results when searching
+            }
+
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?page=${currentPage}&limit=${currentLimit}${query}`);
             const json = await res.json();
 
             if (json.success) {
                 setLocalIssues(json.data);
-                setPageCount(json.pages);
+                // When searching, set pageCount to 1 to show all results on single page
+                if (globalFilter) {
+                    setPageCount(1);
+                    // Reset pagination to first page when searching
+                    if (pageIndex !== 0) {
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }
+                } else {
+                    setPageCount(json.pages);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch local issues:', error);
@@ -418,23 +435,6 @@ export default function LocalIssueListPage() {
             size: 150
         },
         {
-            header: 'Description',
-            accessorKey: 'description',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 250,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    fontStyle: 'italic',
-                    color: 'text.secondary'
-                }}>
-                    {/* Strip HTML tags for table preview */}
-                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
-                </Typography>
-            )
-        },
-        {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
@@ -522,7 +522,7 @@ export default function LocalIssueListPage() {
         setCsvData(allData.map(item => ({
             'Issue Name': item.issue_name,
             'Department': item.department,
-            'Description': item.description,
+            'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Status': item.status,
             'Priority': item.priority,
             'State': item.state_id?.name || '',
@@ -533,6 +533,7 @@ export default function LocalIssueListPage() {
             'Booth': item.booth_id?.name || '',
             'Booth Number': item.booth_id?.booth_number || '',
             'Created By': item.created_by?.username || '',
+            'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,
             'Updated At': item.updated_at
         })));

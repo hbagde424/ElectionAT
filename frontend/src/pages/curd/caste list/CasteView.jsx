@@ -31,11 +31,21 @@ export default function CasteView({ data }) {
                         'default'
                     }
                 />
+                <Chip
+                    label={`%: ${data.percentage || 'N/A'}`}
+                    size="small"
+                    color="info"
+                />
+                <Chip
+                    label={`ID: ${data._id || data.id || 'N/A'}`}
+                    size="small"
+                    color="default"
+                />
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
 
-             {/* Description Field (HTML) */}
+            {/* Description Field (HTML) */}
             {data.description && (
                 <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
@@ -68,7 +78,7 @@ export default function CasteView({ data }) {
                                 {data.created_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-<Box>
+                        <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
@@ -79,7 +89,6 @@ export default function CasteView({ data }) {
                                 {data.updated_by?.username || 'N/A'}
                             </Typography>
                         </Box>
-
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <CalendarTick size="16" />
@@ -91,21 +100,6 @@ export default function CasteView({ data }) {
                                 {formatDate(data.created_at)}
                             </Typography>
                         </Box>
-
-                        {data.updated_by && (
-                            <Box>
-                                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                    <User size="16" />
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                </Stack>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {data.updated_by?.username || 'N/A'}
-                                </Typography>
-                            </Box>
-                        )}
-
                         {data.updated_at && (
                             <Box>
                                 <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -150,6 +144,10 @@ export default function CasteView({ data }) {
                             <Chip label={data.booth?.name || 'N/A'} color="error" size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
+                            <Chip label={data.booth?.booth_number || 'N/A'} color="error" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Category</Typography>
                             <Chip 
                                 label={data.category?.toUpperCase() || 'N/A'} 
@@ -162,12 +160,6 @@ export default function CasteView({ data }) {
                                 }
                             />
                         </Grid>
-                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Caste ID</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {data._id || data.id || 'N/A'}
-                            </Typography>
-                        </Grid> */}
                     </Grid>
                 </Grid>
             </Grid>

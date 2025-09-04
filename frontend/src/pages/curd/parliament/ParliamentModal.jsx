@@ -40,8 +40,8 @@ export default function ParliamentModal({
         if (parliament) {
             setFormData({
                 name: parliament.name || '',
-                category: parliament.category || 'general',
-                regional_type: parliament.regional_type || 'urban',
+                category: parliament.category ? parliament.category.toLowerCase() : 'general',
+                regional_type: parliament.regional_type ? parliament.regional_type.toLowerCase() : 'urban',
                 state_id: parliament.state_id?._id?.toString() || parliament.state_id?.toString() || '',
                 division_id: parliament.division_id?._id?.toString() || parliament.division_id?.toString() || '',
                 assembly_id: parliament.assembly_id?._id?.toString() || parliament.assembly_id?.toString() || '',

@@ -1,4 +1,6 @@
 const Candidate = require('../models/Candidate');
+const Party = require('../models/party');
+const User = require('../models/User');
 const upload = require('../config/candidateUpload');
 const fs = require('fs');
 const path = require('path');
@@ -13,10 +15,11 @@ exports.getCandidates = async (req, res, next) => {
     const limit = parseInt(req.query.limit);
     const skip = (page - 1) * limit;
 
-    // Basic query
+    // Basic query with proper population
     let query = Candidate.find({ is_active: true })
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
+      .populate('party_id', 'name')
       .sort({ name: 1 });
 
     // Enhanced search functionality
@@ -33,8 +36,6 @@ exports.getCandidates = async (req, res, next) => {
       ];
 
       // Find party ids matching search
-      // const Party = require('../models/Party');
-      const User = require('../models/User');
       const partyDocs = await Party.find({ name: { $regex: searchRegex } }, '_id');
       if (partyDocs.length > 0) {
         orArray.push({ party_id: { $in: partyDocs.map(p => p._id) } });
@@ -82,7 +83,8 @@ exports.getCandidate = async (req, res, next) => {
   try {
     const candidate = await Candidate.findById(req.params.id)
       .populate('created_by', 'username')
-      .populate('updated_by', 'username');
+      .populate('updated_by', 'username')
+      .populate('party_id', 'name');
 
     if (!candidate) {
       return res.status(404).json({

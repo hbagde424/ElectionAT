@@ -66,7 +66,13 @@ export default function BoothVotesListPage() {
   const fetchVotes = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
-      let url = `${import.meta.env.VITE_APP_API_URL}/booth-votes?page=${pageIndex + 1}&limit=${pageSize}`;
+      let ignorePagination = !!(selectedCandidate || selectedBooth || selectedAssembly || selectedParty || selectedPartyName);
+      let url;
+      if (ignorePagination) {
+        url = `${import.meta.env.VITE_APP_API_URL}/booth-votes?page=1&limit=10000`;
+      } else {
+        url = `${import.meta.env.VITE_APP_API_URL}/booth-votes?page=${pageIndex + 1}&limit=${pageSize}`;
+      }
       if (selectedCandidate) url += `&candidate=${selectedCandidate}`;
       if (selectedBooth) url += `&booth=${selectedBooth}`;
       if (selectedAssembly) url += `&assembly=${selectedAssembly}`;
@@ -77,7 +83,7 @@ export default function BoothVotesListPage() {
       const json = await res.json();
       if (json.success) {
         setVotes(json.data);
-        setPageCount(json.pages);
+        setPageCount(ignorePagination ? 1 : json.pages);
       }
     } catch (error) {
       console.error('Failed to fetch booth votes:', error);

@@ -25,6 +25,11 @@ export default function DivisionView({ data }) {
                     size="small"
                     variant="outlined"
                 />
+                <Chip
+                    label={data.is_active ? 'Active' : 'Inactive'}
+                    color={data.is_active ? 'success' : 'default'}
+                    size="small"
+                />
             </Stack>
 
             {data.description && (
@@ -85,6 +90,16 @@ export default function DivisionView({ data }) {
                             </Stack>
                             <Typography variant="body2" fontWeight="medium">
                                 {formatDate(data.updated_at)}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Division Active
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body2" fontWeight="medium">
+                                {data.is_active ? 'Active' : 'Inactive'}
                             </Typography>
                         </Box>
                     </Stack>

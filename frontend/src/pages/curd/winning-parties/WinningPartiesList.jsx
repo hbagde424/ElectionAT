@@ -150,13 +150,15 @@ const WinningPartyListPage = () => {
     const fetchWinningParties = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            let queryParams = [
-                `page=${pageIndex + 1}`,
-                `limit=${pageSize}`
-            ];
-
+            let queryParams = [];
+            // If searching, fetch all results on first page
             if (globalFilter) {
+                queryParams.push('page=1');
+                queryParams.push('limit=10000');
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            } else {
+                queryParams.push(`page=${pageIndex + 1}`);
+                queryParams.push(`limit=${pageSize}`);
             }
 
             if (appliedFilters.party) {
@@ -213,7 +215,7 @@ const WinningPartyListPage = () => {
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=10000`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
             ]);

@@ -1,7 +1,7 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
-import { CalendarTick, User, Profile, People } from 'iconsax-react';
+import { CalendarTick, User, Mobile, Location, MessageText1 } from 'iconsax-react';
 
-export default function GenderView({ data }) {
+export default function CodingView({ data }) {
     if (!data) return null;
 
     const formatDate = (dateString) => {
@@ -16,89 +16,39 @@ export default function GenderView({ data }) {
         });
     };
 
-    const totalCount = data.male + data.female + data.others;
-
     return (
         <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                <Typography variant="h6">Gender Distribution</Typography>
+                <Typography variant="h6">{data.name || 'Untitled Coding Entry'}</Typography>
                 <Chip
-                    label={`Total: ${totalCount}`}
+                    label={`Mobile: ${data.mobile || 'N/A'}`}
                     size="small"
-                    variant="outlined"
                     color="primary"
                 />
+                {data.email && (
+                    <Chip
+                        label={`Email: ${data.email}`}
+                        size="small"
+                        color="info"
+                    />
+                )}
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
 
-            <Grid container spacing={3}>
-                {/* Left Column */}
-                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
-                    <Stack spacing={2}>
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <People size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Male Count
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {data.male || '0'}
-                            </Typography>
-                        </Box>
-
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <People size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Female Count
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {data.female || '0'}
-                            </Typography>
-                        </Box>
-
-                         <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <People size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    others Count
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {data.others || '0'}
-                            </Typography>
-                        </Box>
-
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <Profile size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Male Percentage
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {totalCount > 0 ? ((data.male / totalCount) * 100).toFixed(2) + '%' : '0%'}
-                            </Typography>
-                        </Box>
-
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <Profile size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Others Percentage
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {totalCount > 0 ? ((data.others / totalCount) * 100).toFixed(2) + '%' : '0%'}
-                            </Typography>
-                        </Box>
+            {/* Coding Types */}
+            {data.coding_types && data.coding_types.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Coding Types</Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                        {data.coding_types.map((type, index) => (
+                            <Chip key={index} label={type} size="small" color="primary" />
+                        ))}
                     </Stack>
-                </Grid>
+                </Box>
+            )}
 
-                 {/* Description Field (HTML) */}
+            {/* Description Field (HTML) */}
             {data.description && (
                 <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
@@ -116,9 +66,50 @@ export default function GenderView({ data }) {
                 </Box>
             )}
 
-                {/* Right Column */}
+            <Grid container spacing={3}>
+                {/* Left Column - Contact Info */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Typography variant="subtitle1" gutterBottom>Contact Information</Typography>
                     <Stack spacing={2}>
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Mobile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Mobile Number
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.mobile || 'N/A'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <MessageText1 size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    WhatsApp Number
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.whatsapp_number || 'N/A'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Social Media</Typography>
+                            <Stack spacing={1}>
+                                <Typography variant="body2">
+                                    <strong>Facebook:</strong> {data.facebook || 'N/A'}
+                                </Typography>
+                                <Typography variant="body2">
+                                    <strong>Instagram:</strong> {data.instagram || 'N/A'}
+                                </Typography>
+                                <Typography variant="body2">
+                                    <strong>Twitter:</strong> {data.twitter || 'N/A'}
+                                </Typography>
+                            </Stack>
+                        </Box>
+
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <User size="16" />
@@ -170,34 +161,40 @@ export default function GenderView({ data }) {
                         )}
                     </Stack>
                 </Grid>
-            </Grid>
 
-            <Divider sx={{ my: 2 }} />
-
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
-                    <Chip label={data.state?.name || 'N/A'} color="primary" size="small" />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
-                    <Chip label={data.division?.name || 'N/A'} color="warning" size="small" />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
-                    <Chip label={data.parliament?.name || 'N/A'} color="secondary" size="small" />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
-                    <Chip label={data.assembly?.name || 'N/A'} color="info" size="small" />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
-                    <Chip label={data.block?.name || 'N/A'} color="success" size="small" />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
-                    <Chip label={data.booth?.name || 'N/A'} color="error" size="small" />
+                {/* Right Column - Location Info */}
+                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
+                    <Typography variant="subtitle1" gutterBottom>Location Information</Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                            <Chip label={data.state?.name || 'N/A'} color="primary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                            <Chip label={data.division?.name || 'N/A'} color="warning" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                            <Chip label={data.parliament?.name || 'N/A'} color="secondary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                            <Chip label={data.assembly?.name || 'N/A'} color="info" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
+                            <Chip label={data.block?.name || 'N/A'} color="success" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                            <Chip label={data.booth?.name || 'N/A'} color="error" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
+                            <Chip label={data.booth?.booth_number || 'N/A'} color="error" size="small" />
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Grid>
         </Box>

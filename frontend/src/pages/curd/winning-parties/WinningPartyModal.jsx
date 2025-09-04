@@ -346,8 +346,12 @@ export default function WinningPartyModal({
                 : `${import.meta.env.VITE_APP_API_URL}/winning-parties`;
             const method = winningParty ? 'PUT' : 'POST';
 
+            // Ensure booth_number, votes, margin are numbers (not empty string)
             const submitData = {
                 ...formData,
+                booth_number: formData.booth_number === '' ? undefined : Number(formData.booth_number),
+                votes: formData.votes === '' ? undefined : Number(formData.votes),
+                margin: formData.margin === '' ? undefined : Number(formData.margin),
                 description: typeof formData.description === 'string' ? formData.description : ''
             };
 

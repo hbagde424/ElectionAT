@@ -236,7 +236,8 @@ export default function CasteModal({
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation
-        const requiredFields = ['category', 'percentage', 'caste', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
+        // Only require: category, caste, state_id, division_id, parliament_id, assembly_id
+        const requiredFields = ['category', 'caste', 'state_id', 'division_id', 'parliament_id', 'assembly_id'];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -261,8 +262,17 @@ export default function CasteModal({
         }
 
         const userTracking = casteEntry ? { updated_by: userId } : { created_by: userId };
+
+        // Convert empty string reference fields to null
+        const cleanedFormData = { ...formData };
+        ['state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'].forEach((key) => {
+            if (cleanedFormData[key] === '') {
+                cleanedFormData[key] = null;
+            }
+        });
+
         const submitData = {
-            ...formData,
+            ...cleanedFormData,
             ...userTracking
         };
 
@@ -314,16 +324,13 @@ export default function CasteModal({
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>percentage</InputLabel>
+                            <InputLabel>percentage</InputLabel>
                             <TextField
                                 name="percentage"
                                 value={formData.percentage}
                                 onChange={handleChange}
                                 fullWidth
-                                required
-                                error={submitted && !formData.percentage}
-                                helperText={submitted && !formData.percentage ? 'percentage is required' : ''}
-                                placeholder="Enter percentage name"
+                                placeholder="Enter percentage"
                             />
                         </Stack>
                     </Grid>
@@ -467,13 +474,12 @@ export default function CasteModal({
                     {/* Row 4: Block and Booth */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Block</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.block_id}>
+                            <InputLabel>Block</InputLabel>
+                            <FormControl fullWidth>
                                 <Select
                                     name="block_id"
                                     value={formData.block_id}
                                     onChange={handleChange}
-                                    required
                                     disabled={!formData.assembly_id}
                                 >
                                     <MenuItem value="">Select Block</MenuItem>
@@ -484,21 +490,17 @@ export default function CasteModal({
                                     ))}
                                 </Select>
                             </FormControl>
-                            {submitted && !formData.block_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Block is required</Box>
-                            )}
                         </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Booth</InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.booth_id}>
+                            <InputLabel>Booth</InputLabel>
+                            <FormControl fullWidth>
                                 <Select
                                     name="booth_id"
                                     value={formData.booth_id}
                                     onChange={handleChange}
-                                    required
                                     disabled={!formData.block_id}
                                 >
                                     <MenuItem value="">Select Booth</MenuItem>
@@ -509,9 +511,6 @@ export default function CasteModal({
                                     ))}
                                 </Select>
                             </FormControl>
-                            {submitted && !formData.booth_id && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Booth is required</Box>
-                            )}
                         </Stack>
                     </Grid>
                 </Grid>

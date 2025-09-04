@@ -65,18 +65,29 @@ export default function BoothSurveyListPage() {
     setLoading(true);
     setError('');
     try {
-      let url = `${import.meta.env.VITE_APP_API_URL}/booth-surveys?page=${pageIndex + 1}&limit=${pageSize}`;
-      if (filterParams.state_id) url += `&state_id=${filterParams.state_id}`;
-      if (filterParams.division_id) url += `&division=${filterParams.division_id}`;
-      if (filterParams.parliament_id) url += `&parliament_id=${filterParams.parliament_id}`;
-      if (filterParams.assembly_id) url += `&assembly_id=${filterParams.assembly_id}`;
-      if (filterParams.block_id) url += `&block_id=${filterParams.block_id}`;
-      if (filterParams.booth_id) url += `&booth_id=${filterParams.booth_id}`;
+      let isSearching = !!filterParams.search || !!filterParams.globalFilter;
+      let url;
+      let baseUrl = `${import.meta.env.VITE_APP_API_URL}/booth-surveys`;
+      let params = [];
+      if (filterParams.state_id) params.push(`state_id=${filterParams.state_id}`);
+      if (filterParams.division_id) params.push(`division=${filterParams.division_id}`);
+      if (filterParams.parliament_id) params.push(`parliament_id=${filterParams.parliament_id}`);
+      if (filterParams.assembly_id) params.push(`assembly_id=${filterParams.assembly_id}`);
+      if (filterParams.block_id) params.push(`block_id=${filterParams.block_id}`);
+      if (filterParams.booth_id) params.push(`booth_id=${filterParams.booth_id}`);
+      // If searching, fetch all matching data (ignore pagination)
+      if (filterParams.search || (typeof filterParams.globalFilter === 'string' && filterParams.globalFilter.trim() !== '')) {
+        let searchVal = filterParams.search || filterParams.globalFilter;
+        params.push(`search=${encodeURIComponent(searchVal)}`);
+        url = `${baseUrl}?page=1&limit=10000${params.length ? '&' + params.join('&') : ''}`;
+      } else {
+        url = `${baseUrl}?page=${pageIndex + 1}&limit=${pageSize}${params.length ? '&' + params.join('&') : ''}`;
+      }
       const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setSurveys(json.data);
-        setPageCount(json.pages);
+        setPageCount((filterParams.search || (typeof filterParams.globalFilter === 'string' && filterParams.globalFilter.trim() !== '')) ? 1 : json.pages);
       } else {
         setError('Failed to fetch booth surveys');
       }

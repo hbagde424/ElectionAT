@@ -30,12 +30,12 @@ const mapConfiguration = {
 };
 
 const MAPBOX_THEMES = {
-    // light: 'mapbox://styles/mapbox/light-v10',
-    // dark: 'mapbox://styles/mapbox/dark-v10',
-    // streets: 'mapbox://styles/mapbox/streets-v11',
+    light: 'mapbox://styles/mapbox/light-v10',
+    dark: 'mapbox://styles/mapbox/dark-v10',
+    streets: 'mapbox://styles/mapbox/streets-v11',
     outdoors: 'mapbox://styles/mapbox/outdoors-v11',
-    // satellite: 'mapbox://styles/mapbox/satellite-v9',
-    // satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+    satellite: 'mapbox://styles/mapbox/satellite-v9',
+    satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
 };
 
 const VisitListPage = () => {
@@ -435,10 +435,13 @@ const VisitListPage = () => {
     };
 
     const handleMarkerClick = (visit) => {
+        // Get all visits for this candidate
+        const candidateVisits = mapVisits.filter(v => v.candidate_id?._id === visit.candidate_id?._id);
         setPopupInfo({
             longitude: visit.longitude,
             latitude: visit.latitude,
-            visit: visit
+            candidate: visit.candidate_id,
+            visits: candidateVisits
         });
     };
 
@@ -523,6 +526,24 @@ const VisitListPage = () => {
                 </Typography>
             )
         },
+            {
+                header: 'Parliament',
+                accessorKey: 'parliament_id',
+                cell: ({ getValue }) => (
+                    <Typography>
+                        {getValue()?.name || 'N/A'}
+                    </Typography>
+                )
+            },
+            {
+                header: 'Block',
+                accessorKey: 'block_id',
+                cell: ({ getValue }) => (
+                    <Typography>
+                        {getValue()?.name || 'N/A'}
+                    </Typography>
+                )
+            },
         {
             header: 'Booth',
             accessorKey: 'booth_id',
@@ -541,6 +562,24 @@ const VisitListPage = () => {
                 </Typography>
             )
         },
+            {
+                header: 'Longitude',
+                accessorKey: 'longitude',
+                cell: ({ getValue }) => (
+                    <Typography>
+                        {getValue() || 'N/A'}
+                    </Typography>
+                )
+            },
+            {
+                header: 'Latitude',
+                accessorKey: 'latitude',
+                cell: ({ getValue }) => (
+                    <Typography>
+                        {getValue() || 'N/A'}
+                    </Typography>
+                )
+            },
         {
             header: 'Description',
             accessorKey: 'description',
@@ -558,6 +597,24 @@ const VisitListPage = () => {
                 </Typography>
             )
         },
+            {
+                header: 'Declaration',
+                accessorKey: 'declaration',
+                cell: ({ getValue }) => (
+                    <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
+                        {getValue() ? getValue().slice(0, 100) : ''}
+                    </Typography>
+                )
+            },
+            {
+                header: 'Remark',
+                accessorKey: 'remark',
+                cell: ({ getValue }) => (
+                    <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
+                        {getValue() ? getValue().slice(0, 100) : ''}
+                    </Typography>
+                )
+            },
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -677,13 +734,7 @@ const VisitListPage = () => {
                                         longitude={visit.longitude}
                                         latitude={visit.latitude}
                                         anchor="bottom"
-                                        onClick={() => {
-                                            setPopupInfo({
-                                                longitude: visit.longitude,
-                                                latitude: visit.latitude,
-                                                visit: visit
-                                            });
-                                        }}
+                                        onClick={() => handleMarkerClick(visit)}
                                     >
                                         <Avatar
                                             src={visit.candidate_id?.photo}
@@ -705,39 +756,34 @@ const VisitListPage = () => {
                                         closeButton={true}
                                         anchor="bottom"
                                         onClose={() => setPopupInfo(null)}
+                                        maxWidth="400px"
                                     >
-                                        <Box sx={{ p: 1 }}>
+                                        <Box sx={{ p: 1, minWidth: 300 }}>
                                             <Stack direction="row" spacing={1} alignItems="center">
-                                                <Avatar src={popupInfo.visit.candidate_id?.photo} sx={{ width: 48, height: 48 }} />
+                                                <Avatar src={popupInfo.candidate?.photo} sx={{ width: 48, height: 48 }} />
                                                 <Box>
-                                                    <Typography fontWeight="bold">{popupInfo.visit.candidate_id?.name}</Typography>
-                                                    <Typography variant="body2" color="text.secondary">{popupInfo.visit.post || 'N/A'}</Typography>
+                                                    <Typography fontWeight="bold">{popupInfo.candidate?.name}</Typography>
                                                 </Box>
                                             </Stack>
-
                                             <Divider sx={{ my: 1 }} />
-
-                                            <Typography variant="body2"><strong>📅 Visit Date:</strong> {formatDate(popupInfo.visit.date)}</Typography>
-                                            <Typography variant="body2"><strong>📍 Location:</strong> {popupInfo.visit.locationName || 'N/A'}</Typography>
-                                            <Typography variant="body2"><strong>📌 Booth:</strong> {popupInfo.visit.booth_id?.name || 'N/A'}</Typography>
-                                            <Typography variant="body2"><strong>🔄 Status:</strong>
-                                                <Chip
-                                                    label={popupInfo.visit.work_status?.toUpperCase() || 'N/A'}
-                                                    size="small"
-                                                    sx={{
-                                                        ml: 1,
-                                                        backgroundColor: workStatusColor[popupInfo.visit.work_status] || theme.palette.grey[400],
-                                                        color: 'white'
-                                                    }}
-                                                />
-                                            </Typography>
-                                            {popupInfo.visit.declaration && (
-                                                <Typography variant="body2"><strong>🗒️ Declaration:</strong> {popupInfo.visit.declaration}</Typography>
-                                            )}
-                                            {popupInfo.visit.remark && (
-                                                <Typography variant="body2"><strong>📝 Remark:</strong> {popupInfo.visit.remark}</Typography>
-                                            )}
-                                            <Typography variant="caption"><strong>🌐 Coordinates:</strong> {popupInfo.visit.latitude?.toFixed(4)}, {popupInfo.visit.longitude?.toFixed(4)}</Typography>
+                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>All Visits for this Candidate:</Typography>
+                                            <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                {popupInfo.visits && popupInfo.visits.length > 0 ? (
+                                                    popupInfo.visits.map((v, idx) => (
+                                                        <Box key={idx} sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
+                                                            <Typography variant="body2"><strong>📅</strong> {formatDate(v.date)}</Typography>
+                                                            <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
+                                                            <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
+                                                            <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
+                                                            {v.declaration && (<Typography variant="body2"><strong>🗒️ Declaration:</strong> {v.declaration}</Typography>)}
+                                                            {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
+                                                            <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
+                                                        </Box>
+                                                    ))
+                                                ) : (
+                                                    <Typography variant="body2">No visits found.</Typography>
+                                                )}
+                                            </Box>
                                         </Box>
                                     </Popup>
                                 )}

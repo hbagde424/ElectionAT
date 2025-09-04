@@ -35,6 +35,32 @@ export default function DivisionListPage() {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
     const [stateFilter, setStateFilter] = useState('');
+    // CSV download state
+    const [csvData, setCsvData] = useState([]);
+    const [csvLoading, setCsvLoading] = useState(false);
+    const csvLinkRef = useRef();
+
+    // Download all divisions for CSV
+    const handleDownloadCsv = async () => {
+        setCsvLoading(true);
+        try {
+            let url = `${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.success) {
+                setCsvData(data.data);
+                setTimeout(() => {
+                    if (csvLinkRef.current) {
+                        csvLinkRef.current.link.click();
+                    }
+                }, 100);
+            }
+        } catch (e) {
+            // ignore
+        } finally {
+            setCsvLoading(false);
+        }
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -67,17 +93,34 @@ export default function DivisionListPage() {
     const fetchDivisions = async (pageIndex, pageSize, globalFilter = '', stateFilter = '') => {
         setLoading(true);
         try {
-            const query = [];
-            if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
-            if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-            const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            let url;
+            let ignorePagination = !!globalFilter;
+            if (ignorePagination) {
+                // When searching, fetch all results (up to 10000)
+                let query = [];
+                if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
+                if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+                const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+                url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
+            } else {
+                // Normal pagination
+                let query = [];
+                if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+                const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+                url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
+            }
+            const res = await fetch(url);
             const json = await res.json();
             if (json.success) {
                 setDivisions(json.data);
-                setPageCount(json.pages);
+                setPageCount(ignorePagination ? 1 : json.pages);
+            } else {
+                setDivisions([]);
+                setPageCount(0);
             }
         } catch (error) {
+            setDivisions([]);
+            setPageCount(0);
             console.error('Failed to fetch divisions:', error);
         } finally {
             setLoading(false);
@@ -87,7 +130,12 @@ export default function DivisionListPage() {
     useEffect(() => {
         fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
+
+    // Reset to first page when searching or filtering
+    useEffect(() => {
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [globalFilter, stateFilter]);
 
     const handleDeleteOpen = (id) => {
         setDivisionDeleteId(id);
@@ -233,43 +281,6 @@ export default function DivisionListPage() {
         getPaginationRowModel: getPaginationRowModel(),
         getRowCanExpand: () => true
     });
-
-    const fetchAllDivisionsForCsv = async () => {
-        try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?all=true`);
-            const json = await res.json();
-            if (json.success) {
-                return json.data;
-            }
-        } catch (error) {
-            console.error('Failed to fetch all divisions for CSV:', error);
-        }
-        return [];
-    };
-
-    const [csvData, setCsvData] = useState([]);
-    const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
-
-    const handleDownloadCsv = async () => {
-        setCsvLoading(true);
-        const allData = await fetchAllDivisionsForCsv();
-        setCsvData(allData.map(item => ({
-            Name: item.name,
-            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
-            'Division Code': item.division_code,
-            State: item.state_id?.name || '',
-            'Created By': item.created_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
-        })));
-        setCsvLoading(false);
-        setTimeout(() => {
-            if (csvLinkRef.current) {
-                csvLinkRef.current.link.click();
-            }
-        }, 100);
-    };
 
     if (loading) return <EmptyReactTable />;
 

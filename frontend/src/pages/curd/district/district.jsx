@@ -21,6 +21,27 @@ import AlertDistrictDelete from './AlertDistrictDelete';
 import DistrictView from './DistritView';
 
 export default function DistrictListPage() {
+    // Clear all filters and reload districts
+    const handleClearFilter = () => {
+        setFilters({
+            state_id: '',
+            division_id: '',
+            parliament_id: '',
+            assembly_id: ''
+        });
+        setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
+        fetchDistricts(0, pagination.pageSize, globalFilter, {
+            state_id: '',
+            division_id: '',
+            parliament_id: '',
+            assembly_id: ''
+        });
+    };
+    // Apply filters and fetch filtered districts
+    const handleFilterApply = () => {
+        setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
+        fetchDistricts(0, pagination.pageSize, globalFilter, filters);
+    };
     const theme = useTheme();
 
     const [selectedDistrict, setSelectedDistrict] = useState(null);
@@ -199,17 +220,17 @@ export default function DistrictListPage() {
                 />
             )
         },
-        // {
-        //     header: 'Status',
-        //     accessorKey: 'is_active',
-        //     cell: ({ getValue }) => (
-        //         <Chip
-        //             label={getValue() ? 'Active' : 'Inactive'}
-        //             color={getValue() ? 'success' : 'error'}
-        //             size="small"
-        //         />
-        //     )
-        // },
+        {
+            header: 'Status',
+            accessorKey: 'is_active',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() ? 'Active' : 'Inactive'}
+                    color={getValue() ? 'success' : 'error'}
+                    size="small"
+                />
+            )
+        },
         {
             header: 'Created By',
             accessorKey: 'created_by',
@@ -307,33 +328,34 @@ export default function DistrictListPage() {
             'Created At': item.created_at,
             'Updated At': item.updated_at
         })));
-        setCsvLoading(false);
-        setTimeout(() => {
-            if (csvLinkRef.current) {
-                csvLinkRef.current.link.click();
+        setLoading(true);
+        try {
+            const queryParams = [];
+            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+            if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
+
+            let url;
+            let ignorePagination = !!globalFilter;
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            if (ignorePagination) {
+                url = `${import.meta.env.VITE_APP_API_URL}/districts?page=1&limit=10000${queryString}`;
+            } else {
+                url = `${import.meta.env.VITE_APP_API_URL}/districts?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
             }
-        }, 100);
-    };
-
-    if (loading) return <EmptyReactTable />;
-
-    const handleFilterApply = () => {
-        fetchDistricts(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
-    };
-
-    const handleClearFilter = () => {
-        setFilters({
-            state_id: '',
-            division_id: '',
-            parliament_id: '',
-            assembly_id: ''
-        });
-        fetchDistricts(pagination.pageIndex, pagination.pageSize, globalFilter, {
-            state_id: '',
-            division_id: '',
-            parliament_id: '',
-            assembly_id: ''
-        });
+            const res = await fetch(url);
+            const json = await res.json();
+            if (json.success) {
+                setDistricts(json.data);
+                setPageCount(ignorePagination ? 1 : json.pages);
+            }
+        } catch (error) {
+            console.error('Failed to fetch districts:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
