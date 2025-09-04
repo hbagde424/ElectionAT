@@ -1,5 +1,6 @@
 // material-ui
 import { useTheme } from '@mui/material/styles';
+import logo from './logo.png';
 
 /**
  * if you want to use image instead of <svg> uncomment following.
@@ -22,12 +23,7 @@ export default function LogoMain() {
      *
      */
     <>
-      <img
-      src="http://electionatlas.in/logo2"
-      alt="logo"
-      width="auto"
-      height="100"
-    />
+    <img src={logo} alt="logo" width="auto" height="100" />
     </>
   );
 }
