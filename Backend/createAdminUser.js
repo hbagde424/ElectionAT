@@ -18,12 +18,12 @@ const createAdminUser = async () => {
 
         // Create simple test user
         console.log('👤 Creating admin user...');
-        const hashedPassword = await bcrypt.hash('password123', 10);
+        // Don't hash the password here - let the User model pre-save hook handle it
 
         const user = new User({
             username: 'admin',
             email: 'admin@example.com',
-            password: hashedPassword,
+            password: 'password123', // Raw password - let model hash it
             mobile: '1234567890',
             role: 'Admin',
             isActive: true
