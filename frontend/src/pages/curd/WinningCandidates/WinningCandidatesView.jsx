@@ -90,7 +90,7 @@ export default function WinningCandidateView({ data }) {
                                 </Typography>
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
-                                {data.poll_percentage || 'N/A'}
+                                {((data.poll_percentage || 0) * 100).toFixed(2)}%
                             </Typography>
                         </Box>
 
@@ -143,7 +143,7 @@ export default function WinningCandidateView({ data }) {
                                 </Typography>
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
-                                {data.margin_percentage || '0'}%
+                                {((data.margin_percentage || 0) * 100).toFixed(2)}%
                             </Typography>
                         </Box>
 
