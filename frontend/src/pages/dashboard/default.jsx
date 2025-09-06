@@ -59,7 +59,7 @@ import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
 
 import Booth from 'sections/widget/chart/BoothSetGrapd';
 // Icons
-import { Eye, EyeSlash } from 'iconsax-react';
+import { Eye, EyeSlash, User, ArrowDown, ArrowUp, Book, Calendar, CloudChange, Wallet3 } from 'iconsax-react';
 
 // Form & validation
 import * as Yup from 'yup';
@@ -73,8 +73,6 @@ import { fetcher } from 'utils/axios';
 import { preload } from 'swr';
 
 // Assets & Styles
-// Icons
-import { ArrowDown, ArrowUp, Book, Calendar, CloudChange, Wallet3 } from 'iconsax-react';
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
@@ -1411,32 +1409,56 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Survey Date',
-              accessorKey: 'survey_date',
+              header: 'Survey ID',
+              accessorKey: '_id',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
-                  {new Date(row.survey_date).toLocaleDateString('en-IN') || 'N/A'}
+                <Typography sx={{
+                  fontWeight: 500,
+                  color: 'primary.main'
+                }}>
+                  {row._id?.slice(-8) || 'N/A'}
                 </Typography>
               )
             },
             {
               header: 'Booth',
-              accessorKey: 'booth',
+              accessorKey: 'booth_id',
               cell: (row) => (
-                <Chip
-                  label={row.booth?.name || 'N/A'}
-                  color="primary"
-                  size="small"
-                  variant="outlined"
-                />
+                <Box>
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.booth_id?.name || 'N/A'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Booth: {row.booth_id?.booth_number || 'N/A'}
+                  </Typography>
+                </Box>
               )
             },
             {
-              header: 'Assembly',
-              accessorKey: 'assembly',
+              header: 'Surveyor',
+              accessorKey: 'survey_done_by',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar sx={{ width: 24, height: 24 }}>
+                    <User size={16} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {row.survey_done_by?.email || 'Unknown'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Surveyor
+                    </Typography>
+                  </Box>
+                </Stack>
+              )
+            },
+            {
+              header: 'Survey Date',
+              accessorKey: 'survey_date',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.survey_date ? new Date(row.survey_date).toLocaleDateString('en-IN') : 'N/A'}
                 </Typography>
               )
             },
@@ -1445,11 +1467,13 @@ export default function DashboardDefault() {
               accessorKey: 'status',
               cell: (row) => (
                 <Chip
-                  label={row.status?.toUpperCase() || 'N/A'}
+                  label={row.status || 'N/A'}
                   color={
-                    row.status === 'completed' ? 'success' :
-                      row.status === 'in_progress' ? 'warning' :
-                        row.status === 'pending' ? 'error' : 'default'
+                    row.status === 'Completed' || row.status === 'completed' ? 'primary' :
+                      row.status === 'Verified' || row.status === 'verified' ? 'success' :
+                        row.status === 'In Progress' || row.status === 'in_progress' ? 'info' :
+                          row.status === 'Pending' || row.status === 'pending' ? 'default' :
+                            row.status === 'Rejected' || row.status === 'rejected' ? 'error' : 'default'
                   }
                   size="small"
                   variant="filled"
@@ -1457,12 +1481,27 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Surveyor',
-              accessorKey: 'surveyor',
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
-                <Typography>
-                  {row.surveyor?.name || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.state_id?.name || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="success"
+                  size="small"
+                  variant="outlined"
+                />
               )
             }
           ]}
@@ -1484,38 +1523,40 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Volunteer',
+              header: 'Name',
               accessorKey: 'name',
               cell: (row) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Avatar
-                    src={row.photo}
-                    sx={{ width: 32, height: 32 }}
-                  />
-                  <Typography sx={{ fontWeight: 500 }}>
-                    {row.name || 'N/A'}
-                  </Typography>
-                </Stack>
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.name || 'N/A'}
+                </Typography>
               )
             },
             {
-              header: 'Booth',
-              accessorKey: 'booth',
-              cell: (row) => (
-                <Chip
-                  label={row.booth?.name || 'N/A'}
-                  color="primary"
-                  size="small"
-                  variant="outlined"
-                />
-              )
-            },
-            {
-              header: 'Assembly',
-              accessorKey: 'assembly',
+              header: 'Phone',
+              accessorKey: 'phone',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.phone || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Email',
+              accessorKey: 'email',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.email || 'N/A'}
                 </Typography>
               )
             },
@@ -1527,17 +1568,60 @@ export default function DashboardDefault() {
                   label={row.role || 'N/A'}
                   color="secondary"
                   size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Activity Level',
+              accessorKey: 'activity_level',
+              cell: (row) => (
+                <Chip
+                  label={row.activity_level || 'N/A'}
+                  color={
+                    row.activity_level === 'High' ? 'success' :
+                      row.activity_level === 'Medium' ? 'warning' :
+                        row.activity_level === 'Low' ? 'error' : 'default'
+                  }
+                  size="small"
                   variant="filled"
                 />
               )
             },
             {
-              header: 'Contact',
-              accessorKey: 'contact',
+              header: 'State',
+              accessorKey: 'state',
               cell: (row) => (
-                <Typography>
-                  {row.contact || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.state?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth',
+              cell: (row) => (
+                <Chip
+                  label={row.booth ? `${row.booth.name} (${row.booth.booth_number})` : 'N/A'}
+                  color="success"
+                  size="small"
+                  variant="outlined"
+                />
               )
             }
           ]}
