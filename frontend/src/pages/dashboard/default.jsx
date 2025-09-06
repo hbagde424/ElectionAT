@@ -1913,20 +1913,38 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Issue Title',
-              accessorKey: 'title',
+              header: 'Issue Name',
+              accessorKey: 'issue_name',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
-                  {row.title || 'N/A'}
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.issue_name || 'N/A'}
                 </Typography>
               )
             },
             {
+              header: 'Department',
+              accessorKey: 'department',
+              cell: (row) => (
+                <Chip
+                  label={row.department || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
               header: 'Assembly',
-              accessorKey: 'assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -1937,9 +1955,10 @@ export default function DashboardDefault() {
                 <Chip
                   label={row.priority || 'N/A'}
                   color={
-                    row.priority === 'high' ? 'error' :
-                      row.priority === 'medium' ? 'warning' :
-                        row.priority === 'low' ? 'info' : 'default'
+                    row.priority === 'Critical' ? 'error' :
+                      row.priority === 'High' ? 'warning' :
+                        row.priority === 'Medium' ? 'info' :
+                          row.priority === 'Low' ? 'success' : 'default'
                   }
                   size="small"
                   variant="filled"
@@ -1951,24 +1970,16 @@ export default function DashboardDefault() {
               accessorKey: 'status',
               cell: (row) => (
                 <Chip
-                  label={row.status?.toUpperCase() || 'N/A'}
+                  label={row.status || 'N/A'}
                   color={
-                    row.status === 'resolved' ? 'success' :
-                      row.status === 'in_progress' ? 'warning' :
-                        row.status === 'pending' ? 'error' : 'default'
+                    row.status === 'Resolved' ? 'success' :
+                      row.status === 'In Progress' ? 'warning' :
+                        row.status === 'Reported' ? 'info' :
+                          row.status === 'Rejected' ? 'error' : 'default'
                   }
                   size="small"
                   variant="filled"
                 />
-              )
-            },
-            {
-              header: 'Date Reported',
-              accessorKey: 'date_reported',
-              cell: (row) => (
-                <Typography>
-                  {new Date(row.date_reported).toLocaleDateString('en-IN') || 'N/A'}
-                </Typography>
               )
             }
           ]}
