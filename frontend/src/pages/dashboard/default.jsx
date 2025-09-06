@@ -1774,44 +1774,73 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Gender',
-              accessorKey: 'name',
+              header: 'Male Count',
+              accessorKey: 'male',
               cell: (row) => (
                 <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                  {row.male || 0}
                 </Typography>
               )
             },
             {
-              header: 'Code',
-              accessorKey: 'code',
+              header: 'Female Count',
+              accessorKey: 'female',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.female || 0}
+                </Typography>
+              )
+            },
+            {
+              header: 'Others Count',
+              accessorKey: 'others',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.others || 0}
+                </Typography>
+              )
+            },
+            {
+              header: 'Total',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 600 }}>
+                  {(row.male || 0) + (row.female || 0) + (row.others || 0)}
+                </Typography>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
                 <Chip
-                  label={row.code || 'N/A'}
-                  color="secondary"
+                  label={row.state_id?.name || 'N/A'}
+                  color="primary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
             {
-              header: 'Description',
-              accessorKey: 'description',
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
-                <Typography>
-                  {row.description || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                />
               )
             },
             {
-              header: 'Status',
-              accessorKey: 'status',
+              header: 'Booth',
+              accessorKey: 'booth_id',
               cell: (row) => (
                 <Chip
-                  label={row.status ? 'Active' : 'Inactive'}
-                  color={row.status ? 'success' : 'error'}
+                  label={row.booth_id?.name || 'N/A'}
+                  color="error"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             }
