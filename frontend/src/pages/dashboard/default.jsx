@@ -2132,34 +2132,34 @@ export default function DashboardDefault() {
             },
             {
               header: 'Party',
-              accessorKey: 'party',
+              accessorKey: 'party_id',
               cell: (row) => (
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Avatar
-                    src={row.party?.logo}
+                    src={row.party_id?.logo}
                     sx={{ width: 32, height: 32 }}
                   />
                   <Typography sx={{ fontWeight: 500 }}>
-                    {row.party?.name || 'N/A'}
+                    {row.party_id?.name || 'N/A'}
                   </Typography>
                 </Stack>
               )
             },
             {
               header: 'Assembly',
-              accessorKey: 'assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
             {
               header: 'Parliament',
-              accessorKey: 'parliament',
+              accessorKey: 'parliament_id',
               cell: (row) => (
                 <Typography>
-                  {row.parliament?.name || 'N/A'}
+                  {row.parliament_id?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -2173,11 +2173,11 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Vote Share (%)',
-              accessorKey: 'vote_share',
+              header: 'Votes',
+              accessorKey: 'votes',
               cell: (row) => (
                 <Chip
-                  label={`${row.vote_share || 0}%`}
+                  label={row.votes ? row.votes.toLocaleString() : '0'}
                   color="primary"
                   size="small"
                   variant="filled"
