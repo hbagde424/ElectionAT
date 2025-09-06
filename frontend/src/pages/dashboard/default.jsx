@@ -2204,59 +2204,47 @@ export default function DashboardDefault() {
             },
             {
               header: 'Status Name',
-              accessorKey: 'name',
+              accessorKey: 'work_name',
               cell: (row) => (
                 <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                  {row.work_name || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Code',
-              accessorKey: 'code',
-              cell: (row) => (
-                <Chip
-                  label={row.code || 'N/A'}
-                  color="info"
-                  size="small"
-                  variant="filled"
-                />
-              )
-            },
-            {
-              header: 'Description',
-              accessorKey: 'description',
+              header: 'Department',
+              accessorKey: 'department',
               cell: (row) => (
                 <Typography>
-                  {row.description || 'N/A'}
+                  {row.department || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Color',
-              accessorKey: 'color',
+              header: 'status',
+              accessorKey: 'status',
               cell: (row) => (
-                <Box
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    backgroundColor: row.color || '#gray',
-                    borderRadius: '50%',
-                    border: '1px solid #ddd'
-                  }}
-                />
+                <Typography>
+                  {row.status || 'N/A'}
+                </Typography>
               )
             },
             {
-              header: 'Status',
-              accessorKey: 'active',
+              header: 'work type',
+              accessorKey: 'work_type',
               cell: (row) => (
-                <Chip
-                  label={row.active ? 'Active' : 'Inactive'}
-                  color={row.active ? 'success' : 'error'}
-                  size="small"
-                  variant="filled"
-                />
+                <Typography>
+                  {row.work_type || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'fund source',
+              accessorKey: 'approved_fund_from',
+              cell: (row) => (
+                <Typography>
+                  {row.approved_fund_from || 'N/A'}
+                </Typography>
               )
             }
           ]}
