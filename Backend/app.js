@@ -78,19 +78,46 @@ const path = require('path');
 connectDB();
 const app = express();
 
-// Enable CORS as early as possible
+// Enable CORS as early as possible - Very permissive for debugging
+app.use((req, res, next) => {
+  // Allow all origins
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+  res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
+
+  // Log all requests for debugging
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS preflight request');
+    res.status(200).end();
+    return;
+  }
+
+  next();
+});
+
+// Backup CORS using cors package
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://myhostmanager.co.in', 'http://localhost:5173', 'http://electionatlas.in/'],
-  credentials: true
+  origin: true, // Allow all origins for debugging
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
+
 // Handle preflight requests for all routes
 app.options('*', cors({
-  origin: ['http://localhost:3000', 'https://myhostmanager.co.in', 'http://localhost:5173', 'http://electionatlas.in/'],
+  origin: true,
   credentials: true
 }));
 
-// Body parser
-app.use(express.json());
+// Body parser with increased limit (remove duplicates)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -105,27 +132,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// Set security headers with proper configuration for images
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:", "http://localhost:5000"]
-    }
-  }
-}));
+// Set security headers with proper configuration for images (DISABLED FOR CORS DEBUGGING)
+// app.use(helmet({
+//   crossOriginResourcePolicy: { policy: "cross-origin" },
+//   contentSecurityPolicy: {
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       imgSrc: ["'self'", "data:", "blob:", "http://localhost:5000"]
+//     }
+//   }
+// }));
 
 // Serve static files from uploads directory
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Add Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-
-// Body parser with increased limit
-app.use(express.json({ limit: '50mb' })); // Add this line
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Create an Express Router to handle all API routes
 const apiRouter = express.Router();
@@ -208,6 +230,27 @@ app.get('/', (req, res) => {
 
 app.get('/api', (req, res) => {
   res.json({ message: 'ElectionAT API is running!', status: 'OK' });
+});
+
+// Add CORS test endpoint
+app.get('/cors-test', (req, res) => {
+  res.json({
+    message: 'CORS test successful!',
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent'],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add login test endpoint
+app.post('/login-test', (req, res) => {
+  console.log('Login test hit with body:', req.body);
+  res.json({
+    message: 'Login test successful!',
+    origin: req.headers.origin,
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
 });
 // app.use('/api/india-polygon', indiaPolygonRoutes);
 // app.use('/api/voter-turnout', voterTurnoutRoutes);
