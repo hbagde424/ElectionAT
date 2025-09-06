@@ -2065,48 +2065,62 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Activity',
-              accessorKey: 'name',
+              header: 'Title',
+              accessorKey: 'title',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.title || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Party',
-              accessorKey: 'party',
+              header: 'Activity Type',
+              accessorKey: 'activity_type',
               cell: (row) => (
-                <Typography>
-                  {row.party?.name || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.activity_type?.toUpperCase() || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="outlined"
+                />
               )
             },
             {
               header: 'Assembly',
-              accessorKey: 'assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Date',
-              accessorKey: 'date',
+              header: 'Activity Date',
+              accessorKey: 'activity_date',
               cell: (row) => (
                 <Typography>
-                  {new Date(row.date).toLocaleDateString('en-IN') || 'N/A'}
+                  {row.activity_date ? new Date(row.activity_date).toLocaleDateString('en-IN') : 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Type',
-              accessorKey: 'type',
+              header: 'Status',
+              accessorKey: 'status',
               cell: (row) => (
                 <Chip
-                  label={row.type || 'N/A'}
-                  color="secondary"
+                  label={row.status?.toUpperCase() || 'N/A'}
+                  color={
+                    row.status?.toLowerCase() === 'completed' ? 'success' :
+                      row.status?.toLowerCase() === 'ongoing' ? 'warning' :
+                        row.status?.toLowerCase() === 'scheduled' ? 'info' :
+                          row.status?.toLowerCase() === 'cancelled' ? 'error' : 'default'
+                  }
                   size="small"
                   variant="filled"
                 />
