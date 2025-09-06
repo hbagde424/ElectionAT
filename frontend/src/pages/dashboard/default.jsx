@@ -1834,63 +1834,64 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Influencer',
+              header: 'Name',
               accessorKey: 'name',
               cell: (row) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Avatar
-                    src={row.photo}
-                    sx={{ width: 32, height: 32 }}
-                  />
-                  <Typography sx={{ fontWeight: 500 }}>
-                    {row.name || 'N/A'}
-                  </Typography>
-                </Stack>
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Contact Number',
+              accessorKey: 'contact_number',
+              cell: (row) => (
+                <Typography>
+                  {row.contact_number || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Email',
+              accessorKey: 'email',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 180,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.email || 'N/A'}
+                </Typography>
               )
             },
             {
               header: 'Assembly',
-              accessorKey: 'assembly',
-              cell: (row) => (
-                <Typography>
-                  {row.assembly?.name || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Category',
-              accessorKey: 'category',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Chip
-                  label={row.category || 'N/A'}
-                  color="warning"
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="info"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
             {
-              header: 'Contact',
-              accessorKey: 'contact',
-              cell: (row) => (
-                <Typography>
-                  {row.contact || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Influence Level',
-              accessorKey: 'influence_level',
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
                 <Chip
-                  label={row.influence_level || 'N/A'}
-                  color={
-                    row.influence_level === 'high' ? 'error' :
-                      row.influence_level === 'medium' ? 'warning' :
-                        row.influence_level === 'low' ? 'info' : 'default'
-                  }
+                  label={row.state_id?.name || 'N/A'}
+                  color="primary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             }
