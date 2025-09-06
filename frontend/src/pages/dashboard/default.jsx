@@ -1704,26 +1704,14 @@ export default function DashboardDefault() {
               header: 'Event Name',
               accessorKey: 'name',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
                   {row.name || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Date',
-              accessorKey: 'date',
-              cell: (row) => (
-                <Typography>
-                  {new Date(row.date).toLocaleDateString('en-IN') || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Assembly',
-              accessorKey: 'assembly',
-              cell: (row) => (
-                <Typography>
-                  {row.assembly?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -1732,10 +1720,10 @@ export default function DashboardDefault() {
               accessorKey: 'type',
               cell: (row) => (
                 <Chip
-                  label={row.type || 'N/A'}
-                  color="info"
+                  label={row.type?.toUpperCase() || 'N/A'}
+                  color="secondary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
@@ -1752,6 +1740,62 @@ export default function DashboardDefault() {
                   }
                   size="small"
                   variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Start Date',
+              accessorKey: 'start_date',
+              cell: (row) => (
+                <Typography>
+                  {row.start_date ? new Date(row.start_date).toLocaleDateString('en-IN') : 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'End Date',
+              accessorKey: 'end_date',
+              cell: (row) => (
+                <Typography>
+                  {row.end_date ? new Date(row.end_date).toLocaleDateString('en-IN') : 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Location',
+              accessorKey: 'location',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.location || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state_id',
+              cell: (row) => (
+                <Chip
+                  label={row.state_id?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
                 />
               )
             }
