@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const Role = require('../models/Role');
-const UserRole = require('../models/UserRole');
-const Permission = require('../models/Permission');
-const RolePermission = require('../models/RolePermission');
-const config = require('../config/config');
+const User = require('../Backend/models/User');
+const Role = require('../Backend/models/Role');
+const UserRole = require('../Backend/models/UserRole');
+const Permission = require('../Backend/models/Permission');
+const RolePermission = require('../Backend/models/RolePermission');
+const config = require('../Backend/config/config');
 
 // Connect to MongoDB
 mongoose.connect(config.MONGO_URI, {
