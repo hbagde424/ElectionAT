@@ -44,15 +44,20 @@ import {
 import { useTheme } from '@mui/material/styles';
 import axiosServices from 'utils/axios';
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 
 // Import existing components
 import UserModal from './UserModal';
+import CrudPageLayout from 'components/permission/CrudPageLayout';
+import PermissionGate from 'components/PermissionGate';
+import PermissionDebug from 'components/PermissionDebug';
 // import AlertUserDelete from './AlertUserDelete';
 // import UserView from './UserView';
 
 const Users = () => {
     const theme = useTheme();
     const { user } = useContext(JWTContext);
+    const { hasPermission, hasAnyPermission, loading: permissionLoading } = usePermissions();
 
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
@@ -80,6 +85,7 @@ const Users = () => {
     const [userHierarchy, setUserHierarchy] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     // Hierarchy selection states
     const [selectedHierarchy, setSelectedHierarchy] = useState({
@@ -391,18 +397,38 @@ const Users = () => {
         setSelectedUser(user);
         switch (action) {
             case 'edit':
+                if (!hasPermission('user_update')) {
+                    setError('You do not have permission to edit users');
+                    return;
+                }
                 setUserModal(true);
                 break;
             case 'view':
+                if (!hasPermission('user_read')) {
+                    setError('You do not have permission to view user details');
+                    return;
+                }
                 setUserView(true);
                 break;
             case 'delete':
+                if (!hasPermission('user_delete')) {
+                    setError('You do not have permission to delete users');
+                    return;
+                }
                 setDeleteDialog(true);
                 break;
             case 'role':
+                if (!hasPermission('user_role_assign')) {
+                    setError('You do not have permission to assign roles');
+                    return;
+                }
                 setRoleDialog(true);
                 break;
             case 'hierarchy':
+                if (!hasPermission('user_hierarchy_assign')) {
+                    setError('You do not have permission to assign geographic access');
+                    return;
+                }
                 setHierarchyDialog(true);
                 break;
             default:
@@ -410,27 +436,77 @@ const Users = () => {
         }
     };
 
+    // Permission-aware handlers
+    const handleAdd = () => {
+        if (!hasPermission('user_create')) {
+            setError('You do not have permission to create users');
+            return;
+        }
+        setSelectedUser(null);
+        setUserModal(true);
+    };
+
+    const handleEdit = (user) => {
+        if (!hasPermission('user_update')) {
+            setError('You do not have permission to edit users');
+            return;
+        }
+        setSelectedUser(user);
+        setUserModal(true);
+    };
+
+    const handleDelete = async (user) => {
+        if (!hasPermission('user_delete')) {
+            setError('You do not have permission to delete users');
+            return;
+        }
+
+        try {
+            await axiosServices.delete(`/users/${user._id}`);
+            setSuccess('User deleted successfully');
+            fetchUsers();
+        } catch (error) {
+            setError('Failed to delete user: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
+    // Show loading spinner while permissions are being fetched
+    if (permissionLoading) {
+        return (
+            <Box p={3} display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <Typography>Loading permissions...</Typography>
+            </Box>
+        );
+    }
+
     return (
         <Box p={3}>
+            <PermissionDebug />
+
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h4">
                     User Management & Permissions
                 </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<PersonAdd />}
-                    onClick={() => {
-                        setSelectedUser(null);
-                        setUserModal(true);
-                    }}
-                >
-                    Add User
-                </Button>
+                <PermissionGate permission="user_create">
+                    <Button
+                        variant="contained"
+                        startIcon={<PersonAdd />}
+                        onClick={handleAdd}
+                    >
+                        Add User
+                    </Button>
+                </PermissionGate>
             </Stack>
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
                     {error}
+                </Alert>
+            )}
+
+            {success && (
+                <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+                    {success}
                 </Alert>
             )}
 
@@ -539,55 +615,65 @@ const Users = () => {
 
                                     <TableCell align="center">
                                         <Stack direction="row" spacing={1} justifyContent="center">
-                                            <Tooltip title="View Details">
-                                                <IconButton
-                                                    onClick={() => handleUserAction('view', user)}
-                                                    color="info"
-                                                    size="small"
-                                                >
-                                                    <Visibility />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <PermissionGate permission="user_read">
+                                                <Tooltip title="View Details">
+                                                    <IconButton
+                                                        onClick={() => handleUserAction('view', user)}
+                                                        color="info"
+                                                        size="small"
+                                                    >
+                                                        <Visibility />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </PermissionGate>
 
-                                            <Tooltip title="Edit User">
-                                                <IconButton
-                                                    onClick={() => handleUserAction('edit', user)}
-                                                    color="primary"
-                                                    size="small"
-                                                >
-                                                    <Edit />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <PermissionGate permission="user_update">
+                                                <Tooltip title="Edit User">
+                                                    <IconButton
+                                                        onClick={() => handleUserAction('edit', user)}
+                                                        color="primary"
+                                                        size="small"
+                                                    >
+                                                        <Edit />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </PermissionGate>
 
-                                            <Tooltip title="Assign Role">
-                                                <IconButton
-                                                    onClick={() => handleUserAction('role', user)}
-                                                    color="secondary"
-                                                    size="small"
-                                                >
-                                                    <Security />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <PermissionGate permission="user_role_assign">
+                                                <Tooltip title="Assign Role">
+                                                    <IconButton
+                                                        onClick={() => handleUserAction('role', user)}
+                                                        color="secondary"
+                                                        size="small"
+                                                    >
+                                                        <Security />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </PermissionGate>
 
-                                            <Tooltip title="Set Geographic Access">
-                                                <IconButton
-                                                    onClick={() => handleUserAction('hierarchy', user)}
-                                                    color="success"
-                                                    size="small"
-                                                >
-                                                    <Map />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <PermissionGate permission="user_hierarchy_assign">
+                                                <Tooltip title="Set Geographic Access">
+                                                    <IconButton
+                                                        onClick={() => handleUserAction('hierarchy', user)}
+                                                        color="success"
+                                                        size="small"
+                                                    >
+                                                        <Map />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </PermissionGate>
 
-                                            <Tooltip title="Delete User">
-                                                <IconButton
-                                                    onClick={() => handleUserAction('delete', user)}
-                                                    color="error"
-                                                    size="small"
-                                                >
-                                                    <Delete />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <PermissionGate permission="user_delete">
+                                                <Tooltip title="Delete User">
+                                                    <IconButton
+                                                        onClick={() => handleUserAction('delete', user)}
+                                                        color="error"
+                                                        size="small"
+                                                    >
+                                                        <Delete />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </PermissionGate>
                                         </Stack>
                                     </TableCell>
                                 </TableRow>

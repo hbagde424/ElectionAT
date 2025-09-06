@@ -14,6 +14,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 // auth-provider
 import { JWTProvider as AuthProvider } from 'contexts/JWTContext';
+import { PermissionProvider } from 'contexts/PermissionContext';
 // import { FirebaseProvider as AuthProvider } from 'contexts/FirebaseContext';
 // import { AWSCognitoProvider as AuthProvider } from 'contexts/AWSCognitoContext';
 // import { Auth0Provider as AuthProvider } from 'contexts/Auth0Context';
@@ -22,24 +23,24 @@ import { JWTProvider as AuthProvider } from 'contexts/JWTContext';
 
 export default function App() {
   return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-    <ThemeCustomization>
-      <RTLLayout>
-        <Locales>
-          <ScrollTop>
-            <AuthProvider>
-              <>
-                <Notistack>
-                  <RouterProvider router={router} />
-                  <Customization />
-                  <Snackbar />
-                </Notistack>
-              </>
-            </AuthProvider>
-          </ScrollTop>
-        </Locales>
-      </RTLLayout>
-    </ThemeCustomization>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <ThemeCustomization>
+        <RTLLayout>
+          <Locales>
+            <ScrollTop>
+              <AuthProvider>
+                <PermissionProvider>
+                  <Notistack>
+                    <RouterProvider router={router} />
+                    <Customization />
+                    <Snackbar />
+                  </Notistack>
+                </PermissionProvider>
+              </AuthProvider>
+            </ScrollTop>
+          </Locales>
+        </RTLLayout>
+      </ThemeCustomization>
     </LocalizationProvider>
   );
 }

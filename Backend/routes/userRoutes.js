@@ -12,6 +12,8 @@ const {
   toggleActive
 } = require('../controllers/userController');
 const { protect, authorize } = require('../middlewares/auth');
+const { hasPermission } = require('../middlewares/permissions');
+const { checkHierarchicalAccess, addHierarchyFilter } = require('../middlewares/hierarchyPermissions');
 
 const router = express.Router();
 
@@ -48,7 +50,40 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized
  */
-router.post('/register', protect, authorize('superAdmin', 'Admin'), register);
+router.post('/register', protect, hasPermission('user_create'), register);
+
+/**
+ * @swagger
+ * /api/users/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: Invalid credentials
+ */
+router.post('/login', login);
 
 /**
  * @swagger
@@ -184,11 +219,11 @@ router.put('/me', protect, updateMe);
  *       401:
  *         description: Unauthorized
  */
-// Route for UserRoleAssigner component - no authentication required
-router.get('/for-roles', getUsersForRoles);
+// Route for UserRoleAssigner component
+router.get('/for-roles', protect, hasPermission('user_read'), getUsersForRoles);
 
-// Temporarily remove auth for testing - TODO: Add back authentication
-router.get('/', getUsers);
+// Get all users with hierarchy filtering
+router.get('/', protect, hasPermission('user_read'), addHierarchyFilter('user'), getUsers);
 
 /**
  * @swagger
@@ -216,7 +251,7 @@ router.get('/', getUsers);
  *       404:
  *         description: User not found
  */
-router.get('/:id', protect, authorize('superAdmin', 'Admin'), getUser);
+router.get('/:id', protect, hasPermission('user_read'), checkHierarchicalAccess('user'), getUser);
 
 /**
  * @swagger
@@ -252,7 +287,7 @@ router.get('/:id', protect, authorize('superAdmin', 'Admin'), getUser);
  *       404:
  *         description: User not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'Admin'), updateUser);
+router.put('/:id', protect, hasPermission('user_update'), checkHierarchicalAccess('user'), updateUser);
 
 /**
  * @swagger
@@ -276,7 +311,7 @@ router.put('/:id', protect, authorize('superAdmin', 'Admin'), updateUser);
  *       404:
  *         description: User not found
  */
-router.delete('/:id', protect, authorize('superAdmin', 'Admin'), deleteUser);
+router.delete('/:id', protect, hasPermission('user_delete'), checkHierarchicalAccess('user'), deleteUser);
 
 /**
  * @swagger
@@ -314,7 +349,7 @@ router.delete('/:id', protect, authorize('superAdmin', 'Admin'), deleteUser);
  *       404:
  *         description: User not found
  */
-router.put('/:id/toggle-active', protect, authorize('superAdmin', 'Admin'), toggleActive);
+router.put('/:id/toggle-active', protect, hasPermission('user_update'), checkHierarchicalAccess('user'), toggleActive);
 
 /**
  * @swagger

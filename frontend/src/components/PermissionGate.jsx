@@ -11,7 +11,12 @@ const PermissionGate = ({
     fallback = null,
     children
 }) => {
-    const { hasPermission, hasAnyPermission, hasAllPermissions, hasRole } = usePermissions();
+    const { hasPermission, hasAnyPermission, hasAllPermissions, hasRole, loading } = usePermissions();
+
+    // If permissions are still loading, don't render anything or show fallback
+    if (loading) {
+        return fallback;
+    }
 
     // Check single permission
     if (permission && !hasPermission(permission)) {
