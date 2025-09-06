@@ -2,12 +2,12 @@ const mongoose = require('mongoose');
 const dbConfig = require('./config/db');
 
 // Import models
-const Permission = require('./models/Permission');
-const Role = require('./models/Role');
-const RolePermission = require('./models/RolePermission');
-const User = require('./models/User');
-const UserRole = require('./models/UserRole');
-const UserHierarchy = require('./models/UserHierarchy');
+const Permission = require('../Backend/models/Permission');
+const Role = require('../Backend/models/Role');
+const RolePermission = require('../Backend/models/RolePermission');
+const User = require('../Backend/models/User');
+const UserRole = require('../Backend/models/UserRole');
+const UserHierarchy = require('../Backend/models/UserHierarchy');
 
 async function verifyPermissionSystem() {
     try {

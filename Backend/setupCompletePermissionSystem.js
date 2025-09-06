@@ -8,113 +8,110 @@ const RolePermission = require('../Backend/models/RolePermission');
 const config = require('../Backend/config/config');
 
 // Connect to MongoDB
-mongoose.connect(config.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
+mongoose.connect(config.MONGO_URI);
 
 // Comprehensive permission set for election management system
 const allPermissions = [
-    // User Management Permissions
-    { name: 'user_create', description: 'Create new users', category: 'User Management' },
-    { name: 'user_read', description: 'View user information', category: 'User Management' },
-    { name: 'user_update', description: 'Update user information', category: 'User Management' },
-    { name: 'user_delete', description: 'Delete users', category: 'User Management' },
-    { name: 'user_role_assign', description: 'Assign roles to users', category: 'User Management' },
-    { name: 'user_role_remove', description: 'Remove roles from users', category: 'User Management' },
-    { name: 'user_hierarchy_assign', description: 'Assign geographic access to users', category: 'User Management' },
-    { name: 'user_hierarchy_remove', description: 'Remove geographic access from users', category: 'User Management' },
+    // User Management Permissions (State level - highest administrative level)
+    { name: 'user_create', description: 'Create new users', category: 'User Management', level: 'State' },
+    { name: 'user_read', description: 'View user information', category: 'User Management', level: 'Booth' },
+    { name: 'user_update', description: 'Update user information', category: 'User Management', level: 'Division' },
+    { name: 'user_delete', description: 'Delete users', category: 'User Management', level: 'State' },
+    { name: 'user_role_assign', description: 'Assign roles to users', category: 'User Management', level: 'State' },
+    { name: 'user_role_remove', description: 'Remove roles from users', category: 'User Management', level: 'State' },
+    { name: 'user_hierarchy_assign', description: 'Assign geographic access to users', category: 'User Management', level: 'State' },
+    { name: 'user_hierarchy_remove', description: 'Remove geographic access from users', category: 'User Management', level: 'State' },
 
-    // Role Management Permissions
-    { name: 'role_create', description: 'Create new roles', category: 'Role Management' },
-    { name: 'role_read', description: 'View role information', category: 'Role Management' },
-    { name: 'role_update', description: 'Update role information', category: 'Role Management' },
-    { name: 'role_delete', description: 'Delete roles', category: 'Role Management' },
+    // Role Management Permissions (State level - system administration)
+    { name: 'role_create', description: 'Create new roles', category: 'Role Management', level: 'State' },
+    { name: 'role_read', description: 'View role information', category: 'Role Management', level: 'Division' },
+    { name: 'role_update', description: 'Update role information', category: 'Role Management', level: 'State' },
+    { name: 'role_delete', description: 'Delete roles', category: 'Role Management', level: 'State' },
 
-    // Permission Management
-    { name: 'permission_create', description: 'Create new permissions', category: 'Permission Management' },
-    { name: 'permission_read', description: 'View permission information', category: 'Permission Management' },
-    { name: 'permission_update', description: 'Update permission information', category: 'Permission Management' },
-    { name: 'permission_delete', description: 'Delete permissions', category: 'Permission Management' },
-    { name: 'role_permission_assign', description: 'Assign permissions to roles', category: 'Permission Management' },
-    { name: 'role_permission_remove', description: 'Remove permissions from roles', category: 'Permission Management' },
-    { name: 'role_permission_matrix_view', description: 'View role-permission matrix', category: 'Permission Management' },
+    // Permission Management (State level - highest security)
+    { name: 'permission_create', description: 'Create new permissions', category: 'Permission Management', level: 'State' },
+    { name: 'permission_read', description: 'View permission information', category: 'Permission Management', level: 'Division' },
+    { name: 'permission_update', description: 'Update permission information', category: 'Permission Management', level: 'State' },
+    { name: 'permission_delete', description: 'Delete permissions', category: 'Permission Management', level: 'State' },
+    { name: 'role_permission_assign', description: 'Assign permissions to roles', category: 'Permission Management', level: 'State' },
+    { name: 'role_permission_remove', description: 'Remove permissions from roles', category: 'Permission Management', level: 'State' },
+    { name: 'role_permission_matrix_view', description: 'View role-permission matrix', category: 'Permission Management', level: 'Division' },
 
-    // Geographic Entity Permissions
-    { name: 'state_create', description: 'Create states', category: 'Geographic Management' },
-    { name: 'state_read', description: 'View state information', category: 'Geographic Management' },
-    { name: 'state_update', description: 'Update state information', category: 'Geographic Management' },
-    { name: 'state_delete', description: 'Delete states', category: 'Geographic Management' },
+    // Geographic Entity Permissions (respective levels)
+    { name: 'state_create', description: 'Create states', category: 'Geographic Management', level: 'State' },
+    { name: 'state_read', description: 'View state information', category: 'Geographic Management', level: 'State' },
+    { name: 'state_update', description: 'Update state information', category: 'Geographic Management', level: 'State' },
+    { name: 'state_delete', description: 'Delete states', category: 'Geographic Management', level: 'State' },
 
-    { name: 'division_create', description: 'Create divisions', category: 'Geographic Management' },
-    { name: 'division_read', description: 'View division information', category: 'Geographic Management' },
-    { name: 'division_update', description: 'Update division information', category: 'Geographic Management' },
-    { name: 'division_delete', description: 'Delete divisions', category: 'Geographic Management' },
+    { name: 'division_create', description: 'Create divisions', category: 'Geographic Management', level: 'State' },
+    { name: 'division_read', description: 'View division information', category: 'Geographic Management', level: 'Division' },
+    { name: 'division_update', description: 'Update division information', category: 'Geographic Management', level: 'Division' },
+    { name: 'division_delete', description: 'Delete divisions', category: 'Geographic Management', level: 'State' },
 
-    { name: 'parliament_create', description: 'Create parliament constituencies', category: 'Geographic Management' },
-    { name: 'parliament_read', description: 'View parliament information', category: 'Geographic Management' },
-    { name: 'parliament_update', description: 'Update parliament information', category: 'Geographic Management' },
-    { name: 'parliament_delete', description: 'Delete parliament constituencies', category: 'Geographic Management' },
+    { name: 'parliament_create', description: 'Create parliament constituencies', category: 'Geographic Management', level: 'State' },
+    { name: 'parliament_read', description: 'View parliament information', category: 'Geographic Management', level: 'Parliament' },
+    { name: 'parliament_update', description: 'Update parliament information', category: 'Geographic Management', level: 'Parliament' },
+    { name: 'parliament_delete', description: 'Delete parliament constituencies', category: 'Geographic Management', level: 'State' },
 
-    { name: 'assembly_create', description: 'Create assembly constituencies', category: 'Geographic Management' },
-    { name: 'assembly_read', description: 'View assembly information', category: 'Geographic Management' },
-    { name: 'assembly_update', description: 'Update assembly information', category: 'Geographic Management' },
-    { name: 'assembly_delete', description: 'Delete assembly constituencies', category: 'Geographic Management' },
+    { name: 'assembly_create', description: 'Create assembly constituencies', category: 'Geographic Management', level: 'Division' },
+    { name: 'assembly_read', description: 'View assembly information', category: 'Geographic Management', level: 'Assembly' },
+    { name: 'assembly_update', description: 'Update assembly information', category: 'Geographic Management', level: 'Assembly' },
+    { name: 'assembly_delete', description: 'Delete assembly constituencies', category: 'Geographic Management', level: 'Division' },
 
-    { name: 'block_create', description: 'Create blocks', category: 'Geographic Management' },
-    { name: 'block_read', description: 'View block information', category: 'Geographic Management' },
-    { name: 'block_update', description: 'Update block information', category: 'Geographic Management' },
-    { name: 'block_delete', description: 'Delete blocks', category: 'Geographic Management' },
+    { name: 'block_create', description: 'Create blocks', category: 'Geographic Management', level: 'Assembly' },
+    { name: 'block_read', description: 'View block information', category: 'Geographic Management', level: 'Block' },
+    { name: 'block_update', description: 'Update block information', category: 'Geographic Management', level: 'Block' },
+    { name: 'block_delete', description: 'Delete blocks', category: 'Geographic Management', level: 'Assembly' },
 
-    { name: 'booth_create', description: 'Create booths', category: 'Geographic Management' },
-    { name: 'booth_read', description: 'View booth information', category: 'Geographic Management' },
-    { name: 'booth_update', description: 'Update booth information', category: 'Geographic Management' },
-    { name: 'booth_delete', description: 'Delete booths', category: 'Geographic Management' },
+    { name: 'booth_create', description: 'Create booths', category: 'Geographic Management', level: 'Block' },
+    { name: 'booth_read', description: 'View booth information', category: 'Geographic Management', level: 'Booth' },
+    { name: 'booth_update', description: 'Update booth information', category: 'Geographic Management', level: 'Booth' },
+    { name: 'booth_delete', description: 'Delete booths', category: 'Geographic Management', level: 'Block' },
 
-    // Election Data Permissions
-    { name: 'candidate_create', description: 'Create candidate records', category: 'Election Management' },
-    { name: 'candidate_read', description: 'View candidate information', category: 'Election Management' },
-    { name: 'candidate_update', description: 'Update candidate information', category: 'Election Management' },
-    { name: 'candidate_delete', description: 'Delete candidate records', category: 'Election Management' },
+    // Election Data Permissions (booth level for granular control)
+    { name: 'candidate_create', description: 'Create candidate records', category: 'Election Management', level: 'Assembly' },
+    { name: 'candidate_read', description: 'View candidate information', category: 'Election Management', level: 'Booth' },
+    { name: 'candidate_update', description: 'Update candidate information', category: 'Election Management', level: 'Assembly' },
+    { name: 'candidate_delete', description: 'Delete candidate records', category: 'Election Management', level: 'Division' },
 
-    { name: 'party_create', description: 'Create party records', category: 'Election Management' },
-    { name: 'party_read', description: 'View party information', category: 'Election Management' },
-    { name: 'party_update', description: 'Update party information', category: 'Election Management' },
-    { name: 'party_delete', description: 'Delete party records', category: 'Election Management' },
+    { name: 'party_create', description: 'Create party records', category: 'Election Management', level: 'State' },
+    { name: 'party_read', description: 'View party information', category: 'Election Management', level: 'Booth' },
+    { name: 'party_update', description: 'Update party information', category: 'Election Management', level: 'Division' },
+    { name: 'party_delete', description: 'Delete party records', category: 'Election Management', level: 'State' },
 
-    { name: 'voter_create', description: 'Create voter records', category: 'Election Management' },
-    { name: 'voter_read', description: 'View voter information', category: 'Election Management' },
-    { name: 'voter_update', description: 'Update voter information', category: 'Election Management' },
-    { name: 'voter_delete', description: 'Delete voter records', category: 'Election Management' },
+    { name: 'voter_create', description: 'Create voter records', category: 'Election Management', level: 'Booth' },
+    { name: 'voter_read', description: 'View voter information', category: 'Election Management', level: 'Booth' },
+    { name: 'voter_update', description: 'Update voter information', category: 'Election Management', level: 'Booth' },
+    { name: 'voter_delete', description: 'Delete voter records', category: 'Election Management', level: 'Block' },
 
-    { name: 'election_data_read', description: 'View election data', category: 'Election Management' },
-    { name: 'election_data_update', description: 'Update election data', category: 'Election Management' },
-    { name: 'election_data_delete', description: 'Delete election data', category: 'Election Management' },
+    { name: 'election_data_read', description: 'View election data', category: 'Election Management', level: 'Booth' },
+    { name: 'election_data_update', description: 'Update election data', category: 'Election Management', level: 'Block' },
+    { name: 'election_data_delete', description: 'Delete election data', category: 'Election Management', level: 'Assembly' },
 
-    // Survey Permissions
-    { name: 'survey_create', description: 'Create surveys', category: 'Survey Management' },
-    { name: 'survey_read', description: 'View survey data', category: 'Survey Management' },
-    { name: 'survey_update', description: 'Update survey data', category: 'Survey Management' },
-    { name: 'survey_delete', description: 'Delete surveys', category: 'Survey Management' },
+    // Survey Permissions (flexible levels based on survey scope)
+    { name: 'survey_create', description: 'Create surveys', category: 'Survey Management', level: 'Block' },
+    { name: 'survey_read', description: 'View survey data', category: 'Survey Management', level: 'Booth' },
+    { name: 'survey_update', description: 'Update survey data', category: 'Survey Management', level: 'Block' },
+    { name: 'survey_delete', description: 'Delete surveys', category: 'Survey Management', level: 'Assembly' },
 
-    // Report Permissions
-    { name: 'report_read', description: 'View reports', category: 'Reports & Analytics' },
-    { name: 'report_generate', description: 'Generate reports', category: 'Reports & Analytics' },
-    { name: 'report_export', description: 'Export reports', category: 'Reports & Analytics' },
+    // Report Permissions (division level for broader access)
+    { name: 'report_read', description: 'View reports', category: 'Reports & Analytics', level: 'Booth' },
+    { name: 'report_generate', description: 'Generate reports', category: 'Reports & Analytics', level: 'Block' },
+    { name: 'report_export', description: 'Export reports', category: 'Reports & Analytics', level: 'Assembly' },
 
-    // Analytics Permissions
-    { name: 'analytics_read', description: 'View analytics', category: 'Reports & Analytics' },
-    { name: 'analytics_advanced', description: 'Access advanced analytics', category: 'Reports & Analytics' },
+    // Analytics Permissions (higher levels for strategic insights)
+    { name: 'analytics_read', description: 'View analytics', category: 'Reports & Analytics', level: 'Block' },
+    { name: 'analytics_advanced', description: 'Access advanced analytics', category: 'Reports & Analytics', level: 'Division' },
 
-    // System Permissions
-    { name: 'system_settings_read', description: 'View system settings', category: 'System Administration' },
-    { name: 'system_settings_update', description: 'Update system settings', category: 'System Administration' },
-    { name: 'system_backup', description: 'Create system backups', category: 'System Administration' },
-    { name: 'system_restore', description: 'Restore system from backup', category: 'System Administration' },
+    // System Permissions (state level for security)
+    { name: 'system_settings_read', description: 'View system settings', category: 'System Administration', level: 'Division' },
+    { name: 'system_settings_update', description: 'Update system settings', category: 'System Administration', level: 'State' },
+    { name: 'system_backup', description: 'Create system backups', category: 'System Administration', level: 'State' },
+    { name: 'system_restore', description: 'Restore system from backup', category: 'System Administration', level: 'State' },
 
-    // Audit Permissions
-    { name: 'audit_log_read', description: 'View audit logs', category: 'System Administration' },
-    { name: 'audit_log_export', description: 'Export audit logs', category: 'System Administration' }
+    // Audit Permissions (high level for oversight)
+    { name: 'audit_log_read', description: 'View audit logs', category: 'System Administration', level: 'Division' },
+    { name: 'audit_log_export', description: 'Export audit logs', category: 'System Administration', level: 'State' }
 ];
 
 // Role definitions with specific permissions
