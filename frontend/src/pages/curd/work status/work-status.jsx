@@ -229,10 +229,15 @@ export default function WorkStatusListPage() {
         setLoading(true);
         try {
             const queryParams = [];
-            queryParams.push(`page=${pageIndex + 1}`);
-            queryParams.push(`limit=${pageSize}`);
-
-            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            // If searching, fetch all results on first page
+            if (globalFilter) {
+                queryParams.push('page=1');
+                queryParams.push('limit=10000');
+                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            } else {
+                queryParams.push(`page=${pageIndex + 1}`);
+                queryParams.push(`limit=${pageSize}`);
+            }
             if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);

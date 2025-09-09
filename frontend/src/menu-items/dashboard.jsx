@@ -33,13 +33,13 @@ const loadingMenu = {
           url: '/dashboard/default',
           breadcrumbs: false
         },
-        {
-          id: 'analytics1',
-          title: 'loading',
-          type: 'item',
-          url: '/dashboard/analytics',
-          breadcrumbs: false
-        }
+        // {
+        //   id: 'analytics1',
+        //   title: 'loading',
+        //   type: 'item',
+        //   url: '/dashboard/analytics',
+        //   breadcrumbs: false
+        // }
       ]
     }
   ]

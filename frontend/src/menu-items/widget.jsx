@@ -48,6 +48,21 @@ const widget = {
       icon: icons.chart,
       permissions: ['analytics_read']
     }
+    // {
+    //   id: 'statistics',
+    //   title: <FormattedMessage id="statistics" />,
+    //   type: 'item',
+    //   url: '/widget/statistics',
+    //   icon: icons.statistics
+    // },
+
+    // {
+    //   id: 'chart',
+    //   title: <FormattedMessage id="chart" />,
+    //   type: 'item',
+    //   url: '/widget/chart',
+    //   icon: icons.chart
+    // }
   ]
 };
 

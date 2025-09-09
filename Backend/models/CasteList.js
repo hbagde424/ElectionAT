@@ -16,7 +16,7 @@ const casteListSchema = new mongoose.Schema({
   },
    percentage: {
     type: String,
-    required: [true, 'percentage is required'],
+    required: [false, 'percentage is required'],
     trim: true,
     maxlength: [100, 'percentage cannot exceed 100 characters'],
     index: true
@@ -48,13 +48,13 @@ const casteListSchema = new mongoose.Schema({
   block_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Block',
-    required: [true, 'Block reference is required'],
+    required: [false, 'Block reference is required'],
     index: true
   },
   booth_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booth',
-    required: [true, 'Booth reference is required'],
+    required: [false, 'Booth reference is required'],
     index: true
   },
     description: {

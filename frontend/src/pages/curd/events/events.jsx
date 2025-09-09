@@ -243,14 +243,31 @@ export default function EventListPage() {
             if (selectedStatus) query += `&status=${selectedStatus}`;
             if (selectedType) query += `&type=${selectedType}`;
 
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/events?page=${pageIndex + 1}&limit=${pageSize}${query}`;
+            // When searching, fetch all results on first page
+            let currentPage = pageIndex + 1;
+            let currentLimit = pageSize;
+            if (globalFilter) {
+                currentPage = 1;
+                currentLimit = 10000; // Get all results when searching
+            }
+
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/events?page=${currentPage}&limit=${currentLimit}${query}`;
 
             const res = await fetch(apiUrl);
             const json = await res.json();
 
             if (json.success) {
                 setEvents(json.data);
-                setPageCount(json.pages);
+                // When searching, set pageCount to 1 to show all results on single page
+                if (globalFilter) {
+                    setPageCount(1);
+                    // Reset pagination to first page when searching
+                    if (pageIndex !== 0) {
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }
+                } else {
+                    setPageCount(json.pages);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch events:', error);
@@ -515,23 +532,6 @@ export default function EventListPage() {
             size: 150
         },
         {
-            header: 'Description',
-            accessorKey: 'description',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 250,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    fontStyle: 'italic',
-                    color: 'text.secondary'
-                }}>
-                    {/* Strip HTML tags for table preview */}
-                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
-                </Typography>
-            )
-        },
-        {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
@@ -614,7 +614,7 @@ export default function EventListPage() {
             Name: item.name,
             Type: item.type,
             Status: item.status,
-            Description: item.description,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Start Date': item.start_date,
             'End Date': item.end_date,
             Location: item.location,
@@ -624,8 +624,7 @@ export default function EventListPage() {
             Assembly: item.assembly_id?.name || '',
             Block: item.block_id?.name || '',
             Booth: item.booth_id?.name || '',
-            Booth_Number: item.booth_id?.booth_number || '',
-
+            'Booth Number': item.booth_id?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,

@@ -62,9 +62,17 @@ export default function EventView({ data }) {
                                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                     Description
                                 </Typography>
-                                <Typography variant="body1" paragraph>
-                                    {data.description}
-                                </Typography>
+                                <Box
+                                    sx={{
+                                        border: '1px solid #eee',
+                                        borderRadius: 1,
+                                        p: 1,
+                                        bgcolor: 'background.default',
+                                        maxHeight: 180,
+                                        overflow: 'auto',
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: data.description }}
+                                />
                             </Box>
                         )}
 
@@ -93,24 +101,6 @@ export default function EventView({ data }) {
                         </Box>
                     </Stack>
                 </Grid>
-
-                 {/* Description Field (HTML) */}
-            {data.description && (
-                <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
-                    <Box
-                        sx={{
-                            border: '1px solid #eee',
-                            borderRadius: 1,
-                            p: 1,
-                            bgcolor: 'background.default',
-                            maxHeight: 180,
-                            overflow: 'auto',
-                        }}
-                        dangerouslySetInnerHTML={{ __html: data.description }}
-                    />
-                </Box>
-            )}
 
                 {/* Right Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
@@ -207,6 +197,10 @@ export default function EventView({ data }) {
                         <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
                             <Chip label={data.booth_id?.name || 'N/A'} color="error" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
+                            <Chip label={data.booth_id?.booth_number || 'N/A'} color="error" size="small" />
                         </Grid>
                     </Grid>
                 </Grid>

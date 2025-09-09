@@ -106,18 +106,6 @@ export default function CandidateView({ data }) {
                             <Chip label={data.party_id?.name || 'N/A'} color="primary" size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
-                            <Chip label={data.state_id?.name || 'N/A'} color="secondary" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
-                            <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
-                            <Chip label={data.parliament_id?.name || 'N/A'} color="warning" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Caste</Typography>
                             <Chip label={data.caste || 'N/A'} size="small" />
                         </Grid>
@@ -128,10 +116,6 @@ export default function CandidateView({ data }) {
                                 color={data.criminal_cases > 0 ? 'error' : 'success'} 
                                 size="small" 
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Election Year</Typography>
-                            <Typography>{data.election_year?.year || 'N/A'}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Education</Typography>

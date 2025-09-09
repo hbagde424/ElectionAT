@@ -108,9 +108,10 @@ const partyActivitySchema = new mongoose.Schema({
     }
   }],
     description: {
-    type: String,
-    default: ''
-  },
+      type: String,
+      trim: true,
+      maxlength: [1000, 'Description cannot exceed 1000 characters']
+    },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -199,7 +199,16 @@ export default function CodingListPage() {
     const fetchCodingList = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            let actualPageIndex = pageIndex;
+            let actualPageSize = pageSize;
+            
+            // When searching, fetch all results on one page
+            if (globalFilter && globalFilter.trim() !== '') {
+                actualPageIndex = 0;
+                actualPageSize = 10000; // Large enough to get all results
+            }
+
+            let query = globalFilter && globalFilter.trim() !== '' ? `&search=${encodeURIComponent(globalFilter)}` : '';
 
             // Add column filters to the query
             columnFilters.forEach(filter => {
@@ -209,12 +218,17 @@ export default function CodingListPage() {
                 }
             });
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`);
             const json = await res.json();
             if (json.success) {
-
                 setCodingList(json.data);
-                setPageCount(json.pages);
+                if (globalFilter && globalFilter.trim() !== '') {
+                    // When searching, show all results on one page
+                    setPageCount(1);
+                } else {
+                    // When not searching, use normal pagination
+                    setPageCount(json.pages);
+                }
             } else {
                 console.error('API Error:', json);
             }
@@ -277,6 +291,71 @@ export default function CodingListPage() {
             cell: ({ getValue }) => (
                 <Typography fontWeight="medium">
                     {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Email',
+            accessorKey: 'email',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 180,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'WhatsApp',
+            accessorKey: 'whatsapp_number',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Facebook',
+            accessorKey: 'facebook',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Instagram',
+            accessorKey: 'instagram',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Twitter',
+            accessorKey: 'twitter',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
                 </Typography>
             )
         },
@@ -360,6 +439,17 @@ export default function CodingListPage() {
                     color="error"
                     size="small"
                     variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Booth Number',
+            accessorKey: 'booth',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
+                    color="error"
+                    size="small"
                 />
             )
         },

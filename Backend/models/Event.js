@@ -72,10 +72,6 @@ const eventSchema = new mongoose.Schema({
     ref: 'Booth',
     required: [true, 'Booth reference is required']
   },
-    description: {
-    type: String,
-    default: ''
-  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

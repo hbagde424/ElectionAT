@@ -41,25 +41,41 @@ const CandidateListPage = () => {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
+    const handleSearchChange = (value) => {
+        setGlobalFilter(value);
+        
+        // If search is cleared, reset pagination to normal but maintain current page if possible
+        if (!value || value.trim() === '') {
+            // Only reset page size if it was set to large number for search
+            if (pagination.pageSize === 10000) {
+                setPagination(prev => ({ ...prev, pageSize: 10 }));
+            }
+        }
+    };
+
     const fetchCandidates = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
             let actualPageIndex = pageIndex;
             let actualPageSize = pageSize;
+            
             // When searching, fetch all results on one page
-            if (globalFilter) {
+            if (globalFilter && globalFilter.trim() !== '') {
                 actualPageIndex = 0;
                 actualPageSize = 10000; // Large enough to get all results
             }
-            const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            
+            const query = globalFilter && globalFilter.trim() !== '' ? `&search=${encodeURIComponent(globalFilter)}` : '';
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`);
             const json = await res.json();
+            
             if (json.success) {
                 setCandidates(json.data);
-                if (globalFilter) {
+                if (globalFilter && globalFilter.trim() !== '') {
+                    // When searching, show all results on one page
                     setPageCount(1);
-                    setPagination({ pageIndex: 0, pageSize: 10000 });
                 } else {
+                    // When not searching, use normal pagination
                     setPageCount(json.pages);
                 }
             }
@@ -109,8 +125,20 @@ const CandidateListPage = () => {
 
     useEffect(() => {
         fetchCandidates(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    // Handle search clear - reset pagination
+    useEffect(() => {
+        if (!globalFilter || globalFilter.trim() === '') {
+            if (pagination.pageSize === 10000) {
+                setPagination(prev => ({ pageIndex: 0, pageSize: 10 }));
+            }
+        }
+    }, [globalFilter]);
+
+    useEffect(() => {
+        fetchReferenceData();
+    }, []);
 
     const formatNumber = (number) => {
         if (!number) return 'N/A';
@@ -180,6 +208,59 @@ const CandidateListPage = () => {
                 }}>
                     {/* Strip HTML tags for table preview */}
                     {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
+            header: 'Party',
+            accessorKey: 'party_id.name',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="primary"
+                    size="small"
+                />
+            )
+        },
+        {
+            header: 'Education',
+            accessorKey: 'education',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Assets',
+            accessorKey: 'assets',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Liabilities',
+            accessorKey: 'liabilities',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
                 </Typography>
             )
         },
@@ -256,9 +337,9 @@ const CandidateListPage = () => {
         columns,
         state: { pagination, globalFilter },
         pageCount,
-        manualPagination: !globalFilter,
+        manualPagination: true, // Always use manual pagination
         onPaginationChange: setPagination,
-        onGlobalFilterChange: setGlobalFilter,
+        onGlobalFilterChange: handleSearchChange,
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -286,16 +367,14 @@ const CandidateListPage = () => {
             'Name': item.name || '',
             'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Party': item.party_id?.name || '',
-            'State': item.state_id?.name || '',
-            'Assembly': item.assembly_id?.name || '',
-            'Parliament': item.parliament_id?.name || '',
             'Caste': item.caste || '',
             'Criminal Cases': item.criminal_cases || 0,
             'Education': item.education || '',
             'Assets': item.assets || '',
             'Liabilities': item.liabilities || '',
-            'Election Year': item.election_year?.year || '',
             'Status': item.is_active ? 'Active' : 'Inactive',
+            'Created By': item.created_by?.username || '',
+            'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,
             'Updated At': item.updated_at
         })));
@@ -315,7 +394,7 @@ const CandidateListPage = () => {
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
                         value={globalFilter}
-                        onFilterChange={setGlobalFilter}
+                        onFilterChange={handleSearchChange}
                         placeholder={`Search ${candidates.length} records...`}
                     />
                     <Stack direction="row" spacing={1}>
@@ -378,14 +457,16 @@ const CandidateListPage = () => {
                         </Table>
                     </TableContainer>
                     <Divider />
-                    <Box sx={{ p: 2 }}>
-                        <TablePagination
-                            setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
-                            setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
-                            getState={table.getState}
-                            getPageCount={() => pageCount}
-                        />
-                    </Box>
+                    {(!globalFilter || globalFilter.trim() === '') && (
+                        <Box sx={{ p: 2 }}>
+                            <TablePagination
+                                setPageSize={(size) => setPagination((prev) => ({ ...prev, pageSize: size }))}
+                                setPageIndex={(index) => setPagination((prev) => ({ ...prev, pageIndex: index }))}
+                                getState={table.getState}
+                                getPageCount={() => pageCount}
+                            />
+                        </Box>
+                    )}
                 </ScrollX>
             </MainCard>
 
@@ -399,13 +480,25 @@ const CandidateListPage = () => {
                 assemblies={assemblies}
                 parties={parties}
                 electionYears={electionYears}
-                refresh={() => fetchCandidates(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    if (!globalFilter || globalFilter.trim() === '') {
+                        fetchCandidates(pagination.pageIndex, pagination.pageSize);
+                    } else {
+                        fetchCandidates(0, 10000, globalFilter);
+                    }
+                }}
             />
             <AlertCandidateDelete
                 open={deleteAlert.open}
                 handleClose={() => setDeleteAlert({ open: false, id: null })}
                 id={deleteAlert.id}
-                refresh={() => fetchCandidates(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    if (!globalFilter || globalFilter.trim() === '') {
+                        fetchCandidates(pagination.pageIndex, pagination.pageSize);
+                    } else {
+                        fetchCandidates(0, 10000, globalFilter);
+                    }
+                }}
             />
         </>
     );

@@ -86,20 +86,20 @@ export default function PartyActivitiesListPage() {
     const fetchReferenceData = async () => {
         try {
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states?limit=10000`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?limit=10000`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?limit=10000`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=10000`)
             ]);
 
 
             const token = localStorage.getItem('serviceToken');
 
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users?limit=10000`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -138,10 +138,17 @@ export default function PartyActivitiesListPage() {
     const fetchPartyActivities = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
+            // When searching, fetch all results on first page
+            let currentPage = pageIndex + 1;
+            let currentLimit = pageSize;
+            if (globalFilter) {
+                currentPage = 1;
+                currentLimit = 10000;
+            }
             // Build query parameters
             const queryParams = new URLSearchParams({
-                page: pageIndex + 1,
-                limit: pageSize,
+                page: currentPage,
+                limit: currentLimit,
                 ...(globalFilter && { search: globalFilter }),
                 // Filters
                 ...(appliedFilters.state_id && { state_id: appliedFilters.state_id }),
@@ -158,7 +165,14 @@ export default function PartyActivitiesListPage() {
             const json = await res.json();
             if (json.success) {
                 setPartyActivities(json.data);
-                setPageCount(json.pages);
+                if (globalFilter) {
+                    setPageCount(1);
+                    if (pageIndex !== 0) {
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }
+                } else {
+                    setPageCount(json.pages);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch party activities:', error);

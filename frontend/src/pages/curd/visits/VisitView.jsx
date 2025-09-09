@@ -97,6 +97,38 @@ export default function VisitView({ data }) {
                                 )}
                             </Box>
                         )}
+                            {/* Longitude & Latitude fields if not shown above */}
+                            {!data.locationName && (data.latitude || data.longitude) && (
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Coordinates</Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {data.latitude || 'N/A'}, {data.longitude || 'N/A'}
+                                    </Typography>
+                                </Box>
+                            )}
+                            {/* Declaration field */}
+                            {data.declaration && (
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                        Declaration
+                                    </Typography>
+                                    <Box
+                                        sx={{
+                                            border: '1px solid #eee',
+                                            borderRadius: 1,
+                                            p: 2,
+                                            bgcolor: 'background.default',
+                                            maxHeight: 300,
+                                            overflow: 'auto',
+                                            minHeight: 120
+                                        }}
+                                    >
+                                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                                            {data.declaration}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            )}
                     </Stack>
                 </Grid>
 

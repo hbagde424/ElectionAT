@@ -251,11 +251,28 @@ export default function InfluencersListPage() {
             if (selectedBlock) query += `&block=${selectedBlock}`;
             if (selectedBooth) query += `&booth=${selectedBooth}`;
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            // When searching, fetch all results on first page
+            let currentPage = pageIndex + 1;
+            let currentLimit = pageSize;
+            if (globalFilter) {
+                currentPage = 1;
+                currentLimit = 10000; // Get all results when searching
+            }
+
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${currentPage}&limit=${currentLimit}${query}`);
             const json = await res.json();
             if (json.success) {
                 setInfluencers(json.data);
-                setPageCount(json.pages);
+                // When searching, set pageCount to 1 to show all results on single page
+                if (globalFilter) {
+                    setPageCount(1);
+                    // Reset pagination to first page when searching
+                    if (pageIndex !== 0) {
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }
+                } else {
+                    setPageCount(json.pages);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch influencers:', error);
@@ -336,11 +353,34 @@ export default function InfluencersListPage() {
             )
         },
         {
+            header: 'Alternate Number',
+            accessorKey: 'alternate_number',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
             header: 'Email',
             accessorKey: 'email',
             cell: ({ getValue }) => (
                 <Typography sx={{
                     maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Full Address',
+            accessorKey: 'full_address',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
@@ -416,6 +456,18 @@ export default function InfluencersListPage() {
                 <Chip
                     label={getValue()?.name || 'N/A'}
                     color="default"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Booth Number',
+            accessorKey: 'booth_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.booth_number || 'N/A'}
+                    color="error"
                     size="small"
                     variant="outlined"
                 />
@@ -525,14 +577,14 @@ export default function InfluencersListPage() {
             'Alternate Number': item.alternate_number || '',
             Email: item.email || '',
             'Full Address': item.full_address,
+            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             State: item.state_id?.name || '',
             Division: item.division_id?.name || '',
             Parliament: item.parliament_id?.name || '',
             Assembly: item.assembly_id?.name || '',
-            // District: item.district_id?.name || '', // Not supported by influencer model
             Block: item.block_id?.name || '',
             Booth: item.booth_id?.name || '',
-            Booth_Number: item.booth_id?.booth_number || '',
+            'Booth Number': item.booth_id?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,

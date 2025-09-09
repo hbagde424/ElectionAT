@@ -597,7 +597,7 @@ export default function WinningCandidateListPage() {
             accessorKey: 'poll_percentage',
             cell: ({ getValue }) => (
                 <Typography fontWeight="medium">
-                    {getValue() || 'N/A'}
+                    {((getValue() || 0) * 100).toFixed(2)}%
                 </Typography>
             )
         },
@@ -633,7 +633,7 @@ export default function WinningCandidateListPage() {
             accessorKey: 'margin_percentage',
             cell: ({ getValue }) => (
                 <Typography fontWeight="medium">
-                    {getValue()}%
+                    {((getValue() || 0) * 100).toFixed(2)}%
                 </Typography>
             )
         },
@@ -801,42 +801,60 @@ export default function WinningCandidateListPage() {
         return [];
     };
 
+
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
-    const [shouldDownload, setShouldDownload] = useState(false);
-
-    useEffect(() => {
-        if (shouldDownload && csvData.length > 0) {
-            csvLinkRef.current?.link.click();
-            setShouldDownload(false);
-        }
-    }, [csvData, shouldDownload]);
-
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
-        const allData = await fetchAllCandidatesForCsv();
-        setCsvData(allData.map(item => ({
-            'Candidate': item.candidate_id?.name || '',
-            'Party': item.party_id?.name || '',
-            'Year': item.year_id?.year || '',
-            'Assembly No': item.assembly_id?.AC_NO || '',
-            'Election Type': item.type?.join(', ') || '',
-            'Poll Percentage': item.poll_percentage || '',
-            'Total Votes': item.total_votes,
-            'Voting Percentage': item.voting_percentage,
-            'Margin': item.margin,
-            'Margin Percentage': item.margin_percentage,
-            'State': item.state_id?.name || '',
-            'Division': item.division_id?.name || '',
-            'Parliament': item.parliament_id?.name || '',
-            'Assembly': item.assembly_id?.name || '',
-            'Created By': item.created_by?.username || '',
-            'Created At': item.created_at
-        })));
-        setCsvLoading(false);
-        setShouldDownload(true);
+        try {
+            console.log('Starting CSV download process...'); // Debugging log to indicate process start
+            const allData = await fetchAllCandidatesForCsv();
+            console.log('Fetched Data:', allData); // Debugging log to inspect fetched data
+
+            if (!allData || allData.length === 0) {
+                console.error('No data available for CSV download.');
+                setCsvLoading(false);
+                return;
+            }
+
+            const formattedData = allData.map(item => ({
+                'Candidate': item.candidate_id?.name || 'N/A',
+                'Party': item.party_id?.name || 'N/A',
+                'Year': item.year_id?.year || 'N/A',
+                'Assembly No': item.assembly_id?.AC_NO || 'N/A',
+                'Election Type': item.type?.join(', ') || 'N/A',
+                'Poll Percentage': ((item.poll_percentage || 0) * 100).toFixed(2),
+                'Total Votes': item.total_votes || 'N/A',
+                'Voting Percentage': ((item.voting_percentage || 0) * 100).toFixed(2),
+                'Margin': item.margin || 'N/A',
+                'Margin Percentage': ((item.margin_percentage || 0) * 100).toFixed(2),
+                'State': item.state_id?.name || 'N/A',
+                'Division': item.division_id?.name || 'N/A',
+                'Parliament': item.parliament_id?.name || 'N/A',
+                'Assembly': item.assembly_id?.name || 'N/A',
+                'Created By': item.created_by?.username || 'N/A',
+                'Created At': formatDate(item.created_at)
+            }));
+
+            console.log('Formatted CSV Data:', formattedData); // Debugging log to inspect formatted data
+
+            setCsvData(formattedData);
+            setTimeout(() => {
+                console.log('Attempting to trigger CSV download...'); // Debugging log before triggering download
+                if (csvLinkRef.current) {
+                    csvLinkRef.current.link.click();
+                    console.log('CSV download triggered successfully.'); // Debugging log for success
+                } else {
+                    console.error('CSVLink reference is null or undefined. Ensure the CSVLink component is rendered correctly.');
+                }
+            }, 500);
+        } catch (error) {
+            console.error('Error preparing CSV data:', error);
+        } finally {
+            setCsvLoading(false);
+        }
     };
 
     if (loading) return <EmptyReactTable />;
@@ -884,7 +902,12 @@ export default function WinningCandidateListPage() {
                                 style={{ display: 'none' }}
                                 ref={csvLinkRef}
                             />
-                            <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
+                            <Button
+                                variant="outlined"
+                                onClick={handleDownloadCsv}
+                                disabled={csvLoading}
+                                size="small"
+                            >
                                 {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                             </Button>
                             <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>

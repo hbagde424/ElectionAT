@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Booth = require('../models/booth');
 const Block = require('../models/block');
 const Assembly = require('../models/Assembly');
@@ -29,41 +30,73 @@ exports.getBooths = async (req, res, next) => {
     // Enhanced search functionality: search across all table fields including populated references
     let matchStage = {};
     if (req.query.search) {
-      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      const searchTerm = req.query.search.trim();
+      
+      // Skip if search term is empty
+      if (!searchTerm) {
+        return res.status(400).json({
+          success: false,
+          message: 'Search term cannot be empty'
+        });
+      }
 
-      // First, find related IDs from referenced collections that match the search
-      const [matchingBlocks, matchingAssemblies, matchingParliaments,
-        matchingDivisions, matchingStates, matchingElectionYears] = await Promise.all([
-          Block.find({ name: searchRegex }).select('_id'),
-          Assembly.find({ name: searchRegex }).select('_id'),
-          Parliament.find({ name: searchRegex }).select('_id'),
-          Division.find({ name: searchRegex }).select('_id'),
-          State.find({ name: searchRegex }).select('_id'),
-          ElectionYear.find({ year: searchRegex }).select('_id')
-        ]);
+      const searchRegex = { $regex: searchTerm, $options: 'i' };
 
-      // Extract just the IDs
-      const blockIds = matchingBlocks.map(b => b._id);
-      const assemblyIds = matchingAssemblies.map(a => a._id);
-      const parliamentIds = matchingParliaments.map(p => p._id);
-      const divisionIds = matchingDivisions.map(d => d._id);
-      const stateIds = matchingStates.map(s => s._id);
-      const electionYearIds = matchingElectionYears.map(y => y._id);
+      try {
+        // First, find related IDs from referenced collections that match the search
+        const searchPromises = [
+          Block.find({ name: searchRegex }).select('_id').catch(() => []),
+          Assembly.find({ name: searchRegex }).select('_id').catch(() => []),
+          Parliament.find({ name: searchRegex }).select('_id').catch(() => []),
+          Division.find({ name: searchRegex }).select('_id').catch(() => []),
+          State.find({ name: searchRegex }).select('_id').catch(() => [])
+        ];
 
-      matchStage = {
-        $or: [
-          { name: searchRegex },
-          { booth_number: searchRegex },
-          { full_address: searchRegex },
-          { description: searchRegex },
-          { block_id: { $in: blockIds } },
-          { assembly_id: { $in: assemblyIds } },
-          { parliament_id: { $in: parliamentIds } },
-          { division_id: { $in: divisionIds } },
-          { state_id: { $in: stateIds } },
-          { election_year: { $in: electionYearIds } }
-        ]
-      };
+        // Add election year search only if search term is numeric
+        if (!isNaN(searchTerm)) {
+          searchPromises.push(
+            ElectionYear.find({ year: parseInt(searchTerm) }).select('_id').catch(() => [])
+          );
+        }
+
+        const searchResults = await Promise.all(searchPromises);
+        const [matchingBlocks, matchingAssemblies, matchingParliaments,
+          matchingDivisions, matchingStates, matchingElectionYears = []] = searchResults;
+
+        // Extract just the IDs
+        const blockIds = matchingBlocks.map(b => b._id);
+        const assemblyIds = matchingAssemblies.map(a => a._id);
+        const parliamentIds = matchingParliaments.map(p => p._id);
+        const divisionIds = matchingDivisions.map(d => d._id);
+        const stateIds = matchingStates.map(s => s._id);
+        const electionYearIds = matchingElectionYears.map(y => y._id);
+
+        matchStage = {
+          $or: [
+            { name: searchRegex },
+            { booth_number: searchRegex },
+            { full_address: searchRegex },
+            { description: searchRegex },
+            ...(blockIds.length > 0 ? [{ block_id: { $in: blockIds } }] : []),
+            ...(assemblyIds.length > 0 ? [{ assembly_id: { $in: assemblyIds } }] : []),
+            ...(parliamentIds.length > 0 ? [{ parliament_id: { $in: parliamentIds } }] : []),
+            ...(divisionIds.length > 0 ? [{ division_id: { $in: divisionIds } }] : []),
+            ...(stateIds.length > 0 ? [{ state_id: { $in: stateIds } }] : []),
+            ...(electionYearIds.length > 0 ? [{ election_year: { $in: electionYearIds } }] : [])
+          ]
+        };
+      } catch (error) {
+        console.error('Search error:', error);
+        // If search fails, fall back to basic search
+        matchStage = {
+          $or: [
+            { name: searchRegex },
+            { booth_number: searchRegex },
+            { full_address: searchRegex },
+            { description: searchRegex }
+          ]
+        };
+      }
     }
 
     // Helper to validate ObjectId
@@ -73,19 +106,19 @@ exports.getBooths = async (req, res, next) => {
     const aggregationPipeline = [
       { $match: matchStage },
       // Filter by block
-      ...(req.query.block && isValidObjectId(req.query.block) ? [{ $match: { block_id: mongoose.Types.ObjectId(req.query.block) } }] : []),
+      ...(req.query.block && isValidObjectId(req.query.block) ? [{ $match: { block_id: new mongoose.Types.ObjectId(req.query.block) } }] : []),
       // Filter by assembly
-      ...(req.query.assembly && isValidObjectId(req.query.assembly) ? [{ $match: { assembly_id: mongoose.Types.ObjectId(req.query.assembly) } }] : []),
+      ...(req.query.assembly && isValidObjectId(req.query.assembly) ? [{ $match: { assembly_id: new mongoose.Types.ObjectId(req.query.assembly) } }] : []),
       // Filter by parliament
-      ...(req.query.parliament && isValidObjectId(req.query.parliament) ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
+      ...(req.query.parliament && isValidObjectId(req.query.parliament) ? [{ $match: { parliament_id: new mongoose.Types.ObjectId(req.query.parliament) } }] : []),
       // Filter by division
       ...(req.query.division && isValidObjectId(req.query.division) ? [
-        { $match: { division_id: mongoose.Types.ObjectId(req.query.division) } }
+        { $match: { division_id: new mongoose.Types.ObjectId(req.query.division) } }
       ] : []),
       // Filter by state
-      ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
+      ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: new mongoose.Types.ObjectId(req.query.state) } }] : []),
       // Filter by election year
-      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
+      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: new mongoose.Types.ObjectId(req.query.election_year) } }] : []),
       // Lookup all references
       {
         $lookup: {
@@ -172,27 +205,19 @@ exports.getBooths = async (req, res, next) => {
     const countPipeline = [
       { $match: matchStage },
       // Filter by block
-      ...(req.query.block ? [{ $match: { block_id: mongoose.Types.ObjectId(req.query.block) } }] : []),
+      ...(req.query.block && isValidObjectId(req.query.block) ? [{ $match: { block_id: new mongoose.Types.ObjectId(req.query.block) } }] : []),
       // Filter by assembly
-      ...(req.query.assembly ? [{ $match: { assembly_id: mongoose.Types.ObjectId(req.query.assembly) } }] : []),
+      ...(req.query.assembly && isValidObjectId(req.query.assembly) ? [{ $match: { assembly_id: new mongoose.Types.ObjectId(req.query.assembly) } }] : []),
       // Filter by parliament
-      ...(req.query.parliament ? [{ $match: { parliament_id: mongoose.Types.ObjectId(req.query.parliament) } }] : []),
+      ...(req.query.parliament && isValidObjectId(req.query.parliament) ? [{ $match: { parliament_id: new mongoose.Types.ObjectId(req.query.parliament) } }] : []),
       // Filter by division
-      ...(req.query.division ? [
-        (() => {
-          const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
-          if (isObjectId) {
-            return { $match: { division_id: mongoose.Types.ObjectId(req.query.division) } };
-          } else {
-            // Will be replaced below after async lookup
-            return null;
-          }
-        })()
-      ].filter(Boolean) : []),
+      ...(req.query.division && isValidObjectId(req.query.division) ? [
+        { $match: { division_id: new mongoose.Types.ObjectId(req.query.division) } }
+      ] : []),
       // Filter by state
-      ...(req.query.state ? [{ $match: { state_id: mongoose.Types.ObjectId(req.query.state) } }] : []),
+      ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: new mongoose.Types.ObjectId(req.query.state) } }] : []),
       // Filter by election year
-      ...(req.query.election_year ? [{ $match: { election_year: mongoose.Types.ObjectId(req.query.election_year) } }] : []),
+      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: new mongoose.Types.ObjectId(req.query.election_year) } }] : []),
       { $count: "total" }
     ];
 
@@ -218,6 +243,14 @@ exports.getBooths = async (req, res, next) => {
 // @access  Public
 exports.getBooth = async (req, res, next) => {
   try {
+    // Validate ObjectId
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booth ID format'
+      });
+    }
+
     const booth = await Booth.findById(req.params.id)
       .populate('block_id', 'name')
       .populate('assembly_id', 'name')
@@ -322,6 +355,14 @@ exports.createBooth = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateBooth = async (req, res, next) => {
   try {
+    // Validate ObjectId
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booth ID format'
+      });
+    }
+
     let booth = await Booth.findById(req.params.id);
 
     if (!booth) {
@@ -396,6 +437,14 @@ exports.updateBooth = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.deleteBooth = async (req, res, next) => {
   try {
+    // Validate ObjectId
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booth ID format'
+      });
+    }
+
     const booth = await Booth.findById(req.params.id);
 
     if (!booth) {
@@ -421,6 +470,14 @@ exports.deleteBooth = async (req, res, next) => {
 // @access  Public
 exports.getBoothsByAssembly = async (req, res, next) => {
   try {
+    // Validate ObjectId
+    if (!isValidObjectId(req.params.assemblyId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid assembly ID format'
+      });
+    }
+
     // Verify assembly exists
     const assembly = await Assembly.findById(req.params.assemblyId);
     if (!assembly) {
@@ -452,6 +509,14 @@ exports.getBoothsByAssembly = async (req, res, next) => {
 // @access  Public
 exports.getBoothsByBlock = async (req, res, next) => {
   try {
+    // Validate ObjectId
+    if (!isValidObjectId(req.params.blockId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid block ID format'
+      });
+    }
+
     // Verify block exists
     const block = await Block.findById(req.params.blockId);
     if (!block) {
@@ -482,6 +547,14 @@ exports.getBoothsByBlock = async (req, res, next) => {
 // @access  Public
 exports.getBoothsByYear = async (req, res, next) => {
   try {
+    // Validate ObjectId
+    if (!isValidObjectId(req.params.yearId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid election year ID format'
+      });
+    }
+
     // Verify election year exists
     const year = await ElectionYear.findById(req.params.yearId);
     if (!year) {

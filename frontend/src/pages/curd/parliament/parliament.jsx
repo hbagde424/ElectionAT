@@ -43,8 +43,9 @@ export default function ParliamentListPage() {
         division_id: ''
     });
 
-    const categoryOptions = ['General', 'Reserved', 'Special'];
-    const regionalTypeOptions = ['Urban', 'Rural', 'Mixed'];
+    // Use lowercase for modal compatibility
+    const categoryOptions = ['general', 'reserved', 'special'];
+    const regionalTypeOptions = ['urban', 'rural', 'mixed'];
 
 
     const fetchReferenceData = async () => {
@@ -130,11 +131,11 @@ export default function ParliamentListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -171,7 +172,7 @@ export default function ParliamentListPage() {
             accessorKey: 'category',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.toUpperCase() || 'N/A'}
+                    label={getValue() ? getValue().charAt(0).toUpperCase() + getValue().slice(1) : 'N/A'}
                     size="small"
                     variant="outlined"
                 />
@@ -182,7 +183,7 @@ export default function ParliamentListPage() {
             accessorKey: 'regional_type',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.toUpperCase() || 'N/A'}
+                    label={getValue() ? getValue().charAt(0).toUpperCase() + getValue().slice(1) : 'N/A'}
                     size="small"
                     variant="outlined"
                 />
@@ -207,6 +208,18 @@ export default function ParliamentListPage() {
                 <Chip
                     label={getValue()?.name || 'N/A'}
                     color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Assembly',
+            accessorKey: 'assembly_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="info"
                     size="small"
                     variant="outlined"
                 />

@@ -103,13 +103,23 @@ export default function BoothsListPage() {
             const queryParams = [];
             let actualPageIndex = pageIndex;
             let actualPageSize = pageSize;
-            let searching = false;
-            if (globalFilter) {
-                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            
+            // Determine if we're searching (only search, not filters)
+            const isSearchingOnly = globalFilter && !currentFilters.state_id && !currentFilters.division_id && 
+                !currentFilters.parliament_id && !currentFilters.assembly_id && !currentFilters.block_id;
+            
+            // If only searching (no filters), get all results to show them all at once
+            if (isSearchingOnly) {
                 actualPageIndex = 0;
                 actualPageSize = 10000;
-                searching = true;
             }
+            
+            // Add search parameter
+            if (globalFilter) {
+                queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+            }
+            
+            // Add filter parameters
             if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
@@ -119,14 +129,17 @@ export default function BoothsListPage() {
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?page=${actualPageIndex + 1}&limit=${actualPageSize}${queryString}`);
             const json = await res.json();
+            
             if (json.success) {
                 setBooths(json.data);
-                setIsSearching(searching);
-                if (searching) {
+                setIsSearching(isSearchingOnly);
+                
+                if (isSearchingOnly) {
+                    // When only searching (no filters), show all results on one page
                     setPageCount(1);
-                    setPagination({ pageIndex: 0, pageSize: json.data.length || 1 });
                 } else {
-                    setPageCount(json.pages);
+                    // Normal pagination or filtered pagination
+                    setPageCount(json.pages || 1);
                 }
             }
         } catch (error) {
@@ -138,17 +151,41 @@ export default function BoothsListPage() {
 
     // Track previous globalFilter to detect when search is cleared
     const prevGlobalFilter = useRef('');
+    
+    // Fetch reference data only once on component mount
     useEffect(() => {
-        // Only reset pagination when search is cleared (from non-empty to empty)
-        if (prevGlobalFilter.current && !globalFilter) {
-            setPagination({ pageIndex: 0, pageSize: 10 });
-            setIsSearching(false);
-        } else {
-            fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter);
+        fetchReferenceData();
+        // Initial fetch of booths
+        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+    }, []);
+    
+    // Handle pagination changes (only when not searching/filtering)
+    useEffect(() => {
+        if (!isSearching) {
+            fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        }
+    }, [pagination.pageIndex, pagination.pageSize]);
+    
+    // Handle search changes
+    useEffect(() => {
+        // Reset pagination when search changes
+        if (prevGlobalFilter.current !== globalFilter) {
+            if (globalFilter || prevGlobalFilter.current) {
+                // Reset to first page when starting or ending search
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            }
+            // If search is cleared, reset isSearching state
+            if (!globalFilter && prevGlobalFilter.current) {
+                setIsSearching(false);
+            }
+            // Always fetch with current search and filters
+            fetchBooths(0, pagination.pageSize, globalFilter, filters);
         }
         prevGlobalFilter.current = globalFilter;
-        fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [globalFilter]);
+    
+    // Handle filter changes - filters should trigger immediate fetch
+    // REMOVED: No automatic filter fetch, only on Apply button click
 
     // Save pagination state to localStorage whenever it changes
     useEffect(() => {
@@ -391,9 +428,12 @@ export default function BoothsListPage() {
     const table = useReactTable({
         data: booths,
         columns,
-        state: { pagination, globalFilter },
-        pageCount,
-        manualPagination: true,
+        state: { 
+            pagination: isSearching ? { pageIndex: 0, pageSize: booths.length || 1 } : pagination, 
+            globalFilter 
+        },
+        pageCount: isSearching ? 1 : pageCount,
+        manualPagination: !isSearching,
         onPaginationChange: isSearching ? undefined : setPagination,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
@@ -452,26 +492,26 @@ export default function BoothsListPage() {
 
 
     const handleFilterApply = () => {
-        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        // Reset pagination to first page when applying filters
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        // Manually fetch with filters
         fetchBooths(0, pagination.pageSize, globalFilter, filters);
     };
 
     const handleClearFilter = () => {
-        setFilters({
+        const clearedFilters = {
             state_id: '',
             division_id: '',
             parliament_id: '',
             assembly_id: '',
             block_id: ''
-        });
-        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
-        fetchBooths(0, pagination.pageSize, globalFilter, {
-            state_id: '',
-            division_id: '',
-            parliament_id: '',
-            assembly_id: '',
-            block_id: ''
-        });
+        };
+        setFilters(clearedFilters);
+        // Reset searching state when clearing filters
+        setIsSearching(false);
+        // Reset pagination to first page and fetch data
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        fetchBooths(0, pagination.pageSize, globalFilter, clearedFilters);
     };
 
 
@@ -492,7 +532,7 @@ export default function BoothsListPage() {
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${booths.length} booths...`}
+                        placeholder={isSearching ? `Found ${booths.length} results...` : `Search booths...`}
                         style={{ minWidth: 250 }}
                     />
 
@@ -530,142 +570,142 @@ export default function BoothsListPage() {
                     </Stack>
                 </Stack>
 
-                {/* Filters */}
-                <Stack
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                    sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+            {/* Filters */}
+            <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
+            >
+                <TextField
+                    select
+                    label="State"
+                    value={filters.state_id}
+                    onChange={(e) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            state_id: e.target.value,
+                            division_id: '',
+                            parliament_id: '',
+                            assembly_id: '',
+                            block_id: ''
+                        }));
+                    }}
+                    sx={{ minWidth: 150 }}
+                    size="small"
                 >
-                    <TextField
-                        select
-                        label="State"
-                        value={filters.state_id}
-                        onChange={(e) => {
-                            setFilters(prev => ({
-                                ...prev,
-                                state_id: e.target.value,
-                                division_id: '',
-                                parliament_id: '',
-                                assembly_id: '',
-                                block_id: ''
-                            }));
-                        }}
-                        sx={{ minWidth: 150 }}
-                        size="small"
-                    >
-                        <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
-                            <MenuItem key={state._id} value={state._id}>
-                                {state.name}
+                    <MenuItem value="">All States</MenuItem>
+                    {states.map((state) => (
+                        <MenuItem key={state._id} value={state._id}>
+                            {state.name}
+                        </MenuItem>
+                    ))}
+                </TextField>
+
+                <TextField
+                    select
+                    label="Division"
+                    value={filters.division_id}
+                    onChange={(e) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            division_id: e.target.value,
+                            parliament_id: '',
+                            assembly_id: '',
+                            block_id: ''
+                        }));
+                    }}
+                    sx={{ minWidth: 150 }}
+                    size="small"
+                    disabled={!filters.state_id}
+                >
+                    <MenuItem value="">All Divisions</MenuItem>
+                    {divisions
+                        .filter(d => !filters.state_id || d.state_id?._id === filters.state_id)
+                        .map((division) => (
+                            <MenuItem key={division._id} value={division._id}>
+                                {division.name}
                             </MenuItem>
                         ))}
-                    </TextField>
+                </TextField>
 
-                    <TextField
-                        select
-                        label="Division"
-                        value={filters.division_id}
-                        onChange={(e) => {
-                            setFilters(prev => ({
-                                ...prev,
-                                division_id: e.target.value,
-                                parliament_id: '',
-                                assembly_id: '',
-                                block_id: ''
-                            }));
-                        }}
-                        sx={{ minWidth: 150 }}
-                        size="small"
-                        disabled={!filters.state_id}
-                    >
-                        <MenuItem value="">All Divisions</MenuItem>
-                        {divisions
-                            .filter(d => !filters.state_id || d.state_id?._id === filters.state_id)
-                            .map((division) => (
-                                <MenuItem key={division._id} value={division._id}>
-                                    {division.name}
-                                </MenuItem>
-                            ))}
-                    </TextField>
+                <TextField
+                    select
+                    label="Parliament"
+                    value={filters.parliament_id}
+                    onChange={(e) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            parliament_id: e.target.value,
+                            assembly_id: '',
+                            block_id: ''
+                        }));
+                    }}
+                    sx={{ minWidth: 150 }}
+                    size="small"
+                    disabled={!filters.division_id}
+                >
+                    <MenuItem value="">All Parliaments</MenuItem>
+                    {parliaments
+                        .filter(p => !filters.division_id || p.division_id?._id === filters.division_id)
+                        .map((parliament) => (
+                            <MenuItem key={parliament._id} value={parliament._id}>
+                                {parliament.name}
+                            </MenuItem>
+                        ))}
+                </TextField>
 
-                    <TextField
-                        select
-                        label="Parliament"
-                        value={filters.parliament_id}
-                        onChange={(e) => {
-                            setFilters(prev => ({
-                                ...prev,
-                                parliament_id: e.target.value,
-                                assembly_id: '',
-                                block_id: ''
-                            }));
-                        }}
-                        sx={{ minWidth: 150 }}
-                        size="small"
-                        disabled={!filters.division_id}
-                    >
-                        <MenuItem value="">All Parliaments</MenuItem>
-                        {parliaments
-                            .filter(p => !filters.division_id || p.division_id?._id === filters.division_id)
-                            .map((parliament) => (
-                                <MenuItem key={parliament._id} value={parliament._id}>
-                                    {parliament.name}
-                                </MenuItem>
-                            ))}
-                    </TextField>
+                <TextField
+                    select
+                    label="Assembly"
+                    value={filters.assembly_id}
+                    onChange={(e) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            assembly_id: e.target.value,
+                            block_id: ''
+                        }));
+                    }}
+                    sx={{ minWidth: 150 }}
+                    size="small"
+                    disabled={!filters.parliament_id}
+                >
+                    <MenuItem value="">All Assemblies</MenuItem>
+                    {assemblies
+                        .filter(a => !filters.parliament_id || a.parliament_id?._id === filters.parliament_id)
+                        .map((assembly) => (
+                            <MenuItem key={assembly._id} value={assembly._id}>
+                                {assembly.name}
+                            </MenuItem>
+                        ))}
+                </TextField>
 
-                    <TextField
-                        select
-                        label="Assembly"
-                        value={filters.assembly_id}
-                        onChange={(e) => {
-                            setFilters(prev => ({
-                                ...prev,
-                                assembly_id: e.target.value,
-                                block_id: ''
-                            }));
-                        }}
-                        sx={{ minWidth: 150 }}
-                        size="small"
-                        disabled={!filters.parliament_id}
-                    >
-                        <MenuItem value="">All Assemblies</MenuItem>
-                        {assemblies
-                            .filter(a => !filters.parliament_id || a.parliament_id?._id === filters.parliament_id)
-                            .map((assembly) => (
-                                <MenuItem key={assembly._id} value={assembly._id}>
-                                    {assembly.name}
-                                </MenuItem>
-                            ))}
-                    </TextField>
+                <TextField
+                    select
+                    label="Block"
+                    value={filters.block_id}
+                    onChange={(e) => setFilters(prev => ({ ...prev, block_id: e.target.value }))}
+                    sx={{ minWidth: 150 }}
+                    size="small"
+                    disabled={!filters.assembly_id}
+                >
+                    <MenuItem value="">All Blocks</MenuItem>
+                    {blocks
+                        .filter(b => !filters.assembly_id || b.assembly_id?._id === filters.assembly_id)
+                        .map((block) => (
+                            <MenuItem key={block._id} value={block._id}>
+                                {block.name}
+                            </MenuItem>
+                        ))}
+                </TextField>
 
-                    <TextField
-                        select
-                        label="Block"
-                        value={filters.block_id}
-                        onChange={(e) => setFilters(prev => ({ ...prev, block_id: e.target.value }))}
-                        sx={{ minWidth: 150 }}
-                        size="small"
-                        disabled={!filters.assembly_id}
-                    >
-                        <MenuItem value="">All Blocks</MenuItem>
-                        {blocks
-                            .filter(b => !filters.assembly_id || b.assembly_id?._id === filters.assembly_id)
-                            .map((block) => (
-                                <MenuItem key={block._id} value={block._id}>
-                                    {block.name}
-                                </MenuItem>
-                            ))}
-                    </TextField>
-
-                    <Button variant="contained" onClick={handleFilterApply} size="small">
-                        Apply
-                    </Button>
-                    <Button variant="outlined" onClick={handleClearFilter} size="small">
-                        Clear
-                    </Button>
-                </Stack>
+                <Button variant="contained" onClick={handleFilterApply} size="small">
+                    Apply
+                </Button>
+                <Button variant="outlined" onClick={handleClearFilter} size="small">
+                    Clear
+                </Button>
+            </Stack>
 
 
                 <ScrollX>
@@ -735,14 +775,14 @@ export default function BoothsListPage() {
                 assemblies={assemblies}
                 blocks={blocks}
                 electionYears={electionYears}
-                refresh={() => fetchBooths(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters)}
             />
 
             <AlertBoothDelete
                 id={boothDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchBooths(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters)}
             />
         </>
     );

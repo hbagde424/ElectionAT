@@ -2,11 +2,13 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Grid, Stack, TextField, InputLabel, Select,
     MenuItem, FormControl, FormHelperText, Alert,
-    CircularProgress, Typography
+    CircularProgress, Typography, Autocomplete
 } from '@mui/material';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState } from 'react';
+
+const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 import { DatePicker } from '@mui/x-date-pickers';
 
 // Form Components (previously imported from FormComponents.jsx)
@@ -87,6 +89,10 @@ export default function VisitModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+
+    // Location suggestions state
+    const [locationOptions, setLocationOptions] = useState([]);
+    const [locationLoading, setLocationLoading] = useState(false);
 
     // Initialize form data
     function initializeFormData(visit) {
@@ -290,8 +296,45 @@ export default function VisitModal({
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+
     const handleDateChange = (date) => {
         setFormData(prev => ({ ...prev, date }));
+    };
+
+    // Location Name autocomplete handler with Mapbox geocoding
+    const handleLocationInputChange = async (event, value) => {
+        setFormData(prev => ({ ...prev, locationName: value }));
+        if (value && value.length > 2) {
+            setLocationLoading(true);
+            try {
+                const res = await fetch(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&limit=5`
+                );
+                const data = await res.json();
+                if (data.features) {
+                    setLocationOptions(data.features);
+                } else {
+                    setLocationOptions([]);
+                }
+            } catch (err) {
+                setLocationOptions([]);
+            }
+            setLocationLoading(false);
+        } else {
+            setLocationOptions([]);
+        }
+    };
+
+    // When user selects a suggestion
+    const handleLocationSelect = (event, newValue) => {
+        if (newValue) {
+            setFormData(prev => ({
+                ...prev,
+                locationName: newValue.place_name,
+                latitude: newValue.center[1],
+                longitude: newValue.center[0]
+            }));
+        }
     };
 
     const handleSubmit = async () => {
@@ -539,16 +582,29 @@ export default function VisitModal({
                     </Grid>
 
                     <Grid item xs={12}>
-                        <FormTextField
-                            label="Location Name"
-                            name="locationName"
-                            value={formData.locationName}
-                            onChange={handleChange}
-                            error={errors.locationName}
-                            disabled={isSubmitting}
-                            multiline
-                            rows={2}
-                        />
+                        <Stack spacing={1}>
+                            <InputLabel>Location Name</InputLabel>
+                            <Autocomplete
+                                freeSolo
+                                options={locationOptions}
+                                getOptionLabel={(option) => option.place_name || ''}
+                                loading={locationLoading}
+                                value={locationOptions.find(opt => opt.place_name === formData.locationName) || null}
+                                inputValue={formData.locationName}
+                                onInputChange={handleLocationInputChange}
+                                onChange={handleLocationSelect}
+                                disabled={isSubmitting}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        name="locationName"
+                                        error={!!errors.locationName}
+                                        helperText={errors.locationName}
+                                        fullWidth
+                                    />
+                                )}
+                            />
+                        </Stack>
                     </Grid>
 
 

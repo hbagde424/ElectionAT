@@ -59,7 +59,7 @@ import ApexColumnChart from 'sections/charts/apexchart/ApexColumnChart copy';
 
 import Booth from 'sections/widget/chart/BoothSetGrapd';
 // Icons
-import { Eye, EyeSlash } from 'iconsax-react';
+import { Eye, EyeSlash, User, ArrowDown, ArrowUp, Book, Calendar, CloudChange, Wallet3 } from 'iconsax-react';
 
 // Form & validation
 import * as Yup from 'yup';
@@ -73,8 +73,6 @@ import { fetcher } from 'utils/axios';
 import { preload } from 'swr';
 
 // Assets & Styles
-// Icons
-import { ArrowDown, ArrowUp, Book, Calendar, CloudChange, Wallet3 } from 'iconsax-react';
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
@@ -1411,32 +1409,56 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Survey Date',
-              accessorKey: 'survey_date',
+              header: 'Survey ID',
+              accessorKey: '_id',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
-                  {new Date(row.survey_date).toLocaleDateString('en-IN') || 'N/A'}
+                <Typography sx={{
+                  fontWeight: 500,
+                  color: 'primary.main'
+                }}>
+                  {row._id?.slice(-8) || 'N/A'}
                 </Typography>
               )
             },
             {
               header: 'Booth',
-              accessorKey: 'booth',
+              accessorKey: 'booth_id',
               cell: (row) => (
-                <Chip
-                  label={row.booth?.name || 'N/A'}
-                  color="primary"
-                  size="small"
-                  variant="outlined"
-                />
+                <Box>
+                  <Typography sx={{ fontWeight: 500 }}>
+                    {row.booth_id?.name || 'N/A'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Booth: {row.booth_id?.booth_number || 'N/A'}
+                  </Typography>
+                </Box>
               )
             },
             {
-              header: 'Assembly',
-              accessorKey: 'assembly',
+              header: 'Surveyor',
+              accessorKey: 'survey_done_by',
+              cell: (row) => (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar sx={{ width: 24, height: 24 }}>
+                    <User size={16} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {row.survey_done_by?.email || 'Unknown'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Surveyor
+                    </Typography>
+                  </Box>
+                </Stack>
+              )
+            },
+            {
+              header: 'Survey Date',
+              accessorKey: 'survey_date',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.survey_date ? new Date(row.survey_date).toLocaleDateString('en-IN') : 'N/A'}
                 </Typography>
               )
             },
@@ -1445,11 +1467,13 @@ export default function DashboardDefault() {
               accessorKey: 'status',
               cell: (row) => (
                 <Chip
-                  label={row.status?.toUpperCase() || 'N/A'}
+                  label={row.status || 'N/A'}
                   color={
-                    row.status === 'completed' ? 'success' :
-                      row.status === 'in_progress' ? 'warning' :
-                        row.status === 'pending' ? 'error' : 'default'
+                    row.status === 'Completed' || row.status === 'completed' ? 'primary' :
+                      row.status === 'Verified' || row.status === 'verified' ? 'success' :
+                        row.status === 'In Progress' || row.status === 'in_progress' ? 'info' :
+                          row.status === 'Pending' || row.status === 'pending' ? 'default' :
+                            row.status === 'Rejected' || row.status === 'rejected' ? 'error' : 'default'
                   }
                   size="small"
                   variant="filled"
@@ -1457,12 +1481,27 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Surveyor',
-              accessorKey: 'surveyor',
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
-                <Typography>
-                  {row.surveyor?.name || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.state_id?.name || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="success"
+                  size="small"
+                  variant="outlined"
+                />
               )
             }
           ]}
@@ -1484,38 +1523,40 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Volunteer',
+              header: 'Name',
               accessorKey: 'name',
               cell: (row) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Avatar
-                    src={row.photo}
-                    sx={{ width: 32, height: 32 }}
-                  />
-                  <Typography sx={{ fontWeight: 500 }}>
-                    {row.name || 'N/A'}
-                  </Typography>
-                </Stack>
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.name || 'N/A'}
+                </Typography>
               )
             },
             {
-              header: 'Booth',
-              accessorKey: 'booth',
-              cell: (row) => (
-                <Chip
-                  label={row.booth?.name || 'N/A'}
-                  color="primary"
-                  size="small"
-                  variant="outlined"
-                />
-              )
-            },
-            {
-              header: 'Assembly',
-              accessorKey: 'assembly',
+              header: 'Phone',
+              accessorKey: 'phone',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.phone || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Email',
+              accessorKey: 'email',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.email || 'N/A'}
                 </Typography>
               )
             },
@@ -1527,17 +1568,60 @@ export default function DashboardDefault() {
                   label={row.role || 'N/A'}
                   color="secondary"
                   size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Activity Level',
+              accessorKey: 'activity_level',
+              cell: (row) => (
+                <Chip
+                  label={row.activity_level || 'N/A'}
+                  color={
+                    row.activity_level === 'High' ? 'success' :
+                      row.activity_level === 'Medium' ? 'warning' :
+                        row.activity_level === 'Low' ? 'error' : 'default'
+                  }
+                  size="small"
                   variant="filled"
                 />
               )
             },
             {
-              header: 'Contact',
-              accessorKey: 'contact',
+              header: 'State',
+              accessorKey: 'state',
               cell: (row) => (
-                <Typography>
-                  {row.contact || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.state?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Booth',
+              accessorKey: 'booth',
+              cell: (row) => (
+                <Chip
+                  label={row.booth ? `${row.booth.name} (${row.booth.booth_number})` : 'N/A'}
+                  color="success"
+                  size="small"
+                  variant="outlined"
+                />
               )
             }
           ]}
@@ -1559,11 +1643,26 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Caste Name',
-              accessorKey: 'name',
+              header: 'Caste',
+              accessorKey: 'caste',
+              cell: (row) => (
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.caste || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Percentage',
+              accessorKey: 'percentage',
               cell: (row) => (
                 <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                  {row.percentage ? `${row.percentage}%` : 'N/A'}
                 </Typography>
               )
             },
@@ -1572,11 +1671,12 @@ export default function DashboardDefault() {
               accessorKey: 'category',
               cell: (row) => (
                 <Chip
-                  label={row.category || 'N/A'}
+                  label={row.category?.toUpperCase() || 'N/A'}
                   color={
-                    row.category === 'SC' ? 'error' :
-                      row.category === 'ST' ? 'warning' :
-                        row.category === 'OBC' ? 'info' : 'default'
+                    row.category === 'SC' ? 'primary' :
+                      row.category === 'ST' ? 'secondary' :
+                        row.category === 'OBC' ? 'warning' :
+                          row.category === 'GENERAL' ? 'success' : 'default'
                   }
                   size="small"
                   variant="filled"
@@ -1587,17 +1687,8 @@ export default function DashboardDefault() {
               header: 'State',
               accessorKey: 'state',
               cell: (row) => (
-                <Typography>
-                  {row.state?.name || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Code',
-              accessorKey: 'code',
-              cell: (row) => (
                 <Chip
-                  label={row.code || 'N/A'}
+                  label={row.state?.name || 'N/A'}
                   color="primary"
                   size="small"
                   variant="outlined"
@@ -1605,12 +1696,27 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Description',
-              accessorKey: 'description',
+              header: 'Assembly',
+              accessorKey: 'assembly',
               cell: (row) => (
-                <Typography>
-                  {row.description || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.assembly?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Block',
+              accessorKey: 'block',
+              cell: (row) => (
+                <Chip
+                  label={row.block?.name || 'N/A'}
+                  color="success"
+                  size="small"
+                  variant="outlined"
+                />
               )
             }
           ]}
@@ -1632,53 +1738,78 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Code',
-              accessorKey: 'code',
+              header: 'Name',
+              accessorKey: 'name',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Mobile',
+              accessorKey: 'mobile',
+              cell: (row) => (
+                <Typography>
+                  {row.mobile || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Email',
+              accessorKey: 'email',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 180,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.email || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'WhatsApp',
+              accessorKey: 'whatsapp_number',
+              cell: (row) => (
+                <Typography>
+                  {row.whatsapp_number || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Coding Types',
+              accessorKey: 'coding_types',
+              cell: (row) => (
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  {row.coding_types?.map((type, index) => (
+                    <Chip key={index} label={type} size="small" color="primary" variant="outlined" />
+                  )) || <Typography>N/A</Typography>}
+                </Stack>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state',
               cell: (row) => (
                 <Chip
-                  label={row.code || 'N/A'}
+                  label={row.state?.name || 'N/A'}
                   color="primary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
             {
-              header: 'Description',
-              accessorKey: 'description',
-              cell: (row) => (
-                <Typography>
-                  {row.description || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Category',
-              accessorKey: 'category',
-              cell: (row) => (
-                <Typography>
-                  {row.category || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Type',
-              accessorKey: 'type',
-              cell: (row) => (
-                <Typography>
-                  {row.type || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Status',
-              accessorKey: 'status',
+              header: 'Assembly',
+              accessorKey: 'assembly',
               cell: (row) => (
                 <Chip
-                  label={row.status ? 'Active' : 'Inactive'}
-                  color={row.status ? 'success' : 'error'}
+                  label={row.assembly?.name || 'N/A'}
+                  color="info"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             }
@@ -1704,26 +1835,14 @@ export default function DashboardDefault() {
               header: 'Event Name',
               accessorKey: 'name',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
                   {row.name || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Date',
-              accessorKey: 'date',
-              cell: (row) => (
-                <Typography>
-                  {new Date(row.date).toLocaleDateString('en-IN') || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Assembly',
-              accessorKey: 'assembly',
-              cell: (row) => (
-                <Typography>
-                  {row.assembly?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -1732,10 +1851,10 @@ export default function DashboardDefault() {
               accessorKey: 'type',
               cell: (row) => (
                 <Chip
-                  label={row.type || 'N/A'}
-                  color="info"
+                  label={row.type?.toUpperCase() || 'N/A'}
+                  color="secondary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
@@ -1752,6 +1871,62 @@ export default function DashboardDefault() {
                   }
                   size="small"
                   variant="filled"
+                />
+              )
+            },
+            {
+              header: 'Start Date',
+              accessorKey: 'start_date',
+              cell: (row) => (
+                <Typography>
+                  {row.start_date ? new Date(row.start_date).toLocaleDateString('en-IN') : 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'End Date',
+              accessorKey: 'end_date',
+              cell: (row) => (
+                <Typography>
+                  {row.end_date ? new Date(row.end_date).toLocaleDateString('en-IN') : 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Location',
+              accessorKey: 'location',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 150,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.location || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state_id',
+              cell: (row) => (
+                <Chip
+                  label={row.state_id?.name || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
+              cell: (row) => (
+                <Chip
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
                 />
               )
             }
@@ -1774,44 +1949,73 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Gender',
-              accessorKey: 'name',
+              header: 'Male Count',
+              accessorKey: 'male',
               cell: (row) => (
                 <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                  {row.male || 0}
                 </Typography>
               )
             },
             {
-              header: 'Code',
-              accessorKey: 'code',
+              header: 'Female Count',
+              accessorKey: 'female',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.female || 0}
+                </Typography>
+              )
+            },
+            {
+              header: 'Others Count',
+              accessorKey: 'others',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 500 }}>
+                  {row.others || 0}
+                </Typography>
+              )
+            },
+            {
+              header: 'Total',
+              cell: (row) => (
+                <Typography sx={{ fontWeight: 600 }}>
+                  {(row.male || 0) + (row.female || 0) + (row.others || 0)}
+                </Typography>
+              )
+            },
+            {
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
                 <Chip
-                  label={row.code || 'N/A'}
-                  color="secondary"
+                  label={row.state_id?.name || 'N/A'}
+                  color="primary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
             {
-              header: 'Description',
-              accessorKey: 'description',
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
-                <Typography>
-                  {row.description || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                />
               )
             },
             {
-              header: 'Status',
-              accessorKey: 'status',
+              header: 'Booth',
+              accessorKey: 'booth_id',
               cell: (row) => (
                 <Chip
-                  label={row.status ? 'Active' : 'Inactive'}
-                  color={row.status ? 'success' : 'error'}
+                  label={row.booth_id?.name || 'N/A'}
+                  color="error"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             }
@@ -1834,63 +2038,64 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Influencer',
+              header: 'Name',
               accessorKey: 'name',
               cell: (row) => (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Avatar
-                    src={row.photo}
-                    sx={{ width: 32, height: 32 }}
-                  />
-                  <Typography sx={{ fontWeight: 500 }}>
-                    {row.name || 'N/A'}
-                  </Typography>
-                </Stack>
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.name || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Contact Number',
+              accessorKey: 'contact_number',
+              cell: (row) => (
+                <Typography>
+                  {row.contact_number || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Email',
+              accessorKey: 'email',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 180,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.email || 'N/A'}
+                </Typography>
               )
             },
             {
               header: 'Assembly',
-              accessorKey: 'assembly',
-              cell: (row) => (
-                <Typography>
-                  {row.assembly?.name || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Category',
-              accessorKey: 'category',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Chip
-                  label={row.category || 'N/A'}
-                  color="warning"
+                  label={row.assembly_id?.name || 'N/A'}
+                  color="info"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             },
             {
-              header: 'Contact',
-              accessorKey: 'contact',
-              cell: (row) => (
-                <Typography>
-                  {row.contact || 'N/A'}
-                </Typography>
-              )
-            },
-            {
-              header: 'Influence Level',
-              accessorKey: 'influence_level',
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
                 <Chip
-                  label={row.influence_level || 'N/A'}
-                  color={
-                    row.influence_level === 'high' ? 'error' :
-                      row.influence_level === 'medium' ? 'warning' :
-                        row.influence_level === 'low' ? 'info' : 'default'
-                  }
+                  label={row.state_id?.name || 'N/A'}
+                  color="primary"
                   size="small"
-                  variant="filled"
+                  variant="outlined"
                 />
               )
             }
@@ -1913,20 +2118,38 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Issue Title',
-              accessorKey: 'title',
+              header: 'Issue Name',
+              accessorKey: 'issue_name',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
-                  {row.title || 'N/A'}
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.issue_name || 'N/A'}
                 </Typography>
               )
             },
             {
+              header: 'Department',
+              accessorKey: 'department',
+              cell: (row) => (
+                <Chip
+                  label={row.department || 'N/A'}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                />
+              )
+            },
+            {
               header: 'Assembly',
-              accessorKey: 'assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -1937,9 +2160,10 @@ export default function DashboardDefault() {
                 <Chip
                   label={row.priority || 'N/A'}
                   color={
-                    row.priority === 'high' ? 'error' :
-                      row.priority === 'medium' ? 'warning' :
-                        row.priority === 'low' ? 'info' : 'default'
+                    row.priority === 'Critical' ? 'error' :
+                      row.priority === 'High' ? 'warning' :
+                        row.priority === 'Medium' ? 'info' :
+                          row.priority === 'Low' ? 'success' : 'default'
                   }
                   size="small"
                   variant="filled"
@@ -1951,24 +2175,16 @@ export default function DashboardDefault() {
               accessorKey: 'status',
               cell: (row) => (
                 <Chip
-                  label={row.status?.toUpperCase() || 'N/A'}
+                  label={row.status || 'N/A'}
                   color={
-                    row.status === 'resolved' ? 'success' :
-                      row.status === 'in_progress' ? 'warning' :
-                        row.status === 'pending' ? 'error' : 'default'
+                    row.status === 'Resolved' ? 'success' :
+                      row.status === 'In Progress' ? 'warning' :
+                        row.status === 'Reported' ? 'info' :
+                          row.status === 'Rejected' ? 'error' : 'default'
                   }
                   size="small"
                   variant="filled"
                 />
-              )
-            },
-            {
-              header: 'Date Reported',
-              accessorKey: 'date_reported',
-              cell: (row) => (
-                <Typography>
-                  {new Date(row.date_reported).toLocaleDateString('en-IN') || 'N/A'}
-                </Typography>
               )
             }
           ]}
@@ -2065,48 +2281,62 @@ export default function DashboardDefault() {
               cell: (row, index) => <Typography>{index + 1}</Typography>
             },
             {
-              header: 'Activity',
-              accessorKey: 'name',
+              header: 'Title',
+              accessorKey: 'title',
               cell: (row) => (
-                <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                <Typography sx={{
+                  fontWeight: 500,
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.title || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Party',
-              accessorKey: 'party',
+              header: 'Activity Type',
+              accessorKey: 'activity_type',
               cell: (row) => (
-                <Typography>
-                  {row.party?.name || 'N/A'}
-                </Typography>
+                <Chip
+                  label={row.activity_type?.toUpperCase() || 'N/A'}
+                  color="secondary"
+                  size="small"
+                  variant="outlined"
+                />
               )
             },
             {
               header: 'Assembly',
-              accessorKey: 'assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Date',
-              accessorKey: 'date',
+              header: 'Activity Date',
+              accessorKey: 'activity_date',
               cell: (row) => (
                 <Typography>
-                  {new Date(row.date).toLocaleDateString('en-IN') || 'N/A'}
+                  {row.activity_date ? new Date(row.activity_date).toLocaleDateString('en-IN') : 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Type',
-              accessorKey: 'type',
+              header: 'Status',
+              accessorKey: 'status',
               cell: (row) => (
                 <Chip
-                  label={row.type || 'N/A'}
-                  color="secondary"
+                  label={row.status?.toUpperCase() || 'N/A'}
+                  color={
+                    row.status?.toLowerCase() === 'completed' ? 'success' :
+                      row.status?.toLowerCase() === 'ongoing' ? 'warning' :
+                        row.status?.toLowerCase() === 'scheduled' ? 'info' :
+                          row.status?.toLowerCase() === 'cancelled' ? 'error' : 'default'
+                  }
                   size="small"
                   variant="filled"
                 />
@@ -2132,34 +2362,34 @@ export default function DashboardDefault() {
             },
             {
               header: 'Party',
-              accessorKey: 'party',
+              accessorKey: 'party_id',
               cell: (row) => (
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Avatar
-                    src={row.party?.logo}
+                    src={row.party_id?.logo}
                     sx={{ width: 32, height: 32 }}
                   />
                   <Typography sx={{ fontWeight: 500 }}>
-                    {row.party?.name || 'N/A'}
+                    {row.party_id?.name || 'N/A'}
                   </Typography>
                 </Stack>
               )
             },
             {
               header: 'Assembly',
-              accessorKey: 'assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.assembly?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
             {
               header: 'Parliament',
-              accessorKey: 'parliament',
+              accessorKey: 'parliament_id',
               cell: (row) => (
                 <Typography>
-                  {row.parliament?.name || 'N/A'}
+                  {row.parliament_id?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -2173,11 +2403,11 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Vote Share (%)',
-              accessorKey: 'vote_share',
+              header: 'Votes',
+              accessorKey: 'votes',
               cell: (row) => (
                 <Chip
-                  label={`${row.vote_share || 0}%`}
+                  label={row.votes ? row.votes.toLocaleString() : '0'}
                   color="primary"
                   size="small"
                   variant="filled"
@@ -2204,59 +2434,47 @@ export default function DashboardDefault() {
             },
             {
               header: 'Status Name',
-              accessorKey: 'name',
+              accessorKey: 'work_name',
               cell: (row) => (
                 <Typography sx={{ fontWeight: 500 }}>
-                  {row.name || 'N/A'}
+                  {row.work_name || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Code',
-              accessorKey: 'code',
-              cell: (row) => (
-                <Chip
-                  label={row.code || 'N/A'}
-                  color="info"
-                  size="small"
-                  variant="filled"
-                />
-              )
-            },
-            {
-              header: 'Description',
-              accessorKey: 'description',
+              header: 'Department',
+              accessorKey: 'department',
               cell: (row) => (
                 <Typography>
-                  {row.description || 'N/A'}
+                  {row.department || 'N/A'}
                 </Typography>
               )
             },
             {
-              header: 'Color',
-              accessorKey: 'color',
+              header: 'status',
+              accessorKey: 'status',
               cell: (row) => (
-                <Box
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    backgroundColor: row.color || '#gray',
-                    borderRadius: '50%',
-                    border: '1px solid #ddd'
-                  }}
-                />
+                <Typography>
+                  {row.status || 'N/A'}
+                </Typography>
               )
             },
             {
-              header: 'Status',
-              accessorKey: 'active',
+              header: 'work type',
+              accessorKey: 'work_type',
               cell: (row) => (
-                <Chip
-                  label={row.active ? 'Active' : 'Inactive'}
-                  color={row.active ? 'success' : 'error'}
-                  size="small"
-                  variant="filled"
-                />
+                <Typography>
+                  {row.work_type || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'fund source',
+              accessorKey: 'approved_fund_from',
+              cell: (row) => (
+                <Typography>
+                  {row.approved_fund_from || 'N/A'}
+                </Typography>
               )
             }
           ]}

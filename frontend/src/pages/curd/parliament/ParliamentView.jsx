@@ -21,12 +21,12 @@ export default function ParliamentView({ data }) {
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
                 <Typography variant="h6">{data.name || 'Untitled Parliament'}</Typography>
                 <Chip
-                    label={data.category?.toUpperCase() || 'N/A'}
+                    label={data.category ? data.category.charAt(0).toUpperCase() + data.category.slice(1) : 'N/A'}
                     size="small"
                     variant="outlined"
                 />
                 <Chip
-                    label={data.regional_type?.toUpperCase() || 'N/A'}
+                    label={data.regional_type ? data.regional_type.charAt(0).toUpperCase() + data.regional_type.slice(1) : 'N/A'}
                     size="small"
                     variant="outlined"
                 />
@@ -95,12 +95,16 @@ export default function ParliamentView({ data }) {
                             <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                            <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Category</Typography>
-                            <Chip label={data.category?.toUpperCase() || 'N/A'} size="small" />
+                            <Chip label={data.category ? data.category.charAt(0).toUpperCase() + data.category.slice(1) : 'N/A'} size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Regional Type</Typography>
-                            <Chip label={data.regional_type?.toUpperCase() || 'N/A'} size="small" />
+                            <Chip label={data.regional_type ? data.regional_type.charAt(0).toUpperCase() + data.regional_type.slice(1) : 'N/A'} size="small" />
                         </Grid>
                     </Grid>
                 </Grid>

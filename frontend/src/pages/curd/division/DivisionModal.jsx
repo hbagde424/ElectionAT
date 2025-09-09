@@ -139,7 +139,6 @@ export default function DivisionModal({
             <DialogContent>
                 {serverError && (
                     <div style={{ color: 'red', marginBottom: 12, fontWeight: 500 }}>
-                        {/* Show only the error message if it's a JSON string */}
                         {(() => {
                             try {
                                 const errObj = JSON.parse(serverError);
@@ -235,6 +234,8 @@ export default function DivisionModal({
                             />
                         </Stack>
                     </Grid>
+
+                    
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
