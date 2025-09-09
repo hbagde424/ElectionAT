@@ -281,7 +281,9 @@ async function setupPermissionsAndRoles() {
                 lastName: 'Admin',
                 email: 'superadmin@example.com',
                 username: 'superadmin',
+                mobile: '9876543210',
                 password: await bcrypt.hash('password123', 10),
+                role: 'superAdmin',
                 roleName: 'Super Administrator'
             },
             {
@@ -289,7 +291,9 @@ async function setupPermissionsAndRoles() {
                 lastName: 'User',
                 email: 'manager@example.com',
                 username: 'manager',
+                mobile: '9876543211',
                 password: await bcrypt.hash('password123', 10),
+                role: 'State',
                 roleName: 'Manager'
             },
             {
@@ -297,7 +301,9 @@ async function setupPermissionsAndRoles() {
                 lastName: 'User',
                 email: 'user@example.com',
                 username: 'user',
+                mobile: '9876543212',
                 password: await bcrypt.hash('password123', 10),
+                role: 'Booth',
                 roleName: 'User'
             },
             {
@@ -305,7 +311,9 @@ async function setupPermissionsAndRoles() {
                 lastName: 'Operator',
                 email: 'dataentry@example.com',
                 username: 'dataentry',
+                mobile: '9876543213',
                 password: await bcrypt.hash('password123', 10),
+                role: 'Booth',
                 roleName: 'Data Entry Operator'
             },
             {
@@ -313,7 +321,9 @@ async function setupPermissionsAndRoles() {
                 lastName: 'Analyst',
                 email: 'analyst@example.com',
                 username: 'analyst',
+                mobile: '9876543214',
                 password: await bcrypt.hash('password123', 10),
+                role: 'Division',
                 roleName: 'Analyst'
             }
         ];
@@ -326,6 +336,8 @@ async function setupPermissionsAndRoles() {
                     lastName: userData.lastName,
                     email: userData.email,
                     username: userData.username,
+                    mobile: userData.mobile,
+                    role: userData.role,
                     password: userData.password
                 });
 

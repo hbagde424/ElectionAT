@@ -102,13 +102,18 @@ exports.removeUserRole = async (req, res) => {
 exports.getUserRoles = async (req, res) => {
   try {
     const { userId } = req.params;
+    console.log('🔍 getUserRoles called with userId:', userId);
+
     const userRoles = await UserRole.find({ user: userId }).populate('role');
+    console.log('📋 Found user roles:', userRoles.length);
+    console.log('📋 User roles data:', userRoles);
 
     res.json({
       success: true,
-      data: userRoles.map(ur => ur.role)
+      data: userRoles
     });
   } catch (err) {
+    console.error('❌ Error in getUserRoles:', err);
     res.status(500).json({
       success: false,
       error: err.message

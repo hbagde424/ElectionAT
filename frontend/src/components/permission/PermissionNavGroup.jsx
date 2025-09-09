@@ -79,7 +79,14 @@ export default function PermissionNavGroup({
     const drawerOpen = menuMaster.isDashboardDrawerOpened;
 
     const downLG = useMediaQuery(theme.breakpoints.down('lg'));
-    const { hasPermission, hasAnyPermission } = usePermissions();
+    const { hasPermission, hasAnyPermission, userPermissions, loading } = usePermissions();
+
+    // Debug logging
+    console.log('🔍 PermissionNavGroup - User permissions:', {
+        userPermissions,
+        loading,
+        permissionsCount: userPermissions?.length || 0
+    });
 
     const [anchorEl, setAnchorEl] = useState(null);
     const [currentItem, setCurrentItem] = useState(item);
@@ -109,7 +116,8 @@ export default function PermissionNavGroup({
             return hasAnyPermission(child.permissions);
         }
         // Fallback to old system if no permissions property
-        return hasPermission(getPermissionName(child.url || child.id));
+        const permissionName = getPermissionName(child.url || child.id, '_read');
+        return hasPermission(permissionName);
     });
 
     // Filter children based on permissions
@@ -124,7 +132,7 @@ export default function PermissionNavGroup({
                 return hasAnyPermission(menuItem.permissions);
             }
             // Fallback to old permission system
-            const requiredPermission = getPermissionName(menuItem.url || menuItem.id);
+            const requiredPermission = getPermissionName(menuItem.url || menuItem.id, '_read');
             return hasPermission(requiredPermission);
         });
 
@@ -165,12 +173,25 @@ export default function PermissionNavGroup({
     // Check if user has permission to see this group
     if (currentItem.permissions && Array.isArray(currentItem.permissions)) {
         const groupAccess = hasAnyPermission(currentItem.permissions);
+        console.log(`🔍 Group "${currentItem.id}" permission check:`, {
+            requiredPermissions: currentItem.permissions,
+            hasAccess: groupAccess,
+            userPermissions: userPermissions
+        });
         if (!groupAccess) {
+            console.log(`❌ Group "${currentItem.id}" hidden - no permission`);
             return null; // Don't render the group if user doesn't have permission
         }
     }
 
+    console.log(`🔍 Group "${currentItem.id}" children check:`, {
+        totalChildren: currentItem.children?.length || 0,
+        filteredChildren: filteredChildren.length,
+        children: filteredChildren.map(child => ({ id: child.id, title: child.title }))
+    });
+
     if (filteredChildren.length === 0) {
+        console.log(`❌ Group "${currentItem.id}" hidden - no accessible children`);
         return null; // Don't render the group if no children are accessible
     }
 
@@ -225,7 +246,7 @@ export default function PermissionNavGroup({
                         if (!hasAnyPermission(menu.permissions)) return null;
                     } else {
                         // Fallback to old permission system
-                        const requiredPermission = getPermissionName(menu.url || menu.id);
+                        const requiredPermission = getPermissionName(menu.url || menu.id, '_read');
                         if (!hasPermission(requiredPermission)) return null;
                     }
 

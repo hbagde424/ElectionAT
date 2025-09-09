@@ -1,5 +1,5 @@
 // contexts/PermissionContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axiosServices from 'utils/axios';
 
 const PermissionContext = createContext();
@@ -7,10 +7,7 @@ const PermissionContext = createContext();
 export const usePermissions = () => {
     const context = useContext(PermissionContext);
     if (!context) {
-        // For development, log the error but provide default values
         console.warn('usePermissions must be used within a PermissionProvider. Falling back to default values.');
-
-        // Return default values to prevent crashes during development
         return {
             userPermissions: [],
             userRoles: [],
@@ -38,20 +35,32 @@ export const PermissionProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // guard to prevent state updates after unmount
+    const mountedRef = useRef(true);
+    useEffect(() => () => { mountedRef.current = false; }, []);
+
     // Get current user from localStorage or your auth context
     const getCurrentUser = () => {
         try {
             const userData = localStorage.getItem('user');
+            console.log('🔍 Raw user data from localStorage:', userData);
             const user = userData ? JSON.parse(userData) : null;
+            console.log('🔍 Parsed user data:', user);
             return user;
-        } catch (error) {
-            console.error('Error parsing user data:', error);
+        } catch (err) {
+            console.error('❌ Error parsing user data:', err);
             return null;
         }
     };
 
+    // Normalize user id: accept _id or id or userId
+    const getCurrentUserId = (userObj) => {
+        if (!userObj) return null;
+        return userObj._id || userObj.id || userObj.userId || null;
+    };
+
     useEffect(() => {
-        // Add a small delay to ensure authentication context is ready
+        // Slight delay to ensure auth context/localStorage is ready
         const timer = setTimeout(() => {
             fetchUserPermissions();
             fetchUserHierarchy();
@@ -61,60 +70,102 @@ export const PermissionProvider = ({ children }) => {
     }, []);
 
     const fetchUserPermissions = async () => {
-        try {
-            setLoading(true);
-            const currentUser = getCurrentUser();
 
-            if (!currentUser || !currentUser._id) {
-                console.log('No user found, skipping permission fetch');
-                setLoading(false);
+        try {
+            if (mountedRef.current) setLoading(true);
+            const currentUser = getCurrentUser();
+            const userId = getCurrentUserId(currentUser);
+
+            console.log('🔍 fetchUserPermissions called with user:', currentUser, 'resolved userId:', userId);
+
+            if (!currentUser || !userId) {
+                console.log('❌ No userId found, skipping permission fetch');
+                if (mountedRef.current) setLoading(false);
                 return;
             }
 
             // Fetch user roles
-            const userRolesRes = await axiosServices.get(`/user-roles/user/${currentUser._id}`);
-            const roles = userRolesRes.data.data || [];
-            setUserRoles(roles);
+            console.log('📡 Making API call to fetch user roles for:', userId);
+            const userRolesRes = await axiosServices.get(`/user-roles/user/${userId}`);
+            const rolesPayload = userRolesRes?.data?.data ?? userRolesRes?.data ?? [];
+            console.log('📡 User roles API response (normalized):', rolesPayload);
+
+            // normalize roles array
+            const roles = Array.isArray(rolesPayload) ? rolesPayload : [];
+            if (mountedRef.current) setUserRoles(roles);
+            console.log('📋 Set user roles:', roles);
 
             // Extract permissions from roles
-            const permissions = new Set();
+            const permissionsSet = new Set();
 
             for (const userRole of roles) {
-                if (userRole.role && userRole.role._id) {
-                    try {
-                        const rolePermissionsRes = await axiosServices.get(`/role-permissions/${userRole.role._id}`);
-                        const rolePermissions = rolePermissionsRes.data || [];
+                // role may be directly the role object or nested { role: {...} }
+                const roleObj = userRole?.role ?? userRole;
+                const roleId = roleObj?._id || roleObj?.id || roleObj?.roleId || null;
 
-                        rolePermissions.forEach(permission => {
-                            if (permission && permission.name) {
-                                permissions.add(permission.name);
-                            }
-                        });
-                    } catch (error) {
-                        console.error(`Error fetching permissions for role ${userRole.role._id}:`, error);
-                    }
+                if (!roleId) {
+                    console.warn('⚠️ roleId not found for userRole, skipping:', userRole);
+                    continue;
+                }
+
+                try {
+                    console.log(`📡 Fetching permissions for role ${roleId}`);
+                    const rolePermissionsRes = await axiosServices.get(`/role-permissions/${roleId}`);
+                    // accept either res.data.data or res.data
+                    const rolePermsPayload = rolePermissionsRes?.data?.data ?? rolePermissionsRes?.data ?? [];
+                    const rolePermissions = Array.isArray(rolePermsPayload) ? rolePermsPayload : [];
+
+                    rolePermissions.forEach(permission => {
+                        // permission might be { name: 'perm' } or a string
+                        if (!permission) return;
+                        if (typeof permission === 'string') {
+                            permissionsSet.add(permission);
+                        } else if (permission.name) {
+                            permissionsSet.add(permission.name);
+                        } else if (permission.permissionName) {
+                            permissionsSet.add(permission.permissionName);
+                        }
+                    });
+                } catch (err) {
+                    console.error(`Error fetching permissions for role ${roleId}:`, err);
+                    // continue to next role
                 }
             }
 
-            setUserPermissions(Array.from(permissions));
-            setError(null);
-        } catch (error) {
-            console.error('Error fetching user permissions:', error);
+            const finalPermissions = Array.from(permissionsSet);
+            if (mountedRef.current) setUserPermissions(finalPermissions);
+            console.log('✅ User permissions loaded:', finalPermissions.length, 'permissions');
+            console.log('📋 Permissions:', finalPermissions);
+            if (mountedRef.current) setError(null);
+        } catch (err) {
+            console.error('❌ Error fetching user permissions:', err);
+            console.error('❌ Error details:', {
+                message: err.message,
+                response: err.response?.data,
+                status: err.response?.status
+            });
 
             // Fallback to test permissions based on user email
             const currentUser = getCurrentUser();
             if (currentUser && currentUser.email) {
-                console.log('Using test permissions for:', currentUser.email);
+                console.log('🔄 Using test permissions for:', currentUser.email);
                 const testPermissions = getTestPermissions(currentUser.email);
-                setUserPermissions(testPermissions);
-                setUserRoles([{ role: { name: getTestRole(currentUser.email) } }]);
-                setError('Using test permissions - database not available');
+                console.log('🔄 Test permissions:', testPermissions);
+                if (mountedRef.current) {
+                    setUserPermissions(testPermissions);
+                    setUserRoles([{ role: { name: getTestRole(currentUser.email) } }]);
+                    setError('Using test permissions - database not available');
+                }
             } else {
-                setError('Failed to load user permissions');
-                setUserPermissions([]);
+                console.log('❌ No current user for fallback');
+                if (mountedRef.current) {
+                    setError('Failed to load user permissions');
+                    setUserPermissions([]);
+                }
             }
         } finally {
-            setLoading(false);
+            console.log('🏁 fetchUserPermissions completed');
+            if (mountedRef.current) setLoading(false);
         }
     };
 
@@ -137,6 +188,13 @@ export const PermissionProvider = ({ children }) => {
                 'candidate_read', 'party_read', 'voter_read', 'election_data_read',
                 'survey_read', 'report_read', 'analytics_read'
             ],
+            'authfixed@example.com': [
+                'user_read', 'user_update', 'user_role_assign',
+                'role_read', 'permission_read',
+                'state_read', 'division_read', 'parliament_read', 'assembly_read', 'block_read', 'booth_read',
+                'candidate_read', 'party_read', 'voter_read', 'election_data_read',
+                'survey_read', 'report_read', 'analytics_read'
+            ],
             'user@example.com': [
                 'user_read',
                 'state_read', 'division_read', 'parliament_read', 'assembly_read', 'block_read', 'booth_read',
@@ -152,6 +210,7 @@ export const PermissionProvider = ({ children }) => {
         const testRoles = {
             'superadmin@example.com': 'Super Administrator',
             'manager@example.com': 'Manager',
+            'authfixed@example.com': 'Manager',
             'user@example.com': 'User'
         };
 
@@ -161,16 +220,19 @@ export const PermissionProvider = ({ children }) => {
     const fetchUserHierarchy = async () => {
         try {
             const currentUser = getCurrentUser();
-            if (!currentUser || !currentUser._id) {
+            const userId = getCurrentUserId(currentUser);
+            if (!currentUser || !userId) {
+                console.log('⚠️ fetchUserHierarchy: no user or userId found');
                 return;
             }
 
-            const response = await axiosServices.get(`/user-hierarchy/${currentUser._id}`);
-            const hierarchyData = response.data?.data || response.data;
-            setUserHierarchy(hierarchyData);
-        } catch (error) {
-            console.error('Error fetching user hierarchy:', error);
-            setUserHierarchy(null);
+            const response = await axiosServices.get(`/user-hierarchy/${userId}`);
+            const hierarchyData = response?.data?.data ?? response?.data ?? null;
+            if (mountedRef.current) setUserHierarchy(hierarchyData);
+            console.log('📚 userHierarchy:', hierarchyData);
+        } catch (err) {
+            console.error('Error fetching user hierarchy:', err);
+            if (mountedRef.current) setUserHierarchy(null);
         }
     };
 
@@ -178,7 +240,7 @@ export const PermissionProvider = ({ children }) => {
     const hasPermission = (permissionName) => {
         if (!permissionName) return false;
 
-        // Grant all permissions to Super Admin
+        // Grant all permissions to Super Admin (email)
         const currentUser = getCurrentUser();
         if (currentUser && currentUser.email === 'superadmin@example.com') {
             return true;
@@ -193,13 +255,11 @@ export const PermissionProvider = ({ children }) => {
 
         // Grant all permissions to Super Admin
         const currentUser = getCurrentUser();
-
         if (currentUser && currentUser.email === 'superadmin@example.com') {
             return true;
         }
 
-        const result = permissionNames.some(permission => hasPermission(permission));
-        return result;
+        return permissionNames.some(permission => hasPermission(permission));
     };
 
     // Check if user has all of the specified permissions
@@ -219,7 +279,8 @@ export const PermissionProvider = ({ children }) => {
     const hasRole = (roleName) => {
         if (!roleName) return false;
         return userRoles.some(userRole =>
-            userRole.role && userRole.role.name === roleName
+            // userRole may be { role: { name: '...' } } or { name: '...' }
+            (userRole.role && userRole.role.name === roleName) || (userRole.name === roleName)
         );
     };
 
@@ -235,7 +296,7 @@ export const PermissionProvider = ({ children }) => {
         const userLevelIndex = hierarchy.indexOf(userLevel);
         const requestedLevelIndex = hierarchy.indexOf(level);
 
-        // User can access their level and all levels below
+        // access their level and all levels below (smaller index => higher in hierarchy)
         return userLevelIndex <= requestedLevelIndex;
     };
 
@@ -294,4 +355,3 @@ export const PermissionProvider = ({ children }) => {
 };
 
 export default PermissionContext;
-

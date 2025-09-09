@@ -21,7 +21,7 @@ const widget = {
   title: <FormattedMessage id="widgets" />,
   icon: icons.widgets,
   type: 'group',
-  permissions: ['all.access', 'system.admin', 'widgets.view'],
+  permissions: ['analytics_read', 'report_read'],
   children: [
     {
       id: 'data',
@@ -29,7 +29,7 @@ const widget = {
       type: 'item',
       url: '/widget/data',
       icon: icons.data,
-      permissions: ['all.access', 'system.admin', 'widgets.view']
+      permissions: ['analytics_read']
     },
     {
       id: 'statistics',
@@ -37,7 +37,7 @@ const widget = {
       type: 'item',
       url: '/widget/statistics',
       icon: icons.statistics,
-      permissions: ['all.access', 'system.admin', 'widgets.view']
+      permissions: ['analytics_read']
     },
 
     {
@@ -46,7 +46,7 @@ const widget = {
       type: 'item',
       url: '/widget/chart',
       icon: icons.chart,
-      permissions: ['all.access', 'system.admin', 'widgets.view']
+      permissions: ['analytics_read']
     }
   ]
 };
