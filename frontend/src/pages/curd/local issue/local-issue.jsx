@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
+    Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -265,25 +266,38 @@ export default function LocalIssueListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                },
-            size: 60
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return (
+                    <Box sx={{ py: 1 }}>
+                        <Typography>{serialNumber}</Typography>
+                    </Box>
+                );
+            },
+            size: 50
         },
         {
             header: 'Issue Name',
             accessorKey: 'issue_name',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    minWidth: 200,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                <Box sx={{
+                    minWidth: 250,
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    py: 1,
+                    px: 0.5
                 }}>
-                    {getValue()}
-                </Typography>
+                    <Typography sx={{
+                        fontSize: '0.875rem',
+                        lineHeight: 1.5,
+                        fontWeight: 500,
+                        color: 'text.primary'
+                    }}>
+                        {getValue() || 'N/A'}
+                    </Typography>
+                </Box>
             ),
             size: 250
         },
@@ -291,70 +305,102 @@ export default function LocalIssueListPage() {
             header: 'Department',
             accessorKey: 'department',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    minWidth: 150,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue()}
-                </Typography>
+                <Box sx={{ width: 100, py: 1 }}>
+                    <Tooltip title={getValue() || ''} arrow placement="top">
+                        <Typography sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: '0.875rem',
+                            lineHeight: 1.5
+                        }}>
+                            {getValue()}
+                        </Typography>
+                    </Tooltip>
+                </Box>
             ),
-            size: 180
+            size: 100
         },
         {
             header: 'Description',
             accessorKey: 'description',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    minWidth: 200,
-                    maxWidth: 300,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue() || 'N/A'}
-                </Typography>
-            ),
-            size: 300
+            cell: ({ getValue }) => {
+                const description = getValue() || '';
+                // Remove HTML tags and decode entities
+                const cleanText = description.replace(/<[^>]*>?/gm, '')
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#39;/g, "'")
+                    .trim();
+                return (
+                    <Box sx={{ width: 150, py: 1 }}>
+                        <Tooltip title={cleanText || 'N/A'} arrow placement="top">
+                            <Typography sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.5
+                            }}>
+                                {cleanText || 'N/A'}
+                            </Typography>
+                        </Tooltip>
+                    </Box>
+                );
+            },
+            size: 150
         },
         {
             header: 'Status',
             accessorKey: 'status',
             cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()}
-                    color={getStatusColor(getValue())}
-                    size="small"
-                />
+                <Box sx={{ py: 1 }}>
+                    <Chip
+                        label={getValue()}
+                        color={getStatusColor(getValue())}
+                        size="small"
+                        sx={{ maxWidth: '100%' }}
+                    />
+                </Box>
             ),
-            size: 120
+            size: 90
         },
         {
             header: 'Priority',
             accessorKey: 'priority',
             cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()}
-                    color={getPriorityColor(getValue())}
-                    size="small"
-                    variant="outlined"
-                />
+                <Box sx={{ py: 1 }}>
+                    <Chip
+                        label={getValue()}
+                        color={getPriorityColor(getValue())}
+                        size="small"
+                        variant="outlined"
+                        sx={{ maxWidth: '100%' }}
+                    />
+                </Box>
             ),
-            size: 120
+            size: 90
         },
         {
             header: 'State',
             accessorKey: 'state_id',
             cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                />
+                <Box sx={{ py: 1 }}>
+                    <Tooltip title={getValue()?.name || 'N/A'} arrow placement="top">
+                        <Chip
+                            label={getValue()?.name || 'N/A'}
+                            color="primary"
+                            size="small"
+                            variant="outlined"
+                            sx={{ maxWidth: '100%' }}
+                        />
+                    </Tooltip>
+                </Box>
             ),
-            size: 150
+            size: 90
         },
         {
             header: 'Division',
@@ -367,7 +413,7 @@ export default function LocalIssueListPage() {
                     variant="outlined"
                 />
             ),
-            size: 150
+            size: 120
         },
         {
             header: 'Parliament',
@@ -380,7 +426,7 @@ export default function LocalIssueListPage() {
                     variant="outlined"
                 />
             ),
-            size: 150
+            size: 120
         },
         {
             header: 'Assembly',
@@ -770,7 +816,21 @@ export default function LocalIssueListPage() {
 
                 <ScrollX>
                     <TableContainer>
-                        <Table>
+                        <Table sx={{
+                            minWidth: 750,
+                            '& .MuiTableRow-root': {
+                                height: '60px',
+                                '&:hover': {
+                                    backgroundColor: 'action.hover'
+                                }
+                            },
+                            '& .MuiTableCell-root': {
+                                p: 1,
+                                '&:nth-of-type(2)': {  // Issue Name column
+                                    pl: 2
+                                }
+                            }
+                        }}>
                             <TableHead>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>

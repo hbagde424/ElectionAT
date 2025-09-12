@@ -28,6 +28,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
+import Tooltip from '@mui/material/Tooltip';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import Card from '@mui/material/Card';
@@ -1075,12 +1076,7 @@ export default function DashboardDefault() {
           loading={loading}
           columns={[
             {
-              header: '#',
-              accessorKey: 'index',
-              cell: (row, index) => <Typography>{index + 1}</Typography>
-            },
-            {
-              header: 'Candidate',
+              header: 'Candidate Name',
               accessorKey: 'candidate_id',
               cell: (row) => (
                 <Stack direction="row" alignItems="center" spacing={1}>
@@ -1095,20 +1091,6 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Post',
-              accessorKey: 'post',
-              cell: (row) => (
-                <Typography sx={{
-                  maxWidth: 150,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {row.post || 'N/A'}
-                </Typography>
-              )
-            },
-            {
               header: 'Date',
               accessorKey: 'date',
               cell: (row) => (
@@ -1118,27 +1100,20 @@ export default function DashboardDefault() {
               )
             },
             {
-              header: 'Status',
-              accessorKey: 'work_status',
+              header: 'State',
+              accessorKey: 'state_id',
               cell: (row) => (
-                <Chip
-                  label={row.work_status?.toUpperCase() || 'N/A'}
-                  color={
-                    row.work_status === 'complete' ? 'success' :
-                      row.work_status === 'in progress' ? 'warning' :
-                        row.work_status === 'approved' ? 'info' : 'default'
-                  }
-                  size="small"
-                  variant="outlined"
-                />
+                <Typography>
+                  {row.state_id?.name || 'N/A'}
+                </Typography>
               )
             },
             {
-              header: 'Booth',
-              accessorKey: 'booth_id',
+              header: 'Assembly',
+              accessorKey: 'assembly_id',
               cell: (row) => (
                 <Typography>
-                  {row.booth_id?.name || 'N/A'}
+                  {row.assembly_id?.name || 'N/A'}
                 </Typography>
               )
             },
@@ -1153,6 +1128,65 @@ export default function DashboardDefault() {
                   whiteSpace: 'nowrap'
                 }}>
                   {row.locationName || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Description',
+              accessorKey: 'description',
+              cell: (row) => {
+                const description = row.description || '';
+                // Remove HTML tags and decode entities
+                const cleanText = description.replace(/<[^>]*>?/gm, '')
+                  .replace(/&nbsp;/g, ' ')
+                  .replace(/&amp;/g, '&')
+                  .replace(/&lt;/g, '<')
+                  .replace(/&gt;/g, '>')
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
+                  .trim();
+
+                return (
+                  <Box sx={{ minWidth: 250, maxWidth: 400 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-line',
+                        padding: '8px 0'
+                      }}
+                    >
+                      {cleanText || 'N/A'}
+                    </Typography>
+                  </Box>
+                );
+              }
+            },
+            {
+              header: 'Declaration',
+              accessorKey: 'declaration',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.declaration || 'N/A'}
+                </Typography>
+              )
+            },
+            {
+              header: 'Remark',
+              accessorKey: 'remark',
+              cell: (row) => (
+                <Typography sx={{
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {row.remark || 'N/A'}
                 </Typography>
               )
             }
