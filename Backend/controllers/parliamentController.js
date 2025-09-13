@@ -2,6 +2,7 @@ const Parliament = require('../models/Parliament');
 const State = require('../models/state');
 const Division = require('../models/Division');
 const User = require('../models/User');
+const ElectionYear = require('../models/electionYear');
 
 // @desc    Get all parliaments
 // @route   GET /api/parliaments
@@ -27,6 +28,7 @@ exports.getParliaments = async (req, res, next) => {
     let query = Parliament.find()
       .populate('state_id', '_id name')
       .populate('division_id', '_id name')
+      .populate('election_year_id', '_id year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -119,6 +121,7 @@ exports.getParliament = async (req, res, next) => {
     const parliament = await Parliament.findById(req.params.id)
       .populate('state_id', '_id name')
       .populate('division_id', '_id name')
+      .populate('election_year_id', '_id year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -158,6 +161,15 @@ exports.createParliament = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Division not found'
+      });
+    }
+
+    // Verify election year exists
+    const electionYear = await ElectionYear.findById(req.body.election_year_id);
+    if (!electionYear) {
+      return res.status(400).json({
+        success: false,
+        message: 'Election year not found'
       });
     }
 
@@ -227,6 +239,17 @@ exports.updateParliament = async (req, res, next) => {
       }
     }
 
+    // Verify election year exists if being updated
+    if (req.body.election_year_id) {
+      const electionYear = await ElectionYear.findById(req.body.election_year_id);
+      if (!electionYear) {
+        return res.status(400).json({
+          success: false,
+          message: 'Election year not found'
+        });
+      }
+    }
+
     // Set updated_by from authenticated user
     req.body.updated_by = req.user.id;
 
@@ -244,6 +267,7 @@ exports.updateParliament = async (req, res, next) => {
     })
       .populate('state_id', 'name')
       .populate('division_id', 'name')
+      .populate('election_year_id', 'year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -298,6 +322,7 @@ exports.getParliamentsByState = async (req, res, next) => {
     const parliaments = await Parliament.find({ state_id: req.params.stateId })
       .sort({ name: 1 })
       .populate('division_id', 'name')
+      .populate('election_year_id', 'year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -328,6 +353,7 @@ exports.getParliamentsByDivision = async (req, res, next) => {
     const parliaments = await Parliament.find({ division_id: req.params.divisionId })
       .sort({ name: 1 })
       .populate('state_id', 'name')
+      .populate('election_year_id', 'year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 

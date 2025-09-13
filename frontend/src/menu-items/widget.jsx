@@ -28,14 +28,21 @@ const widget = {
       type: 'item',
       url: '/widget/data',
       icon: icons.data
-    }
-    // {
-    //   id: 'statistics',
-    //   title: <FormattedMessage id="statistics" />,
-    //   type: 'item',
-    //   url: '/widget/statistics',
-    //   icon: icons.statistics
-    // },
+    },
+    {
+      id: 'Help-Center',
+      title: <FormattedMessage id="Help-Center" />,
+      type: 'item',
+      url: '/Help-Center',
+      icon: icons.statistics
+    },
+    {
+      id: 'FAQ',
+      title: <FormattedMessage id="FAQ" />,
+      type: 'item',
+      url: '/FAQ',
+      icon: icons.chart
+    },
 
     // {
     //   id: 'chart',

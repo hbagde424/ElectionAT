@@ -398,7 +398,7 @@ export default function DivisionListPage() {
                 <ScrollX>
                     <TableContainer>
                         <Table>
-                            <TableHead>
+                            <TableHead sx={{ backgroundColor: 'primary.main' }}>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
                                         {headerGroup.headers.map((header) => (
@@ -408,7 +408,10 @@ export default function DivisionListPage() {
                                                 sx={{
                                                     cursor: header.column.getCanSort()
                                                         ? 'pointer'
-                                                        : 'default'
+                                                        : 'default',
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: 'primary.main'
                                                 }}
                                             >
                                                 <Stack direction="row" spacing={1} alignItems="center">

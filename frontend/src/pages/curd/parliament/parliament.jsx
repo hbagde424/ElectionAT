@@ -31,6 +31,7 @@ export default function ParliamentListPage() {
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
+    const [electionYears, setElectionYears] = useState([]);
     const [users, setUsers] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -50,10 +51,11 @@ export default function ParliamentListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const [statesRes, divisionsRes, assembliesRes] = await Promise.all([
+            const [statesRes, divisionsRes, assembliesRes, electionYearsRes] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
             ]);
 
             const token = localStorage.getItem('serviceToken');
@@ -68,15 +70,17 @@ export default function ParliamentListPage() {
             const usersData = await usersRes.json();
             if (usersData.success) setUsers(usersData.data);
 
-            const [statesData, divisionsData, assembliesData] = await Promise.all([
+            const [statesData, divisionsData, assembliesData, electionYearsData] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
-                assembliesRes.json()
+                assembliesRes.json(),
+                electionYearsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
+            if (electionYearsData.success) setElectionYears(electionYearsData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
@@ -214,6 +218,18 @@ export default function ParliamentListPage() {
             )
         },
         {
+            header: 'Election Year',
+            accessorKey: 'election_year_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.year || 'N/A'}
+                    color="success"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
             header: 'Assembly',
             accessorKey: 'assembly_id',
             cell: ({ getValue }) => (
@@ -318,6 +334,8 @@ export default function ParliamentListPage() {
             'Regional Type': item.regional_type,
             State: item.state_id?.name || '',
             Division: item.division_id?.name || '',
+            'Election Year': item.election_year_id?.year || '',
+            'Election Type': item.election_year_id?.election_type || '',
             Assembly: item.assembly_id?.name || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
@@ -522,7 +540,7 @@ export default function ParliamentListPage() {
                 <ScrollX>
                     <TableContainer>
                         <Table>
-                            <TableHead>
+                            <TableHead sx={{ backgroundColor: 'primary.main' }}>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
                                         {headerGroup.headers.map((header) => (
@@ -532,7 +550,10 @@ export default function ParliamentListPage() {
                                                 sx={{
                                                     cursor: header.column.getCanSort()
                                                         ? 'pointer'
-                                                        : 'default'
+                                                        : 'default',
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: 'primary.main'
                                                 }}
                                             >
                                                 <Stack
@@ -606,6 +627,7 @@ export default function ParliamentListPage() {
                 states={states}
                 divisions={divisions}
                 assemblies={assemblies}
+                electionYears={electionYears}
                 refresh={() =>
                     fetchParliaments(pagination.pageIndex, pagination.pageSize)
                 }

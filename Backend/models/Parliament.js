@@ -37,6 +37,11 @@ const parliamentSchema = new mongoose.Schema({
       message: 'Regional type must be either urban, rural, or mixed'
     }
   },
+  election_year_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ElectionYear',
+    required: [true, 'Election year reference is required']
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -79,5 +84,6 @@ parliamentSchema.index({ state_id: 1 });
 parliamentSchema.index({ division_id: 1 });
 parliamentSchema.index({ category: 1 });
 parliamentSchema.index({ regional_type: 1 });
+parliamentSchema.index({ election_year_id: 1 });
 
 module.exports = mongoose.model('Parliament', parliamentSchema);

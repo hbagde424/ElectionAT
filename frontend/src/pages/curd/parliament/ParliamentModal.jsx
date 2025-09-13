@@ -15,6 +15,7 @@ export default function ParliamentModal({
     states,
     divisions,
     assemblies,
+    electionYears,
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -27,6 +28,7 @@ export default function ParliamentModal({
         state_id: '',
         division_id: '',
         assembly_id: '',
+        election_year_id: '',
         description: ''
     });
     const [submitted, setSubmitted] = useState(false);
@@ -237,8 +239,8 @@ export default function ParliamentModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 3: State and Division */}
-                    <Grid item xs={12} sm={6}>
+                    {/* Row 3: State, Division and Election Year */}
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
@@ -258,7 +260,7 @@ export default function ParliamentModal({
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
@@ -272,6 +274,26 @@ export default function ParliamentModal({
                                     {filteredDivisions.map(division => (
                                         <MenuItem key={division._id} value={division._id}>
                                             {division.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <FormControl fullWidth required error={submitted && !formData.election_year_id}>
+                                <Select
+                                    name="election_year_id"
+                                    value={formData.election_year_id}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="">Select Election Year</MenuItem>
+                                    {electionYears?.map(electionYear => (
+                                        <MenuItem key={electionYear._id} value={electionYear._id}>
+                                            {electionYear.year}
                                         </MenuItem>
                                     ))}
                                 </Select>

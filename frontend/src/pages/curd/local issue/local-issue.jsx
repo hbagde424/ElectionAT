@@ -278,9 +278,11 @@ export default function LocalIssueListPage() {
             cell: ({ getValue }) => (
                 <Typography sx={{
                     minWidth: 200,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    maxWidth: 300,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.4,
+                    padding: '8px 0'
                 }}>
                     {getValue()}
                 </Typography>
@@ -293,9 +295,10 @@ export default function LocalIssueListPage() {
             cell: ({ getValue }) => (
                 <Typography sx={{
                     minWidth: 150,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.4,
+                    padding: '8px 0'
                 }}>
                     {getValue()}
                 </Typography>
@@ -309,9 +312,10 @@ export default function LocalIssueListPage() {
                 <Typography sx={{
                     minWidth: 200,
                     maxWidth: 300,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.4,
+                    padding: '8px 0'
                 }}>
                     {getValue() || 'N/A'}
                 </Typography>
@@ -771,7 +775,7 @@ export default function LocalIssueListPage() {
                 <ScrollX>
                     <TableContainer>
                         <Table>
-                            <TableHead>
+                            <TableHead sx={{ backgroundColor: 'primary.main' }}>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
                                         {headerGroup.headers.map((header) => (
@@ -781,7 +785,10 @@ export default function LocalIssueListPage() {
                                                 sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     width: header.getSize(),
-                                                    minWidth: header.getSize()
+                                                    minWidth: header.getSize(),
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: 'primary.main'
                                                 }}
                                             >
                                                 <Stack direction="row" spacing={1} alignItems="center">

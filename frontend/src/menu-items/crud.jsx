@@ -32,7 +32,8 @@ import {
   UserOctagon,
   TrendUp,
   EmptyWallet,
-  ReceiptText
+  ReceiptText,
+  MessageQuestion
 } from 'iconsax-react';
 
 // icons mapping
@@ -69,7 +70,8 @@ const icons = {
   UserOctagon: UserOctagon,
   TrendUp: TrendUp,
   EmptyWallet: EmptyWallet,
-  ReceiptText: ReceiptText
+  ReceiptText: ReceiptText,
+  MessageQuestion: MessageQuestion
 };
 
 // ==============================|| MENU ITEMS - CRUD ||============================== //
@@ -130,21 +132,21 @@ const CRUDMenu = {
       url: '/booth',
       icon: icons.Home, // Polling booth
     },
-    {
-      id: 'Assembly-Votes',
-      title: <FormattedMessage id="Assembly-Votes" />,
-      type: 'item',
-      url: '/Assembly-Votes',
-      icon: icons.LikeTag, // Voting representation
-    },
+    // {
+    //   id: 'Assembly-Votes',
+    //   title: <FormattedMessage id="Assembly-Votes" />,
+    //   type: 'item',
+    //   url: '/Assembly-Votes',
+    //   icon: icons.LikeTag, // Voting representation
+    // },
 
-    {
-      id: 'Block-Votes',
-      title: <FormattedMessage id="Block-Votes" />,
-      type: 'item',
-      url: '/Block-Votes',
-      icon: icons.ChartSquare, // Voting data
-    },
+    // {
+    //   id: 'Block-Votes',
+    //   title: <FormattedMessage id="Block-Votes" />,
+    //   type: 'item',
+    //   url: '/Block-Votes',
+    //   icon: icons.ChartSquare, // Voting data
+    // },
 
     {
       id: 'Booth-Survey',
@@ -227,13 +229,13 @@ const CRUDMenu = {
       icon: icons.Flag,
     },
 
-    {
-      id: 'Parliament-Votes',
-      title: <FormattedMessage id="Parliament-Votes" />,
-      type: 'item',
-      url: '/Parliament-Votes',
-      icon: icons.TrendUp, // Voting trends
-    },
+    // {
+    //   id: 'Parliament-Votes',
+    //   title: <FormattedMessage id="Parliament-Votes" />,
+    //   type: 'item',
+    //   url: '/Parliament-Votes',
+    //   icon: icons.TrendUp, // Voting trends
+    // },
     {
       id: 'parties',
       title: <FormattedMessage id="Parties" />,
@@ -331,6 +333,13 @@ const CRUDMenu = {
       type: 'item',
       url: '/assign-role-to-user',
       icon: icons.User,
+    },
+    {
+      id: 'faq-crud',
+      title: <FormattedMessage id="FAQ Management" defaultMessage="FAQ Management" />,
+      type: 'item',
+      url: '/faq-crud',
+      icon: icons.MessageQuestion,
     }
   ]
 };
