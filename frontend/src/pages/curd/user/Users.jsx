@@ -50,7 +50,6 @@ import { usePermissions } from 'contexts/PermissionContext';
 import UserModal from './UserModal';
 import CrudPageLayout from 'components/permission/CrudPageLayout';
 import PermissionGate from 'components/PermissionGate';
-import PermissionDebug from 'components/PermissionDebug';
 // import AlertUserDelete from './AlertUserDelete';
 // import UserView from './UserView';
 
@@ -481,7 +480,7 @@ const Users = () => {
 
     return (
         <Box p={3}>
-            <PermissionDebug />
+
 
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h4">
