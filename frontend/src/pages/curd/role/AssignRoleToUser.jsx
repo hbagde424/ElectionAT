@@ -12,8 +12,8 @@ const AssignRoleToUser = () => {
   const [scopes, setScopes] = useState([]);
 
   useEffect(() => {
-    axios.get('/api/users').then(res => setUsers(Array.isArray(res.data) ? res.data : res.data.data || []));
-    axios.get('/api/roles').then(res => setRoles(Array.isArray(res.data) ? res.data : res.data.data || []));
+    axios.get(`${import.meta.env.VITE_APP_API_URL}/users`).then(res => setUsers(Array.isArray(res.data) ? res.data : res.data.data || []));
+    axios.get(`${import.meta.env.VITE_APP_API_URL}/roles`).then(res => setRoles(Array.isArray(res.data) ? res.data : res.data.data || []));
   }, []);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const AssignRoleToUser = () => {
       alert('Please select all fields.');
       return;
     }
-    await axios.post('/api/user-roles/assign', { userId, roleId, scope_type: scopeType, scope_id: scopeId });
+    await axios.post(`${import.meta.env.VITE_APP_API_URL}/user-roles/assign`, { userId, roleId, scope_type: scopeType, scope_id: scopeId });
     alert('Role assigned to user');
   };
 
@@ -38,7 +38,7 @@ const AssignRoleToUser = () => {
       alert('Please select all fields.');
       return;
     }
-    await axios.post('/api/user-roles/remove', { userId, roleId, scope_type: scopeType, scope_id: scopeId });
+    await axios.post(`${import.meta.env.VITE_APP_API_URL}/user-roles/remove`, { userId, roleId, scope_type: scopeType, scope_id: scopeId });
     alert('Role removed from user');
   };
 

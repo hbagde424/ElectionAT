@@ -330,6 +330,14 @@ const CRUDMenu = {
     },
 
     {
+      id: 'role',
+      title: <FormattedMessage id="Role" defaultMessage="Role" />,
+      type: 'item',
+      url: '/roles',
+      icon: icons.Shield,
+      permissions: ['role_read']
+    },
+    {
       id: 'matrix',
       title: <FormattedMessage id="Permission Matrix" defaultMessage="Permission Matrix" />,
       type: 'item',

@@ -9,8 +9,8 @@ const AssignPermissionToRole = () => {
   const [permissionId, setPermissionId] = useState('');
 
   useEffect(() => {
-    axios.get('/api/roles').then(res => setRoles(Array.isArray(res.data) ? res.data : res.data.data || []));
-    axios.get('/api/permissions').then(res => setPermissions(Array.isArray(res.data) ? res.data : res.data.data || []));
+    axios.get(`${import.meta.env.VITE_APP_API_URL}/roles`).then(res => setRoles(Array.isArray(res.data) ? res.data : res.data.data || []));
+    axios.get(`${import.meta.env.VITE_APP_API_URL}/permissions`).then(res => setPermissions(Array.isArray(res.data) ? res.data : res.data.data || []));
   }, []);
 
   const handleAssign = async (e) => {
@@ -19,7 +19,7 @@ const AssignPermissionToRole = () => {
       alert('Please select both Role and Permission.');
       return;
     }
-    await axios.post('/api/roles/assign-permission', { roleId, permissionId });
+    await axios.post(`${import.meta.env.VITE_APP_API_URL}/roles/assign-permission`, { roleId, permissionId });
     alert('Permission assigned to role');
   };
 
@@ -29,7 +29,7 @@ const AssignPermissionToRole = () => {
       alert('Please select both Role and Permission.');
       return;
     }
-    await axios.post('/api/roles/remove-permission', { roleId, permissionId });
+    await axios.post(`${import.meta.env.VITE_APP_API_URL}/roles/remove-permission`, { roleId, permissionId });
     alert('Permission removed from role');
   };
 

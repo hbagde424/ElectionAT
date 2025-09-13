@@ -27,7 +27,7 @@ export default function RoleMatrix() {
 
   // Fetch all roles on mount
   useEffect(() => {
-    axios.get('/api/roles').then(res => {
+    axios.get(`${import.meta.env.VITE_APP_API_URL}/roles`).then(res => {
       const arr = Array.isArray(res.data) ? res.data : res.data.data || [];
       setRoles(arr);
     });
@@ -90,7 +90,7 @@ export default function RoleMatrix() {
           // Ensure permission exists
           if (shouldHave) {
             try {
-              const permRes = await axios.post('/api/permissions', {
+              const permRes = await axios.post(`${import.meta.env.VITE_APP_API_URL}/permissions`, {
                 name: permName,
                 description: `${perm} permission for ${module}`,
                 level: 'State'
@@ -98,7 +98,7 @@ export default function RoleMatrix() {
               permissionId = permRes.data._id;
             } catch (err) {
               if (err.response && err.response.data && err.response.data.error && err.response.data.error.includes('duplicate')) {
-                const existing = await axios.get('/api/permissions');
+                const existing = await axios.get(`${import.meta.env.VITE_APP_API_URL}/permissions`);
                 const found = (Array.isArray(existing.data) ? existing.data : existing.data.data || []).find(p => p.name === permName);
                 if (found) permissionId = found._id;
               } else {
@@ -107,14 +107,14 @@ export default function RoleMatrix() {
             }
             // Assign if not already assigned
             if (!hasAlready && permissionId) {
-              await axios.post('/api/roles/assign-permission', { roleId: selectedRole, permissionId });
+              await axios.post(`${import.meta.env.VITE_APP_API_URL}/roles/assign-permission`, { roleId: selectedRole, permissionId });
             }
           } else {
             // Remove if currently assigned
             if (hasAlready) {
               const found = existingPerms.find(p => p.name === permName);
               if (found) {
-                await axios.post('/api/roles/remove-permission', { roleId: selectedRole, permissionId: found._id });
+                await axios.post(`${import.meta.env.VITE_APP_API_URL}/roles/remove-permission`, { roleId: selectedRole, permissionId: found._id });
               }
             }
           }
@@ -141,7 +141,7 @@ export default function RoleMatrix() {
 
   return (
     <Box p={2}>
-      <Typography variant="h5" mb={2}>Roles Management <small style={{fontWeight:400}}>/ Assign Permissions to Role</small></Typography>
+      <Typography variant="h5" mb={2}>Roles Management <small style={{ fontWeight: 400 }}>/ Assign Permissions to Role</small></Typography>
       <Paper sx={{ p: 2, mb: 3 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={2} alignItems="center">

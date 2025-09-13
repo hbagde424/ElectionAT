@@ -11,7 +11,7 @@ const RoleList = () => {
   const [editing, setEditing] = useState(null);
 
   const fetchRoles = async () => {
-    const res = await axios.get('/api/roles');
+    const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/roles`);
     setRoles(Array.isArray(res.data) ? res.data : res.data.data || []);
   };
 
@@ -20,9 +20,9 @@ const RoleList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editing) {
-      await axios.put(`/api/roles/${editing._id}`, { name, description });
+      await axios.put(`${import.meta.env.VITE_APP_API_URL}/roles/${editing._id}`, { name, description });
     } else {
-      await axios.post('/api/roles', { name, description });
+      await axios.post(`${import.meta.env.VITE_APP_API_URL}/roles`, { name, description });
     }
     setName(''); setDescription(''); setEditing(null); fetchRoles();
   };
@@ -34,7 +34,7 @@ const RoleList = () => {
   };
 
   const handleDelete = async (id) => {
-    await axios.delete(`/api/roles/${id}`);
+    await axios.delete(`${import.meta.env.VITE_APP_API_URL}/roles/${id}`);
     fetchRoles();
   };
 

@@ -12,7 +12,7 @@ const PermissionList = () => {
   const [editing, setEditing] = useState(null);
 
   const fetchPermissions = async () => {
-    const res = await axios.get('/api/permissions');
+    const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/permissions`);
     setPermissions(Array.isArray(res.data) ? res.data : res.data.data || []);
   };
 
@@ -21,9 +21,9 @@ const PermissionList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editing) {
-      await axios.put(`/api/permissions/${editing._id}`, { name, description, level });
+      await axios.put(`${import.meta.env.VITE_APP_API_URL}/permissions/${editing._id}`, { name, description, level });
     } else {
-      await axios.post('/api/permissions', { name, description, level });
+      await axios.post(`${import.meta.env.VITE_APP_API_URL}/permissions`, { name, description, level });
     }
     setName(''); setDescription(''); setLevel('State'); setEditing(null); fetchPermissions();
   };
