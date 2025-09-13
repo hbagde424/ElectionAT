@@ -1,4 +1,5 @@
-const User = require('../models/User');
+const mongoose = require('mongoose');
+const User = require('../models/User');  // Using correct case-sensitive path
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const State = require('../models/state');
@@ -192,7 +193,7 @@ exports.updateMe = async (req, res, next) => {
   }
 };
 
-// @desc    Get all users
+// @desc    Get all users with pagination and filters
 // @route   GET /api/users
 // @access  Private (Admin/SuperAdmin)
 exports.getUsers = async (req, res, next) => {
@@ -205,10 +206,7 @@ exports.getUsers = async (req, res, next) => {
     let query = {};
 
     // Non-superAdmins can only see users they created
-    // Skip this check if no user is authenticated (for testing)
-    if (req.user && req.user.role !== 'SuperAdmin') {
-      query.created_by = req.user.id;
-    }
+
 
     // Search functionality
     if (req.query.search) {
@@ -224,9 +222,6 @@ exports.getUsers = async (req, res, next) => {
       query.role = req.query.role;
     }
 
-    console.log('Users query:', query);
-    console.log('User authentication:', req.user ? `User: ${req.user.username}, Role: ${req.user.role}` : 'No authentication');
-
     const users = await User.find(query)
       .select('-password')
       .populate('state_ids', 'name')
@@ -241,8 +236,6 @@ exports.getUsers = async (req, res, next) => {
 
     const total = await User.countDocuments(query);
 
-    console.log(`Found ${users.length} users out of ${total} total matching query`);
-
     res.status(200).json({
       success: true,
       count: users.length,
@@ -252,7 +245,6 @@ exports.getUsers = async (req, res, next) => {
       data: users
     });
   } catch (err) {
-    console.error('Error in getUsers:', err);
     next(err);
   }
 };

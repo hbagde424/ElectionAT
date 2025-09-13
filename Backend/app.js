@@ -198,6 +198,7 @@ apiRouter.use('/influencers', influencerRoutes);
 apiRouter.use('/codings', codingRoutes);
 apiRouter.use('/booth-polygons', boothPolygonRoutes);
 apiRouter.use('/winning-candidates', winningCandidateRoutes);
+apiRouter.use('/users', userRoutes);  // Add user routes
 
 // Mount the API router on both /api and /backend/api paths
 app.use('/api', apiRouter);

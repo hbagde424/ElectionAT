@@ -57,6 +57,7 @@ export default function UserListPage() {
         }
       });
       const json = await res.json();
+      console.log('aaaaa', json);
       if (json.success) {
         setUsers(json.data);
         setPageCount(json.pages);
@@ -129,11 +130,11 @@ export default function UserListPage() {
     {
       header: '#',
       accessorKey: '_id',
-         cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+      cell: ({ row, table }) => {
+        const { pageIndex, pageSize } = table.getState().pagination;
+        const serialNumber = pageIndex * pageSize + row.index + 1;
+        return <Typography>{serialNumber}</Typography>;
+      }
     },
     {
       header: 'Username',
@@ -290,18 +291,18 @@ export default function UserListPage() {
       )
     },
     {
-          header: 'Updated By',
-          accessorKey: 'updated_by',
-          cell: ({ getValue }) => {
-            const updatedBy = getValue();
-            return (
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                <User size={14} />
-                <Typography variant="caption">{updatedBy?.username || 'Unknown'}</Typography>
-              </Stack>
-            );
-          }
-        },
+      header: 'Updated By',
+      accessorKey: 'updated_by',
+      cell: ({ getValue }) => {
+        const updatedBy = getValue();
+        return (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <User size={14} />
+            <Typography variant="caption">{updatedBy?.username || 'Unknown'}</Typography>
+          </Stack>
+        );
+      }
+    },
     {
       header: 'Created At',
       accessorKey: 'created_at',
