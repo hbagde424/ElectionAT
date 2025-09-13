@@ -208,8 +208,8 @@ const CRUDMenu = {
       icon: icons.Calendar,
     },
     {
-      id: 'Government-Schema',
-      title: <FormattedMessage id="Government-Schema" />,
+      id: 'Government-Scheme',
+      title: <FormattedMessage id="Government-Scheme" />,
       type: 'item',
       url: '/Government-Schema',
       icon: icons.Calendar,
@@ -244,8 +244,8 @@ const CRUDMenu = {
       icon: icons.Flag,
     },
     {
-      id: 'party-activities',
-      title: <FormattedMessage id="party-activities" />,
+      id: 'Party-Activities',
+      title: <FormattedMessage id="Party-Activities" />,
       type: 'item',
       url: '/party-activities',
       icon: icons.TaskSquare, // Party activities
@@ -265,8 +265,8 @@ const CRUDMenu = {
       icon: icons.People,
     },
     {
-      id: 'visits',
-      title: <FormattedMessage id="Visits" />,
+      id: 'Our visits',
+      title: <FormattedMessage id="Our Visits" />,
       type: 'item',
       url: '/visits',
       icon: icons.ReceiptText, // Visit records

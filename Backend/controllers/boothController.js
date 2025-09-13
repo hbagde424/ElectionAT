@@ -31,7 +31,7 @@ exports.getBooths = async (req, res, next) => {
     let matchStage = {};
     if (req.query.search) {
       const searchTerm = req.query.search.trim();
-
+      
       // Skip if search term is empty
       if (!searchTerm) {
         return res.status(400).json({
@@ -355,30 +355,11 @@ exports.createBooth = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateBooth = async (req, res, next) => {
   try {
-    console.log('Update request body:', req.body); // Debug log
-
     // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid booth ID format'
-      });
-    }
-
-    // For update operations, we only validate fields that are actually being updated
-    const requiredFields = ['name', 'booth_number', 'full_address', 'block_id', 'assembly_id',
-      'parliament_id', 'division_id', 'state_id', 'election_year'];
-
-    // Only check fields that are present in the request body
-    const providedFields = Object.keys(req.body);
-    const invalidFields = providedFields.filter(field =>
-      requiredFields.includes(field) && !req.body[field]
-    );
-
-    if (invalidFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid or empty fields provided: ${invalidFields.join(', ')}`
       });
     }
 
@@ -392,25 +373,22 @@ exports.updateBooth = async (req, res, next) => {
     }
 
     // Verify all references exist if being updated
-    const fieldsToVerify = {
-      block_id: { model: Block, name: 'Block' },
-      assembly_id: { model: Assembly, name: 'Assembly' },
-      parliament_id: { model: Parliament, name: 'Parliament' },
-      division_id: { model: Division, name: 'Division' },
-      state_id: { model: State, name: 'State' },
-      election_year: { model: ElectionYear, name: 'Election Year' }
-    };
+    const verificationPromises = [];
+    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+    if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
 
-    // Only verify fields that are being updated
-    for (const [field, { model, name }] of Object.entries(fieldsToVerify)) {
-      if (req.body[field]) {
-        const result = await model.findById(req.body[field]);
-        if (!result) {
-          return res.status(400).json({
-            success: false,
-            message: `${name} not found`
-          });
-        }
+    const verificationResults = await Promise.all(verificationPromises);
+
+    for (const result of verificationResults) {
+      if (!result) {
+        return res.status(400).json({
+          success: false,
+          message: `${result.modelName} not found`
+        });
       }
     }
 
@@ -421,120 +399,23 @@ exports.updateBooth = async (req, res, next) => {
         message: 'Not authorized - user not identified'
       });
     }
+    req.body.updated_by = req.user.id;
+    req.body.updated_at = new Date();
+    req.body.description = req.body.description || '';
 
-    // Validate booth number format if it's being updated
-    if (req.body.booth_number) {
-      if (!/^[A-Za-z0-9-]+$/.test(req.body.booth_number)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Booth number can only contain letters, numbers, and hyphens'
-        });
-      }
-    }
 
-    // Prepare the update data with proper defaults and data cleaning
-    const updateData = {
-      ...req.body,
-      updated_by: req.user.id,
-      updated_at: new Date(),
-      description: req.body.description || '',
-      name: req.body.name ? req.body.name.trim() : undefined,
-      booth_number: req.body.booth_number ? req.body.booth_number.trim() : undefined,
-      full_address: req.body.full_address ? req.body.full_address.trim() : undefined
-    };
-
-    // Remove any undefined values
-    Object.keys(updateData).forEach(key =>
-      updateData[key] === undefined && delete updateData[key]
-    );
-
-    try {
-      console.log('Update data:', updateData); // Debug log
-
-      // First check if the booth number already exists (if it's being updated)
-      if (updateData.booth_number) {
-        const existingBooth = await Booth.findOne({
-          booth_number: updateData.booth_number,
-          _id: { $ne: req.params.id } // exclude current booth
-        });
-
-        if (existingBooth) {
-          return res.status(400).json({
-            success: false,
-            message: 'Booth number already exists'
-          });
-        }
-      }
-
-      // Ensure all ObjectId fields are valid before update
-      const objectIdFields = ['block_id', 'assembly_id', 'parliament_id',
-        'division_id', 'state_id', 'election_year'];
-
-      for (const field of objectIdFields) {
-        if (updateData[field] && !mongoose.Types.ObjectId.isValid(updateData[field])) {
-          return res.status(400).json({
-            success: false,
-            message: `Invalid ${field} format`
-          });
-        }
-      }
-
-      booth = await Booth.findByIdAndUpdate(
-        req.params.id,
-        updateData,
-        {
-          new: true,
-          runValidators: true
-        }
-      ).populate([
-        { path: 'block_id', select: 'name' },
-        { path: 'assembly_id', select: 'name' },
-        { path: 'parliament_id', select: 'name' },
-        { path: 'division_id', select: 'name' },
-        { path: 'state_id', select: 'name' },
-        { path: 'election_year', select: 'year' },
-        { path: 'created_by', select: 'username' },
-        { path: 'updated_by', select: 'username' }
-      ]);
-
-      if (!booth) {
-        return res.status(404).json({
-          success: false,
-          message: 'Booth update failed'
-        });
-      }
-    } catch (error) {
-      console.error('Booth update error:', error);
-
-      // Handle specific MongoDB errors
-      if (error.name === 'ValidationError') {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation Error',
-          errors: Object.values(error.errors).map(err => err.message)
-        });
-      }
-
-      if (error.code === 11000) {
-        return res.status(400).json({
-          success: false,
-          message: 'Booth number already exists'
-        });
-      }
-
-      if (error.name === 'CastError') {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid ${error.path} format`
-        });
-      }
-
-      return res.status(400).json({
-        success: false,
-        message: 'Failed to save booth. Please check the form data.',
-        error: error.message
-      });
-    }
+    booth = await Booth.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    })
+      .populate('block_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('election_year', 'year')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -557,19 +438,14 @@ exports.updateBooth = async (req, res, next) => {
 exports.deleteBooth = async (req, res, next) => {
   try {
     // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid booth ID format'
       });
     }
 
-    const booth = await Booth.findById(req.params.id)
-      .populate('block_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('parliament_id', 'name')
-      .populate('division_id', 'name')
-      .populate('state_id', 'name');
+    const booth = await Booth.findById(req.params.id);
 
     if (!booth) {
       return res.status(404).json({
@@ -578,43 +454,14 @@ exports.deleteBooth = async (req, res, next) => {
       });
     }
 
-    // Check for user authorization
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized to delete booth'
-      });
-    }
+    await booth.deleteOne();
 
-    try {
-      await booth.deleteOne();
-
-      res.status(200).json({
-        success: true,
-        message: 'Booth deleted successfully',
-        data: {
-          id: booth._id,
-          name: booth.name,
-          booth_number: booth.booth_number,
-          block: booth.block_id?.name,
-          assembly: booth.assembly_id?.name
-        }
-      });
-    } catch (deleteError) {
-      console.error('Error deleting booth:', deleteError);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to delete booth',
-        error: deleteError.message
-      });
-    }
-  } catch (err) {
-    console.error('Error in delete booth operation:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process delete request',
-      error: err.message
+    res.status(200).json({
+      success: true,
+      data: {}
     });
+  } catch (err) {
+    next(err);
   }
 };
 

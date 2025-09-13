@@ -95,14 +95,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Booth'
  */
-router.route('/')
-  .get(getBooths)
-  .post(protect, authorize('Admin', 'superAdmin'), createBooth);
-
-router.route('/:id')
-  .get(getBooth)
-  .put(protect, authorize('Admin', 'superAdmin'), updateBooth)
-  .delete(protect, authorize('Admin', 'superAdmin'), deleteBooth);
+router.get('/', getBooths);
 
 /**
  * @swagger

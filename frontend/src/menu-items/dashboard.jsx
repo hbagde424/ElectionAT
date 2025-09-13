@@ -21,12 +21,26 @@ const loadingMenu = {
   icon: icons.loading,
   children: [
     {
-      id: 'default1',
-      title: 'Dashboard',
-      type: 'item',
-      url: '/dashboard/default',
-      breadcrumbs: false,
-      icon: icons.loading
+      id: 'dashboard1',
+      title: <FormattedMessage id="dashboard" />,
+      type: 'collapse',
+      icon: icons.loading,
+      children: [
+        {
+          id: 'default1',
+          title: 'loading',
+          type: 'item',
+          url: '/dashboard/default',
+          breadcrumbs: false
+        },
+        // {
+        //   id: 'analytics1',
+        //   title: 'loading',
+        //   type: 'item',
+        //   url: '/dashboard/analytics',
+        //   breadcrumbs: false
+        // }
+      ]
     }
   ]
 };

@@ -55,6 +55,7 @@ const VisitListPage = () => {
     const [blocks, setBlocks] = useState([]);
     const [booths, setBooths] = useState([]);
     const [candidates, setCandidates] = useState([]);
+    const [electionYears, setElectionYears] = useState([]);
 
     // Map state
     const [mapVisits, setMapVisits] = useState([]);
@@ -299,7 +300,7 @@ const VisitListPage = () => {
             const [
                 statesRes, divisionsRes, parliamentsRes,
                 assembliesRes, blocksRes, boothsRes,
-                candidatesRes
+                candidatesRes, electionYearsRes
             ] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
@@ -307,13 +308,14 @@ const VisitListPage = () => {
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
             ]);
 
             const [
                 statesData, divisionsData, parliamentsData,
                 assembliesData, blocksData, boothsData,
-                candidatesData
+                candidatesData, electionYearsData
             ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
@@ -321,7 +323,8 @@ const VisitListPage = () => {
                 assembliesRes.json(),
                 blocksRes.json(),
                 boothsRes.json(),
-                candidatesRes.json()
+                candidatesRes.json(),
+                electionYearsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
@@ -331,6 +334,7 @@ const VisitListPage = () => {
             if (blocksData.success) setBlocks(blocksData.data);
             if (boothsData.success) setBooths(boothsData.data);
             if (candidatesData.success) setCandidates(candidatesData.data);
+            if (electionYearsData.success) setElectionYears(electionYearsData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
@@ -476,6 +480,15 @@ const VisitListPage = () => {
             cell: ({ getValue }) => (
                 <Typography>
                     {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Election Year',
+            accessorKey: 'election_year_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.year ? `${getValue().year} (${getValue().election_type})` : 'N/A'}
                 </Typography>
             )
         },
@@ -1088,6 +1101,7 @@ const VisitListPage = () => {
                 blocks={blocks}
                 booths={booths}
                 candidates={candidates}
+                electionYears={electionYears}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
                     fetchMapVisits(selectedCandidate || null);

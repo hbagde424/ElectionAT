@@ -55,6 +55,18 @@ export default function VisitView({ data }) {
 
                         <Box>
                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <CalendarTick size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Election Year
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.election_year_id?.year ? `${data.election_year_id.year} (${data.election_year_id.election_type})` : 'N/A'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                 <DocumentText size="16" />
                                 <Typography variant="subtitle2" color="text.secondary">
                                     Post

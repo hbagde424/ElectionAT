@@ -75,6 +75,7 @@ export default function VisitModal({
     blocks = [],
     booths = [],
     candidates = [],
+    electionYears = [],
     refresh
 }) {
     // Form state management
@@ -105,6 +106,7 @@ export default function VisitModal({
                 block_id: '',
                 booth_id: '',
                 candidate_id: '',
+                election_year_id: '',
                 post: '',
                 date: new Date(),
                 work_status: 'announced',
@@ -125,6 +127,7 @@ export default function VisitModal({
             block_id: visit.block_id?._id || visit.block_id || '',
             booth_id: visit.booth_id?._id || visit.booth_id || '',
             candidate_id: visit.candidate_id?._id || visit.candidate_id || '',
+            election_year_id: visit.election_year_id?._id || visit.election_year_id || '',
             post: visit.post || '',
             date: visit.date ? new Date(visit.date) : new Date(),
             work_status: visit.work_status || 'announced',
@@ -249,6 +252,7 @@ export default function VisitModal({
             // block_id: () => !value && 'Block selection is required', // Made optional
             // booth_id: () => !value && 'Booth selection is required', // Made optional
             candidate_id: () => !value && 'Candidate selection is required',
+            election_year_id: () => !value && 'Election year selection is required',
             post: () => {
                 if (!value) return 'Post is required';
                 if (value.length > 100) return 'Post cannot exceed 100 characters';
@@ -503,6 +507,20 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.candidate_id}
                             disabled={isSubmitting}
+                            required
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormSelect
+                            label="Election Year"
+                            name="election_year_id"
+                            value={formData.election_year_id}
+                            options={electionYears}
+                            onChange={handleChange}
+                            error={errors.election_year_id}
+                            disabled={isSubmitting}
+                            labelKey="year"
                             required
                         />
                     </Grid>
