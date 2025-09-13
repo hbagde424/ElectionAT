@@ -281,15 +281,6 @@ export default function LocalIssueListPage() {
             header: 'Issue Name',
             accessorKey: 'issue_name',
             cell: ({ getValue }) => (
-<<<<<<< HEAD
-                <Typography sx={{
-                    minWidth: 200,
-                    maxWidth: 300,
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.4,
-                    padding: '8px 0'
-=======
                 <Box sx={{
                     minWidth: 250,
                     height: '100%',
@@ -297,7 +288,6 @@ export default function LocalIssueListPage() {
                     alignItems: 'center',
                     py: 1,
                     px: 0.5
->>>>>>> daf8932715c87d28dddc5a579a41c53089a16b41
                 }}>
                     <Typography sx={{
                         fontSize: '0.875rem',
@@ -315,17 +305,6 @@ export default function LocalIssueListPage() {
             header: 'Department',
             accessorKey: 'department',
             cell: ({ getValue }) => (
-<<<<<<< HEAD
-                <Typography sx={{
-                    minWidth: 150,
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.4,
-                    padding: '8px 0'
-                }}>
-                    {getValue()}
-                </Typography>
-=======
                 <Box sx={{ width: 100, py: 1 }}>
                     <Tooltip title={getValue() || ''} arrow placement="top">
                         <Typography sx={{
@@ -339,28 +318,12 @@ export default function LocalIssueListPage() {
                         </Typography>
                     </Tooltip>
                 </Box>
->>>>>>> daf8932715c87d28dddc5a579a41c53089a16b41
             ),
             size: 100
         },
         {
             header: 'Description',
             accessorKey: 'description',
-<<<<<<< HEAD
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    minWidth: 200,
-                    maxWidth: 300,
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.4,
-                    padding: '8px 0'
-                }}>
-                    {getValue() || 'N/A'}
-                </Typography>
-            ),
-            size: 300
-=======
             cell: ({ getValue }) => {
                 const description = getValue() || '';
                 // Remove HTML tags and decode entities
@@ -389,7 +352,6 @@ export default function LocalIssueListPage() {
                 );
             },
             size: 150
->>>>>>> daf8932715c87d28dddc5a579a41c53089a16b41
         },
         {
             header: 'Status',
@@ -854,10 +816,6 @@ export default function LocalIssueListPage() {
 
                 <ScrollX>
                     <TableContainer>
-<<<<<<< HEAD
-                        <Table>
-                            <TableHead sx={{ backgroundColor: 'primary.main' }}>
-=======
                         <Table sx={{
                             minWidth: 750,
                             '& .MuiTableRow-root': {
@@ -874,7 +832,6 @@ export default function LocalIssueListPage() {
                             }
                         }}>
                             <TableHead>
->>>>>>> daf8932715c87d28dddc5a579a41c53089a16b41
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
                                         {headerGroup.headers.map((header) => (
