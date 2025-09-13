@@ -198,6 +198,33 @@ export default function DashboardDefault() {
   const [workStatuses, setWorkStatuses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [assemblyVotesLoading, setAssemblyVotesLoading] = useState(false);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch assembly votes data
+        const assemblyRes = await axios.get('/assembly-votes');
+        setAssemblyVotes(assemblyRes.data.data);
+
+        // Fetch booth data
+        const boothRes = await axios.get('/booths');
+        setBooths(boothRes.data.data);
+
+        // Fetch recent visits
+        const visitsRes = await axios.get('/visits');
+        setVisits(visitsRes.data.data);
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
   const [statesLoading, setStatesLoading] = useState(false);
   const [divisionsLoading, setDivisionsLoading] = useState(false);
   const [parliamentsLoading, setParliamentsLoading] = useState(false);

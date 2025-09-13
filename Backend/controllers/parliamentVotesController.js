@@ -33,6 +33,35 @@ exports.getParliamentVotes = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ total_votes: -1 });
 
+    // Apply filters first (will be added below)
+    let finalQuery = ParliamentVotes.find(query.getQuery())
+      .populate(query.getPopulatedPaths());
+
+    // Get total count before pagination
+    const totalCount = await ParliamentVotes.countDocuments(query.getQuery());
+
+    // Apply pagination
+    const results = await finalQuery
+      .skip(skip)
+      .limit(limit)
+      .sort({ total_votes: -1 })
+      .exec();
+
+    // Return response with pagination
+    if (!results || results.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          pages: Math.ceil(totalCount / limit)
+        },
+        data: []
+      });
+    }
+
 
     // Helper function for ObjectId or name lookup (normalize dashes to spaces)
     const handleIdOrName = async (param, model, nameField = 'name') => {

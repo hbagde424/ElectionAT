@@ -21,6 +21,18 @@ import IconButton from 'components/@extended/IconButton';
 import MoreIcon from 'components/@extended/MoreIcon';
 import { ThemeMode } from 'config';
 
+// Function to fetch assembly data
+const fetchAssemblyData = async () => {
+  try {
+    const response = await fetch('http://localhost:5000/api/assembly-votes/stats');
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching assembly data:', error);
+    throw error;
+  }
+};
+
 const getPieChartOptions = (parties, totalSeats) => ({
   chart: {
     type: 'donut',
@@ -176,11 +188,20 @@ export default function TotalIncome() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/graph?year=${selectedYear}`);
+      setError(null); // Clear any previous errors
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-votes/stats?year=${selectedYear}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch assembly data');
+      }
       const result = await res.json();
-      setData(result.data);
+      if (result.success) {
+        setData(result.data);
+      } else {
+        throw new Error(result.message || 'Failed to fetch data');
+      }
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching assembly data:', err);
+      setError('Failed to fetch');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,8 @@
 const express = require('express');
+const router = express.Router();
+const { protect, authorize } = require('../middlewares/auth');
+
+// Import controller methods
 const {
   getParliamentVotes,
   getParliamentVote,
@@ -10,9 +14,24 @@ const {
   getVotesByState,
   getVotesByElectionYear
 } = require('../controllers/parliamentVotesController');
-const { protect, authorize } = require('../middlewares/auth');
 
-const router = express.Router();
+// Base routes
+router
+  .route('/')
+  .get(getParliamentVotes)
+  .post(protect, authorize('superAdmin'), createParliamentVote);
+
+router
+  .route('/:id')
+  .get(getParliamentVote)
+  .put(protect, authorize('superAdmin'), updateParliamentVote)
+  .delete(protect, authorize('superAdmin'), deleteParliamentVote);
+
+// Additional routes for filtered queries
+router.get('/by-parliament/:parliamentId', getVotesByParliament);
+router.get('/by-candidate/:candidateId', getVotesByCandidate);
+router.get('/by-state/:stateId', getVotesByState);
+router.get('/by-year/:year', getVotesByElectionYear);
 
 /**
  * @swagger
@@ -111,31 +130,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/ParliamentVotes'
  */
-router.get('/', getParliamentVotes);
-
-/**
- * @swagger
- * /api/parliament-votes/{id}:
- *   get:
- *     summary: Get single parliament vote record
- *     tags: [Parliament Votes]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Parliament vote data
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ParliamentVotes'
- *       404:
- *         description: Vote record not found
- */
-router.get('/:id', getParliamentVote);
+// Routes are already defined above
 
 /**
  * @swagger
@@ -159,7 +154,7 @@ router.get('/:id', getParliamentVote);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createParliamentVote);
+// Routes have been defined at the top of the file
 
 /**
  * @swagger

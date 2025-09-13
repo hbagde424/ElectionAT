@@ -9,6 +9,47 @@ const Booth = require('../models/booth');
 const ElectionYear = require('../models/electionYear');
 const User = require('../models/User');
 
+// @desc    Get assembly statistics
+// @route   GET /api/assembly-votes/stats
+// @access  Public
+exports.getAssemblyStats = async (req, res, next) => {
+  try {
+    const year = req.query.year || '2023';
+
+    // Find the election year document
+    const electionYear = await ElectionYear.findOne({ year });
+    if (!electionYear) {
+      return res.status(404).json({
+        success: false,
+        message: 'Election year not found'
+      });
+    }
+
+    // Get assembly votes for the year
+    const stats = await AssemblyVotes.aggregate([
+      {
+        $match: {
+          election_year: electionYear._id
+        }
+      },
+      {
+        $group: {
+          _id: '$party',
+          totalSeats: { $sum: 1 },
+          totalVotes: { $sum: '$total_votes' }
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get all assembly votes
 // @route   GET /api/assembly-votes
 // @access  Public
