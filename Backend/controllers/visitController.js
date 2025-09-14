@@ -7,6 +7,7 @@ const Division = require('../models/Division');
 const State = require('../models/state');
 const Candidate = require('../models/Candidate');
 const User = require('../models/User');
+const ElectionYear = require('../models/electionYear');
 
 // @desc    Get all visits
 // @route   GET /api/visits
@@ -35,8 +36,9 @@ exports.getVisits = async (req, res, next) => {
       .populate({
         path: 'candidate_id',
         select: 'name photo mobile caste education',
-        options: { strictPopulate: false }  // <- ye ensure karega error na aaye agar document missing ho
+        options: { strictPopulate: false }
       })
+      .populate('election_year_id', 'year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ date: -1 });
@@ -44,30 +46,30 @@ exports.getVisits = async (req, res, next) => {
     // Search functionality
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' };
-      
+
       // First find candidates that match the search term
       const matchingCandidates = await Candidate.find({
         name: searchRegex
       }).select('_id');
-      
+
       const candidateIds = matchingCandidates.map(c => c._id);
-      
+
       const searchConditions = [
         { post: searchRegex },
         { locationName: searchRegex },
         { declaration: searchRegex },
         { remark: searchRegex }
       ];
-      
+
       // Add candidate search if we found matching candidates
       if (candidateIds.length > 0) {
         searchConditions.push({ candidate_id: { $in: candidateIds } });
       }
-      
+
       query = query.find({
         $or: searchConditions
       });
-      
+
       filter.$or = searchConditions;
     }
 
@@ -269,7 +271,7 @@ exports.getVisits = async (req, res, next) => {
         spherical: true,
         maxDistance: radius
       });
-      
+
       filter.location = {
         $near: {
           $geometry: {
@@ -324,6 +326,7 @@ exports.getVisit = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
       .populate('candidate_id', 'name')
+      .populate('election_year_id', 'year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -365,6 +368,7 @@ exports.createVisit = async (req, res, next) => {
       block,
       booth,
       candidate,
+      electionYear,
       user
     ] = await Promise.all([
       State.findById(req.body.state_id),
@@ -374,6 +378,7 @@ exports.createVisit = async (req, res, next) => {
       req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null), // Optional
       req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null), // Optional
       Candidate.findById(req.body.candidate_id),
+      ElectionYear.findById(req.body.election_year_id),
       User.findById(req.user.id)
     ]);
 
@@ -384,6 +389,7 @@ exports.createVisit = async (req, res, next) => {
     // if (req.body.block_id && !block) return res.status(400).json({ success: false, message: 'Block not found' });
     // if (req.body.booth_id && !booth) return res.status(400).json({ success: false, message: 'Booth not found' });
     if (!candidate) return res.status(400).json({ success: false, message: 'Candidate not found' });
+    if (!electionYear) return res.status(400).json({ success: false, message: 'Election year not found' });
     if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
     // Set default work_status if not provided
@@ -447,6 +453,7 @@ exports.updateVisit = async (req, res, next) => {
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
     if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
+    if (req.body.election_year_id) verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
 
     const verificationResults = await Promise.all(verificationPromises);
 
@@ -472,6 +479,9 @@ exports.updateVisit = async (req, res, next) => {
     }
     if (req.body.candidate_id && !verificationResults[index++]) {
       return res.status(400).json({ success: false, message: 'Candidate not found' });
+    }
+    if (req.body.election_year_id && !verificationResults[index++]) {
+      return res.status(400).json({ success: false, message: 'Election year not found' });
     }
 
     // Update location object if coordinates are provided

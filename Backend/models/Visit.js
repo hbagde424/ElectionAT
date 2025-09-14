@@ -42,6 +42,12 @@ const visitSchema = new mongoose.Schema({
     ref: 'Candidate',
     required: [true, 'Candidate reference is required']
   },
+  election_year_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ElectionYear',
+    required: [true, 'Election year reference is required'],
+    index: true
+  },
   post: {
     type: String,
     required: [true, 'Post is required'],

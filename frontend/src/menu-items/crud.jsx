@@ -32,7 +32,8 @@ import {
   UserOctagon,
   TrendUp,
   EmptyWallet,
-  ReceiptText
+  ReceiptText,
+  MessageQuestion
 } from 'iconsax-react';
 
 // icons mapping
@@ -69,7 +70,8 @@ const icons = {
   UserOctagon: UserOctagon,
   TrendUp: TrendUp,
   EmptyWallet: EmptyWallet,
-  ReceiptText: ReceiptText
+  ReceiptText: ReceiptText,
+  MessageQuestion: MessageQuestion
 };
 
 // ==============================|| MENU ITEMS - CRUD ||============================== //
@@ -138,23 +140,21 @@ const CRUDMenu = {
       icon: icons.Home, // Polling booth
       permissions: ['booth_read']
     },
-    {
-      id: 'Assembly-Votes',
-      title: <FormattedMessage id="Assembly-Votes" />,
-      type: 'item',
-      url: '/Assembly-Votes',
-      icon: icons.LikeTag, // Voting representation
-      permissions: ['election_data_read']
-    },
+    // {
+    //   id: 'Assembly-Votes',
+    //   title: <FormattedMessage id="Assembly-Votes" />,
+    //   type: 'item',
+    //   url: '/Assembly-Votes',
+    //   icon: icons.LikeTag, // Voting representation
+    // },
 
-    {
-      id: 'Block-Votes',
-      title: <FormattedMessage id="Block-Votes" />,
-      type: 'item',
-      url: '/Block-Votes',
-      icon: icons.ChartSquare, // Voting data
-      permissions: ['election_data_read']
-    },
+    // {
+    //   id: 'Block-Votes',
+    //   title: <FormattedMessage id="Block-Votes" />,
+    //   type: 'item',
+    //   url: '/Block-Votes',
+    //   icon: icons.ChartSquare, // Voting data
+    // },
 
     {
       id: 'Booth-Survey',
@@ -224,8 +224,8 @@ const CRUDMenu = {
       permissions: ['voter_read']
     },
     {
-      id: 'Government-Schema',
-      title: <FormattedMessage id="Government-Schema" />,
+      id: 'Government-Scheme',
+      title: <FormattedMessage id="Government-Scheme" />,
       type: 'item',
       url: '/Government-Schema',
       icon: icons.Calendar,
@@ -248,14 +248,13 @@ const CRUDMenu = {
       permissions: ['election_data_read']
     },
 
-    {
-      id: 'Parliament-Votes',
-      title: <FormattedMessage id="Parliament-Votes" />,
-      type: 'item',
-      url: '/Parliament-Votes',
-      icon: icons.TrendUp, // Voting trends
-      permissions: ['election_data_read']
-    },
+    // {
+    //   id: 'Parliament-Votes',
+    //   title: <FormattedMessage id="Parliament-Votes" />,
+    //   type: 'item',
+    //   url: '/Parliament-Votes',
+    //   icon: icons.TrendUp, // Voting trends
+    // },
     {
       id: 'parties',
       title: <FormattedMessage id="Parties" />,
@@ -265,8 +264,8 @@ const CRUDMenu = {
       permissions: ['party_read']
     },
     {
-      id: 'party-activities',
-      title: <FormattedMessage id="party-activities" />,
+      id: 'Party-Activities',
+      title: <FormattedMessage id="Party-Activities" />,
       type: 'item',
       url: '/party-activities',
       icon: icons.TaskSquare, // Party activities
@@ -289,8 +288,8 @@ const CRUDMenu = {
       permissions: ['user_read']
     },
     {
-      id: 'visits',
-      title: <FormattedMessage id="Visits" />,
+      id: 'Our visits',
+      title: <FormattedMessage id="Our Visits" />,
       type: 'item',
       url: '/visits',
       icon: icons.ReceiptText, // Visit records
@@ -343,7 +342,20 @@ const CRUDMenu = {
       type: 'item',
       url: '/Matrics',
       icon: icons.ShieldSearch,
-      permissions: ['permission_read', 'role_permission_matrix_view']
+    },
+    {
+      id: 'assign-role-to-user',
+      title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
+      type: 'item',
+      url: '/assign-role-to-user',
+      icon: icons.User,
+    },
+    {
+      id: 'faq-crud',
+      title: <FormattedMessage id="FAQ Management" defaultMessage="FAQ Management" />,
+      type: 'item',
+      url: '/faq-crud',
+      icon: icons.MessageQuestion,
     }
   ]
 };

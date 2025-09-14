@@ -86,17 +86,21 @@ export default function ParliamentView({ data }) {
                 {/* Right Column */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
                             <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
                             <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
                             <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Election Year</Typography>
+                            <Chip label={data.election_year_id?.year || 'N/A'} color="success" size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Category</Typography>

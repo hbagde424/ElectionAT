@@ -16,70 +16,46 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 
-import PartyModal from './PartyModal';
-import AlertPartyDelete from './AlertPartyDelete';
-import PartyView from './PartyView';
+import FAQModal from './FAQModal';
+import AlertFAQDelete from './AlertFAQDelete';
+import FAQView from './FAQView';
 
-export default function PartyListPage() {
+export default function FAQListPage() {
     const theme = useTheme();
 
-    const [selectedParty, setSelectedParty] = useState(null);
+    const [selectedFAQ, setSelectedFAQ] = useState(null);
     const [openModal, setOpenModal] = useState(false);
     const [openDelete, setOpenDelete] = useState(false);
-    const [partyDeleteId, setPartyDeleteId] = useState('');
-    const [parties, setParties] = useState([]);
-    const [users, setUsers] = useState([]);
+    const [faqDeleteId, setFaqDeleteId] = useState('');
+    const [faqs, setFaqs] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
 
-    const fetchReferenceData = async () => {
-        try {
-            const token = localStorage.getItem('serviceToken');
-            const usersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            const usersData = await usersRes.json();
-            if (usersData.success) setUsers(usersData.data);
-        } catch (error) {
-            console.error('Failed to fetch reference data:', error);
-        }
-    };
-
-    const fetchParties = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchFAQs = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
-                // If API already returns user objects for created_by/updated_by, use as-is
-                setParties(json.data);
+                setFaqs(json.data);
                 setPageCount(json.pages);
             }
         } catch (error) {
-            console.error('Failed to fetch parties:', error);
+            console.error('Failed to fetch FAQs:', error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchReferenceData();
-    }, []);
-
-    useEffect(() => {
-        if (users.length > 0) {
-            fetchParties(pagination.pageIndex, pagination.pageSize, globalFilter);
-        }
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, users]);
+        fetchFAQs(pagination.pageIndex, pagination.pageSize, globalFilter);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     const handleDeleteOpen = (id) => {
-        setPartyDeleteId(id);
+        setFaqDeleteId(id);
         setOpenDelete(true);
     };
 
@@ -87,13 +63,10 @@ export default function PartyListPage() {
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleString('en-US', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
+            day: 'numeric'
         });
     };
 
@@ -101,29 +74,30 @@ export default function PartyListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
-            header: 'Name',
-            accessorKey: 'name',
+            header: 'Question',
+            accessorKey: 'question',
             cell: ({ getValue }) => (
                 <Typography sx={{
-                    maxWidth: 200,
+                    maxWidth: 300,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    fontWeight: 500
                 }}>
                     {getValue()}
                 </Typography>
             )
         },
         {
-            header: 'Description',
-            accessorKey: 'description',
+            header: 'Answer',
+            accessorKey: 'answer',
             cell: ({ getValue }) => (
                 <Typography sx={{
                     maxWidth: 250,
@@ -139,37 +113,43 @@ export default function PartyListPage() {
             )
         },
         {
-            header: 'Abbreviation',
-            accessorKey: 'abbreviation',
+            header: 'Category',
+            accessorKey: 'category',
+            cell: ({ getValue }) => {
+                const categoryColors = {
+                    'General Questions': 'primary',
+                    'Account & Login': 'success',
+                    'Data & Analytics': 'warning',
+                    'Technical Support': 'error',
+                    'Other': 'secondary'
+                };
+                return (
+                    <Chip
+                        label={getValue()}
+                        color={categoryColors[getValue()] || 'default'}
+                        size="small"
+                    />
+                );
+            }
+        },
+        {
+            header: 'Status',
+            accessorKey: 'is_active',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue() || 'N/A'}
+                    label={getValue() ? 'Active' : 'Inactive'}
+                    color={getValue() ? 'success' : 'error'}
                     size="small"
                     variant="outlined"
-                    sx={{ textTransform: 'uppercase' }}
                 />
             )
         },
         {
-            header: 'Symbol',
-            accessorKey: 'symbol',
-            cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 150,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue() || 'N/A'}
-                </Typography>
-            )
-        },
-        {
-            header: 'Founded Year',
-            accessorKey: 'founded_year',
+            header: 'Order',
+            accessorKey: 'order_index',
             cell: ({ getValue }) => (
                 <Typography>
-                    {getValue() || 'N/A'}
+                    {getValue() || 0}
                 </Typography>
             )
         },
@@ -177,12 +157,7 @@ export default function PartyListPage() {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 150,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
+                <Typography>
                     {getValue()?.username || 'N/A'}
                 </Typography>
             )
@@ -191,12 +166,7 @@ export default function PartyListPage() {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 150,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
+                <Typography>
                     {getValue()?.username || 'N/A'}
                 </Typography>
             )
@@ -204,20 +174,12 @@ export default function PartyListPage() {
         {
             header: 'Created At',
             accessorKey: 'created_at',
-            cell: ({ getValue }) => (
-                <Typography sx={{ minWidth: 150 }}>
-                    {formatDate(getValue())}
-                </Typography>
-            )
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
         {
             header: 'Updated At',
             accessorKey: 'updated_at',
-            cell: ({ getValue }) => (
-                <Typography sx={{ minWidth: 150 }}>
-                    {formatDate(getValue())}
-                </Typography>
-            )
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
         {
             header: 'Actions',
@@ -230,7 +192,7 @@ export default function PartyListPage() {
                         <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
                             {expandIcon}
                         </IconButton>
-                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedParty(row.original); setOpenModal(true); }}>
+                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedFAQ(row.original); setOpenModal(true); }}>
                             <Edit />
                         </IconButton>
                         <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
@@ -243,7 +205,7 @@ export default function PartyListPage() {
     ], [theme]);
 
     const table = useReactTable({
-        data: parties,
+        data: faqs,
         columns,
         state: { pagination, globalFilter },
         pageCount,
@@ -257,24 +219,15 @@ export default function PartyListPage() {
         getRowCanExpand: () => true
     });
 
-    const fetchAllPartiesForCsv = async () => {
+    const fetchAllFAQsForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?all=true`);
             const json = await res.json();
             if (json.success) {
-                return json.data.map(party => {
-                    const createdByUser = users.find(user => user._id === party.created_by);
-                    const updatedByUser = party.updated_by ? users.find(user => user._id === party.updated_by) : null;
-                    
-                    return {
-                        ...party,
-                        created_by: createdByUser || { username: 'N/A' },
-                        updated_by: updatedByUser || null
-                    };
-                });
+                return json.data;
             }
         } catch (error) {
-            console.error('Failed to fetch all parties for CSV:', error);
+            console.error('Failed to fetch all FAQs for CSV:', error);
         }
         return [];
     };
@@ -285,17 +238,17 @@ export default function PartyListPage() {
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
-        const allData = await fetchAllPartiesForCsv();
+        const allData = await fetchAllFAQsForCsv();
         setCsvData(allData.map(item => ({
-            Name: item.name,
-            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
-            Abbreviation: item.abbreviation,
-            Symbol: item.symbol || '',
-            'Founded Year': item.founded_year || '',
-            'Created By': item.created_by?.username || 'N/A',
-            'Updated By': item.updated_by?.username || 'N/A',
-            'Created At': formatDate(item.created_at),
-            'Updated At': formatDate(item.updated_at)
+            Question: item.question,
+            Answer: item.answer ? item.answer.replace(/<[^>]+>/g, '') : '',
+            Category: item.category,
+            Status: item.is_active ? 'Active' : 'Inactive',
+            Order: item.order_index || 0,
+            'Created By': item.created_by?.username || '',
+            'Updated By': item.updated_by?.username || '',
+            'Created At': item.created_at,
+            'Updated At': item.updated_at
         })));
         setCsvLoading(false);
         setTimeout(() => {
@@ -314,20 +267,20 @@ export default function PartyListPage() {
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
-                        placeholder={`Search ${parties.length} parties...`}
+                        placeholder={`Search ${faqs.length} FAQs...`}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink
                             data={csvData}
-                            filename="parties_all.csv"
+                            filename="faqs_all.csv"
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
-                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedParty(null); setOpenModal(true); }}>
-                            Add Party
+                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedFAQ(null); setOpenModal(true); }}>
+                            Add FAQ
                         </Button>
                     </Stack>
                 </Stack>
@@ -344,7 +297,6 @@ export default function PartyListPage() {
                                                 onClick={header.column.getToggleSortingHandler()}
                                                 sx={{ 
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                                                    minWidth: header.column.columnDef.minWidth,
                                                     color: 'white',
                                                     fontWeight: 'bold',
                                                     backgroundColor: 'primary.main'
@@ -372,7 +324,7 @@ export default function PartyListPage() {
                                         {row.getIsExpanded() && (
                                             <TableRow>
                                                 <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <PartyView data={row.original} />
+                                                    <FAQView data={row.original} />
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -393,19 +345,18 @@ export default function PartyListPage() {
                 </ScrollX>
             </MainCard>
 
-            <PartyModal
+            <FAQModal
                 open={openModal}
                 modalToggler={setOpenModal}
-                party={selectedParty}
-                users={users}
-                refresh={() => fetchParties(pagination.pageIndex, pagination.pageSize)}
+                faq={selectedFAQ}
+                refresh={() => fetchFAQs(pagination.pageIndex, pagination.pageSize)}
             />
 
-            <AlertPartyDelete
-                id={partyDeleteId}
+            <AlertFAQDelete
+                id={faqDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchParties(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => fetchFAQs(pagination.pageIndex, pagination.pageSize)}
             />
         </>
     );

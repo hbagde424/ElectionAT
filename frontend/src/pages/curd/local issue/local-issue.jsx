@@ -841,7 +841,10 @@ export default function LocalIssueListPage() {
                                                 sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     width: header.getSize(),
-                                                    minWidth: header.getSize()
+                                                    minWidth: header.getSize(),
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: 'primary.main'
                                                 }}
                                             >
                                                 <Stack direction="row" spacing={1} alignItems="center">

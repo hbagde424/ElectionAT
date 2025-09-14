@@ -169,6 +169,7 @@ const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issu
 const Events = Loadable(lazy(() => import('pages/curd/events/events')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
 const PolentialCandidate = Loadable(lazy(() => import('pages/curd/potentical candidate/potentical')));
+const FAQCrud = Loadable(lazy(() => import('pages/curd/faq-crud/FAQ')));
 
 
 // const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
@@ -199,6 +200,9 @@ const Landing = Loadable(lazy(() => import('pages/landing')));
 const ContactUS = Loadable(lazy(() => import('pages/contact-us')));
 const PricingPage = Loadable(lazy(() => import('pages/extra-pages/price/price1')));
 const PricingPage2 = Loadable(lazy(() => import('pages/extra-pages/price/price2')));
+const HelpCenter = Loadable(lazy(() => import('pages/curd/help center/helpcenter')));
+const FAQ = Loadable(lazy(() => import('pages/curd/faq/faq')));
+
 
 // ==============================|| MAIN ROUTES ||============================== //
 
@@ -733,6 +737,18 @@ const MainRoutes = {
         {
           path: 'assembly',
           element: <Assembly />
+        },
+        {
+          path: 'Help-Center',
+          element: <HelpCenter />
+        },
+        {
+          path: 'FAQ',
+          element: <FAQ />
+        },
+        {
+          path: 'faq-crud',
+          element: <FAQCrud />
         },
         {
           path: 'parliament',

@@ -28,33 +28,22 @@ const widget = {
       title: <FormattedMessage id="data" />,
       type: 'item',
       url: '/widget/data',
-      icon: icons.data,
-      permissions: ['analytics_read']
+      icon: icons.data
     },
     {
-      id: 'statistics',
-      title: <FormattedMessage id="statistics" />,
+      id: 'Help-Center',
+      title: <FormattedMessage id="Help-Center" />,
       type: 'item',
-      url: '/widget/statistics',
-      icon: icons.statistics,
-      permissions: ['analytics_read']
+      url: '/Help-Center',
+      icon: icons.statistics
     },
-
     {
-      id: 'chart',
-      title: <FormattedMessage id="chart" />,
+      id: 'FAQ',
+      title: <FormattedMessage id="FAQ" />,
       type: 'item',
-      url: '/widget/chart',
-      icon: icons.chart,
-      permissions: ['analytics_read']
-    }
-    // {
-    //   id: 'statistics',
-    //   title: <FormattedMessage id="statistics" />,
-    //   type: 'item',
-    //   url: '/widget/statistics',
-    //   icon: icons.statistics
-    // },
+      url: '/FAQ',
+      icon: icons.chart
+    },
 
     // {
     //   id: 'chart',
