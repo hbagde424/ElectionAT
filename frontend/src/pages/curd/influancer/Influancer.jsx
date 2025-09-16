@@ -509,6 +509,66 @@ export default function InfluencersListPage() {
             )
         },
         {
+            header: 'Category',
+            accessorKey: 'category',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="secondary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Caste',
+            accessorKey: 'caste',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Party',
+            accessorKey: 'party_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() ? `${getValue().name} (${getValue().abbreviation})` : 'N/A'}
+                    color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Status',
+            accessorKey: 'status',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'Active'}
+                    color={getValue() === 'Active' ? 'success' : 'error'}
+                    size="small"
+                    variant={getValue() === 'Active' ? 'filled' : 'outlined'}
+                />
+            )
+        },
+        {
+            header: 'Social Media',
+            accessorKey: 'social_media_links',
+            cell: ({ getValue }) => {
+                const links = getValue() || [];
+                return (
+                    <Typography>
+                        {links.length > 0 ? `${links.length} link${links.length > 1 ? 's' : ''}` : 'None'}
+                    </Typography>
+                );
+            }
+        },
+        {
             header: 'Created At',
             accessorKey: 'created_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>

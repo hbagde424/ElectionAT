@@ -104,6 +104,7 @@
     "simplebar": "^6.2.5",
     "simplebar-react": "^3.2.4",
     "slick-carousel": "^1.8.1",
+    "stylis": "^4.3.6",
     "stylis-plugin-rtl": "^2.1.1",
     "swr": "^2.2.5",
     "use-places-autocomplete": "^4.0.1",
@@ -115,8 +116,9 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "vite build",
-    "build-stage": "env-cmd -f .env.qa vite build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build:prod": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build --mode production",
+    "build-stage": "cross-env NODE_OPTIONS=--max-old-space-size=4096 env-cmd -f .env.qa vite build",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
@@ -141,6 +143,7 @@
     ]
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "env-cmd": "^10.1.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -153,7 +156,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "immutable": "^4.3.5",
     "prettier": "^3.2.5",
-    "react-error-overlay": "6.0.11"
+    "react-error-overlay": "6.0.11",
+    "terser": "^5.44.0"
   },
   "packageManager": "yarn@4.1.0"
 }

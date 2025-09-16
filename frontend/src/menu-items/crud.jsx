@@ -107,6 +107,13 @@ const CRUDMenu = {
       icon: icons.Building,
       permissions: ['parliament_read']
     },
+    {
+      id: 'parliament-candidate',
+      title: <FormattedMessage id="Parliament Candidate" defaultMessage="Parliament Candidate" />,
+      type: 'item',
+      url: '/parliament-candidate',
+      icon: icons.UserOctagon,
+    },
 
     {
       id: 'assembly',
@@ -182,7 +189,7 @@ const CRUDMenu = {
     },
     {
       id: 'candidates',
-      title: <FormattedMessage id="politician" />,
+      title: <FormattedMessage id="Politician" />,
       type: 'item',
       url: '/candidates',
       icon: icons.UserOctagon, // Candidate profile
@@ -349,6 +356,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/assign-role-to-user',
       icon: icons.User,
+      icon: icons.ClipboardTick // Completed work
     },
     {
       id: 'faq-crud',

@@ -7,6 +7,12 @@ const parliamentSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
+  parliament_no: {
+    type: Number,
+    required: [true, 'Parliament number is required'],
+    unique: true,
+    min: [1, 'Parliament number must be greater than 0']
+  },
   description: {
     type: String,
     default: ''

@@ -73,6 +73,7 @@ const boothPolygonRoutes = require('./routes/boothPolygonsRoutes');
 const winningCandidateRoutes = require('./routes/winningCandidateRoutes');
 const helpCenterRoutes = require('./routes/helpCenterRoutes');
 const faqRoutes = require('./routes/faqRoutes');
+const parliamentCandidateRoutes = require('./routes/parliamentCandidateRoutes');
 //const indiaPolygonRoutes = require('./routes/indiaPolygonRoutes');
 //const voterTurnoutRoutes = require('./routes/voterTurnout');
 // const indiaPolygonRoutes from "./routes/indiaPolygonRoutes.js";
@@ -203,6 +204,7 @@ apiRouter.use('/winning-candidates', winningCandidateRoutes);
 apiRouter.use('/users', userRoutes);  // Add user routes
 apiRouter.use('/help-center', helpCenterRoutes);
 apiRouter.use('/faqs', faqRoutes);
+apiRouter.use('/parliament-candidates', parliamentCandidateRoutes);
 
 // Mount the API router on both /api and /backend/api paths
 app.use('/api', apiRouter);

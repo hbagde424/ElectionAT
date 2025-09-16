@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLocationDot, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
+import { faLocationDot, faExpand, faCompress, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import MainCard from 'components/MainCard';
 
 // Add custom styles for permanent labels
@@ -156,6 +156,52 @@ function HierarchicalMap({ onRegionClick }) {
         };
     }, []);
 
+    // Function to handle back navigation
+    const handleBackNavigation = () => {
+        // Simple one-step back navigation with better property handling
+        switch (currentLevel) {
+            case 'booth':
+                const blockAcNo = selectedFeature?.properties?.acNo || 
+                                selectedFeature?.properties?.AC_NO || 
+                                'AC001';
+                loadBlockData(blockAcNo);
+                setCurrentLevel('block');
+                break;
+            case 'block':
+                const assemblyPcNo = selectedFeature?.properties?.pcNo || 
+                                   selectedFeature?.properties?.PC_NO ||
+                                   selectedFeature?.properties?.acNo || 
+                                   selectedFeature?.properties?.AC_NO ||
+                                   'PC001';
+                loadAssemblyData(assemblyPcNo);
+                setCurrentLevel('assembly');
+                break;
+            case 'assembly':
+                const parliamentName = selectedFeature?.properties?.pcName || 
+                                     selectedFeature?.properties?.PC_NAME ||
+                                     selectedFeature?.properties?.divisionName ||
+                                     selectedFeature?.properties?.DIVISION_NAME ||
+                                     'Default';
+                loadParliamentaryData(parliamentName);
+                setCurrentLevel('parliamentary');
+                break;
+            case 'parliamentary':
+                const divisionName = selectedFeature?.properties?.divisionName || 
+                                   selectedFeature?.properties?.DIVISION_NAME ||
+                                   selectedFeature?.properties?.ST_NAME || 
+                                   'madhya-pradesh';
+                loadDivisionData(divisionName);
+                setCurrentLevel('division');
+                break;
+            case 'division':
+                loadStateData();
+                break;
+            default:
+                loadStateData();
+                break;
+        }
+    };
+
     const resetLayer = () => {
         if (currentLayerRef.current) {
             mapInstanceRef.current.removeLayer(currentLayerRef.current);
@@ -219,6 +265,8 @@ function HierarchicalMap({ onRegionClick }) {
                 showBoundaries(validatedStateData, 'state');
                 setCurrentLevel('state');
                 setSelectedFeature(null);
+                // Reset navigation history when going back to state level
+                setNavigationHistory([]);
             } else {
                 alert('No state data available');
             }
@@ -315,6 +363,7 @@ function HierarchicalMap({ onRegionClick }) {
                         properties: {
                             id: feature.properties.PC_NAME.toLowerCase().replace(/\s+/g, '-'),
                             name: feature.properties.PC_NAME,
+                            displayName: `${feature.properties.PC_NAME} ${feature.properties.PC_NO}`,
                             pcNo: feature.properties.PC_NO,
                             stateCode: feature.properties.ST_CODE,
                             stateName: feature.properties.ST_NAME,
@@ -489,6 +538,7 @@ function HierarchicalMap({ onRegionClick }) {
                         properties: {
                             id: feature.properties.PC_ID.toString(),
                             name: feature.properties.AC_NAME,
+                            displayName: `${feature.properties.AC_NAME} ${feature.properties.AC_NO}`,
                             acNo: feature.properties.AC_NO.toString(),
                             pcName: feature.properties.PC_NAME,
                             district: feature.properties.ST_NAME,
@@ -671,8 +721,9 @@ function HierarchicalMap({ onRegionClick }) {
         currentLayerRef.current = L.geoJSON(data, {
             style: style,
             onEachFeature: (feature, layer) => {
-                // Add permanent label
-                layer.bindTooltip(feature.properties.name || '', {
+                // Add permanent label - use displayName if available, otherwise name
+                const labelText = feature.properties.displayName || feature.properties.name || '';
+                layer.bindTooltip(labelText, {
                     permanent: true,
                     direction: 'center',
                     className: 'permanent-label',
@@ -696,9 +747,13 @@ function HierarchicalMap({ onRegionClick }) {
                             color: '#666',
                             fillOpacity: 0.3
                         });
+                        // Show popup on hover
+                        layer.openPopup();
                     },
                     mouseout: (e) => {
                         currentLayerRef.current.resetStyle(e.target);
+                        // Close popup on mouseout
+                        e.target.closePopup();
                     }
                 });
             }
@@ -709,14 +764,6 @@ function HierarchicalMap({ onRegionClick }) {
     };
 
     const handleLayerClick = (feature, level) => {
-        // Store current state in history before changing
-        setNavigationHistory(prev => [...prev, {
-            level: currentLevel,
-            feature: selectedFeature,
-            id: feature.properties.id,
-            name: feature.properties.name
-        }]);
-
         setSelectedFeature(feature);
 
         // Call the onRegionClick prop with region data
@@ -734,7 +781,6 @@ function HierarchicalMap({ onRegionClick }) {
                 setCurrentLevel('division');
                 break;
             case 'division':
-                // Get the first parliament name from the parliament array
                 const parliament = feature.properties.name
                     ? feature.properties.name
                     : null;
@@ -744,6 +790,7 @@ function HierarchicalMap({ onRegionClick }) {
                     setCurrentLevel('parliamentary');
                 } else {
                     console.warn('No Parliament found for division:', feature.properties.name);
+                    alert('No parliamentary data available for this division. Staying at division level.');
                 }
                 break;
             case 'parliamentary':
@@ -755,12 +802,13 @@ function HierarchicalMap({ onRegionClick }) {
                 setCurrentLevel('block');
                 break;
             case 'block':
-                const BlockNumber = feature.properties.BlockNumber || feature.properties.BlockNumber;
+                const BlockNumber = feature.properties.BlockNumber || feature.properties.blockNumber;
                 if (BlockNumber) {
                     loadBoothData(BlockNumber);
                     setCurrentLevel('booth');
                 } else {
                     console.warn('No Block number found in feature properties:', feature.properties);
+                    alert('No booth data available for this block. Staying at block level.');
                 }
                 break;
             default:
@@ -800,6 +848,7 @@ function HierarchicalMap({ onRegionClick }) {
             case 'parliamentary':
                 content += `
                     <p><strong>Parliamentary Constituency:</strong> ${properties.name || ''}</p>
+                    <p><strong>PC Number:</strong> ${properties.pcNo || ''}</p>
                     <p><strong>Division:</strong> ${properties.divisionName || ''}</p>
                     <p><strong>District:</strong> ${properties.district || ''}</p>
                     <p><strong>Assembly Name:</strong> ${properties.assemblyName || ''}</p>
@@ -811,6 +860,7 @@ function HierarchicalMap({ onRegionClick }) {
                 break;
             case 'assembly':
                 content += `
+                    <p><strong>Assembly Constituency:</strong> ${properties.name || ''}</p>
                     <p><strong>AC No:</strong> ${properties.acNo || ''}</p>
                     <p><strong>Parliamentary:</strong> ${properties.pcName || ''}</p>
                     <p><strong>Category:</strong> ${properties.category || ''}</p>
@@ -889,6 +939,27 @@ function HierarchicalMap({ onRegionClick }) {
                         gap: '10px',
                         zIndex: 1000
                     }}>
+                        {/* Back Button - Only show if not at state level */}
+                        {currentLevel !== 'state' && (
+                            <button
+                                onClick={handleBackNavigation}
+                                style={{
+                                    padding: '8px',
+                                    backgroundColor: 'white',
+                                    border: '2px solid rgba(0,0,0,0.2)',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '34px',
+                                    height: '34px'
+                                }}
+                                title="Go back to previous level"
+                            >
+                                <FontAwesomeIcon icon={faArrowLeft} />
+                            </button>
+                        )}
                         <button
                             onClick={handleFindLocation}
                             style={{
@@ -931,18 +1002,162 @@ function HierarchicalMap({ onRegionClick }) {
                 <div style={{ padding: '10px', background: '#f5f5f5', marginTop: '10px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {/* Current Location Display */}
-                        {selectedFeature && (
-                            <div style={{
-                                padding: '8px',
-                                backgroundColor: '#fff',
-                                borderRadius: '4px',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                            }}>
+                        <div style={{
+                            padding: '8px',
+                            backgroundColor: '#fff',
+                            borderRadius: '4px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                        }}>
+                            <div style={{ marginBottom: '8px' }}>
                                 <span style={{ fontWeight: '500' }}>
-                                    Current Location: {selectedFeature.properties.name} ({currentLevel})
+                                    {selectedFeature ? 
+                                        `Current: ${selectedFeature.properties.name} (${currentLevel})` :
+                                        `Level: ${currentLevel}`
+                                    }
                                 </span>
                             </div>
-                        )}
+                            
+                            {/* Level Navigation Buttons */}
+                            <div style={{ 
+                                display: 'flex', 
+                                gap: '8px', 
+                                flexWrap: 'wrap',
+                                alignItems: 'center'
+                            }}>
+                                <span style={{ fontSize: '12px', color: '#666' }}>Navigate to:</span>
+                                
+                                {/* State Button */}
+                                {currentLevel !== 'state' && (
+                                    <button
+                                        onClick={() => {
+                                            loadStateData();
+                                        }}
+                                        style={{
+                                            padding: '4px 8px',
+                                            backgroundColor: currentLevel === 'state' ? '#007bff' : '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            cursor: 'pointer',
+                                            fontSize: '11px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        State
+                                    </button>
+                                )}
+                                
+                                {/* Division Button */}
+                                {currentLevel !== 'state' && currentLevel !== 'division' && selectedFeature && (
+                                    <button
+                                        onClick={() => {
+                                            if (selectedFeature.properties.divisionName || selectedFeature.properties.ST_NAME) {
+                                                loadDivisionData(selectedFeature.properties.divisionName || selectedFeature.properties.ST_NAME || 'madhya-pradesh');
+                                                setCurrentLevel('division');
+                                            } else {
+                                                loadStateData();
+                                            }
+                                        }}
+                                        style={{
+                                            padding: '4px 8px',
+                                            backgroundColor: currentLevel === 'division' ? '#007bff' : '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            cursor: 'pointer',
+                                            fontSize: '11px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        Division
+                                    </button>
+                                )}
+                                
+                                {/* Parliamentary Button */}
+                                {(currentLevel === 'assembly' || currentLevel === 'block' || currentLevel === 'booth') && selectedFeature && (
+                                    <button
+                                        onClick={() => {
+                                            // Try multiple property combinations for parliamentary navigation
+                                            const parliamentName = selectedFeature.properties.pcName || 
+                                                                 selectedFeature.properties.PC_NAME || 
+                                                                 selectedFeature.properties.divisionName ||
+                                                                 selectedFeature.properties.DIVISION_NAME ||
+                                                                 'Default';
+                                            loadParliamentaryData(parliamentName);
+                                            setCurrentLevel('parliamentary');
+                                        }}
+                                        style={{
+                                            padding: '4px 8px',
+                                            backgroundColor: currentLevel === 'parliamentary' ? '#007bff' : '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            cursor: 'pointer',
+                                            fontSize: '11px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        Parliamentary
+                                    </button>
+                                )}
+                                
+                                {/* Assembly Button */}
+                                {(currentLevel === 'block' || currentLevel === 'booth') && selectedFeature && (
+                                    <button
+                                        onClick={() => {
+                                            // Try multiple property combinations for assembly navigation
+                                            const assemblyCode = selectedFeature.properties.pcNo || 
+                                                               selectedFeature.properties.PC_NO ||
+                                                               selectedFeature.properties.acNo || 
+                                                               selectedFeature.properties.AC_NO ||
+                                                               'PC001';
+                                            loadAssemblyData(assemblyCode);
+                                            setCurrentLevel('assembly');
+                                        }}
+                                        style={{
+                                            padding: '4px 8px',
+                                            backgroundColor: currentLevel === 'assembly' ? '#007bff' : '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            cursor: 'pointer',
+                                            fontSize: '11px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        Assembly
+                                    </button>
+                                )}
+                                
+                                {/* Block Button */}
+                                {currentLevel === 'booth' && selectedFeature && (
+                                    <button
+                                        onClick={() => {
+                                            // Try multiple property combinations for block navigation
+                                            const blockCode = selectedFeature.properties.acNo || 
+                                                            selectedFeature.properties.AC_NO ||
+                                                            selectedFeature.properties.blockNumber ||
+                                                            selectedFeature.properties.BlockNumber ||
+                                                            'AC001';
+                                            loadBlockData(blockCode);
+                                            setCurrentLevel('block');
+                                        }}
+                                        style={{
+                                            padding: '4px 8px',
+                                            backgroundColor: currentLevel === 'block' ? '#007bff' : '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            cursor: 'pointer',
+                                            fontSize: '11px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        Block
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

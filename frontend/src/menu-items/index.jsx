@@ -7,11 +7,12 @@ import chartsMap from './charts-map';
 import support from './support';
 import pages from './pages';
 import CURd from './crud';
+import adminMenu from './dashboard';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [CURd , widget
+  items: [adminMenu, CURd , widget
     // ,applications, formsTables, chartsMap, samplePage, pages, support
 
    ]

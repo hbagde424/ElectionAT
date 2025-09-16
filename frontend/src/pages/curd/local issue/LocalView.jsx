@@ -68,6 +68,15 @@ export default function LocalIssueView({ data }) {
                             </Typography>
                         </Box>
 
+                        <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                Category
+                            </Typography>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.category || 'N/A'}
+                            </Typography>
+                        </Box>
+
                         {data.description && (
                             <Box>
                                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>

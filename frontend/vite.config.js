@@ -17,9 +17,23 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         emptyOutDir: true,
+        sourcemap: false,
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true,
+                drop_debugger: true,
+            },
+        },
         rollupOptions: {
             output: {
-                manualChunks: undefined,
+                manualChunks: (id) => {
+                    if (id.includes('node_modules')) {
+                        return 'vendor';
+                    }
+                },
+                chunkFileNames: 'assets/[name]-[hash].js',
+                assetFileNames: 'assets/[name]-[hash].[ext]',
             },
         },
     },

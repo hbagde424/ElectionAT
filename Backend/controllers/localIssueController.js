@@ -55,6 +55,11 @@ exports.getLocalIssues = async (req, res, next) => {
       query = query.where('department').regex(new RegExp(`^${req.query.department}$`, 'i'));
     }
 
+    // Filter by category
+    if (req.query.category) {
+      query = query.where('category').equals(req.query.category);
+    }
+
 
     // Helper function for ObjectId or name lookup (normalize dashes to spaces)
     const handleIdOrName = async (param, model, nameField = 'name') => {

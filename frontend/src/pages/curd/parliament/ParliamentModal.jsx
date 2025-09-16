@@ -23,6 +23,7 @@ export default function ParliamentModal({
 
     const [formData, setFormData] = useState({
         name: '',
+        parliament_no: '',
         category: 'general',
         regional_type: 'urban',
         state_id: '',
@@ -42,21 +43,25 @@ export default function ParliamentModal({
         if (parliament) {
             setFormData({
                 name: parliament.name || '',
+                parliament_no: parliament.parliament_no || parliament['Parliament No'] || '',
                 category: parliament.category ? parliament.category.toLowerCase() : 'general',
                 regional_type: parliament.regional_type ? parliament.regional_type.toLowerCase() : 'urban',
                 state_id: parliament.state_id?._id?.toString() || parliament.state_id?.toString() || '',
                 division_id: parliament.division_id?._id?.toString() || parliament.division_id?.toString() || '',
                 assembly_id: parliament.assembly_id?._id?.toString() || parliament.assembly_id?.toString() || '',
+                election_year_id: parliament.election_year_id?._id?.toString() || parliament.election_year_id?.toString() || '',
                 description: parliament.description || ''
             });
         } else {
             setFormData({
                 name: '',
+                parliament_no: '',
                 category: 'general',
                 regional_type: 'urban',
                 state_id: '',
                 division_id: '',
                 assembly_id: '',
+                election_year_id: '',
                 description: ''
             });
         }
@@ -129,7 +134,7 @@ export default function ParliamentModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        const requiredFields = ['name', 'category', 'regional_type', 'state_id', 'division_id'];
+        const requiredFields = ['name', 'parliament_no', 'category', 'regional_type', 'state_id', 'division_id'];
         for (const field of requiredFields) {
             if (!formData[field]) return;
         }
@@ -196,6 +201,23 @@ export default function ParliamentModal({
                                 required
                                 error={submitted && !formData.name}
                                 helperText={submitted && !formData.name ? 'Name is required' : ''}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Parliament Number */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Parliament Number <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <TextField
+                                name="parliament_no"
+                                value={formData.parliament_no}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                type="number"
+                                error={submitted && !formData.parliament_no}
+                                helperText={submitted && !formData.parliament_no ? 'Parliament number is required' : ''}
                             />
                         </Stack>
                     </Grid>

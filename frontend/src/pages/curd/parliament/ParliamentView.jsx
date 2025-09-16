@@ -21,6 +21,12 @@ export default function ParliamentView({ data }) {
             <Stack direction="row" alignItems="center" spacing={2} mb={2}>
                 <Typography variant="h6">{data.name || 'Untitled Parliament'}</Typography>
                 <Chip
+                    label={`No: ${data.parliament_no || data['Parliament No'] || 'N/A'}`}
+                    size="small"
+                    color="secondary"
+                    variant="filled"
+                />
+                <Chip
                     label={data.category ? data.category.charAt(0).toUpperCase() + data.category.slice(1) : 'N/A'}
                     size="small"
                     variant="outlined"
