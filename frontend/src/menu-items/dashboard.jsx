@@ -5,13 +5,17 @@ import { FormattedMessage } from 'react-intl';
 import { useGetMenu } from 'api/menu';
 
 // assets
-import { Refresh, Home3, HomeTrendUp, Box1 } from 'iconsax-react';
+import { Refresh, Home3, HomeTrendUp, Box1, SecurityUser, Shield, ShieldSearch, User } from 'iconsax-react';
 
 const icons = {
   navigation: Home3,
   dashboard: HomeTrendUp,
   components: Box1,
-  loading: Refresh
+  loading: Refresh,
+  SecurityUser: SecurityUser,
+  Shield: Shield,
+  ShieldSearch: ShieldSearch,
+  User: User
 };
 
 const loadingMenu = {
@@ -41,6 +45,57 @@ const loadingMenu = {
         //   breadcrumbs: false
         // }
       ]
+    }
+  ]
+};
+
+// ==============================|| STATIC MENU FOR ADMIN ITEMS ||============================== //
+
+const adminMenu = {
+  id: 'group-admin',
+  title: <FormattedMessage id="Admin Management" defaultMessage="Admin Management" />,
+  type: 'group',
+  icon: icons.SecurityUser,
+  children: [
+    {
+      id: 'Matrics',
+      title: <FormattedMessage id="Matrics" defaultMessage="Matrics" />,
+      type: 'item',
+      url: '/Matrics',
+      icon: icons.SecurityUser,
+      breadcrumbs: false
+    },
+    {
+      id: 'roles',
+      title: <FormattedMessage id="Roles" defaultMessage="Roles" />,
+      type: 'item',
+      url: '/roles',
+      icon: icons.SecurityUser,
+      breadcrumbs: false
+    },
+    {
+      id: 'permissions',
+      title: <FormattedMessage id="Permissions" defaultMessage="Permissions" />,
+      type: 'item',
+      url: '/permissions',
+      icon: icons.Shield,
+      breadcrumbs: false
+    },
+    {
+      id: 'assign-permission-to-role',
+      title: <FormattedMessage id="Assign Permission to Role" defaultMessage="Assign Permission to Role" />,
+      type: 'item',
+      url: '/assign-permission-to-role',
+      icon: icons.ShieldSearch,
+      breadcrumbs: false
+    },
+    {
+      id: 'assign-role-to-user',
+      title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
+      type: 'item',
+      url: '/assign-role-to-user',
+      icon: icons.User,
+      breadcrumbs: false
     }
   ]
 };
@@ -85,4 +140,6 @@ function fillItem(item, children) {
     ...(children && { children })
   };
 }
+
+export default adminMenu;
 

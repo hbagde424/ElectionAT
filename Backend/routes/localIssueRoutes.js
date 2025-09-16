@@ -58,6 +58,12 @@ const router = express.Router();
  *           type: string
  *         description: Filter by department
  *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [Social Issue, Crime Issue, Political Issue, Farmer Issue, Youth Issue, Women Issue, Business Issue]
+ *         description: Filter by issue category
+ *       - in: query
  *         name: state
  *         schema:
  *           type: string

@@ -50,6 +50,7 @@ export default function LocalIssueListPage() {
     const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedPriority, setSelectedPriority] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
 
     // Temporary filter states
     const [tempFilters, setTempFilters] = useState({
@@ -61,13 +62,23 @@ export default function LocalIssueListPage() {
         booth: '',
         status: '',
         priority: '',
-        department: ''
+        department: '',
+        category: ''
     });
 
     // Status and Priority options
     const statusOptions = ['Reported', 'In Progress', 'Resolved', 'Rejected'];
     const priorityOptions = ['Low', 'Medium', 'High', 'Critical'];
     const departmentOptions = ['Education', 'Healthcare', 'Infrastructure', 'Transportation', 'Water Supply', 'Sanitation', 'Power Supply', 'Agriculture', 'Others'];
+    const categoryOptions = [
+        'Social Issue',
+        'Crime Issue', 
+        'Political Issue',
+        'Farmer Issue',
+        'Youth Issue',
+        'Women Issue',
+        'Business Issue'
+    ];
 
     // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -173,6 +184,7 @@ export default function LocalIssueListPage() {
             if (selectedStatus) query += `&status=${encodeURIComponent(selectedStatus)}`;
             if (selectedPriority) query += `&priority=${encodeURIComponent(selectedPriority)}`;
             if (selectedDepartment) query += `&department=${encodeURIComponent(selectedDepartment)}`;
+            if (selectedCategory) query += `&category=${encodeURIComponent(selectedCategory)}`;
 
             // When searching, fetch all results on first page
             let currentPage = pageIndex + 1;
@@ -219,7 +231,8 @@ export default function LocalIssueListPage() {
         selectedBooth,
         selectedStatus,
         selectedPriority,
-        selectedDepartment
+        selectedDepartment,
+        selectedCategory
     ]);
 
     useEffect(() => {
@@ -320,6 +333,26 @@ export default function LocalIssueListPage() {
                 </Box>
             ),
             size: 100
+        },
+        {
+            header: 'Category',
+            accessorKey: 'category',
+            cell: ({ getValue }) => (
+                <Box sx={{ width: 120, py: 1 }}>
+                    <Tooltip title={getValue() || ''} arrow placement="top">
+                        <Typography sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: '0.875rem',
+                            lineHeight: 1.5
+                        }}>
+                            {getValue()}
+                        </Typography>
+                    </Tooltip>
+                </Box>
+            ),
+            size: 120
         },
         {
             header: 'Description',
@@ -568,6 +601,7 @@ export default function LocalIssueListPage() {
         setCsvData(allData.map(item => ({
             'Issue Name': item.issue_name,
             'Department': item.department,
+            'Category': item.category,
             'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             'Status': item.status,
             'Priority': item.priority,
@@ -756,6 +790,20 @@ export default function LocalIssueListPage() {
                         ))}
                     </TextField>
 
+                    <TextField
+                        select
+                        label="Category"
+                        size="small"
+                        value={tempFilters.category}
+                        onChange={(e) => setTempFilters(prev => ({ ...prev, category: e.target.value }))}
+                        sx={{ width: 200, mb: 2 }}
+                    >
+                        <MenuItem value="">Select Category</MenuItem>
+                        {categoryOptions.map(category => (
+                            <MenuItem key={category} value={category}>{category}</MenuItem>
+                        ))}
+                    </TextField>
+
                     <Button
                         variant="contained"
                         color="primary"
@@ -770,6 +818,7 @@ export default function LocalIssueListPage() {
                             setSelectedStatus(tempFilters.status);
                             setSelectedPriority(tempFilters.priority);
                             setSelectedDepartment(tempFilters.department);
+                            setSelectedCategory(tempFilters.category);
 
                             // Reset pagination to first page
                             setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -793,7 +842,8 @@ export default function LocalIssueListPage() {
                                 booth: '',
                                 status: '',
                                 priority: '',
-                                department: ''
+                                department: '',
+                                category: ''
                             });
                             setSelectedState('');
                             setSelectedDivision('');
@@ -804,6 +854,7 @@ export default function LocalIssueListPage() {
                             setSelectedStatus('');
                             setSelectedPriority('');
                             setSelectedDepartment('');
+                            setSelectedCategory('');
 
                             // Reset pagination to first page
                             setPagination(prev => ({ ...prev, pageIndex: 0 }));

@@ -54,6 +54,62 @@ const influencerSchema = new mongoose.Schema({
     ref: 'Booth',
     required: true
   },
+  category: {
+    type: String,
+    enum: [
+      'Political Leader',
+      'Community Leader',
+      'Religious Leader', 
+      'Business Leader',
+      'Social Activist',
+      'Media Person',
+      'Celebrity',
+      'Youth Leader',
+      'Women Leader',
+      'Other'
+    ],
+    default: 'Other'
+  },
+  caste: {
+    type: String,
+    enum: [
+      'General',
+      'OBC',
+      'SC',
+      'ST',
+      'Minority',
+      'Other',
+      'Not Specified'
+    ],
+    default: 'Not Specified'
+  },
+  party_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Party',
+    required: false
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive'],
+    default: 'Active'
+  },
+  social_media_links: [{
+    platform: {
+      type: String,
+      required: true,
+      enum: ['Facebook', 'Twitter', 'Instagram', 'LinkedIn', 'YouTube', 'WhatsApp', 'Telegram', 'Other']
+    },
+    link: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    followers: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
+  }],
     description: {
     type: String,
     default: ''

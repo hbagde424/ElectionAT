@@ -169,6 +169,7 @@ const Events = Loadable(lazy(() => import('pages/curd/events/events')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
 const PolentialCandidate = Loadable(lazy(() => import('pages/curd/potentical candidate/potentical')));
 const FAQCrud = Loadable(lazy(() => import('pages/curd/faq-crud/FAQ')));
+const ParliamentCandidate = Loadable(lazy(() => import('pages/curd/parliament-candidate/ParliamentCandidate')));
 
 
 // const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
@@ -748,6 +749,10 @@ const MainRoutes = {
         {
           path: 'faq-crud',
           element: <FAQCrud />
+        },
+        {
+          path: 'parliament-candidate',
+          element: <ParliamentCandidate />
         },
         {
           path: 'parliament',

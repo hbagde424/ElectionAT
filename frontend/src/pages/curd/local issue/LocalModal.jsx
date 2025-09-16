@@ -26,6 +26,7 @@ export default function LocalIssueModal({
     const [formData, setFormData] = useState({
         issue_name: '',
         department: '',
+        category: 'Social Issue',
         description: '',
         status: 'Reported',
         priority: 'Medium',
@@ -47,14 +48,30 @@ export default function LocalIssueModal({
 
     const statusOptions = ['Reported', 'In Progress', 'Resolved', 'Rejected'];
     const priorityOptions = ['Low', 'Medium', 'High', 'Critical'];
+    const categoryOptions = [
+        'Social Issue',
+        'Crime Issue', 
+        'Political Issue',
+        'Farmer Issue',
+        'Youth Issue',
+        'Women Issue',
+        'Business Issue'
+    ];
 
     useEffect(() => {
         if (localIssue) {
+            // Fix potential typos in existing data
+            let statusValue = localIssue.status || 'Reported';
+            if (statusValue === 'In Progess') {
+                statusValue = 'In Progress';
+            }
+            
             setFormData({
                 issue_name: localIssue.issue_name || '',
                 department: localIssue.department || '',
+                category: localIssue.category || 'Social Issue',
                 description: localIssue.description || '',
-                status: localIssue.status || 'Reported',
+                status: statusValue,
                 priority: localIssue.priority || 'Medium',
                 state_id: localIssue.state_id?._id?.toString() || localIssue.state_id?.toString() || '',
                 division_id: localIssue.division_id?._id?.toString() || localIssue.division_id?.toString() || '',
@@ -67,6 +84,7 @@ export default function LocalIssueModal({
             setFormData({
                 issue_name: '',
                 department: '',
+                category: 'Social Issue',
                 description: '',
                 status: 'Reported',
                 priority: 'Medium',
@@ -233,6 +251,18 @@ export default function LocalIssueModal({
             errors.department = 'Department is required';
         }
 
+        if (!formData.category || formData.category.trim() === '') {
+            errors.category = 'Category is required';
+        }
+
+        if (!formData.status || !statusOptions.includes(formData.status)) {
+            errors.status = 'Valid status is required';
+        }
+
+        if (!formData.priority || !priorityOptions.includes(formData.priority)) {
+            errors.priority = 'Valid priority is required';
+        }
+
         if (!formData.state_id) {
             errors.state_id = 'State is required';
         }
@@ -291,6 +321,14 @@ export default function LocalIssueModal({
             ...userTracking
         };
 
+        // Debug logging to identify data issues
+        console.log('Submit data being sent:', submitData);
+        if (submitData.status && !statusOptions.includes(submitData.status)) {
+            console.error('Invalid status detected:', submitData.status);
+            alert(`Invalid status detected: "${submitData.status}". Expected one of: ${statusOptions.join(', ')}`);
+            return;
+        }
+
         try {
             const res = await fetch(url, {
                 method,
@@ -307,7 +345,12 @@ export default function LocalIssueModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit local issue:', errorData);
-                alert('Failed to save local issue. Please check the form data.');
+                
+                if (errorData.error && errorData.error.includes('In Progess')) {
+                    alert('Data validation error: Status field contains invalid value. Please select a valid status and try again.');
+                } else {
+                    alert(`Failed to save local issue: ${errorData.error || 'Unknown error'}`);
+                }
             }
         } catch (error) {
             console.error('Error submitting local issue:', error);
@@ -377,6 +420,30 @@ export default function LocalIssueModal({
                                 helperText={submitted && (!formData.department || formData.department.trim() === '') ? 'Department is required' : ''}
                                 placeholder="Enter department name"
                             />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 1.5: Category */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel required>Category</InputLabel>
+                            <FormControl fullWidth required error={submitted && (!formData.category || formData.category.trim() === '')}>
+                                <Select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleChange}
+                                    placeholder="Select category"
+                                >
+                                    {categoryOptions.map((category) => (
+                                        <MenuItem key={category} value={category}>
+                                            {category}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {submitted && (!formData.category || formData.category.trim() === '') && (
+                                    <FormHelperText>Category is required</FormHelperText>
+                                )}
+                            </FormControl>
                         </Stack>
                     </Grid>
 

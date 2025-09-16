@@ -156,6 +156,18 @@ export default function ParliamentListPage() {
             )
         },
         {
+            header: 'Parliament No',
+            accessorKey: 'parliament_no',
+            cell: ({ getValue, row }) => (
+                <Chip
+                    label={getValue() || row.original['Parliament No'] || 'N/A'}
+                    color="secondary"
+                    size="small"
+                    variant="filled"
+                />
+            )
+        },
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (

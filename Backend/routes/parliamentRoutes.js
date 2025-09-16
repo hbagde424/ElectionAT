@@ -266,6 +266,7 @@ router.get('/division/:divisionId', getParliamentsByDivision);
  *       type: object
  *       required:
  *         - name
+ *         - parliament_no
  *         - division_id
  *         - state_id
  *         - category
@@ -276,6 +277,10 @@ router.get('/division/:divisionId', getParliamentsByDivision);
  *           type: string
  *           description: Parliament name
  *           example: "5th Parliament District"
+ *         parliament_no:
+ *           type: number
+ *           description: Parliament number
+ *           example: 25
  *         description:
  *           type: string
  *           description: Parliament description (HTML allowed)

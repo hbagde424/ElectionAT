@@ -36,6 +36,10 @@ import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import TabPanel from '@mui/lab/TabPanel';
+import TabContext from '@mui/lab/TabContext';
 
 // Charts & Widgets
 import EcommerceDataCard from 'components/cards/statistics/EcommerceDataCard';
@@ -75,6 +79,8 @@ import { preload } from 'swr';
 
 // Assets & Styles
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
+import AssemblyMap from 'sections/dashboard/default/AssemblyMap';
+import ParliamentMap from 'sections/dashboard/default/ParliamentMap';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { TablePagination } from 'components/third-party/react-table';
@@ -197,6 +203,7 @@ export default function DashboardDefault() {
   const [partyActivities, setPartyActivities] = useState([]);
   const [winningParties, setWinningParties] = useState([]);
   const [workStatuses, setWorkStatuses] = useState([]);
+  const [mapTabValue, setMapTabValue] = useState('1');
   const [loading, setLoading] = useState(false);
   const [assemblyVotesLoading, setAssemblyVotesLoading] = useState(false);
   const [statesLoading, setStatesLoading] = useState(false);
@@ -975,6 +982,10 @@ export default function DashboardDefault() {
     }
   };
 
+  const handleMapTabChange = (event, newValue) => {
+    setMapTabValue(newValue);
+  };
+
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
   const scriptedRef = useScriptRef();
@@ -986,7 +997,26 @@ export default function DashboardDefault() {
       </Grid> */}
 
       <Grid item xs={12}>
-        <HierarchicalMap onRegionClick={handleMapClick} />
+        <MainCard>
+          <TabContext value={mapTabValue}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs value={mapTabValue} onChange={handleMapTabChange} aria-label="map tabs">
+                <Tab label="Hierarchical Map" value="1" />
+                <Tab label="Assembly Map" value="2" />
+                <Tab label="Parliament Map" value="3" />
+              </Tabs>
+            </Box>
+            <TabPanel value="1" sx={{ p: 0 }}>
+              <HierarchicalMap onRegionClick={handleMapClick} />
+            </TabPanel>
+            <TabPanel value="2" sx={{ p: 0 }}>
+              <AssemblyMap onRegionClick={handleMapClick} />
+            </TabPanel>
+            <TabPanel value="3" sx={{ p: 0 }}>
+              <ParliamentMap onRegionClick={handleMapClick} />
+            </TabPanel>
+          </TabContext>
+        </MainCard>
       </Grid>
 
       <Grid item xs={12} md={6}>

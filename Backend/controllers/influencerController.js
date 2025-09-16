@@ -5,6 +5,7 @@ const Parliament = require('../models/Parliament');
 const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
+const Party = require('../models/party');
 
 // @desc    Get all influencers
 // @route   GET /api/influencers
@@ -24,6 +25,7 @@ exports.getInfluencers = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('party_id', 'name abbreviation symbol')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -142,6 +144,7 @@ exports.getInfluencer = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('party_id', 'name abbreviation symbol')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -167,21 +170,29 @@ exports.getInfluencer = async (req, res, next) => {
 exports.createInfluencer = async (req, res, next) => {
   try {
     // Verify all references exist
-    const [
-      state,
-      division,
-      parliament,
-      assembly,
-      block,
-      booth
-    ] = await Promise.all([
+    const verificationPromises = [
       State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
       Block.findById(req.body.block_id),
       Booth.findById(req.body.booth_id)
-    ]);
+    ];
+
+    // Add party verification if party_id is provided
+    if (req.body.party_id) {
+      verificationPromises.push(Party.findById(req.body.party_id));
+    }
+
+    const [
+      state,
+      division,
+      parliament,
+      assembly,
+      block,
+      booth,
+      party
+    ] = await Promise.all(verificationPromises);
 
     if (!state) {
       return res.status(400).json({ success: false, message: 'State not found' });
@@ -200,6 +211,11 @@ exports.createInfluencer = async (req, res, next) => {
     }
     if (!booth) {
       return res.status(400).json({ success: false, message: 'Booth not found' });
+    }
+    
+    // Validate party if provided
+    if (req.body.party_id && !party) {
+      return res.status(400).json({ success: false, message: 'Party not found' });
     }
 
     // Check if user exists in request
@@ -256,6 +272,7 @@ exports.updateInfluencer = async (req, res, next) => {
     if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
+    if (req.body.party_id) verificationPromises.push(Party.findById(req.body.party_id));
 
     const verificationResults = await Promise.all(verificationPromises);
 
@@ -289,6 +306,7 @@ exports.updateInfluencer = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('party_id', 'name abbreviation symbol')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -353,6 +371,7 @@ exports.getInfluencersByBooth = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
+      .populate('party_id', 'name abbreviation symbol')
       .populate('created_by', 'username');
 
     res.status(200).json({
@@ -382,6 +401,7 @@ exports.getInfluencersByAssembly = async (req, res, next) => {
     const influencers = await Influencer.find({ assembly_id: req.params.assemblyId })
       .sort({ name: 1 })
       .populate('booth_id', 'name booth_number')
+      .populate('party_id', 'name abbreviation symbol')
       .populate('created_by', 'username');
 
     res.status(200).json({

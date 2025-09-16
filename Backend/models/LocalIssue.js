@@ -4,14 +4,27 @@ const localIssueSchema = new mongoose.Schema({
   issue_name: {
     type: String,
     required: [true, 'Issue name is required'],
-    trim: true,
-    maxlength: [200, 'Issue name cannot exceed 200 characters']
+    trim: true
   },
   department: {
     type: String,
     required: [true, 'Department is required'],
     trim: true,
     maxlength: [100, 'Department name cannot exceed 100 characters']
+  },
+  category: {
+    type: String,
+    required: [true, 'Category is required'],
+    enum: [
+      'Social Issue',
+      'Crime Issue', 
+      'Political Issue',
+      'Farmer Issue',
+      'Youth Issue',
+      'Women Issue',
+      'Business Issue'
+    ],
+    default: 'Social Issue'
   },
   description: {
     type: String,
@@ -97,6 +110,7 @@ localIssueSchema.index({ issue_name: 'text' });
 localIssueSchema.index({ status: 1 });
 localIssueSchema.index({ priority: 1 });
 localIssueSchema.index({ department: 1 });
+localIssueSchema.index({ category: 1 });
 localIssueSchema.index({
   state_id: 1,
   division_id: 1,

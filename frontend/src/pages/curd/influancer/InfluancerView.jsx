@@ -32,6 +32,42 @@ export default function InfluencerView({ data }) {
                         color="info"
                     />
                 )}
+                {data.status && (
+                    <Chip
+                        label={data.status}
+                        size="small"
+                        color={data.status === 'Active' ? 'success' : 'error'}
+                        variant={data.status === 'Active' ? 'filled' : 'outlined'}
+                    />
+                )}
+            </Stack>
+
+            {/* Additional Info Chips */}
+            <Stack direction="row" alignItems="center" spacing={1} mb={2} flexWrap="wrap">
+                {data.category && (
+                    <Chip
+                        label={`Category: ${data.category}`}
+                        size="small"
+                        color="secondary"
+                        variant="outlined"
+                    />
+                )}
+                {data.caste && (
+                    <Chip
+                        label={`Caste: ${data.caste}`}
+                        size="small"
+                        color="info"
+                        variant="outlined"
+                    />
+                )}
+                {data.party_id && (
+                    <Chip
+                        label={`Party: ${data.party_id.name} (${data.party_id.abbreviation})`}
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                    />
+                )}
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
@@ -154,6 +190,37 @@ export default function InfluencerView({ data }) {
                                 <Typography variant="body1" fontWeight="medium">
                                     {formatDate(data.updated_at)}
                                 </Typography>
+                            </Box>
+                        )}
+
+                        {/* Social Media Links */}
+                        {data.social_media_links && data.social_media_links.length > 0 && (
+                            <Box sx={{ mt: 3 }}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    Social Media Links
+                                </Typography>
+                                <Stack spacing={1}>
+                                    {data.social_media_links.map((link, index) => (
+                                        <Box key={index} sx={{ 
+                                            p: 1, 
+                                            border: '1px solid #eee', 
+                                            borderRadius: 1,
+                                            bgcolor: 'background.default'
+                                        }}>
+                                            <Typography variant="body2" fontWeight="medium">
+                                                {link.platform}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                                                {link.link}
+                                            </Typography>
+                                            {link.followers && (
+                                                <Typography variant="caption" color="primary.main" sx={{ display: 'block' }}>
+                                                    Followers: {Number(link.followers).toLocaleString()}
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    ))}
+                                </Stack>
                             </Box>
                         )}
                     </Stack>

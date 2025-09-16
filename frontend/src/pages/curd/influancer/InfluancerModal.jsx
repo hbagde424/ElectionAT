@@ -1,12 +1,13 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Chip, Box
+    Chip, Box, Switch, FormControlLabel, IconButton, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
+import { Add, Trash } from 'iconsax-react';
 
 export default function InfluencerModal({
     open,
@@ -23,6 +24,40 @@ export default function InfluencerModal({
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
 
+    // Add parties state
+    const [parties, setParties] = useState([]);
+
+    // Category and Caste options
+    const categoryOptions = [
+        'Political Leader',
+        'Social Media Influencer', 
+        'Community Leader',
+        'Business Person',
+        'Religious Leader',
+        'Youth Leader',
+        'Other'
+    ];
+
+    const casteOptions = [
+        'General',
+        'OBC',
+        'SC',
+        'ST',
+        'Minority',
+        'Other'
+    ];
+
+    const platformOptions = [
+        'Facebook',
+        'Twitter', 
+        'Instagram',
+        'LinkedIn',
+        'YouTube',
+        'WhatsApp',
+        'Telegram',
+        'Other'
+    ];
+
     const [formData, setFormData] = useState({
         name: '',
         contact_number: '',
@@ -30,6 +65,11 @@ export default function InfluencerModal({
         email: '',
         full_address: '',
         description: '',
+        category: '',
+        caste: '',
+        party_id: '',
+        status: 'Active',
+        social_media_links: [],
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -45,6 +85,24 @@ export default function InfluencerModal({
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
+    // Fetch parties
+    const fetchParties = async () => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`);
+            const data = await response.json();
+            if (data.success) {
+                setParties(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching parties:', error);
+        }
+    };
+
+    // Fetch parties on component mount
+    useEffect(() => {
+        fetchParties();
+    }, []);
+
     useEffect(() => {
         if (influencer) {
             setFormData({
@@ -54,6 +112,11 @@ export default function InfluencerModal({
                 email: influencer.email || '',
                 full_address: influencer.full_address || '',
                 description: influencer.description || '',
+                category: influencer.category || '',
+                caste: influencer.caste || '',
+                party_id: influencer.party_id?._id?.toString() || influencer.party_id?.toString() || '',
+                status: influencer.status || 'Active',
+                social_media_links: influencer.social_media_links || [],
                 state_id: influencer.state_id?._id?.toString() || influencer.state_id?.toString() || '',
                 division_id: influencer.division_id?._id?.toString() || influencer.division_id?.toString() || '',
                 parliament_id: influencer.parliament_id?._id?.toString() || influencer.parliament_id?.toString() || '',
@@ -69,6 +132,11 @@ export default function InfluencerModal({
                 email: '',
                 full_address: '',
                 description: '',
+                category: '',
+                caste: '',
+                party_id: '',
+                status: 'Active',
+                social_media_links: [],
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -78,11 +146,36 @@ export default function InfluencerModal({
             });
         }
     }, [influencer]);
+    
     // For ReactQuill description
     const handleDescriptionChange = (value) => {
         setFormData((prev) => ({
             ...prev,
             description: value
+        }));
+    };
+
+    // Social media link handlers
+    const addSocialMediaLink = () => {
+        setFormData((prev) => ({
+            ...prev,
+            social_media_links: [...prev.social_media_links, { platform: '', link: '', followers: '' }]
+        }));
+    };
+
+    const removeSocialMediaLink = (index) => {
+        setFormData((prev) => ({
+            ...prev,
+            social_media_links: prev.social_media_links.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleSocialMediaChange = (index, field, value) => {
+        setFormData((prev) => ({
+            ...prev,
+            social_media_links: prev.social_media_links.map((link, i) => 
+                i === index ? { ...link, [field]: value } : link
+            )
         }));
     };
 
@@ -251,8 +344,16 @@ export default function InfluencerModal({
         }
 
         const userTracking = influencer ? { updated_by: userId } : { created_by: userId };
+        
+        // Filter out incomplete social media links (must have both platform and link)
+        const validSocialMediaLinks = formData.social_media_links.filter(link => 
+            link.platform && link.platform.trim() !== '' && 
+            link.link && link.link.trim() !== ''
+        );
+        
         const submitData = {
             ...formData,
+            social_media_links: validSocialMediaLinks,
             ...userTracking
         };
 
@@ -350,6 +451,152 @@ export default function InfluencerModal({
                             placeholder="Enter influencer description"
                             style={{ background: 'white' }}
                         />
+                    </Grid>
+
+                    {/* New Fields */}
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                            <InputLabel>Category</InputLabel>
+                            <Select
+                                name="category"
+                                value={formData.category}
+                                label="Category"
+                                onChange={handleChange}
+                            >
+                                {categoryOptions.map((category) => (
+                                    <MenuItem key={category} value={category}>
+                                        {category}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                            <InputLabel>Caste</InputLabel>
+                            <Select
+                                name="caste"
+                                value={formData.caste}
+                                label="Caste"
+                                onChange={handleChange}
+                            >
+                                {casteOptions.map((caste) => (
+                                    <MenuItem key={caste} value={caste}>
+                                        {caste}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                            <InputLabel>Party</InputLabel>
+                            <Select
+                                name="party_id"
+                                value={formData.party_id}
+                                label="Party"
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                {parties.map((party) => (
+                                    <MenuItem key={party._id} value={party._id}>
+                                        {party.name} ({party.abbreviation})
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                                name="status"
+                                value={formData.status}
+                                label="Status"
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="Active">Active</MenuItem>
+                                <MenuItem value="Inactive">Inactive</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    {/* Social Media Links */}
+                    <Grid item xs={12}>
+                        <Box sx={{ mb: 2 }}>
+                            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                                <Typography variant="h6">Social Media Links</Typography>
+                                <Button
+                                    startIcon={<Add />}
+                                    onClick={addSocialMediaLink}
+                                    variant="outlined"
+                                    size="small"
+                                >
+                                    Add Link
+                                </Button>
+                            </Stack>
+                            
+                            {formData.social_media_links.map((link, index) => (
+                                <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
+                                    <Grid container spacing={2} alignItems="center">
+                                        <Grid item xs={12} md={3}>
+                                            <FormControl 
+                                                fullWidth 
+                                                error={submitted && link.platform && !link.link}
+                                            >
+                                                <InputLabel>Platform *</InputLabel>
+                                                <Select
+                                                    value={link.platform}
+                                                    label="Platform *"
+                                                    onChange={(e) => handleSocialMediaChange(index, 'platform', e.target.value)}
+                                                >
+                                                    {platformOptions.map((platform) => (
+                                                        <MenuItem key={platform} value={platform}>
+                                                            {platform}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid item xs={12} md={4}>
+                                            <TextField
+                                                fullWidth
+                                                label="Link *"
+                                                value={link.link}
+                                                onChange={(e) => handleSocialMediaChange(index, 'link', e.target.value)}
+                                                placeholder="https://..."
+                                                error={submitted && link.platform && !link.link}
+                                                helperText={submitted && link.platform && !link.link ? 'Link is required when platform is selected' : ''}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} md={3}>
+                                            <TextField
+                                                fullWidth
+                                                label="Followers"
+                                                value={link.followers}
+                                                onChange={(e) => handleSocialMediaChange(index, 'followers', e.target.value)}
+                                                placeholder="Number of followers"
+                                                type="number"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} md={2}>
+                                            <IconButton
+                                                onClick={() => removeSocialMediaLink(index)}
+                                                color="error"
+                                                size="small"
+                                            >
+                                                <Trash />
+                                            </IconButton>
+                                        </Grid>
+                                    </Grid>
+                                </Box>
+                            ))}
+                        </Box>
                     </Grid>
 
                     {/* Location Hierarchy */}
