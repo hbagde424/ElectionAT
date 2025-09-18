@@ -41,6 +41,8 @@ import Tab from '@mui/material/Tab';
 import TabPanel from '@mui/lab/TabPanel';
 import TabContext from '@mui/lab/TabContext';
 
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+
 // Charts & Widgets
 import EcommerceDataCard from 'components/cards/statistics/EcommerceDataCard';
 import EcommerceDataChart from 'sections/widget/chart/EcommerceDataChart';
@@ -79,11 +81,29 @@ import { preload } from 'swr';
 
 // Assets & Styles
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
-import AssemblyMap from 'sections/dashboard/default/AssemblyMap';
+// import AssemblyMap from 'sections/dashboard/default/AssemblyMap';
+import ChangeTheme from 'sections/maps/change-theme copy';
 import ParliamentMap from 'sections/dashboard/default/ParliamentMap';
+import DistrictMap from 'sections/dashboard/default/DistrictMap';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { TablePagination } from 'components/third-party/react-table';
+
+
+const mapConfiguration = {
+    mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
+    minZoom: 1
+};
+
+const MAPBOX_THEMES = {
+    light: 'mapbox://styles/mapbox/light-v10',
+    dark: 'mapbox://styles/mapbox/dark-v10',
+    streets: 'mapbox://styles/mapbox/streets-v11',
+    outdoors: 'mapbox://styles/mapbox/outdoors-v11',
+    satellite: 'mapbox://styles/mapbox/satellite-v9',
+    satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
+};
+
 
 // Template Component for Dashboard Lists (Division Page Style)
 const DashboardListTemplate = ({
@@ -1031,16 +1051,24 @@ export default function DashboardDefault() {
                 <Tab label="Hierarchical Map" value="1" />
                 <Tab label="Assembly Map" value="2" />
                 <Tab label="Parliament Map" value="3" />
+                <Tab label="District Map" value="4" />
               </Tabs>
             </Box>
             <TabPanel value="1" sx={{ p: 0 }}>
               <HierarchicalMap onRegionClick={handleMapClick} />
             </TabPanel>
             <TabPanel value="2" sx={{ p: 0 }}>
-              <AssemblyMap onRegionClick={handleMapClick} />
+              <MainCard title="Assembly Map">
+                                  <MapContainerStyled>
+                                      <ChangeTheme onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES}  />
+                                  </MapContainerStyled>
+                              </MainCard>
             </TabPanel>
             <TabPanel value="3" sx={{ p: 0 }}>
               <ParliamentMap onRegionClick={handleMapClick} />
+            </TabPanel>
+            <TabPanel value="4" sx={{ p: 0 }}>
+              <DistrictMap onRegionClick={handleMapClick} />
             </TabPanel>
           </TabContext>
         </MainCard>

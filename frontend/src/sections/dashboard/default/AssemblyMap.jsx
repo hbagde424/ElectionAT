@@ -233,10 +233,24 @@ function AssemblyMap({ onRegionClick }) {
     const showAssemblyBoundaries = (data) => {
         resetLayer();
 
+        // Array of colors for different assembly constituencies
+        const assemblyColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F06292', '#AED581', '#FFB74D', '#BA68C8', '#4DB6AC',
+            '#81C784', '#FFD54F', '#FF8A65', '#A1C4FD', '#C2E9FB',
+            '#FDBB2D', '#22C1C3', '#E056FD', '#F093FB', '#F5576C',
+            '#4FACFE', '#00F2FE', '#FA709A', '#FEE140', '#24FE41',
+            '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'
+        ];
+
         const style = (feature) => {
-            let color = '#477fcdff';
+            // Get a color based on AC_NO or use index-based coloring
+            const acNo = parseInt(feature.properties.acNo || feature.properties.AC_NO || 0);
+            const colorIndex = acNo % assemblyColors.length;
+            const color = assemblyColors[colorIndex];
+            
             let weight = 2;
-            let fillOpacity = 0.2;
+            let fillOpacity = 0.4;
 
             return {
                 color: color,

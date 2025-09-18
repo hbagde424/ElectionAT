@@ -13,6 +13,21 @@ import ControlPanelStyled from 'components/third-party/map/ControlPanelStyled';
 // ==============================|| MAPBOX - THEME ||============================== //
 
 function ControlPanel({ themes, selectTheme, onChangeTheme }) {
+  // Defensive check to handle undefined/null themes
+  const safeThemes = themes && typeof themes === 'object' ? themes : {};
+  const themeKeys = Object.keys(safeThemes);
+  
+  // If no themes are available, return null or a simple message
+  if (themeKeys.length === 0) {
+    return (
+      <ControlPanelStyled>
+        <Typography gutterBottom variant="subtitle2">
+          No themes available
+        </Typography>
+      </ControlPanelStyled>
+    );
+  }
+
   return (
     <ControlPanelStyled>
       <Typography gutterBottom variant="subtitle2">
@@ -20,7 +35,7 @@ function ControlPanel({ themes, selectTheme, onChangeTheme }) {
       </Typography>
 
       <RadioGroup value={selectTheme} onChange={(event, newValue) => onChangeTheme(newValue)}>
-        {Object.keys(themes).map((item) => (
+        {themeKeys.map((item) => (
           <FormControlLabel key={item} value={item} control={<Radio size="small" />} label={item} sx={{ textTransform: 'capitalize' }} />
         ))}
       </RadioGroup>

@@ -320,9 +320,16 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                 id="assembly-labels"
                 type="symbol"
                 layout={{
-                  'text-field': ['get', 'AC_NO'],
-                  'text-size': 12,
-                  'text-allow-overlap': true
+                  'text-field': [
+                    'concat',
+                    ['get', 'AC_NO'],
+                    '\n',
+                    ['get', 'AC_NAME']
+                  ],
+                  'text-size': 10,
+                  'text-allow-overlap': true,
+                  'text-anchor': 'center',
+                  'text-justify': 'center'
                 }}
                 paint={{
                   'text-color': '#000000',

@@ -363,7 +363,7 @@ function HierarchicalMap({ onRegionClick }) {
                         properties: {
                             id: feature.properties.PC_NAME.toLowerCase().replace(/\s+/g, '-'),
                             name: feature.properties.PC_NAME,
-                            displayName: `${feature.properties.PC_NAME} ${feature.properties.PC_NO}`,
+                            displayName: `${feature.properties.PC_NO}-${feature.properties.PC_NAME}`,
                             pcNo: feature.properties.PC_NO,
                             stateCode: feature.properties.ST_CODE,
                             stateName: feature.properties.ST_NAME,
@@ -538,7 +538,7 @@ function HierarchicalMap({ onRegionClick }) {
                         properties: {
                             id: feature.properties.PC_ID.toString(),
                             name: feature.properties.AC_NAME,
-                            displayName: `${feature.properties.AC_NAME} ${feature.properties.AC_NO}`,
+                            displayName: `${feature.properties.AC_NO}-${feature.properties.AC_NAME} `,
                             acNo: feature.properties.AC_NO.toString(),
                             pcName: feature.properties.PC_NAME,
                             district: feature.properties.ST_NAME,
