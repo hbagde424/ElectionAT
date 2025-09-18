@@ -3,13 +3,16 @@ const UserHierarchy = require('../models/UserHierarchy');
 const RolePermission = require('../models/RolePermission');
 const Permission = require('../models/Permission');
 
-// Check if user has specific permission
-const hasPermission = (requiredPermission) => {
+// Check if user has specific permission(s)
+const hasPermission = (requiredPermissions) => {
     return async (req, res, next) => {
         try {
             if (!req.user) {
                 return res.status(401).json({ error: 'Authentication required' });
             }
+
+            // Convert single permission to array
+            const permissions = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions];
 
             // Get user roles
             const userRoles = await UserRole.find({ user: req.user._id }).populate('role');
@@ -22,10 +25,20 @@ const hasPermission = (requiredPermission) => {
 
             const userPermissions = rolePermissions.map(rp => rp.permission.name);
 
-            if (userPermissions.includes(requiredPermission)) {
+            console.log('User permissions:', userPermissions);
+            console.log('Required permissions:', permissions);
+
+            // Check if user has any of the required permissions
+            const hasRequiredPermission = permissions.some(perm => userPermissions.includes(perm));
+
+            if (hasRequiredPermission) {
                 next();
             } else {
-                res.status(403).json({ error: 'Insufficient permissions' });
+                res.status(403).json({
+                    error: 'Insufficient permissions',
+                    required: permissions,
+                    userHas: userPermissions
+                });
             }
         } catch (error) {
             res.status(500).json({ error: error.message });

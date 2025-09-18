@@ -7,13 +7,25 @@ const RolePermission = require('./models/RolePermission');
 
 async function setupSuperAdminPermissions() {
     try {
-        await mongoose.connect('mongodb://localhost:27017/electionat');
+        const config = require('./config/config');
+        await mongoose.connect(config.MONGO_URI);
         console.log('Connected to MongoDB');
 
         // All permissions that we defined in the menu items
         const permissionsToCreate = [
+            // Core permissions
             'all.access',
             'system.admin',
+
+            // User management
+            'user_create',
+            'user_read',
+            'user_update',
+            'user_delete',
+            'user_role_assign',
+            'user_role_remove',
+
+            // Elections
             'elections.view',
             'elections.create',
             'elections.update',
