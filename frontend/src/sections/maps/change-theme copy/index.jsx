@@ -215,7 +215,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
           Assembly Map
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          {/* <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel id="pc-filter-label">Parliament Constituency</InputLabel>
             <Select
               labelId="pc-filter-label"
@@ -223,12 +223,12 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
               label="Parliament Constituency"
               onChange={(e) => handleFilterChange('pcName', e.target.value)}
             >
-              <MenuItem value="all">All PCs</MenuItem>
+              <MenuItem value="all">All PC</MenuItem>
               {pcNames.map(pc => (
                 <MenuItem key={pc} value={pc}>{pc}</MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </FormControl> */}
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="party-filter-label">Winning Party</InputLabel>
             <Select

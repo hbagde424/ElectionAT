@@ -575,30 +575,6 @@ export default function VisitModal({
                         />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <FormTextField
-                            label="Longitude"
-                            name="longitude"
-                            value={formData.longitude}
-                            onChange={handleChange}
-                            error={errors.longitude}
-                            disabled={isSubmitting}
-                            type="number"
-                        />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <FormTextField
-                            label="Latitude"
-                            name="latitude"
-                            value={formData.latitude}
-                            onChange={handleChange}
-                            error={errors.latitude}
-                            disabled={isSubmitting}
-                            type="number"
-                        />
-                    </Grid>
-
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Location Name</InputLabel>
@@ -624,6 +600,32 @@ export default function VisitModal({
                             />
                         </Stack>
                     </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Longitude"
+                            name="longitude"
+                            value={formData.longitude}
+                            onChange={handleChange}
+                            error={errors.longitude}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Latitude"
+                            name="latitude"
+                            value={formData.latitude}
+                            onChange={handleChange}
+                            error={errors.latitude}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+
+                    
 
 
                     {/* Row: Description (Rich Text) */}
