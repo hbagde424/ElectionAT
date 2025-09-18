@@ -187,7 +187,7 @@ router.put('/me', protect, updateMe);
  *         description: Unauthorized
  */
 // Temporarily remove auth for testing - TODO: Add back authentication
-router.get('/for-roles', protect, hasPermission('user_read'), getUsersForRoles);
+router.get('/for-roles', protect, hasPermission(['user_read', 'user_role_assign']), getUsersForRoles);
 router.get('/', getUsers);
 
 /**
