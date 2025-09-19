@@ -21,28 +21,31 @@ const widget = {
   title: <FormattedMessage id="widgets" />,
   icon: icons.widgets,
   type: 'group',
-  permissions: ['analytics_read', 'report_read'],
+  permissions: ['analytics_read', 'report_read', 'dashboard.view', 'reports.view', 'Dashboard_Total'],
   children: [
     {
       id: 'data',
       title: <FormattedMessage id="data" />,
       type: 'item',
       url: '/widget/data',
-      icon: icons.data
+      icon: icons.data,
+      permissions: ['dashboard.view', 'Dashboard_Total', 'analytics_read']
     },
     {
       id: 'Help-Center',
       title: <FormattedMessage id="Help-Center" />,
       type: 'item',
       url: '/Help-Center',
-      icon: icons.statistics
+      icon: icons.statistics,
+      permissions: ['dashboard.view', 'Dashboard_Total', 'analytics_read']
     },
     {
       id: 'FAQ',
       title: <FormattedMessage id="FAQ" />,
       type: 'item',
       url: '/FAQ',
-      icon: icons.chart
+      icon: icons.chart,
+      permissions: ['dashboard.view', 'Dashboard_Total', 'analytics_read']
     },
 
     // {
