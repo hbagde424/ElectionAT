@@ -30,7 +30,7 @@ import useConfig from 'hooks/useConfig';
 import { useGetMenuMaster } from 'api/menu';
 import { usePermissions } from 'contexts/PermissionContext';
 import { getPermissionName } from 'utils/menuPermissions';
-
+import { checkPermissions } from 'utils/permissionUtils';
 // assets
 import { More2 } from 'iconsax-react';
 
@@ -122,6 +122,23 @@ export default function PermissionNavGroup({
 
     // Filter children based on permissions
     const getFilteredChildren = () => {
+        console.log('🔍 Filtering children for:', currentItem.id);
+        if (!currentItem.children) return [];
+
+        return currentItem.children.filter(child => {
+            // If child has permissions defined, check them
+            if (child.permissions && Array.isArray(child.permissions)) {
+                const hasAccess = checkPermissions(userPermissions, child.permissions);
+                console.log(`🔍 Child "${child.id}" permission check:`, {
+                    childPermissions: child.permissions,
+                    hasAccess,
+                    userPermissions
+                });
+                return hasAccess;
+            }
+            // If child has no permissions defined, inherit from parent
+            return true;
+        });
         if (!currentItem.children) {
             return [];
         }
@@ -170,9 +187,12 @@ export default function PermissionNavGroup({
     // Check if current group has any accessible children
     const filteredChildren = getFilteredChildren();
 
+    // Import checkPermissions at the top of the file
+
+
     // Check if user has permission to see this group
     if (currentItem.permissions && Array.isArray(currentItem.permissions)) {
-        const groupAccess = hasAnyPermission(currentItem.permissions);
+        const groupAccess = checkPermissions(userPermissions, currentItem.permissions);
         console.log(`🔍 Group "${currentItem.id}" permission check:`, {
             requiredPermissions: currentItem.permissions,
             hasAccess: groupAccess,
