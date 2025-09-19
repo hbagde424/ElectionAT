@@ -30,15 +30,15 @@ function ControlPanel({ themes, selectTheme, onChangeTheme }) {
 
   return (
     <ControlPanelStyled>
-      <Typography gutterBottom variant="subtitle2">
-        Select variants:
+      {/* <Typography gutterBottom variant="subtitle2">
+        Select varian
       </Typography>
 
       <RadioGroup value={selectTheme} onChange={(event, newValue) => onChangeTheme(newValue)}>
         {themeKeys.map((item) => (
           <FormControlLabel key={item} value={item} control={<Radio size="small" />} label={item} sx={{ textTransform: 'capitalize' }} />
         ))}
-      </RadioGroup>
+      </RadioGroup> */}
     </ControlPanelStyled>
   );
 }

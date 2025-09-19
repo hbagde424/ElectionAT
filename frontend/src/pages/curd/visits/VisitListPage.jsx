@@ -217,10 +217,20 @@ const VisitListPage = () => {
                 ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${candidateId}`
                 : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
 
+            console.log('Fetching map visits with URL:', url);
+            console.log('Selected candidate ID:', candidateId);
+            
             const res = await fetch(url);
             const json = await res.json();
+            console.log('API response:', json);
+            
             if (json.success) {
+                console.log('Total visits received:', json.data.length);
+                console.log('Sample visit data:', json.data[0]);
+                
                 const visitsWithCoords = json.data.filter(v => v.latitude && v.longitude);
+                console.log('Visits with coordinates:', visitsWithCoords);
+                console.log('Visits without coordinates:', json.data.length - visitsWithCoords.length);
                 setMapVisits(visitsWithCoords);
 
                 if (visitsWithCoords.length > 1) {
@@ -341,6 +351,7 @@ const VisitListPage = () => {
     };
 
     useEffect(() => {
+        console.log('useEffect triggered with selectedCandidate:', selectedCandidate);
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchMapVisits(selectedCandidate || null);
         fetchReferenceData();
@@ -359,7 +370,9 @@ const VisitListPage = () => {
     };
 
     const handleCandidateChange = (event) => {
-        setSelectedCandidate(event.target.value);
+        const candidateId = event.target.value;
+        console.log('Candidate changed to:', candidateId);
+        setSelectedCandidate(candidateId);
     };
 
     const handleApplyFilters = () => {
@@ -689,29 +702,6 @@ const VisitListPage = () => {
                 <Grid item xs={12}>
                     <MainCard
                         title="Visit Locations Map"
-                        secondary={
-                            <FormControl sx={{ minWidth: 200 }} size="small">
-                                <InputLabel id="candidate-select-label">Filter by Candidate</InputLabel>
-                                <Select
-                                    labelId="candidate-select-label"
-                                    value={selectedCandidate}
-                                    onChange={handleCandidateChange}
-                                    label="Filter by Candidate"
-                                >
-                                    <MenuItem value="">
-                                        <em>All Candidates</em>
-                                    </MenuItem>
-                                    {candidates.map((candidate) => (
-                                        <MenuItem key={candidate._id} value={candidate._id}>
-                                            <Stack direction="row" alignItems="center" spacing={1}>
-                                                <Avatar src={candidate.photo} sx={{ width: 24, height: 24 }} />
-                                                <Typography>{candidate.name}</Typography>
-                                            </Stack>
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        }
                     >
                         <MapContainerStyled>
                             <Map
@@ -741,6 +731,7 @@ const VisitListPage = () => {
                                 )}
 
                                 {/* Marker for each visit */}
+                                {console.log('Rendering markers for mapVisits:', mapVisits.length, 'visits')}
                                 {mapVisits.map((visit, idx) => (
                                     <Marker
                                         key={idx}
