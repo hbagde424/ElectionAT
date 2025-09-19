@@ -273,6 +273,9 @@ router.delete('/:id', protect, authorize('superAdmin', 'admin'), deleteParliamen
  *           type: number
  *         margin:
  *           type: number
+ *         margin_percentage:
+ *           type: number
+ *           description: Margin as decimal fraction (e.g., 0.03 = 3%)
  *         vote_percentage:
  *           type: string
  *           description: Calculated vote percentage
@@ -340,6 +343,10 @@ router.delete('/:id', protect, authorize('superAdmin', 'admin'), deleteParliamen
  *           type: number
  *           description: Victory/defeat margin
  *           example: 20000
+ *         margin_percentage:
+ *           type: number
+ *           description: Margin as decimal fraction (e.g., 0.03 = 3%)
+ *           example: 0.03
  *   securitySchemes:
  *     bearerAuth:
  *       type: http

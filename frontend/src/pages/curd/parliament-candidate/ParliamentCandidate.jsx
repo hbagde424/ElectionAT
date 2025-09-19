@@ -112,6 +112,33 @@ export default function ParliamentCandidateListPage() {
         return num.toLocaleString();
     };
 
+    // Robust getter for margin percentage (decimal fraction).
+    // Uses available fields if present, otherwise computes from margin/total.
+    const getMarginPercentDecimal = (item) => {
+        if (!item) return 0;
+        // Try common keys or fallbacks
+        const possible = [
+            item.margin_percentage,
+            item.marginPercentage,
+            item.margin_percent,
+            item['Margin %'],
+            item['margin_percentage']
+        ];
+
+        for (const v of possible) {
+            if (v !== undefined && v !== null && v !== '') {
+                const num = Number(v);
+                if (!isNaN(num)) return num;
+            }
+        }
+
+        // Fallback: compute from margin and total
+        const margin = Number(item.margin) || 0;
+        const total = Number(item.total_votes_parliament) || 0;
+        if (total > 0) return Math.abs(margin) / total;
+        return 0;
+    };
+
     const getResultChipColor = (result) => {
         switch (result?.toLowerCase()) {
             case 'win':
@@ -231,6 +258,19 @@ export default function ParliamentCandidateListPage() {
                     color: 'success.main'
                 }}>
                     {getValue() ? `${getValue()}%` : '0%'}
+                </Typography>
+            )
+        },
+        {
+            id: 'margin_percentage',
+            header: 'Margin %',
+            accessorKey: 'margin_percentage',
+            cell: ({ getValue, row }) => (
+                <Typography sx={{
+                    fontWeight: 500,
+                    color: row.original.margin >= 0 ? 'success.main' : 'error.main'
+                }}>
+                    {`${(getMarginPercentDecimal(row.original) * 100).toFixed(2)}%`}
                 </Typography>
             )
         },
@@ -357,8 +397,9 @@ export default function ParliamentCandidateListPage() {
             'Result': item.position_result?.toUpperCase() || 'N/A',
             'Candidate Votes': formatNumber(item.candidate_votes),
             'Total Votes': formatNumber(item.total_votes_parliament),
-            'Vote Percentage': item.vote_percentage ? `${item.vote_percentage}%` : '0%',
-            'Margin': formatNumber(item.margin),
+                'Vote Percentage': item.vote_percentage ? `${item.vote_percentage}%` : '0%',
+                'Margin': formatNumber(item.margin),
+                'Margin %': `${(getMarginPercentDecimal(item) * 100).toFixed(2)}%`,
             'Created By': item.created_by?.username || 'N/A',
             'Created At': formatDate(item.created_at)
         }));

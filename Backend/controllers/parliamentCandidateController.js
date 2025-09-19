@@ -1,3 +1,64 @@
+// @desc    Get winning party for each parliament (for a given year or latest year)
+// @route   GET /api/parliament-candidates/winning-party-by-parliament
+// @access  Public
+const Parliament = require('../models/Parliament');
+const Party = require('../models/party');
+const Year = require('../models/electionYear');
+exports.getWinningPartyByParliament = async (req, res, next) => {
+  try {
+    let yearId = req.query.year_id;
+    let yearDoc = null;
+    if (yearId) {
+      yearDoc = await Year.findById(yearId);
+      if (!yearDoc) {
+        return res.status(404).json({ success: false, message: 'Year not found' });
+      }
+    } else {
+      // Find latest year in ParliamentCandidate
+      const latest = await ParliamentCandidate.findOne().sort({ election_year_id: -1 }).populate('election_year_id', 'year');
+      if (latest && latest.election_year_id) {
+        yearId = latest.election_year_id._id;
+        yearDoc = latest.election_year_id;
+      }
+    }
+    if (!yearId) {
+      return res.status(404).json({ success: false, message: 'No year data found' });
+    }
+
+    // For each parliament, find the candidate with position_result: 'win' for that year
+    const winners = await ParliamentCandidate.find({
+      election_year_id: yearId,
+      position_result: 'win'
+    })
+      .populate('parliament_id', 'name')
+      .populate('party_id', 'name color symbol')
+      .populate('candidate_id', 'name');
+
+    // Map parliament_id to winner info
+    const result = winners.map(w => ({
+      parliament_id: w.parliament_id?._id,
+      parliament_name: w.parliament_id?.name,
+      party_id: w.party_id?._id,
+      party_name: w.party_id?.name,
+      party_color: w.party_id?.color,
+      party_symbol: w.party_id?.symbol,
+      candidate_id: w.candidate_id?._id,
+      candidate_name: w.candidate_id?.name,
+      margin: w.margin,
+      margin_percentage: w.margin_percentage,
+      total_votes: w.total_votes_parliament,
+      year: yearDoc?.year || null
+    }));
+
+    res.status(200).json({
+      success: true,
+      year: yearDoc?.year || null,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 const ParliamentCandidate = require('../models/ParliamentCandidate');
 
 // @desc    Get all Parliament Candidates
@@ -134,6 +195,15 @@ exports.createParliamentCandidate = async (req, res, next) => {
       created_by: req.user.id,
     };
 
+    // Ensure margin is numeric and compute margin_percentage if not provided
+    candidateData.margin = Number(candidateData.margin) || 0;
+    const total = Number(candidateData.total_votes_parliament) || 0;
+    if (!candidateData.margin_percentage) {
+      candidateData.margin_percentage = total > 0 ? parseFloat((Math.abs(candidateData.margin) / total).toFixed(6)) : 0;
+    } else {
+      candidateData.margin_percentage = Number(candidateData.margin_percentage) || 0;
+    }
+
     const candidate = await ParliamentCandidate.create(candidateData);
     
     // Populate the created candidate
@@ -180,6 +250,15 @@ exports.updateParliamentCandidate = async (req, res, next) => {
       ...req.body,
       updated_by: req.user.id,
     };
+
+    // Normalize numeric fields and compute margin_percentage if needed
+    updateData.margin = Number(updateData.margin) || 0;
+    const total = Number(updateData.total_votes_parliament) || 0;
+    if (!updateData.margin_percentage) {
+      updateData.margin_percentage = total > 0 ? parseFloat((Math.abs(updateData.margin) / total).toFixed(6)) : 0;
+    } else {
+      updateData.margin_percentage = Number(updateData.margin_percentage) || 0;
+    }
 
     candidate = await ParliamentCandidate.findByIdAndUpdate(req.params.id, updateData, {
       new: true,

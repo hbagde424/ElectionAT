@@ -42,6 +42,13 @@ const parliamentCandidateSchema = new mongoose.Schema({
     required: true,
     default: 0
   },
+  // Margin as a decimal fraction (e.g. 0.03 for 3%)
+  margin_percentage: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -90,6 +97,25 @@ parliamentCandidateSchema.pre('save', function (next) {
     // For losing candidates, margin is typically negative or the difference they lost by
     this.margin = this.candidate_votes - (this.total_votes_parliament - this.candidate_votes);
   }
+  next();
+});
+
+// Calculate margin_percentage before save
+parliamentCandidateSchema.pre('save', function (next) {
+  try {
+    const total = Number(this.total_votes_parliament) || 0;
+    const marginValue = Number(this.margin) || 0;
+
+    if (total > 0) {
+      // Store as decimal fraction (e.g., 0.03 = 3%)
+      this.margin_percentage = parseFloat((Math.abs(marginValue) / total).toFixed(6));
+    } else {
+      this.margin_percentage = 0;
+    }
+  } catch (e) {
+    this.margin_percentage = 0;
+  }
+
   next();
 });
 

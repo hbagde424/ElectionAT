@@ -23,7 +23,8 @@ export default function ParliamentCandidateModal({
         position_result: 'win',
         total_votes_parliament: '',
         candidate_votes: '',
-        margin: ''
+        margin: '',
+        margin_percentage: '' // stored/displayed as percent string (e.g., '3.00' for 3%)
     });
     
     const [submitted, setSubmitted] = useState(false);
@@ -92,7 +93,8 @@ export default function ParliamentCandidateModal({
                 position_result: candidate.position_result || 'win',
                 total_votes_parliament: candidate.total_votes_parliament || '',
                 candidate_votes: candidate.candidate_votes || '',
-                margin: candidate.margin || ''
+                margin: candidate.margin || '',
+                margin_percentage: candidate.margin_percentage ? ((Number(candidate.margin_percentage) * 100).toFixed(2)) : ''
             });
         } else {
             setFormData({
@@ -103,7 +105,8 @@ export default function ParliamentCandidateModal({
                 position_result: 'win',
                 total_votes_parliament: '',
                 candidate_votes: '',
-                margin: ''
+                margin: '',
+                margin_percentage: ''
             });
         }
     }, [candidate]);
@@ -156,6 +159,15 @@ export default function ParliamentCandidateModal({
         }
     };
 
+    const calculateMarginPercentageString = (marginValue, totalVotes) => {
+        const total = Number(totalVotes) || 0;
+        const marginNum = Number(marginValue) || 0;
+        if (total > 0) {
+            return ((Math.abs(marginNum) / total) * 100).toFixed(2);
+        }
+        return '0.00';
+    };
+
     const handleSubmit = async () => {
         setSubmitted(true);
 
@@ -190,12 +202,17 @@ export default function ParliamentCandidateModal({
             marginValue = calculateMargin();
         }
 
+        // Calculate margin percentage string (for display) and decimal (for API)
+        const marginPercentStr = calculateMarginPercentageString(marginValue, formData.total_votes_parliament);
+        const marginPercentDecimal = parseFloat((Number(marginPercentStr) / 100).toFixed(6));
+
         const submitData = {
             ...formData,
             ...userTracking,
             total_votes_parliament: parseInt(formData.total_votes_parliament),
             candidate_votes: parseInt(formData.candidate_votes),
-            margin: parseInt(marginValue) || 0
+            margin: parseInt(marginValue) || 0,
+            margin_percentage: marginPercentDecimal
         };
 
         try {
@@ -425,6 +442,23 @@ export default function ParliamentCandidateModal({
                                 type="number"
                                 placeholder="Auto-calculated if empty"
                                 helperText="Leave empty to auto-calculate based on votes"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Margin Percentage (read-only) */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Margin %</InputLabel>
+                            <TextField
+                                name="margin_percentage"
+                                value={formData.margin_percentage || (formData.margin ? calculateMarginPercentageString(formData.margin, formData.total_votes_parliament) : '')}
+                                onChange={handleChange}
+                                fullWidth
+                                type="text"
+                                placeholder="Auto-calculated"
+                                InputProps={{ readOnly: true }}
+                                helperText="Displayed as percentage (e.g., 3.00 for 3%)"
                             />
                         </Stack>
                     </Grid>

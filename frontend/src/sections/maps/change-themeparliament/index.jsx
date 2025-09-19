@@ -50,8 +50,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
       try {
         setLoading(true);
         const [assemblyResponse, candidatesResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`),
-          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`)
+           fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons`),
+          fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?all=true`)
         ]);
         if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');
         if (!candidatesResponse.ok) throw new Error('Failed to fetch candidates data');
@@ -79,11 +79,11 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         candidatesData.data.forEach(candidate => {
           const acNo = candidate.assembly_id?.AC_NO;
           let yearVal = '';
-          if (candidate.year_id) {
-            if (typeof candidate.year_id === 'object' && candidate.year_id.year) {
-              yearVal = candidate.year_id.year.toString();
-            } else if (typeof candidate.year_id === 'number' || typeof candidate.year_id === 'string') {
-              yearVal = candidate.year_id.toString();
+          if (candidate.election_year_id) {
+            if (typeof candidate.election_year_id === 'object' && candidate.election_year_id.year) {
+              yearVal = candidate.election_year_id.year.toString();
+            } else if (typeof candidate.election_year_id === 'number' || typeof candidate.election_year_id === 'string') {
+              yearVal = candidate.election_year_id.toString();
             }
           }
           if (acNo && yearVal) {
@@ -145,19 +145,17 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         newFeature.properties.winningParty = candidate.party_id?.name || 'Unknown';
         newFeature.properties.winningCandidate = candidate.name || candidate.candidate_id?.name || 'Unknown';
         newFeature.properties.margin = candidate.margin || 'N/A';
-        newFeature.properties.total_votes = candidate.total_votes || 'N/A';
-        newFeature.properties.electionYear =
-          (candidate.year_id && typeof candidate.year_id === 'object' && candidate.year_id.year)
-            ? candidate.year_id.year
-            : (typeof candidate.year_id === 'number' || typeof candidate.year_id === 'string')
-              ? candidate.year_id
+        newFeature.properties.election_election_year_id =
+          (candidate.election_year_id && typeof candidate.election_year_id === 'object' && candidate.election_year_id.year)
+            ? candidate.election_year_id.year
+            : (typeof candidate.election_year_id === 'number' || typeof candidate.election_year_id === 'string')
+              ? candidate.election_year_id
               : 'N/A';
       } else {
         newFeature.properties.winningParty = 'Unknown';
         newFeature.properties.winningCandidate = 'Unknown';
         newFeature.properties.margin = 'N/A';
-        newFeature.properties.total_votes = 'N/A';
-        newFeature.properties.electionYear = 'N/A';
+        newFeature.properties.election_election_year_id = 'N/A';
       }
       return newFeature;
     });
@@ -182,7 +180,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
       const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
       const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
       // Fix: Compare year as string, and only match if filter is not 'all'
-      const yearValue = feature.properties?.electionYear?.toString();
+      const yearValue = feature.properties?.election_election_year_id?.toString();
       const filterYear = filters.year?.toString();
       const yearMatch = filterYear === 'all' || yearValue === filterYear;
       return pcMatch && partyMatch && yearMatch;
@@ -262,7 +260,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         </Box>
       </Box>
 
-      /* Map Section */
+      {/* Map Section */}
       <Box sx={{ width: '100%', height: 'calc(100% - 64px)', position: 'relative' }}>
         <Map
           ref={mapRef}
@@ -339,6 +337,29 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                   'text-halo-width': 2
                 }}
               />
+              {/* Party name labels: show which party won each polygon (hide Unknown/N/A/empty) */}
+              <Layer
+                id="party-labels"
+                type="symbol"
+                // Only show labels when winningParty is present and not Unknown/N/A
+                filter={[
+                  'all',
+                  ['!=', ['get', 'winningParty'], 'Unknown'],
+                  ['!=', ['get', 'winningParty'], 'N/A'],
+                  ['!=', ['get', 'winningParty'], '']
+                ]}
+                layout={{
+                  'text-field': ['get', 'winningParty'],
+                  'text-size': 11,
+                  'text-allow-overlap': true,
+                  'text-anchor': 'center'
+                }}
+                paint={{
+                  'text-color': '#ffffff',
+                  'text-halo-color': '#000000',
+                  'text-halo-width': 1
+                }}
+              />
             </Source>
           )}
 
@@ -369,98 +390,71 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                 </div>
                 <div style={{ marginTop: '8px' }}>
                   <p><strong>Winning Candidate:</strong> {popupInfo.properties.winningCandidate || 'Unknown'}</p>
-                  <p><strong>Margin:</strong> {popupInfo.properties.margin || 'N/A'}</p>
-                  <p><strong>Total Votes:</strong> {popupInfo.properties.total_votes || 'N/A'}</p>
-                  <p><strong>Election Year:</strong> {popupInfo.properties.electionYear || 'N/A'}</p>
-                  <p><strong>AC Number:</strong> {popupInfo.properties.AC_NO || 'N/A'}</p>
+                  <p><strong>Margin:</strong> {popupInfo.properties.margin ?? 'N/A'}</p>
+                  <p><strong>Margin %:</strong> {popupInfo.properties.margin_percentage !== undefined && popupInfo.properties.margin_percentage !== null ? `${(popupInfo.properties.margin_percentage * 100).toFixed(2)}%` : 'N/A'}</p>
+                  <p><strong>Candidate Votes:</strong> {popupInfo.properties.candidate_votes ?? 'N/A'}</p>
+                  <p><strong>Total Votes (PC):</strong> {popupInfo.properties.total_votes_parliament ?? 'N/A'}</p>
+                  <p><strong>Election Year:</strong> {popupInfo.properties.election_election_year_id || 'N/A'}</p>
+                  <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'}</p>
                   <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
                   <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
-                </div>
-                {/* Last 3 years winning party names */}
-                <div style={{ marginTop: '12px' }}>
-                  <strong>Last 3 Years Winning Parties:</strong>
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {(() => {
-                      // Find AC_NO for this popup
-                      const acNo = popupInfo.properties.AC_NO;
-                      // Get all years for this AC_NO from winningCandidates
-                      let years = [];
-                      if (acNo && winningCandidates && winningCandidates[acNo]) {
-                        years = Object.keys(winningCandidates[acNo])
-                          .map(y => y.toString())
-                          .sort((a, b) => b.localeCompare(a)); // Descending
-                      }
-                      // Take last 3 years
-                      const last3Years = years.slice(0, 3);
-                      return last3Years.length > 0 ? last3Years.map(year => {
-                        const candidate = winningCandidates[acNo][year];
-                        return (
-                          <li key={year}>
-                            {year}: {candidate?.party_id?.name || 'Unknown'}
-                          </li>
-                        );
-                      }) : <li>No data</li>;
-                    })()}
-                  </ul>
+                  <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p>
                 </div>
               </div>
             </Popup>
           )}
-        </Map>
-        <ControlPanel themes={themes} selectTheme={selectTheme} onChangeTheme={handleChangeTheme} />
-
-        {/* Loading Indicator */}
-        {loading && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 1000,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center'
-            }}
-          >
-            <CircularProgress size={60} thickness={4} />
-            <Typography variant="body1" sx={{ mt: 2 }}>Loading Data...</Typography>
-          </Box>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 20,
-              left: 20,
-              zIndex: 1000,
-              backgroundColor: 'rgba(255, 0, 0, 0.2)',
-              padding: 2,
-              borderRadius: 1,
-              maxWidth: '50%'
-            }}
-          >
-            <Typography color="error" variant="body1">
-              Error: {error}
-            </Typography>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                marginTop: '8px',
-                padding: '4px 8px',
-                backgroundColor: '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+          {loading && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
               }}
             >
-              Reload Page
-            </button>
-          </Box>
-        )}
+              <CircularProgress size={60} thickness={4} />
+              <Typography variant="body1" sx={{ mt: 2 }}>Loading Data...</Typography>
+            </Box>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 20,
+                left: 20,
+                zIndex: 1000,
+                backgroundColor: 'rgba(255, 0, 0, 0.2)',
+                padding: 2,
+                borderRadius: 1,
+                maxWidth: '50%'
+              }}
+            >
+              <Typography color="error" variant="body1">
+                Error: {error}
+              </Typography>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  marginTop: '8px',
+                  padding: '4px 8px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Reload Page
+              </button>
+            </Box>
+          )}
+        </Map>
       </Box>
     </Box>
   );

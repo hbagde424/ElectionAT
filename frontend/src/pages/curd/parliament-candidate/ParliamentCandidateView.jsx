@@ -42,6 +42,22 @@ export default function ParliamentCandidateView({ data, onClose }) {
         return '0';
     };
 
+    const getMarginPercentDecimal = () => {
+        // Use stored decimal fraction if present, otherwise compute
+        const possible = [data.margin_percentage, data.marginPercent, data.margin_percent, data.marginPercentage];
+        for (const v of possible) {
+            if (v !== undefined && v !== null && v !== '') {
+                const num = Number(v);
+                if (!isNaN(num)) return num;
+            }
+        }
+
+        const margin = Number(data.margin) || 0;
+        const total = Number(data.total_votes_parliament) || 0;
+        if (total > 0) return Math.abs(margin) / total;
+        return 0;
+    };
+
     return (
         <>
             <DialogTitle>
@@ -226,6 +242,22 @@ export default function ParliamentCandidateView({ data, onClose }) {
                                             fontWeight="bold"
                                         >
                                             {data.margin > 0 ? '+' : ''}{formatNumber(data.margin)}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Box sx={{ 
+                                        p: 2, 
+                                        bgcolor: 'background.default', 
+                                        borderRadius: 1,
+                                        textAlign: 'center'
+                                    }}>
+                                        <Typography variant="subtitle2" color="text.secondary" mb={1}>
+                                            Margin %
+                                        </Typography>
+                                        <Typography variant="h4" color="text.primary" fontWeight="bold">
+                                            {`${(getMarginPercentDecimal() * 100).toFixed(2)}%`}
                                         </Typography>
                                     </Box>
                                 </Grid>
