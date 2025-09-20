@@ -6,7 +6,8 @@ const {
   updateGender,
   deleteGender,
   getGendersByBooth,
-  getGendersByState
+  getGendersByState,
+  getGenderStatsForMap
 } = require('../controllers/genderController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -265,6 +266,50 @@ router.get('/booth/:boothId', getGendersByBooth);
  *         description: State not found
  */
 router.get('/state/:stateId', getGendersByState);
+
+/**
+ * @swagger
+ * /api/genders/stats/{type}/{id}:
+ *   get:
+ *     summary: Get aggregated gender statistics for map hover functionality
+ *     tags: [Genders]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [assembly, parliament, booth]
+ *         description: Type of geographic area
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the geographic area
+ *     responses:
+ *       200:
+ *         description: Gender statistics for the specified area
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     male:
+ *                       type: number
+ *                     female:
+ *                       type: number
+ *                     others:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ */
+router.get('/stats/:type/:id', getGenderStatsForMap);
 
 /**
  * @swagger

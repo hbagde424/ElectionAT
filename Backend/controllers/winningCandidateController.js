@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const WinningCandidate = require('../models/winningCandidate');
 const State = require('../models/state');
@@ -1010,6 +1009,67 @@ exports.getPartyAssemblyCountByYear = async (req, res, next) => {
         party_color: r.party_id?.color || null,
         assembly_count: r.assembly_count
       }))
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get winning candidate stats for map hover (assembly/parliament)
+// @route   GET /api/winning-candidates/stats/:type/:id
+// @access  Public
+exports.getWinningCandidateStatsForMap = async (req, res, next) => {
+  try {
+    const { type, id } = req.params;
+    let query = {};
+
+    // Validate type
+    const validTypes = ['assembly', 'parliament'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid type. Must be assembly or parliament'
+      });
+    }
+
+    // Set query based on type
+    switch (type) {
+      case 'assembly':
+        query.assembly_id = id;
+        break;
+      case 'parliament':
+        query.parliament_id = id;
+        break;
+    }
+
+    // Get the most recent winning candidate (by year)
+    const latestWinner = await WinningCandidate.findOne(query)
+      .sort({ 'year_id': -1 }) // Sort by year descending to get latest
+      .populate('party_id', 'name')
+      .populate('year_id', 'year')
+      .limit(1);
+
+    // Also get total votes aggregated
+    const voteStats = await WinningCandidate.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalVotes: { $sum: '$total_votes' },
+          latestYear: { $max: '$year_id' }
+        }
+      }
+    ]);
+
+    const result = {
+      totalVotes: voteStats.length > 0 ? voteStats[0].totalVotes : 0,
+      last3YearWinner: latestWinner ? latestWinner.party_id?.name || 'N/A' : 'N/A',
+      latestElectionYear: latestWinner ? latestWinner.year_id?.year || 'N/A' : 'N/A'
+    };
+
+    res.status(200).json({
+      success: true,
+      data: result
     });
   } catch (err) {
     next(err);

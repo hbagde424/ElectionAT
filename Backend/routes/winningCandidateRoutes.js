@@ -1,6 +1,3 @@
-
-
-
 const express = require('express');
 const {
   getWinningCandidates,
@@ -14,7 +11,8 @@ const {
   getWinningCandidatesByParty,
   getCandidatesByAssemblyAndYear,
   getPartyAssemblyCountByYear,
-  predictWinningPartyForNextYear
+  predictWinningPartyForNextYear,
+  getWinningCandidateStatsForMap
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -589,6 +587,48 @@ router.get('/party/:partyId', getWinningCandidatesByParty);
  *         description: Assembly, year or candidates not found
  */
 router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
+
+/**
+ * @swagger
+ * /api/winning-candidates/stats/{type}/{id}:
+ *   get:
+ *     summary: Get winning candidate statistics for map hover functionality
+ *     tags: [WinningCandidates]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [assembly, parliament]
+ *         description: Type of geographic area
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the geographic area
+ *     responses:
+ *       200:
+ *         description: Winning candidate statistics for the specified area
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalVotes:
+ *                       type: number
+ *                     last3YearWinner:
+ *                       type: string
+ *                     latestElectionYear:
+ *                       type: string
+ */
+router.get('/stats/:type/:id', getWinningCandidateStatsForMap);
 
 /**
  * @swagger

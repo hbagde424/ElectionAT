@@ -44,40 +44,39 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
   const [availableYears, setAvailableYears] = useState([]);
   const mapRef = useRef(null);
 
-  // Initial data fetch (assembly polygons and all candidates)
+  // Initial data fetch (parliament polygons and all parliament candidates)
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [assemblyResponse, candidatesResponse] = await Promise.all([
-           fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons`),
+        const [polyResponse, candidatesResponse] = await Promise.all([
+          fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons`),
           fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?all=true`)
         ]);
-        if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');
-        if (!candidatesResponse.ok) throw new Error('Failed to fetch candidates data');
-        const assemblyData = await assemblyResponse.json();
+        if (!polyResponse.ok) throw new Error('Failed to fetch parliament polygons');
+        if (!candidatesResponse.ok) throw new Error('Failed to fetch parliament candidates');
+        const polyData = await polyResponse.json();
         const candidatesData = await candidatesResponse.json();
-
-        // Normalize the assembly API response structure
+        // Normalize the parliament polygons API response structure
         let features = [];
-        if (assemblyData.features) {
-          features = assemblyData.features;
-        } else if (assemblyData.data?.[0]?.features) {
-          features = assemblyData.data[0].features;
-        } else if (Array.isArray(assemblyData) && assemblyData[0]?.features) {
-          features = assemblyData[0].features;
+        if (polyData.features) {
+          features = polyData.features;
+        } else if (polyData.data?.[0]?.features) {
+          features = polyData.data[0].features;
+        } else if (Array.isArray(polyData) && polyData[0]?.features) {
+          features = polyData[0].features;
         }
         if (features.length === 0) {
-          throw new Error('No assembly features found in response');
+          throw new Error('No parliament features found in response');
         }
 
-        // Process winning candidates data
+        // Process winning candidates data by PC_NO
         const winningParties = new Set();
-        const candidatesByAcNo = {}; // { [acNo]: { [year]: candidate } }
+        const candidatesByPcNo = {}; // { [pcNo]: { [year]: candidate } }
         const yearsSet = new Set();
 
         candidatesData.data.forEach(candidate => {
-          const acNo = candidate.assembly_id?.AC_NO;
+          const pcNo = candidate.parliament_id?.PC_NO;
           let yearVal = '';
           if (candidate.election_year_id) {
             if (typeof candidate.election_year_id === 'object' && candidate.election_year_id.year) {
@@ -86,9 +85,9 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
               yearVal = candidate.election_year_id.toString();
             }
           }
-          if (acNo && yearVal) {
-            if (!candidatesByAcNo[acNo]) candidatesByAcNo[acNo] = {};
-            candidatesByAcNo[acNo][yearVal] = candidate;
+          if (pcNo && yearVal) {
+            if (!candidatesByPcNo[pcNo]) candidatesByPcNo[pcNo] = {};
+            candidatesByPcNo[pcNo][yearVal] = candidate;
             if (candidate.party_id?.name) {
               winningParties.add(candidate.party_id.name);
             }
@@ -111,7 +110,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
           type: 'FeatureCollection',
           features: features
         });
-        setWinningCandidates(candidatesByAcNo);
+        setWinningCandidates(candidatesByPcNo);
       } catch (err) {
         console.error('Data loading error:', err);
         setError(err.message);
@@ -122,22 +121,22 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
     fetchData();
   }, [selectedYear]);
 
-  // Update assemblyData features with winning info for selected year filter
+  // Update parliamentData features with winning info for selected year filter (by PC_NO)
   useEffect(() => {
     if (!assemblyData || !winningCandidates) return;
     // Deep copy features to avoid mutating state directly
     const features = assemblyData.features.map(feature => {
-      const acNo = feature.properties?.AC_NO;
+      const pcNo = feature.properties?.PC_NO;
       let yearKey = (filters?.year || '').toString();
       if (yearKey === '' || yearKey === 'all') {
-        if (winningCandidates[acNo]) {
-          const allYears = Object.keys(winningCandidates[acNo]);
+        if (winningCandidates[pcNo]) {
+          const allYears = Object.keys(winningCandidates[pcNo]);
           yearKey = allYears.length > 0 ? allYears.sort().reverse()[0] : '';
         }
       }
       let candidate = null;
-      if (acNo && winningCandidates[acNo] && yearKey && winningCandidates[acNo][yearKey]) {
-        candidate = winningCandidates[acNo][yearKey];
+      if (pcNo && winningCandidates[pcNo] && yearKey && winningCandidates[pcNo][yearKey]) {
+        candidate = winningCandidates[pcNo][yearKey];
       }
       // Clone feature
       const newFeature = { ...feature, properties: { ...feature.properties } };
@@ -151,11 +150,19 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
             : (typeof candidate.election_year_id === 'number' || typeof candidate.election_year_id === 'string')
               ? candidate.election_year_id
               : 'N/A';
+        newFeature.properties.margin_percentage = candidate.margin_percentage ?? null;
+        newFeature.properties.candidate_votes = candidate.candidate_votes ?? null;
+        newFeature.properties.total_votes_parliament = candidate.total_votes_parliament ?? null;
+        newFeature.properties.position_result = candidate.position_result ?? null;
       } else {
         newFeature.properties.winningParty = 'Unknown';
         newFeature.properties.winningCandidate = 'Unknown';
         newFeature.properties.margin = 'N/A';
         newFeature.properties.election_election_year_id = 'N/A';
+        newFeature.properties.margin_percentage = null;
+        newFeature.properties.candidate_votes = null;
+        newFeature.properties.total_votes_parliament = null;
+        newFeature.properties.position_result = null;
       }
       return newFeature;
     });
@@ -173,13 +180,14 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
     });
   };
 
+  // Filter parliament polygons by PC_NAME, party, and year
   const getFilteredData = () => {
     if (!assemblyData) return null;
 
     const filteredFeatures = assemblyData.features.filter(feature => {
       const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
       const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
-      // Fix: Compare year as string, and only match if filter is not 'all'
+      // Compare year as string, and only match if filter is not 'all'
       const yearValue = feature.properties?.election_election_year_id?.toString();
       const filterYear = filters.year?.toString();
       const yearMatch = filterYear === 'all' || yearValue === filterYear;
@@ -374,7 +382,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
             >
               <div style={{ minWidth: '220px', padding: '8px' }}>
                 <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>
-                  {popupInfo.properties.AC_NAME || 'Assembly Constituency'}
+                  {popupInfo.properties.PC_NAME || 'Parliament Constituency'}
                 </h4>
                 <div style={{
                   display: 'flex',
@@ -400,6 +408,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                   <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
                   <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p>
                 </div>
+// NOTE: This component matches parliament candidate data to polygons by PC_NO, not AC_NO. The map and popups show winning party/candidate for each parliament constituency (PC) using PC_NO as the key. If no candidate is found for a PC_NO/year, fallback values are shown.
               </div>
             </Popup>
           )}

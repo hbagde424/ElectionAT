@@ -30,14 +30,16 @@ exports.getWinningPartyByParliament = async (req, res, next) => {
       election_year_id: yearId,
       position_result: 'win'
     })
-      .populate('parliament_id', 'name')
+      .populate({
+        path: 'parliament_id',
+        // Populate all fields of parliament
+      })
       .populate('party_id', 'name color symbol')
       .populate('candidate_id', 'name');
 
     // Map parliament_id to winner info
     const result = winners.map(w => ({
-      parliament_id: w.parliament_id?._id,
-      parliament_name: w.parliament_id?.name,
+      parliament: w.parliament_id, // full parliament object
       party_id: w.party_id?._id,
       party_name: w.party_id?.name,
       party_color: w.party_id?.color,
@@ -73,8 +75,12 @@ exports.getParliamentCandidates = async (req, res, next) => {
 
     // Build query
     let query = ParliamentCandidate.find()
-      .populate('candidate_id', 'name')
-      .populate('parliament_id', 'name')
+      .populate('candidate_id', 'name ')
+      // .populate('parliament_id', 'name parliament_no election_year_id')
+       .populate({
+        path: 'parliament_id',
+        // Populate all fields of parliament
+      })
       .populate('election_year_id', 'year')
       .populate('party_id', 'name')
       .populate('created_by', 'username')
@@ -205,7 +211,7 @@ exports.createParliamentCandidate = async (req, res, next) => {
     }
 
     const candidate = await ParliamentCandidate.create(candidateData);
-    
+
     // Populate the created candidate
     await candidate.populate([
       { path: 'candidate_id', select: 'name' },
@@ -313,7 +319,7 @@ exports.getParliamentCandidateStats = async (req, res, next) => {
     const totalCandidates = await ParliamentCandidate.countDocuments();
     const winningCandidates = await ParliamentCandidate.countDocuments({ position_result: 'win' });
     const losingCandidates = await ParliamentCandidate.countDocuments({ position_result: 'loss' });
-    
+
     // Get results by party
     const resultsByParty = await ParliamentCandidate.aggregate([
       {
@@ -352,7 +358,7 @@ exports.getParliamentCandidateStats = async (req, res, next) => {
         }
       }
     ]);
-    
+
     res.status(200).json({
       success: true,
       data: {

@@ -16,6 +16,22 @@ const customStyles = `
         text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
         font-size: 14px;
     }
+    .custom-popup .leaflet-popup-content-wrapper {
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .custom-popup .leaflet-popup-content {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .custom-popup .leaflet-popup-tip {
+        background-color: white;
+    }
 `;
 
 
@@ -28,6 +44,7 @@ function HierarchicalMap({ onRegionClick }) {
     const [navigationHistory, setNavigationHistory] = useState([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
+    const [hoverData, setHoverData] = useState({}); // Store fetched data for hover
 
     // Function to handle fullscreen toggle
     const toggleFullscreen = () => {
@@ -59,24 +76,28 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
-    // Listen for fullscreen changes
+    // Update popup content when hover data changes
     useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
+        if (currentLayerRef.current) {
+            currentLayerRef.current.eachLayer((layer) => {
+                if (layer._popup && layer.feature) {
+                    const feature = layer.feature;
+                    const level = currentLevel;
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+                    // Create consistent cache key for this feature
+                    let cacheKey;
+                    if (level === 'parliamentary') {
+                        cacheKey = `${level}_${feature.properties.pcNo}`;
+                    } else {
+                        cacheKey = `${level}_${feature.properties.id}`;
+                    }
 
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-        };
-    }, []);
+                    const newContent = generatePopupContent(feature, level);
+                    layer.setPopupContent(newContent);
+                }
+            });
+        }
+    }, [hoverData, currentLevel]);
 
 
 
@@ -161,35 +182,35 @@ function HierarchicalMap({ onRegionClick }) {
         // Simple one-step back navigation with better property handling
         switch (currentLevel) {
             case 'booth':
-                const blockAcNo = selectedFeature?.properties?.acNo || 
-                                selectedFeature?.properties?.AC_NO || 
-                                'AC001';
+                const blockAcNo = selectedFeature?.properties?.acNo ||
+                    selectedFeature?.properties?.AC_NO ||
+                    'AC001';
                 loadBlockData(blockAcNo);
                 setCurrentLevel('block');
                 break;
             case 'block':
-                const assemblyPcNo = selectedFeature?.properties?.pcNo || 
-                                   selectedFeature?.properties?.PC_NO ||
-                                   selectedFeature?.properties?.acNo || 
-                                   selectedFeature?.properties?.AC_NO ||
-                                   'PC001';
+                const assemblyPcNo = selectedFeature?.properties?.pcNo ||
+                    selectedFeature?.properties?.PC_NO ||
+                    selectedFeature?.properties?.acNo ||
+                    selectedFeature?.properties?.AC_NO ||
+                    'PC001';
                 loadAssemblyData(assemblyPcNo);
                 setCurrentLevel('assembly');
                 break;
             case 'assembly':
-                const parliamentName = selectedFeature?.properties?.pcName || 
-                                     selectedFeature?.properties?.PC_NAME ||
-                                     selectedFeature?.properties?.divisionName ||
-                                     selectedFeature?.properties?.DIVISION_NAME ||
-                                     'Default';
+                const parliamentName = selectedFeature?.properties?.pcName ||
+                    selectedFeature?.properties?.PC_NAME ||
+                    selectedFeature?.properties?.divisionName ||
+                    selectedFeature?.properties?.DIVISION_NAME ||
+                    'Default';
                 loadParliamentaryData(parliamentName);
                 setCurrentLevel('parliamentary');
                 break;
             case 'parliamentary':
-                const divisionName = selectedFeature?.properties?.divisionName || 
-                                   selectedFeature?.properties?.DIVISION_NAME ||
-                                   selectedFeature?.properties?.ST_NAME || 
-                                   'madhya-pradesh';
+                const divisionName = selectedFeature?.properties?.divisionName ||
+                    selectedFeature?.properties?.DIVISION_NAME ||
+                    selectedFeature?.properties?.ST_NAME ||
+                    'madhya-pradesh';
                 loadDivisionData(divisionName);
                 setCurrentLevel('division');
                 break;
@@ -733,7 +754,11 @@ function HierarchicalMap({ onRegionClick }) {
 
                 // Add popup with details
                 const content = generatePopupContent(feature, level);
-                layer.bindPopup(content);
+                layer.bindPopup(content, {
+                    autoPan: false,
+                    closeButton: false,
+                    className: 'custom-popup'
+                });
 
                 // Click handler for drill-down
                 layer.on('click', () => handleLayerClick(feature, level));
@@ -747,6 +772,39 @@ function HierarchicalMap({ onRegionClick }) {
                             color: '#666',
                             fillOpacity: 0.3
                         });
+
+                        // Fetch data for hover popup
+                        const featureId = feature.properties.id;
+
+                        // Create consistent cache key that matches how data is stored
+                        let cacheKey;
+                        if (level === 'parliamentary') {
+                            cacheKey = `${level}_${feature.properties.pcNo}`;
+                        } else {
+                            cacheKey = `${level}_${featureId}`;
+                        }
+
+                        // Fetch gender data for assembly, parliament, booth
+                        if (level === 'assembly' || level === 'parliament' || level === 'booth') {
+                            const genderType = level === 'booth' ? 'booth' : level;
+                            const genderId = level === 'assembly' ? feature.properties.id :
+                                           level === 'parliament' ? feature.properties.pcNo :
+                                           feature.properties.id;
+
+                            if (genderId && !hoverData[cacheKey]?.gender) {
+                                fetchGenderData(genderType, genderId);
+                            }
+                        }
+
+                        // Fetch winning candidate data for assembly and parliament
+                        if (level === 'assembly' || level === 'parliament') {
+                            const winnerId = level === 'assembly' ? feature.properties.id : feature.properties.pcNo;
+
+                            if (winnerId && !hoverData[cacheKey]?.winner) {
+                                fetchWinningCandidateData(level, winnerId);
+                            }
+                        }
+
                         // Show popup on hover
                         layer.openPopup();
                     },
@@ -761,6 +819,48 @@ function HierarchicalMap({ onRegionClick }) {
 
         // Fit bounds to show all features
         mapInstanceRef.current.fitBounds(currentLayerRef.current.getBounds());
+    };
+
+    // Function to fetch gender data for hover
+    const fetchGenderData = async (type, id) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders/stats/${type}/${id}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    setHoverData(prev => ({
+                        ...prev,
+                        [`${type}_${id}`]: {
+                            ...prev[`${type}_${id}`],
+                            gender: data.data
+                        }
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching gender data:', error);
+        }
+    };
+
+    // Function to fetch winning candidate data for hover
+    const fetchWinningCandidateData = async (type, id) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/stats/${type}/${id}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    setHoverData(prev => ({
+                        ...prev,
+                        [`${type}_${id}`]: {
+                            ...prev[`${type}_${id}`],
+                            winner: data.data
+                        }
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching winning candidate data:', error);
+        }
     };
 
     const handleLayerClick = (feature, level) => {
@@ -818,6 +918,18 @@ function HierarchicalMap({ onRegionClick }) {
 
     const generatePopupContent = (feature, level) => {
         const properties = feature.properties;
+        const featureId = properties.id;
+
+        // Create consistent cache key that matches how data is stored
+        let cacheKey;
+        if (level === 'parliamentary') {
+            cacheKey = `${level}_${properties.pcNo}`;
+        } else {
+            cacheKey = `${level}_${featureId}`;
+        }
+
+        const data = hoverData[cacheKey] || {};
+
         let content = `<div>
             <h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || properties.name || ''}</h4>`;
 
@@ -855,6 +967,13 @@ function HierarchicalMap({ onRegionClick }) {
                     <p><strong>Assembly Seats:</strong> ${properties.assemblySeats || ''}</p>
                     <p><strong>VS Code:</strong> ${properties.vsCode || ''}</p>
                     <p><strong>Last Election Year:</strong> ${properties.lastElectionYear || ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Seat Reservation Detail:</strong> ${properties.seatReservation || properties.category || 'N/A'}</p>
+                        <p><strong>Male Count:</strong> ${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Female Count:</strong> ${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Last 3 Year Winner Party Name:</strong> ${data.winner?.last3YearWinner || properties.winner || 'N/A'}</p>
+                    </div>
                     <hr style="margin: 10px 0">
                     <p style="font-size: 0.9em; color: #666;">Click to view Assembly Constituencies</p>`;
                 break;
@@ -865,6 +984,13 @@ function HierarchicalMap({ onRegionClick }) {
                     <p><strong>Parliamentary:</strong> ${properties.pcName || ''}</p>
                     <p><strong>Category:</strong> ${properties.category || ''}</p>
                     <p><strong>Total Voters:</strong> ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVotes ? Number(properties.totalVotes).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Seat Reservation Detail:</strong> ${properties.seatReservation || properties.category || 'N/A'}</p>
+                        <p><strong>Male Count:</strong> ${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Female Count:</strong> ${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Last 3 Year Winner Party Name:</strong> ${data.winner?.last3YearWinner || properties.winner || 'N/A'}</p>
+                    </div>
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
                         <p><strong>Last Election (${properties.lastElectionYear || ''}):</strong></p>
                         <p>Winner: ${properties.winner || ''}</p>
@@ -897,6 +1023,13 @@ function HierarchicalMap({ onRegionClick }) {
                     <p><strong>Booth No:</strong> ${properties.boothNo || ''}</p>
                     <p><strong>Block:</strong> ${properties.blockName || ''}</p>
                     <p><strong>Location:</strong> ${properties.location || ''}</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Seat Reservation Detail:</strong> ${properties.seatReservation || 'N/A'}</p>
+                        <p><strong>Male Count:</strong> ${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Female Count:</strong> ${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Last 3 Year Winner Party Name:</strong> ${data.winner?.last3YearWinner || 'N/A'}</p>
+                    </div>
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
                         <p><strong>Voter Information:</strong></p>
                         <p>Total Voters: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
@@ -1010,22 +1143,22 @@ function HierarchicalMap({ onRegionClick }) {
                         }}>
                             <div style={{ marginBottom: '8px' }}>
                                 <span style={{ fontWeight: '500' }}>
-                                    {selectedFeature ? 
+                                    {selectedFeature ?
                                         `Current: ${selectedFeature.properties.name} (${currentLevel})` :
                                         `Level: ${currentLevel}`
                                     }
                                 </span>
                             </div>
-                            
+
                             {/* Level Navigation Buttons */}
-                            <div style={{ 
-                                display: 'flex', 
-                                gap: '8px', 
+                            <div style={{
+                                display: 'flex',
+                                gap: '8px',
                                 flexWrap: 'wrap',
                                 alignItems: 'center'
                             }}>
                                 <span style={{ fontSize: '12px', color: '#666' }}>Navigate to:</span>
-                                
+
                                 {/* State Button */}
                                 {currentLevel !== 'state' && (
                                     <button
@@ -1046,7 +1179,7 @@ function HierarchicalMap({ onRegionClick }) {
                                         State
                                     </button>
                                 )}
-                                
+
                                 {/* Division Button */}
                                 {currentLevel !== 'state' && currentLevel !== 'division' && selectedFeature && (
                                     <button
@@ -1072,17 +1205,17 @@ function HierarchicalMap({ onRegionClick }) {
                                         Division
                                     </button>
                                 )}
-                                
+
                                 {/* Parliamentary Button */}
                                 {(currentLevel === 'assembly' || currentLevel === 'block' || currentLevel === 'booth') && selectedFeature && (
                                     <button
                                         onClick={() => {
                                             // Try multiple property combinations for parliamentary navigation
-                                            const parliamentName = selectedFeature.properties.pcName || 
-                                                                 selectedFeature.properties.PC_NAME || 
-                                                                 selectedFeature.properties.divisionName ||
-                                                                 selectedFeature.properties.DIVISION_NAME ||
-                                                                 'Default';
+                                            const parliamentName = selectedFeature.properties.pcName ||
+                                                selectedFeature.properties.PC_NAME ||
+                                                selectedFeature.properties.divisionName ||
+                                                selectedFeature.properties.DIVISION_NAME ||
+                                                'Default';
                                             loadParliamentaryData(parliamentName);
                                             setCurrentLevel('parliamentary');
                                         }}
@@ -1100,17 +1233,17 @@ function HierarchicalMap({ onRegionClick }) {
                                         Parliamentary
                                     </button>
                                 )}
-                                
+
                                 {/* Assembly Button */}
                                 {(currentLevel === 'block' || currentLevel === 'booth') && selectedFeature && (
                                     <button
                                         onClick={() => {
                                             // Try multiple property combinations for assembly navigation
-                                            const assemblyCode = selectedFeature.properties.pcNo || 
-                                                               selectedFeature.properties.PC_NO ||
-                                                               selectedFeature.properties.acNo || 
-                                                               selectedFeature.properties.AC_NO ||
-                                                               'PC001';
+                                            const assemblyCode = selectedFeature.properties.pcNo ||
+                                                selectedFeature.properties.PC_NO ||
+                                                selectedFeature.properties.acNo ||
+                                                selectedFeature.properties.AC_NO ||
+                                                'PC001';
                                             loadAssemblyData(assemblyCode);
                                             setCurrentLevel('assembly');
                                         }}
@@ -1128,17 +1261,17 @@ function HierarchicalMap({ onRegionClick }) {
                                         Assembly
                                     </button>
                                 )}
-                                
+
                                 {/* Block Button */}
                                 {currentLevel === 'booth' && selectedFeature && (
                                     <button
                                         onClick={() => {
                                             // Try multiple property combinations for block navigation
-                                            const blockCode = selectedFeature.properties.acNo || 
-                                                            selectedFeature.properties.AC_NO ||
-                                                            selectedFeature.properties.blockNumber ||
-                                                            selectedFeature.properties.BlockNumber ||
-                                                            'AC001';
+                                            const blockCode = selectedFeature.properties.acNo ||
+                                                selectedFeature.properties.AC_NO ||
+                                                selectedFeature.properties.blockNumber ||
+                                                selectedFeature.properties.BlockNumber ||
+                                                'AC001';
                                             loadBlockData(blockCode);
                                             setCurrentLevel('block');
                                         }}

@@ -40,7 +40,6 @@ exports.getGenders = async (req, res, next) => {
       });
     }
 
-
     // Helper function for ObjectId or name lookup (normalize dashes to spaces)
     const handleIdOrName = async (param, model, nameField = 'name') => {
       if (!req.query[param]) return null;
@@ -378,6 +377,71 @@ exports.getGendersByState = async (req, res, next) => {
       success: true,
       count: genders.length,
       data: genders
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get aggregated gender data for map hover (assembly/parliament/booth)
+// @route   GET /api/genders/stats/:type/:id
+// @access  Public
+exports.getGenderStatsForMap = async (req, res, next) => {
+  try {
+    const { type, id } = req.params;
+    let query = {};
+
+    // Validate type
+    const validTypes = ['assembly', 'parliament', 'booth'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid type. Must be assembly, parliament, or booth'
+      });
+    }
+
+    // Set query based on type
+    switch (type) {
+      case 'assembly':
+        query.assembly_id = id;
+        break;
+      case 'parliament':
+        query.parliament_id = id;
+        break;
+      case 'booth':
+        query.booth_id = id;
+        break;
+    }
+
+    // Aggregate gender data
+    const genderStats = await Gender.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalMale: { $sum: '$male' },
+          totalFemale: { $sum: '$female' },
+          totalOthers: { $sum: '$others' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const result = genderStats.length > 0 ? {
+      male: genderStats[0].totalMale,
+      female: genderStats[0].totalFemale,
+      others: genderStats[0].totalOthers,
+      total: genderStats[0].totalMale + genderStats[0].totalFemale + genderStats[0].totalOthers
+    } : {
+      male: 0,
+      female: 0,
+      others: 0,
+      total: 0
+    };
+
+    res.status(200).json({
+      success: true,
+      data: result
     });
   } catch (err) {
     next(err);
