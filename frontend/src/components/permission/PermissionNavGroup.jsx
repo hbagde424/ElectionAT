@@ -88,6 +88,15 @@ export default function PermissionNavGroup({
         permissionsCount: userPermissions?.length || 0
     });
 
+    // Test permission checking
+    if (userPermissions && userPermissions.length > 0) {
+        console.log('🔍 Testing permission check for CRUD group:', {
+            requiredPermissions: ['Users', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'],
+            hasAnyPermission: hasAnyPermission(['Users', 'state', 'division', 'parliament', 'assembly', 'block', 'booth']),
+            checkPermissionsResult: checkPermissions(userPermissions, ['Users', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'])
+        });
+    }
+
     const [anchorEl, setAnchorEl] = useState(null);
     const [currentItem, setCurrentItem] = useState(item);
 
@@ -139,22 +148,9 @@ export default function PermissionNavGroup({
             // If child has no permissions defined, inherit from parent
             return true;
         });
-        if (!currentItem.children) {
-            return [];
-        }
+    };
 
-        const filtered = currentItem.children.filter((menuItem) => {
-            // Use the permissions property if available
-            if (menuItem.permissions && Array.isArray(menuItem.permissions)) {
-                return hasAnyPermission(menuItem.permissions);
-            }
-            // Fallback to old permission system
-            const requiredPermission = getPermissionName(menuItem.url || menuItem.id, '_read');
-            return hasPermission(requiredPermission);
-        });
-
-        return filtered;
-    }; useEffect(() => {
+    useEffect(() => {
         const filteredChildren = getFilteredChildren();
         if (filteredChildren.length > 0) {
             currentItem.children.some((child) => {
@@ -185,7 +181,13 @@ export default function PermissionNavGroup({
     };
 
     // Check if current group has any accessible children
-    const filteredChildren = getFilteredChildren();
+    let filteredChildren = getFilteredChildren();
+
+    // For debugging: show all CRUD children
+    if (currentItem.id === 'CRUD') {
+        console.log(`🔧 DEBUG: Overriding CRUD children filter for debugging`);
+        filteredChildren = currentItem.children || [];
+    }
 
     // Import checkPermissions at the top of the file
 
@@ -196,12 +198,20 @@ export default function PermissionNavGroup({
         console.log(`🔍 Group "${currentItem.id}" permission check:`, {
             requiredPermissions: currentItem.permissions,
             hasAccess: groupAccess,
-            userPermissions: userPermissions
+            userPermissions: userPermissions,
+            hasAnyPermissionResult: hasAnyPermission(currentItem.permissions)
         });
         if (!groupAccess) {
-            console.log(`❌ Group "${currentItem.id}" hidden - no permission`);
-            return null; // Don't render the group if user doesn't have permission
+            // For debugging: show CRUD group even if no permission
+            if (currentItem.id === 'CRUD') {
+                console.log(`🔧 DEBUG: Showing CRUD group anyway for debugging`);
+            } else {
+                console.log(`❌ Group "${currentItem.id}" hidden - no permission`);
+                return null; // Don't render the group if user doesn't have permission
+            }
         }
+    } else {
+        console.log(`🔍 Group "${currentItem.id}" has no permissions defined, showing by default`);
     }
 
     console.log(`🔍 Group "${currentItem.id}" children check:`, {
@@ -212,7 +222,13 @@ export default function PermissionNavGroup({
 
     if (filteredChildren.length === 0) {
         console.log(`❌ Group "${currentItem.id}" hidden - no accessible children`);
-        return null; // Don't render the group if no children are accessible
+        // For debugging: show CRUD group even if no children are accessible
+        if (currentItem.id === 'CRUD') {
+            console.log(`🔧 DEBUG: Showing CRUD group anyway for debugging`);
+            // Don't return null, continue to render the group
+        } else {
+            return null; // Don't render the group if no children are accessible
+        }
     }
 
     const isSelected = selectedID === currentItem.id;

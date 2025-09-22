@@ -81,7 +81,7 @@ const CRUDMenu = {
   title: <FormattedMessage id="CRUD" />,
   type: 'group',
   icon: icons.CURd,
-  permissions: ['user_read', 'state_read', 'division_read', 'parliament_read', 'assembly_read', 'block_read', 'booth_read'], // Any read permission shows this group
+  permissions: ['Users', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'], // Any read permission shows this group
   children: [
     {
       id: 'state',
@@ -89,7 +89,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/state',
       icon: icons.Location,
-      permissions: ['state_read']
+      permissions: ['state']
     },
     {
       id: 'division',
@@ -97,7 +97,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/division',
       icon: icons.Bank, // Administrative division
-      permissions: ['division_read']
+      permissions: ['division']
     },
     {
       id: 'parliament',
@@ -105,7 +105,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/parliament',
       icon: icons.Building,
-      permissions: ['parliament_read']
+      permissions: ['parliament']
     },
     {
       id: 'parliament-candidate',
@@ -113,6 +113,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/parliament-candidate',
       icon: icons.UserOctagon,
+      permissions: ['parliament-candidate']
     },
 
     {
@@ -121,7 +122,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/assembly',
       icon: icons.Courthouse, // Government building
-      permissions: ['assembly_read']
+      permissions: ['assembly']
     },
     {
       id: 'district',
@@ -129,7 +130,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/district',
       icon: icons.Location,
-      permissions: ['division_read'] // District is part of division
+      permissions: ['district']
     },
     {
       id: 'block',
@@ -137,7 +138,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/block',
       icon: icons.Location, // Geographical block
-      permissions: ['block_read']
+      permissions: ['block']
     },
     {
       id: 'booth',
@@ -145,7 +146,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/booth',
       icon: icons.Home, // Polling booth
-      permissions: ['booth_read']
+      permissions: ['booth']
     },
     // {
     //   id: 'Assembly-Votes',
@@ -169,7 +170,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Booth-Survey',
       icon: icons.ClipboardText, // Survey form
-      permissions: ['survey_read']
+      permissions: ['Booth-Survey']
     },
     {
       id: 'booth-volunteer',
@@ -177,7 +178,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/booth-volunteer',
       icon: icons.Profile2User, // Volunteer staff
-      permissions: ['booth_read']
+      permissions: ['booth-volunteer']
     },
     {
       id: 'Booth-votes',
@@ -185,7 +186,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Booth-votes',
       icon: icons.Ticket, // Voting ticket
-      permissions: ['election_data_read']
+      permissions: ['Booth-votes']
     },
     {
       id: 'candidates',
@@ -193,7 +194,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/candidates',
       icon: icons.UserOctagon, // Candidate profile
-      permissions: ['candidate_read']
+      permissions: ['candidates']
     },
     {
       id: 'Caste-List',
@@ -201,7 +202,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Caste-List',
       icon: icons.HierarchySqu, // Hierarchical list
-      permissions: ['voter_read']
+      permissions: ['Caste-List']
     },
 
     {
@@ -210,7 +211,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Coding',
       icon: icons.Calendar,
-      permissions: ['election_data_read']
+      permissions: ['Coding']
     },
 
 
@@ -220,7 +221,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Events',
       icon: icons.Calendar,
-      permissions: ['election_data_read']
+      permissions: ['Events']
     },
     {
       id: 'Gender',
@@ -228,7 +229,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Gender',
       icon: icons.Calendar,
-      permissions: ['voter_read']
+      permissions: ['Gender']
     },
     {
       id: 'Government-Scheme',
@@ -236,7 +237,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Government-Schema',
       icon: icons.Calendar,
-      permissions: ['election_data_read']
+      permissions: ['Government-Scheme']
     },
     {
       id: 'Influancer',
@@ -244,7 +245,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Influancer',
       icon: icons.Calendar,
-      permissions: ['election_data_read']
+      permissions: ['Influancer']
     },
     {
       id: 'Local-Issue',
@@ -252,7 +253,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Local-Issue',
       icon: icons.Flag,
-      permissions: ['election_data_read']
+      permissions: ['Local-Issue']
     },
 
     // {
@@ -268,7 +269,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/parties',
       icon: icons.Flag,
-      permissions: ['party_read']
+      permissions: ['parties']
     },
     {
       id: 'Party-Activities',
@@ -276,7 +277,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/party-activities',
       icon: icons.TaskSquare, // Party activities
-      permissions: ['election_data_read']
+      permissions: ['Party-Activities']
     },
     {
       id: 'Pontentcal-Candidate',
@@ -284,7 +285,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Pontentcal-Candidate',
       icon: icons.User,
-      permissions: ['candidate_read']
+      permissions: ['Pontentcal-Candidate']
     },
     {
       id: 'Users',
@@ -292,7 +293,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Users',
       icon: icons.People,
-      permissions: ['user_read']
+      permissions: ['Users']
     },
     {
       id: 'Our visits',
@@ -300,7 +301,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/visits',
       icon: icons.ReceiptText, // Visit records
-      permissions: ['election_data_read']
+      permissions: ['Our visits']
     },
     {
       id: 'WinningPartiesList',
@@ -308,7 +309,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/WinningPartiesList',
       icon: icons.Award,
-      permissions: ['election_data_read']
+      permissions: ['WinningPartiesList']
     },
     {
       id: 'WInningCandidateList',
@@ -316,7 +317,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/WInningCandidateList',
       icon: icons.Award,
-      permissions: ['election_data_read']
+      permissions: ['WInningCandidateList']
     },
     {
       id: 'Work-Status',
@@ -324,7 +325,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Work-Status',
       icon: icons.ClipboardTick, // Completed work
-      permissions: ['election_data_read']
+      permissions: ['Work-Status']
     },
     {
       id: 'Year',
@@ -332,7 +333,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Year',
       icon: icons.ClipboardTick, // Completed work
-      permissions: ['election_data_read']
+      permissions: ['Year']
     },
 
     {
@@ -341,7 +342,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/roles',
       icon: icons.Shield,
-      permissions: ['role_read']
+      permissions: ['role']
     },
     {
       id: 'matrix',
@@ -349,6 +350,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/Matrics',
       icon: icons.ShieldSearch,
+      permissions: ['matrix']
     },
     {
       id: 'assign-role-to-user',
@@ -356,7 +358,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/assign-role-to-user',
       icon: icons.User,
-      icon: icons.ClipboardTick // Completed work
+      permissions: ['assign-role-to-user']
     },
     {
       id: 'faq-crud',
@@ -364,6 +366,7 @@ const CRUDMenu = {
       type: 'item',
       url: '/faq-crud',
       icon: icons.MessageQuestion,
+      permissions: ['faq-crud']
     }
   ]
 };

@@ -56,6 +56,7 @@ const adminMenu = {
   title: <FormattedMessage id="Admin Management" defaultMessage="Admin Management" />,
   type: 'group',
   icon: icons.SecurityUser,
+  permissions: ['Users', 'role', 'permissions', 'matrix'], // Admin permissions
   children: [
     {
       id: 'Matrics',
@@ -63,7 +64,8 @@ const adminMenu = {
       type: 'item',
       url: '/Matrics',
       icon: icons.SecurityUser,
-      breadcrumbs: false
+      breadcrumbs: false,
+      permissions: ['matrix']
     },
     {
       id: 'roles',
@@ -71,7 +73,8 @@ const adminMenu = {
       type: 'item',
       url: '/roles',
       icon: icons.SecurityUser,
-      breadcrumbs: false
+      breadcrumbs: false,
+      permissions: ['role']
     },
     {
       id: 'permissions',
@@ -79,7 +82,8 @@ const adminMenu = {
       type: 'item',
       url: '/permissions',
       icon: icons.Shield,
-      breadcrumbs: false
+      breadcrumbs: false,
+      permissions: ['permissions']
     },
     {
       id: 'assign-permission-to-role',
@@ -87,7 +91,8 @@ const adminMenu = {
       type: 'item',
       url: '/assign-permission-to-role',
       icon: icons.ShieldSearch,
-      breadcrumbs: false
+      breadcrumbs: false,
+      permissions: ['matrix']
     },
     {
       id: 'assign-role-to-user',
@@ -95,7 +100,8 @@ const adminMenu = {
       type: 'item',
       url: '/assign-role-to-user',
       icon: icons.User,
-      breadcrumbs: false
+      breadcrumbs: false,
+      permissions: ['assign-role-to-user']
     }
   ]
 };
