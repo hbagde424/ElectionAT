@@ -254,6 +254,53 @@ export default function ParliamentCandidateView({ data, onClose }) {
                                         textAlign: 'center'
                                     }}>
                                         <Typography variant="subtitle2" color="text.secondary" mb={1}>
+                                            Electors
+                                        </Typography>
+                                        <Typography variant="h6" color="text.primary" fontWeight="bold">
+                                            {formatNumber(data.electors)}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Box sx={{ 
+                                        p: 2, 
+                                        bgcolor: 'background.default', 
+                                        borderRadius: 1,
+                                        textAlign: 'center'
+                                    }}>
+                                        <Typography variant="subtitle2" color="text.secondary" mb={1}>
+                                            Turnout
+                                        </Typography>
+                                        <Typography variant="h6" color="text.primary" fontWeight="bold">
+                                            {formatNumber(data.turnout)}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Box sx={{ 
+                                        p: 2, 
+                                        bgcolor: 'background.default', 
+                                        borderRadius: 1,
+                                        textAlign: 'center'
+                                    }}>
+                                        <Typography variant="subtitle2" color="text.secondary" mb={1}>
+                                            NOTA Votes
+                                        </Typography>
+                                        <Typography variant="h6" color="text.primary" fontWeight="bold">
+                                            {formatNumber(data.nota_votes)}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Box sx={{ 
+                                        p: 2, 
+                                        bgcolor: 'background.default', 
+                                        borderRadius: 1,
+                                        textAlign: 'center'
+                                    }}>
+                                        <Typography variant="subtitle2" color="text.secondary" mb={1}>
                                             Margin %
                                         </Typography>
                                         <Typography variant="h4" color="text.primary" fontWeight="bold">

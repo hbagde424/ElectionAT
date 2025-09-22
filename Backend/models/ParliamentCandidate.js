@@ -32,6 +32,51 @@ const parliamentCandidateSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  electors: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  turnout: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  male_electors: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  female_electors: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  total_votes_polled: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  valid_votes: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  total_male_voters: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  female_voters: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  nota_votes: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   candidate_votes: {
     type: Number,
     required: true,

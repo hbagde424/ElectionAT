@@ -249,6 +249,56 @@ export default function ParliamentCandidateListPage() {
             )
         },
         {
+            id: 'electors',
+            header: 'Electors',
+            accessorKey: 'electors',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {formatNumber(getValue())}
+                </Typography>
+            )
+        },
+        {
+            id: 'turnout',
+            header: 'Turnout',
+            accessorKey: 'turnout',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {formatNumber(getValue())}
+                </Typography>
+            )
+        },
+        {
+            id: 'total_votes_polled',
+            header: 'Total Polled',
+            accessorKey: 'total_votes_polled',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {formatNumber(getValue())}
+                </Typography>
+            )
+        },
+        {
+            id: 'valid_votes',
+            header: 'Valid Votes',
+            accessorKey: 'valid_votes',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {formatNumber(getValue())}
+                </Typography>
+            )
+        },
+        {
+            id: 'nota_votes',
+            header: 'NOTA Votes',
+            accessorKey: 'nota_votes',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {formatNumber(getValue())}
+                </Typography>
+            )
+        },
+        {
             id: 'vote_percentage',
             header: 'Vote %',
             accessorKey: 'vote_percentage',
@@ -400,6 +450,15 @@ export default function ParliamentCandidateListPage() {
                 'Vote Percentage': item.vote_percentage ? `${item.vote_percentage}%` : '0%',
                 'Margin': formatNumber(item.margin),
                 'Margin %': `${(getMarginPercentDecimal(item) * 100).toFixed(2)}%`,
+                'Electors': formatNumber(item.electors),
+                'Turnout': formatNumber(item.turnout),
+                'Male Electors': formatNumber(item.male_electors),
+                'Female Electors': formatNumber(item.female_electors),
+                'Total Votes Polled': formatNumber(item.total_votes_polled),
+                'Valid Votes': formatNumber(item.valid_votes),
+                'Total Male Voters': formatNumber(item.total_male_voters),
+                'Female Voters': formatNumber(item.female_voters),
+                'NOTA Votes': formatNumber(item.nota_votes),
             'Created By': item.created_by?.username || 'N/A',
             'Created At': formatDate(item.created_at)
         }));
