@@ -413,7 +413,34 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                   <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
                   <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p>
                 </div>
-// NOTE: This component matches parliament candidate data to polygons by PC_NO, not AC_NO. The map and popups show winning party/candidate for each parliament constituency (PC) using PC_NO as the key. If no candidate is found for a PC_NO/year, fallback values are shown.
+                {/* Last 3 years winning party names for Parliament */}
+                <div style={{ marginTop: '12px' }}>
+                  <strong>Last 3 Years Winning Parties:</strong>
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {(() => {
+                      // Find PC_NO for this popup
+                      const pcNo = popupInfo.properties.PC_NO;
+                      // Get all years for this PC_NO from winningCandidates
+                      let years = [];
+                      if (pcNo && winningCandidates && winningCandidates[pcNo]) {
+                        years = Object.keys(winningCandidates[pcNo])
+                          .map(y => y.toString())
+                          .sort((a, b) => b.localeCompare(a)); // Descending
+                      }
+                      // Take last 3 years
+                      const last3Years = years.slice(0, 3);
+                      return last3Years.length > 0 ? last3Years.map(year => {
+                        const candidate = winningCandidates[pcNo][year];
+                        return (
+                          <li key={year}>
+                            {year}: {candidate?.party_id?.name || 'Unknown'}
+                          </li>
+                        );
+                      }) : <li>No data</li>;
+                    })()}
+                  </ul>
+                </div>
+
               </div>
             </Popup>
           )}

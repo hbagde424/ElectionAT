@@ -173,48 +173,52 @@ function DistrictMap({ onRegionClick }) {
                         Array.isArray(districtPolygon.features) && 
                         districtPolygon.features.length > 0) {
                         
-                        // Transform all features without filtering - handle invalid ones gracefully
-                        const transformedFeatures = districtPolygon.features
-                            .map((feature, featureIndex) => {
-                                // Use properties from the feature, mapping the correct field names
-                                const props = feature.properties || {};
-                                
-                                // Check if geometry exists, if not create a placeholder
-                                let geometry = feature.geometry;
-                                if (!geometry || !geometry.coordinates || !Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0) {
-                                    console.warn(`Feature at index ${featureIndex} has invalid geometry:`, feature);
-                                    // Create a dummy point geometry so it doesn't break the map
-                                    geometry = {
-                                        type: "Point",
-                                        coordinates: [77.9455, 23.4707] // Center of MP
-                                    };
-                                }
-                                
-                                return {
-                                    type: 'Feature',
-                                    properties: {
-                                        id: props.dtname?.toLowerCase().replace(/\s+/g, '-') || `district-${polygonIndex}-${featureIndex}`,
-                                        name: props.dtname || `District-${featureIndex}`,
-                                        displayName: props.dtname || `District-${featureIndex}`,
-                                        district: props.dtname || '',
-                                        state: props.stname || 'Madhya Pradesh',
-                                        stateCode: props.stcode11 || '23',
-                                        districtCode: props.dtcode11 || '',
-                                        year: props.year_stat || '2011',
-                                        districtLGD: props.Dist_LGD || '',
-                                        stateLGD: props.State_LGD || '',
-                                        objectId: props.OBJECTID || '',
-                                        shapeLength: props.Shape_Length || '',
-                                        shapeArea: props.Shape_Area || '',
-                                        isValidGeometry: !!(feature.geometry && feature.geometry.coordinates && Array.isArray(feature.geometry.coordinates) && feature.geometry.coordinates.length > 0)
-                                    },
-                                    geometry: geometry
-                                };
-                            });
-                        
-                        console.log(`Processing all ${transformedFeatures.length} features (including ${transformedFeatures.filter(f => !f.properties.isValidGeometry).length} with invalid geometry)`);
-                        allDistrictFeatures.push(...transformedFeatures);
-                        console.log(`Added ${transformedFeatures.length} features from polygon ${polygonIndex}`);
+                                        // Allow both Polygon and MultiPolygon with non-empty coordinates
+                                        const isValidGeo = (geometry) => {
+                                            if (!geometry || !geometry.type || !geometry.coordinates) return false;
+                                            if (geometry.type === 'Polygon') {
+                                                return Array.isArray(geometry.coordinates) && geometry.coordinates.length > 0 && Array.isArray(geometry.coordinates[0]) && geometry.coordinates[0].length > 0;
+                                            }
+                                            if (geometry.type === 'MultiPolygon') {
+                                                return Array.isArray(geometry.coordinates) && geometry.coordinates.length > 0 && Array.isArray(geometry.coordinates[0]) && geometry.coordinates[0].length > 0 && Array.isArray(geometry.coordinates[0][0]) && geometry.coordinates[0][0].length > 0;
+                                            }
+                                            return false;
+                                        };
+
+                                        const transformedFeatures = districtPolygon.features
+                                            .filter((feature) => {
+                                                // Debug log for Betul
+                                                if ((feature.properties?.dtname || '').toLowerCase().includes('betul')) {
+                                                    console.log('Betul feature geometry:', feature.geometry);
+                                                }
+                                                return isValidGeo(feature.geometry);
+                                            })
+                                            .map((feature, featureIndex) => {
+                                                const props = feature.properties || {};
+                                                return {
+                                                    type: 'Feature',
+                                                    properties: {
+                                                        id: props.dtname?.toLowerCase().replace(/\s+/g, '-') || `district-${polygonIndex}-${featureIndex}`,
+                                                        name: props.dtname || `District-${featureIndex}`,
+                                                        displayName: props.dtname || `District-${featureIndex}`,
+                                                        district: props.dtname || '',
+                                                        state: props.stname || 'Madhya Pradesh',
+                                                        stateCode: props.stcode11 || '23',
+                                                        districtCode: props.dtcode11 || '',
+                                                        year: props.year_stat || '2011',
+                                                        districtLGD: props.Dist_LGD || '',
+                                                        stateLGD: props.State_LGD || '',
+                                                        objectId: props.OBJECTID || '',
+                                                        shapeLength: props.Shape_Length || '',
+                                                        shapeArea: props.Shape_Area || '',
+                                                        isValidGeometry: true
+                                                    },
+                                                    geometry: feature.geometry
+                                                };
+                                            });
+                                        console.log(`Processing all ${transformedFeatures.length} features (all with valid geometry)`);
+                                        allDistrictFeatures.push(...transformedFeatures);
+                                        console.log(`Added ${transformedFeatures.length} features from polygon ${polygonIndex}`);
                     }
                 });
 
