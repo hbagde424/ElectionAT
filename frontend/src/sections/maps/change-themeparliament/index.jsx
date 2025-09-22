@@ -57,6 +57,10 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         if (!candidatesResponse.ok) throw new Error('Failed to fetch parliament candidates');
         const polyData = await polyResponse.json();
         const candidatesData = await candidatesResponse.json();
+
+        console.log('ashok Parliament Polygons Data:', polyData);
+        console.log('ashok Parliament Candidates Data:', candidatesData);
+
         // Normalize the parliament polygons API response structure
         let features = [];
         if (polyData.features) {
@@ -76,7 +80,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         const yearsSet = new Set();
 
         candidatesData.data.forEach(candidate => {
-          const pcNo = candidate.parliament_id?.PC_NO;
+          const pcNo = candidate.parliament_id?.['Parliament No']; // Changed to use Parliament No
           let yearVal = '';
           if (candidate.election_year_id) {
             if (typeof candidate.election_year_id === 'object' && candidate.election_year_id.year) {
@@ -126,7 +130,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
     if (!assemblyData || !winningCandidates) return;
     // Deep copy features to avoid mutating state directly
     const features = assemblyData.features.map(feature => {
-      const pcNo = feature.properties?.PC_NO;
+      const pcNo = feature.properties?.PC_NO;  // This is the number that matches with Parliament No
       let yearKey = (filters?.year || '').toString();
       if (yearKey === '' || yearKey === 'all') {
         if (winningCandidates[pcNo]) {
@@ -135,6 +139,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         }
       }
       let candidate = null;
+      // Try to find the winning candidate using the PC_NO
       if (pcNo && winningCandidates[pcNo] && yearKey && winningCandidates[pcNo][yearKey]) {
         candidate = winningCandidates[pcNo][yearKey];
       }
@@ -403,7 +408,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                   <p><strong>Candidate Votes:</strong> {popupInfo.properties.candidate_votes ?? 'N/A'}</p>
                   <p><strong>Total Votes (PC):</strong> {popupInfo.properties.total_votes_parliament ?? 'N/A'}</p>
                   <p><strong>Election Year:</strong> {popupInfo.properties.election_election_year_id || 'N/A'}</p>
-                  <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'}</p>
+                  <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'} (Used for matching with polygons)</p>
                   <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
                   <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
                   <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p>
