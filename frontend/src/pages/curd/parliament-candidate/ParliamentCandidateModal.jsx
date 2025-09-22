@@ -24,7 +24,16 @@ export default function ParliamentCandidateModal({
         total_votes_parliament: '',
         candidate_votes: '',
         margin: '',
-        margin_percentage: '' // stored/displayed as percent string (e.g., '3.00' for 3%)
+        margin_percentage: '', // stored/displayed as percent string (e.g., '3.00' for 3%)
+        electors: '',
+        turnout: '',
+        male_electors: '',
+        female_electors: '',
+        total_votes_polled: '',
+        valid_votes: '',
+        total_male_voters: '',
+        female_voters: '',
+        nota_votes: ''
     });
     
     const [submitted, setSubmitted] = useState(false);
@@ -94,7 +103,16 @@ export default function ParliamentCandidateModal({
                 total_votes_parliament: candidate.total_votes_parliament || '',
                 candidate_votes: candidate.candidate_votes || '',
                 margin: candidate.margin || '',
-                margin_percentage: candidate.margin_percentage ? ((Number(candidate.margin_percentage) * 100).toFixed(2)) : ''
+                margin_percentage: candidate.margin_percentage ? ((Number(candidate.margin_percentage) * 100).toFixed(2)) : '',
+                electors: candidate.electors || '',
+                turnout: candidate.turnout || '',
+                male_electors: candidate.male_electors || '',
+                female_electors: candidate.female_electors || '',
+                total_votes_polled: candidate.total_votes_polled || '',
+                valid_votes: candidate.valid_votes || '',
+                total_male_voters: candidate.total_male_voters || '',
+                female_voters: candidate.female_voters || '',
+                nota_votes: candidate.nota_votes || ''
             });
         } else {
             setFormData({
@@ -107,6 +125,16 @@ export default function ParliamentCandidateModal({
                 candidate_votes: '',
                 margin: '',
                 margin_percentage: ''
+                ,
+                electors: '',
+                turnout: '',
+                male_electors: '',
+                female_electors: '',
+                total_votes_polled: '',
+                valid_votes: '',
+                total_male_voters: '',
+                female_voters: '',
+                nota_votes: ''
             });
         }
     }, [candidate]);
@@ -214,6 +242,16 @@ export default function ParliamentCandidateModal({
             margin: parseInt(marginValue) || 0,
             margin_percentage: marginPercentDecimal
         };
+        // Normalize new numeric fields
+        submitData.electors = parseInt(formData.electors) || 0;
+        submitData.turnout = parseInt(formData.turnout) || 0;
+        submitData.male_electors = parseInt(formData.male_electors) || 0;
+        submitData.female_electors = parseInt(formData.female_electors) || 0;
+        submitData.total_votes_polled = parseInt(formData.total_votes_polled) || 0;
+        submitData.valid_votes = parseInt(formData.valid_votes) || 0;
+        submitData.total_male_voters = parseInt(formData.total_male_voters) || 0;
+        submitData.female_voters = parseInt(formData.female_voters) || 0;
+        submitData.nota_votes = parseInt(formData.nota_votes) || 0;
 
         try {
             const res = await fetch(url, {
@@ -482,6 +520,148 @@ export default function ParliamentCandidateModal({
                             </Box>
                         </Grid>
                     )}
+
+                    {/* Additional Statistics */}
+                    <Grid item xs={12}>
+                        <Divider>
+                            <Typography variant="h6" color="text.secondary">Additional Statistics</Typography>
+                        </Divider>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Electors</InputLabel>
+                            <TextField
+                                name="electors"
+                                value={formData.electors}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Total Electors"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Turnout</InputLabel>
+                            <TextField
+                                name="turnout"
+                                value={formData.turnout}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Turnout count or percentage"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Male Electors</InputLabel>
+                            <TextField
+                                name="male_electors"
+                                value={formData.male_electors}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Male Electors"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Female Electors</InputLabel>
+                            <TextField
+                                name="female_electors"
+                                value={formData.female_electors}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Female Electors"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Total Votes Polled</InputLabel>
+                            <TextField
+                                name="total_votes_polled"
+                                value={formData.total_votes_polled}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Total Votes Polled"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Valid Votes</InputLabel>
+                            <TextField
+                                name="valid_votes"
+                                value={formData.valid_votes}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Valid Votes"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Total Male Voters</InputLabel>
+                            <TextField
+                                name="total_male_voters"
+                                value={formData.total_male_voters}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Total Male Voters"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>Female Voters</InputLabel>
+                            <TextField
+                                name="female_voters"
+                                value={formData.female_voters}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Female Voters"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Stack spacing={1}>
+                            <InputLabel>NOTA Votes</InputLabel>
+                            <TextField
+                                name="nota_votes"
+                                value={formData.nota_votes}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="NOTA Votes"
+                            />
+                        </Stack>
+                    </Grid>
 
                 </Grid>
             </DialogContent>

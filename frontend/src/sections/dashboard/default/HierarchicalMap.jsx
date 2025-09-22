@@ -45,6 +45,7 @@ function HierarchicalMap({ onRegionClick }) {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
     const [hoverData, setHoverData] = useState({}); // Store fetched data for hover
+    const closeTimersRef = useRef({}); // store close timers by layer id to delay popup close
 
     // Function to handle fullscreen toggle
     const toggleFullscreen = () => {
@@ -763,20 +764,25 @@ function HierarchicalMap({ onRegionClick }) {
                 // Click handler for drill-down
                 layer.on('click', () => handleLayerClick(feature, level));
 
-                // Hover effects
+                // Hover-like behavior on mouseover with delayed close on mouseout so popup remains reachable
                 layer.on({
                     mouseover: (e) => {
-                        const layer = e.target;
-                        layer.setStyle({
-                            weight: 3,
-                            color: '#666',
-                            fillOpacity: 0.3
-                        });
+                        const target = e.target;
 
-                        // Fetch data for hover popup
+                        // Clear any pending close timer for this layer
+                        try {
+                            const id = target._leaflet_id;
+                            if (closeTimersRef.current[id]) {
+                                clearTimeout(closeTimersRef.current[id]);
+                                delete closeTimersRef.current[id];
+                            }
+                        } catch (err) {}
+
+                        // Highlight
+                        target.setStyle({ weight: 3, color: '#666', fillOpacity: 0.3 });
+
+                        // Fetch data for hover popup (same logic as before)
                         const featureId = feature.properties.id;
-
-                        // Create consistent cache key that matches how data is stored
                         let cacheKey;
                         if (level === 'parliamentary') {
                             cacheKey = `${level}_${feature.properties.pcNo}`;
@@ -784,35 +790,113 @@ function HierarchicalMap({ onRegionClick }) {
                             cacheKey = `${level}_${featureId}`;
                         }
 
-                        // Fetch gender data for assembly, parliament, booth
-                        if (level === 'assembly' || level === 'parliament' || level === 'booth') {
-                            const genderType = level === 'booth' ? 'booth' : level;
+                        if (level === 'assembly' || level === 'parliament' || level === 'booth' || level === 'division' || level === 'state') {
+                            const genderType = level === 'booth' ? 'booth' : (level === 'parliamentary' ? 'parliament' : level);
                             const genderId = level === 'assembly' ? feature.properties.id :
-                                           level === 'parliament' ? feature.properties.pcNo :
-                                           feature.properties.id;
+                                           (level === 'parliamentary' ? feature.properties.pcNo : (feature.properties.id || feature.properties.Name || feature.properties.DIVISION_CODE));
 
                             if (genderId && !hoverData[cacheKey]?.gender) {
                                 fetchGenderData(genderType, genderId);
                             }
                         }
 
-                        // Fetch winning candidate data for assembly and parliament
-                        if (level === 'assembly' || level === 'parliament') {
-                            const winnerId = level === 'assembly' ? feature.properties.id : feature.properties.pcNo;
-
+                        if (level === 'assembly' || level === 'parliament' || level === 'division' || level === 'state') {
+                            const winnerType = level === 'parliamentary' ? 'parliament' : level;
+                            const winnerId = (winnerType === 'parliament') ? feature.properties.pcNo : (feature.properties.id || feature.properties.Name || feature.properties.DIVISION_CODE);
                             if (winnerId && !hoverData[cacheKey]?.winner) {
-                                fetchWinningCandidateData(level, winnerId);
+                                fetchWinningCandidateData(winnerType, winnerId);
                             }
                         }
 
-                        // Show popup on hover
-                        layer.openPopup();
+                        // Open popup (if not already open)
+                        try { target.openPopup(); } catch (err) {}
                     },
                     mouseout: (e) => {
-                        currentLayerRef.current.resetStyle(e.target);
-                        // Close popup on mouseout
-                        e.target.closePopup();
+                        const target = e.target;
+                        // Delay closing to allow pointer to move into popup container
+                        try {
+                            const id = target._leaflet_id;
+                            if (closeTimersRef.current[id]) {
+                                clearTimeout(closeTimersRef.current[id]);
+                            }
+                            closeTimersRef.current[id] = setTimeout(() => {
+                                try {
+                                    if (target.closePopup) target.closePopup();
+                                    if (currentLayerRef.current) currentLayerRef.current.resetStyle(target);
+                                } catch (err) {}
+                                delete closeTimersRef.current[id];
+                            }, 300); // 300ms grace period
+                        } catch (err) {}
                     }
+                });
+
+                // Manage popup DOM interactions so the popup remains when cursor enters it and supports scrolling
+                layer.on('popupopen', (ev) => {
+                    const popupEl = ev.popup && ev.popup._container;
+                    const sourceLayer = ev.popup && ev.popup._source;
+                    if (!popupEl) return;
+
+                    // wheel handler to prevent map from intercepting scroll and allow popup scroll
+                    const wheelHandler = (event) => {
+                        event.stopPropagation();
+                    };
+                    popupEl.addEventListener('wheel', wheelHandler, { passive: false });
+
+                    // When mouse enters popup, cancel any close timer for source layer
+                    const enterHandler = () => {
+                        try {
+                            const id = sourceLayer && sourceLayer._leaflet_id;
+                            if (id && closeTimersRef.current[id]) {
+                                clearTimeout(closeTimersRef.current[id]);
+                                delete closeTimersRef.current[id];
+                            }
+                            if (sourceLayer && sourceLayer.setStyle) sourceLayer.setStyle({ weight: 4, color: '#444', fillOpacity: 0.35 });
+                        } catch (err) {}
+                    };
+
+                    // When mouse leaves popup, start close timer
+                    const leaveHandler = () => {
+                        try {
+                            const id = sourceLayer && sourceLayer._leaflet_id;
+                            if (id) {
+                                if (closeTimersRef.current[id]) clearTimeout(closeTimersRef.current[id]);
+                                closeTimersRef.current[id] = setTimeout(() => {
+                                    try { ev.popup._close(); } catch (err) {}
+                                    if (sourceLayer && currentLayerRef.current) currentLayerRef.current.resetStyle(sourceLayer);
+                                    delete closeTimersRef.current[id];
+                                }, 300);
+                            }
+                        } catch (err) {}
+                    };
+
+                    popupEl.addEventListener('mouseenter', enterHandler);
+                    popupEl.addEventListener('mouseleave', leaveHandler);
+
+                    // store handlers for removal
+                    popupEl.__wheelHandler = wheelHandler;
+                    popupEl.__enterHandler = enterHandler;
+                    popupEl.__leaveHandler = leaveHandler;
+                });
+
+                layer.on('popupclose', (ev) => {
+                    const popupEl = ev.popup && ev.popup._container;
+                    const sourceLayer = ev.popup && ev.popup._source;
+                    if (popupEl) {
+                        if (popupEl.__wheelHandler) popupEl.removeEventListener('wheel', popupEl.__wheelHandler);
+                        if (popupEl.__enterHandler) popupEl.removeEventListener('mouseenter', popupEl.__enterHandler);
+                        if (popupEl.__leaveHandler) popupEl.removeEventListener('mouseleave', popupEl.__leaveHandler);
+                        delete popupEl.__wheelHandler;
+                        delete popupEl.__enterHandler;
+                        delete popupEl.__leaveHandler;
+                    }
+                    // clear any pending timer for source layer
+                    try {
+                        const id = sourceLayer && sourceLayer._leaflet_id;
+                        if (id && closeTimersRef.current[id]) {
+                            clearTimeout(closeTimersRef.current[id]);
+                            delete closeTimersRef.current[id];
+                        }
+                    } catch (err) {}
                 });
             }
         }).addTo(mapInstanceRef.current);
@@ -962,10 +1046,8 @@ function HierarchicalMap({ onRegionClick }) {
                     <p><strong>Parliamentary Constituency:</strong> ${properties.name || ''}</p>
                     <p><strong>PC Number:</strong> ${properties.pcNo || ''}</p>
                     <p><strong>Division:</strong> ${properties.divisionName || ''}</p>
-                    <p><strong>District:</strong> ${properties.district || ''}</p>
-                    <p><strong>Assembly Name:</strong> ${properties.assemblyName || ''}</p>
-                    <p><strong>Assembly Seats:</strong> ${properties.assemblySeats || ''}</p>
-                    <p><strong>VS Code:</strong> ${properties.vsCode || ''}</p>
+                   
+                  
                     <p><strong>Last Election Year:</strong> ${properties.lastElectionYear || ''}</p>
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
                         <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : 'N/A'}</p>

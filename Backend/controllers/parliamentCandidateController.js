@@ -203,6 +203,16 @@ exports.createParliamentCandidate = async (req, res, next) => {
 
     // Ensure margin is numeric and compute margin_percentage if not provided
     candidateData.margin = Number(candidateData.margin) || 0;
+    // Normalize newly added numeric fields
+    candidateData.electors = Number(candidateData.electors) || 0;
+    candidateData.turnout = Number(candidateData.turnout) || 0;
+    candidateData.male_electors = Number(candidateData.male_electors) || 0;
+    candidateData.female_electors = Number(candidateData.female_electors) || 0;
+    candidateData.total_votes_polled = Number(candidateData.total_votes_polled) || 0;
+    candidateData.valid_votes = Number(candidateData.valid_votes) || 0;
+    candidateData.total_male_voters = Number(candidateData.total_male_voters) || 0;
+    candidateData.female_voters = Number(candidateData.female_voters) || 0;
+    candidateData.nota_votes = Number(candidateData.nota_votes) || 0;
     const total = Number(candidateData.total_votes_parliament) || 0;
     if (!candidateData.margin_percentage) {
       candidateData.margin_percentage = total > 0 ? parseFloat((Math.abs(candidateData.margin) / total).toFixed(6)) : 0;
@@ -259,6 +269,16 @@ exports.updateParliamentCandidate = async (req, res, next) => {
 
     // Normalize numeric fields and compute margin_percentage if needed
     updateData.margin = Number(updateData.margin) || 0;
+  // Normalize newly added numeric fields on update
+  updateData.electors = Number(updateData.electors) || 0;
+  updateData.turnout = Number(updateData.turnout) || 0;
+  updateData.male_electors = Number(updateData.male_electors) || 0;
+  updateData.female_electors = Number(updateData.female_electors) || 0;
+  updateData.total_votes_polled = Number(updateData.total_votes_polled) || 0;
+  updateData.valid_votes = Number(updateData.valid_votes) || 0;
+  updateData.total_male_voters = Number(updateData.total_male_voters) || 0;
+  updateData.female_voters = Number(updateData.female_voters) || 0;
+  updateData.nota_votes = Number(updateData.nota_votes) || 0;
     const total = Number(updateData.total_votes_parliament) || 0;
     if (!updateData.margin_percentage) {
       updateData.margin_percentage = total > 0 ? parseFloat((Math.abs(updateData.margin) / total).toFixed(6)) : 0;

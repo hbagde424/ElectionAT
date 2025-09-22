@@ -1067,7 +1067,7 @@ export default function DashboardDefault() {
             </TabPanel>
             <TabPanel value="3" sx={{ p: 0 }}>
               {/* <ParliamentMap onRegionClick={handleMapClick} /> */}
-              <MainCard title="Assembly Map">
+              <MainCard title="Parliament Map">
                 <MapContainerStyled>
                   <ParliamentMap onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
                 </MapContainerStyled>

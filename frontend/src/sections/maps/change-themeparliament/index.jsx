@@ -225,7 +225,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
       {/* Heading and Filters Row */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          Assembly Map
+          Parliament Map
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           {/* <FormControl size="small" sx={{ minWidth: 180 }}>
@@ -335,9 +335,11 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                 layout={{
                   'text-field': [
                     'concat',
-                    ['get', 'AC_NO'],
+                    // Show Parliament number (PC_NO) on first line, fall back to AC_NO if missing
+                    ['coalesce', ['get', 'PC_NO'], ['get', 'AC_NO'], ''],
                     '\n',
-                    ['get', 'AC_NAME']
+                    // Show constituency name (PC_NAME) on second line, fall back to AC_NAME
+                    ['coalesce', ['get', 'PC_NAME'], ['get', 'AC_NAME'], '']
                   ],
                   'text-size': 10,
                   'text-allow-overlap': true,
@@ -346,33 +348,12 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                 }}
                 paint={{
                   'text-color': '#000000',
-                  'text-halo-color': '#FFFFFF',
-                  'text-halo-width': 2
+                  // make halo transparent so label background appears transparent
+                  'text-halo-color': 'rgba(255,255,255,0)',
+                  'text-halo-width': 0
                 }}
               />
-              {/* Party name labels: show which party won each polygon (hide Unknown/N/A/empty) */}
-              <Layer
-                id="party-labels"
-                type="symbol"
-                // Only show labels when winningParty is present and not Unknown/N/A
-                filter={[
-                  'all',
-                  ['!=', ['get', 'winningParty'], 'Unknown'],
-                  ['!=', ['get', 'winningParty'], 'N/A'],
-                  ['!=', ['get', 'winningParty'], '']
-                ]}
-                layout={{
-                  'text-field': ['get', 'winningParty'],
-                  'text-size': 11,
-                  'text-allow-overlap': true,
-                  'text-anchor': 'center'
-                }}
-                paint={{
-                  'text-color': '#ffffff',
-                  'text-halo-color': '#000000',
-                  'text-halo-width': 1
-                }}
-              />
+              {/* party-labels removed to avoid white party text on the map */}
             </Source>
           )}
 
@@ -408,12 +389,39 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
                   <p><strong>Candidate Votes:</strong> {popupInfo.properties.candidate_votes ?? 'N/A'}</p>
                   <p><strong>Total Votes (PC):</strong> {popupInfo.properties.total_votes_parliament ?? 'N/A'}</p>
                   <p><strong>Election Year:</strong> {popupInfo.properties.election_election_year_id || 'N/A'}</p>
-                  <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'} (Used for matching with polygons)</p>
+                  <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'}</p>
                   <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
                   <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
-                  <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p>
+                  {/* <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p> */}
                 </div>
-// NOTE: This component matches parliament candidate data to polygons by PC_NO, not AC_NO. The map and popups show winning party/candidate for each parliament constituency (PC) using PC_NO as the key. If no candidate is found for a PC_NO/year, fallback values are shown.
+                {/* Last 3 years winning party names for Parliament */}
+                <div style={{ marginTop: '12px' }}>
+                  <strong>Last 3 Years Winning Parties:</strong>
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {(() => {
+                      // Find PC_NO for this popup
+                      const pcNo = popupInfo.properties.PC_NO;
+                      // Get all years for this PC_NO from winningCandidates
+                      let years = [];
+                      if (pcNo && winningCandidates && winningCandidates[pcNo]) {
+                        years = Object.keys(winningCandidates[pcNo])
+                          .map(y => y.toString())
+                          .sort((a, b) => b.localeCompare(a)); // Descending
+                      }
+                      // Take last 3 years
+                      const last3Years = years.slice(0, 3);
+                      return last3Years.length > 0 ? last3Years.map(year => {
+                        const candidate = winningCandidates[pcNo][year];
+                        return (
+                          <li key={year}>
+                            {year}: {candidate?.party_id?.name || 'Unknown'}
+                          </li>
+                        );
+                      }) : <li>No data</li>;
+                    })()}
+                  </ul>
+                </div>
+
               </div>
             </Popup>
           )}
