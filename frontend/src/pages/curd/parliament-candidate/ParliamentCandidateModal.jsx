@@ -109,10 +109,15 @@ export default function ParliamentCandidateModal({
             const mp = candidate.margin_percentage ?? candidate.Margin_percentage ?? candidate.Margin_percentage ?? candidate['Margin_percentage'];
 
             setFormData({
-                candidate_id: candidate.candidate_id?._id || '',
-                parliament_id: candidate.parliament_id?._id || '',
-                election_year_id: candidate.election_year_id?._id || '',
-                party_id: candidate.party_id?._id || '',
+                // Accept either nested object or plain id string
+                candidate_id: candidate.candidate_id?._id || candidate.candidate_id || candidate.candidate?._id || candidate.candidate || '',
+                candidate_name: candidate.candidate_id?.name || candidate.candidate?.name || candidate.candidate_name || '',
+                parliament_id: candidate.parliament_id?._id || candidate.parliament_id || '',
+                parliament_name: candidate.parliament_id?.name || candidate.parliament?.name || candidate.parliament_name || '',
+                election_year_id: candidate.election_year_id?._id || candidate.election_year_id || '',
+                election_year_label: candidate.election_year_id?.year || candidate.election_year?.year || candidate.election_year || '',
+                party_id: candidate.party_id?._id || candidate.party_id || '',
+                party_name: candidate.party_id?.name || candidate.party?.name || candidate.party_name || '',
                 position_result: candidate.position_result || 'win',
                 total_votes_parliament: parseToNum(candidate.total_votes_parliament ?? candidate.Total_Votes_Polled),
                 candidate_votes: parseToNum(candidate.candidate_votes ?? candidate.Candidate_Votes),
@@ -317,6 +322,13 @@ export default function ParliamentCandidateModal({
                                 <Select
                                     name="candidate_id"
                                     value={formData.candidate_id}
+                                    renderValue={(selected) => {
+                                        if (!selected) return <em>Select Candidate</em>;
+                                        // prefer candidate_name from formData when available
+                                        if (formData.candidate_name) return formData.candidate_name;
+                                        const opt = candidates.find((c) => c._id === selected || c.id === selected);
+                                        return opt ? opt.name : selected;
+                                    }}
                                     onChange={handleChange}
                                 >
                                     <MenuItem value="">
@@ -343,6 +355,12 @@ export default function ParliamentCandidateModal({
                                 <Select
                                     name="parliament_id"
                                     value={formData.parliament_id}
+                                    renderValue={(selected) => {
+                                        if (!selected) return <em>Select Parliament</em>;
+                                        if (formData.parliament_name) return formData.parliament_name;
+                                        const opt = parliaments.find((p) => p._id === selected || p.id === selected);
+                                        return opt ? opt.name : selected;
+                                    }}
                                     onChange={handleChange}
                                 >
                                     <MenuItem value="">
@@ -369,6 +387,12 @@ export default function ParliamentCandidateModal({
                                 <Select
                                     name="election_year_id"
                                     value={formData.election_year_id}
+                                    renderValue={(selected) => {
+                                        if (!selected) return <em>Select Year</em>;
+                                        if (formData.election_year_label) return formData.election_year_label;
+                                        const opt = electionYears.find((y) => y._id === selected || y.id === selected || y.year === selected);
+                                        return opt ? opt.year : selected;
+                                    }}
                                     onChange={handleChange}
                                 >
                                     <MenuItem value="">
@@ -395,6 +419,12 @@ export default function ParliamentCandidateModal({
                                 <Select
                                     name="party_id"
                                     value={formData.party_id}
+                                    renderValue={(selected) => {
+                                        if (!selected) return <em>Select Party</em>;
+                                        if (formData.party_name) return formData.party_name;
+                                        const opt = parties.find((p) => p._id === selected || p.id === selected);
+                                        return opt ? opt.name : selected;
+                                    }}
                                     onChange={handleChange}
                                 >
                                     <MenuItem value="">
