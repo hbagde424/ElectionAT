@@ -81,7 +81,7 @@ const CRUDMenu = {
   title: <FormattedMessage id="CRUD" />,
   type: 'group',
   icon: icons.CURd,
-  permissions: ['Users', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'], // Any read permission shows this group
+  permissions: ['Users', 'Help Center', 'FAQ', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'], // Any read permission shows this group
   children: [
     {
       id: 'state',
@@ -367,6 +367,22 @@ const CRUDMenu = {
       url: '/faq-crud',
       icon: icons.MessageQuestion,
       permissions: ['faq-crud']
+    },
+    {
+      id: 'Help-Center',
+      title: <FormattedMessage id="Help Center" defaultMessage="Help Center" />,
+      type: 'item',
+      url: '/help-center',
+      icon: icons.HelpCircle,
+      permissions: ['Help-Center']
+    },
+    {
+      id: 'faq',
+      title: <FormattedMessage id="FAQ" />,
+      type: 'item',
+      url: '/faq',
+      icon: icons.MessageQuestion,
+      permissions: ['FAQ']
     }
   ]
 };
