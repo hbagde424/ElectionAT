@@ -20,8 +20,19 @@ export default function ParliamentCandidateView({ data, onClose }) {
     };
 
     const formatNumber = (num) => {
-        if (!num && num !== 0) return 'N/A';
-        return num.toLocaleString();
+        const parseToNumber = (val) => {
+            if (val === undefined || val === null || val === '') return null;
+            if (typeof val === 'number') return val;
+            const s = String(val);
+            const match = s.match(/([0-9,.-]+)/);
+            if (!match) return null;
+            const cleaned = match[0].replace(/,/g, '');
+            const n = Number(cleaned);
+            return isNaN(n) ? null : n;
+        };
+        const n = parseToNumber(num);
+        if (n === null) return 'N/A';
+        return n.toLocaleString();
     };
 
     const getResultColor = (result) => {
@@ -36,24 +47,55 @@ export default function ParliamentCandidateView({ data, onClose }) {
     };
 
     const getVotePercentage = () => {
-        if (data.total_votes_parliament > 0 && data.candidate_votes) {
-            return ((data.candidate_votes / data.total_votes_parliament) * 100).toFixed(2);
+        const parse = (v) => {
+            if (v === undefined || v === null || v === '') return 0;
+            if (typeof v === 'number') return v;
+            const s = String(v).replace(/[^0-9.-]/g, '');
+            const n = Number(s);
+            return isNaN(n) ? 0 : n;
+        };
+        const total = parse(data.total_votes_parliament ?? data.Total_Votes_Polled);
+        const cand = parse(data.candidate_votes);
+        if (total > 0) {
+            return ((cand / total) * 100).toFixed(2);
         }
         return '0';
     };
 
     const getMarginPercentDecimal = () => {
-        // Use stored decimal fraction if present, otherwise compute
-        const possible = [data.margin_percentage, data.marginPercent, data.margin_percent, data.marginPercentage];
+        const parseToNumber = (v) => {
+            if (v === undefined || v === null || v === '') return null;
+            if (typeof v === 'number') return v;
+            const s = String(v);
+            const percentMatch = s.match(/([0-9.,]+)\s*%/);
+            if (percentMatch) {
+                const cleaned = percentMatch[1].replace(/,/g, '');
+                const n = Number(cleaned);
+                return isNaN(n) ? null : (n <= 1 ? n : n / 100);
+            }
+            const cleaned = s.replace(/[^0-9.-]/g, '');
+            const n = Number(cleaned);
+            return isNaN(n) ? null : n;
+        };
+
+        const possible = [
+            data.margin_percentage,
+            data.Margin_percentage,
+            data.marginPercent,
+            data.margin_percent,
+            data.marginPercentage
+        ];
         for (const v of possible) {
-            if (v !== undefined && v !== null && v !== '') {
-                const num = Number(v);
-                if (!isNaN(num)) return num;
+            const n = parseToNumber(v);
+            if (n !== null) {
+                // if this looks like a percent (greater than 1), convert to decimal fraction
+                if (n > 1) return n <= 100 ? n / 100 : n;
+                return n;
             }
         }
 
-        const margin = Number(data.margin) || 0;
-        const total = Number(data.total_votes_parliament) || 0;
+        const margin = parseToNumber(data.margin ?? data.Margin) || 0;
+        const total = parseToNumber(data.total_votes_parliament ?? data.Total_Votes_Polled) || 0;
         if (total > 0) return Math.abs(margin) / total;
         return 0;
     };
@@ -273,7 +315,25 @@ export default function ParliamentCandidateView({ data, onClose }) {
                                             Turnout
                                         </Typography>
                                         <Typography variant="h6" color="text.primary" fontWeight="bold">
-                                            {formatNumber(data.turnout)}
+                                                    {(() => {
+                                                        const parse = (v) => {
+                                                            if (v === undefined || v === null || v === '') return null;
+                                                            if (typeof v === 'number') return v;
+                                                            const s = String(v);
+                                                            const percentMatch = s.match(/([0-9.,]+)\s*%/);
+                                                            if (percentMatch) {
+                                                                const cleaned = percentMatch[1].replace(/,/g, '');
+                                                                const n = Number(cleaned);
+                                                                return isNaN(n) ? null : (n <= 1 ? n : n / 100);
+                                                            }
+                                                            const cleaned = s.replace(/[^0-9.-]/g, '');
+                                                            const n = Number(cleaned);
+                                                            return isNaN(n) ? null : (n <= 1 ? n : n / 100);
+                                                        };
+                                                        const n = parse(data.turnout ?? data.Turnout);
+                                                        if (n === null) return 'N/A';
+                                                        return `${(n * 100).toFixed(1)}%`;
+                                                    })()}
                                         </Typography>
                                     </Box>
                                 </Grid>

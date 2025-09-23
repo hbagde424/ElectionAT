@@ -94,25 +94,39 @@ export default function ParliamentCandidateModal({
 
     useEffect(() => {
         if (candidate) {
+            // Helper to parse formatted numbers
+            const parseToNum = (v) => {
+                if (v === undefined || v === null || v === '') return '';
+                if (typeof v === 'number') return v;
+                const s = String(v);
+                const match = s.match(/([0-9,.-]+)/);
+                if (!match) return '';
+                const cleaned = match[0].replace(/,/g, '');
+                const n = Number(cleaned);
+                return isNaN(n) ? '' : n;
+            };
+
+            const mp = candidate.margin_percentage ?? candidate.Margin_percentage ?? candidate.Margin_percentage ?? candidate['Margin_percentage'];
+
             setFormData({
                 candidate_id: candidate.candidate_id?._id || '',
                 parliament_id: candidate.parliament_id?._id || '',
                 election_year_id: candidate.election_year_id?._id || '',
                 party_id: candidate.party_id?._id || '',
                 position_result: candidate.position_result || 'win',
-                total_votes_parliament: candidate.total_votes_parliament || '',
-                candidate_votes: candidate.candidate_votes || '',
-                margin: candidate.margin || '',
-                margin_percentage: candidate.margin_percentage ? ((Number(candidate.margin_percentage) * 100).toFixed(2)) : '',
-                electors: candidate.electors || '',
-                turnout: candidate.turnout || '',
-                male_electors: candidate.male_electors || '',
-                female_electors: candidate.female_electors || '',
-                total_votes_polled: candidate.total_votes_polled || '',
-                valid_votes: candidate.valid_votes || '',
-                total_male_voters: candidate.total_male_voters || '',
-                female_voters: candidate.female_voters || '',
-                nota_votes: candidate.nota_votes || ''
+                total_votes_parliament: parseToNum(candidate.total_votes_parliament ?? candidate.Total_Votes_Polled),
+                candidate_votes: parseToNum(candidate.candidate_votes ?? candidate.Candidate_Votes),
+                margin: parseToNum(candidate.margin ?? candidate.Margin),
+                margin_percentage: mp ? ((Number(mp) * 100).toFixed(2)) : '',
+                electors: parseToNum(candidate.electors ?? candidate.Electors),
+                turnout: parseToNum(candidate.turnout ?? candidate.Turnout),
+                male_electors: parseToNum(candidate.male_electors ?? candidate.Male_Electors),
+                female_electors: parseToNum(candidate.female_electors ?? candidate.Female_Electors),
+                total_votes_polled: parseToNum(candidate.total_votes_polled ?? candidate.Total_Votes_Polled),
+                valid_votes: parseToNum(candidate.valid_votes ?? candidate.Valid_Votes),
+                total_male_voters: parseToNum(candidate.total_male_voters ?? candidate.Total_Male_Voters),
+                female_voters: parseToNum(candidate.female_voters ?? candidate.Female_Voters),
+                nota_votes: parseToNum(candidate.nota_votes ?? candidate.NOTA_Votes)
             });
         } else {
             setFormData({

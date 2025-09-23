@@ -37,20 +37,23 @@ exports.getWinningPartyByParliament = async (req, res, next) => {
       .populate('party_id', 'name color symbol')
       .populate('candidate_id', 'name');
 
-    // Map parliament_id to winner info
-    const result = winners.map(w => ({
-      parliament: w.parliament_id, // full parliament object
-      party_id: w.party_id?._id,
-      party_name: w.party_id?.name,
-      party_color: w.party_id?.color,
-      party_symbol: w.party_id?.symbol,
-      candidate_id: w.candidate_id?._id,
-      candidate_name: w.candidate_id?.name,
-      margin: w.margin,
-      margin_percentage: w.margin_percentage,
-      total_votes: w.total_votes_parliament,
-      year: yearDoc?.year || null
-    }));
+    // Map parliament_id to winner info and normalize
+    const result = winners.map(w => {
+      const norm = normalizeCandidateDoc(w);
+      return {
+        parliament: w.parliament_id, // full parliament object
+        party_id: w.party_id?._id,
+        party_name: w.party_id?.name,
+        party_color: w.party_id?.color,
+        party_symbol: w.party_id?.symbol,
+        candidate_id: w.candidate_id?._id,
+        candidate_name: w.candidate_id?.name,
+        margin: norm.margin,
+        margin_percentage: norm.margin_percentage,
+        total_votes: norm.total_votes_parliament,
+        year: yearDoc?.year || null
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -62,6 +65,86 @@ exports.getWinningPartyByParliament = async (req, res, next) => {
   }
 };
 const ParliamentCandidate = require('../models/ParliamentCandidate');
+
+// Helper to normalize mixed-case and formatted fields from DB documents
+function normalizeCandidateDoc(doc) {
+  if (!doc) return doc;
+  // Ensure plain object and include virtuals
+  let obj = doc.toObject ? doc.toObject({ virtuals: true }) : { ...doc };
+
+  const mappings = [
+    ['Margin', 'margin'],
+    ['Margin_percentage', 'margin_percentage'],
+    ['Electors', 'electors'],
+    ['Turnout', 'turnout'],
+    ['Male_Electors', 'male_electors'],
+    ['Female_Electors', 'female_electors'],
+    ['Total_Votes_Polled', 'total_votes_polled'],
+    ['Valid_Votes', 'valid_votes'],
+    ['Total_Male_Voters', 'total_male_voters'],
+    ['Female_Voters', 'female_voters'],
+    ['NOTA_Votes', 'nota_votes'],
+    ['Candidate_Votes', 'candidate_votes']
+  ];
+
+  const parseNumber = (v) => {
+    if (v === undefined || v === null || v === '') return undefined;
+    if (typeof v === 'number') return v;
+    const s = String(v);
+    // If percent like "68.3%"
+    const percentMatch = s.match(/([\d.,]+)\s*%/);
+    if (percentMatch) {
+      const cleaned = percentMatch[1].replace(/,/g, '');
+      const n = Number(cleaned);
+      return isNaN(n) ? undefined : n / 100;
+    }
+    // Extract first numeric group
+    const m = s.match(/[-+]?[0-9,]*\.?[0-9]+/);
+    if (!m) return undefined;
+    const cleaned = m[0].replace(/,/g, '');
+    const n = Number(cleaned);
+    return isNaN(n) ? undefined : n;
+  };
+
+  mappings.forEach(([upper, lower]) => {
+    const upperVal = obj[upper];
+    const lowerVal = obj[lower];
+    // If upper exists and lower is missing/zero/invalid, prefer upper
+    if (upperVal !== undefined && (lowerVal === undefined || lowerVal === null || lowerVal === 0)) {
+      const parsed = parseNumber(upperVal);
+      if (parsed !== undefined) obj[lower] = parsed;
+    }
+  });
+
+  // Ensure candidate_votes is numeric
+  obj.candidate_votes = parseNumber(obj.candidate_votes) ?? 0;
+  obj.total_votes_parliament = parseNumber(obj.total_votes_parliament) ?? parseNumber(obj.total_votes) ?? obj.total_votes_parliament ?? 0;
+
+  // margin already handled above; ensure numeric
+  obj.margin = parseNumber(obj.margin) ?? 0;
+
+  // margin_percentage might be decimal fraction or percent number; normalize to decimal fraction
+  if (obj.margin_percentage === undefined || obj.margin_percentage === null) {
+    obj.margin_percentage = (obj.total_votes_parliament > 0) ? parseFloat((Math.abs(obj.margin) / obj.total_votes_parliament).toFixed(6)) : 0;
+  } else {
+    const mp = parseNumber(obj.margin_percentage);
+    if (mp !== undefined) {
+      // if parsed value was from a percent like "8.6%", parseNumber returned 0.086; if it returned 8.6, convert
+      obj.margin_percentage = mp > 1 ? (mp <= 100 ? mp / 100 : mp) : mp;
+    }
+  }
+
+  // Compute vote_percentage if missing or invalid
+  const vp = parseNumber(obj.vote_percentage);
+  if (vp === undefined || isNaN(vp)) {
+    obj.vote_percentage = (obj.total_votes_parliament > 0) ? parseFloat(((obj.candidate_votes / obj.total_votes_parliament) * 100).toFixed(2)) : 0;
+  } else {
+    // ensure it's a plain number (percentage number, not fraction)
+    obj.vote_percentage = vp > 1 ? vp : parseFloat((vp).toFixed(2));
+  }
+
+  return obj;
+}
 
 // @desc    Get all Parliament Candidates
 // @route   GET /api/parliament-candidates
@@ -102,6 +185,11 @@ exports.getParliamentCandidates = async (req, res, next) => {
       query = query.where('parliament_id').equals(req.query.parliament_id);
     }
 
+    // Filter by candidate
+    if (req.query.candidate_id) {
+      query = query.where('candidate_id').equals(req.query.candidate_id);
+    }
+
     // Filter by election year
     if (req.query.election_year_id) {
       query = query.where('election_year_id').equals(req.query.election_year_id);
@@ -120,10 +208,11 @@ exports.getParliamentCandidates = async (req, res, next) => {
     // Check if all data requested (for CSV export)
     if (req.query.all === 'true') {
       const allCandidates = await query.exec();
+      const normalized = Array.isArray(allCandidates) ? allCandidates.map(normalizeCandidateDoc) : [];
       return res.status(200).json({
         success: true,
-        count: allCandidates.length,
-        data: allCandidates
+        count: normalized.length,
+        data: normalized
       });
     }
 
@@ -131,13 +220,15 @@ exports.getParliamentCandidates = async (req, res, next) => {
     const candidates = await query.skip(skip).limit(limit).exec();
     const total = await ParliamentCandidate.countDocuments(query.getFilter());
 
+    // Normalize paginated candidates
+    const normalizedCandidates = Array.isArray(candidates) ? candidates.map(normalizeCandidateDoc) : [];
     res.status(200).json({
       success: true,
-      count: candidates.length,
+      count: normalizedCandidates.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: candidates
+      data: normalizedCandidates
     });
   } catch (err) {
     next(err);
@@ -164,9 +255,10 @@ exports.getParliamentCandidate = async (req, res, next) => {
       });
     }
 
+    const normalized = normalizeCandidateDoc(candidate);
     res.status(200).json({
       success: true,
-      data: candidate
+      data: normalized
     });
   } catch (err) {
     next(err);
@@ -178,6 +270,43 @@ exports.getParliamentCandidate = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createParliamentCandidate = async (req, res, next) => {
   try {
+    // Normalize incoming body to handle legacy/mixed-case fields saved in DB
+    const normalizeIncoming = (body) => {
+      if (!body || typeof body !== 'object') return body;
+      const map = {
+        Margin: 'margin',
+        Margin_percentage: 'margin_percentage',
+        Electors: 'electors',
+        Turnout: 'turnout',
+        Male_Electors: 'male_electors',
+        Female_Electors: 'female_electors',
+        Total_Votes_Polled: 'total_votes_polled',
+        Valid_Votes: 'valid_votes',
+        Total_Male_Voters: 'total_male_voters',
+        Female_Voters: 'female_voters',
+        NOTA_Votes: 'nota_votes'
+      };
+
+      const parseNumber = (val) => {
+        if (val === undefined || val === null) return undefined;
+        if (typeof val === 'number') return val;
+        const cleaned = String(val).replace(/[(),%\s]/g, '').replace(/,/g, '');
+        const n = Number(cleaned);
+        return isNaN(n) ? val : n;
+      };
+
+      const out = { ...body };
+      Object.keys(map).forEach((upper) => {
+        const lower = map[upper];
+        if (body[upper] !== undefined && out[lower] === undefined) {
+          out[lower] = parseNumber(body[upper]);
+        }
+      });
+      return out;
+    };
+
+    req.body = normalizeIncoming(req.body);
+
     // Validate required fields
     const { candidate_id, parliament_id, election_year_id, party_id } = req.body;
 
@@ -214,10 +343,27 @@ exports.createParliamentCandidate = async (req, res, next) => {
     candidateData.female_voters = Number(candidateData.female_voters) || 0;
     candidateData.nota_votes = Number(candidateData.nota_votes) || 0;
     const total = Number(candidateData.total_votes_parliament) || 0;
-    if (!candidateData.margin_percentage) {
+    // Robust parsing for margin_percentage: accept "1%", "0.01", or numeric strings
+    const parseMarginPercentage = (mp) => {
+      if (mp === undefined || mp === null || mp === '') return undefined;
+      if (typeof mp === 'number') return mp <= 1 ? mp : mp <= 100 ? mp / 100 : mp;
+      if (typeof mp === 'string') {
+        if (mp.includes('%')) {
+          const num = Number(mp.replace('%', '').trim());
+          return isNaN(num) ? undefined : num / 100;
+        }
+        const cleaned = mp.replace(/,/g, '').trim();
+        const n = Number(cleaned);
+        if (!isNaN(n)) return n <= 1 ? n : (n <= 100 ? n / 100 : n);
+      }
+      return undefined;
+    };
+
+    const parsedMp = parseMarginPercentage(candidateData.margin_percentage);
+    if (parsedMp === undefined) {
       candidateData.margin_percentage = total > 0 ? parseFloat((Math.abs(candidateData.margin) / total).toFixed(6)) : 0;
     } else {
-      candidateData.margin_percentage = Number(candidateData.margin_percentage) || 0;
+      candidateData.margin_percentage = parsedMp;
     }
 
     const candidate = await ParliamentCandidate.create(candidateData);
@@ -262,28 +408,80 @@ exports.updateParliamentCandidate = async (req, res, next) => {
       });
     }
 
+    // Normalize incoming body to handle legacy/mixed-case fields
+    const normalizeIncoming = (body) => {
+      if (!body || typeof body !== 'object') return body;
+      const map = {
+        Margin: 'margin',
+        Margin_percentage: 'margin_percentage',
+        Electors: 'electors',
+        Turnout: 'turnout',
+        Male_Electors: 'male_electors',
+        Female_Electors: 'female_electors',
+        Total_Votes_Polled: 'total_votes_polled',
+        Valid_Votes: 'valid_votes',
+        Total_Male_Voters: 'total_male_voters',
+        Female_Voters: 'female_voters',
+        NOTA_Votes: 'nota_votes'
+      };
+
+      const parseNumber = (val) => {
+        if (val === undefined || val === null) return undefined;
+        if (typeof val === 'number') return val;
+        const cleaned = String(val).replace(/[(),%\s]/g, '').replace(/,/g, '');
+        const n = Number(cleaned);
+        return isNaN(n) ? val : n;
+      };
+
+      const out = { ...body };
+      Object.keys(map).forEach((upper) => {
+        const lower = map[upper];
+        if (body[upper] !== undefined && out[lower] === undefined) {
+          out[lower] = parseNumber(body[upper]);
+        }
+      });
+      return out;
+    };
+
     const updateData = {
-      ...req.body,
+      ...normalizeIncoming(req.body),
       updated_by: req.user.id,
     };
 
     // Normalize numeric fields and compute margin_percentage if needed
     updateData.margin = Number(updateData.margin) || 0;
-  // Normalize newly added numeric fields on update
-  updateData.electors = Number(updateData.electors) || 0;
-  updateData.turnout = Number(updateData.turnout) || 0;
-  updateData.male_electors = Number(updateData.male_electors) || 0;
-  updateData.female_electors = Number(updateData.female_electors) || 0;
-  updateData.total_votes_polled = Number(updateData.total_votes_polled) || 0;
-  updateData.valid_votes = Number(updateData.valid_votes) || 0;
-  updateData.total_male_voters = Number(updateData.total_male_voters) || 0;
-  updateData.female_voters = Number(updateData.female_voters) || 0;
-  updateData.nota_votes = Number(updateData.nota_votes) || 0;
+    // Normalize newly added numeric fields on update
+    updateData.electors = Number(updateData.electors) || 0;
+    updateData.turnout = Number(updateData.turnout) || 0;
+    updateData.male_electors = Number(updateData.male_electors) || 0;
+    updateData.female_electors = Number(updateData.female_electors) || 0;
+    updateData.total_votes_polled = Number(updateData.total_votes_polled) || 0;
+    updateData.valid_votes = Number(updateData.valid_votes) || 0;
+    updateData.total_male_voters = Number(updateData.total_male_voters) || 0;
+    updateData.female_voters = Number(updateData.female_voters) || 0;
+    updateData.nota_votes = Number(updateData.nota_votes) || 0;
     const total = Number(updateData.total_votes_parliament) || 0;
-    if (!updateData.margin_percentage) {
+
+    const parseMarginPercentage = (mp) => {
+      if (mp === undefined || mp === null || mp === '') return undefined;
+      if (typeof mp === 'number') return mp <= 1 ? mp : mp <= 100 ? mp / 100 : mp;
+      if (typeof mp === 'string') {
+        if (mp.includes('%')) {
+          const num = Number(mp.replace('%', '').trim());
+          return isNaN(num) ? undefined : num / 100;
+        }
+        const cleaned = mp.replace(/,/g, '').trim();
+        const n = Number(cleaned);
+        if (!isNaN(n)) return n <= 1 ? n : (n <= 100 ? n / 100 : n);
+      }
+      return undefined;
+    };
+
+    const parsedMp = parseMarginPercentage(updateData.margin_percentage);
+    if (parsedMp === undefined) {
       updateData.margin_percentage = total > 0 ? parseFloat((Math.abs(updateData.margin) / total).toFixed(6)) : 0;
     } else {
-      updateData.margin_percentage = Number(updateData.margin_percentage) || 0;
+      updateData.margin_percentage = parsedMp;
     }
 
     candidate = await ParliamentCandidate.findByIdAndUpdate(req.params.id, updateData, {

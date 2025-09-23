@@ -174,7 +174,97 @@ parliamentCandidateSchema.virtual('vote_percentage').get(function() {
 
 // Ensure virtual fields are serialised
 parliamentCandidateSchema.set('toJSON', {
-  virtuals: true
+  virtuals: true,
+  transform: function (doc, ret) {
+    // Ensure mixed-case DB fields are mapped to lowercase fields for API consumers
+    const map = {
+      Margin: 'margin',
+      Margin_percentage: 'margin_percentage',
+      Electors: 'electors',
+      Turnout: 'turnout',
+      Male_Electors: 'male_electors',
+      Female_Electors: 'female_electors',
+      Total_Votes_Polled: 'total_votes_polled',
+      Valid_Votes: 'valid_votes',
+      Total_Male_Voters: 'total_male_voters',
+      Female_Voters: 'female_voters',
+      NOTA_Votes: 'nota_votes'
+    };
+
+    function parsePossibleNumber(val) {
+      if (val === undefined || val === null) return val;
+      if (typeof val === 'number') return val;
+      // Remove commas, parentheses and percent signs then parse
+      const cleaned = String(val).replace(/[(),%\s]/g, '').replace(/,/g, '');
+      const num = Number(cleaned);
+      return isNaN(num) ? String(val) : num;
+    }
+
+    Object.keys(map).forEach(upper => {
+      const lower = map[upper];
+      if ((ret[lower] === undefined || ret[lower] === null) && ret[upper] !== undefined) {
+        ret[lower] = parsePossibleNumber(ret[upper]);
+      }
+      // Also keep the uppercase variant in the JSON so legacy consumers still work
+    });
+    return ret;
+  }
+});
+
+// Normalize both uppercase and lowercase fields before saving so DB remains consistent
+parliamentCandidateSchema.pre('save', function (next) {
+  const mapping = {
+    Margin: 'margin',
+    Margin_percentage: 'margin_percentage',
+    Electors: 'electors',
+    Turnout: 'turnout',
+    Male_Electors: 'male_electors',
+    Female_Electors: 'female_electors',
+    Total_Votes_Polled: 'total_votes_polled',
+    Valid_Votes: 'valid_votes',
+    Total_Male_Voters: 'total_male_voters',
+    Female_Voters: 'female_voters',
+    NOTA_Votes: 'nota_votes'
+  };
+
+  function parseNumberFromString(v) {
+    if (v === undefined || v === null) return undefined;
+    if (typeof v === 'number') return v;
+    const cleaned = String(v).replace(/[(),%\s]/g, '').replace(/,/g, '');
+    const n = Number(cleaned);
+    return isNaN(n) ? undefined : n;
+  }
+
+  try {
+    Object.keys(mapping).forEach(upper => {
+      const lower = mapping[upper];
+      // If uppercase exists but lowercase does not, set lowercase (and coerce types)
+      if (this[upper] !== undefined && (this[lower] === undefined || this[lower] === null)) {
+        const parsed = parseNumberFromString(this[upper]);
+        this[lower] = parsed !== undefined ? parsed : this[upper];
+      }
+      // If lowercase exists but uppercase does not, keep uppercase in DB for legacy
+      if (this[lower] !== undefined && (this[upper] === undefined || this[upper] === null)) {
+        this[upper] = this[lower];
+      }
+    });
+
+    // Ensure margin_percentage stored as decimal fraction (0.03 for 3%)
+    const total = Number(this.total_votes_parliament) || 0;
+    const marginValue = Number(this.margin) || 0;
+    if (total > 0) {
+      this.margin_percentage = parseFloat((Math.abs(marginValue) / total).toFixed(6));
+    } else {
+      this.margin_percentage = 0;
+    }
+    // mirror into uppercase stored field
+    this.Margin_percentage = this.margin_percentage;
+    this.Margin = this.margin;
+  } catch (e) {
+    // ignore and continue
+  }
+
+  next();
 });
 
 module.exports = mongoose.model('ParliamentCandidate', parliamentCandidateSchema);
