@@ -227,10 +227,41 @@ export const PermissionProvider = ({ children }) => {
                 return;
             }
 
-            const response = await axiosServices.get(`/user-hierarchy/${userId}`);
-            const hierarchyData = response?.data?.data ?? response?.data ?? null;
-            if (mountedRef.current) setUserHierarchy(hierarchyData);
-            console.log('📚 userHierarchy:', hierarchyData);
+            // First try to get UserHierarchy
+            try {
+                const response = await axiosServices.get(`/user-hierarchy/${userId}`);
+                const hierarchyData = response?.data?.data ?? response?.data ?? null;
+                if (hierarchyData && Object.keys(hierarchyData).length > 0) {
+                    if (mountedRef.current) setUserHierarchy(hierarchyData);
+                    console.log('📚 userHierarchy from UserHierarchy model:', hierarchyData);
+                    return;
+                }
+            } catch (err) {
+                console.log('No UserHierarchy found, checking User model...');
+            }
+
+            // If no UserHierarchy found, check if user has hierarchical IDs in User model
+            if (currentUser.state_ids?.length > 0 || currentUser.division_ids?.length > 0 ||
+                currentUser.parliament_ids?.length > 0 || currentUser.assembly_ids?.length > 0 ||
+                currentUser.block_ids?.length > 0 || currentUser.booth_ids?.length > 0) {
+
+                // Create a mock hierarchy object from User model data
+                const mockHierarchy = {
+                    user: userId,
+                    state: currentUser.state_ids?.[0] || null,
+                    division: currentUser.division_ids?.[0] || null,
+                    parliament: currentUser.parliament_ids?.[0] || null,
+                    assembly: currentUser.assembly_ids?.[0] || null,
+                    block: currentUser.block_ids?.[0] || null,
+                    booth: currentUser.booth_ids?.[0] || null
+                };
+
+                if (mountedRef.current) setUserHierarchy(mockHierarchy);
+                console.log('📚 userHierarchy from User model:', mockHierarchy);
+            } else {
+                if (mountedRef.current) setUserHierarchy(null);
+                console.log('📚 No hierarchy restrictions found');
+            }
         } catch (err) {
             console.error('Error fetching user hierarchy:', err);
             if (mountedRef.current) setUserHierarchy(null);

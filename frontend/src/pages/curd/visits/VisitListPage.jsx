@@ -1,10 +1,12 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Grid,
-    IconButton, Select, MenuItem, FormControl, InputLabel, TextField
+    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
+import axiosServices from 'utils/axios';
+import { usePermissions } from 'contexts/PermissionContext';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -40,6 +42,7 @@ const MAPBOX_THEMES = {
 
 const VisitListPage = () => {
     const theme = useTheme();
+    const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
     const [visits, setVisits] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
@@ -64,6 +67,38 @@ const VisitListPage = () => {
     const [routeData, setRouteData] = useState(null);
     const [selectedCandidate, setSelectedCandidate] = useState('');
     const mapRef = useRef(null);
+
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all visit data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all visit data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entityName = userHierarchy[highestLevel]?.name || 'Unknown';
+
+        return {
+            level: levelName,
+            entity: entityName,
+            description: `You have access to visit data for ${entityName} ${levelName} and all areas within it`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
 
     // Filter states
     const [filterValues, setFilterValues] = useState({
@@ -198,8 +233,7 @@ const VisitListPage = () => {
                 queryParams.push(`endDate=${appliedFilters.endDate}`);
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/visits?${queryParams.join('&')}`);
-            const json = await res.json();
+            const { data: json } = await axiosServices.get(`/visits?${queryParams.join('&')}`);
             if (json.success) {
                 setVisits(json.data);
                 setPageCount(json.pages);
@@ -219,15 +253,14 @@ const VisitListPage = () => {
 
             console.log('Fetching map visits with URL:', url);
             console.log('Selected candidate ID:', candidateId);
-            
-            const res = await fetch(url);
-            const json = await res.json();
+
+            const { data: json } = await axiosServices.get(url.replace(import.meta.env.VITE_APP_API_URL, ''));
             console.log('API response:', json);
-            
+
             if (json.success) {
                 console.log('Total visits received:', json.data.length);
                 console.log('Sample visit data:', json.data[0]);
-                
+
                 const visitsWithCoords = json.data.filter(v => v.latitude && v.longitude);
                 console.log('Visits with coordinates:', visitsWithCoords);
                 console.log('Visits without coordinates:', json.data.length - visitsWithCoords.length);
@@ -268,8 +301,7 @@ const VisitListPage = () => {
                 ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${selectedCandidate}`
                 : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
 
-            const res = await fetch(url);
-            const json = await res.json();
+            const { data: json } = await axiosServices.get(url.replace(import.meta.env.VITE_APP_API_URL, ''));
 
             if (json.success) {
                 const csvData = json.data.map(item => ({
@@ -552,24 +584,24 @@ const VisitListPage = () => {
                 </Typography>
             )
         },
-            {
-                header: 'Parliament',
-                accessorKey: 'parliament_id',
-                cell: ({ getValue }) => (
-                    <Typography>
-                        {getValue()?.name || 'N/A'}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Block',
-                accessorKey: 'block_id',
-                cell: ({ getValue }) => (
-                    <Typography>
-                        {getValue()?.name || 'N/A'}
-                    </Typography>
-                )
-            },
+        {
+            header: 'Parliament',
+            accessorKey: 'parliament_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Block',
+            accessorKey: 'block_id',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.name || 'N/A'}
+                </Typography>
+            )
+        },
         {
             header: 'Booth',
             accessorKey: 'booth_id',
@@ -588,24 +620,24 @@ const VisitListPage = () => {
                 </Typography>
             )
         },
-            {
-                header: 'Longitude',
-                accessorKey: 'longitude',
-                cell: ({ getValue }) => (
-                    <Typography>
-                        {getValue() || 'N/A'}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Latitude',
-                accessorKey: 'latitude',
-                cell: ({ getValue }) => (
-                    <Typography>
-                        {getValue() || 'N/A'}
-                    </Typography>
-                )
-            },
+        {
+            header: 'Longitude',
+            accessorKey: 'longitude',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Latitude',
+            accessorKey: 'latitude',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
         {
             header: 'Description',
             accessorKey: 'description',
@@ -623,24 +655,24 @@ const VisitListPage = () => {
                 </Typography>
             )
         },
-            {
-                header: 'Declaration',
-                accessorKey: 'declaration',
-                cell: ({ getValue }) => (
-                    <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
-                        {getValue() ? getValue().slice(0, 100) : ''}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Remark',
-                accessorKey: 'remark',
-                cell: ({ getValue }) => (
-                    <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
-                        {getValue() ? getValue().slice(0, 100) : ''}
-                    </Typography>
-                )
-            },
+        {
+            header: 'Declaration',
+            accessorKey: 'declaration',
+            cell: ({ getValue }) => (
+                <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
+                    {getValue() ? getValue().slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
+            header: 'Remark',
+            accessorKey: 'remark',
+            cell: ({ getValue }) => (
+                <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
+                    {getValue() ? getValue().slice(0, 100) : ''}
+                </Typography>
+            )
+        },
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -703,6 +735,16 @@ const VisitListPage = () => {
                     <MainCard
                         title="Visit Locations Map"
                     >
+                        {/* Access Scope Information */}
+                        <Alert
+                            severity="info"
+                            sx={{ mb: 2 }}
+                        >
+                            <Typography variant="body2">
+                                <strong>Data Access:</strong> {accessScope.description}
+                            </Typography>
+                        </Alert>
+
                         <MapContainerStyled>
                             <Map
                                 ref={mapRef}
@@ -851,6 +893,16 @@ const VisitListPage = () => {
                                     </Button>
                                 </Stack>
                             </Stack>
+
+                            {/* Access Scope Information */}
+                            <Alert
+                                severity="info"
+                                sx={{ mb: 2 }}
+                            >
+                                <Typography variant="body2">
+                                    <strong>Data Access:</strong> {accessScope.description}
+                                </Typography>
+                            </Alert>
 
                             {/* Filters Section */}
                             <Grid container spacing={2}>
@@ -1029,7 +1081,7 @@ const VisitListPage = () => {
                                                     <TableCell
                                                         key={header.id}
                                                         onClick={header.column.getToggleSortingHandler()}
-                                                        sx={{ 
+                                                        sx={{
                                                             cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                             color: 'white',
                                                             fontWeight: 'bold',

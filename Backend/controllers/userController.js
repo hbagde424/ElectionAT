@@ -284,7 +284,7 @@ exports.getUser = async (req, res, next) => {
     let query = { _id: req.params.id };
 
     // Non-superAdmins can only see users they created
-    if (req.user.role !== 'SuperAdmin') {
+    if (req.user.role !== 'SuperAdmin' && req.user.role !== 'superAdmin') {
       query.created_by = req.user.id;
     }
 
@@ -322,7 +322,7 @@ exports.updateUser = async (req, res, next) => {
     let query = { _id: req.params.id };
 
     // Non-superAdmins can only update users they created
-    if (req.user.role !== 'SuperAdmin') {
+    if (req.user.role !== 'SuperAdmin' && req.user.role !== 'superAdmin') {
       query.created_by = req.user.id;
     }
 
@@ -395,7 +395,7 @@ exports.deleteUser = async (req, res, next) => {
     let query = { _id: req.params.id };
 
     // Non-superAdmins can only delete users they created
-    if (req.user.role !== 'SuperAdmin') {
+    if (req.user.role !== 'SuperAdmin' && req.user.role !== 'superAdmin') {
       query.created_by = req.user.id;
     }
 
@@ -434,7 +434,7 @@ exports.toggleActive = async (req, res, next) => {
     let query = { _id: req.params.id };
 
     // Non-superAdmins can only toggle users they created
-    if (req.user.role !== 'SuperAdmin') {
+    if (req.user.role !== 'SuperAdmin' && req.user.role !== 'superAdmin') {
       query.created_by = req.user.id;
     }
 
