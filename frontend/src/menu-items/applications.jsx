@@ -143,8 +143,8 @@ const applications = {
           id: 'user-profile',
           title: <FormattedMessage id="user-profile" />,
           type: 'item',
-          link: '/apps/profiles/user/:tab',
-          url: '/apps/profiles/user/personal',
+          link: '/apps/profiles/account/basic',
+          url: '/apps/profiles/account/basic',
           breadcrumbs: false
         },
         {

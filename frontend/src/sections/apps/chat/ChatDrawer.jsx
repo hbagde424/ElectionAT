@@ -156,7 +156,7 @@ export default function ChatDrawer({ handleDrawerOpen, openChatDrawer, setUser, 
                   <UserAvatar user={{ online_status: status, avatar: 'avatar-1.png', name: 'User 1' }} />
                 </Grid>
                 <Grid item xs zeroMinWidth>
-                  <Stack sx={{ cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/apps/profiles/user/personal">
+                  <Stack sx={{ cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/apps/profiles/account/basic">
                     <Typography variant="h5" color="text.primary">
                       {user ? user?.name : ''}
                     </Typography>

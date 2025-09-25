@@ -39,11 +39,6 @@ const AppInvoiceList = Loadable(lazy(() => import('pages/apps/invoice/list')));
 const AppInvoiceDetails = Loadable(lazy(() => import('pages/apps/invoice/details')));
 const AppInvoiceEdit = Loadable(lazy(() => import('pages/apps/invoice/edit')));
 
-const UserProfile = Loadable(lazy(() => import('pages/apps/profiles/user')));
-const UserTabPersonal = Loadable(lazy(() => import('sections/apps/profiles/user/TabPersonal')));
-const UserTabPayment = Loadable(lazy(() => import('sections/apps/profiles/user/TabPayment')));
-const UserTabPassword = Loadable(lazy(() => import('sections/apps/profiles/user/TabPassword')));
-const UserTabSettings = Loadable(lazy(() => import('sections/apps/profiles/user/TabSettings')));
 
 const AccountProfile = Loadable(lazy(() => import('pages/apps/profiles/account')));
 const AccountTabProfile = Loadable(lazy(() => import('sections/apps/profiles/account/TabProfile')));
@@ -330,28 +325,6 @@ const MainRoutes = {
                     }
                   ]
                 },
-                {
-                  path: 'user',
-                  element: <UserProfile />,
-                  children: [
-                    {
-                      path: 'personal',
-                      element: <UserTabPersonal />
-                    },
-                    {
-                      path: 'payment',
-                      element: <UserTabPayment />
-                    },
-                    {
-                      path: 'password',
-                      element: <UserTabPassword />
-                    },
-                    {
-                      path: 'settings',
-                      element: <UserTabSettings />
-                    }
-                  ]
-                }
               ]
             },
             {

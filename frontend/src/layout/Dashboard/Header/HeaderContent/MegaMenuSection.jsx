@@ -234,7 +234,7 @@ export default function MegaMenuSection() {
                                 </ListItemIcon>
                                 <ListItemText primary="Pricing" />
                               </ListItemButton>
-                              <ListItemButton disableRipple component={Link} to="/apps/profiles/user/payment">
+                              <ListItemButton disableRipple component={Link} to="/apps/profiles/account/basic">
                                 <ListItemIcon>
                                   <Dot size={6} color="secondary" variant="outlined" />
                                 </ListItemIcon>
