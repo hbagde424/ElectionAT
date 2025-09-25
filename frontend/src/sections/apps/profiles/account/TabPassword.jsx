@@ -19,6 +19,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import MainCard from 'components/MainCard';
 import IconButton from 'components/@extended/IconButton';
 import { openSnackbar } from 'api/snackbar';
+import { changePassword } from 'api/profile';
 import { isNumber, isLowercaseChar, isUppercaseChar, isSpecialChar, minLength } from 'utils/password-validation';
 
 // third-party
@@ -72,6 +73,11 @@ export default function TabPassword() {
         })}
         onSubmit={async (values, { resetForm, setErrors, setStatus, setSubmitting }) => {
           try {
+            await changePassword({
+              currentPassword: values.old,
+              newPassword: values.password
+            });
+
             openSnackbar({
               open: true,
               message: 'Password changed successfully.',
@@ -84,7 +90,7 @@ export default function TabPassword() {
             setSubmitting(false);
           } catch (err) {
             setStatus({ success: false });
-            setErrors({ submit: err.message });
+            setErrors({ submit: err.message || 'Failed to change password' });
             setSubmitting(false);
           }
         }}

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
@@ -9,6 +10,8 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Typography from '@mui/material/Typography';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 
 // third-party
 import { PatternFormat } from 'react-number-format';
@@ -16,7 +19,7 @@ import { PatternFormat } from 'react-number-format';
 // project-imports
 import MainCard from 'components/MainCard';
 import Avatar from 'components/@extended/Avatar';
-import LinearWithLabel from 'components/@extended/progress/LinearWithLabel';
+import { useGetProfile } from 'api/profile';
 
 import defaultImages from 'assets/images/users/default.png';
 
@@ -27,6 +30,39 @@ import { CallCalling, Gps, Link1, Sms } from 'iconsax-react';
 
 export default function TabProfile() {
   const matchDownMD = useMediaQuery((theme) => theme.breakpoints.down('md'));
+  const { profile, isLoading, error } = useGetProfile();
+
+  if (isLoading) {
+    return (
+      <Grid container spacing={3} justifyContent="center" alignItems="center" sx={{ minHeight: 400 }}>
+        <CircularProgress />
+      </Grid>
+    );
+  }
+
+  if (error) {
+    return (
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Alert severity="error">
+            Failed to load profile data. Please try again later.
+          </Alert>
+        </Grid>
+      </Grid>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Alert severity="info">
+            No profile data available.
+          </Alert>
+        </Grid>
+      </Grid>
+    );
+  }
 
   return (
     <Grid container spacing={3}>
@@ -37,13 +73,13 @@ export default function TabProfile() {
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <Stack direction="row" justifyContent="flex-end">
-                    <Chip label="Pro" size="small" color="primary" />
+                    <Chip label={profile.role || 'User'} size="small" color="primary" />
                   </Stack>
                   <Stack spacing={2.5} alignItems="center">
-                    <Avatar alt="Avatar 1" size="xl" src={defaultImages} />
+                    <Avatar alt={profile.username || 'User'} size="xl" src={defaultImages} />
                     <Stack spacing={0.5} alignItems="center">
-                      <Typography variant="h5">Anshan H.</Typography>
-                      <Typography color="secondary">Project Manager</Typography>
+                      <Typography variant="h5">{profile.username || 'User'}</Typography>
+                      <Typography color="secondary">{profile.role || 'User'}</Typography>
                     </Stack>
                   </Stack>
                 </Grid>
@@ -78,7 +114,7 @@ export default function TabProfile() {
                         <Sms size={18} />
                       </ListItemIcon>
                       <ListItemSecondaryAction>
-                        <Typography align="right">anshan.dh81@gmail.com</Typography>
+                        <Typography align="right">{profile.email || 'No email'}</Typography>
                       </ListItemSecondaryAction>
                     </ListItem>
                     <ListItem>
@@ -86,7 +122,7 @@ export default function TabProfile() {
                         <CallCalling size={18} />
                       </ListItemIcon>
                       <ListItemSecondaryAction>
-                        <Typography align="right">(+1-876) 8654 239 581</Typography>
+                        <Typography align="right">{profile.mobile || 'No mobile'}</Typography>
                       </ListItemSecondaryAction>
                     </ListItem>
                     <ListItem>
@@ -94,7 +130,12 @@ export default function TabProfile() {
                         <Gps size={18} />
                       </ListItemIcon>
                       <ListItemSecondaryAction>
-                        <Typography align="right">New York</Typography>
+                        <Typography align="right">
+                          {profile.state_ids && profile.state_ids.length > 0
+                            ? profile.state_ids.map(state => state.name).join(', ')
+                            : 'No location'
+                          }
+                        </Typography>
                       </ListItemSecondaryAction>
                     </ListItem>
                     <ListItem>
@@ -102,54 +143,12 @@ export default function TabProfile() {
                         <Link1 size={18} />
                       </ListItemIcon>
                       <ListItemSecondaryAction>
-                        <Link align="right" href="https://google.com" target="_blank">
-                          https://anshan.dh.url
-                        </Link>
+                        <Typography align="right">
+                          {profile.role || 'User'} Account
+                        </Typography>
                       </ListItemSecondaryAction>
                     </ListItem>
                   </List>
-                </Grid>
-              </Grid>
-            </MainCard>
-          </Grid>
-          <Grid item xs={12}>
-            <MainCard title="Skills">
-              <Grid container spacing={1.25}>
-                <Grid item xs={6}>
-                  <Typography color="secondary">Junior</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <LinearWithLabel value={30} />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography color="secondary">UX Reseacher</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <LinearWithLabel value={80} />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography color="secondary">Wordpress</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <LinearWithLabel value={90} />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography color="secondary">HTML</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <LinearWithLabel value={30} />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography color="secondary">Graphic Design</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <LinearWithLabel value={95} />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography color="secondary">Code Style</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <LinearWithLabel value={75} />
                 </Grid>
               </Grid>
             </MainCard>
@@ -161,8 +160,7 @@ export default function TabProfile() {
           <Grid item xs={12}>
             <MainCard title="About me">
               <Typography color="secondary">
-                Hello, I’m Anshan Handgun Creative Graphic Designer & User Experience Designer based in Website, I create digital Products a
-                more Beautiful and usable place. Morbid accusant ipsum. Nam nec tellus at.
+                {profile.username ? `Hello, I'm ${profile.username}, a ${profile.role || 'User'} in the Election Management System.` : 'No profile information available.'}
               </Typography>
             </MainCard>
           </Grid>
@@ -173,14 +171,14 @@ export default function TabProfile() {
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
                       <Stack spacing={0.5}>
-                        <Typography color="secondary">Full Name</Typography>
-                        <Typography>Anshan Handgun</Typography>
+                        <Typography color="secondary">Username</Typography>
+                        <Typography>{profile.username || 'Not available'}</Typography>
                       </Stack>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Stack spacing={0.5}>
-                        <Typography color="secondary">Father Name</Typography>
-                        <Typography>Mr. Deepen Handgun</Typography>
+                        <Typography color="secondary">Role</Typography>
+                        <Typography>{profile.role || 'Not assigned'}</Typography>
                       </Stack>
                     </Grid>
                   </Grid>
@@ -189,136 +187,46 @@ export default function TabProfile() {
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
                       <Stack spacing={0.5}>
-                        <Typography color="secondary">Phone</Typography>
-                        <Typography>
-                          (+1-876) <PatternFormat value={8654239581} displayType="text" type="text" format="#### ### ###" />
-                        </Typography>
+                        <Typography color="secondary">Mobile</Typography>
+                        <Typography>{profile.mobile || 'Not available'}</Typography>
                       </Stack>
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Country</Typography>
-                        <Typography>New York</Typography>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </ListItem>
-                <ListItem divider={!matchDownMD}>
-                  <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
                       <Stack spacing={0.5}>
                         <Typography color="secondary">Email</Typography>
-                        <Typography>anshan.dh81@gmail.com</Typography>
+                        <Typography>{profile.email || 'Not available'}</Typography>
+                      </Stack>
+                    </Grid>
+                  </Grid>
+                </ListItem>
+                <ListItem divider={!matchDownMD}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Stack spacing={0.5}>
+                        <Typography color="secondary">Status</Typography>
+                        <Typography>{profile.isActive ? 'Active' : 'Inactive'}</Typography>
                       </Stack>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Stack spacing={0.5}>
-                        <Typography color="secondary">Zip Code</Typography>
-                        <Typography>956 754</Typography>
+                        <Typography color="secondary">Created</Typography>
+                        <Typography>
+                          {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Not available'}
+                        </Typography>
                       </Stack>
                     </Grid>
                   </Grid>
                 </ListItem>
                 <ListItem>
                   <Stack spacing={0.5}>
-                    <Typography color="secondary">Address</Typography>
-                    <Typography>Street 110-B Kalians Bag, Dewan, M.P. New York</Typography>
+                    <Typography color="secondary">Assigned Regions</Typography>
+                    <Typography>
+                      {profile.state_ids && profile.state_ids.length > 0
+                        ? profile.state_ids.map(state => state.name).join(', ')
+                        : 'No regions assigned'
+                      }
+                    </Typography>
                   </Stack>
-                </ListItem>
-              </List>
-            </MainCard>
-          </Grid>
-          <Grid item xs={12}>
-            <MainCard title="Education">
-              <List sx={{ py: 0 }}>
-                <ListItem divider>
-                  <Grid container spacing={matchDownMD ? 0.5 : 3}>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Master Degree (Year)</Typography>
-                        <Typography>2014-2017</Typography>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Institute</Typography>
-                        <Typography>-</Typography>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </ListItem>
-                <ListItem divider>
-                  <Grid container spacing={matchDownMD ? 0.5 : 3}>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Bachelor (Year)</Typography>
-                        <Typography>2011-2013</Typography>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Institute</Typography>
-                        <Typography>Imperial College London</Typography>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </ListItem>
-                <ListItem>
-                  <Grid container spacing={matchDownMD ? 0.5 : 3}>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">School (Year)</Typography>
-                        <Typography>2009-2011</Typography>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Institute</Typography>
-                        <Typography>School of London, England</Typography>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </ListItem>
-              </List>
-            </MainCard>
-          </Grid>
-          <Grid item xs={12}>
-            <MainCard title="Emplyment">
-              <List sx={{ py: 0 }}>
-                <ListItem divider>
-                  <Grid container spacing={matchDownMD ? 0.5 : 3}>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Senior UI/UX designer (Year)</Typography>
-                        <Typography>2019-Current</Typography>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Job Responsibility</Typography>
-                        <Typography>
-                          Perform task related to project manager with the 100+ team under my observation. Team management is key role in
-                          this company.
-                        </Typography>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </ListItem>
-                <ListItem>
-                  <Grid container spacing={matchDownMD ? 0.5 : 3}>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Trainee cum Project Manager (Year)</Typography>
-                        <Typography>2017-2019</Typography>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack spacing={0.5}>
-                        <Typography color="secondary">Job Responsibility</Typography>
-                        <Typography>Team management is key role in this company.</Typography>
-                      </Stack>
-                    </Grid>
-                  </Grid>
                 </ListItem>
               </List>
             </MainCard>

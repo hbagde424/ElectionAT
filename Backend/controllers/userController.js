@@ -174,15 +174,108 @@ exports.updateMe = async (req, res, next) => {
       email: req.body.email
     };
 
+    // Don't allow password updates through this endpoint
+    // Use dedicated changePassword endpoint instead
     if (req.body.password) {
-      fieldsToUpdate.password = req.body.password;
+      return res.status(400).json({
+        success: false,
+        message: 'Password cannot be updated through this endpoint. Use /api/users/change-password instead.'
+      });
     }
+
     req.body.updated_at = new Date();
 
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
       new: true,
       runValidators: true
     }).select('-password');
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Change user password
+// @route   PUT /api/users/change-password
+// @access  Private
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long'
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user.id).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if current password is correct
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.updated_at = new Date();
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get user profile (enhanced version)
+// @route   GET /api/users/profile
+// @access  Private
+exports.getProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .populate('state_ids', 'name')
+      .populate('division_ids', 'name')
+      .populate('parliament_ids', 'name')
+      .populate('assembly_ids', 'name')
+      .populate('block_ids', 'name')
+      .populate('booth_ids', 'name booth_number')
+      .populate('created_by', 'username');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     res.status(200).json({
       success: true,

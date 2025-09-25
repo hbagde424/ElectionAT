@@ -9,7 +9,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
 // assets
-import { Card, Edit2, Logout, Profile, Profile2User } from 'iconsax-react';
+import { Edit2, Logout, Profile, Profile2User } from 'iconsax-react';
 
 export default function ProfileTab({ handleLogout }) {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function ProfileTab({ handleLogout }) {
 
   return (
     <List component="nav" sx={{ p: 0, '& .MuiListItemIcon-root': { minWidth: 32 } }}>
-      <ListItemButton selected={selectedIndex === 0} onClick={(event) => handleListItemClick(event, 0, '/apps/profiles/user/personal')}>
+      <ListItemButton selected={selectedIndex === 0} onClick={(event) => handleListItemClick(event, 0, '/apps/profiles/account/basic')}>
         <ListItemIcon>
           <Edit2 variant="Bulk" size={18} />
         </ListItemIcon>
@@ -36,20 +36,13 @@ export default function ProfileTab({ handleLogout }) {
         </ListItemIcon>
         <ListItemText primary="View Profile" />
       </ListItemButton>
-
-      <ListItemButton selected={selectedIndex === 3} onClick={(event) => handleListItemClick(event, 3, '/apps/profiles/account/personal')}>
+      <ListItemButton selected={selectedIndex === 2} onClick={(event) => handleListItemClick(event, 2, '/apps/profiles/account/my-account')}>
         <ListItemIcon>
           <Profile2User variant="Bulk" size={18} />
         </ListItemIcon>
-        <ListItemText primary="Social Profile" />
+        <ListItemText primary="My Account" />
       </ListItemButton>
-      <ListItemButton selected={selectedIndex === 4} onClick={(event) => handleListItemClick(event, 4, '/apps/invoice/details/1')}>
-        <ListItemIcon>
-          <Card variant="Bulk" size={18} />
-        </ListItemIcon>
-        <ListItemText primary="Billing" />
-      </ListItemButton>
-      <ListItemButton selected={selectedIndex === 2} onClick={handleLogout}>
+      <ListItemButton selected={selectedIndex === 3} onClick={handleLogout}>
         <ListItemIcon>
           <Logout variant="Bulk" size={18} />
         </ListItemIcon>
