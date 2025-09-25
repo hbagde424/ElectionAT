@@ -8,6 +8,38 @@ const State = require('../models/state');
 const Candidate = require('../models/Candidate');
 const User = require('../models/User');
 const ElectionYear = require('../models/electionYear');
+const UserHierarchy = require('../models/UserHierarchy');
+
+/**
+ * Build hierarchy filter based on user's geographic scope
+ * @param {Object} userHierarchy - User's hierarchy data
+ * @returns {Object} MongoDB filter object
+ */
+const buildHierarchyFilter = (userHierarchy) => {
+  const filter = {};
+
+  // Apply filters based on user's hierarchy
+  if (userHierarchy.state) {
+    filter.state_id = userHierarchy.state;
+  }
+  if (userHierarchy.division) {
+    filter.division_id = userHierarchy.division;
+  }
+  if (userHierarchy.parliament) {
+    filter.parliament_id = userHierarchy.parliament;
+  }
+  if (userHierarchy.assembly) {
+    filter.assembly_id = userHierarchy.assembly;
+  }
+  if (userHierarchy.block) {
+    filter.block_id = userHierarchy.block;
+  }
+  if (userHierarchy.booth) {
+    filter.booth_id = userHierarchy.booth;
+  }
+
+  return filter;
+};
 
 // @desc    Get all visits
 // @route   GET /api/visits
@@ -25,8 +57,65 @@ exports.getVisits = async (req, res, next) => {
     // Handle all query parameter for fetching all data without pagination
     const fetchAll = req.query.all === 'true';
 
+    // Apply permission-based filtering if user is authenticated
+    if (req.user) {
+      console.log('🔍 User data in visits API:', {
+        id: req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+        state_ids: req.user.state_ids,
+        division_ids: req.user.division_ids
+      });
+
+      // Super admin has access to everything - check both email and role
+      const isSuperAdmin = req.user.email === 'superadmin@example.com' ||
+        req.user.role === 'superAdmin' ||
+        req.user.role === 'SuperAdmin';
+
+      console.log('🔍 Is SuperAdmin:', isSuperAdmin);
+
+      if (!isSuperAdmin) {
+        try {
+          // First check UserHierarchy model
+          let userHierarchy = await UserHierarchy.findOne({ user: req.user._id });
+
+          // If no UserHierarchy found, check User model for hierarchical IDs
+          if (!userHierarchy) {
+            const user = await User.findById(req.user._id);
+            if (user && (user.state_ids?.length > 0 || user.division_ids?.length > 0 ||
+              user.parliament_ids?.length > 0 || user.assembly_ids?.length > 0 ||
+              user.block_ids?.length > 0 || user.booth_ids?.length > 0)) {
+
+              // Create a hierarchy filter from User model data
+              const userHierarchyFilter = {};
+              if (user.state_ids?.length > 0) userHierarchyFilter.state_id = { $in: user.state_ids };
+              if (user.division_ids?.length > 0) userHierarchyFilter.division_id = { $in: user.division_ids };
+              if (user.parliament_ids?.length > 0) userHierarchyFilter.parliament_id = { $in: user.parliament_ids };
+              if (user.assembly_ids?.length > 0) userHierarchyFilter.assembly_id = { $in: user.assembly_ids };
+              if (user.block_ids?.length > 0) userHierarchyFilter.block_id = { $in: user.block_ids };
+              if (user.booth_ids?.length > 0) userHierarchyFilter.booth_id = { $in: user.booth_ids };
+
+              // Merge user hierarchy filter with existing filter
+              filter = { ...filter, ...userHierarchyFilter };
+            }
+          } else {
+            // Use UserHierarchy model data
+            const hierarchyFilter = buildHierarchyFilter(userHierarchy);
+            // Merge hierarchy filter with existing filter
+            filter = { ...filter, ...hierarchyFilter };
+          }
+        } catch (error) {
+          console.error('Error fetching user hierarchy:', error);
+          // Continue without hierarchy filtering if there's an error
+        }
+      }
+    }
+    // If no user is authenticated (public access), show all data without filtering
+
+    console.log('🔍 Final filter applied:', filter);
+
     // Basic query for main data fetch
-    let query = Visit.find()
+    let query = Visit.find(filter)
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('assembly_id', 'name')
@@ -562,7 +651,53 @@ exports.getVisitsByBooth = async (req, res, next) => {
       });
     }
 
-    const visits = await Visit.find({ booth_id: req.params.boothId })
+    // Build filter with booth ID
+    let filter = { booth_id: req.params.boothId };
+
+    // Apply permission-based filtering if user is authenticated
+    if (req.user) {
+      const isSuperAdmin = req.user.email === 'superadmin@example.com' ||
+        req.user.role === 'superAdmin' ||
+        req.user.role === 'SuperAdmin';
+
+      if (!isSuperAdmin) {
+        try {
+          // First check UserHierarchy model
+          let userHierarchy = await UserHierarchy.findOne({ user: req.user._id });
+
+          // If no UserHierarchy found, check User model for hierarchical IDs
+          if (!userHierarchy) {
+            const user = await User.findById(req.user._id);
+            if (user && (user.state_ids?.length > 0 || user.division_ids?.length > 0 ||
+              user.parliament_ids?.length > 0 || user.assembly_ids?.length > 0 ||
+              user.block_ids?.length > 0 || user.booth_ids?.length > 0)) {
+
+              // Create a hierarchy filter from User model data
+              const userHierarchyFilter = {};
+              if (user.state_ids?.length > 0) userHierarchyFilter.state_id = { $in: user.state_ids };
+              if (user.division_ids?.length > 0) userHierarchyFilter.division_id = { $in: user.division_ids };
+              if (user.parliament_ids?.length > 0) userHierarchyFilter.parliament_id = { $in: user.parliament_ids };
+              if (user.assembly_ids?.length > 0) userHierarchyFilter.assembly_id = { $in: user.assembly_ids };
+              if (user.block_ids?.length > 0) userHierarchyFilter.block_id = { $in: user.block_ids };
+              if (user.booth_ids?.length > 0) userHierarchyFilter.booth_id = { $in: user.booth_ids };
+
+              // Merge user hierarchy filter with booth filter
+              filter = { ...filter, ...userHierarchyFilter };
+            }
+          } else {
+            // Use UserHierarchy model data
+            const hierarchyFilter = buildHierarchyFilter(userHierarchy);
+            // Merge hierarchy filter with booth filter
+            filter = { ...filter, ...hierarchyFilter };
+          }
+        } catch (error) {
+          console.error('Error fetching user hierarchy:', error);
+          // Continue without hierarchy filtering if there's an error
+        }
+      }
+    }
+
+    const visits = await Visit.find(filter)
       .sort({ date: -1 })
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
@@ -591,7 +726,53 @@ exports.getVisitsByStatus = async (req, res, next) => {
       });
     }
 
-    const visits = await Visit.find({ work_status: req.params.status })
+    // Build filter with status
+    let filter = { work_status: req.params.status };
+
+    // Apply permission-based filtering if user is authenticated
+    if (req.user) {
+      const isSuperAdmin = req.user.email === 'superadmin@example.com' ||
+        req.user.role === 'superAdmin' ||
+        req.user.role === 'SuperAdmin';
+
+      if (!isSuperAdmin) {
+        try {
+          // First check UserHierarchy model
+          let userHierarchy = await UserHierarchy.findOne({ user: req.user._id });
+
+          // If no UserHierarchy found, check User model for hierarchical IDs
+          if (!userHierarchy) {
+            const user = await User.findById(req.user._id);
+            if (user && (user.state_ids?.length > 0 || user.division_ids?.length > 0 ||
+              user.parliament_ids?.length > 0 || user.assembly_ids?.length > 0 ||
+              user.block_ids?.length > 0 || user.booth_ids?.length > 0)) {
+
+              // Create a hierarchy filter from User model data
+              const userHierarchyFilter = {};
+              if (user.state_ids?.length > 0) userHierarchyFilter.state_id = { $in: user.state_ids };
+              if (user.division_ids?.length > 0) userHierarchyFilter.division_id = { $in: user.division_ids };
+              if (user.parliament_ids?.length > 0) userHierarchyFilter.parliament_id = { $in: user.parliament_ids };
+              if (user.assembly_ids?.length > 0) userHierarchyFilter.assembly_id = { $in: user.assembly_ids };
+              if (user.block_ids?.length > 0) userHierarchyFilter.block_id = { $in: user.block_ids };
+              if (user.booth_ids?.length > 0) userHierarchyFilter.booth_id = { $in: user.booth_ids };
+
+              // Merge user hierarchy filter with status filter
+              filter = { ...filter, ...userHierarchyFilter };
+            }
+          } else {
+            // Use UserHierarchy model data
+            const hierarchyFilter = buildHierarchyFilter(userHierarchy);
+            // Merge hierarchy filter with status filter
+            filter = { ...filter, ...hierarchyFilter };
+          }
+        } catch (error) {
+          console.error('Error fetching user hierarchy:', error);
+          // Continue without hierarchy filtering if there's an error
+        }
+      }
+    }
+
+    const visits = await Visit.find(filter)
       .sort({ date: -1 })
       .populate('booth_id', 'name booth_number')
       .populate('candidate_id', 'name')
@@ -621,12 +802,58 @@ exports.getVisitsByDateRange = async (req, res, next) => {
       });
     }
 
-    const visits = await Visit.find({
+    // Build filter with date range
+    let filter = {
       date: {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       }
-    })
+    };
+
+    // Apply permission-based filtering if user is authenticated
+    if (req.user) {
+      const isSuperAdmin = req.user.email === 'superadmin@example.com' ||
+        req.user.role === 'superAdmin' ||
+        req.user.role === 'SuperAdmin';
+
+      if (!isSuperAdmin) {
+        try {
+          // First check UserHierarchy model
+          let userHierarchy = await UserHierarchy.findOne({ user: req.user._id });
+
+          // If no UserHierarchy found, check User model for hierarchical IDs
+          if (!userHierarchy) {
+            const user = await User.findById(req.user._id);
+            if (user && (user.state_ids?.length > 0 || user.division_ids?.length > 0 ||
+              user.parliament_ids?.length > 0 || user.assembly_ids?.length > 0 ||
+              user.block_ids?.length > 0 || user.booth_ids?.length > 0)) {
+
+              // Create a hierarchy filter from User model data
+              const userHierarchyFilter = {};
+              if (user.state_ids?.length > 0) userHierarchyFilter.state_id = { $in: user.state_ids };
+              if (user.division_ids?.length > 0) userHierarchyFilter.division_id = { $in: user.division_ids };
+              if (user.parliament_ids?.length > 0) userHierarchyFilter.parliament_id = { $in: user.parliament_ids };
+              if (user.assembly_ids?.length > 0) userHierarchyFilter.assembly_id = { $in: user.assembly_ids };
+              if (user.block_ids?.length > 0) userHierarchyFilter.block_id = { $in: user.block_ids };
+              if (user.booth_ids?.length > 0) userHierarchyFilter.booth_id = { $in: user.booth_ids };
+
+              // Merge user hierarchy filter with date filter
+              filter = { ...filter, ...userHierarchyFilter };
+            }
+          } else {
+            // Use UserHierarchy model data
+            const hierarchyFilter = buildHierarchyFilter(userHierarchy);
+            // Merge hierarchy filter with date filter
+            filter = { ...filter, ...hierarchyFilter };
+          }
+        } catch (error) {
+          console.error('Error fetching user hierarchy:', error);
+          // Continue without hierarchy filtering if there's an error
+        }
+      }
+    }
+
+    const visits = await Visit.find(filter)
       .sort({ date: -1 })
       .populate('booth_id', 'name booth_number')
       .populate('candidate_id', 'name')

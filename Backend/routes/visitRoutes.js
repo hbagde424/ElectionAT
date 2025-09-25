@@ -93,7 +93,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Visit'
  */
-router.get('/', getVisits);
+router.get('/', protect, getVisits);
 
 /**
  * @swagger

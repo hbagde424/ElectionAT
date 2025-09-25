@@ -85,12 +85,12 @@ const app = express();
 
 // Enable CORS as early as possible
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://myhostmanager.co.in', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://electionatlas.in/'],
+  origin: ['http://localhost:3000', 'https://myhostmanager.co.in', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'https://electionatlas.in/'],
   credentials: true
 }));
 // Handle preflight requests for all routes
 app.options('*', cors({
-  origin: ['http://localhost:3000', 'https://myhostmanager.co.in', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://electionatlas.in/'],
+  origin: ['http://localhost:3000', 'https://myhostmanager.co.in', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'https://electionatlas.in/'],
   credentials: true
 }));
 
