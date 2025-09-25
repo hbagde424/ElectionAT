@@ -71,6 +71,10 @@ export default function BoothVolunteerView({ data }) {
                 <Chip label={data.role || 'N/A'} size="small" variant="outlined" />
               </Grid>
               <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Post</Typography>
+                <Typography variant="body1">{data.post || 'N/A'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Activity Level</Typography>
                 <Chip
                   label={data.activity_level || 'N/A'}

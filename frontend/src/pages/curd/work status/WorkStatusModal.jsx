@@ -19,6 +19,7 @@ export default function WorkStatusModal({
     assemblies,
     blocks,
     booths,
+    districts,
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -38,11 +39,16 @@ export default function WorkStatusModal({
         expected_end_date: null,
         actual_end_date: null,
         state_id: '',
+    district_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
         block_id: '',
         booth_id: '',
+        panchayat: '',
+        village: '',
+        announced_date: null,
+        announced_by: '',
         documents: []
     });
     const [submitted, setSubmitted] = useState(false);
@@ -74,11 +80,16 @@ export default function WorkStatusModal({
                 expected_end_date: workStatus.expected_end_date ? new Date(workStatus.expected_end_date) : null,
                 actual_end_date: workStatus.actual_end_date ? new Date(workStatus.actual_end_date) : null,
                 state_id: workStatus.state_id?._id?.toString() || workStatus.state_id?.toString() || '',
+                district_id: workStatus.district_id?._id?.toString() || workStatus.district_id?.toString() || '',
                 division_id: workStatus.division_id?._id?.toString() || workStatus.division_id?.toString() || '',
                 parliament_id: workStatus.parliament_id?._id?.toString() || workStatus.parliament_id?.toString() || '',
                 assembly_id: workStatus.assembly_id?._id?.toString() || workStatus.assembly_id?.toString() || '',
                 block_id: workStatus.block_id?._id?.toString() || workStatus.block_id?.toString() || '',
                 booth_id: workStatus.booth_id?._id?.toString() || workStatus.booth_id?.toString() || '',
+                panchayat: workStatus.panchayat || '',
+                village: workStatus.village || '',
+                announced_date: workStatus.announced_date ? new Date(workStatus.announced_date) : null,
+                announced_by: workStatus.announced_by || '',
                 documents: workStatus.documents || []
             });
         } else {
@@ -96,11 +107,16 @@ export default function WorkStatusModal({
                 expected_end_date: null,
                 actual_end_date: null,
                 state_id: '',
+                district_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
                 block_id: '',
                 booth_id: '',
+                panchayat: '',
+                village: '',
+                announced_date: null,
+                announced_by: '',
                 documents: []
             });
         }
@@ -317,6 +333,7 @@ export default function WorkStatusModal({
             start_date: formData.start_date.toISOString(),
             expected_end_date: formData.expected_end_date.toISOString(),
             actual_end_date: formData.actual_end_date ? formData.actual_end_date.toISOString() : null,
+            announced_date: formData.announced_date ? formData.announced_date.toISOString() : null,
             description: typeof formData.description === 'string' ? formData.description : ''
         };
 
@@ -500,7 +517,33 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
+                     <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Panchayat</InputLabel>
+                            <TextField
+                                name="panchayat"
+                                value={formData.panchayat}
+                                onChange={handleChange}
+                                fullWidth
+                                placeholder="Enter panchayat"
+                            />
+                        </Stack>
+                    </Grid>
+
                     <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Village</InputLabel>
+                            <TextField
+                                name="village"
+                                value={formData.village}
+                                onChange={handleChange}
+                                fullWidth
+                                placeholder="Enter village"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={12}>
                         <Stack spacing={1}>
                             <InputLabel>Description</InputLabel>
                             <ReactQuill
@@ -573,6 +616,35 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
+                     <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Announced Date</InputLabel>
+                            <DatePicker
+                                value={formData.announced_date}
+                                onChange={(date) => handleDateChange('announced_date', date)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        fullWidth
+                                    />
+                                )}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Announced By</InputLabel>
+                            <TextField
+                                name="announced_by"
+                                value={formData.announced_by}
+                                onChange={handleChange}
+                                fullWidth
+                                placeholder="Enter name of announcer"
+                            />
+                        </Stack>
+                    </Grid>
+
                     {/* Row 6: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -595,6 +667,29 @@ export default function WorkStatusModal({
                             {submitted && !formData.state_id && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>State is required</Box>
                             )}
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>District</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="district_id"
+                                    value={formData.district_id}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="">Select District</MenuItem>
+                                    {Array.isArray(districts) && districts
+                                        .filter(d => {
+                                            const stateId = d.state_id?._id || d.state_id;
+                                            return !formData.state_id || stateId === formData.state_id;
+                                        })
+                                        .map((d) => (
+                                            <MenuItem key={d._id} value={d._id}>{d.name}</MenuItem>
+                                        ))}
+                                </Select>
+                            </FormControl>
                         </Stack>
                     </Grid>
 
@@ -724,6 +819,12 @@ export default function WorkStatusModal({
                             )}
                         </Stack>
                     </Grid>
+
+                    {/* Row 9: Panchayat and Village */}
+                   
+
+                    {/* Row 10: Announced Date and Announced By */}
+                   
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>

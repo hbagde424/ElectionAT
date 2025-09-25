@@ -5,6 +5,7 @@ const Parliament = require('../models/Parliament');
 const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
+const District = require('../models/District');
 
 // @desc    Get all work statuses
 // @route   GET /api/work-status
@@ -18,7 +19,8 @@ exports.getWorkStatuses = async (req, res, next) => {
 
     // Basic query
     let query = WorkStatus.find()
-      .populate('state_id', 'name')
+  .populate('state_id', 'name')
+  .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
@@ -124,6 +126,34 @@ exports.getWorkStatuses = async (req, res, next) => {
       }
     }
 
+    // District
+    if (req.query.district) {
+      const districtId = await handleIdOrName('district', District);
+      if (districtId) {
+        query = query.where('district_id').equals(districtId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
+    }
+
+    // Panchayat
+    if (req.query.panchayat) {
+      const p = req.query.panchayat.replace(/-/g, ' ');
+      query = query.where('panchayat').regex(new RegExp(p, 'i'));
+    }
+
+    // Village
+    if (req.query.village) {
+      const v = req.query.village.replace(/-/g, ' ');
+      query = query.where('village').regex(new RegExp(v, 'i'));
+    }
+
+    // Announced by
+    if (req.query.announced_by) {
+      const a = req.query.announced_by.replace(/-/g, ' ');
+      query = query.where('announced_by').regex(new RegExp(a, 'i'));
+    }
+
     // Booth
     if (req.query.booth) {
       const boothId = await handleIdOrName('booth', Booth);
@@ -140,6 +170,12 @@ exports.getWorkStatuses = async (req, res, next) => {
     }
     if (req.query.start_date_to) {
       query = query.where('start_date').lte(new Date(req.query.start_date_to));
+    }
+    if (req.query.announced_date_from) {
+      query = query.where('announced_date').gte(new Date(req.query.announced_date_from));
+    }
+    if (req.query.announced_date_to) {
+      query = query.where('announced_date').lte(new Date(req.query.announced_date_to));
     }
     if (req.query.end_date_from) {
       query = query.where('expected_end_date').gte(new Date(req.query.end_date_from));
@@ -171,6 +207,7 @@ exports.getWorkStatus = async (req, res, next) => {
   try {
     const workStatus = await WorkStatus.findById(req.params.id)
       .populate('state_id', 'name')
+      .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
@@ -305,6 +342,7 @@ exports.getWorkStatusesByBooth = async (req, res, next) => {
     const workStatuses = await WorkStatus.find({ booth_id: req.params.boothId })
       .sort({ start_date: -1 })
       .populate('state_id', 'name')
+      .populate('district_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
       .populate('assembly_id', 'name')
@@ -338,6 +376,7 @@ exports.getWorkStatusesByBlock = async (req, res, next) => {
     const workStatuses = await WorkStatus.find({ block_id: req.params.blockId })
       .sort({ start_date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('district_id', 'name')
       .populate('assembly_id', 'name')
       .populate('created_by', 'username');
 
@@ -368,6 +407,7 @@ exports.getWorkStatusesByAssembly = async (req, res, next) => {
     const workStatuses = await WorkStatus.find({ assembly_id: req.params.assemblyId })
       .sort({ start_date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('district_id', 'name')
       .populate('block_id', 'name')
       .populate('created_by', 'username');
 

@@ -37,6 +37,7 @@ export default function BoothVolunteerModal({
     phone: '',
     email: '',
     role: '',
+    post: '',
     area_responsibility: '',
     activity_level: 'Medium',
     remarks: '',
@@ -71,6 +72,7 @@ export default function BoothVolunteerModal({
         phone: volunteer.phone || '',
         email: volunteer.email || '',
         role: volunteer.role || '',
+        post: volunteer.post || '',
         area_responsibility: volunteer.area_responsibility || '',
         activity_level: volunteer.activity_level || 'Medium',
         remarks: volunteer.remarks || '',
@@ -88,6 +90,7 @@ export default function BoothVolunteerModal({
         phone: '',
         email: '',
         role: '',
+        post: '',
         area_responsibility: '',
         activity_level: 'Medium',
         remarks: '',
@@ -405,6 +408,8 @@ export default function BoothVolunteerModal({
             </Grid>
           </Grid>
 
+          
+
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
@@ -463,8 +468,18 @@ export default function BoothVolunteerModal({
                 {errors.party_id && <FormHelperText>{errors.party_id}</FormHelperText>}
               </FormControl>
             </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                name="post"
+                label="Post"
+                value={formData.post}
+                onChange={handleChange}
+                fullWidth
+              />
+            </Grid>
 
           </Grid>
+
 
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>

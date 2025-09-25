@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
-    FormControl, InputLabel, Select, MenuItem, Grid
+    FormControl, InputLabel, Select, MenuItem, Grid, TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -35,6 +35,7 @@ export default function WorkStatusListPage() {
     const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [booths, setBooths] = useState([]);
+    const [districts, setDistricts] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -43,6 +44,7 @@ export default function WorkStatusListPage() {
     // Filter states
     const [filters, setFilters] = useState({
         state_id: '',
+    district_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -69,6 +71,7 @@ export default function WorkStatusListPage() {
         setTempFilters({
             ...tempFilters,
             state_id: stateId,
+            district_id: '',
             division_id: '',
             parliament_id: '',
             assembly_id: '',
@@ -117,6 +120,26 @@ export default function WorkStatusListPage() {
             block_id: blockId,
             booth_id: ''
         });
+    };
+
+    const handleDistrictChange = (event) => {
+        const districtId = event.target.value;
+        setTempFilters({
+            ...tempFilters,
+            district_id: districtId
+        });
+    };
+
+    const handlePanchayatChange = (event) => {
+        setTempFilters({ ...tempFilters, panchayat: event.target.value });
+    };
+
+    const handleVillageChange = (event) => {
+        setTempFilters({ ...tempFilters, village: event.target.value });
+    };
+
+    const handleAnnouncedByChange = (event) => {
+        setTempFilters({ ...tempFilters, announced_by: event.target.value });
     };
 
     const handleBoothChange = (event) => {
@@ -181,12 +204,14 @@ export default function WorkStatusListPage() {
                 parliamentsRes,
                 assembliesRes,
                 blocksRes,
-                boothsRes
+                boothsRes,
+                districtsRes
             ] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/districts`)
             ]);
 
             const [
@@ -195,12 +220,16 @@ export default function WorkStatusListPage() {
                 assembliesData,
                 blocksData,
                 boothsData
+                ,
+                districtsData
             ] = await Promise.all([
 
                 parliamentsRes.json(),
                 assembliesRes.json(),
                 blocksRes.json(),
                 boothsRes.json()
+                ,
+                districtsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
@@ -219,6 +248,7 @@ export default function WorkStatusListPage() {
             if (boothsData.success) {
                 setBooths(boothsData.data);
             }
+            if (districtsData.success) setDistricts(districtsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -239,11 +269,15 @@ export default function WorkStatusListPage() {
                 queryParams.push(`limit=${pageSize}`);
             }
             if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.district_id) queryParams.push(`district=${encodeURIComponent(currentFilters.district_id)}`);
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
             if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
             if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
             if (currentFilters.booth_id) queryParams.push(`booth=${encodeURIComponent(currentFilters.booth_id)}`);
+            if (currentFilters.panchayat) queryParams.push(`panchayat=${encodeURIComponent(currentFilters.panchayat)}`);
+            if (currentFilters.village) queryParams.push(`village=${encodeURIComponent(currentFilters.village)}`);
+            if (currentFilters.announced_by) queryParams.push(`announced_by=${encodeURIComponent(currentFilters.announced_by)}`);
             if (currentFilters.workType) queryParams.push(`workType=${encodeURIComponent(currentFilters.workType)}`);
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
 
@@ -424,6 +458,13 @@ export default function WorkStatusListPage() {
             )
         },
         {
+            header: 'District',
+            accessorKey: 'district_id',
+            cell: ({ getValue }) => (
+                <Chip label={getValue()?.name || 'N/A'} size="small" variant="outlined" color="secondary" />
+            )
+        },
+        {
             header: 'Block',
             accessorKey: 'block_id',
             cell: ({ getValue }) => (
@@ -505,6 +546,26 @@ export default function WorkStatusListPage() {
             cell: ({ getValue }) => (
                 <Typography>{getValue()?.username || 'N/A'}</Typography>
             )
+        },
+        {
+            header: 'Panchayat',
+            accessorKey: 'panchayat',
+            cell: ({ getValue }) => <Typography>{getValue() || 'N/A'}</Typography>
+        },
+        {
+            header: 'Village',
+            accessorKey: 'village',
+            cell: ({ getValue }) => <Typography>{getValue() || 'N/A'}</Typography>
+        },
+        {
+            header: 'Announced Date',
+            accessorKey: 'announced_date',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Announced By',
+            accessorKey: 'announced_by',
+            cell: ({ getValue }) => <Typography>{getValue() || 'N/A'}</Typography>
         },
         {
             header: 'Updated By',
@@ -610,11 +671,16 @@ export default function WorkStatusListPage() {
             'Expected End Date': item.expected_end_date,
             'Actual End Date': item.actual_end_date || '',
             'State': item.state_id?.name || '',
+                'District': item.district_id?.name || '',
             'Division': item.division_id?.name || '',
             'Parliament': item.parliament_id?.name || '',
             'Assembly': item.assembly_id?.name || '',
             'Block': item.block_id?.name || '',
-            'Booth': item.booth_id?.name ? `${item.booth_id.name} (Booth #${item.booth_id.booth_number || ''})` : '',
+                'Booth': item.booth_id?.name ? `${item.booth_id.name} (Booth #${item.booth_id.booth_number || ''})` : '',
+                'Panchayat': item.panchayat || '',
+                'Village': item.village || '',
+                'Announced Date': item.announced_date || '',
+                'Announced By': item.announced_by || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,
@@ -697,6 +763,48 @@ export default function WorkStatusListPage() {
                                     ))}
                                 </Select>
                             </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>District</InputLabel>
+                                <Select
+                                    value={tempFilters.district_id}
+                                    onChange={handleDistrictChange}
+                                    label="District"
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {districts.map((d) => (
+                                        <MenuItem key={d._id} value={d._id}>{d.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField
+                                label="Panchayat"
+                                size="small"
+                                value={tempFilters.panchayat || ''}
+                                onChange={handlePanchayatChange}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField
+                                label="Village"
+                                size="small"
+                                value={tempFilters.village || ''}
+                                onChange={handleVillageChange}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField
+                                label="Announced By"
+                                size="small"
+                                value={tempFilters.announced_by || ''}
+                                onChange={handleAnnouncedByChange}
+                                fullWidth
+                            />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <FormControl fullWidth size="small">
@@ -903,6 +1011,7 @@ export default function WorkStatusListPage() {
                 parliaments={parliaments}
                 divisions={divisions}
                 states={states}
+                districts={districts}
                 refresh={() => fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter)}
             />
 

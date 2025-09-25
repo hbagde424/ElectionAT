@@ -76,11 +76,20 @@ const workStatusSchema = new mongoose.Schema({
     // ❌ Removed schema validator here to avoid duplicate messages
   },
   state_id: { type: mongoose.Schema.Types.ObjectId, ref: 'State', required: true, index: true },
+  district_id: { type: mongoose.Schema.Types.ObjectId, ref: 'District', required: false, index: true },
   division_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Division', required: true, index: true },
   parliament_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Parliament', required: true, index: true },
   assembly_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Assembly', required: true, index: true },
   block_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Block', required: true, index: true },
   booth_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Booth', required: true },
+
+  // New locality fields
+  panchayat: { type: String, trim: true, maxlength: [200, 'Panchayat name cannot exceed 200 characters'], index: true },
+  village: { type: String, trim: true, maxlength: [200, 'Village name cannot exceed 200 characters'], index: true },
+
+  // Announced info
+  announced_date: { type: Date },
+  announced_by: { type: String, trim: true, maxlength: [200, 'Announced by cannot exceed 200 characters'] },
 
   documents: [{
     name: { type: String, required: true, trim: true, maxlength: 200 },

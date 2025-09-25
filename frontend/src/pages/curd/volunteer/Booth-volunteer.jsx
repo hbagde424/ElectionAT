@@ -217,6 +217,20 @@ export default function BoothVolunteerListPage() {
       )
     },
     {
+      header: 'Post',
+      accessorKey: 'post',
+      cell: ({ getValue }) => (
+        <Typography sx={{
+          maxWidth: 150,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue() || 'N/A'}
+        </Typography>
+      )
+    },
+    {
       header: 'Activity Level',
       accessorKey: 'activity_level',
       cell: ({ getValue }) => (
@@ -439,7 +453,8 @@ export default function BoothVolunteerListPage() {
       Phone: item.phone,
       Email: item.email || '',
       Role: item.role || '',
-      'Area Responsibility': item.area_responsibility || '',
+        'Area Responsibility': item.area_responsibility || '',
+        Post: item.post || '',
       'Activity Level': item.activity_level,
       State: item.state?.name || '',
       Division: item.division?.name || '',

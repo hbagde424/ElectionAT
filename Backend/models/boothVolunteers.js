@@ -52,6 +52,12 @@ const boothVolunteersSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  post: {
+    type: String,
+    trim: true,
+    maxlength: 200,
+    index: true
+  },
   phone: {
     type: String,
     required: true,

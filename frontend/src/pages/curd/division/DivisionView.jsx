@@ -25,11 +25,11 @@ export default function DivisionView({ data }) {
                     size="small"
                     variant="outlined"
                 />
-                <Chip
+                {/* <Chip
                     label={data.is_active ? 'Active' : 'Inactive'}
                     color={data.is_active ? 'success' : 'default'}
                     size="small"
-                />
+                /> */}
             </Stack>
 
             {data.description && (

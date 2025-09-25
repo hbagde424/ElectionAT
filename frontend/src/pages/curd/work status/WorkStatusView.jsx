@@ -152,6 +152,12 @@ export default function WorkStatusView({ data }) {
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={6}>
+                                    <Typography variant="body2">District:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.district_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
                                     <Typography variant="body2">Division:</Typography>
                                     <Typography variant="body1" fontWeight="medium">
                                         {data.division_id?.name || 'N/A'}
@@ -173,6 +179,30 @@ export default function WorkStatusView({ data }) {
                                     <Typography variant="body2">Block:</Typography>
                                     <Typography variant="body1" fontWeight="medium">
                                         {data.block_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Panchayat:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.panchayat || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Village:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.village || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Announced Date:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {formatDate(data.announced_date)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="body2">Announced By:</Typography>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {data.announced_by || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>

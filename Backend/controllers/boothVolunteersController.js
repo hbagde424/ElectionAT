@@ -88,6 +88,7 @@ exports.getBoothVolunteers = async (req, res, next) => {
         { email: { $regex: search, $options: 'i' } },
         { role: { $regex: search, $options: 'i' } },
         { area_responsibility: { $regex: search, $options: 'i' } },
+        { post: { $regex: search, $options: 'i' } },
         { activity_level: { $regex: search, $options: 'i' } },
         { remarks: { $regex: search, $options: 'i' } }
       ];

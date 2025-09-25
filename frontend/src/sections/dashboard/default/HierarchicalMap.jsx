@@ -657,12 +657,16 @@ function HierarchicalMap({ onRegionClick }) {
                             id: feature.properties?.BoothId ||
                                 feature.properties?.id ||
                                 `booth-${BlockNumber}-${index}`,
-                            name: feature.properties?.BoothName ||
-                                feature.properties?.name ||
-                                `Booth ${feature.properties?.BoothNo || index}`,
+                            name:
+                                (feature.properties?.BoothName
+                                    ? `${feature.properties.BoothName} - ${feature.properties.BoothNo || ''}`
+                                    : feature.properties?.name
+                                        ? `${feature.properties.name} (Booth No: ${feature.properties.BoothNo || ''})`
+                                        : `Booth ${feature.properties?.BoothNo || index}`),
+                            boothName: feature.properties?.BoothName || feature.properties?.name || '',
                             boothNo: feature.properties?.BoothNo || feature.properties?.boothNo || '',
                             blockName: feature.properties?.BlockName || feature.properties?.blockName || '',
-                            blockNumber: feature.properties?.BlockNumber || BlockNumber, // Ensure blockNumber is included
+                            blockNumber: feature.properties?.BlockNumber || BlockNumber,
                             location: feature.properties?.Location || feature.properties?.location || '',
                             totalVoters: parseInt(feature.properties?.TotalVoters || feature.properties?.totalVoters || 0),
                             maleFemaleRatio: feature.properties?.Gender_Ratio || feature.properties?.maleFemaleRatio || '',
@@ -1014,8 +1018,13 @@ function HierarchicalMap({ onRegionClick }) {
 
         const data = hoverData[cacheKey] || {};
 
-        let content = `<div>
-            <h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || properties.name || ''}</h4>`;
+        let content = `<div>`;
+        // For booth level, show booth name with boothNo
+        if (level === 'booth') {
+            content += `<h4 style="margin: 0 0 10px 0; color: #333;">${properties.name || properties.Name || ''}${properties.boothNo ? ` (Booth No: ${properties.boothNo})` : ''}</h4>`;
+        } else {
+            content += `<h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || properties.name || ''}</h4>`;
+        }
 
         switch (level) {
             case 'state':

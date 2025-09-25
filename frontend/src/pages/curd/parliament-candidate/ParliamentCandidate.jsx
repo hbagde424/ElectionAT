@@ -514,32 +514,7 @@ export default function ParliamentCandidateListPage() {
                 </Typography>
             )
         },
-        {
-            id: 'vote_percentage',
-            header: 'Vote %',
-            accessorKey: 'vote_percentage',
-            cell: ({ getValue }) => (
-                <Typography sx={{ 
-                    fontWeight: 500,
-                    color: 'success.main'
-                }}>
-                    {getValue() ? `${getValue()}%` : '0%'}
-                </Typography>
-            )
-        },
-        {
-            id: 'margin_percentage',
-            header: 'Margin %',
-            accessorKey: 'margin_percentage',
-            cell: ({ getValue, row }) => (
-                <Typography sx={{
-                    fontWeight: 500,
-                    color: row.original.margin >= 0 ? 'success.main' : 'error.main'
-                }}>
-                    {`${(getMarginPercentDecimal(row.original) * 100).toFixed(2)}%`}
-                </Typography>
-            )
-        },
+        
         {
             id: 'margin',
             header: 'Margin',
