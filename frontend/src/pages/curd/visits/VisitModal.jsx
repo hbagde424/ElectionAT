@@ -83,6 +83,9 @@ export default function VisitModal({
     const [errors, setErrors] = useState({});
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Document inputs (3 slots)
+    const [documentFiles, setDocumentFiles] = useState([null, null, null]);
+    const [documentNames, setDocumentNames] = useState(['', '', '']);
 
     // Filtered data states
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -110,7 +113,13 @@ export default function VisitModal({
                 post: '',
                 date: new Date(),
                 work_status: 'announced',
-                declaration: '',
+                workName: '',
+                visitAgenda: '',
+                speechFiveLines: '',
+                speechIssue: '',
+                announcementDate: null,
+                completionDate: null,
+                budgetAnnouncedDate: null,
                 remark: '',
                 longitude: '',
                 latitude: '',
@@ -131,7 +140,13 @@ export default function VisitModal({
             post: visit.post || '',
             date: visit.date ? new Date(visit.date) : new Date(),
             work_status: visit.work_status || 'announced',
-            declaration: visit.declaration || '',
+            workName: visit.workName || '',
+            visitAgenda: visit.visitAgenda || '',
+            speechFiveLines: visit.speechFiveLines || '',
+            speechIssue: visit.speechIssue || '',
+            announcementDate: visit.announcementDate ? new Date(visit.announcementDate) : null,
+            completionDate: visit.completionDate ? new Date(visit.completionDate) : null,
+            budgetAnnouncedDate: visit.budgetAnnouncedDate ? new Date(visit.budgetAnnouncedDate) : null,
             remark: visit.remark || '',
             longitude: visit.longitude || '',
             latitude: visit.latitude || '',
@@ -153,6 +168,19 @@ export default function VisitModal({
             setFormData(initializeFormData(visit));
             setErrors({});
             setSubmitError('');
+            // initialize doc inputs from visit
+            if (visit && Array.isArray(visit.documents)) {
+                const files = [null, null, null];
+                const names = [ '', '', '' ];
+                visit.documents.forEach((d, i) => {
+                    if (d) names[i] = d.name || '';
+                });
+                setDocumentFiles(files);
+                setDocumentNames(names);
+            } else {
+                setDocumentFiles([null, null, null]);
+                setDocumentNames(['', '', '']);
+            }
         }
     }, [open, visit]);
 
@@ -260,7 +288,10 @@ export default function VisitModal({
             },
             date: () => !value && 'Date is required',
             work_status: () => !value && 'Work status is required',
-            declaration: () => value.length > 500 && 'Declaration cannot exceed 500 characters',
+            visitAgenda: () => value && value.length > 1000 && 'Visit agenda cannot exceed 1000 characters',
+            // speechSubject removed - use work_status options instead
+            speechFiveLines: () => value && value.length > 2000 && 'Speech five lines cannot exceed 2000 characters',
+            speechIssue: () => value && value.length > 2000 && 'Speech issue cannot exceed 2000 characters',
             remark: () => value.length > 500 && 'Remark cannot exceed 500 characters',
             longitude: () => {
                 if (value && (isNaN(value) || value < -180 || value > 180))
@@ -359,13 +390,19 @@ export default function VisitModal({
                 description: typeof formData.description === 'string' ? formData.description : '',
                 // Convert empty strings to null for ObjectId fields
                 block_id: formData.block_id || null,
-                booth_id: formData.booth_id || null
+                booth_id: formData.booth_id || null,
+                // Ensure date fields are serialized
+                announcementDate: formData.announcementDate ? new Date(formData.announcementDate) : null,
+                completionDate: formData.completionDate ? new Date(formData.completionDate) : null,
+                budgetAnnouncedDate: formData.budgetAnnouncedDate ? new Date(formData.budgetAnnouncedDate) : null
             };
 
-            // Remove null values to avoid sending them to backend
+            // Remove null or empty values to avoid sending them to backend (except keep empty strings for description)
             Object.keys(submitData).forEach(key => {
-                if (submitData[key] === null || submitData[key] === '') {
-                    if (key === 'block_id' || key === 'booth_id') {
+                if (submitData[key] === null || (submitData[key] === '' && key !== 'description')) {
+                    if (key === 'block_id' || key === 'booth_id' || key === 'announcementDate' || key === 'completionDate' || key === 'budgetAnnouncedDate') {
+                        delete submitData[key];
+                    } else if (submitData[key] === '') {
                         delete submitData[key];
                     }
                 }
@@ -383,6 +420,34 @@ export default function VisitModal({
             const data = await res.json();
 
             if (res.ok) {
+                // If there are document files selected, upload them sequentially
+                const visitId = data.data._id || data.data._id || (visit && visit._id);
+                if (visitId) {
+                    for (let i = 0; i < 3; i++) {
+                        const file = documentFiles[i];
+                        const name = documentNames[i];
+                        if (file) {
+                            try {
+                                const form = new FormData();
+                                form.append('file', file);
+                                form.append('slot', i);
+                                if (name) form.append('name', name);
+
+                                const upRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/visits/${visitId}/documents`, {
+                                    method: 'POST',
+                                    headers: { Authorization: `Bearer ${token}` },
+                                    body: form
+                                });
+                                // ignore response details for now
+                            } catch (e) {
+                                // continue uploading others
+                                console.error('Error uploading document', e);
+                            }
+                        }
+                    }
+
+                }
+
                 modalToggler(false);
                 refresh();
             } else {
@@ -394,6 +459,22 @@ export default function VisitModal({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleDocumentFileChange = (index, file) => {
+        setDocumentFiles(prev => {
+            const copy = [...prev];
+            copy[index] = file;
+            return copy;
+        });
+    };
+
+    const handleDocumentNameChange = (index, value) => {
+        setDocumentNames(prev => {
+            const copy = [...prev];
+            copy[index] = value;
+            return copy;
+        });
     };
 
     const handleSubmissionError = (data) => {
@@ -513,7 +594,7 @@ export default function VisitModal({
 
                     <Grid item xs={12} sm={6}>
                         <FormSelect
-                            label="Election Year"
+                            label="Year"
                             name="election_year_id"
                             value={formData.election_year_id}
                             options={electionYears}
@@ -557,23 +638,75 @@ export default function VisitModal({
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                        <FormSelect
-                            label="Work Status"
-                            name="work_status"
-                            value={formData.work_status}
-                            options={[
-                                { _id: 'announced', name: 'Announced' },
-                                { _id: 'approved', name: 'Approved' },
-                                { _id: 'in progress', name: 'In Progress' },
-                                { _id: 'complete', name: 'Complete' },
-                                { _id: 'N/A', name: 'N/A' }
-                            ]}
-                            onChange={handleChange}
-                            error={errors.work_status}
-                            disabled={isSubmitting}
-                            required
-                        />
+                                <FormTextField
+                                    label="Work Name"
+                                    name="workName"
+                                    value={formData.workName}
+                                    onChange={handleChange}
+                                    error={errors.workName}
+                                    disabled={isSubmitting}
+                                />
                     </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <FormSelect
+                                    label="Work Status"
+                                    name="work_status"
+                                    value={formData.work_status}
+                                    options={[
+                                        { _id: 'announced', name: 'Announced' },
+                                        { _id: 'approved', name: 'Approved' },
+                                        { _id: 'in progress', name: 'In Progress' },
+                                        { _id: 'complete', name: 'Complete' },
+                                        { _id: 'other', name: 'Other' },
+                                        { _id: 'speech subject', name: 'Speech Subject' },
+                                        { _id: 'N/A', name: 'N/A' }
+                                    ]}
+                                    onChange={handleChange}
+                                    error={errors.work_status}
+                                    disabled={isSubmitting}
+                                    required
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={4}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Announcement Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.announcementDate}
+                                        onChange={(d) => setFormData(prev => ({ ...prev, announcementDate: d }))}
+                                        renderInput={(params) => (
+                                            <TextField {...params} fullWidth />
+                                        )}
+                                    />
+                                </Stack>
+                            </Grid>
+
+                            <Grid item xs={12} sm={4}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Completion Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.completionDate}
+                                        onChange={(d) => setFormData(prev => ({ ...prev, completionDate: d }))}
+                                        renderInput={(params) => (
+                                            <TextField {...params} fullWidth />
+                                        )}
+                                    />
+                                </Stack>
+                            </Grid>
+
+                            <Grid item xs={12} sm={4}>
+                                <Stack spacing={1}>
+                                    <InputLabel>Budget Announced Date</InputLabel>
+                                    <DatePicker
+                                        value={formData.budgetAnnouncedDate}
+                                        onChange={(d) => setFormData(prev => ({ ...prev, budgetAnnouncedDate: d }))}
+                                        renderInput={(params) => (
+                                            <TextField {...params} fullWidth />
+                                        )}
+                                    />
+                                </Stack>
+                            </Grid>
 
                     <Grid item xs={12}>
                         <Stack spacing={1}>
@@ -642,20 +775,52 @@ export default function VisitModal({
                         </Stack>
                     </Grid>
 
-                    {/* Add space between Description and Declaration */}
+                    {/* Add space before Agenda/Speech section */}
                     <Grid item xs={12} style={{ marginTop: 24 }} />
 
                     <Grid item xs={12}>
-                        <FormTextField
-                            label="Declaration"
-                            name="declaration"
-                            value={formData.declaration}
-                            onChange={handleChange}
-                            error={errors.remark}
-                            disabled={isSubmitting}
-                            multiline
-                            rows={7}
-                        />
+                        <Stack spacing={1}>
+                            <InputLabel>Visit Agenda</InputLabel>
+                            <TextField
+                                name="visitAgenda"
+                                value={formData.visitAgenda}
+                                onChange={handleChange}
+                                fullWidth
+                                multiline
+                                rows={4}
+                                disabled={isSubmitting}
+                                error={!!errors.visitAgenda}
+                                helperText={errors.visitAgenda}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* speechSubject field removed; it's now part of work_status options */}
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Speech Punch line</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.speechFiveLines}
+                                onChange={(value) => setFormData(prev => ({ ...prev, speechFiveLines: value }))}
+                                placeholder="Enter short speech (approx. 5 lines)"
+                                style={{ minHeight: 140, height: 140, marginBottom: 30 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Speech Issue</InputLabel>
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.speechIssue}
+                                onChange={(value) => setFormData(prev => ({ ...prev, speechIssue: value }))}
+                                placeholder="Describe the issue the speech addresses"
+                                style={{ minHeight: 140, height: 140, marginBottom: 16 }}
+                            />
+                        </Stack>
                     </Grid>
 
                     <Grid item xs={12}>
@@ -668,8 +833,30 @@ export default function VisitModal({
                             disabled={isSubmitting}
                             multiline
                             rows={7}
+                            style={{ marginBottom: 30 }}
                         />
                     </Grid>
+
+                    {/* Document upload slots (3) */}
+                    {[0,1,2].map(i => (
+                        <Grid item xs={12} sm={4} key={`doc-${i}`}>
+                            <Stack spacing={1}>
+                                <InputLabel>Document {i+1} Name</InputLabel>
+                                <TextField
+                                    value={documentNames[i]}
+                                    onChange={(e) => handleDocumentNameChange(i, e.target.value)}
+                                    fullWidth
+                                    disabled={isSubmitting}
+                                />
+                                <InputLabel sx={{ mt: 1 }}>Upload File</InputLabel>
+                                <input
+                                    type="file"
+                                    onChange={(e) => handleDocumentFileChange(i, e.target.files[0] || null)}
+                                    disabled={isSubmitting}
+                                />
+                            </Stack>
+                        </Grid>
+                    ))}
                 </Grid>
             </DialogContent>
 

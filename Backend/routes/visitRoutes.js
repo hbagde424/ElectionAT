@@ -11,7 +11,12 @@ const {
   getNearbyVisits,
   getCandidatePath
 } = require('../controllers/visitController');
+const {
+  uploadVisitDocument,
+  deleteVisitDocument
+} = require('../controllers/visitController');
 const { protect, authorize } = require('../middlewares/auth');
+const visitUpload = require('../config/visitUpload');
 
 const router = express.Router();
 
@@ -198,6 +203,12 @@ router.put('/:id', protect, authorize('admin', 'superAdmin'), updateVisit);
  *         description: Visit not found
  */
 router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteVisit);
+
+// Upload a single document to a visit (slot in body: 0..2)
+router.post('/:id/documents', protect, authorize('admin', 'superAdmin'), visitUpload.single('file'), uploadVisitDocument);
+
+// Delete a document from a visit by slot index
+router.delete('/:id/documents/:slot', protect, authorize('admin', 'superAdmin'), deleteVisitDocument);
 
 /**
  * @swagger
@@ -448,12 +459,33 @@ router.get('/candidate/:candidateId/path', getCandidatePath);
  *           type: string
  *           enum: [announced, approved, in progress, complete]
  *           description: Status of the work
- *         declaration:
+ *         workName:
  *           type: string
- *           description: Declaration made during visit
+ *           description: Name of the work/project
+ *         visitAgenda:
+ *           type: string
+ *           description: Agenda/details of the visit
+ *         speechFiveLines:
+ *           type: string
+ *           description: Short speech content (rich HTML allowed)
+ *         speechIssue:
+ *           type: string
+ *           description: Issue addressed in the speech (rich HTML allowed)
  *         remark:
  *           type: string
  *           description: Additional remarks
+ *         announcementDate:
+ *           type: string
+ *           format: date-time
+ *           description: Date when the work was announced
+ *         completionDate:
+ *           type: string
+ *           format: date-time
+ *           description: Date when the work was/should be completed
+ *         budgetAnnouncedDate:
+ *           type: string
+ *           format: date-time
+ *           description: Date when budget for the work was announced
  *         longitude:
  *           type: number
  *           minimum: -180

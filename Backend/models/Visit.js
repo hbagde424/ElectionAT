@@ -60,15 +60,46 @@ const visitSchema = new mongoose.Schema({
   },
   work_status: {
     type: String,
-    enum: ['announced', 'approved', 'in progress', 'complete', 'N/A'],
+    enum: ['announced', 'approved', 'in progress', 'complete', 'other', 'speech subject', 'N/A'],
     default: 'announced',
     required: [true, 'Work status is required']
   },
-  declaration: {
+  // New fields requested
+  workName: {
     type: String,
     trim: true,
-    maxlength: [500, 'Declaration cannot exceed 500 characters']
+    maxlength: [200, 'Work name cannot exceed 200 characters']
   },
+  visitAgenda: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Visit agenda cannot exceed 1000 characters']
+  },
+  speechFiveLines: {
+    type: String,
+    trim: true,
+    maxlength: [2000, 'Speech five lines cannot exceed 2000 characters']
+  },
+  speechIssue: {
+    type: String,
+    trim: true,
+    maxlength: [2000, 'Speech issue cannot exceed 2000 characters']
+  },
+  announcementDate: {
+    type: Date
+  },
+  completionDate: {
+    type: Date
+  },
+  budgetAnnouncedDate: {
+    type: Date
+  },
+  documents: [
+    {
+      name: { type: String, trim: true },
+      filePath: { type: String, trim: true }
+    }
+  ],
   remark: {
     type: String,
     trim: true,

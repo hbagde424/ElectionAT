@@ -21,6 +21,8 @@ export default function VisitView({ data }) {
         'approved': 'info',
         'in progress': 'warning',
         'complete': 'success',
+        'other': 'default',
+        'speech subject': 'primary',
         'N/A': 'default'
     };
 
@@ -91,6 +93,17 @@ export default function VisitView({ data }) {
                             />
                         </Box>
 
+                        {data.workName && (
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    Work Name
+                                </Typography>
+                                <Typography variant="body1" fontWeight="medium">
+                                    {data.workName}
+                                </Typography>
+                            </Box>
+                        )}
+
                         {data.locationName && (
                             <Box>
                                 <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -118,29 +131,7 @@ export default function VisitView({ data }) {
                                     </Typography>
                                 </Box>
                             )}
-                            {/* Declaration field */}
-                            {data.declaration && (
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                        Declaration
-                                    </Typography>
-                                    <Box
-                                        sx={{
-                                            border: '1px solid #eee',
-                                            borderRadius: 1,
-                                            p: 2,
-                                            bgcolor: 'background.default',
-                                            maxHeight: 300,
-                                            overflow: 'auto',
-                                            minHeight: 120
-                                        }}
-                                    >
-                                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                            {data.declaration}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            )}
+                            {/* Declaration removed - replaced by Visit Agenda and Speech fields */}
                     </Stack>
                 </Grid>
 
@@ -222,6 +213,61 @@ export default function VisitView({ data }) {
                         </Box>
                     )}
                 </Grid>
+                {/* New fields: Dates and Agenda/Speech */}
+                {(data.announcementDate || data.completionDate || data.budgetAnnouncedDate) && (
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Dates</Typography>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                            {data.announcementDate && (
+                                <Chip label={`Announcement: ${formatDate(data.announcementDate)}`} size="small" />
+                            )}
+                            {data.completionDate && (
+                                <Chip label={`Completion: ${formatDate(data.completionDate)}`} size="small" />
+                            )}
+                            {data.budgetAnnouncedDate && (
+                                <Chip label={`Budget Announced: ${formatDate(data.budgetAnnouncedDate)}`} size="small" />
+                            )}
+                        </Box>
+                    </Grid>
+                )}
+
+                {data.visitAgenda && (
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Visit Agenda</Typography>
+                        <Box sx={{ border: '1px solid #eee', borderRadius: 1, p: 2, bgcolor: 'background.default' }}>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>{data.visitAgenda}</Typography>
+                        </Box>
+                    </Grid>
+                )}
+
+                {/* speechSubject removed; speech info is in agenda or work_status */}
+
+                {data.speechFiveLines && (
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Speech Punch line</Typography>
+                        <Box sx={{ border: '1px solid #eee', borderRadius: 1, p: 2, bgcolor: 'background.default' }} dangerouslySetInnerHTML={{ __html: data.speechFiveLines }} />
+                    </Grid>
+                )}
+
+                {data.speechIssue && (
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Speech Issue</Typography>
+                        <Box sx={{ border: '1px solid #eee', borderRadius: 1, p: 2, bgcolor: 'background.default' }} dangerouslySetInnerHTML={{ __html: data.speechIssue }} />
+                    </Grid>
+                )}
+
+                {Array.isArray(data.documents) && data.documents.length > 0 && (
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Documents</Typography>
+                        <Stack spacing={1}>
+                            {data.documents.map((doc, idx) => (
+                                doc ? (
+                                    <a key={idx} href={doc.filePath} target="_blank" rel="noreferrer">{doc.name || `Document ${idx+1}`}</a>
+                                ) : null
+                            ))}
+                        </Stack>
+                    </Grid>
+                )}
             </Grid>
         </Box>
     );

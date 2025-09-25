@@ -247,23 +247,35 @@ const VisitListPage = () => {
 
     const fetchMapVisits = async (candidateId = null) => {
         try {
-            const url = candidateId
-                ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${candidateId}`
-                : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
+            const path = candidateId ? `/visits?all=true&candidate=${candidateId}` : `/visits?all=true`;
 
-            console.log('Fetching map visits with URL:', url);
-            console.log('Selected candidate ID:', candidateId);
+            console.log('Fetching map visits, path:', path, 'selectedCandidate:', candidateId, 'type:', typeof candidateId);
 
-            const { data: json } = await axiosServices.get(url.replace(import.meta.env.VITE_APP_API_URL, ''));
-            console.log('API response:', json);
+            // Use axiosServices with a relative path (it already has baseURL configured)
+            const { data: json } = await axiosServices.get(path);
+            console.log('Map visits API response summary:', json && { success: json.success, count: json.data?.length });
 
-            if (json.success) {
-                console.log('Total visits received:', json.data.length);
-                console.log('Sample visit data:', json.data[0]);
+            if (json && json.success) {
+                const rawVisits = Array.isArray(json.data) ? json.data : [];
+                console.log('Total visits received for map (raw):', rawVisits.length);
+                if (rawVisits.length === 0) {
+                    setMapVisits([]);
+                    setRouteData(null);
+                    return;
+                }
 
-                const visitsWithCoords = json.data.filter(v => v.latitude && v.longitude);
-                console.log('Visits with coordinates:', visitsWithCoords);
-                console.log('Visits without coordinates:', json.data.length - visitsWithCoords.length);
+                // Normalize and coerce coordinates to numbers, then filter out invalid ones
+                const visitsWithCoords = rawVisits
+                    .map(v => ({
+                        ...v,
+                        latitude: v.latitude !== undefined && v.latitude !== null && v.latitude !== '' ? Number(v.latitude) : NaN,
+                        longitude: v.longitude !== undefined && v.longitude !== null && v.longitude !== '' ? Number(v.longitude) : NaN
+                    }))
+                    .filter(v => !isNaN(v.latitude) && !isNaN(v.longitude));
+
+                console.log('visitsWithCoords count (numeric):', visitsWithCoords.length);
+                if (visitsWithCoords.length > 0) console.log('sample coords:', visitsWithCoords.slice(0, 3).map(v => ({ lat: v.latitude, lon: v.longitude })));
+
                 setMapVisits(visitsWithCoords);
 
                 if (visitsWithCoords.length > 1) {
@@ -282,14 +294,29 @@ const VisitListPage = () => {
 
                 // Center map on first visit if available
                 if (visitsWithCoords.length > 0 && mapRef.current) {
-                    mapRef.current.flyTo({
-                        center: [visitsWithCoords[0].longitude, visitsWithCoords[0].latitude],
-                        zoom: 12
-                    });
+                    // react-map-gl's Map ref may expose getMap()
+                    const mapInstance = (typeof mapRef.current.getMap === 'function') ? mapRef.current.getMap() : mapRef.current;
+                    if (mapInstance && typeof mapInstance.flyTo === 'function') {
+                        try {
+                            mapInstance.flyTo({
+                                center: [visitsWithCoords[0].longitude, visitsWithCoords[0].latitude],
+                                zoom: 10
+                            });
+                        } catch (err) {
+                            console.warn('mapInstance.flyTo failed', err);
+                        }
+                    }
                 }
+                return;
             }
+
+            // If API didn't return success
+            setMapVisits([]);
+            setRouteData(null);
         } catch (error) {
             console.error('Error loading visit data:', error);
+            setMapVisits([]);
+            setRouteData(null);
         }
     };
 
@@ -317,7 +344,7 @@ const VisitListPage = () => {
                     'Booth': item.booth_id?.name || '',
                     'Location': item.locationName || '',
                     'Coordinates': item.latitude && item.longitude ? `${item.latitude}, ${item.longitude}` : '',
-                    'Declaration': item.declaration || '',
+                    'Visit Agenda': item.visitAgenda || item.declaration || '',
                     'Remark': item.remark || '',
                     'Created At': item.created_at,
                     'Updated At': item.updated_at
@@ -398,7 +425,9 @@ const VisitListPage = () => {
         'announced': 'default',
         'approved': 'info',
         'in progress': 'warning',
-        'complete': 'success'
+        'complete': 'success',
+        'other': 'default',
+        'speech subject': 'primary'
     };
 
     const handleCandidateChange = (event) => {
@@ -409,6 +438,8 @@ const VisitListPage = () => {
 
     const handleApplyFilters = () => {
         setAppliedFilters(filterValues);
+        // make sure the map shows visits for the applied candidate filter
+        setSelectedCandidate(filterValues.candidate || '');
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
     };
@@ -428,6 +459,8 @@ const VisitListPage = () => {
         };
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
+        // reset the map to show all visits when filters are cleared
+        setSelectedCandidate('');
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
     };
@@ -656,8 +689,8 @@ const VisitListPage = () => {
             )
         },
         {
-            header: 'Declaration',
-            accessorKey: 'declaration',
+            header: 'Visit Agenda',
+            accessorKey: 'visitAgenda',
             cell: ({ getValue }) => (
                 <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic', color: 'text.secondary' }}>
                     {getValue() ? getValue().slice(0, 100) : ''}
@@ -780,7 +813,6 @@ const VisitListPage = () => {
                                         longitude={visit.longitude}
                                         latitude={visit.latitude}
                                         anchor="bottom"
-                                        onClick={() => handleMarkerClick(visit)}
                                     >
                                         <Avatar
                                             src={visit.candidate_id?.photo}
@@ -789,6 +821,11 @@ const VisitListPage = () => {
                                                 height: 32,
                                                 border: `2px solid ${theme.palette.primary.main}`,
                                                 cursor: 'pointer'
+                                            }}
+                                            onClick={(e) => {
+                                                // prevent the map from handling the click (which can require a second click)
+                                                if (e && e.stopPropagation) e.stopPropagation();
+                                                handleMarkerClick(visit);
                                             }}
                                         />
                                     </Marker>
@@ -821,7 +858,8 @@ const VisitListPage = () => {
                                                             <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
                                                             <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
                                                             <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
-                                                            {v.declaration && (<Typography variant="body2"><strong>🗒️ Declaration:</strong> {v.declaration}</Typography>)}
+                                                            {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
+                                                            {/* speechSubject display removed; agenda covers speech info */}
                                                             {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
                                                             <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
                                                         </Box>
@@ -912,7 +950,15 @@ const VisitListPage = () => {
                                         <InputLabel>Candidate</InputLabel>
                                         <Select
                                             value={filterValues.candidate}
-                                            onChange={(e) => setFilterValues(prev => ({ ...prev, candidate: e.target.value }))}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                // update filter form value
+                                                setFilterValues(prev => ({ ...prev, candidate: val }));
+                                                // also update selectedCandidate so the map shows only this candidate's visits
+                                                setSelectedCandidate(val);
+                                                // fetch map visits immediately to ensure the map updates without waiting for effect
+                                                fetchMapVisits(val || null);
+                                            }}
                                             label="Candidate"
                                         >
                                             <MenuItem value="">All Candidates</MenuItem>
@@ -938,34 +984,36 @@ const VisitListPage = () => {
                                             <MenuItem value="approved">Approved</MenuItem>
                                             <MenuItem value="in progress">In Progress</MenuItem>
                                             <MenuItem value="complete">Complete</MenuItem>
+                                            <MenuItem value="other">Other</MenuItem>
+                                            <MenuItem value="speech subject">Speech Subject</MenuItem>
                                         </Select>
                                     </FormControl>
                                 </Grid>
 
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth size="small">
-                                        <InputLabel>Start Date</InputLabel>
-                                        <TextField
-                                            type="date"
-                                            value={filterValues.startDate}
-                                            onChange={(e) => setFilterValues(prev => ({ ...prev, startDate: e.target.value }))}
-                                            size="small"
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </FormControl>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Start Date"
+                                        type="date"
+                                        value={filterValues.startDate}
+                                        onChange={(e) => setFilterValues(prev => ({ ...prev, startDate: e.target.value }))}
+                                        InputLabelProps={{ shrink: true }}
+                                        variant="outlined"
+                                    />
                                 </Grid>
 
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth size="small">
-                                        <InputLabel>End Date</InputLabel>
-                                        <TextField
-                                            type="date"
-                                            value={filterValues.endDate}
-                                            onChange={(e) => setFilterValues(prev => ({ ...prev, endDate: e.target.value }))}
-                                            size="small"
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </FormControl>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="End Date"
+                                        type="date"
+                                        value={filterValues.endDate}
+                                        onChange={(e) => setFilterValues(prev => ({ ...prev, endDate: e.target.value }))}
+                                        InputLabelProps={{ shrink: true }}
+                                        variant="outlined"
+                                    />
                                 </Grid>
 
                                 {/* Second Row */}

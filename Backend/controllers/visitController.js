@@ -146,7 +146,9 @@ exports.getVisits = async (req, res, next) => {
       const searchConditions = [
         { post: searchRegex },
         { locationName: searchRegex },
-        { declaration: searchRegex },
+        { visitAgenda: searchRegex },
+        { speechFiveLines: searchRegex },
+        { speechIssue: searchRegex },
         { remark: searchRegex }
       ];
 
@@ -718,7 +720,7 @@ exports.getVisitsByBooth = async (req, res, next) => {
 // @access  Public
 exports.getVisitsByStatus = async (req, res, next) => {
   try {
-    const validStatuses = ['announced', 'approved', 'in progress', 'complete'];
+  const validStatuses = ['announced', 'approved', 'in progress', 'complete'];
     if (!validStatuses.includes(req.params.status)) {
       return res.status(400).json({
         success: false,
@@ -937,6 +939,92 @@ exports.getCandidatePath = async (req, res, next) => {
         path: lineString
       }
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Upload a document for a visit (slot 0..2)
+// @route   POST /api/visits/:id/documents
+// @access  Private
+exports.uploadVisitDocument = async (req, res, next) => {
+  try {
+    const visitId = req.params.id;
+    const slot = parseInt(req.body.slot);
+
+    if (isNaN(slot) || slot < 0 || slot > 2) {
+      return res.status(400).json({ success: false, message: 'Invalid slot. Use 0,1,2.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const visit = await Visit.findById(visitId);
+    if (!visit) {
+      return res.status(404).json({ success: false, message: 'Visit not found' });
+    }
+
+    // Ensure documents array exists
+    if (!Array.isArray(visit.documents)) visit.documents = [];
+
+    // Prepare document object
+    const docName = req.body.name || req.file.originalname;
+    const docPath = `/uploads/visit-docs/${req.file.filename}`;
+
+    // Insert or replace at slot
+    visit.documents[slot] = { name: docName, filePath: docPath };
+
+    await visit.save();
+
+    res.status(200).json({ success: true, data: visit.documents[slot] });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Delete a document from a visit (slot 0..2)
+// @route   DELETE /api/visits/:id/documents/:slot
+// @access  Private
+exports.deleteVisitDocument = async (req, res, next) => {
+  try {
+    const visitId = req.params.id;
+    const slot = parseInt(req.params.slot);
+
+    if (isNaN(slot) || slot < 0 || slot > 2) {
+      return res.status(400).json({ success: false, message: 'Invalid slot. Use 0,1,2.' });
+    }
+
+    const visit = await Visit.findById(visitId);
+    if (!visit) {
+      return res.status(404).json({ success: false, message: 'Visit not found' });
+    }
+
+    if (!Array.isArray(visit.documents) || !visit.documents[slot]) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    // Remove file from disk if exists
+    const fs = require('fs');
+    const path = require('path');
+    const doc = visit.documents[slot];
+    if (doc && doc.filePath) {
+      const fileOnDisk = path.join(__dirname, '..', doc.filePath);
+      try {
+        if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk);
+      } catch (e) {
+        // ignore file deletion errors
+      }
+    }
+
+    // Remove slot
+    visit.documents[slot] = undefined;
+    // Compact array to keep indexes consistent
+    visit.documents = visit.documents.filter(d => d);
+
+    await visit.save();
+
+    res.status(200).json({ success: true, message: 'Document removed' });
   } catch (err) {
     next(err);
   }

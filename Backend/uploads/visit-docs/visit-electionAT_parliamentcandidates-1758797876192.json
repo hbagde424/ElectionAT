@@ -1,0 +1,3115 @@
+[{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa264"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bad"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db49"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 913444,
+  "Margin": 8688,
+  "Margin_percentage": 0.01,
+  "Electors": 1458084,
+  "Turnout": "62.70%",
+  "Male_Electors": "7,72,026",
+  "Female_Electors": "6,86,058",
+  "Total_Votes_Polled": "9,13,444 (62.7%)",
+  "Valid_Votes": "9,00,408 (61.8%)",
+  "Total_Male_Voters": "4,99,928",
+  "Female_Voters": "4,13,516",
+  "NOTA_Votes": "13,036 (0.9%)",
+  "candinate_vote ": 375288,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa21c"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf5673"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db43"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 990912,
+  "Margin": 29699,
+  "Margin_percentage": 0.03,
+  "Electors": 1877003,
+  "Turnout": "52.80%",
+  "Male_Electors": "8,57,328",
+  "Female_Electors": "7,48,291",
+  "Total_Votes_Polled": "9,76,629 (60.8%)",
+  "Valid_Votes": "9,64,148 (60.0%)",
+  "Total_Male_Voters": "5,81,485",
+  "Female_Voters": "3,95,144",
+  "NOTA_Votes": "12,481 (0.8%)",
+  "candinate_vote ": 442796,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa23d"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd3d"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db50"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "68316363fb08f1710d17d2d5"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1248031,
+  "Margin": 37536,
+  "Margin_percentage": 0.03,
+  "Electors": "14,80,503",
+  "Turnout": "85.70%",
+  "Male_Electors": "7,56,428",
+  "Female_Electors": "7,24,045",
+  "Total_Votes_Polled": "12,48,031 (85.7%)",
+  "Valid_Votes": "12,27,707 (82.9%)",
+  "NOTA_Votes": "20,324 (1.4%)",
+  "candinate_vote ": 587305,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa252"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd54"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db41"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1187331,
+  "Margin": 52530,
+  "Margin_percentage": 0.044,
+  "Electors": "20,06,730",
+  "Turnout": "59.20%",
+  "Male_Electors": "10,03,365",
+  "Female_Electors": "10,03,365",
+  "Total_Votes_Polled": "11,87,331 (59.2%)",
+  "Valid_Votes": "11,82,417 (58.9%)",
+  "NOTA_Votes": "4,914 (0.2%)",
+  "candinate_vote ": 515477,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa26a"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9baf"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db42"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1049007,
+  "Margin": 64840,
+  "Margin_percentage": 0.062,
+  "Electors": "19,00,654",
+  "Turnout": "55.20%",
+  "Male_Electors": "9,50,327",
+  "Female_Electors": "9,50,327",
+  "Total_Votes_Polled": "10,49,007 (55.2%)",
+  "Valid_Votes": "10,42,473 (54.8%)",
+  "NOTA_Votes": "6,534 (0.3%)",
+  "candinate_vote ": 537065,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa227"
+  },
+  "candidate_id": {
+    "$oid": "68931c8328b5a7a1672702d6"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db43"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1343229,
+  "Margin": 70210,
+  "Margin_percentage": 0.052,
+  "Electors": "21,54,601",
+  "Turnout": "62.30%",
+  "Male_Electors": "10,77,301",
+  "Female_Electors": "10,77,300",
+  "Total_Votes_Polled": "13,43,229 (62.3%)",
+  "Valid_Votes": "13,39,888 (62.2%)",
+  "NOTA_Votes": "13,39,888 (62.2%)",
+  "candinate_vote ": 671535,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa266"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bad"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db49"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1058972,
+  "Margin": 84949,
+  "Margin_percentage": 0.08,
+  "Electors": "17,05,260",
+  "Turnout": "62.10%",
+  "Male_Electors": "8,52,630",
+  "Female_Electors": "8,52,630",
+  "Total_Votes_Polled": "10,58,972 (62.1%)",
+  "Valid_Votes": "10,56,419 (62.0%)",
+  "NOTA_Votes": "2,553 (0.1%)",
+  "candinate_vote ": 459728,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa243"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd43"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db58"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1400509,
+  "Margin": 90636,
+  "Margin_percentage": 0.065,
+  "Electors": "18,02,722",
+  "Turnout": "79.70%",
+  "Male_Electors": "9,06,122",
+  "Female_Electors": "8,96,571",
+  "Total_Votes_Polled": "14,00,509 (79.7%)",
+  "Valid_Votes": "13,65,078 (75.7%)",
+  "NOTA_Votes": "35,431 (2.0%)",
+  "candinate_vote ": 696103,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa22c"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd29"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4f"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1113364,
+  "Margin": 96041,
+  "Margin_percentage": 0.086,
+  "Electors": 1629769,
+  "Turnout": "68.30%",
+  "Male_Electors": "8,22,667",
+  "Female_Electors": "8,07,102",
+  "Total_Votes_Polled": "11,13,364 (68.3%)",
+  "Valid_Votes": "11,06,442 (67.9%)",
+  "Total_Male_Voters": "5,71,601",
+  "Female_Voters": "5,41,763",
+  "NOTA_Votes": "6,922 (0.4%)",
+  "candinate_vote ": 480594,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "candidate_votes": 245,
+  "electors": 1629769,
+  "female_electors": 807102,
+  "female_voters": 541763,
+  "male_electors": 822667,
+  "margin": 96041,
+  "margin_percentage": 0.0863,
+  "nota_votes": 0,
+  "total_male_voters": 571601,
+  "total_votes_polled": 0,
+  "turnout": 0,
+  "valid_votes": 0
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa25c"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9baa"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4e"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1517255,
+  "Margin": 97674,
+  "Margin_percentage": 0.064,
+  "Electors": "19,01,547",
+  "Turnout": "81.50%",
+  "Male_Electors": "9,59,246",
+  "Female_Electors": "9,42,274",
+  "Total_Votes_Polled": "15,17,255 (81.5%)",
+  "Valid_Votes": "14,85,015 (78.1%)",
+  "NOTA_Votes": "32,240 (1.7%)",
+  "candinate_vote ": 737266,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa25d"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9baa"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4e"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1535632,
+  "Margin": 103846,
+  "Margin_percentage": 0.068,
+  "Electors": "21,01,811",
+  "Turnout": "73.10%",
+  "Male_Electors": "10,50,906",
+  "Female_Electors": "10,50,905",
+  "Total_Votes_Polled": "15,35,632 (73.1%)",
+  "Valid_Votes": "15,16,711 (72.2%)",
+  "NOTA_Votes": "18,921 (0.9%)",
+  "candinate_vote ": 751375,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa257"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9ba8"
+  },
+  "parliament_id": {
+    "$oid": "687a021993d4235d02ea1d05"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1076816,
+  "Margin": 104328,
+  "Margin_percentage": 0.097,
+  "Electors": 1668441,
+  "Turnout": "64.50%",
+  "Male_Electors": "8,58,093",
+  "Female_Electors": "8,10,348",
+  "Total_Votes_Polled": "10,76,816 (64.5%)",
+  "Valid_Votes": "10,61,379 (63.6%)",
+  "Total_Male_Voters": "5,86,865",
+  "Female_Voters": "4,89,951",
+  "NOTA_Votes": "15,437 (0.9%)",
+  "candinate_vote ": 558387,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa21f"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56b9"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4b"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 989396,
+  "Margin": 108046,
+  "Margin_percentage": 0.109,
+  "Electors": 1736050,
+  "Turnout": "57.00%",
+  "Male_Electors": "9,15,700",
+  "Female_Electors": "8,20,350",
+  "Total_Votes_Polled": "9,89,396 (57.0%)",
+  "Valid_Votes": "9,72,046 (56.0%)",
+  "Total_Male_Voters": "5,48,026",
+  "Female_Voters": "4,41,370",
+  "NOTA_Votes": "17,350 (1.0%)",
+  "candinate_vote ": 475678,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa235"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd35"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db58"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1082681,
+  "Margin": 108447,
+  "Margin_percentage": 0.1,
+  "Electors": 1702648,
+  "Turnout": "63.60%",
+  "Male_Electors": "8,60,947",
+  "Female_Electors": "8,41,701",
+  "Total_Votes_Polled": "10,82,681 (63.6%)",
+  "Valid_Votes": "10,52,317 (61.8%)",
+  "Total_Male_Voters": "5,70,248",
+  "Female_Voters": "5,12,433",
+  "NOTA_Votes": "30,364 (1.8%)",
+  "candinate_vote ": 545980,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa25b"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9baa"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4e"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1218518,
+  "Margin": 110469,
+  "Margin_percentage": 0.091,
+  "Electors": 1824424,
+  "Turnout": "66.80%",
+  "Male_Electors": "9,25,971",
+  "Female_Electors": "8,98,453",
+  "Total_Votes_Polled": "12,18,518 (66.8%)",
+  "Valid_Votes": "11,90,212 (65.2%)",
+  "Total_Male_Voters": "6,41,915",
+  "Female_Voters": "5,76,603",
+  "NOTA_Votes": "28,306 (1.6%)",
+  "candinate_vote ": 585720,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa21d"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf5673"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db41"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1137290,
+  "Margin": 113341,
+  "Margin_percentage": 0.1,
+  "Electors": "17,39,025",
+  "Turnout": "65.50%",
+  "Male_Electors": "9,46,995",
+  "Female_Electors": "7,91,974",
+  "Total_Votes_Polled": "11,37,290 (65.5%)",
+  "Valid_Votes": "11,35,192 (65.3%)",
+  "NOTA_Votes": "2,098 (0.1%)",
+  "candinate_vote ": 541689,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa24b"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd4b"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db50"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1304827,
+  "Margin": 113618,
+  "Margin_percentage": 0.087,
+  "Electors": "16,32,190",
+  "Turnout": "79.90%",
+  "Male_Electors": "8,16,095",
+  "Female_Electors": "8,16,095",
+  "Total_Votes_Polled": "13,04,827 (79.9%)",
+  "Valid_Votes": "12,94,924 (79.3%)",
+  "NOTA_Votes": "9,903 (0.6%)",
+  "candinate_vote ": 644738,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa225"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56ea"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db50"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "68316363fb08f1710d17d2d5"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1107498,
+  "Margin": 116537,
+  "Margin_percentage": 0.105,
+  "Electors": 1401277,
+  "Turnout": "79.00%",
+  "Male_Electors": "7,21,482",
+  "Female_Electors": "6,79,795",
+  "Total_Votes_Polled": "11,07,498 (79.0%)",
+  "Valid_Votes": "10,81,999 (77.2%)",
+  "Total_Male_Voters": "5,84,759",
+  "Female_Voters": "5,22,739",
+  "NOTA_Votes": "25,499 (1.8%)",
+  "candinate_vote ": 559755,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa236"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd36"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db45"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 891929,
+  "Margin": 120737,
+  "Margin_percentage": 0.135,
+  "Electors": 1520184,
+  "Turnout": "58.70%",
+  "Male_Electors": "8,15,357",
+  "Female_Electors": "7,04,827",
+  "Total_Votes_Polled": "8,91,929 (58.7%)",
+  "Valid_Votes": "8,82,425 (58.0%)",
+  "Total_Male_Voters": "5,36,674",
+  "Female_Voters": "3,55,255",
+  "NOTA_Votes": "9,504 (0.6%)",
+  "candinate_vote ": 482580,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa230"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd2f"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db44"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "68316363fb08f1710d17d2d5"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 976629,
+  "Margin": 120792,
+  "Margin_percentage": 0.124,
+  "Electors": 1605619,
+  "Turnout": "60.80%",
+  "Male_Electors": "8,57,328",
+  "Female_Electors": "7,48,291",
+  "Total_Votes_Polled": "9,76,629 (60.8%)",
+  "Valid_Votes": "9,64,148 (60.0%)",
+  "Total_Male_Voters": "5,81,485",
+  "Female_Voters": "3,95,144",
+  "NOTA_Votes": "12,481 (0.8%)",
+  "candinate_vote ": 517036,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa23f"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd3f"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db44"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1178423,
+  "Margin": 125549,
+  "Margin_percentage": 0.107,
+  "Electors": "16,31,451",
+  "Turnout": "73.00%",
+  "Male_Electors": "8,66,860",
+  "Female_Electors": "7,64,550",
+  "Total_Votes_Polled": "11,78,423 (73.0%)",
+  "Valid_Votes": "11,66,020 (71.5%)",
+  "NOTA_Votes": "12,403 (0.8%)",
+  "candinate_vote ": 614049,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa234"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd34"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db41"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 854279,
+  "Margin": 132981,
+  "Margin_percentage": 0.156,
+  "Electors": 1702492,
+  "Turnout": "50.20%",
+  "Male_Electors": "9,38,466",
+  "Female_Electors": "7,64,026",
+  "Total_Votes_Polled": "8,54,279 (50.2%)",
+  "Valid_Votes": "8,49,487 (49.9%)",
+  "Total_Male_Voters": "5,38,708",
+  "Female_Voters": "3,15,571",
+  "NOTA_Votes": "4,792 (0.3%)",
+  "candinate_vote ": 375567,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa251"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd53"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5a"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1558778,
+  "Margin": 135018,
+  "Margin_percentage": 0.087,
+  "Electors": "20,46,030",
+  "Turnout": "76.20%",
+  "Male_Electors": "10,23,015",
+  "Female_Electors": "10,23,015",
+  "Total_Votes_Polled": "15,58,778 (76.2%)",
+  "Valid_Votes": "15,40,521 (75.3%)",
+  "NOTA_Votes": "18,257 (0.9%)",
+  "candinate_vote ": 819863,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa260"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bab"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db54"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1428997,
+  "Margin": 146089,
+  "Margin_percentage": 0.102,
+  "Electors": "18,75,211",
+  "Turnout": "76.20%",
+  "Male_Electors": "9,37,606",
+  "Female_Electors": "9,37,605",
+  "Total_Votes_Polled": "14,28,997 (76.2%)",
+  "Valid_Votes": "14,21,737 (75.8%)",
+  "NOTA_Votes": "7,260 (0.4%)",
+  "candinate_vote ": 758743,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa240"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd40"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db43"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1196096,
+  "Margin": 146842,
+  "Margin_percentage": 0.123,
+  "Electors": "19,38,511",
+  "Turnout": "62.00%",
+  "Male_Electors": "10,46,626",
+  "Female_Electors": "8,91,824",
+  "Total_Votes_Polled": "11,96,096 (62.0%)",
+  "Valid_Votes": "11,90,753 (61.4%)",
+  "NOTA_Votes": "5,343 (0.3%)",
+  "candinate_vote ": 627250,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa23e"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd3e"
+  },
+  "parliament_id": {
+    "$oid": "687a021993d4235d02ea1d05"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1344132,
+  "Margin": 156029,
+  "Margin_percentage": 0.116,
+  "Electors": "17,52,846",
+  "Turnout": "77.70%",
+  "Male_Electors": "8,93,561",
+  "Female_Electors": "8,59,236",
+  "Total_Votes_Polled": "13,44,132 (77.7%)",
+  "Valid_Votes": "13,26,203 (75.7%)",
+  "NOTA_Votes": "17,929 (1.0%)",
+  "candinate_vote ": 722147,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa22e"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd2b"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db42"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 729084,
+  "Margin": 159961,
+  "Margin_percentage": 0.219,
+  "Electors": 1598169,
+  "Turnout": "45.60%",
+  "Male_Electors": "8,90,851",
+  "Female_Electors": "7,07,318",
+  "Total_Votes_Polled": "7,29,084 (45.6%)",
+  "Valid_Votes": "7,23,512 (45.3%)",
+  "Total_Male_Voters": "4,69,603",
+  "Female_Voters": "2,59,481",
+  "NOTA_Votes": "5,572 (0.3%)",
+  "candinate_vote ": 404474,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa261"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bac"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4a"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 830002,
+  "Margin": 168726,
+  "Margin_percentage": 0.203,
+  "Electors": 1544719,
+  "Turnout": "53.70%",
+  "Male_Electors": "8,21,800",
+  "Female_Electors": "7,22,919",
+  "Total_Votes_Polled": "8,30,002 (53.7%)",
+  "Valid_Votes": "8,19,344 (53.0%)",
+  "Total_Male_Voters": "4,57,663",
+  "Female_Voters": "3,72,339",
+  "NOTA_Votes": "10,658 (0.7%)",
+  "candinate_vote ": 383320,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa248"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd48"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4f"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1382280,
+  "Margin": 174512,
+  "Margin_percentage": 0.126,
+  "Electors": "18,73,653",
+  "Turnout": "73.80%",
+  "Male_Electors": "9,36,827",
+  "Female_Electors": "9,36,826",
+  "Total_Votes_Polled": "13,82,280 (73.8%)",
+  "Valid_Votes": "13,70,770 (73.2%)",
+  "NOTA_Votes": "11,510 (0.6%)",
+  "candinate_vote ": 848236,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa263"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bac"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4a"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 918129,
+  "Margin": 193374,
+  "Margin_percentage": 0.211,
+  "Electors": "18,52,126",
+  "Turnout": "49.50%",
+  "Male_Electors": "9,26,063",
+  "Female_Electors": "9,26,063",
+  "Total_Votes_Polled": "9,18,129 (49.5%)",
+  "Valid_Votes": "9,08,898 (49.1%)",
+  "NOTA_Votes": "6,936 (0.4%)",
+  "candinate_vote ": 477459,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa269"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9baf"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db42"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 960687,
+  "Margin": 199885,
+  "Margin_percentage": 0.208,
+  "Electors": "17,11,977",
+  "Turnout": "56.40%",
+  "Male_Electors": "9,39,061",
+  "Female_Electors": "7,72,879",
+  "Total_Votes_Polled": "9,60,687 (56.4%)",
+  "Valid_Votes": "9,56,057 (55.8%)",
+  "NOTA_Votes": "4,630 (0.3%)",
+  "candinate_vote ": 527694,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa242"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd42"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5a"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1427607,
+  "Margin": 202510,
+  "Margin_percentage": 0.142,
+  "Electors": "17,83,776",
+  "Turnout": "81.10%",
+  "Male_Electors": "9,05,795",
+  "Female_Electors": "8,77,958",
+  "Total_Votes_Polled": "14,27,607 (81.1%)",
+  "Valid_Votes": "14,09,184 (79.0%)",
+  "NOTA_Votes": "18,423 (1.0%)",
+  "candinate_vote ": 773550,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa256"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd58"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4b"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1147264,
+  "Margin": 206416,
+  "Margin_percentage": 0.18,
+  "Electors": "20,28,451",
+  "Turnout": "56.60%",
+  "Male_Electors": "10,14,226",
+  "Female_Electors": "10,14,225",
+  "Total_Votes_Polled": "11,47,264 (56.6%)",
+  "Valid_Votes": "11,43,048 (56.4%)",
+  "NOTA_Votes": "4,216 (0.2%)",
+  "candinate_vote ": 583559,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa253"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd55"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db58"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1532643,
+  "Margin": 207232,
+  "Margin_percentage": 0.135,
+  "Electors": "20,94,548",
+  "Turnout": "73.20%",
+  "Male_Electors": "10,47,274",
+  "Female_Electors": "10,47,274",
+  "Total_Votes_Polled": "15,32,643 (73.2%)",
+  "Valid_Votes": "15,00,908 (71.7%)",
+  "NOTA_Votes": "31,735 (1.5%)",
+  "candinate_vote ": 795863,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa221"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56d0"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4d"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1002184,
+  "Margin": 208639,
+  "Margin_percentage": 0.208,
+  "Electors": 1711683,
+  "Turnout": "58.60%",
+  "Male_Electors": "8,97,949",
+  "Female_Electors": "8,13,734",
+  "Total_Votes_Polled": "10,02,184 (58.6%)",
+  "Valid_Votes": "9,94,296 (58.1%)",
+  "Total_Male_Voters": "5,58,617",
+  "Female_Voters": "4,43,567",
+  "NOTA_Votes": "7,888 (0.5%)",
+  "candinate_vote ": 564609,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa267"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bae"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db46"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 766321,
+  "Margin": 208731,
+  "Margin_percentage": 0.272,
+  "Electors": 1529003,
+  "Turnout": "50.10%",
+  "Male_Electors": "8,20,908",
+  "Female_Electors": "7,08,095",
+  "Total_Votes_Polled": "7,66,321 (50.1%",
+  "Valid_Votes": "7,56,266 (49.5%)",
+  "Total_Male_Voters": "4,66,689",
+  "Female_Voters": "2,99,632",
+  "NOTA_Votes": "10,055 (0.7%)",
+  "candinate_vote ": 422979,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa271"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9ba7"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db47"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 912080,
+  "Margin": 213299,
+  "Margin_percentage": 0.234,
+  "Electors": 1651106,
+  "Turnout": "55.20%",
+  "Male_Electors": "8,82,506",
+  "Female_Electors": "7,68,600",
+  "Total_Votes_Polled": "9,12,080 (55.2%)",
+  "Valid_Votes": "8,99,480 (54.5%)",
+  "Total_Male_Voters": "5,57,919",
+  "Female_Voters": "3,54,161",
+  "NOTA_Votes": "12,600 (0.8%)",
+  "candinate_vote ": "5,13,079",
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa258"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9ba8"
+  },
+  "parliament_id": {
+    "$oid": "687a021993d4235d02ea1d05"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1425044,
+  "Margin": 218665,
+  "Margin_percentage": 0.153,
+  "Electors": "19,53,834",
+  "Turnout": "72.90%",
+  "Male_Electors": "9,76,917",
+  "Female_Electors": "9,76,917",
+  "Total_Votes_Polled": "14,25,044 (72.9%)",
+  "Valid_Votes": "14,09,393 (72.1%)",
+  "NOTA_Votes": "15,651 (0.8%)",
+  "candinate_vote ": 794449,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa25e"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bab"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db54"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1010724,
+  "Margin": 228737,
+  "Margin_percentage": 0.226,
+  "Electors": 1578748,
+  "Turnout": "64.00%",
+  "Male_Electors": "8,27,001",
+  "Female_Electors": "7,51,747",
+  "Total_Votes_Polled": "10,10,724 (64.0%)",
+  "Valid_Votes": "10,00,432 (63.4%)",
+  "Total_Male_Voters": "5,98,652",
+  "Female_Voters": "4,12,072",
+  "NOTA_Votes": "10,292 (0.7%)",
+  "candinate_vote ": 596727,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa265"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bad"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db49"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1113656,
+  "Margin": 231473,
+  "Margin_percentage": 0.208,
+  "Electors": "15,33,662",
+  "Turnout": "72.80%",
+  "Male_Electors": "8,10,318",
+  "Female_Electors": "7,23,317",
+  "Total_Votes_Polled": "11,13,656 (72.8%)",
+  "Valid_Votes": "11,11,012 (72.4%)",
+  "NOTA_Votes": "2,644 (0.2%)",
+  "candinate_vote ": 588753,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa237"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd37"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4c"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 968518,
+  "Margin": 241301,
+  "Margin_percentage": 0.249,
+  "Electors": 1561321,
+  "Turnout": "62.00%",
+  "Male_Electors": "8,06,945",
+  "Female_Electors": "7,54,376",
+  "Total_Votes_Polled": "9,68,518 (62.0%)",
+  "Valid_Votes": "9,47,142 (60.7%)",
+  "Total_Male_Voters": "5,27,939",
+  "Female_Voters": "5,27,939",
+  "NOTA_Votes": "21,376 (1.4%)",
+  "candinate_vote ": 525419,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa23a"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd3a"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4f"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1372018,
+  "Margin": 242066,
+  "Margin_percentage": 0.176,
+  "Electors": "17,25,505",
+  "Turnout": "79.80%",
+  "Male_Electors": "8,64,979",
+  "Female_Electors": "8,60,509",
+  "Total_Votes_Polled": "13,72,018 (79.8%)",
+  "Valid_Votes": "13,67,776 (79.3%)",
+  "NOTA_Votes": "4,242 (0.2%)",
+  "candinate_vote ": 696102,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa21e"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56b7"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db48"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 874477,
+  "Margin": 247490,
+  "Margin_percentage": 0.283,
+  "Electors": 1702794,
+  "Turnout": "51.40%",
+  "Male_Electors": "9,07,312",
+  "Female_Electors": "7,95,482",
+  "Total_Votes_Polled": "8,74,477 (51.4%)",
+  "Valid_Votes": "8,66,599 (50.9%)",
+  "Total_Male_Voters": "5,17,341",
+  "Female_Voters": "3,57,136",
+  "NOTA_Votes": "7,878 (0.5%)",
+  "candinate_vote ": 474966,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa232"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd32"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5a"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1152525,
+  "Margin": 257879,
+  "Margin_percentage": 0.224,
+  "Electors": 1703271,
+  "Turnout": "67.70%",
+  "Male_Electors": "8,66,897",
+  "Female_Electors": "8,36,374",
+  "Total_Votes_Polled": "11,52,525 (67.7%)",
+  "Valid_Votes": "11,30,384 (66.4%)",
+  "Total_Male_Voters": "6,14,411",
+  "Female_Voters": "5,38,114",
+  "NOTA_Votes": "22,141 (1.3%)",
+  "candinate_vote ": 649354,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa259"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9ba9"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5b"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1257327,
+  "Margin": 259714,
+  "Margin_percentage": 0.207,
+  "Electors": 1759410,
+  "Turnout": "71.50%",
+  "Male_Electors": "9,12,747",
+  "Female_Electors": "8,46,663",
+  "Total_Votes_Polled": "12,57,327 (71.5%)",
+  "Valid_Votes": "12,40,178 (70.5%)",
+  "Total_Male_Voters": "6,77,574",
+  "Female_Voters": "5,79,753",
+  "NOTA_Votes": "17,149 (1.0%)",
+  "candinate_vote ": 717357,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa228"
+  },
+  "candidate_id": {
+    "$oid": "68931c8328b5a7a167270316"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db55"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1143968,
+  "Margin": 260313,
+  "Margin_percentage": 0.228,
+  "Electors": 1617215,
+  "Turnout": "70.70%",
+  "Male_Electors": "8,43,555",
+  "Female_Electors": "7,73,660",
+  "Total_Votes_Polled": "11,43,968 (70.7%)",
+  "Valid_Votes": "11,33,715 (70.1%)",
+  "Total_Male_Voters": "6,54,121",
+  "Female_Voters": "4,89,847",
+  "NOTA_Votes": "10,253 (0.6%)",
+  "candinate_vote ": 665646,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa250"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd52"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5b"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1512542,
+  "Margin": 269971,
+  "Margin_percentage": 0.178,
+  "Electors": "21,12,203",
+  "Turnout": "71.60%",
+  "Male_Electors": "10,56,102",
+  "Female_Electors": "10,56,101",
+  "Total_Votes_Polled": "15,12,542 (71.6%)",
+  "Valid_Votes": "14,99,703 (71.0%)",
+  "NOTA_Votes": "12,839 (0.6%)",
+  "candinate_vote ": 862679,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa25a"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9ba9"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5b"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1468138,
+  "Margin": 273343,
+  "Margin_percentage": 0.186,
+  "Electors": "18,49,606",
+  "Turnout": "80.20%",
+  "Male_Electors": "9,54,700",
+  "Female_Electors": "8,94,824",
+  "Total_Votes_Polled": "14,68,138 (80.2%)",
+  "Valid_Votes": "14,52,133 (78.5%)",
+  "NOTA_Votes": "16,005 (0.9%)",
+  "candinate_vote ": 838909,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa220"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56b9"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4b"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1282705,
+  "Margin": 286524,
+  "Margin_percentage": 0.223,
+  "Electors": "18,22,205",
+  "Turnout": "70.70%",
+  "Male_Electors": "9,54,057",
+  "Female_Electors": "8,68,128",
+  "Total_Votes_Polled": "12,82,705 (70.7%)",
+  "Valid_Votes": "12,77,078 (70.1%)",
+  "NOTA_Votes": "5,627 (0.3%)",
+  "candinate_vote ": 698342,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa233"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd33"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db57"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1161349,
+  "Margin": 303649,
+  "Margin_percentage": 0.261,
+  "Electors": 1626571,
+  "Turnout": "71.40%",
+  "Male_Electors": "8,38,076",
+  "Female_Electors": "7,88,495",
+  "Total_Votes_Polled": "11,61,349 (71.4%)",
+  "Valid_Votes": "11,52,781 (70.9%)",
+  "Total_Male_Voters": "6,40,484",
+  "Female_Voters": "5,20,865",
+  "NOTA_Votes": "8,568 (0.5%)",
+  "candinate_vote ": 698335,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa244"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd44"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db45"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1037175,
+  "Margin": 305542,
+  "Margin_percentage": 0.295,
+  "Electors": "15,50,731",
+  "Turnout": "67.50%",
+  "Male_Electors": "8,25,301",
+  "Female_Electors": "7,25,406",
+  "Total_Votes_Polled": "10,37,175 (67.5%)",
+  "Valid_Votes": "10,28,442 (66.3%)",
+  "NOTA_Votes": "8,733 (0.6%)",
+  "candinate_vote ": 646231,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa238"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd38"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db56"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1016405,
+  "Margin": 309663,
+  "Margin_percentage": 0.305,
+  "Electors": 1525481,
+  "Turnout": "66.60%",
+  "Male_Electors": "7,90,889",
+  "Female_Electors": "7,34,592",
+  "Total_Votes_Polled": "10,16,405 (66.6%)",
+  "Valid_Votes": "10,04,118 (65.8%)",
+  "Total_Male_Voters": "5,71,525",
+  "Female_Voters": "4,44,880",
+  "NOTA_Votes": "12,287 (0.8%)",
+  "candinate_vote ": 641101,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa262"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bac"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4a"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1013251,
+  "Margin": 312807,
+  "Margin_percentage": 0.309,
+  "Electors": "16,28,121",
+  "Turnout": "62.40%",
+  "Male_Electors": "8,66,164",
+  "Female_Electors": "7,61,947",
+  "Total_Votes_Polled": "10,13,251 (62.4%)",
+  "Valid_Votes": "10,10,360 (62.1%)",
+  "NOTA_Votes": "2,891 (0.2%)",
+  "candinate_vote ": 583769,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa22d"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd2a"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5c"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1047719,
+  "Margin": 328614,
+  "Margin_percentage": 0.314,
+  "Electors": 1607822,
+  "Turnout": "65.20%",
+  "Male_Electors": "8,36,835",
+  "Female_Electors": "7,70,987",
+  "Total_Votes_Polled": "10,47,719 (65.2%)",
+  "Valid_Votes": "10,20,993 (63.5%)",
+  "Total_Male_Voters": "5,74,150",
+  "Female_Voters": "4,73,569",
+  "NOTA_Votes": "26,726 (1.7%)",
+  "candinate_vote ": 643651,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa246"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd46"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db46"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1096712,
+  "Margin": 348059,
+  "Margin_percentage": 0.317,
+  "Electors": "17,17,393",
+  "Turnout": "64.50%",
+  "Male_Electors": "9,15,053",
+  "Female_Electors": "8,02,311",
+  "Total_Votes_Polled": "8,02,311",
+  "Valid_Votes": "10,86,113 (63.2%)",
+  "NOTA_Votes": "10,599 (0.6%)",
+  "candinate_vote ": 672248,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa272"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9ba7"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db47"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1164226,
+  "Margin": 353411,
+  "Margin_percentage": 0.304,
+  "Electors": "17,37,702",
+  "Turnout": "67.40%",
+  "Male_Electors": "9,16,736",
+  "Female_Electors": "8,20,938",
+  "Total_Votes_Polled": "11,64,226 (67.4%)",
+  "Valid_Votes": "11,56,570 (66.6%)",
+  "NOTA_Votes": "7,656 (0.4%)",
+  "candinate_vote ": 704524,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa23b"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd3b"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5c"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1357857,
+  "Margin": 360241,
+  "Margin_percentage": 0.265,
+  "Electors": "17,02,517",
+  "Turnout": "81.10%",
+  "Male_Electors": "8,79,386",
+  "Female_Electors": "8,23,076",
+  "Total_Votes_Polled": "13,57,857 (81.1%)",
+  "Valid_Votes": "13,35,070 (78.4%)",
+  "NOTA_Votes": "22,787 (1.3%)",
+  "candinate_vote ": 811248,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa23c"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd3c"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db53"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1407954,
+  "Margin": 364822,
+  "Margin_percentage": 0.259,
+  "Electors": "20,75,376",
+  "Turnout": "68.10%",
+  "Male_Electors": "10,90,639",
+  "Female_Electors": "9,84,534",
+  "Total_Votes_Polled": "14,07,954 (68.1%)",
+  "Valid_Votes": "14,02,524 (67.6%)",
+  "NOTA_Votes": "5,430 (0.3%)",
+  "candinate_vote ": 866482,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa22a"
+  },
+  "candidate_id": {
+    "$oid": "6895b201e35251fb74323c85"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db56"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1252511,
+  "Margin": 365637,
+  "Margin_percentage": 0.292,
+  "Electors": "16,24,122",
+  "Turnout": "77.80%",
+  "Male_Electors": "8,30,461",
+  "Female_Electors": "7,93,580",
+  "Total_Votes_Polled": "12,52,511 (77.8%)",
+  "Valid_Votes": "12,42,314 (76.5%)",
+  "NOTA_Votes": "10,197 (0.6%)",
+  "candinate_vote ": 791663,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa22f"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd2c"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db53"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1130182,
+  "Margin": 370696,
+  "Margin_percentage": 0.328,
+  "Electors": 1956936,
+  "Turnout": "57.80%",
+  "Male_Electors": "10,39,004",
+  "Female_Electors": "9,17,932",
+  "Total_Votes_Polled": "11,30,182 (57.8%)",
+  "Valid_Votes": "11,25,001 (57.5%)",
+  "Total_Male_Voters": "6,39,683",
+  "Female_Voters": "4,90,499",
+  "NOTA_Votes": "5,181 (0.3%)",
+  "candinate_vote ": 714178,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa26b"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bb1"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db55"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1398946,
+  "Margin": 372249,
+  "Margin_percentage": 0.266,
+  "Electors": "17,18,488",
+  "Turnout": "81.90%",
+  "Male_Electors": "8,90,889",
+  "Female_Electors": "8,27,565",
+  "Total_Votes_Polled": "13,98,946 (81.9%)",
+  "Valid_Votes": "13,89,912 (80.9%)",
+  "NOTA_Votes": "9,034 (0.5%)",
+  "candinate_vote ": 862429,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa22b"
+  },
+  "candidate_id": {
+    "$oid": "6895b201e35251fb74323c85"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db56"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1328580,
+  "Margin": 375860,
+  "Margin_percentage": 0.283,
+  "Electors": "17,98,704",
+  "Turnout": "73.70%",
+  "Male_Electors": "8,99,352",
+  "Female_Electors": "8,99,352",
+  "Total_Votes_Polled": "13,28,580 (73.7%)",
+  "Valid_Votes": "13,16,772 (73.2%)",
+  "NOTA_Votes": "9,332 (0.5%)",
+  "candinate_vote ": 836104,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa26f"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bb5"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db57"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1370667,
+  "Margin": 376734,
+  "Margin_percentage": 0.275,
+  "Electors": "17,14,857",
+  "Turnout": "80.50%",
+  "Male_Electors": "8,78,980",
+  "Female_Electors": "8,35,850",
+  "Total_Votes_Polled": "13,70,667 (80.5%)",
+  "Valid_Votes": "13,61,236 (79.4%)",
+  "NOTA_Votes": "376,734 (27.5%)",
+  "candinate_vote ": 847786,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa249"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd49"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db5c"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1396020,
+  "Margin": 379761,
+  "Margin_percentage": 0.272,
+  "Electors": "18,95,331",
+  "Turnout": "73.70%",
+  "Male_Electors": "9,47,666",
+  "Female_Electors": "9,47,665",
+  "Total_Votes_Polled": "13,96,020 (73.7%)",
+  "Valid_Votes": "13,75,698 (72.6%)",
+  "NOTA_Votes": "20,322 (1.1%)",
+  "candinate_vote ": 848236,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa223"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56e5"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db51"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1031175,
+  "Margin": 389960,
+  "Margin_percentage": 0.378,
+  "Electors": 1568127,
+  "Turnout": "65.80%",
+  "Male_Electors": "8,35,492",
+  "Female_Electors": "7,32,635",
+  "Total_Votes_Polled": "10,31,175 (65.8%)",
+  "Valid_Votes": "10,12,434 (64.6%)",
+  "Total_Male_Voters": "5,93,957",
+  "Female_Voters": "4,37,218",
+  "NOTA_Votes": "18,741 (1.2%)",
+  "candinate_vote ": 669128,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa255"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd57"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4c"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1152013,
+  "Margin": 397340,
+  "Margin_percentage": 0.345,
+  "Electors": "17,77,185",
+  "Turnout": "64.80%",
+  "Male_Electors": "8,88,593",
+  "Female_Electors": "8,88,592",
+  "Total_Votes_Polled": "11,52,013 (64.8%)",
+  "Valid_Votes": "11,32,652 (63.7%)",
+  "NOTA_Votes": "19,361 (1.1%)",
+  "candinate_vote ": 711143,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa268"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bae"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db46"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1098390,
+  "Margin": 403312,
+  "Margin_percentage": 0.367,
+  "Electors": "18,26,585",
+  "Turnout": "60.10%",
+  "Male_Electors": "9,13,293",
+  "Female_Electors": "9,13,292",
+  "Total_Votes_Polled": "10,98,390 (60.1%)",
+  "Valid_Votes": "10,85,559 (59.4%)",
+  "NOTA_Votes": "12,831 (0.7%)",
+  "candinate_vote ": 715050,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa245"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd45"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4c"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1237858,
+  "Margin": 403333,
+  "Margin_percentage": 0.326,
+  "Electors": "16,26,916",
+  "Turnout": "77.30%",
+  "Male_Electors": "8,34,473",
+  "Female_Electors": "7,92,417",
+  "Total_Votes_Polled": "12,37,858 (77.3%)",
+  "Valid_Votes": "12,17,831 (74.9%)",
+  "NOTA_Votes": "20,027 (1.2%)",
+  "candinate_vote ": 747977,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa229"
+  },
+  "candidate_id": {
+    "$oid": "68931c8328b5a7a167270331"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db47"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1088944,
+  "Margin": 406426,
+  "Margin_percentage": 0.373,
+  "Electors": "19,25,314",
+  "Turnout": "56.60%",
+  "Male_Electors": "9,62,657",
+  "Female_Electors": "9,62,657",
+  "Total_Votes_Polled": "10,88,944 (56.6%)",
+  "Valid_Votes": "10,81,111 (56.2%)",
+  "NOTA_Votes": "7,833 (0.4%)",
+  "candinate_vote ": 709768,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa239"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd39"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db52"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1073473,
+  "Margin": 410698,
+  "Margin_percentage": 0.383,
+  "Electors": 1634370,
+  "Turnout": "65.70%",
+  "Male_Electors": "8,72,410",
+  "Female_Electors": "7,61,960",
+  "Total_Votes_Polled": "10,73,473 (65.7%)",
+  "Valid_Votes": "10,62,855 (65.0%)",
+  "Total_Male_Voters": "6,21,326",
+  "Female_Voters": "4,52,147",
+  "NOTA_Votes": "10,618 (0.6%)",
+  "candinate_vote ": "7,14,348",
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa26c"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bb1"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db55"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1469104,
+  "Margin": 425225,
+  "Margin_percentage": 0.289,
+  "Electors": "19,40,472",
+  "Turnout": "75.70%",
+  "Male_Electors": "9,70,236",
+  "Female_Electors": "9,70,236",
+  "Total_Votes_Polled": "14,69,104 (75.7%)",
+  "Valid_Votes": "14,58,715 (75.2%)",
+  "NOTA_Votes": "10,389 (0.5%)",
+  "candinate_vote ": 928941,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa25f"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bab"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db54"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1260329,
+  "Margin": 431019,
+  "Margin_percentage": 0.342,
+  "Electors": "16,49,452",
+  "Turnout": "77.00%",
+  "Male_Electors": "8,57,327",
+  "Female_Electors": "7,92,096",
+  "Total_Votes_Polled": "12,60,329 (77.0%)",
+  "Valid_Votes": "12,49,954 (75.8%)",
+  "NOTA_Votes": "10,375 (0.6%)",
+  "candinate_vote ": 823824,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa24d"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd4f"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db51"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1249692,
+  "Margin": 431696,
+  "Margin_percentage": 0.345,
+  "Electors": "18,55,692",
+  "Turnout": "67.30%",
+  "Male_Electors": "9,27,846",
+  "Female_Electors": "9,27,846",
+  "Total_Votes_Polled": "12,49,692 (67.3%)",
+  "Valid_Votes": "12,34,751 (66.5%)",
+  "NOTA_Votes": "14,941 (0.8%)",
+  "candinate_vote ": 812147,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa222"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56d0"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4d"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1263573,
+  "Margin": 454744,
+  "Margin_percentage": 0.36,
+  "Electors": "17,67,369",
+  "Turnout": "71.70%",
+  "Male_Electors": "9,15,358",
+  "Female_Electors": "8,51,937",
+  "Total_Votes_Polled": "12,63,573 (71.7%)",
+  "Valid_Votes": "12,59,471 (71.3%)",
+  "NOTA_Votes": "4,102 (0.2%)",
+  "candinate_vote ": 826454,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa231"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd30"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db59"
+  },
+  "election_year_id": {
+    "$oid": "68cd270f39eb7f3bc944b413"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1316817,
+  "Margin": 466901,
+  "Margin_percentage": 0.355,
+  "Electors": 2115303,
+  "Turnout": "62.30%",
+  "Male_Electors": "11,06,461",
+  "Female_Electors": "10,08,842",
+  "Total_Votes_Polled": "13,16,817 (62.3%)",
+  "Valid_Votes": "13,10,873 (62.0%)",
+  "Total_Male_Voters": "7,36,759",
+  "Female_Voters": "5,80,058",
+  "NOTA_Votes": "5,944 (0.3%)",
+  "candinate_vote ": 854972,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa254"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd56"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db45"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1150549,
+  "Margin": 471222,
+  "Margin_percentage": 0.41,
+  "Electors": "17,45,690",
+  "Turnout": "65.90%",
+  "Male_Electors": "8,72,845",
+  "Female_Electors": "8,72,845",
+  "Total_Votes_Polled": "11,50,549 (65.9%)",
+  "Valid_Votes": "11,42,892 (65.5%)",
+  "NOTA_Votes": "7,657 (0.4%)",
+  "candinate_vote ": 787979,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa24e"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd50"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db4d"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1158545,
+  "Margin": 486674,
+  "Margin_percentage": 0.42,
+  "Electors": "18,96,346",
+  "Turnout": "61.00%",
+  "Male_Electors": "9,48,173",
+  "Female_Electors": "9,48,173",
+  "Total_Votes_Polled": "11,58,545 (61.0%)",
+  "Valid_Votes": "11,52,075 (60.8%)",
+  "NOTA_Votes": "4,986 (0.3%)",
+  "candinate_vote ": 790133,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa241"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd41"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db48"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1257783,
+  "Margin": 492382,
+  "Margin_percentage": 0.391,
+  "Electors": "18,01,044",
+  "Turnout": "70.40%",
+  "Male_Electors": "9,48,620",
+  "Female_Electors": "8,52,379",
+  "Total_Votes_Polled": "12,57,783 (70.4%)",
+  "Valid_Votes": "12,47,477 (69.3%)",
+  "NOTA_Votes": "10,306 (0.6%)",
+  "candinate_vote ": 811135,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa270"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bb5"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db57"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1433492,
+  "Margin": 500655,
+  "Margin_percentage": 0.349,
+  "Electors": "18,98,060",
+  "Turnout": "75.50%",
+  "Male_Electors": "9,49,030",
+  "Female_Electors": "9,49,030",
+  "Total_Votes_Polled": "14,33,492 (75.5%)",
+  "Valid_Votes": "14,21,830 (74.9%)",
+  "NOTA_Votes": "11,662 (0.6%)",
+  "candinate_vote ": 945761,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa24a"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd4a"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db53"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1498285,
+  "Margin": 501499,
+  "Margin_percentage": 0.335,
+  "Electors": "23,39,411",
+  "Turnout": "64.10%",
+  "Male_Electors": "11,69,706",
+  "Female_Electors": "11,69,705",
+  "Total_Votes_Polled": "14,98,285 (64.1%)",
+  "Valid_Votes": "14,91,664 (63.8%)",
+  "NOTA_Votes": "6,621 (0.3%)",
+  "candinate_vote ": 981109,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa247"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd47"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db52"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1250244,
+  "Margin": 503084,
+  "Margin_percentage": 0.402,
+  "Electors": "17,00,678",
+  "Turnout": "74.00%",
+  "Male_Electors": "8,98,652",
+  "Female_Electors": "8,01,985",
+  "Total_Votes_Polled": "12,50,244 (74.0%)",
+  "Valid_Votes": "12,41,625 (73.0%)",
+  "NOTA_Votes": "8,619 (0.5%)",
+  "candinate_vote ": 853022,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa24c"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd4d"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db44"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1373766,
+  "Margin": 540929,
+  "Margin_percentage": 0.394,
+  "Electors": "18,89,551",
+  "Turnout": "72.70%",
+  "Male_Electors": "9,44,776",
+  "Female_Electors": "9,44,775",
+  "Total_Votes_Polled": "13,73,766 (72.7%)",
+  "Valid_Votes": "13,64,677 (72.2%)",
+  "NOTA_Votes": "9,089 (0.5%)",
+  "candinate_vote ": 923302,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa24f"
+  },
+  "candidate_id": {
+    "$oid": "68cd01c06c1ce8be0818bd51"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db48"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1140570,
+  "Margin": 541229,
+  "Margin_percentage": 0.475,
+  "Electors": "19,97,483",
+  "Turnout": "57.10%",
+  "Male_Electors": "9,98,742",
+  "Female_Electors": "9,98,741",
+  "Total_Votes_Polled": "11,40,570 (57.1%)",
+  "Valid_Votes": "11,24,413 (56.3%)",
+  "NOTA_Votes": "16,157 (0.8%)",
+  "candinate_vote ": 772774,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa26d"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bb2"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db59"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1629108,
+  "Margin": 547754,
+  "Margin_percentage": 0.336,
+  "Electors": "22,35,342",
+  "Turnout": "73.10%",
+  "Male_Electors": "11,52,439",
+  "Female_Electors": "10,82,732",
+  "Total_Votes_Polled": "16,29,108 (73.1%)",
+  "Valid_Votes": "16,24,063 (72.7%)",
+  "NOTA_Votes": "5,045 (0.2%)",
+  "candinate_vote ": 1068569,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa224"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf56e5"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db51"
+  },
+  "election_year_id": {
+    "$oid": "68cd270439eb7f3bc944b40c"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1265869,
+  "Margin": 553682,
+  "Margin_percentage": 0.437,
+  "Electors": "16,50,087",
+  "Turnout": "77.80%",
+  "Male_Electors": "8,71,029",
+  "Female_Electors": "7,79,000",
+  "Total_Votes_Polled": "12,65,869 (77.8%)",
+  "Valid_Votes": "12,47,456 (75.6%)",
+  "NOTA_Votes": "18,413 (1.1%)",
+  "candinate_vote ": 877927,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa226"
+  },
+  "candidate_id": {
+    "$oid": "688777c776bc0350acbf5708"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db52"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1455658,
+  "Margin": 821408,
+  "Margin_percentage": 0.564,
+  "Electors": "19,45,404",
+  "Turnout": "74.80%",
+  "Male_Electors": "9,72,702",
+  "Female_Electors": "9,72,702",
+  "Total_Votes_Polled": "14,55,658 (74.8%)",
+  "Valid_Votes": "14,46,378 (74.3%)",
+  "NOTA_Votes": "9,280 (0.5%)",
+  "candinate_vote ": 1116460,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+},
+{
+  "_id": {
+    "$oid": "68cd2a67eb39cb73c56aa26e"
+  },
+  "candidate_id": {
+    "$oid": "68cd1097b31af08f425b9bb2"
+  },
+  "parliament_id": {
+    "$oid": "68887d5a2c5282412771db59"
+  },
+  "election_year_id": {
+    "$oid": "68cd26fd39eb7f3bc944b405"
+  },
+  "party_id": {
+    "$oid": "6823469b436f44ab6db3154e"
+  },
+  "position_result": "win",
+  "total_votes_parliament": 1561968,
+  "Margin": 1175092,
+  "Margin_percentage": 0.752,
+  "Electors": "25,26,803",
+  "Turnout": "61.80%",
+  "Male_Electors": "12,63,402",
+  "Female_Electors": "12,63,401",
+  "Total_Votes_Polled": "15,61,968 (61.8%)",
+  "Valid_Votes": "13,43,294 (53.2%)",
+  "NOTA_Votes": "218,674 (8.7%)",
+  "candinate_vote ": 1226751,
+  "created_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  },
+  "updated_by": {
+    "$oid": "684ab4dce856ee7729dde255"
+  }
+}]
