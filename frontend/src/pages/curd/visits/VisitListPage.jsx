@@ -13,12 +13,12 @@ import {
 } from '@tanstack/react-table';
 import { CSVLink } from 'react-csv';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import VisitModal from './VisitModal';
-import VisitView from './VisitView';
 import AlertVisitDelete from './AlertVisitDelete';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 
@@ -42,6 +42,7 @@ const MAPBOX_THEMES = {
 
 const VisitListPage = () => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
     const [visits, setVisits] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -710,15 +711,14 @@ const VisitListPage = () => {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded
-                    ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-                    : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <Tooltip title="View">
-                            <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                                {expandIcon}
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={() => navigate(`/visits/${row.original._id}`)}
+                            >
+                                <Eye />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Edit">
@@ -755,8 +755,7 @@ const VisitListPage = () => {
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getRowCanExpand: () => true
+        getPaginationRowModel: getPaginationRowModel()
     });
 
     if (loading) return <EmptyReactTable />;
@@ -1155,13 +1154,6 @@ const VisitListPage = () => {
                                                         </TableCell>
                                                     ))}
                                                 </TableRow>
-                                                {row.getIsExpanded() && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={row.getVisibleCells().length}>
-                                                            <VisitView data={row.original} />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
                                             </Fragment>
                                         ))}
                                     </TableBody>
