@@ -155,405 +155,302 @@ const VisitDetailPage = () => {
             </Breadcrumbs>
 
             {/* Header Section */}
-            <MainCard sx={{ mb: 3, background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)` }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <IconButton
-                            onClick={() => navigate('/visits')}
-                            sx={{
-                                bgcolor: 'background.paper',
-                                boxShadow: 2,
-                                '&:hover': { bgcolor: 'background.paper', transform: 'scale(1.05)' }
-                            }}
-                        >
-                            <ArrowBack />
-                        </IconButton>
-                        <Box>
-                            <Typography variant="h4" component="h1" fontWeight="bold" color="primary">
-                                Visit Details
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {formatDateTime(visit.date)}
-                            </Typography>
-                        </Box>
+            <MainCard sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                    <IconButton onClick={() => navigate('/visits')}>
+                        <ArrowBack />
+                    </IconButton>
+                    <Box>
+                        <Typography variant="h4" component="h1" color="primary">
+                            Visit Details
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {formatDateTime(visit.date)}
+                        </Typography>
                     </Box>
                 </Box>
 
-                {/* Status and Key Info */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <Chip
-                        icon={<span>{getStatusIcon(visit.work_status)}</span>}
-                        label={visit.work_status?.toUpperCase() || 'N/A'}
-                        color={getStatusColor(visit.work_status)}
-                        size="large"
-                        sx={{ fontWeight: 'bold' }}
-                    />
-                    <Chip
-                        label={visit.post || 'N/A'}
-                        variant="outlined"
-                        color="primary"
-                    />
-                    <Chip
-                        label={visit.election_year_id?.year ? `${visit.election_year_id.year} (${visit.election_year_id.election_type})` : 'N/A'}
-                        variant="outlined"
-                        color="secondary"
-                    />
-                </Box>
             </MainCard>
 
-            <Grid container spacing={3}>
-                {/* Left Column - Main Info */}
-                <Grid item xs={12} lg={8}>
-                    {/* Candidate Information */}
-                    <MainCard sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
-                                <Avatar
-                                    src={visit.candidate_id?.photo}
-                                    sx={{
-                                        width: 80,
-                                        height: 80,
-                                        border: `4px solid ${theme.palette.primary.main}`,
-                                        boxShadow: 3
-                                    }}
-                                >
-                                    <Person sx={{ fontSize: 40 }} />
-                                </Avatar>
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+            {/* All Visit Information in 3-column layout */}
+            <MainCard>
+                <CardContent>
+                    <Grid container spacing={3}>
+                        {/* Column 1 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        State
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.state_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Division
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.division_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Parliament
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.parliament_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Assembly
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.assembly_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Block
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.block_id?.name || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Booth
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.booth_id?.name || 'N/A'}
+                                        {visit.booth_id?.booth_number && ` (#${visit.booth_id.booth_number})`}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Politician
+                                    </Typography>
+                                    <Typography variant="body1">
                                         {visit.candidate_id?.name || 'N/A'}
                                     </Typography>
-                                    <Typography variant="body1" color="text.secondary" gutterBottom>
-                                        {visit.candidate_id?.caste || 'N/A'} • {visit.candidate_id?.education || 'N/A'}
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Year
                                     </Typography>
-                                    {visit.candidate_id?.mobile && (
-                                        <Typography variant="body2" color="text.secondary">
-                                            📱 {visit.candidate_id.mobile}
-                                        </Typography>
-                                    )}
-                                </Box>
-                            </Box>
-                        </CardContent>
-                    </MainCard>
-
-                    {/* Location Information */}
-                    <MainCard sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <LocationOn color="primary" />
-                                Location Details
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
-                                    <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            State
-                                        </Typography>
-                                        <Chip label={visit.state_id?.name || 'N/A'} color="primary" />
-                                    </Paper>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Division
-                                        </Typography>
-                                        <Chip label={visit.division_id?.name || 'N/A'} color="secondary" />
-                                    </Paper>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Assembly
-                                        </Typography>
-                                        <Chip label={visit.assembly_id?.name || 'N/A'} color="info" />
-                                    </Paper>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Parliament
-                                        </Typography>
-                                        <Chip label={visit.parliament_id?.name || 'N/A'} color="warning" />
-                                    </Paper>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Block
-                                        </Typography>
-                                        <Chip label={visit.block_id?.name || 'N/A'} color="success" />
-                                    </Paper>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Booth
-                                        </Typography>
-                                        <Chip label={visit.booth_id?.name || 'N/A'} />
-                                    </Paper>
+                                    <Typography variant="body1">
+                                        {visit.election_year_id?.year ? `${visit.election_year_id.year} (${visit.election_year_id.election_type})` : 'N/A'}
+                                    </Typography>
                                 </Grid>
                             </Grid>
+                        </Grid>
 
-                            {visit.locationName && (
-                                <Box sx={{ mt: 3 }}>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                        Full Location
+                        {/* Column 2 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Post
                                     </Typography>
-                                    <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
-                                        <Typography variant="body1">
-                                            📍 {visit.locationName}
-                                        </Typography>
-                                        {visit.latitude && visit.longitude && (
-                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                                Coordinates: {visit.latitude}, {visit.longitude}
-                                            </Typography>
-                                        )}
-                                    </Paper>
-                                </Box>
-                            )}
-                        </CardContent>
-                    </MainCard>
+                                    <Typography variant="body1">
+                                        {visit.post || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Date
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDate(visit.date)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Work Name
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.workName || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Work Status
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.work_status || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Announcement Date
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.announcementDate ? formatDate(visit.announcementDate) : 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Completion Date
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.completionDate ? formatDate(visit.completionDate) : 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Budget Announced Date
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.budgetAnnouncedDate ? formatDate(visit.budgetAnnouncedDate) : 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Location Name
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.locationName || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
 
-                    {/* Visit Details */}
-                    {(visit.description || visit.remark || visit.visitAgenda) && (
-                        <MainCard sx={{ mb: 3 }}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Description color="primary" />
-                                    Visit Details
-                                </Typography>
-                                <Divider sx={{ mb: 2 }} />
-
-                                {visit.description && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Description
-                                        </Typography>
-                                        <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
-                                            <div dangerouslySetInnerHTML={{ __html: visit.description }} />
-                                        </Paper>
-                                    </Box>
-                                )}
-
-                                {visit.visitAgenda && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Visit Agenda
-                                        </Typography>
-                                        <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
-                                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                                {visit.visitAgenda}
-                                            </Typography>
-                                        </Paper>
-                                    </Box>
-                                )}
-
-                                {visit.remark && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Remarks
-                                        </Typography>
-                                        <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
-                                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                                {visit.remark}
-                                            </Typography>
-                                        </Paper>
-                                    </Box>
-                                )}
-                            </CardContent>
-                        </MainCard>
-                    )}
-
-                    {/* Speech Content */}
-                    {(visit.speechFiveLines || visit.speechIssue) && (
-                        <MainCard sx={{ mb: 3 }}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Article color="primary" />
-                                    Speech Content
-                                </Typography>
-                                <Divider sx={{ mb: 2 }} />
-
-                                {visit.speechFiveLines && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Speech Punch Line
-                                        </Typography>
-                                        <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
-                                            <div dangerouslySetInnerHTML={{ __html: visit.speechFiveLines }} />
-                                        </Paper>
-                                    </Box>
-                                )}
-
-                                {visit.speechIssue && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Speech Issue
-                                        </Typography>
-                                        <Paper elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
-                                            <div dangerouslySetInnerHTML={{ __html: visit.speechIssue }} />
-                                        </Paper>
-                                    </Box>
-                                )}
-                            </CardContent>
-                        </MainCard>
-                    )}
-                </Grid>
-
-                {/* Right Column - Timeline & Additional Info */}
-                <Grid item xs={12} lg={4}>
-                    {/* Timeline */}
-                    <MainCard sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Timeline color="primary" />
-                                Timeline
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <Stack spacing={2}>
-                                {visit.announcementDate && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box sx={{
-                                            width: 12,
-                                            height: 12,
-                                            borderRadius: '50%',
-                                            bgcolor: 'primary.main'
-                                        }} />
-                                        <Box>
-                                            <Typography variant="subtitle2">Announced</Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {formatDate(visit.announcementDate)}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                )}
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <Box sx={{
-                                        width: 12,
-                                        height: 12,
-                                        borderRadius: '50%',
-                                        bgcolor: 'secondary.main'
-                                    }} />
-                                    <Box>
-                                        <Typography variant="subtitle2">Visit Date</Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {formatDate(visit.date)}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-
-                                {visit.completionDate && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box sx={{
-                                            width: 12,
-                                            height: 12,
-                                            borderRadius: '50%',
-                                            bgcolor: 'success.main'
-                                        }} />
-                                        <Box>
-                                            <Typography variant="subtitle2">Completed</Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {formatDate(visit.completionDate)}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                )}
-
-                                {visit.budgetAnnouncedDate && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box sx={{
-                                            width: 12,
-                                            height: 12,
-                                            borderRadius: '50%',
-                                            bgcolor: 'warning.main'
-                                        }} />
-                                        <Box>
-                                            <Typography variant="subtitle2">Budget Announced</Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {formatDate(visit.budgetAnnouncedDate)}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                )}
-                            </Stack>
-                        </CardContent>
-                    </MainCard>
-
-                    {/* Additional Information */}
-                    <MainCard sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Work color="primary" />
-                                Additional Info
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <Stack spacing={2}>
-                                {visit.workName && (
-                                    <Box>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Work Name
-                                        </Typography>
-                                        <Typography variant="body1">
-                                            {visit.workName}
-                                        </Typography>
-                                    </Box>
-                                )}
-
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        {/* Column 3 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Longitude
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.longitude || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Latitude
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.latitude || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
                                         Created By
                                     </Typography>
                                     <Typography variant="body1">
                                         {visit.created_by?.username || 'N/A'}
                                     </Typography>
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
                                         Last Updated
                                     </Typography>
                                     <Typography variant="body1">
                                         {formatDateTime(visit.updated_at)}
                                     </Typography>
-                                </Box>
-                            </Stack>
-                        </CardContent>
-                    </MainCard>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Updated By
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {visit.updated_by?.username || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    {/* Full-width sections for longer content */}
+                    {visit.description && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Description
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>
+                                <div dangerouslySetInnerHTML={{ __html: visit.description }} />
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {visit.visitAgenda && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Visit Agenda
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-line' }}>
+                                {visit.visitAgenda}
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {visit.speechFiveLines && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Speech Punch Line
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>
+                                <div dangerouslySetInnerHTML={{ __html: visit.speechFiveLines }} />
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {visit.speechIssue && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Speech Issue
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>
+                                <div dangerouslySetInnerHTML={{ __html: visit.speechIssue }} />
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {visit.remark && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Remark
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-line' }}>
+                                {visit.remark}
+                            </Typography>
+                        </Box>
+                    )}
 
                     {/* Documents */}
                     {Array.isArray(visit.documents) && visit.documents.length > 0 && (
-                        <MainCard sx={{ mb: 3 }}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Article color="primary" />
-                                    Documents
-                                </Typography>
-                                <Divider sx={{ mb: 2 }} />
-                                <Stack spacing={1}>
-                                    {visit.documents.map((doc, idx) => (
-                                        doc ? (
-                                            <Button
-                                                key={idx}
-                                                variant="outlined"
-                                                startIcon={<Download />}
-                                                href={doc.filePath}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                fullWidth
-                                                sx={{ justifyContent: 'flex-start' }}
-                                            >
-                                                {doc.name || `Document ${idx + 1}`}
-                                            </Button>
-                                        ) : null
-                                    ))}
-                                </Stack>
-                            </CardContent>
-                        </MainCard>
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                                Documents
+                            </Typography>
+                            <Stack spacing={1}>
+                                {visit.documents.map((doc, idx) => (
+                                    doc ? (
+                                        <Button
+                                            key={idx}
+                                            variant="outlined"
+                                            startIcon={<Download />}
+                                            href={doc.filePath}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            fullWidth
+                                            sx={{ justifyContent: 'flex-start' }}
+                                        >
+                                            {doc.name || `Document ${idx + 1}`}
+                                        </Button>
+                                    ) : null
+                                ))}
+                            </Stack>
+                        </Box>
                     )}
-                </Grid>
-            </Grid>
+                </CardContent>
+            </MainCard>
+
+            {/* Status and Key Info below the table */}
+
         </Container>
     );
 };
