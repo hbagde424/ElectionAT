@@ -262,7 +262,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         </Box>
       </Box>
 
-      /* Map Section */
+      
       <Box sx={{ width: '100%', height: 'calc(100% - 64px)', position: 'relative' }}>
         <Map
           ref={mapRef}
@@ -279,7 +279,26 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
           {...other}
         >
           <MapControl />
-          {filteredData && (
+        {/* India background layer */}
+        <Source id="india-source" type="geojson" data="/india.geojson">
+          <Layer
+            id="india-fill"
+            type="fill"
+            paint={{
+              'fill-color': '#e0e0e0',
+              'fill-opacity': 0.07
+            }}
+          />
+          <Layer
+            id="india-outline"
+            type="line"
+            paint={{
+              'line-color': '#003366',
+              'line-width': 1
+            }}
+          />
+        </Source>
+        {filteredData && (
             <Source id="assembly-source" type="geojson" data={filteredData}>
               <Layer
                 id="assembly-layer"

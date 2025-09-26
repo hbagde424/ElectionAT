@@ -273,21 +273,20 @@ export default function VisitModal({
     // Field validation
     const validateField = (name, value) => {
         const validations = {
-            state_id: () => !value && 'State selection is required',
-            division_id: () => !value && 'Division selection is required',
-            assembly_id: () => !value && 'Assembly selection is required',
-            parliament_id: () => !value && 'Parliament selection is required',
+            // state_id: () => !value && 'State selection is required',
+            // division_id: () => !value && 'Division selection is required',
+            // assembly_id: () => !value && 'Assembly selection is required',
+            // parliament_id: () => !value && 'Parliament selection is required',
             // block_id: () => !value && 'Block selection is required', // Made optional
             // booth_id: () => !value && 'Booth selection is required', // Made optional
-            candidate_id: () => !value && 'Candidate selection is required',
-            election_year_id: () => !value && 'Election year selection is required',
+            // candidate_id: () => !value && 'Candidate selection is required',
+            // election_year_id: () => !value && 'Election year selection is required',
             post: () => {
-                if (!value) return 'Post is required';
-                if (value.length > 100) return 'Post cannot exceed 100 characters';
+                if (value && value.length > 100) return 'Post cannot exceed 100 characters';
                 return '';
             },
-            date: () => !value && 'Date is required',
-            work_status: () => !value && 'Work status is required',
+            // date: () => !value && 'Date is required',
+            // work_status: () => !value && 'Work status is required',
             visitAgenda: () => value && value.length > 1000 && 'Visit agenda cannot exceed 1000 characters',
             // speechSubject removed - use work_status options instead
             speechFiveLines: () => value && value.length > 2000 && 'Speech five lines cannot exceed 2000 characters',
@@ -512,7 +511,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.state_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
 
@@ -525,7 +523,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.division_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
 
@@ -538,7 +535,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.parliament_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
 
@@ -551,7 +547,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.assembly_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
 
@@ -588,7 +583,6 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.candidate_id}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
 
@@ -602,7 +596,6 @@ export default function VisitModal({
                             error={errors.election_year_id}
                             disabled={isSubmitting}
                             labelKey="year"
-                            required
                         />
                     </Grid>
 
@@ -614,13 +607,12 @@ export default function VisitModal({
                             onChange={handleChange}
                             error={errors.post}
                             disabled={isSubmitting}
-                            required
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel required>Date</InputLabel>
+                            <InputLabel>Date</InputLabel>
                             <DatePicker
                                 value={formData.date}
                                 onChange={handleDateChange}
@@ -665,7 +657,6 @@ export default function VisitModal({
                                     onChange={handleChange}
                                     error={errors.work_status}
                                     disabled={isSubmitting}
-                                    required
                                 />
                             </Grid>
 

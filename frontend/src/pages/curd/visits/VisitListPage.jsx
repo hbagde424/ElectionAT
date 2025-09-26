@@ -518,13 +518,12 @@ const VisitListPage = () => {
     };
 
     const handleMarkerClick = (visit) => {
-        // Get all visits for this candidate
-        const candidateVisits = mapVisits.filter(v => v.candidate_id?._id === visit.candidate_id?._id);
+        // Show only the clicked visit in the popup (not all visits for the candidate)
         setPopupInfo({
             longitude: visit.longitude,
             latitude: visit.latitude,
             candidate: visit.candidate_id,
-            visits: candidateVisits
+            visit // single visit object
         });
     };
 
@@ -790,6 +789,26 @@ const VisitListPage = () => {
                             >
                                 <MapControl />
 
+                                {/* India background layer */}
+                                <Source id="india-source" type="geojson" data="/india.geojson">
+                                    <Layer
+                                        id="india-fill"
+                                        type="fill"
+                                        paint={{
+                                            'fill-color': '#e0e0e0',
+                                            'fill-opacity': 0.07
+                                        }}
+                                    />
+                                    <Layer
+                                        id="india-outline"
+                                        type="line"
+                                        paint={{
+                                            'line-color': '#003366',
+                                            'line-width': 1
+                                        }}
+                                    />
+                                </Source>
+
                                 {/* Route line (optional) */}
                                 {routeData && (
                                     <Source id="route" type="geojson" data={routeData}>
@@ -848,25 +867,27 @@ const VisitListPage = () => {
                                                 </Box>
                                             </Stack>
                                             <Divider sx={{ my: 1 }} />
-                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>All Visits for this Candidate:</Typography>
-                                            <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
-                                                {popupInfo.visits && popupInfo.visits.length > 0 ? (
-                                                    popupInfo.visits.map((v, idx) => (
-                                                        <Box key={idx} sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
-                                                            <Typography variant="body2"><strong>📅</strong> {formatDate(v.date)}</Typography>
-                                                            <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
-                                                            <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
-                                                            <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
-                                                            {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
-                                                            {/* speechSubject display removed; agenda covers speech info */}
-                                                            {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
-                                                            <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
-                                                        </Box>
-                                                    ))
-                                                ) : (
-                                                    <Typography variant="body2">No visits found.</Typography>
-                                                )}
-                                            </Box>
+                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>Visit Details:</Typography>
+                                                <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                    {popupInfo.visit ? (
+                                                        (() => {
+                                                            const v = popupInfo.visit;
+                                                            return (
+                                                                <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
+                                                                    <Typography variant="body2"><strong>📅</strong> {formatDate(v.date)}</Typography>
+                                                                    <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
+                                                                    <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
+                                                                    <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
+                                                                    {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
+                                                                    {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
+                                                                    <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
+                                                                </Box>
+                                                            );
+                                                        })()
+                                                    ) : (
+                                                        <Typography variant="body2">No visit found.</Typography>
+                                                    )}
+                                                </Box>
                                         </Box>
                                     </Popup>
                                 )}

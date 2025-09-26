@@ -450,38 +450,90 @@ exports.createVisit = async (req, res, next) => {
       delete req.body.booth_id;
     }
 
-    // Verify all references exist
-    const [
-      state,
-      division,
-      assembly,
-      parliament,
-      block,
-      booth,
-      candidate,
-      electionYear,
-      user
-    ] = await Promise.all([
-      State.findById(req.body.state_id),
-      Division.findById(req.body.division_id),
-      Assembly.findById(req.body.assembly_id),
-      Parliament.findById(req.body.parliament_id),
-      req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null), // Optional
-      req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null), // Optional
-      Candidate.findById(req.body.candidate_id),
-      ElectionYear.findById(req.body.election_year_id),
-      User.findById(req.user.id)
-    ]);
+    // Verify all references exist (only for provided fields)
+    const verificationPromises = [];
+    const verificationChecks = [];
 
-    if (!state) return res.status(400).json({ success: false, message: 'State not found' });
-    if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
-    if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
-    if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
-    // if (req.body.block_id && !block) return res.status(400).json({ success: false, message: 'Block not found' });
-    // if (req.body.booth_id && !booth) return res.status(400).json({ success: false, message: 'Booth not found' });
-    if (!candidate) return res.status(400).json({ success: false, message: 'Candidate not found' });
-    if (!electionYear) return res.status(400).json({ success: false, message: 'Election year not found' });
-    if (!user) return res.status(400).json({ success: false, message: 'User not found' });
+    if (req.body.state_id) {
+      verificationPromises.push(State.findById(req.body.state_id));
+      verificationChecks.push('state');
+    } else {
+      verificationPromises.push(Promise.resolve(null));
+      verificationChecks.push(null);
+    }
+
+    if (req.body.division_id) {
+      verificationPromises.push(Division.findById(req.body.division_id));
+      verificationChecks.push('division');
+    } else {
+      verificationPromises.push(Promise.resolve(null));
+      verificationChecks.push(null);
+    }
+
+    if (req.body.assembly_id) {
+      verificationPromises.push(Assembly.findById(req.body.assembly_id));
+      verificationChecks.push('assembly');
+    } else {
+      verificationPromises.push(Promise.resolve(null));
+      verificationChecks.push(null);
+    }
+
+    if (req.body.parliament_id) {
+      verificationPromises.push(Parliament.findById(req.body.parliament_id));
+      verificationChecks.push('parliament');
+    } else {
+      verificationPromises.push(Promise.resolve(null));
+      verificationChecks.push(null);
+    }
+
+    if (req.body.block_id) verificationPromises.push(req.body.block_id ? Block.findById(req.body.block_id) : Promise.resolve(null));
+    if (req.body.booth_id) verificationPromises.push(req.body.booth_id ? Booth.findById(req.body.booth_id) : Promise.resolve(null));
+
+    if (req.body.candidate_id) {
+      verificationPromises.push(Candidate.findById(req.body.candidate_id));
+      verificationChecks.push('candidate');
+    } else {
+      verificationPromises.push(Promise.resolve(null));
+      verificationChecks.push(null);
+    }
+
+    if (req.body.election_year_id) {
+      verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
+      verificationChecks.push('electionYear');
+    } else {
+      verificationPromises.push(Promise.resolve(null));
+      verificationChecks.push(null);
+    }
+
+    verificationPromises.push(req.user ? User.findById(req.user.id) : Promise.resolve(null));
+
+    const verificationResults = await Promise.all(verificationPromises);
+
+    // Check verification results only for provided fields
+    let resultIndex = 0;
+    verificationChecks.forEach(check => {
+      if (check) {
+        const result = verificationResults[resultIndex];
+        if (!result) {
+          throw new Error(`${check.charAt(0).toUpperCase() + check.slice(1)} not found`);
+        }
+      }
+      resultIndex++;
+    });
+
+    // Check block and booth if provided
+    const blockIndex = verificationPromises.length - 4;
+    const boothIndex = verificationPromises.length - 3;
+    if (req.body.block_id && !verificationResults[blockIndex]) {
+      return res.status(400).json({ success: false, message: 'Block not found' });
+    }
+    if (req.body.booth_id && !verificationResults[boothIndex]) {
+      return res.status(400).json({ success: false, message: 'Booth not found' });
+    }
+
+    // Check user exists (optional)
+    const user = verificationResults[verificationResults.length - 1];
+    // if (!user) return res.status(400).json({ success: false, message: 'User not found' });
 
     // Set default work_status if not provided
     if (!req.body.work_status) {
@@ -498,7 +550,7 @@ exports.createVisit = async (req, res, next) => {
 
     const visitData = {
       ...req.body,
-      created_by: req.user.id,
+      created_by: req.user ? req.user.id : null,
       description: req.body.description || '',
     };
 
@@ -537,42 +589,52 @@ exports.updateVisit = async (req, res, next) => {
 
     // Verify all references exist if being updated
     const verificationPromises = [];
-    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
-    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
-    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    const verificationChecks = [];
+
+    if (req.body.state_id) {
+      verificationPromises.push(State.findById(req.body.state_id));
+      verificationChecks.push('State');
+    }
+    if (req.body.division_id) {
+      verificationPromises.push(Division.findById(req.body.division_id));
+      verificationChecks.push('Division');
+    }
+    if (req.body.assembly_id) {
+      verificationPromises.push(Assembly.findById(req.body.assembly_id));
+      verificationChecks.push('Assembly');
+    }
+    if (req.body.parliament_id) {
+      verificationPromises.push(Parliament.findById(req.body.parliament_id));
+      verificationChecks.push('Parliament');
+    }
     if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
     if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
-    if (req.body.candidate_id) verificationPromises.push(Candidate.findById(req.body.candidate_id));
-    if (req.body.election_year_id) verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
+    if (req.body.candidate_id) {
+      verificationPromises.push(Candidate.findById(req.body.candidate_id));
+      verificationChecks.push('Candidate');
+    }
+    if (req.body.election_year_id) {
+      verificationPromises.push(ElectionYear.findById(req.body.election_year_id));
+      verificationChecks.push('Election year');
+    }
 
     const verificationResults = await Promise.all(verificationPromises);
 
-    // Check each verification result individually (block and booth are optional)
-    let index = 0;
-    if (req.body.state_id && !verificationResults[index++]) {
-      return res.status(400).json({ success: false, message: 'State not found' });
-    }
-    if (req.body.division_id && !verificationResults[index++]) {
-      return res.status(400).json({ success: false, message: 'Division not found' });
-    }
-    if (req.body.assembly_id && !verificationResults[index++]) {
-      return res.status(400).json({ success: false, message: 'Assembly not found' });
-    }
-    if (req.body.parliament_id && !verificationResults[index++]) {
-      return res.status(400).json({ success: false, message: 'Parliament not found' });
-    }
-    if (req.body.block_id && !verificationResults[index++]) {
+    // Check each verification result individually
+    verificationChecks.forEach((check, index) => {
+      if (!verificationResults[index]) {
+        throw new Error(`${check} not found`);
+      }
+    });
+
+    // Check block and booth if provided
+    const blockIndex = verificationPromises.findIndex(p => p === Block.findById(req.body.block_id));
+    const boothIndex = verificationPromises.findIndex(p => p === Booth.findById(req.body.booth_id));
+    if (req.body.block_id && blockIndex >= 0 && !verificationResults[blockIndex]) {
       return res.status(400).json({ success: false, message: 'Block not found' });
     }
-    if (req.body.booth_id && !verificationResults[index++]) {
+    if (req.body.booth_id && boothIndex >= 0 && !verificationResults[boothIndex]) {
       return res.status(400).json({ success: false, message: 'Booth not found' });
-    }
-    if (req.body.candidate_id && !verificationResults[index++]) {
-      return res.status(400).json({ success: false, message: 'Candidate not found' });
-    }
-    if (req.body.election_year_id && !verificationResults[index++]) {
-      return res.status(400).json({ success: false, message: 'Election year not found' });
     }
 
     // Update location object if coordinates are provided

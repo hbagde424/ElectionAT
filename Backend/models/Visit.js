@@ -4,25 +4,25 @@ const visitSchema = new mongoose.Schema({
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',
-    required: [true, 'State reference is required'],
+    required: false,
     index: true
   },
   division_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Division',
-    required: [true, 'Division reference is required'],
+    required: false,
     index: true
   },
   assembly_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assembly',
-    required: [true, 'Assembly reference is required'],
+    required: false,
     index: true
   },
   parliament_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parliament',
-    required: [true, 'Parliament reference is required'],
+    required: false,
     index: true
   },
   block_id: {
@@ -40,29 +40,29 @@ const visitSchema = new mongoose.Schema({
   candidate_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Candidate',
-    required: [true, 'Candidate reference is required']
+    required: false
   },
   election_year_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ElectionYear',
-    required: [true, 'Election year reference is required'],
+    required: false,
     index: true
   },
   post: {
     type: String,
-    required: [true, 'Post is required'],
+    required: false,
     trim: true,
     maxlength: [100, 'Post cannot exceed 100 characters']
   },
   date: {
     type: Date,
-    required: [true, 'Visit date is required']
+    required: false
   },
   work_status: {
     type: String,
     enum: ['announced', 'approved', 'in progress', 'complete', 'other', 'speech subject', 'N/A'],
     default: 'announced',
-    required: [true, 'Work status is required']
+    required: false
   },
   // New fields requested
   workName: {
@@ -130,7 +130,7 @@ const visitSchema = new mongoose.Schema({
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   updated_by: {
     type: mongoose.Schema.Types.ObjectId,

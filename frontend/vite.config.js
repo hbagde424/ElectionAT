@@ -5,7 +5,10 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react()],
-    base: '/election/',
+    // Use a production base path but keep '/' for development so vite dev server
+    // serves ES modules from the root and avoids requests like
+    // '/election/src/...' which can 404 in dev.
+    base: process.env.NODE_ENV === 'production' ? '/election/' : '/',
     server: {
         proxy: {
             '/api': {
