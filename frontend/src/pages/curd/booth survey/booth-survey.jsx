@@ -152,21 +152,21 @@ export default function BoothSurveyListPage() {
     if (surveys.length === 0) return;
 
     const headers = [
-      'Survey ID',
-      'Booth',
-      'Survey Date',
-      'Respondent Name',
-      'Respondent Mobile',
-      'Remark',
-      'State',
-      'Division',
-      'Parliament',
-      'Assembly',
-      'Block',
-      'Created By',
-      'Updated By',
-      'Created At',
-      'Updated At'
+      'सर्वेक्षण ID',
+      'बूथ',
+      'सर्वेक्षण तिथि',
+      'उत्तरदाता का नाम',
+      'उत्तरदाता मोबाइल',
+      'टिप्पणी',
+      'राज्य',
+      'मंडल',
+      'संसद',
+      'विधानसभा',
+      'ब्लॉक',
+      'निर्माता',
+      'अद्यतनकर्ता',
+      'निर्माण तिथि',
+      'अद्यतन तिथि'
     ];
 
     const csvData = surveys.map(survey => [
@@ -453,7 +453,7 @@ export default function BoothSurveyListPage() {
           <DebouncedInput
             value={table.getState().globalFilter || ''}
             onFilterChange={(value) => table.setGlobalFilter(String(value))}
-            placeholder={`Search ${surveys.length} booth surveys...`}
+            placeholder={`खोजें ${surveys.length} बूथ सर्वेक्षण...`}
             sx={{ width: { xs: '100%', sm: 250 } }}
           />
           <Stack
@@ -469,14 +469,14 @@ export default function BoothSurveyListPage() {
               disabled={surveys.length === 0}
               size="small"
             >
-              Download All CSV
+              सभी सर्वेक्षण CSV डाउनलोड करें
 
             </Button>
             <Button variant="contained"
               startIcon={<Add />}
               onClick={() => { setSelectedSurvey(null); setOpenModal(true); }}
               size="small">
-              Add Survey
+              सर्वेक्षण जोड़ें
             </Button>
           </Stack>
         </Stack>

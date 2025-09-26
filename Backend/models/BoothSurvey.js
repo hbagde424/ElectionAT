@@ -28,6 +28,42 @@ const boothSurveySchema = new mongoose.Schema({
     trim: true,
     maxlength: [20, 'Respondent mobile cannot exceed 20 characters']
   },
+  // Survey question fields (panchayat level)
+  q3: { type: String },
+  q4: { type: String },
+  q5: { type: String },
+  q6: { type: String },
+  q7: { type: String },
+  q8: { type: String },
+  q9: { type: String },
+  q10: { type: String },
+  q11: { type: String },
+  q12: { type: String },
+  q13: { type: String },
+  q14: { type: String },
+  q15: { type: String },
+  q16: { type: String },
+  q17: { type: String },
+  q18: { type: String },
+  q19: { type: String },
+  q20: { type: String },
+  q21: { type: String },
+  q22: { type: String },
+  q23: { type: String },
+  q24: { type: String },
+  q25: { type: String },
+  q26: { type: String },
+  q27: { type: String },
+  q28: { type: String },
+  q29: { type: String },
+  q30: { type: String },
+  q31: { type: String },
+  q32: { type: String },
+  // Free text answers
+  q33: { type: String },
+  q34: { type: String },
+  q35: { type: String },
+  q36: { type: String },
   state_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'State',
@@ -82,8 +118,8 @@ boothSurveySchema.pre('save', function (next) {
 });
 
 // Indexes for better performance
-boothSurveySchema.index({ booth_id: 1, status: 1 });
-boothSurveySchema.index({ survey_done_by: 1, survey_date: -1 });
+boothSurveySchema.index({ booth_id: 1 });
+boothSurveySchema.index({ survey_date: -1 });
 boothSurveySchema.index({
   state_id: 1,
   division_id: 1,
@@ -100,11 +136,6 @@ boothSurveySchema.virtual('booth', {
   justOne: true
 });
 
-boothSurveySchema.virtual('surveyor', {
-  ref: 'User',
-  localField: 'survey_done_by',
-  foreignField: '_id',
-  justOne: true
-});
+// surveyor virtual removed (survey_done_by field removed)
 
 module.exports = mongoose.model('BoothSurvey', boothSurveySchema);

@@ -50,14 +50,14 @@ export default function BoothSurveyView({ data }) {
                     <Buildings2 size={32} />
                 </Avatar>
                 <Box>
-                    <Typography variant="h6">Booth Survey - {data._id?.slice(-8)}</Typography>
+                    <Typography variant="h6">बूथ सर्वेक्षण - {data._id?.slice(-8)}</Typography>
                     <Typography variant="body2" color="text.secondary">
                         {data.booth_id?.name || 'No Booth'} • {data.state_id?.name || 'No State'}
                     </Typography>
                 </Box>
                 {/* Status removed - show respondent info instead */}
                 <Box sx={{ ml: 'auto' }}>
-                    <Typography variant="body2">Respondent: {data.respondent_name || 'N/A'}</Typography>
+                    <Typography variant="body2">उत्तरदाता: {data.respondent_name || 'N/A'}</Typography>
                     <Typography variant="caption" color="text.secondary">{data.respondent_mobile || ''}</Typography>
                 </Box>
             </Stack>
@@ -69,7 +69,7 @@ export default function BoothSurveyView({ data }) {
                 <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                         <Location size={16} />
-                        <Typography variant="subtitle2" color="text.secondary">Administrative Hierarchy</Typography>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ whiteSpace: 'normal' }}>प्रशासनिक पदानुक्रम</Typography>
                     </Stack>
                     <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
                         {hierarchy.map((item, index) => (
@@ -93,11 +93,11 @@ export default function BoothSurveyView({ data }) {
                 {/* Left Column - Survey Information */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Stack spacing={2}>
-                        <Typography variant="h6" color="primary">Survey Information</Typography>
+                        <Typography variant="h6" color="primary">सर्वेक्षण जानकारी</Typography>
 
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>बूथ</Typography>
                                 {data.booth_id ? (
                                     <Box>
                                         <Typography variant="body1" fontWeight="medium">{data.booth_id.name}</Typography>
@@ -108,7 +108,7 @@ export default function BoothSurveyView({ data }) {
                                 )}
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Respondent</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>उत्तरदाता</Typography>
                                 <Stack direction="row" alignItems="center" spacing={1}>
                                     <Avatar sx={{ width: 24, height: 24 }}>
                                         <User size={16} />
@@ -120,7 +120,7 @@ export default function BoothSurveyView({ data }) {
                                 </Stack>
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Survey Date</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>सर्वेक्षण तिथि</Typography>
                                 <Stack direction="row" alignItems="center" spacing={0.5}>
                                     <CalendarTick size={16} />
                                     <Typography variant="body2">{formatDate(data.survey_date)}</Typography>
@@ -134,11 +134,11 @@ export default function BoothSurveyView({ data }) {
                 {/* Right Column - Administrative Information */}
                 <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
                     <Stack spacing={2}>
-                        <Typography variant="h6" color="primary">Administrative Information</Typography>
+                        <Typography variant="h6" color="primary">प्रशासनिक जानकारी</Typography>
 
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>राज्य</Typography>
                                 {data.state_id ? (
                                     <Chip label={data.state_id.name} color="secondary" size="small" />
                                 ) : (
@@ -146,7 +146,7 @@ export default function BoothSurveyView({ data }) {
                                 )}
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>मंडल</Typography>
                                 {data.division_id ? (
                                     <Chip label={data.division_id.name} color="info" size="small" />
                                 ) : (
@@ -154,7 +154,7 @@ export default function BoothSurveyView({ data }) {
                                 )}
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>संसद</Typography>
                                 {data.parliament_id ? (
                                     <Chip label={data.parliament_id.name} color="warning" size="small" />
                                 ) : (
@@ -162,7 +162,7 @@ export default function BoothSurveyView({ data }) {
                                 )}
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>विधानसभा</Typography>
                                 {data.assembly_id ? (
                                     <Chip label={data.assembly_id.name} color="success" size="small" />
                                 ) : (
@@ -170,7 +170,7 @@ export default function BoothSurveyView({ data }) {
                                 )}
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>ब्लॉक</Typography>
                                 {data.block_id ? (
                                     <Chip label={data.block_id.name} color="error" size="small" />
                                 ) : (
@@ -188,11 +188,11 @@ export default function BoothSurveyView({ data }) {
             <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                     <Stack spacing={2}>
-                        <Typography variant="h6" color="primary">Survey Results</Typography>
+                        <Typography variant="h6" color="primary">सर्वेक्षण परिणाम</Typography>
 
                         {data.poll_result ? (
                             <Box>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Poll Result</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>मत परिणाम</Typography>
                                 <Typography variant="body1" sx={{
                                     p: 2,
                                     bgcolor: 'info.50',
@@ -212,11 +212,11 @@ export default function BoothSurveyView({ data }) {
 
                 <Grid item xs={12} md={6}>
                     <Stack spacing={2}>
-                        <Typography variant="h6" color="primary">Remarks</Typography>
+                        <Typography variant="h6" color="primary">टिप्पणियाँ</Typography>
 
                         {data.remark ? (
                             <Box>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Survey Remarks</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal' }}>सर्वेक्षण टिप्पणियाँ</Typography>
                                 <Typography variant="body1" sx={{
                                     p: 2,
                                     bgcolor: 'grey.50',
@@ -229,7 +229,7 @@ export default function BoothSurveyView({ data }) {
                                 </Typography>
                             </Box>
                         ) : (
-                            <Typography variant="body2" color="text.secondary">No remarks available</Typography>
+                            <Typography variant="body2" color="text.secondary">कोई टिप्पणी उपलब्ध नहीं</Typography>
                         )}
                     </Stack>
                 </Grid>
@@ -243,7 +243,7 @@ export default function BoothSurveyView({ data }) {
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <User size={16} />
                         <Box>
-                            <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ whiteSpace: 'normal' }}>निर्माता</Typography>
                             <Typography variant="body2">{data.created_by?.username || 'Unknown'}</Typography>
                         </Box>
                     </Stack>
@@ -252,7 +252,7 @@ export default function BoothSurveyView({ data }) {
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <User size={16} />
                         <Box>
-                            <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ whiteSpace: 'normal' }}>अद्यतनकर्ता</Typography>
                             <Typography variant="body2">{data.updated_by?.username || 'N/A'}</Typography>
                         </Box>
                     </Stack>
@@ -261,7 +261,7 @@ export default function BoothSurveyView({ data }) {
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <CalendarTick size={16} />
                         <Box>
-                            <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ whiteSpace: 'normal' }}>निर्माण तिथि</Typography>
                             <Typography variant="body2">{formatDateTime(data.created_at)}</Typography>
                         </Box>
                     </Stack>
@@ -270,7 +270,7 @@ export default function BoothSurveyView({ data }) {
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <CalendarTick size={16} />
                         <Box>
-                            <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ whiteSpace: 'normal' }}>अद्यतन तिथि</Typography>
                             <Typography variant="body2">{formatDateTime(data.updated_at)}</Typography>
                         </Box>
                     </Stack>

@@ -39,6 +39,11 @@ export default function BoothSurveyModal({
         // New respondent fields
         respondent_name: '',
         respondent_mobile: '',
+        // Q3-Q36 fields
+        q3: '', q4: '', q5: '', q6: '', q7: '', q8: '', q9: '', q10: '', q11: '', q12: '',
+        q13: '', q14: '', q15: '', q16: '', q17: '', q18: '', q19: '', q20: '', q21: '', q22: '',
+        q23: '', q24: '', q25: '', q26: '', q27: '', q28: '', q29: '', q30: '', q31: '', q32: '',
+        q33: '', q34: '', q35: '', q36: '',
         remark: '',
         state_id: '',
         division_id: '',
@@ -61,6 +66,99 @@ export default function BoothSurveyModal({
     // Status options
     const statusOptions = ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'];
 
+    // Question option lists
+    const q3Options = [
+        { _id: 'male', name: 'पुरुष' },
+        { _id: 'female', name: 'महिला' },
+        { _id: 'other', name: 'अन्य' }
+    ];
+    const q4Options = [
+        { _id: '18-23', name: '18-23' },
+        { _id: '24-30', name: '24-30' },
+        { _id: '31-35', name: '31-35' },
+        { _id: '36-45', name: '36-45' },
+        { _id: '46-60', name: '46-60' },
+        { _id: '60+', name: '60+' }
+    ];
+    const q5Options = [
+        { _id: 'rural', name: 'ग्रामीण' },
+        { _id: 'kuragi', name: 'कृषि' },
+        { _id: 'urban', name: 'शहरी' }
+    ];
+    const q6Options = [
+        { _id: 'illiterate', name: 'अशिक्षित' },
+        { _id: 'literate', name: 'अशिक्षित नहीं' },
+        { _id: 'primary', name: 'प्राइमरी' },
+        { _id: '10pass', name: 'दसवीं पास' },
+        { _id: '12pass', name: 'बारहवीं पास' },
+        { _id: 'graduate', name: 'स्नातक/स्नातकोत्तर' }
+    ];
+    const q7Options = [
+        { _id: 'govt_job', name: 'सरकारी नौकरी' },
+        { _id: 'private_job', name: 'प्राइवेट नौकरी' },
+        { _id: 'other_govt', name: 'अन्य सरकारी नौकरी' },
+        { _id: 'farm_own', name: 'अपनी जमीन पर खेती' },
+        { _id: 'farm_rent', name: 'किराए की जमीन पर खेती' },
+        { _id: 'contractor', name: 'ठेकेदारी' },
+        { _id: 'shopkeeper', name: 'दुकानदार' },
+        { _id: 'teacher', name: 'शिक्षक' },
+        { _id: 'student', name: 'छात्र' },
+        { _id: 'selfhelp', name: 'स्व सहायता समूह' },
+        { _id: 'housewife', name: 'गृहिणी' },
+        { _id: 'vendor', name: 'रेहड़ी-ठेड़ा' },
+        { _id: 'construction', name: 'भवन निर्माण मज़दूर' },
+        { _id: 'daily_wage', name: 'साधारण दिहाड़ी मज़दूर' },
+        { _id: 'agri_wage', name: 'कृषि दिहाड़ी मज़दूर' },
+        { _id: 'unemployed', name: 'बेरोज़गार' },
+        { _id: 'hotel_small', name: 'होटल/दुकानदार/छोटा व्यवसाय' },
+        { _id: 'other', name: 'अन्य' }
+    ];
+    const q8Options = [
+        { _id: 'affluent', name: 'संपन्न' },
+        { _id: 'middle', name: 'मध्यम वर्ग' },
+        { _id: 'poor', name: 'गरीब' },
+        { _id: 'bpl', name: 'बीपीएल (BPL)' }
+    ];
+    const q9Options = [
+        { _id: 'no_party', name: 'नहीं - किसी पार्टी से नहीं' },
+        { _id: 'bjp', name: 'हां - भाजपा' },
+        { _id: 'rjd', name: 'हां - राजद' },
+        { _id: 'jd_u', name: 'हां - जदयू' },
+        { _id: 'congress', name: 'हां - कांग्रेस' },
+        { _id: 'ljp', name: 'हां - लोजपा' },
+        { _id: 'janasuraj', name: 'हां - जन सुराज' },
+        { _id: 'cpi', name: 'हां - CPI' },
+        { _id: 'cpi_m', name: 'हां - CPI(M)' },
+        { _id: 'other', name: 'हां - अन्य पार्टी' }
+    ];
+    const yesNoOptions = [
+        { _id: 'yes', name: 'हां' },
+        { _id: 'no', name: 'नहीं' }
+    ];
+    const opinionOptions = [
+        { _id: 'satisfied', name: 'संतोष' },
+        { _id: 'some', name: 'थोड़ा संतोष / थोड़ा असंतोष' },
+        { _id: 'dissatisfied', name: 'असंतोष' },
+        { _id: 'dontknow', name: 'कह नहीं सकते' }
+    ];
+    const improvementOptions = [
+        { _id: 'yes', name: 'हां' },
+        { _id: 'some', name: 'हां - कुछ हद तक' },
+        { _id: 'nochange', name: 'कोई परिवर्तन नहीं' },
+        { _id: 'worse', name: 'पहले से खराब' }
+    ];
+    const priorityOptions = [
+        { _id: 'unemployment', name: 'बेरोजगारी' },
+        { _id: 'inflation', name: 'महंगाई कम करना' },
+        { _id: 'migration', name: 'पलायन रोकना' },
+        { _id: 'agriculture', name: 'कृषि का विकास' },
+        { _id: 'education', name: 'शिक्षा व्यवस्था' },
+        { _id: 'health', name: 'स्वास्थ्य व्यवस्था' },
+        { _id: 'law', name: 'कानून व्यवस्था' },
+        { _id: 'social', name: 'सभी वर्गों का सामाजिक समान' },
+        { _id: 'dontknow', name: 'नहीं जानते' }
+    ];
+
     useEffect(() => {
         if (survey) {
             setFormData({
@@ -68,6 +166,15 @@ export default function BoothSurveyModal({
                 survey_date: new Date(survey.survey_date) || new Date(),
                 respondent_name: survey.respondent_name || '',
                 respondent_mobile: survey.respondent_mobile || '',
+                q3: survey.q3 || '', q4: survey.q4 || '', q5: survey.q5 || '', q6: survey.q6 || '',
+                q7: survey.q7 || '', q8: survey.q8 || '', q9: survey.q9 || '', q10: survey.q10 || '',
+                q11: survey.q11 || '', q12: survey.q12 || '', q13: survey.q13 || '', q14: survey.q14 || '',
+                q15: survey.q15 || '', q16: survey.q16 || '', q17: survey.q17 || '', q18: survey.q18 || '',
+                q19: survey.q19 || '', q20: survey.q20 || '', q21: survey.q21 || '', q22: survey.q22 || '',
+                q23: survey.q23 || '', q24: survey.q24 || '', q25: survey.q25 || '', q26: survey.q26 || '',
+                q27: survey.q27 || '', q28: survey.q28 || '', q29: survey.q29 || '', q30: survey.q30 || '',
+                q31: survey.q31 || '', q32: survey.q32 || '', q33: survey.q33 || '', q34: survey.q34 || '',
+                q35: survey.q35 || '', q36: survey.q36 || '',
                 remark: survey.remark || '',
                 state_id: survey.state_id?._id || '',
                 division_id: survey.division_id?._id || '',
@@ -81,6 +188,10 @@ export default function BoothSurveyModal({
                 survey_date: new Date(),
                 respondent_name: '',
                 respondent_mobile: '',
+                q3: '', q4: '', q5: '', q6: '', q7: '', q8: '', q9: '', q10: '', q11: '', q12: '',
+                q13: '', q14: '', q15: '', q16: '', q17: '', q18: '', q19: '', q20: '', q21: '', q22: '',
+                q23: '', q24: '', q25: '', q26: '', q27: '', q28: '', q29: '', q30: '', q31: '', q32: '',
+                q33: '', q34: '', q35: '', q36: '',
                 remark: '',
                 state_id: '',
                 division_id: '',
@@ -357,11 +468,11 @@ export default function BoothSurveyModal({
     const renderSelect = (label, name, options, labelKey = 'name', required = false, disabled = false) => (
         <Grid item xs={12} sm={6} key={name}>
             <Stack spacing={1}>
-                <InputLabel required={required}>{label}</InputLabel>
+                <InputLabel required={required} sx={{ whiteSpace: 'normal' }}>{label}</InputLabel>
                 <FormControl fullWidth error={!!errors[name]} disabled={disabled || isSubmitting}>
                     <Select name={name} value={formData[name]} onChange={handleChange}>
                         <MenuItem value="">
-                            <em>Select {label}</em>
+                            <em>कृपया चुनें {label}</em>
                         </MenuItem>
                         {options.map((opt) => (
                             <MenuItem key={opt._id} value={opt._id}>
@@ -408,7 +519,7 @@ export default function BoothSurveyModal({
                             {/* Surveyor removed - replaced with respondent fields */}
                             <Grid item xs={12} sm={6}>
                                 <Stack spacing={1}>
-                                    <InputLabel required>Survey Date</InputLabel>
+                                    <InputLabel required sx={{ whiteSpace: 'normal' }}>सर्वेक्षण तिथि</InputLabel>
                                     <DatePicker
                                         value={formData.survey_date}
                                         onChange={handleDateChange}
@@ -422,7 +533,7 @@ export default function BoothSurveyModal({
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
                                     <Stack spacing={1}>
-                                        <InputLabel>Respondent Name</InputLabel>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>उत्तरदाता का नाम</InputLabel>
                                         <TextField
                                             name="respondent_name"
                                             value={formData.respondent_name}
@@ -437,7 +548,7 @@ export default function BoothSurveyModal({
 
                                 <Grid item xs={12} sm={6}>
                                     <Stack spacing={1}>
-                                        <InputLabel>Respondent Mobile</InputLabel>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>उत्तरदाता का मोबाइल</InputLabel>
                                         <TextField
                                             name="respondent_mobile"
                                             value={formData.respondent_mobile}
@@ -451,10 +562,92 @@ export default function BoothSurveyModal({
                                 </Grid>
                             </Grid>
 
+                            {/* Questions 3-12 (dropdowns) */}
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('लिंग', 'q3', q3Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('आयु समूह', 'q4', q4Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('निवास', 'q5', q5Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('शिक्षा', 'q6', q6Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('व्यवसाय', 'q7', q7Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('आर्थिक स्थिति', 'q8', q8Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('परंपरागत पार्टी', 'q9', q9Options, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('पिछली चुनाव में वही पार्टी?', 'q10', yesNoOptions, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('जीवन से संतोष', 'q11', opinionOptions, 'name')}
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    {renderSelect('भविष्य के बारे में चिंता', 'q12', opinionOptions, 'name')}
+                                </Grid>
+                            </Grid>
+
+                            {/* Questions 17-25 (dropdowns) */}
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या किसी परिवार के सदस्य को पिछले 5 वर्षों में सरकारी नौकरी मिली?', 'q16', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या किसी परिवार के सदस्य ने वोट खो दिया?', 'q17', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या पिछले 5 वर्षों में सुधार हुआ?', 'q18', improvementOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या वर्तमान विधायक से संतुष्ट हैं?', 'q19', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप फिर से वर्तमान विधायक को चुनेंगे?', 'q20', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप राज्य सरकार से संतुष्ट हैं?', 'q21', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप प्रधानमंत्री से संतुष्ट हैं?', 'q22', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप केंद्रीय सरकार से संतुष्ट हैं?', 'q23', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप वर्तमान मुख्यमंत्री से संतुष्ट हैं?', 'q24', yesNoOptions)}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('क्या आपको लगता है चुनाव के बाद जीवन सुधरेगा?', 'q25', improvementOptions)}</Grid>
+                            </Grid>
+
+                            {/* Questions 31-32 (dropdowns) */}
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12} sm={6}>{renderSelect('अगले विधायक को चुनने में सबसे महत्वपूर्ण क्या है?', 'q31', [{_id:'party', name:'पार्टी'},{_id:'cm', name:'मुख्यमंत्री'},{_id:'candidate', name:'उम्मीदवार'},{_id:'public_opinion', name:'समाज की राय'},{_id:'dontknow', name:'कह नहीं सकते'}])}</Grid>
+                                <Grid item xs={12} sm={6}>{renderSelect('अगली सरकार की शीर्ष प्राथमिकता क्या होनी चाहिए?', 'q32', priorityOptions)}</Grid>
+                            </Grid>
+
+                            {/* Questions 33-36 (free text answers) */}
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12}>
+                                    <Stack spacing={1}>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>कौन सा सामाजिक समूह?</InputLabel>
+                                        <TextField name="q33" value={formData.q33} onChange={handleChange} fullWidth />
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Stack spacing={1}>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>पिछले विधानसभा चुनाव में आपने किसे वोट दिया? (2020)</InputLabel>
+                                        <TextField name="q34" value={formData.q34} onChange={handleChange} fullWidth />
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Stack spacing={1}>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>पिछले लोकसभा चुनाव में आपने किसे वोट दिया? (2024)</InputLabel>
+                                        <TextField name="q35" value={formData.q35} onChange={handleChange} fullWidth />
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Stack spacing={1}>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>यदि चुनाव आज होते, आप किस पार्टी को वोट देते?</InputLabel>
+                                        <TextField name="q36" value={formData.q36} onChange={handleChange} fullWidth />
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Stack spacing={1}>
-                                        <InputLabel>Remarks</InputLabel>
+                                        <InputLabel sx={{ whiteSpace: 'normal' }}>टिप्पणी</InputLabel>
                                         <TextField
                                             name="remark"
                                             value={formData.remark}
