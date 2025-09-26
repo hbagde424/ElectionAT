@@ -35,11 +35,11 @@ export default function BoothSurveyModal({
 }) {
     const [formData, setFormData] = useState({
         booth_id: '',
-        survey_done_by: '',
         survey_date: new Date(),
-        status: 'Pending',
+        // New respondent fields
+        respondent_name: '',
+        respondent_mobile: '',
         remark: '',
-        poll_result: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -65,11 +65,10 @@ export default function BoothSurveyModal({
         if (survey) {
             setFormData({
                 booth_id: survey.booth_id?._id || '',
-                survey_done_by: survey.survey_done_by?._id || '',
                 survey_date: new Date(survey.survey_date) || new Date(),
-                status: survey.status || 'Pending',
+                respondent_name: survey.respondent_name || '',
+                respondent_mobile: survey.respondent_mobile || '',
                 remark: survey.remark || '',
-                poll_result: survey.poll_result || '',
                 state_id: survey.state_id?._id || '',
                 division_id: survey.division_id?._id || '',
                 parliament_id: survey.parliament_id?._id || '',
@@ -79,11 +78,10 @@ export default function BoothSurveyModal({
         } else {
             setFormData({
                 booth_id: '',
-                survey_done_by: '',
                 survey_date: new Date(),
-                status: 'Pending',
+                respondent_name: '',
+                respondent_mobile: '',
                 remark: '',
-                poll_result: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -181,9 +179,7 @@ export default function BoothSurveyModal({
             case 'booth_id':
                 if (!value) return 'Booth selection is required';
                 break;
-            case 'survey_done_by':
-                if (!value) return 'Surveyor selection is required';
-                break;
+            // surveyor removed
             case 'state_id':
                 if (!value) return 'State selection is required';
                 break;
@@ -199,8 +195,12 @@ export default function BoothSurveyModal({
             case 'block_id':
                 if (!value) return 'Block selection is required';
                 break;
-            case 'status':
-                if (!value) return 'Status selection is required';
+            // status removed
+            case 'respondent_name':
+                if (value && value.length > 200) return 'Respondent name cannot exceed 200 characters';
+                break;
+            case 'respondent_mobile':
+                if (value && value.length > 20) return 'Respondent mobile cannot exceed 20 characters';
                 break;
             case 'remark':
                 if (value && value.trim().length > 500) return 'Remarks cannot exceed 500 characters';
@@ -217,7 +217,7 @@ export default function BoothSurveyModal({
     // Validate entire form
     const validateForm = () => {
         const newErrors = {};
-        const requiredFields = ['booth_id', 'survey_done_by', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'status'];
+    const requiredFields = ['booth_id', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id'];
 
         requiredFields.forEach(field => {
             const error = validateField(field, formData[field]);
@@ -225,7 +225,7 @@ export default function BoothSurveyModal({
         });
 
         // Validate optional fields
-        ['remark', 'poll_result'].forEach(field => {
+        ['remark', 'respondent_name', 'respondent_mobile'].forEach(field => {
             const error = validateField(field, formData[field]);
             if (error) newErrors[field] = error;
         });
@@ -405,7 +405,7 @@ export default function BoothSurveyModal({
 
                         {/* Survey Details */}
                         <Grid container spacing={2}>
-                            {renderSelect('Surveyor', 'survey_done_by', users, 'username', true)}
+                            {/* Surveyor removed - replaced with respondent fields */}
                             <Grid item xs={12} sm={6}>
                                 <Stack spacing={1}>
                                     <InputLabel required>Survey Date</InputLabel>
@@ -418,51 +418,58 @@ export default function BoothSurveyModal({
                                 </Stack>
                             </Grid>
                         </Grid>
+                            {/* Respondent fields: name + mobile */}
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6}>
+                                    <Stack spacing={1}>
+                                        <InputLabel>Respondent Name</InputLabel>
+                                        <TextField
+                                            name="respondent_name"
+                                            value={formData.respondent_name}
+                                            onChange={handleChange}
+                                            fullWidth
+                                            error={!!errors.respondent_name}
+                                            helperText={errors.respondent_name}
+                                            disabled={isSubmitting}
+                                        />
+                                    </Stack>
+                                </Grid>
 
-                        <Grid container spacing={2}>
-                            {renderSelect('Status', 'status', statusOptions.map(s => ({ _id: s, name: s })), 'name', true)}
-                        </Grid>
-
-                        {/* Text Fields */}
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Poll Result</InputLabel>
-                                    <TextField
-                                        name="poll_result"
-                                        value={formData.poll_result}
-                                        onChange={handleChange}
-                                        fullWidth
-                                        multiline
-                                        rows={2}
-                                        error={!!errors.poll_result}
-                                        helperText={errors.poll_result || 'Maximum 200 characters'}
-                                        inputProps={{ maxLength: 200 }}
-                                        disabled={isSubmitting}
-                                    />
-                                </Stack>
+                                <Grid item xs={12} sm={6}>
+                                    <Stack spacing={1}>
+                                        <InputLabel>Respondent Mobile</InputLabel>
+                                        <TextField
+                                            name="respondent_mobile"
+                                            value={formData.respondent_mobile}
+                                            onChange={handleChange}
+                                            fullWidth
+                                            error={!!errors.respondent_mobile}
+                                            helperText={errors.respondent_mobile}
+                                            disabled={isSubmitting}
+                                        />
+                                    </Stack>
+                                </Grid>
                             </Grid>
-                        </Grid>
 
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Stack spacing={1}>
-                                    <InputLabel>Remarks</InputLabel>
-                                    <TextField
-                                        name="remark"
-                                        value={formData.remark}
-                                        onChange={handleChange}
-                                        fullWidth
-                                        multiline
-                                        rows={3}
-                                        error={!!errors.remark}
-                                        helperText={errors.remark || 'Maximum 500 characters'}
-                                        inputProps={{ maxLength: 500 }}
-                                        disabled={isSubmitting}
-                                    />
-                                </Stack>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Stack spacing={1}>
+                                        <InputLabel>Remarks</InputLabel>
+                                        <TextField
+                                            name="remark"
+                                            value={formData.remark}
+                                            onChange={handleChange}
+                                            fullWidth
+                                            multiline
+                                            rows={3}
+                                            error={!!errors.remark}
+                                            helperText={errors.remark || 'Maximum 500 characters'}
+                                            inputProps={{ maxLength: 500 }}
+                                            disabled={isSubmitting}
+                                        />
+                                    </Stack>
+                                </Grid>
                             </Grid>
-                        </Grid>
                     </Stack>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>

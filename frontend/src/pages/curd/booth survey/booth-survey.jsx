@@ -154,11 +154,10 @@ export default function BoothSurveyListPage() {
     const headers = [
       'Survey ID',
       'Booth',
-      'Surveyor',
       'Survey Date',
-      'Status',
+      'Respondent Name',
+      'Respondent Mobile',
       'Remark',
-      'Poll Result',
       'State',
       'Division',
       'Parliament',
@@ -173,11 +172,10 @@ export default function BoothSurveyListPage() {
     const csvData = surveys.map(survey => [
       survey._id?.slice(-8) || '',
       survey.booth_id?.name || 'No booth',
-      survey.survey_done_by?.email || 'Unknown',
       survey.survey_date ? new Date(survey.survey_date).toLocaleDateString() : '',
-      survey.status || '',
+      survey.respondent_name || '',
+      survey.respondent_mobile || '',
       survey.remark || '',
-      survey.poll_result || '',
       survey.state_id?.name || '',
       survey.division_id?.name || '',
       survey.parliament_id?.name || '',
@@ -244,18 +242,13 @@ export default function BoothSurveyListPage() {
       )
     },
     {
-      header: 'Surveyor',
-      accessorKey: 'survey_done_by',
-      cell: ({ getValue }) => (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ width: 24, height: 24 }}>
-            <User size={16} />
-          </Avatar>
-          <Box>
-            <Typography variant="body2" fontWeight="medium">{getValue()?.email || 'Unknown'}</Typography>
-            <Typography variant="caption" color="text.secondary">Surveyor</Typography>
-          </Box>
-        </Stack>
+      header: 'Respondent',
+      accessorKey: 'respondent_name',
+      cell: ({ getValue, row }) => (
+        <Box>
+          <Typography variant="body2" fontWeight="medium">{getValue() || 'Unknown'}</Typography>
+          <Typography variant="caption" color="text.secondary">{row.original.respondent_mobile || ''}</Typography>
+        </Box>
       )
     },
     {
@@ -268,18 +261,7 @@ export default function BoothSurveyListPage() {
         </Stack>
       )
     },
-    {
-      header: 'Status',
-      accessorKey: 'status',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()}
-          color={statusColors[getValue()]}
-          size="small"
-          sx={{ minWidth: 100 }}
-        />
-      )
-    },
+    // Status removed
     {
       header: 'Remark',
       accessorKey: 'remark',
@@ -300,27 +282,7 @@ export default function BoothSurveyListPage() {
         );
       }
     },
-    {
-      header: 'Poll Result',
-      accessorKey: 'poll_result',
-      cell: ({ getValue }) => {
-        const pollResult = getValue();
-        return (
-          <Typography
-            variant="body2"
-            sx={{
-              maxWidth: 250,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: 'info.main'
-            }}
-          >
-            {pollResult || 'No poll result'}
-          </Typography>
-        );
-      }
-    },
+    // Poll Result removed
     {
       header: 'State',
       accessorKey: 'state_id',

@@ -334,8 +334,11 @@ const VisitListPage = () => {
             if (json.success) {
                 const csvData = json.data.map(item => ({
                     'Candidate': item.candidate_id?.name || '',
+                    'Candidate ID': item.candidate_id?._id || '',
                     'Post': item.post || '',
-                    'Date': formatDate(item.date),
+                    'Election Year': item.election_year_id?.year || '',
+                    'Election Type': item.election_year_id?.election_type || '',
+                    'Date': item.date ? formatDate(item.date) : '',
                     'Status': item.work_status || '',
                     'State': item.state_id?.name || '',
                     'Division': item.division_id?.name || '',
@@ -344,11 +347,23 @@ const VisitListPage = () => {
                     'Block': item.block_id?.name || '',
                     'Booth': item.booth_id?.name || '',
                     'Location': item.locationName || '',
-                    'Coordinates': item.latitude && item.longitude ? `${item.latitude}, ${item.longitude}` : '',
+                    'Longitude': item.longitude ?? '',
+                    'Latitude': item.latitude ?? '',
+                    'Coordinates': (item.latitude != null && item.longitude != null) ? `${item.latitude}, ${item.longitude}` : '',
+                    'Work Name': item.workName || '',
                     'Visit Agenda': item.visitAgenda || item.declaration || '',
+                    'Speech (5 lines)': item.speechFiveLines || '',
+                    'Speech Issue': item.speechIssue || '',
+                    'Announcement Date': item.announcementDate ? formatDate(item.announcementDate) : '',
+                    'Completion Date': item.completionDate ? formatDate(item.completionDate) : '',
+                    'Budget Announced Date': item.budgetAnnouncedDate ? formatDate(item.budgetAnnouncedDate) : '',
+                    'Documents': Array.isArray(item.documents) ? item.documents.map(d => d.name || d.filePath || '').filter(Boolean).join('; ') : '',
+                    'Description': item.description || '',
                     'Remark': item.remark || '',
-                    'Created At': item.created_at,
-                    'Updated At': item.updated_at
+                    'Created By': item.created_by?.name || item.created_by || '',
+                    'Updated By': item.updated_by?.name || item.updated_by || '',
+                    'Created At': item.created_at ? new Date(item.created_at).toLocaleString('en-IN') : '',
+                    'Updated At': item.updated_at ? new Date(item.updated_at).toLocaleString('en-IN') : ''
                 }));
 
                 setCsvData(csvData);

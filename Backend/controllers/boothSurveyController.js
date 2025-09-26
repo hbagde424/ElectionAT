@@ -37,14 +37,14 @@ exports.getBoothSurveys = async (req, res, next) => {
     if (req.query.search) {
       const search = req.query.search.replace(/-/g, ' ');
       const mongoose = require('mongoose');
-      const [boothIds, surveyorIds, stateIds, divisionIds, parliamentIds, assemblyIds, blockIds] = await Promise.all([
+      const [boothIds, stateIds, divisionIds, parliamentIds, assemblyIds, blockIds] = await Promise.all([
         Booth.find({
           $or: [
             { name: { $regex: search, $options: 'i' } },
             { booth_number: { $regex: search, $options: 'i' } }
           ]
         }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
-        User.find({ email: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
+        State.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
         State.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
         Division.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
         Parliament.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
@@ -52,12 +52,9 @@ exports.getBoothSurveys = async (req, res, next) => {
         Block.find({ name: { $regex: search, $options: 'i' } }, '_id').then(docs => docs.map(d => mongoose.Types.ObjectId(d._id))),
       ]);
       const orArr = [
-        { remark: { $regex: search, $options: 'i' } },
-        { poll_result: { $regex: search, $options: 'i' } },
-        { status: { $regex: search, $options: 'i' } }
+        { remark: { $regex: search, $options: 'i' } }
       ];
       if (boothIds.length) orArr.push({ booth_id: { $in: boothIds } });
-      if (surveyorIds.length) orArr.push({ survey_done_by: { $in: surveyorIds } });
       if (stateIds.length) orArr.push({ state_id: { $in: stateIds } });
       if (divisionIds.length) orArr.push({ division_id: { $in: divisionIds } });
       if (parliamentIds.length) orArr.push({ parliament_id: { $in: parliamentIds } });
@@ -67,9 +64,6 @@ exports.getBoothSurveys = async (req, res, next) => {
     }
 
     // Add filters (support both ObjectId and name for all params)
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
     if (req.query.state_id || req.query.state) {
       const stateId = await handleIdOrName('state_id', State) || await handleIdOrName('state', State);
       if (stateId) filter.state_id = stateId;
@@ -100,11 +94,7 @@ exports.getBoothSurveys = async (req, res, next) => {
       if (boothId) filter.booth_id = boothId;
       else if (req.query.booth_id || req.query.booth) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
-    if (req.query.surveyor) {
-      const surveyorId = await handleIdOrName('surveyor', User, 'email');
-      if (surveyorId) filter.survey_done_by = surveyorId;
-      else return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
-    }
+    // Note: surveyor, status and poll_result filters removed per new requirements
     if (req.query.startDate && req.query.endDate) {
       filter.survey_date = {
         $gte: new Date(req.query.startDate),
@@ -117,7 +107,6 @@ exports.getBoothSurveys = async (req, res, next) => {
     if (req.query.search) {
       surveys = await BoothSurvey.find(filter)
         .populate('booth_id', 'name booth_number')
-        .populate('survey_done_by', 'name email')
         .populate('state_id', 'name')
         .populate('division_id', 'name')
         .populate('parliament_id', 'name')
@@ -131,7 +120,6 @@ exports.getBoothSurveys = async (req, res, next) => {
     } else {
       surveys = await BoothSurvey.find(filter)
         .populate('booth_id', 'name booth_number')
-        .populate('survey_done_by', 'name email')
         .populate('state_id', 'name')
         .populate('division_id', 'name')
         .populate('parliament_id', 'name')
@@ -166,7 +154,6 @@ exports.getBoothSurvey = async (req, res, next) => {
   try {
     const survey = await BoothSurvey.findById(req.params.id)
       .populate('booth_id')
-      .populate('survey_done_by', 'name email phone')
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
@@ -196,10 +183,9 @@ exports.getBoothSurvey = async (req, res, next) => {
 // @access  Private (Admin/Surveyor)
 exports.createBoothSurvey = async (req, res, next) => {
   try {
-    // Verify all references exist
+    // Verify references exist (surveyor and status removed per new requirements)
     const [
       booth,
-      surveyor,
       state,
       division,
       parliament,
@@ -207,7 +193,6 @@ exports.createBoothSurvey = async (req, res, next) => {
       block
     ] = await Promise.all([
       Booth.findById(req.body.booth_id),
-      User.findById(req.body.survey_done_by),
       State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
@@ -215,36 +200,19 @@ exports.createBoothSurvey = async (req, res, next) => {
       Block.findById(req.body.block_id)
     ]);
 
-    if (!booth) {
-      return res.status(400).json({ success: false, message: 'Booth not found' });
-    }
-    if (!surveyor) {
-      return res.status(400).json({ success: false, message: 'Surveyor not found' });
-    }
-    if (!state) {
-      return res.status(400).json({ success: false, message: 'State not found' });
-    }
-    if (!division) {
-      return res.status(400).json({ success: false, message: 'Division not found' });
-    }
-    if (!parliament) {
-      return res.status(400).json({ success: false, message: 'Parliament not found' });
-    }
-    if (!assembly) {
-      return res.status(400).json({ success: false, message: 'Assembly not found' });
-    }
-    if (!block) {
-      return res.status(400).json({ success: false, message: 'Block not found' });
-    }
+    if (!booth) return res.status(400).json({ success: false, message: 'Booth not found' });
+    if (!state) return res.status(400).json({ success: false, message: 'State not found' });
+    if (!division) return res.status(400).json({ success: false, message: 'Division not found' });
+    if (!parliament) return res.status(400).json({ success: false, message: 'Parliament not found' });
+    if (!assembly) return res.status(400).json({ success: false, message: 'Assembly not found' });
+    if (!block) return res.status(400).json({ success: false, message: 'Block not found' });
 
     // Check if user exists in request
     if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
+      return res.status(401).json({ success: false, message: 'Not authorized - user not identified' });
     }
 
+    // Accept respondent fields (respondent_name, respondent_mobile) from req.body
     const surveyData = {
       ...req.body,
       created_by: req.user.id
@@ -275,15 +243,14 @@ exports.updateBoothSurvey = async (req, res, next) => {
       });
     }
 
-    // Verify all references exist if being updated
-    const verificationPromises = [];
-    if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
-    if (req.body.survey_done_by) verificationPromises.push(User.findById(req.body.survey_done_by));
-    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
-    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
-    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
-    if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
-    if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
+  // Verify all references exist if being updated (surveyor/status removed)
+  const verificationPromises = [];
+  if (req.body.booth_id) verificationPromises.push(Booth.findById(req.body.booth_id));
+  if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+  if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+  if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+  if (req.body.assembly_id) verificationPromises.push(Assembly.findById(req.body.assembly_id));
+  if (req.body.block_id) verificationPromises.push(Block.findById(req.body.block_id));
 
     const verificationResults = await Promise.all(verificationPromises);
 
@@ -364,7 +331,6 @@ exports.getSurveysByBooth = async (req, res, next) => {
 
     const surveys = await BoothSurvey.find({ booth_id: req.params.boothId })
       .sort({ survey_date: -1 })
-      .populate('survey_done_by', 'name email')
       .populate('created_by', 'username');
 
     res.status(200).json({
@@ -391,16 +357,7 @@ exports.getSurveysBySurveyor = async (req, res, next) => {
       });
     }
 
-    const surveys = await BoothSurvey.find({ survey_done_by: req.params.surveyorId })
-      .sort({ survey_date: -1 })
-      .populate('booth_id', 'name booth_number')
-      .populate('state_id', 'name');
-
-    res.status(200).json({
-      success: true,
-      count: surveys.length,
-      data: surveys
-    });
+    // getSurveysBySurveyor endpoint removed since surveyor field is no longer tracked
   } catch (err) {
     next(err);
   }
@@ -423,7 +380,7 @@ exports.getSurveysByState = async (req, res, next) => {
     const surveys = await BoothSurvey.find({ state_id: req.params.stateId })
       .sort({ survey_date: -1 })
       .populate('booth_id', 'name booth_number')
-      .populate('survey_done_by', 'name');
+      .populate('created_by', 'username');
 
     res.status(200).json({
       success: true,

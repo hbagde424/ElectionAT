@@ -55,11 +55,11 @@ export default function BoothSurveyView({ data }) {
                         {data.booth_id?.name || 'No Booth'} • {data.state_id?.name || 'No State'}
                     </Typography>
                 </Box>
-                <Chip
-                    label={data.status || 'Unknown'}
-                    color={statusColors[data.status] || 'default'}
-                    size="small"
-                />
+                {/* Status removed - show respondent info instead */}
+                <Box sx={{ ml: 'auto' }}>
+                    <Typography variant="body2">Respondent: {data.respondent_name || 'N/A'}</Typography>
+                    <Typography variant="caption" color="text.secondary">{data.respondent_mobile || ''}</Typography>
+                </Box>
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
@@ -108,12 +108,15 @@ export default function BoothSurveyView({ data }) {
                                 )}
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Surveyor</Typography>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Respondent</Typography>
                                 <Stack direction="row" alignItems="center" spacing={1}>
                                     <Avatar sx={{ width: 24, height: 24 }}>
                                         <User size={16} />
                                     </Avatar>
-                                    <Typography variant="body2">{data.survey_done_by?.email || 'Unknown'}</Typography>
+                                    <Box>
+                                        <Typography variant="body2">{data.respondent_name || 'Unknown'}</Typography>
+                                        <Typography variant="caption" color="text.secondary">{data.respondent_mobile || ''}</Typography>
+                                    </Box>
                                 </Stack>
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -123,14 +126,7 @@ export default function BoothSurveyView({ data }) {
                                     <Typography variant="body2">{formatDate(data.survey_date)}</Typography>
                                 </Stack>
                             </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
-                                <Chip
-                                    label={data.status || 'Unknown'}
-                                    color={statusColors[data.status] || 'default'}
-                                    size="small"
-                                />
-                            </Grid>
+                            {/* Status removed */}
                         </Grid>
                     </Stack>
                 </Grid>

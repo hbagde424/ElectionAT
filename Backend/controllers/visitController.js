@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Visit = require('../models/Visit');
 const Booth = require('../models/booth');
 const Block = require('../models/block');
@@ -454,6 +455,24 @@ exports.createVisit = async (req, res, next) => {
     const verificationPromises = [];
     const verificationChecks = [];
 
+    // If frontend sent a plain year string (e.g., '2024') in election_year_id, convert it to an ElectionYear _id
+    if (req.body.election_year_id && typeof req.body.election_year_id === 'string' && /^\d{4}$/.test(req.body.election_year_id)) {
+      const yearNum = parseInt(req.body.election_year_id, 10);
+      // Try to find existing ElectionYear
+      let ey = await ElectionYear.findOne({ year: yearNum });
+      if (!ey) {
+        // Create a minimal ElectionYear record. We must have a created_by user; use req.user if available.
+        const createdBy = req.user ? req.user.id : null;
+        try {
+          ey = await ElectionYear.create({ year: yearNum, election_type: 'Assembly', created_by: createdBy });
+        } catch (e) {
+          // If creation failed due to validation or missing created_by, try to find again and otherwise remove the field
+          ey = await ElectionYear.findOne({ year: yearNum }).catch(() => null);
+        }
+      }
+      if (ey) req.body.election_year_id = ey._id;
+    }
+
     if (req.body.state_id) {
       verificationPromises.push(State.findById(req.body.state_id));
       verificationChecks.push('state');
@@ -590,6 +609,21 @@ exports.updateVisit = async (req, res, next) => {
     // Verify all references exist if being updated
     const verificationPromises = [];
     const verificationChecks = [];
+
+    // Normalize election_year_id if frontend provided a year string (e.g., '2024')
+    if (req.body.election_year_id && typeof req.body.election_year_id === 'string' && /^\d{4}$/.test(req.body.election_year_id)) {
+      const yearNum = parseInt(req.body.election_year_id, 10);
+      let ey = await ElectionYear.findOne({ year: yearNum });
+      if (!ey) {
+        const createdBy = req.user ? req.user.id : null;
+        try {
+          ey = await ElectionYear.create({ year: yearNum, election_type: 'Assembly', created_by: createdBy });
+        } catch (e) {
+          ey = await ElectionYear.findOne({ year: yearNum }).catch(() => null);
+        }
+      }
+      if (ey) req.body.election_year_id = ey._id;
+    }
 
     if (req.body.state_id) {
       verificationPromises.push(State.findById(req.body.state_id));

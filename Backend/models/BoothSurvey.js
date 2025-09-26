@@ -7,30 +7,26 @@ const boothSurveySchema = new mongoose.Schema({
     ref: 'Booth',
     required: [true, 'Booth reference is required']
   },
-  survey_done_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Surveyor reference is required']
-  },
   survey_date: {
     type: Date,
     required: [true, 'Survey date is required'],
     default: Date.now
-  },
-  status: {
-    type: String,
-    enum: ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'],
-    default: 'Pending'
   },
   remark: {
     type: String,
     trim: true,
     maxlength: [500, 'Remarks cannot exceed 500 characters']
   },
-  poll_result: {
+  // New respondent information (optional)
+  respondent_name: {
     type: String,
     trim: true,
-    maxlength: [200, 'Poll result cannot exceed 200 characters']
+    maxlength: [200, 'Respondent name cannot exceed 200 characters']
+  },
+  respondent_mobile: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Respondent mobile cannot exceed 20 characters']
   },
   state_id: {
     type: mongoose.Schema.Types.ObjectId,

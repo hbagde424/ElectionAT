@@ -559,6 +559,35 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
+                      <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Announced Date</InputLabel>
+                            <DatePicker
+                                value={formData.announced_date}
+                                onChange={(date) => handleDateChange('announced_date', date)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        fullWidth
+                                    />
+                                )}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Announced By</InputLabel>
+                            <TextField
+                                name="announced_by"
+                                value={formData.announced_by}
+                                onChange={handleChange}
+                                fullWidth
+                                placeholder="Enter name of announcer"
+                            />
+                        </Stack>
+                    </Grid>
+
                     {/* Row 5: Dates */}
                     <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
@@ -616,34 +645,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                     <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Announced Date</InputLabel>
-                            <DatePicker
-                                value={formData.announced_date}
-                                onChange={(date) => handleDateChange('announced_date', date)}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        fullWidth
-                                    />
-                                )}
-                            />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Announced By</InputLabel>
-                            <TextField
-                                name="announced_by"
-                                value={formData.announced_by}
-                                onChange={handleChange}
-                                fullWidth
-                                placeholder="Enter name of announcer"
-                            />
-                        </Stack>
-                    </Grid>
+                   
 
                     {/* Row 6: State and Division */}
                     <Grid item xs={12} sm={6}>

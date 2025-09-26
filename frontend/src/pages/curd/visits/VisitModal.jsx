@@ -24,7 +24,7 @@ const FormSelect = ({
     required = false
 }) => (
     <Stack spacing={1}>
-        <InputLabel required={required}>{label}</InputLabel>
+        <InputLabel required={required} sx={{ fontWeight: 'bold' }}>{label}:</InputLabel>
         <FormControl fullWidth error={!!error} disabled={disabled}>
             <Select name={name} value={value} onChange={onChange}>
                 <MenuItem value=""><em>Select {label}</em></MenuItem>
@@ -50,7 +50,7 @@ const FormTextField = ({
     required = false
 }) => (
     <Stack spacing={1}>
-        <InputLabel required={required}>{label}</InputLabel>
+        <InputLabel required={required} sx={{ fontWeight: 'bold' }}>{label}:</InputLabel>
         <TextField
             name={name}
             value={value}
@@ -575,28 +575,101 @@ export default function VisitModal({
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                        <FormSelect
-                            label="Politician"
-                            name="candidate_id"
-                            value={formData.candidate_id}
-                            options={candidates}
-                            onChange={handleChange}
-                            error={errors.candidate_id}
-                            disabled={isSubmitting}
-                        />
+                        <Stack spacing={1}>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Politician:</InputLabel>
+                            <Autocomplete
+                                options={candidates || []}
+                                getOptionLabel={(option) => option?.name || option?.label || ''}
+                                value={(candidates || []).find(c => {
+                                    try {
+                                        return c._id?.toString() === (formData.candidate_id ? formData.candidate_id.toString() : '');
+                                    } catch (e) {
+                                        return false;
+                                    }
+                                }) || null}
+                                onChange={(e, newValue) => {
+                                    if (!newValue) {
+                                        setFormData(prev => ({ ...prev, candidate_id: '' }));
+                                    } else {
+                                        setFormData(prev => ({ ...prev, candidate_id: newValue._id || newValue }));
+                                    }
+                                    if (errors.candidate_id) setErrors(prev => ({ ...prev, candidate_id: '' }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        name="candidate_id"
+                                        placeholder="Search candidate..."
+                                        error={!!errors.candidate_id}
+                                        helperText={errors.candidate_id}
+                                        disabled={isSubmitting}
+                                    />
+                                )}
+                                isOptionEqualToValue={(option, value) => {
+                                    if (!option || !value) return false;
+                                    return option._id?.toString() === (value._id?.toString ? value._id.toString() : value.toString());
+                                }}
+                                disabled={isSubmitting}
+                            />
+                        </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                        <FormSelect
-                            label="Year"
-                            name="election_year_id"
-                            value={formData.election_year_id}
-                            options={electionYears}
-                            onChange={handleChange}
-                            error={errors.election_year_id}
-                            disabled={isSubmitting}
-                            labelKey="year"
-                        />
+                        {/* Year input: free text with dropdown options for 2022-2030 (and any existing electionYears) */}
+                        <Stack spacing={1}>
+                            <InputLabel>Year</InputLabel>
+                            {/**
+                             * Autocomplete works in freeSolo mode so user can type a year.
+                             * We display year strings (e.g., '2024') but store the corresponding
+                             * election_year_id when a matching electionYear exists.
+                             */}
+                            <Autocomplete
+                                freeSolo
+                                options={(() => {
+                                    // Collect years from provided electionYears and ensure 2022-2030 range
+                                    const yearsFromProps = (electionYears || []).map(e => String(e.year)).filter(Boolean);
+                                    const range = [];
+                                    for (let y = 2022; y <= 2030; y++) range.push(String(y));
+                                    const set = new Set([...range, ...yearsFromProps]);
+                                    return Array.from(set).sort();
+                                })()}
+                                value={(() => {
+                                    const val = formData.election_year_id;
+                                    if (!val) return '';
+                                    // If it's an id that matches an electionYears entry, show the year
+                                    const matched = (electionYears || []).find(e => e._id === val);
+                                    if (matched) return String(matched.year);
+                                    // Otherwise assume it's already a year string
+                                    return String(val);
+                                })()}
+                                onChange={(e, newValue) => {
+                                    // newValue is a year string (or empty)
+                                    if (!newValue) {
+                                        setFormData(prev => ({ ...prev, election_year_id: '' }));
+                                        return;
+                                    }
+                                    const matched = (electionYears || []).find(e => String(e.year) === String(newValue));
+                                    if (matched) {
+                                        // store the _id so backend still receives election_year_id when possible
+                                        setFormData(prev => ({ ...prev, election_year_id: matched._id }));
+                                    } else {
+                                        // store the typed year string (frontend will show it)
+                                        setFormData(prev => ({ ...prev, election_year_id: String(newValue) }));
+                                    }
+                                    if (errors.election_year_id) setErrors(prev => ({ ...prev, election_year_id: '' }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        name="election_year_id"
+                                        placeholder="e.g. 2024"
+                                        error={!!errors.election_year_id}
+                                        helperText={errors.election_year_id}
+                                        disabled={isSubmitting}
+                                    />
+                                )}
+                            />
+                        </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -662,7 +735,7 @@ export default function VisitModal({
 
                             <Grid item xs={12} sm={4}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Announcement Date</InputLabel>
+                                    <InputLabel sx={{ fontWeight: 'bold' }}>Announcement Date:</InputLabel>
                                     <DatePicker
                                         value={formData.announcementDate}
                                         onChange={(d) => setFormData(prev => ({ ...prev, announcementDate: d }))}
@@ -675,7 +748,7 @@ export default function VisitModal({
 
                             <Grid item xs={12} sm={4}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Completion Date</InputLabel>
+                                    <InputLabel sx={{ fontWeight: 'bold' }}>Completion Date:</InputLabel>
                                     <DatePicker
                                         value={formData.completionDate}
                                         onChange={(d) => setFormData(prev => ({ ...prev, completionDate: d }))}
@@ -688,7 +761,7 @@ export default function VisitModal({
 
                             <Grid item xs={12} sm={4}>
                                 <Stack spacing={1}>
-                                    <InputLabel>Budget Announced Date</InputLabel>
+                                    <InputLabel sx={{ fontWeight: 'bold' }}>Budget Announced Date:</InputLabel>
                                     <DatePicker
                                         value={formData.budgetAnnouncedDate}
                                         onChange={(d) => setFormData(prev => ({ ...prev, budgetAnnouncedDate: d }))}
@@ -701,7 +774,7 @@ export default function VisitModal({
 
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Location Name</InputLabel>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Location Name:</InputLabel>
                             <Autocomplete
                                 freeSolo
                                 options={locationOptions}
@@ -755,7 +828,7 @@ export default function VisitModal({
                     {/* Row: Description (Rich Text) */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Description:</InputLabel>
                             <ReactQuill
                                 theme="snow"
                                 value={formData.description}
@@ -771,7 +844,7 @@ export default function VisitModal({
 
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Visit Agenda</InputLabel>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Visit Agenda:</InputLabel>
                             <TextField
                                 name="visitAgenda"
                                 value={formData.visitAgenda}
@@ -790,7 +863,7 @@ export default function VisitModal({
 
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Speech Punch line</InputLabel>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Speech Punch line:</InputLabel>
                             <ReactQuill
                                 theme="snow"
                                 value={formData.speechFiveLines}
@@ -803,7 +876,7 @@ export default function VisitModal({
 
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Speech Issue</InputLabel>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Speech Issue:</InputLabel>
                             <ReactQuill
                                 theme="snow"
                                 value={formData.speechIssue}
@@ -814,7 +887,7 @@ export default function VisitModal({
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid item xs={12} sx={{ mt: 2 }}>
                         <FormTextField
                             label="Remark"
                             name="remark"
@@ -832,14 +905,14 @@ export default function VisitModal({
                     {[0,1,2].map(i => (
                         <Grid item xs={12} sm={4} key={`doc-${i}`}>
                             <Stack spacing={1}>
-                                <InputLabel>Document {i+1} Name</InputLabel>
+                                <InputLabel sx={{ fontWeight: 'bold' }}>Document {i+1} Name:</InputLabel>
                                 <TextField
                                     value={documentNames[i]}
                                     onChange={(e) => handleDocumentNameChange(i, e.target.value)}
                                     fullWidth
                                     disabled={isSubmitting}
                                 />
-                                <InputLabel sx={{ mt: 1 }}>Upload File</InputLabel>
+                                <InputLabel sx={{ mt: 1, fontWeight: 'bold' }}>Upload File:</InputLabel>
                                 <input
                                     type="file"
                                     onChange={(e) => handleDocumentFileChange(i, e.target.files[0] || null)}
