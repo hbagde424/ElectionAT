@@ -84,6 +84,14 @@ const CRUDMenu = {
   permissions: ['Users', 'Help Center', 'FAQ', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'], // Any read permission shows this group
   children: [
     {
+      id: 'Users',
+      title: <FormattedMessage id="Users" />,
+      type: 'item',
+      url: '/Users',
+      icon: icons.People,
+      permissions: ['Users']
+    },
+    {
       id: 'state',
       title: <FormattedMessage id="State" />,
       type: 'item',
@@ -287,14 +295,7 @@ const CRUDMenu = {
       icon: icons.User,
       permissions: ['Pontentcal-Candidate']
     },
-    {
-      id: 'Users',
-      title: <FormattedMessage id="Users" />,
-      type: 'item',
-      url: '/Users',
-      icon: icons.People,
-      permissions: ['Users']
-    },
+
     {
       id: 'Our visits',
       title: <FormattedMessage id="Our Visits" />,

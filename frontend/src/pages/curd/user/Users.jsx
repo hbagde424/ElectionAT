@@ -51,7 +51,7 @@ import UserModal from './UserModal';
 import CrudPageLayout from 'components/permission/CrudPageLayout';
 import PermissionGate from 'components/PermissionGate';
 // import AlertUserDelete from './AlertUserDelete';
-// import UserView from './UserView';
+import UserView from './UserView';
 
 const Users = () => {
     const theme = useTheme();

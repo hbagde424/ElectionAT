@@ -12,16 +12,17 @@ import {
 import { CSVLink } from 'react-csv';
 import IconButton from 'components/@extended/IconButton';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import WinningPartyModal from './WinningPartyModal';
-import WinningPartyView from './WinningPartyView';
 import AlertWinningPartyDelete from './AlertWinningPartyDelete';
 
 const WinningPartyListPage = () => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const [winningParties, setWinningParties] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
@@ -342,11 +343,11 @@ const WinningPartyListPage = () => {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Candidate',
@@ -508,15 +509,17 @@ const WinningPartyListPage = () => {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded
-                    ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-                    : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
                         <Tooltip title="View">
-                            <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                                {expandIcon}
+                            <IconButton
+                                color="secondary"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/winning-parties/${row.original._id}`);
+                                }}
+                            >
+                                <Eye />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Edit">
@@ -553,8 +556,7 @@ const WinningPartyListPage = () => {
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getRowCanExpand: () => true
+        getPaginationRowModel: getPaginationRowModel()
     });
 
     const fetchAllWinningPartiesForCsv = async () => {
@@ -787,7 +789,7 @@ const WinningPartyListPage = () => {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',
@@ -813,13 +815,6 @@ const WinningPartyListPage = () => {
                                                 </TableCell>
                                             ))}
                                         </TableRow>
-                                        {row.getIsExpanded() && (
-                                            <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <WinningPartyView data={row.original} />
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
                                     </Fragment>
                                 ))}
                             </TableBody>

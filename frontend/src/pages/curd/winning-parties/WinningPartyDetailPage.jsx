@@ -1,67 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    Box,
     Container,
     Typography,
+    Box,
     Grid,
-    CardContent,
     Chip,
-    Stack,
-    Avatar,
-    Divider,
-    Button,
     IconButton,
-    Paper,
-    LinearProgress,
-    Alert,
     Breadcrumbs,
-    Link
+    Link,
+    CardContent,
+    Button,
+    Stack,
+    Alert,
+    LinearProgress
 } from '@mui/material';
-import {
-    ArrowBack,
-    Person,
-    LocationOn,
-    Work,
-    Description,
-    Timeline,
-    Article,
-    Edit,
-    Share,
-    Download
-} from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { ArrowBack } from '@mui/icons-material';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
 
-const VisitDetailPage = () => {
-    const theme = useTheme();
-    const navigate = useNavigate();
+export default function WinningPartyDetailPage() {
     const { id } = useParams();
-    const [visit, setVisit] = useState(null);
+    const navigate = useNavigate();
+    const [winningParty, setWinningParty] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        console.log('VisitDetailPage mounted with ID:', id);
-        console.log('Current URL:', window.location.href);
-        fetchVisitDetails();
+        if (id) {
+            fetchWinningPartyDetails();
+        }
     }, [id]);
 
-    const fetchVisitDetails = async () => {
+    const fetchWinningPartyDetails = async () => {
         try {
             setLoading(true);
-            console.log('Fetching visit with ID:', id);
-            const response = await axiosServices.get(`/visits/${id}`);
-            console.log('Visit response:', response.data);
+            setError(null);
+
+            if (!id) {
+                setError('No winning party ID provided');
+                return;
+            }
+
+            // Validate MongoDB ObjectId format
+            if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+                setError('Invalid winning party ID format');
+                return;
+            }
+
+            console.log('Fetching winning party details for ID:', id);
+            const response = await axiosServices.get(`/winning-parties/${id}`);
+
             if (response.data.success) {
-                setVisit(response.data.data);
+                setWinningParty(response.data.data);
             } else {
-                setError('Visit not found');
+                setError('Failed to load winning party details');
             }
         } catch (err) {
-            console.error('Error fetching visit details:', err);
-            setError(`Failed to load visit details: ${err.response?.data?.message || err.message}`);
+            console.error('Error fetching winning party details:', err);
+            console.error('Error response:', err.response);
+
+            if (err.response?.status === 404) {
+                setError('Winning party not found');
+            } else if (err.response?.status === 500) {
+                setError('Server error. Please try again later.');
+            } else {
+                setError(err.response?.data?.message || 'Failed to load winning party details');
+            }
         } finally {
             setLoading(false);
         }
@@ -80,7 +85,7 @@ const VisitDetailPage = () => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString('en-US', {
             year: 'numeric',
-            month: 'short',
+            month: 'long',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
@@ -89,90 +94,77 @@ const VisitDetailPage = () => {
     };
 
     const getStatusColor = (status) => {
-        const colors = {
-            'announced': 'default',
-            'approved': 'info',
-            'in progress': 'warning',
-            'complete': 'success'
-        };
-        return colors[status] || 'default';
-    };
-
-    const getStatusIcon = (status) => {
-        const icons = {
-            'announced': '📢',
-            'approved': '✅',
-            'in progress': '🔄',
-            'complete': '🎉'
-        };
-        return icons[status] || '📋';
+        switch (status?.toLowerCase()) {
+            case 'active':
+                return 'success';
+            case 'inactive':
+                return 'error';
+            default:
+                return 'default';
+        }
     };
 
     if (loading) {
         return (
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            <Container maxWidth="lg">
                 <LinearProgress />
-                <Typography variant="h6" sx={{ mt: 2, textAlign: 'center' }}>
-                    Loading visit details...
-                </Typography>
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography>Loading winning party details...</Typography>
+                </Box>
             </Container>
         );
     }
 
-    if (error || !visit) {
+    if (error || !winningParty) {
         return (
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    {error || 'Visit not found'}
+            <Container maxWidth="lg">
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    {error || 'Failed to load winning party details'}
                 </Alert>
                 <Button
                     variant="contained"
                     startIcon={<ArrowBack />}
-                    onClick={() => navigate('/visits')}
+                    onClick={() => navigate('/winning-parties')}
                 >
-                    Back to Visits
+                    Back To Winning Parties
                 </Button>
             </Container>
         );
     }
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Container maxWidth="lg">
             {/* Breadcrumbs */}
             <Breadcrumbs sx={{ mb: 3 }}>
                 <Link
-                    color="inherit"
-                    href="#"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        navigate('/visits');
-                    }}
+                    component="button"
+                    variant="body1"
+                    onClick={() => navigate('/winning-parties')}
                     sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
                 >
-                    Visits
+                    Winning Parties
                 </Link>
-                <Typography color="text.primary">Visit Details</Typography>
+                <Typography color="text.primary">Winning Party Details</Typography>
             </Breadcrumbs>
 
             {/* Header Section */}
             <MainCard sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <IconButton onClick={() => navigate('/visits')}>
+                    <IconButton onClick={() => navigate('/winning-parties')}>
                         <ArrowBack />
                     </IconButton>
                     <Box>
                         <Typography variant="h4" component="h1" color="primary">
-                            Visit Details
+                            Winning Party Details
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            {formatDateTime(visit.date)}
+                            {formatDateTime(winningParty.created_at)}
                         </Typography>
                     </Box>
                 </Box>
-
             </MainCard>
 
-            {/* All Visit Information in 3-column layout */}
+            {/* All Winning Party Information in 3-column layout */}
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
@@ -184,7 +176,7 @@ const VisitDetailPage = () => {
                                         State
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.state_id?.name || 'N/A'}
+                                        {winningParty.state_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -192,7 +184,7 @@ const VisitDetailPage = () => {
                                         Division
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.division_id?.name || 'N/A'}
+                                        {winningParty.division_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -200,7 +192,7 @@ const VisitDetailPage = () => {
                                         Parliament
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.parliament_id?.name || 'N/A'}
+                                        {winningParty.parliament_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -208,7 +200,7 @@ const VisitDetailPage = () => {
                                         Assembly
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.assembly_id?.name || 'N/A'}
+                                        {winningParty.assembly_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -216,7 +208,7 @@ const VisitDetailPage = () => {
                                         Block
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.block_id?.name || 'N/A'}
+                                        {winningParty.block_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -224,24 +216,24 @@ const VisitDetailPage = () => {
                                         Booth
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.booth_id?.name || 'N/A'}
-                                        {visit.booth_id?.booth_number && ` (#${visit.booth_id.booth_number})`}
+                                        {winningParty.booth_id?.name || 'N/A'}
+                                        {winningParty.booth_id?.booth_number && ` (#${winningParty.booth_id.booth_number})`}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Politician
+                                        Party
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.candidate_id?.name || 'N/A'}
+                                        {winningParty.party_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Year
+                                        Candidate
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.election_year_id?.year ? `${visit.election_year_id.year} (${visit.election_year_id.election_type})` : 'N/A'}
+                                        {winningParty.candidate_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                             </Grid>
@@ -252,66 +244,66 @@ const VisitDetailPage = () => {
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Post
+                                        Election Year
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.post || 'N/A'}
+                                        {winningParty.election_year ? `${winningParty.election_year.year} (${winningParty.election_year.election_type})` : 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Date
+                                        Votes
                                     </Typography>
                                     <Typography variant="body1">
-                                        {formatDate(visit.date)}
+                                        {winningParty.votes || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Work Name
+                                        Margin
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.workName || 'N/A'}
+                                        {winningParty.margin || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Work Status
+                                        Booth Number
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.work_status || 'N/A'}
+                                        {winningParty.booth_number || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Announcement Date
+                                        Created By
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.announcementDate ? formatDate(visit.announcementDate) : 'N/A'}
+                                        {winningParty.created_by?.username || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Completion Date
+                                        Updated By
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.completionDate ? formatDate(visit.completionDate) : 'N/A'}
+                                        {winningParty.updated_by?.username || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Budget Announced Date
+                                        Created At
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.budgetAnnouncedDate ? formatDate(visit.budgetAnnouncedDate) : 'N/A'}
+                                        {formatDateTime(winningParty.created_at)}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Location Name
+                                        Updated At
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.locationName || 'N/A'}
+                                        {formatDateTime(winningParty.updated_at)}
                                     </Typography>
                                 </Grid>
                             </Grid>
@@ -322,42 +314,26 @@ const VisitDetailPage = () => {
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Longitude
+                                        Record ID
                                     </Typography>
-                                    <Typography variant="body1">
-                                        {visit.longitude || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Latitude
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {visit.latitude || 'N/A'}
+                                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                                        {winningParty._id || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
+                                        Election Type
                                     </Typography>
                                     <Typography variant="body1">
-                                        {visit.created_by?.username || 'N/A'}
+                                        {winningParty.election_year?.election_type || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
+                                        Year
                                     </Typography>
                                     <Typography variant="body1">
-                                        {formatDateTime(visit.updated_at)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {visit.updated_by?.username || 'N/A'}
+                                        {winningParty.election_year?.year || 'N/A'}
                                     </Typography>
                                 </Grid>
                             </Grid>
@@ -365,94 +341,38 @@ const VisitDetailPage = () => {
                     </Grid>
 
                     {/* Full-width sections for longer content */}
-                    {visit.description && (
+                    {winningParty.description && (
                         <Box sx={{ mt: 3 }}>
                             <Typography variant="subtitle2" color="text.secondary">
                                 Description
                             </Typography>
                             <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: visit.description }} />
+                                <div dangerouslySetInnerHTML={{ __html: winningParty.description }} />
                             </Typography>
-                        </Box>
-                    )}
-
-                    {visit.visitAgenda && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Visit Agenda
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-line' }}>
-                                {visit.visitAgenda}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {visit.speechFiveLines && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Speech Punch Line
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: visit.speechFiveLines }} />
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {visit.speechIssue && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Speech Issue
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: visit.speechIssue }} />
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {visit.remark && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Remark
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-line' }}>
-                                {visit.remark}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {/* Documents */}
-                    {Array.isArray(visit.documents) && visit.documents.length > 0 && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                                Documents
-                            </Typography>
-                            <Stack spacing={1}>
-                                {visit.documents.map((doc, idx) => (
-                                    doc ? (
-                                        <Button
-                                            key={idx}
-                                            variant="outlined"
-                                            startIcon={<Download />}
-                                            href={doc.filePath}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            fullWidth
-                                            sx={{ justifyContent: 'flex-start' }}
-                                        >
-                                            {doc.name || `Document ${idx + 1}`}
-                                        </Button>
-                                    ) : null
-                                ))}
-                            </Stack>
                         </Box>
                     )}
                 </CardContent>
             </MainCard>
 
             {/* Status and Key Info below the table */}
-
+            <MainCard sx={{ mt: 3 }}>
+                <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <Chip
+                            label={winningParty.election_year?.year ? `${winningParty.election_year.year} (${winningParty.election_year.election_type})` : 'N/A'}
+                            color="primary"
+                        />
+                        <Chip
+                            label={winningParty.party_id?.name || 'N/A'}
+                            variant="outlined"
+                        />
+                        <Chip
+                            label={winningParty.candidate_id?.name || 'N/A'}
+                            variant="outlined"
+                        />
+                    </Box>
+                </CardContent>
+            </MainCard>
         </Container>
     );
-};
-
-export default VisitDetailPage;
+}
