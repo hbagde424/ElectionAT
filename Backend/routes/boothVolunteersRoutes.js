@@ -5,11 +5,13 @@ const {
   createBoothVolunteer,
   updateBoothVolunteer,
   deleteBoothVolunteer,
+  deleteVolunteerDocument,
   getVolunteersByBooth,
   getVolunteersByParty,
   getVolunteersByState
 } = require('../controllers/boothVolunteersController');
 const { protect, authorize } = require('../middlewares/auth');
+const volunteerUpload = require('../config/volunteerUpload');
 
 const router = express.Router();
 
@@ -143,9 +145,47 @@ router.get('/:id', getBoothVolunteer);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/BoothVolunteer'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               post:
+ *                 type: string
+ *               area_responsibility:
+ *                 type: string
+ *               activity_level:
+ *                 type: string
+ *                 enum: [High, Medium, Low]
+ *               remarks:
+ *                 type: string
+ *               booth_id:
+ *                 type: string
+ *               party_id:
+ *                 type: string
+ *               state_id:
+ *                 type: string
+ *               division_id:
+ *                 type: string
+ *               assembly_id:
+ *                 type: string
+ *               parliament_id:
+ *                 type: string
+ *               block_id:
+ *                 type: string
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Multiple document files
  *     responses:
  *       201:
  *         description: Booth volunteer created successfully
@@ -154,7 +194,7 @@ router.get('/:id', getBoothVolunteer);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin', 'coordinator'), createBoothVolunteer);
+router.post('/', protect, authorize('superAdmin', 'coordinator'), volunteerUpload.array('documents', 10), createBoothVolunteer);
 
 /**
  * @swagger
@@ -173,9 +213,47 @@ router.post('/', protect, authorize('superAdmin', 'coordinator'), createBoothVol
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/BoothVolunteer'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               post:
+ *                 type: string
+ *               area_responsibility:
+ *                 type: string
+ *               activity_level:
+ *                 type: string
+ *                 enum: [High, Medium, Low]
+ *               remarks:
+ *                 type: string
+ *               booth_id:
+ *                 type: string
+ *               party_id:
+ *                 type: string
+ *               state_id:
+ *                 type: string
+ *               division_id:
+ *                 type: string
+ *               assembly_id:
+ *                 type: string
+ *               parliament_id:
+ *                 type: string
+ *               block_id:
+ *                 type: string
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Additional document files to add
  *     responses:
  *       200:
  *         description: Booth volunteer updated successfully
@@ -186,7 +264,7 @@ router.post('/', protect, authorize('superAdmin', 'coordinator'), createBoothVol
  *       404:
  *         description: Booth volunteer not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'coordinator'), updateBoothVolunteer);
+router.put('/:id', protect, authorize('superAdmin', 'coordinator'), volunteerUpload.array('documents', 10), updateBoothVolunteer);
 
 /**
  * @swagger
@@ -211,6 +289,37 @@ router.put('/:id', protect, authorize('superAdmin', 'coordinator'), updateBoothV
  *         description: Booth volunteer not found
  */
 router.delete('/:id', protect, authorize('superAdmin'), deleteBoothVolunteer);
+
+/**
+ * @swagger
+ * /api/booth-volunteers/{id}/documents/{documentId}:
+ *   delete:
+ *     summary: Delete a specific document from booth volunteer
+ *     tags: [Booth Volunteers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booth volunteer ID
+ *       - in: path
+ *         name: documentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Document ID to delete
+ *     responses:
+ *       200:
+ *         description: Document deleted successfully
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Booth volunteer or document not found
+ */
+router.delete('/:id/documents/:documentId', protect, authorize('superAdmin', 'coordinator'), deleteVolunteerDocument);
 
 /**
  * @swagger
@@ -386,6 +495,33 @@ router.get('/state/:stateId', getVolunteersByState);
  *           type: string
  *           description: Additional remarks
  *           example: "Very active during campaigns"
+ *         documents:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               _id:
+ *                 type: string
+ *                 description: Document ID
+ *               filename:
+ *                 type: string
+ *                 description: Stored filename
+ *               originalname:
+ *                 type: string
+ *                 description: Original filename
+ *               mimetype:
+ *                 type: string
+ *                 description: File MIME type
+ *               size:
+ *                 type: number
+ *                 description: File size in bytes
+ *               path:
+ *                 type: string
+ *                 description: File path on server
+ *               uploaded_at:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Upload timestamp
  *         created_by:
  *           type: string
  *           description: Reference to User who created the record

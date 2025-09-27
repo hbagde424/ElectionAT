@@ -340,6 +340,18 @@ export default function BoothVolunteerListPage() {
       )
     },
     {
+      header: 'Documents',
+      accessorKey: 'documents',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue() ? `${getValue().length} files` : '0 files'}
+          color={getValue() && getValue().length > 0 ? 'primary' : 'default'}
+          size="small"
+          variant="outlined"
+        />
+      )
+    },
+    {
       header: 'Created By',
       accessorKey: 'created_by',
       cell: ({ getValue }) => (

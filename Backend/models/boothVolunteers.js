@@ -83,6 +83,30 @@ const boothVolunteersSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  documents: [{
+    filename: {
+      type: String,
+      required: true
+    },
+    originalname: {
+      type: String,
+      required: true
+    },
+    mimetype: {
+      type: String
+    },
+    size: {
+      type: Number
+    },
+    path: {
+      type: String,
+      required: true
+    },
+    uploaded_at: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

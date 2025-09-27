@@ -1,5 +1,5 @@
-import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
-import { CalendarTick, People, User } from 'iconsax-react';
+import { Stack, Typography, Divider, Grid, Box, Chip, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
+import { CalendarTick, People, User, DocumentText, Eye } from 'iconsax-react';
 
 export default function BoothVolunteerView({ data }) {
   if (!data) return null;
@@ -97,6 +97,34 @@ export default function BoothVolunteerView({ data }) {
                 <Typography variant="body1">{data.remarks}</Typography>
               </Box>
             )}
+
+            {/* Documents Section */}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>Documents</Typography>
+              {data.documents && data.documents.length > 0 ? (
+                <List dense>
+                  {data.documents.map((doc, index) => (
+                    <ListItem key={index} sx={{ pl: 0 }}>
+                      <DocumentText size={20} style={{ marginRight: 8 }} />
+                      <ListItemText
+                        primary={doc.originalname || doc.filename}
+                        secondary={`${(doc.size / 1024 / 1024).toFixed(2)} MB - ${new Date(doc.uploaded_at).toLocaleDateString()}`}
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton
+                          size="small"
+                          onClick={() => window.open(`${import.meta.env.VITE_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/volunteer-docs/${doc.filename}`, '_blank')}
+                        >
+                          <Eye size={16} />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">No documents uploaded</Typography>
+              )}
+            </Box>
           </Stack>
         </Grid>
 

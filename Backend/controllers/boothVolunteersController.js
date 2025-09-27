@@ -7,6 +7,8 @@ const Assembly = require('../models/Assembly');
 const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
 const User = require('../models/User');
+const fs = require('fs');
+const path = require('path');
 
 // @desc    Get all booth volunteers
 // @route   GET /api/booth-volunteers
@@ -296,6 +298,17 @@ exports.createBoothVolunteer = async (req, res, next) => {
       created_by: req.user.id
     };
 
+    // Handle document uploads if files are present
+    if (req.files && req.files.length > 0) {
+      volunteerData.documents = req.files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        path: file.path
+      }));
+    }
+
     const volunteer = await BoothVolunteers.create(volunteerData);
 
     res.status(201).json({
@@ -352,6 +365,19 @@ exports.updateBoothVolunteer = async (req, res, next) => {
     req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
 
+    // Handle document uploads if files are present
+    if (req.files && req.files.length > 0) {
+      const newDocuments = req.files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        path: file.path
+      }));
+      
+      req.body.documents = volunteer.documents ? [...volunteer.documents, ...newDocuments] : newDocuments;
+    }
+
     volunteer = await BoothVolunteers.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
@@ -395,11 +421,68 @@ exports.deleteBoothVolunteer = async (req, res, next) => {
       });
     }
 
+    // Delete associated documents from filesystem
+    if (volunteer.documents && volunteer.documents.length > 0) {
+      volunteer.documents.forEach(doc => {
+        if (doc.path && fs.existsSync(doc.path)) {
+          fs.unlinkSync(doc.path);
+        }
+      });
+    }
+
     await volunteer.deleteOne();
 
     res.status(200).json({
       success: true,
       data: {}
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Delete single document from volunteer
+// @route   DELETE /api/booth-volunteers/:id/documents/:documentId
+// @access  Private (Admin/Coordinator)
+exports.deleteVolunteerDocument = async (req, res, next) => {
+  try {
+    const volunteer = await BoothVolunteers.findById(req.params.id);
+
+    if (!volunteer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booth volunteer not found'
+      });
+    }
+
+    const documentIndex = volunteer.documents.findIndex(
+      doc => doc._id.toString() === req.params.documentId
+    );
+
+    if (documentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    const document = volunteer.documents[documentIndex];
+
+    // Delete file from filesystem
+    if (document.path && fs.existsSync(document.path)) {
+      fs.unlinkSync(document.path);
+    }
+
+    // Remove document from array
+    volunteer.documents.splice(documentIndex, 1);
+    volunteer.updated_by = req.user.id;
+    volunteer.updated_at = new Date();
+
+    await volunteer.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Document deleted successfully'
     });
   } catch (err) {
     next(err);

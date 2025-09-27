@@ -13,9 +13,18 @@ import {
   Grid,
   FormHelperText,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Box,
+  Typography,
+  Chip,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { DocumentUpload, Trash, Eye } from 'iconsax-react';
 
 export default function BoothVolunteerModal({
   open,
@@ -49,6 +58,10 @@ export default function BoothVolunteerModal({
     parliament_id: '',
     block_id: ''
   });
+
+  // Document state
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [existingDocuments, setExistingDocuments] = useState([]);
 
   // Filtered dropdown options
   const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -84,6 +97,9 @@ export default function BoothVolunteerModal({
         parliament_id: getID(volunteer.parliament_id),
         block_id: getID(volunteer.block_id)
       });
+      
+      // Set existing documents
+      setExistingDocuments(volunteer.documents || []);
     } else {
       setFormData({
         name: '',
@@ -102,8 +118,13 @@ export default function BoothVolunteerModal({
         parliament_id: '',
         block_id: ''
       });
+      
+      // Reset documents
+      setExistingDocuments([]);
     }
 
+    // Reset file selection
+    setSelectedFiles([]);
     setFilteredDivisions([]);
     setFilteredParliaments([]);
     setFilteredAssemblies([]);
@@ -294,6 +315,41 @@ export default function BoothVolunteerModal({
     });
   };
 
+  // Handle file selection
+  const handleFileChange = (event) => {
+    const files = Array.from(event.target.files);
+    setSelectedFiles(files);
+  };
+
+  // Remove selected file
+  const removeSelectedFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Delete existing document
+  const deleteExistingDocument = async (documentId) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_APP_API_URL}/booth-volunteers/${volunteer._id}/documents/${documentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('serviceToken')}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        setExistingDocuments(prev => prev.filter(doc => doc._id !== documentId));
+      } else {
+        throw new Error('Failed to delete document');
+      }
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      setSubmitError('Failed to delete document');
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -309,18 +365,36 @@ export default function BoothVolunteerModal({
         : `${import.meta.env.VITE_APP_API_URL}/booth-volunteers`;
 
       const currentUser = JSON.parse(localStorage.getItem('user'));
-      const submitData = {
-        ...formData,
-        ...(volunteer ? { updated_by: currentUser?._id } : { created_by: currentUser?._id })
-      };
+      
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Add all form fields
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== '') {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+      
+      // Add user info
+      if (volunteer) {
+        formDataToSend.append('updated_by', currentUser?._id);
+      } else {
+        formDataToSend.append('created_by', currentUser?._id);
+      }
+      
+      // Add files
+      selectedFiles.forEach(file => {
+        formDataToSend.append('documents', file);
+      });
 
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
+          // Don't set Content-Type, let browser set it with boundary for multipart/form-data
         },
-        body: JSON.stringify(submitData)
+        body: formDataToSend
       });
 
       if (res.ok) {
@@ -604,6 +678,99 @@ export default function BoothVolunteerModal({
                 </Select>
                 {errors.booth_id && <FormHelperText>{errors.booth_id}</FormHelperText>}
               </FormControl>
+            </Grid>
+
+            {/* Documents Section */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Documents
+              </Typography>
+              
+              {/* File Upload */}
+              <Box sx={{ mb: 2 }}>
+                <input
+                  accept="*/*"
+                  style={{ display: 'none' }}
+                  id="document-upload"
+                  multiple
+                  type="file"
+                  onChange={handleFileChange}
+                />
+                <label htmlFor="document-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<DocumentUpload />}
+                    sx={{ mb: 2 }}
+                  >
+                    Upload Documents
+                  </Button>
+                </label>
+              </Box>
+
+              {/* Selected Files Preview */}
+              {selectedFiles.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Selected Files:
+                  </Typography>
+                  <List dense>
+                    {selectedFiles.map((file, index) => (
+                      <ListItem key={index}>
+                        <ListItemText
+                          primary={file.name}
+                          secondary={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            onClick={() => removeSelectedFile(index)}
+                            size="small"
+                          >
+                            <Trash size={16} />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+
+              {/* Existing Documents */}
+              {existingDocuments.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Existing Documents:
+                  </Typography>
+                  <List dense>
+                    {existingDocuments.map((doc) => (
+                      <ListItem key={doc._id}>
+                        <ListItemText
+                          primary={doc.originalname || doc.filename}
+                          secondary={`${(doc.size / 1024 / 1024).toFixed(2)} MB - Uploaded: ${new Date(doc.uploaded_at).toLocaleDateString()}`}
+                        />
+                        <ListItemSecondaryAction>
+                          <Stack direction="row" spacing={1}>
+                            <IconButton
+                              size="small"
+                              onClick={() => window.open(`${import.meta.env.VITE_APP_API_URL.replace('/api', '')}/uploads/volunteer-docs/${doc.filename}`, '_blank')}
+                            >
+                              <Eye size={16} />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => deleteExistingDocument(doc._id)}
+                            >
+                              <Trash size={16} />
+                            </IconButton>
+                          </Stack>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
             </Grid>
           </Grid>
         </Stack>
