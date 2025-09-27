@@ -65,6 +65,7 @@ exports.getWinningPartyByParliament = async (req, res, next) => {
   }
 };
 const ParliamentCandidate = require('../models/ParliamentCandidate');
+const mongoose = require('mongoose');
 
 // Helper to normalize mixed-case and formatted fields from DB documents
 function normalizeCandidateDoc(doc) {
@@ -588,5 +589,121 @@ exports.getParliamentCandidateStats = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+};
+
+// @desc    Get Parliament Candidate stats by Parliament ID or Number
+// @route   GET /api/parliament-candidates/stats/parliament/:parliamentId
+// @access  Public
+exports.getParliamentCandidateStatsByParliament = async (req, res, next) => {
+  try {
+    const rawParliamentId = req.params.parliamentId;
+    const parliamentId = decodeURIComponent(rawParliamentId);
+    console.log('=== PARLIAMENT CANDIDATE STATS REQUEST ===');
+    console.log('Raw received parliamentId:', rawParliamentId);
+    console.log('Decoded parliamentId:', parliamentId);
+    
+    // First find the parliament by either ObjectId or parliament_no
+    const Parliament = require('../models/Parliament');
+    let parliament;
+    
+    // Check if parliamentId is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(parliamentId)) {
+      parliament = await Parliament.findById(parliamentId);
+      console.log('Found parliament by ObjectId:', parliament);
+    }
+    
+    // If not found by ObjectId, try by parliament_no (convert to number if possible)
+    if (!parliament) {
+      const parliamentNo = parseInt(parliamentId);
+      if (!isNaN(parliamentNo)) {
+        parliament = await Parliament.findOne({ parliament_no: parliamentNo });
+        console.log('Found parliament by parliament_no:', parliament);
+      }
+    }
+    
+    // If still not found, try to match by name (for cases like "DHAR (ST)" -> "Dhar")
+    if (!parliament) {
+      // First try exact match
+      parliament = await Parliament.findOne({ name: parliamentId });
+      console.log('Found parliament by exact name match:', parliament);
+      
+      if (!parliament) {
+        // Extract the main name part (before any parentheses) and search
+        const cleanName = parliamentId.toString().split('(')[0].trim();
+        console.log('Searching for parliament with clean name:', cleanName);
+        parliament = await Parliament.findOne({ 
+          name: { $regex: new RegExp(`^${cleanName}`, 'i') } 
+        });
+        console.log('Found parliament by name search:', parliament);
+      }
+    }
+    
+    if (!parliament) {
+      console.log('Parliament not found for ID:', parliamentId);
+      // Let's check what parliaments exist
+      const allParliaments = await Parliament.find().limit(5);
+      console.log('Sample parliaments in DB:', allParliaments);
+      
+      return res.status(404).json({
+        success: false,
+        message: 'Parliament not found',
+        debug: { searchedId: parliamentId, sampleParliaments: allParliaments }
+      });
+    }
+
+    console.log('Using parliament:', parliament._id, parliament.name);
+
+    // Get latest winning candidate for this parliament (for last 3 years)
+    const latestWinner = await ParliamentCandidate.findOne({
+      parliament_id: parliament._id,
+      position_result: 'win'
+    })
+    .populate('party_id', 'name color symbol')
+    .populate('election_year_id', 'year')
+    .sort({ 'election_year_id': -1 })
+    .limit(1);
+
+    console.log('Latest winner found:', latestWinner);
+
+    if (!latestWinner) {
+      // Let's check what parliament candidates exist
+      const allCandidates = await ParliamentCandidate.find({ parliament_id: parliament._id }).limit(5);
+      console.log('Sample candidates for this parliament:', allCandidates);
+      
+      return res.status(404).json({
+        success: false,
+        message: 'No winning candidate data found for this parliament',
+        debug: { parliamentId: parliament._id, parliamentName: parliament.name, sampleCandidates: allCandidates }
+      });
+    }
+
+    const normalized = normalizeCandidateDoc(latestWinner);
+    console.log('Normalized candidate data:', normalized);
+
+    const statsData = {
+      electors: normalized.electors || 0,
+      male_electors: normalized.male_electors || 0,
+      female_electors: normalized.female_electors || 0,
+      last3YearWinner: latestWinner.party_id?.name || 'N/A',
+      winnerPartyColor: latestWinner.party_id?.color || null,
+      winnerPartySymbol: latestWinner.party_id?.symbol || null,
+      electionYear: latestWinner.election_year_id?.year || null,
+      totalVotes: normalized.total_votes_parliament || 0,
+      candidateVotes: normalized.candidate_votes || 0,
+      margin: normalized.margin || 0,
+      marginPercentage: normalized.margin_percentage || 0,
+      turnout: normalized.turnout || 0
+    };
+
+    console.log('Returning stats data:', statsData);
+
+    res.status(200).json({
+      success: true,
+      data: statsData
+    });
+  } catch (err) {
+    console.error('Error in getParliamentCandidateStatsByParliament:', err);
+    next(err);  
   }
 };

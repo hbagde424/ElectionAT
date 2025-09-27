@@ -5,7 +5,8 @@ const {
   createParliamentCandidate,
   updateParliamentCandidate,
   deleteParliamentCandidate,
-  getParliamentCandidateStats
+  getParliamentCandidateStats,
+  getParliamentCandidateStatsByParliament
 } = require('../controllers/parliamentCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -121,6 +122,66 @@ router.get('/', getParliamentCandidates);
  *                       type: array
  */
 router.get('/stats/overview', getParliamentCandidateStats);
+
+/**
+ * @swagger
+ * /api/parliament-candidates/stats/parliament/{parliamentId}:
+ *   get:
+ *     summary: Get Parliament Candidate stats by Parliament ID
+ *     tags: [Parliament Candidates]
+ *     parameters:
+ *       - in: path
+ *         name: parliamentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Parliament ID
+ *     responses:
+ *       200:
+ *         description: Parliament Candidate stats for specific parliament
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     electors:
+ *                       type: number
+ *                     male_electors:
+ *                       type: number
+ *                     female_electors:
+ *                       type: number
+ *                     last3YearWinner:
+ *                       type: string
+ *                     totalVotes:
+ *                       type: number
+ *       404:
+ *         description: No data found for this parliament
+ */
+router.get('/stats/parliament/:parliamentId', getParliamentCandidateStatsByParliament);
+
+// Debug endpoint to check what data exists
+router.get('/debug/data', async (req, res) => {
+  try {
+    const ParliamentCandidate = require('../models/ParliamentCandidate');
+    const Parliament = require('../models/Parliament');
+    
+    const parliaments = await Parliament.find().limit(5);
+    const candidates = await ParliamentCandidate.find().populate('parliament_id', 'name parliament_no').limit(5);
+    
+    res.json({
+      success: true,
+      parliaments,
+      candidates
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /**
  * @swagger

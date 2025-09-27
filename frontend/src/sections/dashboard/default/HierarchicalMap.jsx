@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faExpand, faCompress, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import MainCard from 'components/MainCard';
 
-// Add custom styles for permanent labels
+// Add custom styles for permanent labels and hover popups
 const customStyles = `
     .permanent-label {
         background-color: transparent !important;
@@ -31,6 +31,30 @@ const customStyles = `
     }
     .custom-popup .leaflet-popup-tip {
         background-color: white;
+    }
+    /* New hover popup styles */
+    .custom-hover-popup .leaflet-popup-content-wrapper {
+        background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        padding: 0;
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    .custom-hover-popup .hover-header {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        background: linear-gradient(90deg, rgba(0,123,255,0.08), rgba(0,200,83,0.02));
+    }
+    .custom-hover-popup .hover-title { font-weight: 700; color: #222; margin:0; font-size:14px }
+    .custom-hover-popup .hover-sub { color: #666; font-size:12px; margin-top:4px }
+    .custom-hover-popup .hover-body { padding: 10px 12px; display:flex; gap:10px; flex-wrap:wrap }
+    .custom-hover-popup .hover-stat { flex: 1 1 45%; min-width: 110px; background: #fff; border-radius:6px; padding:8px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .custom-hover-popup .hover-stat b { display:block; font-size:13px; color:#111 }
+    .custom-hover-popup .hover-stat span { font-size:12px; color:#555 }
+    /* Smooth highlight style for hovered layer */
+    .hover-highlight {
+        transition: all 200ms ease;
+        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.12));
     }
 `;
 
@@ -757,16 +781,19 @@ function HierarchicalMap({ onRegionClick }) {
                     opacity: 0.9
                 });
 
-                // Add popup with details
+                // Add popup with details — include hover class so hover styles apply
                 const content = generatePopupContent(feature, level);
                 layer.bindPopup(content, {
                     autoPan: false,
                     closeButton: false,
-                    className: 'custom-popup'
+                    className: 'custom-popup custom-hover-popup'
                 });
 
-                // Click handler for drill-down
-                layer.on('click', () => handleLayerClick(feature, level));
+                // Click handler for drill-down — close any open popups first so only the clicked feature shows details
+                layer.on('click', () => {
+                    try { if (mapInstanceRef.current) mapInstanceRef.current.closePopup(); } catch (err) {}
+                    handleLayerClick(feature, level);
+                });
 
                 // Hover-like behavior on mouseover with delayed close on mouseout so popup remains reachable
                 layer.on({
@@ -812,8 +839,21 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         }
 
-                        // Open popup (if not already open)
-                        try { target.openPopup(); } catch (err) {}
+                        // Fetch parliament candidate data for parliamentary level
+                        if (level === 'parliamentary') {
+                            // Use pcNo (parliament number) for consistent matching
+                            const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+
+                            if (parliamentId && !hoverData[cacheKey]?.parliamentCandidate) {
+                                fetchParliamentCandidateData(parliamentId);
+                            }
+                        }
+
+                        // Open popup (if not already open) — close other popups first so only this popup is visible
+                        try {
+                            if (mapInstanceRef.current) mapInstanceRef.current.closePopup();
+                            target.openPopup();
+                        } catch (err) {}
                     },
                     mouseout: (e) => {
                         const target = e.target;
@@ -951,6 +991,33 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
+    // Function to fetch parliament candidate data for hover
+    const fetchParliamentCandidateData = async (parliamentId) => {
+        try {
+            const encodedId = encodeURIComponent(parliamentId);
+            const url = `${import.meta.env.VITE_APP_API_URL}/parliament-candidates/stats/parliament/${encodedId}`;
+            const response = await fetch(url);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const cacheKey = `parliamentary_${parliamentId}`;
+                    setHoverData(prev => ({
+                        ...prev,
+                        [cacheKey]: {
+                            ...prev[cacheKey],
+                            parliamentCandidate: data.data
+                        }
+                    }));
+                }
+            } else {
+                console.error('Failed to fetch parliament candidate data. Status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching parliament candidate data:', error);
+        }
+    };
+
     const handleLayerClick = (feature, level) => {
         setSelectedFeature(feature);
 
@@ -1011,36 +1078,44 @@ function HierarchicalMap({ onRegionClick }) {
         // Create consistent cache key that matches how data is stored
         let cacheKey;
         if (level === 'parliamentary') {
-            cacheKey = `${level}_${properties.pcNo}`;
+            // Use pcNo (parliament number) for consistent matching
+            const parliamentId = properties.pcNo || properties.parliamentId || properties.id;
+            cacheKey = `${level}_${parliamentId}`;
         } else {
             cacheKey = `${level}_${featureId}`;
         }
 
+
         const data = hoverData[cacheKey] || {};
 
-        let content = `<div>`;
-        // For booth level, show booth name with boothNo
-        if (level === 'booth') {
-            content += `<h4 style="margin: 0 0 10px 0; color: #333;">${properties.name || properties.Name || ''}${properties.boothNo ? ` (Booth No: ${properties.boothNo})` : ''}</h4>`;
-        } else {
-            content += `<h4 style="margin: 0 0 10px 0; color: #333;">${properties.Name || properties.name || ''}</h4>`;
-        }
+        // Build structured popup content using hover classes
+        let content = `<div class="hover-popup-root">`;
+        // Header
+        const titleText = level === 'booth' ? `${properties.name || properties.Name || ''}${properties.boothNo ? ` (Booth No: ${properties.boothNo})` : ''}` : `${properties.Name || properties.name || ''}`;
+        content += `<div class="hover-header"><div class="hover-title">${titleText}</div><div class="hover-sub">${level.charAt(0).toUpperCase() + level.slice(1)}</div></div>`;
+        content += `<div class="hover-body">`;
 
         switch (level) {
             case 'state':
                 content += `
                     <p><strong>State Name:</strong> ${properties.Name || ''}</p>
-                    <p><strong>Type:</strong> ${properties.Type || ''}</p>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p style="font-size: 0.9em; color: #666;">Click to view Divisions</p>
-                    </div>`;
+                    <p><strong>Total Population:</strong> 5,61,36,229</p>
+                    <p><strong>Male Count:</strong> 2,89,00,000</p>
+                    <p><strong>Female count:</strong> 2,72,36,000</p>
+                    <p><strong>Last 3 Year:</strong> 2023-BJP<br />2018-INC<br />2013-BJP</p>
+                    
+                    <div class="hover-stat" style="flex-basis:100%"><p style="font-size: 0.9em; color: #666; margin:0">Click to view Divisions</p></div>`;
                 break;
             case 'division':
                 const districts = properties.districts ? properties.districts.join(', ') : '';
                 content += `
                     <p><strong>Division Code:</strong> ${properties.DIVISION_CODE || ''}</p>
                     <p><strong>State:</strong> ${properties.ST_NAME || ''}</p>
-                    <p><strong>Districts:</strong> ${districts}</p>
+                    <p><strong>Total Electors</strong> 5,65,95.333</p>
+                    <p><strong>Male Count:</strong> 2,82,97,673</p>
+                    <p><strong>Male Count:</strong> ${properties.ST_NAME || ''}</p>
+                    <p><strong>last 3 year winning party</strong> ${properties.ST_NAME || ''}</p>
+                    
                     ${properties.DIVISION_CODE && parliamentaryData[properties.id] ?
                         `<p><strong>Parliamentary Constituencies:</strong></p>
                         <ul style="margin: 5px 0; padding-left: 20px;">
@@ -1051,22 +1126,20 @@ function HierarchicalMap({ onRegionClick }) {
                         : ''}`;
                 break;
             case 'parliamentary':
+                // Use parliament candidate data if available, otherwise fallback to existing data
+                const pcData = data.parliamentCandidate || {};
+
                 content += `
                     <p><strong>Parliamentary Constituency:</strong> ${properties.name || ''}</p>
                     <p><strong>PC Number:</strong> ${properties.pcNo || ''}</p>
                     <p><strong>Division:</strong> ${properties.divisionName || ''}</p>
-                   
-                  
-                    <p><strong>Last Election Year:</strong> ${properties.lastElectionYear || ''}</p>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Seat Reservation Detail:</strong> ${properties.seatReservation || properties.category || 'N/A'}</p>
-                        <p><strong>Male Count:</strong> ${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Female Count:</strong> ${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Last 3 Year Winner Party Name:</strong> ${data.winner?.last3YearWinner || properties.winner || 'N/A'}</p>
-                    </div>
-                    <hr style="margin: 10px 0">
-                    <p style="font-size: 0.9em; color: #666;">Click to view Assembly Constituencies</p>`;
+                    <p><strong>Last Election Year:</strong> ${pcData.electionYear || properties.lastElectionYear || ''}</p>
+                    <div class="hover-stat"><b>Electors</b><span>${pcData.electors ? Number(pcData.electors).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Male Electors</b><span>${pcData.male_electors ? Number(pcData.male_electors).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female Electors</b><span>${pcData.female_electors ? Number(pcData.female_electors).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Total Votes</b><span>${pcData.totalVotes ? Number(pcData.totalVotes).toLocaleString() : (data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : 'N/A')}</span></div>
+                    <div class="hover-stat"><b>Seat Reservation</b><span>${properties.seatReservation || properties.category || 'N/A'}</span></div>
+                    <div class="hover-stat" style="flex-basis:100%"><b>Last 3 Year Winner Party</b><span>${pcData.last3YearWinner || data.winner?.last3YearWinner || properties.winner || 'N/A'}</span></div>`;
                 break;
             case 'assembly':
                 content += `
@@ -1075,69 +1148,37 @@ function HierarchicalMap({ onRegionClick }) {
                     <p><strong>Parliamentary:</strong> ${properties.pcName || ''}</p>
                     <p><strong>Category:</strong> ${properties.category || ''}</p>
                     <p><strong>Total Voters:</strong> ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVotes ? Number(properties.totalVotes).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Seat Reservation Detail:</strong> ${properties.seatReservation || properties.category || 'N/A'}</p>
-                        <p><strong>Male Count:</strong> ${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Female Count:</strong> ${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Last 3 Year Winner Party Name:</strong> ${data.winner?.last3YearWinner || properties.winner || 'N/A'}</p>
-                    </div>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Last Election (${properties.lastElectionYear || ''}):</strong></p>
-                        <p>Winner: ${properties.winner || ''}</p>
-                        <p>Margin: ${properties.margin ? Number(properties.margin).toLocaleString() : ''} votes</p>
-                    </div>
-                    <hr style="margin: 10px 0">
-                    <p style="font-size: 0.9em; color: #666;">Click to view Blocks</p>`;
+                    <div class="hover-stat"><b>Total Votes</b><span>${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVotes ? Number(properties.totalVotes).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Seat Reservation</b><span>${properties.seatReservation || properties.category || 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Male</b><span>${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female</b><span>${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat" style="flex-basis:100%"><b>Last Election (${properties.lastElectionYear || ''})</b><span>Winner: ${properties.winner || ''} — Margin: ${properties.margin ? Number(properties.margin).toLocaleString() : ''}</span></div>`;
                 break;
             case 'block':
                 content += `
                     <p><strong>Block Code:</strong> ${properties.blockCode || ''}</p>
                     <p><strong>Assembly:</strong> ${properties.acName || ''}</p>
                     <p><strong>Main Town:</strong> ${properties.mainTown || ''}</p>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Demographics:</strong></p>
-                        <p>Population: ${properties.population ? Number(properties.population).toLocaleString() : ''}</p>
-                        <p>Total Voters: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
-                    </div>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Booth Information:</strong></p>
-                        <p>Total Booths: ${properties.totalBooths || ''}</p>
-                        <p>Rural Booths: ${properties.ruralBooths || ''}</p>
-                        <p>Urban Booths: ${properties.urbanBooths || ''}</p>
-                    </div>
-                    <hr style="margin: 10px 0">
-                    <p style="font-size: 0.9em; color: #666;">Click to view Booths</p>`;
+                    <div class="hover-stat"><b>Population</b><span>${properties.population ? Number(properties.population).toLocaleString() : ''}</span></div>
+                    <div class="hover-stat"><b>Total Voters</b><span>${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</span></div>
+                    <div class="hover-stat" style="flex-basis:100%"><b>Booths</b><span>Total: ${properties.totalBooths || ''} — Rural: ${properties.ruralBooths || ''} — Urban: ${properties.urbanBooths || ''}</span></div>`;
                 break;
             case 'booth':
                 content += `
                     <p><strong>Booth No:</strong> ${properties.boothNo || ''}</p>
                     <p><strong>Block:</strong> ${properties.blockName || ''}</p>
                     <p><strong>Location:</strong> ${properties.location || ''}</p>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Total Votes:</strong> ${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Seat Reservation Detail:</strong> ${properties.seatReservation || 'N/A'}</p>
-                        <p><strong>Male Count:</strong> ${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Female Count:</strong> ${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</p>
-                        <p><strong>Last 3 Year Winner Party Name:</strong> ${data.winner?.last3YearWinner || 'N/A'}</p>
-                    </div>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Voter Information:</strong></p>
-                        <p>Total Voters: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
-                        <p>Male/Female Ratio: ${properties.maleFemaleRatio || ''}</p>
-                        <p>Last Turnout: ${properties.lastTurnout || ''}</p>
-                    </div>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <p><strong>Area Type:</strong> ${properties.boothArea || ''}</p>
-                        <p><strong>Available Facilities:</strong></p>
-                        <ul style="margin: 5px 0; padding-left: 20px;">
-                            ${properties.facilities ? properties.facilities.map(facility => `<li>${facility}</li>`).join('') : ''}
-                        </ul>
-                    </div>`;
+                    <div class="hover-stat"><b>Total Votes</b><span>${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Seat Reservation</b><span>${properties.seatReservation || 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Male</b><span>${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female</b><span>${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Voters</b><span>Total: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''} — Ratio: ${properties.maleFemaleRatio || ''}</span></div>
+                    <div class="hover-stat" style="flex-basis:100%"><b>Area & Facilities</b><span>Type: ${properties.boothArea || ''} — Facilities: ${properties.facilities ? properties.facilities.join(', ') : 'N/A'}</span></div>`;
                 break;
         }
 
-        content += '</div>';
+        // Close body and root wrappers
+        content += `</div></div>`;
         return content;
     };
 
