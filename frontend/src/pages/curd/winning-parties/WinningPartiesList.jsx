@@ -461,6 +461,42 @@ const WinningPartyListPage = () => {
             )
         },
         {
+            header: 'Electors',
+            accessorKey: 'electors',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Male Electors',
+            accessorKey: 'male_electors',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Female Electors',
+            accessorKey: 'female_electors',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'NOTA Votes',
+            accessorKey: 'nota_votes',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -588,6 +624,10 @@ const WinningPartyListPage = () => {
             'Election Year': item.election_year?.year || '',
             'Votes': item.votes || 0,
             'Margin': item.margin || 0,
+            'Electors': item.electors || 'N/A',
+            'Male Electors': item.male_electors || 'N/A',
+            'Female Electors': item.female_electors || 'N/A',
+            'NOTA Votes': item.nota_votes || 'N/A',
             'Created At': item.created_at,
             'Updated At': item.updated_at
         })));

@@ -43,9 +43,9 @@ export const PermissionProvider = ({ children }) => {
     const getCurrentUser = () => {
         try {
             const userData = localStorage.getItem('user');
-            console.log('🔍 Raw user data from localStorage:', userData);
+            // console.log('🔍 Raw user data from localStorage:', userData);
             const user = userData ? JSON.parse(userData) : null;
-            console.log('🔍 Parsed user data:', user);
+            // console.log('🔍 Parsed user data:', user);
             return user;
         } catch (err) {
             console.error('❌ Error parsing user data:', err);
@@ -76,7 +76,7 @@ export const PermissionProvider = ({ children }) => {
             const currentUser = getCurrentUser();
             const userId = getCurrentUserId(currentUser);
 
-            console.log('🔍 fetchUserPermissions called with user:', currentUser, 'resolved userId:', userId);
+            // console.log('🔍 fetchUserPermissions called with user:', currentUser, 'resolved userId:', userId);
 
             if (!currentUser || !userId) {
                 console.log('❌ No userId found, skipping permission fetch');
@@ -85,15 +85,15 @@ export const PermissionProvider = ({ children }) => {
             }
 
             // Fetch user roles
-            console.log('📡 Making API call to fetch user roles for:', userId);
+            // console.log('📡 Making API call to fetch user roles for:', userId);
             const userRolesRes = await axiosServices.get(`/user-roles/user/${userId}`);
             const rolesPayload = userRolesRes?.data?.data ?? userRolesRes?.data ?? [];
-            console.log('📡 User roles API response (normalized):', rolesPayload);
+            // console.log('📡 User roles API response (normalized):', rolesPayload);
 
             // normalize roles array
             const roles = Array.isArray(rolesPayload) ? rolesPayload : [];
             if (mountedRef.current) setUserRoles(roles);
-            console.log('📋 Set user roles:', roles);
+            // console.log('📋 Set user roles:', roles);
 
             // Extract permissions from roles
             const permissionsSet = new Set();
@@ -134,8 +134,8 @@ export const PermissionProvider = ({ children }) => {
 
             const finalPermissions = Array.from(permissionsSet);
             if (mountedRef.current) setUserPermissions(finalPermissions);
-            console.log('✅ User permissions loaded:', finalPermissions.length, 'permissions');
-            console.log('📋 Permissions:', finalPermissions);
+            // console.log('✅ User permissions loaded:', finalPermissions.length, 'permissions');
+            // console.log('📋 Permissions:', finalPermissions);
             if (mountedRef.current) setError(null);
         } catch (err) {
             console.error('❌ Error fetching user permissions:', err);
@@ -168,7 +168,7 @@ export const PermissionProvider = ({ children }) => {
                 }
             }
         } finally {
-            console.log('🏁 fetchUserPermissions completed');
+            // console.log('🏁 fetchUserPermissions completed');
             if (mountedRef.current) setLoading(false);
         }
     };

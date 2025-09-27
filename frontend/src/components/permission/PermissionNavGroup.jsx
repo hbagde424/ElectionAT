@@ -82,11 +82,11 @@ export default function PermissionNavGroup({
     const { hasPermission, hasAnyPermission, userPermissions, loading } = usePermissions();
 
     // Debug logging
-    console.log('🔍 PermissionNavGroup - User permissions:', {
-        userPermissions,
-        loading,
-        permissionsCount: userPermissions?.length || 0
-    });
+    // console.log('🔍 PermissionNavGroup - User permissions:', {
+    //     userPermissions,
+    //     loading,
+    //     permissionsCount: userPermissions?.length || 0
+    // });
 
     // Test permission checking
     if (userPermissions && userPermissions.length > 0) {
@@ -131,18 +131,18 @@ export default function PermissionNavGroup({
 
     // Filter children based on permissions
     const getFilteredChildren = () => {
-        console.log('🔍 Filtering children for:', currentItem.id);
+        // console.log('🔍 Filtering children for:', currentItem.id);
         if (!currentItem.children) return [];
 
         return currentItem.children.filter(child => {
             // If child has permissions defined, check them
             if (child.permissions && Array.isArray(child.permissions)) {
                 const hasAccess = checkPermissions(userPermissions, child.permissions);
-                console.log(`🔍 Child "${child.id}" permission check:`, {
-                    childPermissions: child.permissions,
-                    hasAccess,
-                    userPermissions
-                });
+                // console.log(`🔍 Child "${child.id}" permission check:`, {
+                //     childPermissions: child.permissions,
+                //     hasAccess,
+                //     userPermissions
+                // });
                 return hasAccess;
             }
             // If child has no permissions defined, inherit from parent
@@ -185,7 +185,7 @@ export default function PermissionNavGroup({
 
     // For debugging: show all CRUD children
     if (currentItem.id === 'CRUD') {
-        console.log(`🔧 DEBUG: Overriding CRUD children filter for debugging`);
+        // console.log(`🔧 DEBUG: Overriding CRUD children filter for debugging`);
         filteredChildren = currentItem.children || [];
     }
 
@@ -195,36 +195,36 @@ export default function PermissionNavGroup({
     // Check if user has permission to see this group
     if (currentItem.permissions && Array.isArray(currentItem.permissions)) {
         const groupAccess = checkPermissions(userPermissions, currentItem.permissions);
-        console.log(`🔍 Group "${currentItem.id}" permission check:`, {
-            requiredPermissions: currentItem.permissions,
-            hasAccess: groupAccess,
-            userPermissions: userPermissions,
-            hasAnyPermissionResult: hasAnyPermission(currentItem.permissions)
-        });
+        // console.log(`🔍 Group "${currentItem.id}" permission check:`, {
+        //     requiredPermissions: currentItem.permissions,
+        //     hasAccess: groupAccess,
+        //     userPermissions: userPermissions,
+        //     hasAnyPermissionResult: hasAnyPermission(currentItem.permissions)
+        // });
         if (!groupAccess) {
             // For debugging: show CRUD group even if no permission
             if (currentItem.id === 'CRUD') {
-                console.log(`🔧 DEBUG: Showing CRUD group anyway for debugging`);
+                // console.log(`🔧 DEBUG: Showing CRUD group anyway for debugging`);
             } else {
-                console.log(`❌ Group "${currentItem.id}" hidden - no permission`);
+                // console.log(`❌ Group "${currentItem.id}" hidden - no permission`);
                 return null; // Don't render the group if user doesn't have permission
             }
         }
     } else {
-        console.log(`🔍 Group "${currentItem.id}" has no permissions defined, showing by default`);
+        // console.log(`🔍 Group "${currentItem.id}" has no permissions defined, showing by default`);
     }
 
-    console.log(`🔍 Group "${currentItem.id}" children check:`, {
-        totalChildren: currentItem.children?.length || 0,
-        filteredChildren: filteredChildren.length,
-        children: filteredChildren.map(child => ({ id: child.id, title: child.title }))
-    });
+    // console.log(`🔍 Group "${currentItem.id}" children check:`, {
+    //     totalChildren: currentItem.children?.length || 0,
+    //     filteredChildren: filteredChildren.length,
+    //     children: filteredChildren.map(child => ({ id: child.id, title: child.title }))
+    // });
 
     if (filteredChildren.length === 0) {
         console.log(`❌ Group "${currentItem.id}" hidden - no accessible children`);
         // For debugging: show CRUD group even if no children are accessible
         if (currentItem.id === 'CRUD') {
-            console.log(`🔧 DEBUG: Showing CRUD group anyway for debugging`);
+            // console.log(`🔧 DEBUG: Showing CRUD group anyway for debugging`);
             // Don't return null, continue to render the group
         } else {
             return null; // Don't render the group if no children are accessible

@@ -14,13 +14,13 @@ export default function WinningCandidateModal({
     open,
     modalToggler,
     candidateEntry,
-    states,
-    divisions,
-    parliaments,
-    assemblies,
-    parties,
-    candidates,
-    years,
+    states = [],
+    divisions = [],
+    parliaments = [],
+    assemblies = [],
+    parties = [],
+    candidates = [],
+    years = [],
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -37,6 +37,10 @@ export default function WinningCandidateModal({
         voting_percentage: '',
         margin: 0,
         margin_percentage: '',
+        electors: '',
+        male_electors: '',
+        female_electors: '',
+        nota_votes: '',
         state_id: '',
         division_id: '',
         parliament_id: '',
@@ -59,13 +63,17 @@ export default function WinningCandidateModal({
                 candidate_id: candidateEntry.candidate_id?._id?.toString() || candidateEntry.candidate_id?.toString() || '',
                 party_id: candidateEntry.party_id?._id?.toString() || candidateEntry.party_id?.toString() || '',
                 year_id: candidateEntry.year_id?._id?.toString() || candidateEntry.year_id?.toString() || '',
-                type: candidateEntry.type || ['General'],
+                type: Array.isArray(candidateEntry.type) ? candidateEntry.type : [candidateEntry.type || 'General'],
                 poll_percentage: candidateEntry.poll_percentage || '',
                 total_electors: candidateEntry.total_electors || '',
                 total_votes: candidateEntry.total_votes || 0,
                 voting_percentage: candidateEntry.voting_percentage || '',
                 margin: candidateEntry.margin || 0,
                 margin_percentage: candidateEntry.margin_percentage || '',
+                electors: candidateEntry.electors || '',
+                male_electors: candidateEntry.male_electors || '',
+                female_electors: candidateEntry.female_electors || '',
+                nota_votes: candidateEntry.nota_votes || '',
                 state_id: candidateEntry.state_id?._id?.toString() || candidateEntry.state_id?.toString() || '',
                 division_id: candidateEntry.division_id?._id?.toString() || candidateEntry.division_id?.toString() || '',
                 parliament_id: candidateEntry.parliament_id?._id?.toString() || candidateEntry.parliament_id?.toString() || '',
@@ -84,6 +92,10 @@ export default function WinningCandidateModal({
                 voting_percentage: '',
                 margin: 0,
                 margin_percentage: '',
+                electors: '',
+                male_electors: '',
+                female_electors: '',
+                nota_votes: '',
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
@@ -102,11 +114,11 @@ export default function WinningCandidateModal({
 
     // State -> Division
     useEffect(() => {
-        if (formData.state_id) {
-            const filtered = divisions?.filter(division => {
+        if (formData.state_id && Array.isArray(divisions)) {
+            const filtered = divisions.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
                 return divisionStateId === formData.state_id;
-            }) || [];
+            });
             setFilteredDivisions(filtered);
 
             if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
@@ -119,22 +131,24 @@ export default function WinningCandidateModal({
             }
         } else {
             setFilteredDivisions([]);
-            setFormData(prev => ({
-                ...prev,
-                division_id: '',
-                parliament_id: '',
-                assembly_id: ''
-            }));
+            if (formData.division_id || formData.parliament_id || formData.assembly_id) {
+                setFormData(prev => ({
+                    ...prev,
+                    division_id: '',
+                    parliament_id: '',
+                    assembly_id: ''
+                }));
+            }
         }
     }, [formData.state_id, divisions]);
 
     // Division -> Parliament
     useEffect(() => {
-        if (formData.division_id) {
-            const filtered = parliaments?.filter(parliament => {
+        if (formData.division_id && Array.isArray(parliaments)) {
+            const filtered = parliaments.filter(parliament => {
                 const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
                 return parliamentDivisionId === formData.division_id;
-            }) || [];
+            });
             setFilteredParliaments(filtered);
 
             if (formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
@@ -146,21 +160,23 @@ export default function WinningCandidateModal({
             }
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({
-                ...prev,
-                parliament_id: '',
-                assembly_id: ''
-            }));
+            if (formData.parliament_id || formData.assembly_id) {
+                setFormData(prev => ({
+                    ...prev,
+                    parliament_id: '',
+                    assembly_id: ''
+                }));
+            }
         }
     }, [formData.division_id, parliaments]);
 
     // Parliament -> Assembly
     useEffect(() => {
-        if (formData.parliament_id) {
-            const filtered = assemblies?.filter(assembly => {
+        if (formData.parliament_id && Array.isArray(assemblies)) {
+            const filtered = assemblies.filter(assembly => {
                 const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
                 return assemblyParliamentId === formData.parliament_id;
-            }) || [];
+            });
             setFilteredAssemblies(filtered);
 
             if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
@@ -171,23 +187,29 @@ export default function WinningCandidateModal({
             }
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({
-                ...prev,
-                assembly_id: ''
-            }));
+            if (formData.assembly_id) {
+                setFormData(prev => ({
+                    ...prev,
+                    assembly_id: ''
+                }));
+            }
         }
     }, [formData.parliament_id, assemblies]);
 
     // Show all candidates in dropdown, not filtered by party
     useEffect(() => {
-        setFilteredCandidates(candidates || []);
-        if (formData.candidate_id && !(candidates || []).find(c => c._id === formData.candidate_id)) {
-            setFormData(prev => ({
-                ...prev,
-                candidate_id: ''
-            }));
+        if (Array.isArray(candidates)) {
+            setFilteredCandidates(candidates);
+            if (formData.candidate_id && !candidates.find(c => c._id === formData.candidate_id)) {
+                setFormData(prev => ({
+                    ...prev,
+                    candidate_id: ''
+                }));
+            }
+        } else {
+            setFilteredCandidates([]);
         }
-    }, [candidates]);
+    }, [formData.candidate_id, candidates]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -346,7 +368,7 @@ export default function WinningCandidateModal({
                                     disabled={!formData.party_id}
                                 >
                                     <MenuItem value="">Select Candidate</MenuItem>
-                                    {filteredCandidates.map((candidate) => (
+                                    {Array.isArray(filteredCandidates) && filteredCandidates.map((candidate) => (
                                         <MenuItem key={candidate._id} value={candidate._id}>
                                             {candidate.name}
                                         </MenuItem>
@@ -391,13 +413,13 @@ export default function WinningCandidateModal({
                             <Autocomplete
                                 multiple
                                 options={electionTypes}
-                                value={formData.type}
+                                value={Array.isArray(formData.type) ? formData.type : ['General']}
                                 onChange={handleElectionTypeChange}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
-                                        error={submitted && (!formData.type || formData.type.length === 0)}
-                                        helperText={submitted && (!formData.type || formData.type.length === 0) ? 'At least one election type is required' : ''}
+                                        error={submitted && (!Array.isArray(formData.type) || formData.type.length === 0)}
+                                        helperText={submitted && (!Array.isArray(formData.type) || formData.type.length === 0) ? 'At least one election type is required' : ''}
                                     />
                                 )}
                                 renderTags={(value, getTagProps) =>
@@ -511,7 +533,65 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 7: State and Division */}
+                    {/* Row 7: Electors and Male Electors */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Electors</InputLabel>
+                            <TextField
+                                name="electors"
+                                type="number"
+                                value={formData.electors}
+                                onChange={handleNumberChange}
+                                fullWidth
+                                inputProps={{ min: 0 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Male Electors</InputLabel>
+                            <TextField
+                                name="male_electors"
+                                type="number"
+                                value={formData.male_electors}
+                                onChange={handleNumberChange}
+                                fullWidth
+                                inputProps={{ min: 0 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 8: Female Electors and NOTA Votes */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Female Electors</InputLabel>
+                            <TextField
+                                name="female_electors"
+                                type="number"
+                                value={formData.female_electors}
+                                onChange={handleNumberChange}
+                                fullWidth
+                                inputProps={{ min: 0 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>NOTA Votes</InputLabel>
+                            <TextField
+                                name="nota_votes"
+                                type="number"
+                                value={formData.nota_votes}
+                                onChange={handleNumberChange}
+                                fullWidth
+                                inputProps={{ min: 0 }}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 9: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
@@ -548,7 +628,7 @@ export default function WinningCandidateModal({
                                     disabled={!formData.state_id}
                                 >
                                     <MenuItem value="">Select Division</MenuItem>
-                                    {filteredDivisions.map((division) => (
+                                    {Array.isArray(filteredDivisions) && filteredDivisions.map((division) => (
                                         <MenuItem key={division._id} value={division._id}>
                                             {division.name}
                                         </MenuItem>
@@ -561,7 +641,7 @@ export default function WinningCandidateModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 8: Parliament and Assembly */}
+                    {/* Row 10: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
@@ -574,7 +654,7 @@ export default function WinningCandidateModal({
                                     disabled={!formData.division_id}
                                 >
                                     <MenuItem value="">Select Parliament</MenuItem>
-                                    {filteredParliaments.map((parliament) => (
+                                    {Array.isArray(filteredParliaments) && filteredParliaments.map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>
                                             {parliament.name}
                                         </MenuItem>
@@ -599,7 +679,7 @@ export default function WinningCandidateModal({
                                     disabled={!formData.parliament_id}
                                 >
                                     <MenuItem value="">Select Assembly</MenuItem>
-                                    {filteredAssemblies.map((assembly) => (
+                                    {Array.isArray(filteredAssemblies) && filteredAssemblies.map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>
                                             {assembly.name}
                                         </MenuItem>

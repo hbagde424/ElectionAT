@@ -105,6 +105,30 @@ export default function WinningCandidateView({ data }) {
                                 {Array.isArray(data.type) ? data.type.join(', ') : (data.type || 'N/A')}
                             </Typography>
                         </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Electors
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.electors || 'N/A'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Male Electors
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.male_electors || 'N/A'}
+                            </Typography>
+                        </Box>
                     </Stack>
                 </Grid>
 
@@ -144,6 +168,30 @@ export default function WinningCandidateView({ data }) {
                             </Stack>
                             <Typography variant="body1" fontWeight="medium">
                                 {((data.margin_percentage || 0) * 100).toFixed(2)}%
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Female Electors
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.female_electors || 'N/A'}
+                            </Typography>
+                        </Box>
+
+                        <Box>
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                                <Profile size="16" />
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    NOTA Votes
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" fontWeight="medium">
+                                {data.nota_votes || 'N/A'}
                             </Typography>
                         </Box>
 

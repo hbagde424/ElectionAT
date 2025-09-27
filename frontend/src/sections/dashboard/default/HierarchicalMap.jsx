@@ -582,7 +582,7 @@ function HierarchicalMap({ onRegionClick }) {
                     features: assemblies.data[0].features.map(feature => ({
                         type: 'Feature',
                         properties: {
-                            id: feature.properties.PC_ID.toString(),
+                            id: feature.properties.AC_NO.toString(), // Use AC_NO instead of PC_ID for assembly ID
                             name: feature.properties.AC_NAME,
                             displayName: `${feature.properties.AC_NO}-${feature.properties.AC_NAME} `,
                             acNo: feature.properties.AC_NO.toString(),
@@ -839,6 +839,26 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         }
 
+                        // Fetch specific assembly data for electors and last 3 years winning party
+                        if (level === 'assembly') {
+                            const assemblyId = feature.properties.id;
+                            console.log('🏛️ Assembly hover detected for:', {
+                                assemblyId,
+                                assemblyName: feature.properties.name,
+                                cacheKey,
+                                hasExistingData: !!hoverData[cacheKey]?.assemblyData
+                            });
+                            
+                            if (assemblyId && !hoverData[cacheKey]?.assemblyData) {
+                                console.log('🚀 Triggering assembly data fetch for:', assemblyId);
+                                fetchAssemblyHoverData(assemblyId);
+                            } else if (!assemblyId) {
+                                console.log('⚠️ No assembly ID found in properties:', feature.properties);
+                            } else {
+                                console.log('✅ Assembly data already exists for:', assemblyId);
+                            }
+                        }
+
                         // Fetch parliament candidate data for parliamentary level
                         if (level === 'parliamentary') {
                             // Use pcNo (parliament number) for consistent matching
@@ -988,6 +1008,62 @@ function HierarchicalMap({ onRegionClick }) {
             }
         } catch (error) {
             console.error('Error fetching winning candidate data:', error);
+        }
+    };
+
+    // Function to fetch assembly specific data for hover (electors, male/female electors, last 3 years winning party)
+    const fetchAssemblyHoverData = async (assemblyId) => {
+        try {
+            console.log('🔍 Fetching assembly data for ID:', assemblyId);
+            console.log('🔧 Environment VITE_APP_API_URL:', import.meta.env.VITE_APP_API_URL);
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/winning-candidates/stats/assembly/${assemblyId}`;
+            console.log('🌐 Full API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl);
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response ok:', response.ok);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📊 Assembly stats response:', data);
+                console.log('📊 Response data structure:', {
+                    success: data.success,
+                    hasData: !!data.data,
+                    electors: data.data?.electors,
+                    male_electors: data.data?.male_electors,
+                    female_electors: data.data?.female_electors,
+                    last3YearWinners: data.data?.last3YearWinners
+                });
+                
+                if (data.success) {
+                    console.log('✅ Setting hover data for assembly:', assemblyId);
+                    setHoverData(prev => {
+                        const newData = {
+                            ...prev,
+                            [`assembly_${assemblyId}`]: {
+                                ...prev[`assembly_${assemblyId}`],
+                                assemblyData: {
+                                    electors: data.data.electors || 'N/A',
+                                    male_electors: data.data.male_electors || 'N/A',
+                                    female_electors: data.data.female_electors || 'N/A',
+                                    last3YearWinners: data.data.last3YearWinners || 'N/A',
+                                    totalVotes: data.data.totalVotes || 'N/A'
+                                }
+                            }
+                        };
+                        console.log('📦 New hover data state:', newData[`assembly_${assemblyId}`]);
+                        return newData;
+                    });
+                } else {
+                    console.log('❌ Assembly stats API returned error:', data.message);
+                }
+            } else {
+                console.log('❌ Assembly stats API response not ok:', response.status);
+                const errorText = await response.text();
+                console.log('❌ Error response text:', errorText);
+            }
+        } catch (error) {
+            console.error('💥 Error fetching assembly hover data:', error);
         }
     };
 
@@ -1142,17 +1218,22 @@ function HierarchicalMap({ onRegionClick }) {
                     <div class="hover-stat" style="flex-basis:100%"><b>Last 3 Year Winner Party</b><span>${pcData.last3YearWinner || data.winner?.last3YearWinner || properties.winner || 'N/A'}</span></div>`;
                 break;
             case 'assembly':
+                const assemblyData = data.assemblyData || {};
+                console.log('🏛️ Generating assembly popup for:', properties.name);
+                console.log('🏛️ Available assembly data:', assemblyData);
+                console.log('🏛️ Available data object:', data);
+                
                 content += `
                     <p><strong>Assembly Constituency:</strong> ${properties.name || ''}</p>
                     <p><strong>AC No:</strong> ${properties.acNo || ''}</p>
                     <p><strong>Parliamentary:</strong> ${properties.pcName || ''}</p>
                     <p><strong>Category:</strong> ${properties.category || ''}</p>
-                    <p><strong>Total Voters:</strong> ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</p>
+                    <div class="hover-stat"><b>Electors</b><span>${assemblyData.electors && assemblyData.electors !== 'N/A' ? Number(assemblyData.electors).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Male Electors</b><span>${assemblyData.male_electors && assemblyData.male_electors !== 'N/A' ? Number(assemblyData.male_electors).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female Electors</b><span>${assemblyData.female_electors && assemblyData.female_electors !== 'N/A' ? Number(assemblyData.female_electors).toLocaleString() : 'N/A'}</span></div>
                     <div class="hover-stat"><b>Total Votes</b><span>${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVotes ? Number(properties.totalVotes).toLocaleString() : 'N/A'}</span></div>
                     <div class="hover-stat"><b>Seat Reservation</b><span>${properties.seatReservation || properties.category || 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Male</b><span>${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Female</b><span>${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat" style="flex-basis:100%"><b>Last Election (${properties.lastElectionYear || ''})</b><span>Winner: ${properties.winner || ''} — Margin: ${properties.margin ? Number(properties.margin).toLocaleString() : ''}</span></div>`;
+                    <div class="hover-stat" style="flex-basis:100%"><b>Last 3 Years Winning Party</b><span>${assemblyData.last3YearWinners || 'N/A'}</span></div>`;
                 break;
             case 'block':
                 content += `

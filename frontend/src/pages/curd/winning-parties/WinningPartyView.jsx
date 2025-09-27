@@ -158,6 +158,22 @@ export default function WinningPartyView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
                             <Typography variant="body1">{data.booth_number || 'N/A'}</Typography>
                         </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Electors</Typography>
+                            <Typography variant="body1">{data.electors || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Male Electors</Typography>
+                            <Typography variant="body1">{data.male_electors || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Female Electors</Typography>
+                            <Typography variant="body1">{data.female_electors || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>NOTA Votes</Typography>
+                            <Typography variant="body1">{data.nota_votes || 'N/A'}</Typography>
+                        </Grid>
                         {/* <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Record ID</Typography>
                             <Typography variant="body2" color="text.secondary">

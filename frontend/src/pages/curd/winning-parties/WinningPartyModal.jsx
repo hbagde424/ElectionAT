@@ -142,6 +142,10 @@ export default function WinningPartyModal({
                 votes: '',
                 booth_number: '',
                 margin: '',
+                electors: '',
+                male_electors: '',
+                female_electors: '',
+                nota_votes: '',
                 description: ''
             };
         }
@@ -159,6 +163,10 @@ export default function WinningPartyModal({
             votes: winningParty.votes || '',
             booth_number: winningParty.booth_number || '',
             margin: winningParty.margin || '',
+            electors: winningParty.electors || '',
+            male_electors: winningParty.male_electors || '',
+            female_electors: winningParty.female_electors || '',
+            nota_votes: winningParty.nota_votes || '',
             description: winningParty.description || ''
         };
     }
@@ -346,12 +354,16 @@ export default function WinningPartyModal({
                 : `${import.meta.env.VITE_APP_API_URL}/winning-parties`;
             const method = winningParty ? 'PUT' : 'POST';
 
-            // Ensure booth_number, votes, margin are numbers (not empty string)
+            // Ensure booth_number, votes, margin, and elector fields are numbers (not empty string)
             const submitData = {
                 ...formData,
                 booth_number: formData.booth_number === '' ? undefined : Number(formData.booth_number),
                 votes: formData.votes === '' ? undefined : Number(formData.votes),
                 margin: formData.margin === '' ? undefined : Number(formData.margin),
+                electors: formData.electors === '' ? undefined : Number(formData.electors),
+                male_electors: formData.male_electors === '' ? undefined : Number(formData.male_electors),
+                female_electors: formData.female_electors === '' ? undefined : Number(formData.female_electors),
+                nota_votes: formData.nota_votes === '' ? undefined : Number(formData.nota_votes),
                 description: typeof formData.description === 'string' ? formData.description : ''
             };
 
@@ -558,6 +570,55 @@ export default function WinningPartyModal({
                             required
                         />
                     </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Electors"
+                            name="electors"
+                            value={formData.electors}
+                            onChange={handleChange}
+                            error={errors.electors}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Male Electors"
+                            name="male_electors"
+                            value={formData.male_electors}
+                            onChange={handleChange}
+                            error={errors.male_electors}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="Female Electors"
+                            name="female_electors"
+                            value={formData.female_electors}
+                            onChange={handleChange}
+                            error={errors.female_electors}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormTextField
+                            label="NOTA Votes"
+                            name="nota_votes"
+                            value={formData.nota_votes}
+                            onChange={handleChange}
+                            error={errors.nota_votes}
+                            disabled={isSubmitting}
+                            type="number"
+                        />
+                    </Grid>
+
                     {/* Row: Description (Rich Text) */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>

@@ -157,7 +157,7 @@ export default function WinningCandidateListPage() {
     });
 
     // Filtered data for cascading dropdowns
-    const filteredDivisions = filterValues.state
+    const filteredDivisions = filterValues.state && Array.isArray(divisions)
         ? divisions.filter(division => {
             // Handle both populated and non-populated state_id
             const stateId = division.state_id?._id || division.state_id;
@@ -167,36 +167,36 @@ export default function WinningCandidateListPage() {
             }
             return matches;
         })
-        : divisions;
+        : (Array.isArray(divisions) ? divisions : []);
 
-    const filteredParliaments = filterValues.division
+    const filteredParliaments = filterValues.division && Array.isArray(parliaments)
         ? parliaments.filter(parliament => {
             const divisionId = parliament.division_id?._id || parliament.division_id;
             return divisionId === filterValues.division;
         })
-        : filterValues.state
+        : filterValues.state && Array.isArray(parliaments)
             ? parliaments.filter(parliament => {
                 const stateId = parliament.state_id?._id || parliament.state_id;
                 return stateId === filterValues.state;
             })
-            : parliaments;
+            : (Array.isArray(parliaments) ? parliaments : []);
 
-    const filteredAssemblies = filterValues.parliament
+    const filteredAssemblies = filterValues.parliament && Array.isArray(assemblies)
         ? assemblies.filter(assembly => {
             const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
             return parliamentId === filterValues.parliament;
         })
-        : filterValues.division
+        : filterValues.division && Array.isArray(assemblies)
             ? assemblies.filter(assembly => {
                 const divisionId = assembly.division_id?._id || assembly.division_id;
                 return divisionId === filterValues.division;
             })
-            : filterValues.state
+            : filterValues.state && Array.isArray(assemblies)
                 ? assemblies.filter(assembly => {
                     const stateId = assembly.state_id?._id || assembly.state_id;
                     return stateId === filterValues.state;
                 })
-                : assemblies;
+                : (Array.isArray(assemblies) ? assemblies : []);
 
     const handleApplyFilters = () => {
         setAppliedFilters(filterValues);
@@ -279,13 +279,30 @@ export default function WinningCandidateListPage() {
                 yearsRes.json()
             ]);
 
-            if (statesData.success) setStates(statesData.data);
-            if (partiesData.success) setParties(partiesData.data);
-            if (candidatesData.success) setCandidates(candidatesData.data);
-            if (yearsData.success) {
+            if (statesData.success && Array.isArray(statesData.data)) {
+                setStates(statesData.data);
+            } else {
+                setStates([]);
+            }
+            
+            if (partiesData.success && Array.isArray(partiesData.data)) {
+                setParties(partiesData.data);
+            } else {
+                setParties([]);
+            }
+            
+            if (candidatesData.success && Array.isArray(candidatesData.data)) {
+                setCandidates(candidatesData.data);
+            } else {
+                setCandidates([]);
+            }
+            
+            if (yearsData.success && Array.isArray(yearsData.data)) {
                 setYears(yearsData.data);
                 if (process.env.NODE_ENV === 'development') {
                 }
+            } else {
+                setYears([]);
             }
 
             // Fetch all divisions, parliaments, and assemblies initially
@@ -301,12 +318,34 @@ export default function WinningCandidateListPage() {
                 assembliesRes.json()
             ]);
 
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
+            if (divisionsData.success && Array.isArray(divisionsData.data)) {
+                setDivisions(divisionsData.data);
+            } else {
+                setDivisions([]);
+            }
+            
+            if (parliamentsData.success && Array.isArray(parliamentsData.data)) {
+                setParliaments(parliamentsData.data);
+            } else {
+                setParliaments([]);
+            }
+            
+            if (assembliesData.success && Array.isArray(assembliesData.data)) {
+                setAssemblies(assembliesData.data);
+            } else {
+                setAssemblies([]);
+            }
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
+            // Ensure arrays are initialized even if API calls fail
+            setStates([]);
+            setParties([]);
+            setCandidates([]);
+            setYears([]);
+            setDivisions([]);
+            setParliaments([]);
+            setAssemblies([]);
         }
     };
 
@@ -638,6 +677,42 @@ export default function WinningCandidateListPage() {
             )
         },
         {
+            header: 'Electors',
+            accessorKey: 'electors',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Male Electors',
+            accessorKey: 'male_electors',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Female Electors',
+            accessorKey: 'female_electors',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'NOTA Votes',
+            accessorKey: 'nota_votes',
+            cell: ({ getValue }) => (
+                <Typography fontWeight="medium">
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
             header: 'State',
             accessorKey: 'state_id',
             cell: ({ getValue }) => {
@@ -830,6 +905,10 @@ export default function WinningCandidateListPage() {
                 'Voting Percentage': ((item.voting_percentage || 0) * 100).toFixed(2),
                 'Margin': item.margin || 'N/A',
                 'Margin Percentage': ((item.margin_percentage || 0) * 100).toFixed(2),
+                'Electors': item.electors || 'N/A',
+                'Male Electors': item.male_electors || 'N/A',
+                'Female Electors': item.female_electors || 'N/A',
+                'NOTA Votes': item.nota_votes || 'N/A',
                 'State': item.state_id?.name || 'N/A',
                 'Division': item.division_id?.name || 'N/A',
                 'Parliament': item.parliament_id?.name || 'N/A',
@@ -926,7 +1005,7 @@ export default function WinningCandidateListPage() {
                                     label="Party"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {parties.map((party) => (
+                                    {Array.isArray(parties) && parties.map((party) => (
                                         <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -941,7 +1020,7 @@ export default function WinningCandidateListPage() {
                                     label="State"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {states.map((state) => (
+                                    {Array.isArray(states) && states.map((state) => (
                                         <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -957,7 +1036,7 @@ export default function WinningCandidateListPage() {
                                     disabled={!filterValues.state}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredDivisions.map((division) => (
+                                    {Array.isArray(filteredDivisions) && filteredDivisions.map((division) => (
                                         <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -973,7 +1052,7 @@ export default function WinningCandidateListPage() {
                                     disabled={!filterValues.state}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredParliaments.map((parliament) => (
+                                    {Array.isArray(filteredParliaments) && filteredParliaments.map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -989,7 +1068,7 @@ export default function WinningCandidateListPage() {
                                     disabled={!filterValues.state}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {filteredAssemblies.map((assembly) => (
+                                    {Array.isArray(filteredAssemblies) && filteredAssemblies.map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1004,7 +1083,7 @@ export default function WinningCandidateListPage() {
                                     label="Candidate"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {candidates.map((candidate) => (
+                                    {Array.isArray(candidates) && candidates.map((candidate) => (
                                         <MenuItem key={candidate._id} value={candidate._id}>{candidate.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1019,7 +1098,7 @@ export default function WinningCandidateListPage() {
                                     label="Election Year"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {years.map((year) => (
+                                    {Array.isArray(years) && years.map((year) => (
                                         <MenuItem key={year._id} value={year._id}>{year.year}</MenuItem>
                                     ))}
                                 </Select>

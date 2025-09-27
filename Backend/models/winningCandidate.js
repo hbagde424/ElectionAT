@@ -80,6 +80,22 @@ const winningCandidateSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  electors: {
+    type: Number,
+    required: false
+  },
+  male_electors: {
+    type: Number,
+    required: false
+  },
+  female_electors: {
+    type: Number,
+    required: false
+  },
+  nota_votes: {
+    type: Number,
+    required: false
+  },
   description: {
     type: String,
     default: ''

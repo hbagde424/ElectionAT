@@ -1032,40 +1032,111 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
       });
     }
 
-    // Set query based on type
+    console.log('Received request for type:', type, 'id:', id);
+
+    // Use aggregation pipeline to match assembly by AC_NO
+    let aggregationPipeline = [];
+    
     switch (type) {
       case 'assembly':
-        query.assembly_id = id;
+        // Match winning candidates where assembly.AC_NO equals the provided id
+        aggregationPipeline = [
+          {
+            $lookup: {
+              from: 'assemblies', // Collection name in MongoDB
+              localField: 'assembly_id',
+              foreignField: '_id',
+              as: 'assembly'
+            }
+          },
+          {
+            $unwind: '$assembly'
+          },
+          {
+            $match: {
+              'assembly.AC_NO': parseInt(id) // Match by AC_NO
+            }
+          },
+          {
+            $lookup: {
+              from: 'parties',
+              localField: 'party_id',
+              foreignField: '_id',
+              as: 'party'
+            }
+          },
+          {
+            $unwind: '$party'
+          },
+          {
+            $lookup: {
+              from: 'electionyears',
+              localField: 'year_id',
+              foreignField: '_id',
+              as: 'year'
+            }
+          },
+          {
+            $unwind: '$year'
+          },
+          {
+            $sort: { 'year_id': -1 }
+          }
+        ];
         break;
       case 'parliament':
-        query.parliament_id = id;
+        // For parliament, use direct match (if needed later)
+        aggregationPipeline = [
+          {
+            $match: { parliament_id: id }
+          }
+        ];
         break;
     }
 
-    // Get the most recent winning candidate (by year)
-    const latestWinner = await WinningCandidate.findOne(query)
-      .sort({ 'year_id': -1 }) // Sort by year descending to get latest
-      .populate('party_id', 'name')
-      .populate('year_id', 'year')
-      .limit(1);
+    console.log('Aggregation pipeline created for:', type);
 
-    // Also get total votes aggregated
-    const voteStats = await WinningCandidate.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          totalVotes: { $sum: '$total_votes' },
-          latestYear: { $max: '$year_id' }
-        }
-      }
-    ]);
+    // Execute aggregation to get all matching records
+    const allRecords = await WinningCandidate.aggregate(aggregationPipeline);
+    
+    console.log('Total records found:', allRecords.length);
+
+    if (allRecords.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `No winning candidates found for ${type} ${id}`
+      });
+    }
+
+    // Get latest winner (first record after sorting)
+    const latestWinner = allRecords[0];
+    
+    // Get last 3 years
+    const last3Years = allRecords.slice(0, 3);
+
+    console.log('Latest winner found:', !!latestWinner);
+    console.log('Last 3 years records:', last3Years.length);
+
+    // Calculate total votes from all records
+    const totalVotes = allRecords.reduce((sum, record) => sum + (record.total_votes || 0), 0);
+
+    // Format last 3 years winners
+    const last3YearWinners = last3Years
+      .filter(record => record.year && record.party)
+      .map(record => `${record.year.year}-${record.party.name}`)
+      .join('<br />');
 
     const result = {
-      totalVotes: voteStats.length > 0 ? voteStats[0].totalVotes : 0,
-      last3YearWinner: latestWinner ? latestWinner.party_id?.name || 'N/A' : 'N/A',
-      latestElectionYear: latestWinner ? latestWinner.year_id?.year || 'N/A' : 'N/A'
+      totalVotes: totalVotes,
+      last3YearWinner: latestWinner ? latestWinner.party?.name || 'N/A' : 'N/A',
+      last3YearWinners: last3YearWinners || 'N/A',
+      latestElectionYear: latestWinner ? latestWinner.year?.year || 'N/A' : 'N/A',
+      electors: latestWinner ? latestWinner.electors || latestWinner.total_electors || 'N/A' : 'N/A',
+      male_electors: latestWinner ? latestWinner.male_electors || 'N/A' : 'N/A',
+      female_electors: latestWinner ? latestWinner.female_electors || 'N/A' : 'N/A'
     };
+
+    console.log('Final result for assembly stats:', result);
 
     res.status(200).json({
       success: true,
