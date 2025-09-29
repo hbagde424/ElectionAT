@@ -92,6 +92,30 @@ const CRUDMenu = {
       permissions: ['Users']
     },
     {
+      id: 'role',
+      title: <FormattedMessage id="Role" defaultMessage="Role" />,
+      type: 'item',
+      url: '/roles',
+      icon: icons.Shield,
+      permissions: ['role']
+    },
+    {
+      id: 'matrix',
+      title: <FormattedMessage id="Permission Matrix" defaultMessage="Permission Matrix" />,
+      type: 'item',
+      url: '/Matrics',
+      icon: icons.ShieldSearch,
+      permissions: ['matrix']
+    },
+    {
+      id: 'assign-role-to-user',
+      title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
+      type: 'item',
+      url: '/assign-role-to-user',
+      icon: icons.User,
+      permissions: ['assign-role-to-user']
+    },
+    {
       id: 'state',
       title: <FormattedMessage id="State" />,
       type: 'item',
@@ -336,31 +360,6 @@ const CRUDMenu = {
       icon: icons.ClipboardTick, // Completed work
       permissions: ['Year']
     },
-
-    {
-      id: 'role',
-      title: <FormattedMessage id="Role" defaultMessage="Role" />,
-      type: 'item',
-      url: '/roles',
-      icon: icons.Shield,
-      permissions: ['role']
-    },
-    {
-      id: 'matrix',
-      title: <FormattedMessage id="Permission Matrix" defaultMessage="Permission Matrix" />,
-      type: 'item',
-      url: '/Matrics',
-      icon: icons.ShieldSearch,
-      permissions: ['matrix']
-    },
-    {
-      id: 'assign-role-to-user',
-      title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
-      type: 'item',
-      url: '/assign-role-to-user',
-      icon: icons.User,
-      permissions: ['assign-role-to-user']
-    },
     {
       id: 'faq-crud',
       title: <FormattedMessage id="FAQ Management" defaultMessage="FAQ Management" />,
@@ -374,7 +373,7 @@ const CRUDMenu = {
       title: <FormattedMessage id="Help Center" defaultMessage="Help Center" />,
       type: 'item',
       url: '/help-center',
-      icon: icons.HelpCircle,
+      icon: icons.MessageQuestion,
       permissions: ['Help-Center']
     },
     {
