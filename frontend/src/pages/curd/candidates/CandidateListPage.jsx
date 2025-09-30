@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -22,6 +23,7 @@ import AlertCandidateDelete from './AlertCandidateDelete';
 
 const CandidateListPage = () => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const [candidates, setCandidates] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
@@ -46,7 +48,7 @@ const CandidateListPage = () => {
 
     const handleSearchChange = (value) => {
         setGlobalFilter(value);
-        
+
         // If search is cleared, reset pagination to normal but maintain current page if possible
         if (!value || value.trim() === '') {
             // Only reset page size if it was set to large number for search
@@ -61,17 +63,17 @@ const CandidateListPage = () => {
         try {
             let actualPageIndex = pageIndex;
             let actualPageSize = pageSize;
-            
+
             // When searching, fetch all results on one page
             if (globalFilter && globalFilter.trim() !== '') {
                 actualPageIndex = 0;
                 actualPageSize = 10000; // Large enough to get all results
             }
-            
+
             const query = globalFilter && globalFilter.trim() !== '' ? `&search=${encodeURIComponent(globalFilter)}` : '';
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`);
             const json = await res.json();
-            
+
             if (json.success) {
                 setCandidates(json.data);
                 if (globalFilter && globalFilter.trim() !== '') {
@@ -152,11 +154,11 @@ const CandidateListPage = () => {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Photo',
@@ -301,15 +303,14 @@ const CandidateListPage = () => {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded
-                    ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-                    : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <Tooltip title="View">
-                            <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                                {expandIcon}
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={() => navigate(`/candidates/${row.original._id}`)}
+                            >
+                                <Eye />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Edit">
@@ -433,7 +434,7 @@ const CandidateListPage = () => {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

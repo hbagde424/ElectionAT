@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField
+    Button, Stack, Box, Typography, Divider, Chip, TextField, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -22,6 +23,7 @@ import PartyView from './PartyView';
 
 export default function PartyListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedParty, setSelectedParty] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -109,11 +111,11 @@ export default function PartyListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -231,19 +233,33 @@ export default function PartyListPage() {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
-                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedParty(row.original); setOpenModal(true); }}>
-                            <Edit />
-                        </IconButton>
-                        <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
-                            <Trash />
-                        </IconButton>
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={() => navigate(`/parties/${row.original._id}`)}
+                            >
+                                <Eye />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                            <IconButton color="primary" onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedParty(row.original);
+                                setOpenModal(true);
+                            }}>
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton color="error" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOpen(row.original._id);
+                            }}>
+                                <Trash />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
                 );
             }
@@ -273,7 +289,7 @@ export default function PartyListPage() {
                 return json.data.map(party => {
                     const createdByUser = users.find(user => user._id === party.created_by);
                     const updatedByUser = party.updated_by ? users.find(user => user._id === party.updated_by) : null;
-                    
+
                     return {
                         ...party,
                         created_by: createdByUser || { username: 'N/A' },
@@ -353,7 +369,7 @@ export default function PartyListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     minWidth: header.column.columnDef.minWidth,
                                                     color: 'white',

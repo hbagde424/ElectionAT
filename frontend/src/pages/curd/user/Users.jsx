@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Paper,
@@ -55,6 +56,7 @@ import UserView from './UserView';
 
 const Users = () => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const { user } = useContext(JWTContext);
     const { hasPermission, hasAnyPermission, loading: permissionLoading } = usePermissions();
 
@@ -407,7 +409,7 @@ const Users = () => {
                     setError('You do not have permission to view user details');
                     return;
                 }
-                setUserView(true);
+                navigate(`/Users/${user._id}`);
                 break;
             case 'delete':
                 if (!hasPermission('user_delete')) {
