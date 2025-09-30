@@ -244,10 +244,14 @@ const VisitListPage = () => {
                 queryParams.push(`booth=${appliedFilters.booth}`);
             }
             if (appliedFilters.startDate) {
-                queryParams.push(`startDate=${appliedFilters.startDate}`);
+                // Convert YYYY-MM-DD to ISO string for proper backend comparison
+                const startDate = new Date(appliedFilters.startDate + 'T00:00:00.000Z').toISOString();
+                queryParams.push(`startDate=${encodeURIComponent(startDate)}`);
             }
             if (appliedFilters.endDate) {
-                queryParams.push(`endDate=${appliedFilters.endDate}`);
+                // Convert YYYY-MM-DD to end of day ISO string for proper backend comparison
+                const endDate = new Date(appliedFilters.endDate + 'T23:59:59.999Z').toISOString();
+                queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
             }
 
             const { data: json } = await axiosServices.get(`/visits?${queryParams.join('&')}`);
