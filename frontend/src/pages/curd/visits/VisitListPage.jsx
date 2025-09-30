@@ -899,26 +899,26 @@ const VisitListPage = () => {
                                             </Stack>
                                             <Divider sx={{ my: 1 }} />
                                             <Typography variant="subtitle2" sx={{ mb: 1 }}>Visit Details:</Typography>
-                                                <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
-                                                    {popupInfo.visit ? (
-                                                        (() => {
-                                                            const v = popupInfo.visit;
-                                                            return (
-                                                                <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
-                                                                    <Typography variant="body2"><strong>📅</strong> {formatDate(v.date)}</Typography>
-                                                                    <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
-                                                                    <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
-                                                                    <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
-                                                                    {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
-                                                                    {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
-                                                                    <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
-                                                                </Box>
-                                                            );
-                                                        })()
-                                                    ) : (
-                                                        <Typography variant="body2">No visit found.</Typography>
-                                                    )}
-                                                </Box>
+                                            <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                {popupInfo.visit ? (
+                                                    (() => {
+                                                        const v = popupInfo.visit;
+                                                        return (
+                                                            <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
+                                                                <Typography variant="body2"><strong>📅</strong> {formatDate(v.date)}</Typography>
+                                                                <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
+                                                                <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
+                                                                <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
+                                                                {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
+                                                                {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
+                                                                <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
+                                                            </Box>
+                                                        );
+                                                    })()
+                                                ) : (
+                                                    <Typography variant="body2">No visit found.</Typography>
+                                                )}
+                                            </Box>
                                         </Box>
                                     </Popup>
                                 )}
@@ -1007,15 +1007,7 @@ const VisitListPage = () => {
                                         <InputLabel>Candidate</InputLabel>
                                         <Select
                                             value={filterValues.candidate}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                // update filter form value
-                                                setFilterValues(prev => ({ ...prev, candidate: val }));
-                                                // also update selectedCandidate so the map shows only this candidate's visits
-                                                setSelectedCandidate(val);
-                                                // fetch map visits immediately to ensure the map updates without waiting for effect
-                                                fetchMapVisits(val || null);
-                                            }}
+                                            onChange={(e) => setFilterValues(prev => ({ ...prev, candidate: e.target.value }))}
                                             label="Candidate"
                                         >
                                             <MenuItem value="">All Candidates</MenuItem>
