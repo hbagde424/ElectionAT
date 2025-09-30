@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -21,6 +22,8 @@ import AlertDistrictDelete from './AlertDistrictDelete';
 import DistrictView from './DistritView';
 
 export default function DistrictListPage() {
+    const theme = useTheme();
+    const navigate = useNavigate();
     // Clear all filters and reload districts
     const handleClearFilter = () => {
         setFilters({
@@ -42,7 +45,6 @@ export default function DistrictListPage() {
         setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
         fetchDistricts(0, pagination.pageSize, globalFilter, filters);
     };
-    const theme = useTheme();
 
     const [selectedDistrict, setSelectedDistrict] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -152,11 +154,11 @@ export default function DistrictListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -263,19 +265,33 @@ export default function DistrictListPage() {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
-                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedDistrict(row.original); setOpenModal(true); }}>
-                            <Edit />
-                        </IconButton>
-                        <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
-                            <Trash />
-                        </IconButton>
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={() => navigate(`/district/${row.original._id}`)}
+                            >
+                                <Eye />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                            <IconButton color="primary" onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDistrict(row.original);
+                                setOpenModal(true);
+                            }}>
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton color="error" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOpen(row.original._id);
+                            }}>
+                                <Trash />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
                 );
             }
@@ -530,7 +546,7 @@ export default function DistrictListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // material-ui
 import {
@@ -27,13 +28,13 @@ import {
 import TextField from '@mui/material/TextField';
 
 // third-party
-import { 
-    getCoreRowModel, 
-    useReactTable, 
-    getFilteredRowModel, 
-    getPaginationRowModel, 
+import {
+    getCoreRowModel,
+    useReactTable,
+    getFilteredRowModel,
+    getPaginationRowModel,
     getSortedRowModel,
-    flexRender 
+    flexRender
 } from '@tanstack/react-table';
 import { CSVLink } from 'react-csv';
 
@@ -54,6 +55,7 @@ import AlertParliamentCandidateDelete from './AlertParliamentCandidateDelete';
 
 export default function ParliamentCandidateListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -366,7 +368,7 @@ export default function ParliamentCandidateListPage() {
             )
         },
         {
-            id: 'parliament_name', 
+            id: 'parliament_name',
             header: 'Parliament',
             accessorKey: 'parliament_id.name',
             cell: ({ getValue }) => (
@@ -525,7 +527,7 @@ export default function ParliamentCandidateListPage() {
                 </Typography>
             )
         },
-        
+
         {
             id: 'margin',
             header: 'Margin',
@@ -561,13 +563,10 @@ export default function ParliamentCandidateListPage() {
             cell: ({ row }) => {
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={0}>
-                        <Tooltip title="View">
+                        <Tooltip title="View Details">
                             <IconButton
                                 color="secondary"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedCandidate(row.original);
-                                }}
+                                onClick={() => navigate(`/parliament-candidate/${row.original._id}`)}
                             >
                                 <Eye />
                             </IconButton>
@@ -679,29 +678,29 @@ export default function ParliamentCandidateListPage() {
             'Result': item.position_result?.toUpperCase() || 'N/A',
             'Candidate Votes': formatNumber(item.candidate_votes),
             'Total Votes': formatNumber(item.total_votes_parliament),
-                'Vote Percentage': item.vote_percentage ? `${item.vote_percentage}%` : '0%',
-                'Margin': formatNumber(item.margin),
-                'Margin %': `${(getMarginPercentDecimal(item) * 100).toFixed(2)}%`,
-                'Electors': formatNumber(item.electors),
-                'Turnout': (() => {
-                    const n = parseToNumber(item.turnout);
-                    if (n === 0) return '0%';
-                    if (Math.abs(n) <= 1) return `${(n * 100).toFixed(1)}%`;
-                    return `${n.toFixed(1)}%`;
-                })(),
-                'Male Electors': formatNumber(item.male_electors),
-                'Female Electors': formatNumber(item.female_electors),
-                'Total Votes Polled': formatNumber(item.total_votes_polled),
-                'Valid Votes': formatNumber(item.valid_votes),
-                'Total Male Voters': formatNumber(item.total_male_voters),
-                'Female Voters': formatNumber(item.female_voters),
-                'NOTA Votes': formatNumber(item.nota_votes),
+            'Vote Percentage': item.vote_percentage ? `${item.vote_percentage}%` : '0%',
+            'Margin': formatNumber(item.margin),
+            'Margin %': `${(getMarginPercentDecimal(item) * 100).toFixed(2)}%`,
+            'Electors': formatNumber(item.electors),
+            'Turnout': (() => {
+                const n = parseToNumber(item.turnout);
+                if (n === 0) return '0%';
+                if (Math.abs(n) <= 1) return `${(n * 100).toFixed(1)}%`;
+                return `${n.toFixed(1)}%`;
+            })(),
+            'Male Electors': formatNumber(item.male_electors),
+            'Female Electors': formatNumber(item.female_electors),
+            'Total Votes Polled': formatNumber(item.total_votes_polled),
+            'Valid Votes': formatNumber(item.valid_votes),
+            'Total Male Voters': formatNumber(item.total_male_voters),
+            'Female Voters': formatNumber(item.female_voters),
+            'NOTA Votes': formatNumber(item.nota_votes),
             'Created By': item.created_by?.username || 'N/A',
             'Created At': formatDate(item.created_at)
         }));
         setCsvData(csvFormattedData);
         setCsvLoading(false);
-        
+
         // Trigger download
         setTimeout(() => {
             csvLinkRef.current?.link.click();
@@ -716,51 +715,51 @@ export default function ParliamentCandidateListPage() {
                 <ScrollX>
                     <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ padding: 2 }}>
                         <Stack direction="row" alignItems="center" spacing={2}>
-                                    <Typography variant="h5">Parliament Candidates</Typography>
-                                    <TextField
-                                        size="small"
-                                        variant="outlined"
-                                        placeholder="Search candidates..."
-                                        value={searchInput}
-                                        sx={{ width: 300 }}
-                                        onChange={(e) => {
-                                            const v = e.target.value;
-                                            setSearchInput(v);
-                                            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-                                            searchDebounceRef.current = setTimeout(() => {
-                                                setGlobalFilter(String(v));
-                                            }, 500);
-                                        }}
-                                    />
-                                    <FormControl size="small" sx={{ minWidth: 160 }}>
-                                        <InputLabel id="filter-year-label">Election Year</InputLabel>
-                                        <Select
-                                            labelId="filter-year-label"
-                                            value={filterYear}
-                                            label="Election Year"
-                                            onChange={(e) => { setFilterYear(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
-                                        >
-                                            <MenuItem value="">All Years</MenuItem>
-                                            {yearOptions.map((y) => (
-                                                <MenuItem key={y._id || y.id || y.year} value={y._id || y.id || y.year}>{y.year}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                    <FormControl size="small" sx={{ minWidth: 220 }}>
-                                        <InputLabel id="filter-candidate-label">Candidate</InputLabel>
-                                        <Select
-                                            labelId="filter-candidate-label"
-                                            value={filterCandidate}
-                                            label="Candidate"
-                                            onChange={(e) => { setFilterCandidate(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
-                                        >
-                                            <MenuItem value="">All Candidates</MenuItem>
-                                            {candidatesOptions.map((c) => (
-                                                <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
+                            <Typography variant="h5">Parliament Candidates</Typography>
+                            <TextField
+                                size="small"
+                                variant="outlined"
+                                placeholder="Search candidates..."
+                                value={searchInput}
+                                sx={{ width: 300 }}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    setSearchInput(v);
+                                    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                                    searchDebounceRef.current = setTimeout(() => {
+                                        setGlobalFilter(String(v));
+                                    }, 500);
+                                }}
+                            />
+                            <FormControl size="small" sx={{ minWidth: 160 }}>
+                                <InputLabel id="filter-year-label">Election Year</InputLabel>
+                                <Select
+                                    labelId="filter-year-label"
+                                    value={filterYear}
+                                    label="Election Year"
+                                    onChange={(e) => { setFilterYear(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
+                                >
+                                    <MenuItem value="">All Years</MenuItem>
+                                    {yearOptions.map((y) => (
+                                        <MenuItem key={y._id || y.id || y.year} value={y._id || y.id || y.year}>{y.year}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 220 }}>
+                                <InputLabel id="filter-candidate-label">Candidate</InputLabel>
+                                <Select
+                                    labelId="filter-candidate-label"
+                                    value={filterCandidate}
+                                    label="Candidate"
+                                    onChange={(e) => { setFilterCandidate(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
+                                >
+                                    <MenuItem value="">All Candidates</MenuItem>
+                                    {candidatesOptions.map((c) => (
+                                        <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
                         <Stack direction="row" spacing={2}>
                             <Button
                                 variant="outlined"
@@ -896,8 +895,8 @@ export default function ParliamentCandidateListPage() {
                 sx={{ '& .MuiDialog-paper': { p: 0 } }}
             >
                 {selectedCandidate && !openModal && (
-                    <ParliamentCandidateView 
-                        data={selectedCandidate} 
+                    <ParliamentCandidateView
+                        data={selectedCandidate}
                         onClose={() => setSelectedCandidate(null)}
                     />
                 )}

@@ -132,6 +132,11 @@ const PartyDetailPage = Loadable(lazy(() => import('pages/curd/parties/PartyDeta
 const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateListPage')));
 const CandidateDetailPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateDetailPage')));
 const UserDetailPage = Loadable(lazy(() => import('pages/curd/user/UserDetailPage')));
+const DivisionDetailPage = Loadable(lazy(() => import('pages/curd/division/DivisionDetailPage')));
+const ParliamentDetailPage = Loadable(lazy(() => import('pages/curd/parliament/ParliamentDetailPage')));
+const ParliamentCandidateDetailPage = Loadable(lazy(() => import('pages/curd/parliament-candidate/ParliamentCandidateDetailPage')));
+const AssemblyDetailPage = Loadable(lazy(() => import('pages/curd/assembly/AssemblyDetailPage')));
+const DistrictDetailPage = Loadable(lazy(() => import('pages/curd/district/DistrictDetailPage')));
 const PartyActivitiesList = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesListPage')));
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesList')));
 const WinningPartyDetailPage = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartyDetailPage')));
@@ -620,6 +625,10 @@ const MainRoutes = {
           element: <Division />
         },
         {
+          path: 'division/:id',
+          element: <DivisionDetailPage />
+        },
+        {
           path: 'Assembly-Votes',
           element: <AssemblyVotes />
         },
@@ -724,8 +733,16 @@ const MainRoutes = {
           element: <District />
         },
         {
+          path: 'district/:id',
+          element: <DistrictDetailPage />
+        },
+        {
           path: 'assembly',
           element: <Assembly />
+        },
+        {
+          path: 'assembly/:id',
+          element: <AssemblyDetailPage />
         },
         {
           path: 'Help-Center',
@@ -744,8 +761,16 @@ const MainRoutes = {
           element: <ParliamentCandidate />
         },
         {
+          path: 'parliament-candidate/:id',
+          element: <ParliamentCandidateDetailPage />
+        },
+        {
           path: 'parliament',
           element: <Parliament />
+        },
+        {
+          path: 'parliament/:id',
+          element: <ParliamentDetailPage />
         },
         {
           path: 'block',
