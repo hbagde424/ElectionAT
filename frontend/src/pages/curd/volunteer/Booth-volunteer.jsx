@@ -388,13 +388,17 @@ export default function BoothVolunteerListPage() {
       header: 'Actions',
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
-        const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View">
-              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                {expandIcon}
+            <Tooltip title="View details">
+              <IconButton
+                color="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/booth-volunteer/${row.original._id}`);
+                }}
+              >
+                <Eye />
               </IconButton>
             </Tooltip>
             <Tooltip title="Edit">

@@ -125,6 +125,7 @@ const MaintenanceComingSoon2 = Loadable(lazy(() => import('pages/maintenance/com
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/volunteer/Booth-volunteer')));
+const VolunteerDetailPage = Loadable(lazy(() => import('pages/curd/volunteer/VolunteerDetailPage')));
 const LocalDynamics = Loadable(lazy(() => import('pages/curd/local-dynamics/LocalDynamicsListPage')));
 const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
 const CandidateListPage = Loadable(lazy(() => import('pages/curd/candidates/CandidateListPage')));
@@ -556,6 +557,10 @@ const MainRoutes = {
         {
           path: 'booth-volunteer',
           element: <BoothVolunteer />
+        },
+        {
+          path: 'booth-volunteer/:id',
+          element: <VolunteerDetailPage />
         },
         {
           path: 'parties',
