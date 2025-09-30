@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider
+  Button, Stack, Box, Typography, Divider, TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
@@ -17,7 +17,7 @@ import { CSVLink } from 'react-csv';
 // project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
@@ -45,6 +45,8 @@ export default function UserListPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [globalFilter, setGlobalFilter] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = useRef(null);
 
   const fetchUsers = async (pageIndex, pageSize, globalFilter = '') => {
     setLoading(true);
@@ -104,6 +106,16 @@ export default function UserListPage() {
     fetchUsers(pagination.pageIndex, pagination.pageSize, globalFilter);
     fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+  // keep local input in sync when globalFilter changes externally
+  useEffect(() => {
+    setSearchInput(globalFilter || '');
+  }, [globalFilter]);
+
+  // cleanup debounce on unmount
+  useEffect(() => () => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+  }, []);
 
   const handleDeleteOpen = (id) => {
     setUserDeleteId(id);
@@ -426,10 +438,19 @@ export default function UserListPage() {
     <>
       <MainCard content={false}>
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-          <DebouncedInput
-            value={globalFilter}
-            onFilterChange={setGlobalFilter}
+          <TextField
+            size="small"
+            variant="outlined"
             placeholder={`Search ${users.length} users...`}
+            value={searchInput}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearchInput(v);
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+              searchDebounceRef.current = setTimeout(() => {
+                setGlobalFilter(String(v));
+              }, 500);
+            }}
           />
           <Stack direction="row" spacing={1}>
             <CSVLink

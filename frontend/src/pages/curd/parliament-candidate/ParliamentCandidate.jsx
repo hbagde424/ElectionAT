@@ -24,6 +24,7 @@ import {
     FormControl,
     InputLabel
 } from '@mui/material';
+import TextField from '@mui/material/TextField';
 
 // third-party
 import { 
@@ -40,7 +41,7 @@ import { CSVLink } from 'react-csv';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
 import { PopupTransition } from 'components/@extended/Transitions';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 
 // assets
@@ -64,6 +65,8 @@ export default function ParliamentCandidateListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const searchDebounceRef = useRef(null);
     const [filterYear, setFilterYear] = useState('');
     const [filterCandidate, setFilterCandidate] = useState('');
     const [yearOptions, setYearOptions] = useState([]);
@@ -163,6 +166,14 @@ export default function ParliamentCandidateListPage() {
     useEffect(() => {
         fetchCandidates(pagination.pageIndex, pagination.pageSize, globalFilter);
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, filterYear, filterCandidate]);
+
+    useEffect(() => {
+        setSearchInput(globalFilter || '');
+    }, [globalFilter]);
+
+    useEffect(() => () => {
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    }, []);
 
     // Fetch filter options (years and candidates)
     useEffect(() => {
@@ -706,12 +717,20 @@ export default function ParliamentCandidateListPage() {
                     <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ padding: 2 }}>
                         <Stack direction="row" alignItems="center" spacing={2}>
                                     <Typography variant="h5">Parliament Candidates</Typography>
-                                    <DebouncedInput
-                                        value={globalFilter ?? ''}
-                                        onChange={(value) => setGlobalFilter(String(value))}
-                                        placeholder="Search candidates..."
+                                    <TextField
                                         size="small"
+                                        variant="outlined"
+                                        placeholder="Search candidates..."
+                                        value={searchInput}
                                         sx={{ width: 300 }}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setSearchInput(v);
+                                            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                                            searchDebounceRef.current = setTimeout(() => {
+                                                setGlobalFilter(String(v));
+                                            }, 500);
+                                        }}
                                     />
                                     <FormControl size="small" sx={{ minWidth: 160 }}>
                                         <InputLabel id="filter-year-label">Election Year</InputLabel>

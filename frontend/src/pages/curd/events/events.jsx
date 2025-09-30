@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-table';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
@@ -38,6 +38,8 @@ export default function EventListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const searchDebounceRef = useRef(null);
 
     // Filter states
     const [selectedState, setSelectedState] = useState('');
@@ -644,10 +646,18 @@ export default function EventListPage() {
         <>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
+                    <TextField
+                        size="small"
+                        variant="outlined"
                         placeholder={`Search ${events.length} events...`}
+                        value={searchInput}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setSearchInput(v);
+                            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                            searchDebounceRef.current = setTimeout(() => setGlobalFilter(v), 500);
+                        }}
+                        sx={{ minWidth: 300 }}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink

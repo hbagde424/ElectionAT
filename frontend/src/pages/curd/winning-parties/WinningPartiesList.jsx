@@ -1,7 +1,7 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar,
-    FormControl, InputLabel, Select, MenuItem, Grid
+    FormControl, InputLabel, Select, MenuItem, Grid, TextField
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -13,7 +13,7 @@ import { CSVLink } from 'react-csv';
 import IconButton from 'components/@extended/IconButton';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
@@ -65,6 +65,15 @@ const WinningPartyListPage = () => {
         electionYear: '',
         candidate: ''
     });
+
+    const [searchInput, setSearchInput] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => setGlobalFilter(searchInput), 500);
+        return () => clearTimeout(handler);
+    }, [searchInput]);
+
+    useEffect(() => setSearchInput(globalFilter || ''), [globalFilter]);
 
     // Filtered data for cascading dropdowns
     const filteredDivisions = filterValues.state
@@ -645,10 +654,13 @@ const WinningPartyListPage = () => {
         <>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
+                    <TextField
+                        size="small"
+                        variant="outlined"
                         placeholder={`Search ${winningParties.length} records...`}
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        sx={{ minWidth: 300 }}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink

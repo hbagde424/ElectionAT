@@ -17,7 +17,7 @@ import { CSVLink } from 'react-csv';
 // project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
@@ -55,6 +55,8 @@ export default function BoothVolunteerListPage() {
     block_id: '',
     booth_id: ''
   });
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = useRef(null);
 
   const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '', filterParams = filters) => {
     setLoading(true);
@@ -505,10 +507,19 @@ export default function BoothVolunteerListPage() {
           justifyContent="space-between"
           sx={{ p: 2, gap: 2 }}
         >
-          <DebouncedInput
-            value={globalFilter}
-            onFilterChange={setGlobalFilter}
+          <TextField
+            size="small"
+            variant="outlined"
             placeholder={`Search ${volunteers.length} volunteers...`}
+            value={searchInput}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearchInput(v);
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+              searchDebounceRef.current = setTimeout(() => {
+                setGlobalFilter(String(v));
+              }, 500);
+            }}
             sx={{ width: { xs: '100%', sm: 250 } }}
           />
           <Stack

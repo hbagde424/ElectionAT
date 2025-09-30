@@ -14,7 +14,7 @@ import {
 import { CSVLink } from 'react-csv';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
@@ -52,6 +52,8 @@ const VisitListPage = () => {
     const [editData, setEditData] = useState(null);
     const [deleteAlert, setDeleteAlert] = useState({ open: false, id: null });
     const [globalFilter, setGlobalFilter] = useState('');
+    // Local input for search so we can debounce API/table requests
+    const [searchInput, setSearchInput] = useState('');
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -68,6 +70,20 @@ const VisitListPage = () => {
     const [routeData, setRouteData] = useState(null);
     const [selectedCandidate, setSelectedCandidate] = useState('');
     const mapRef = useRef(null);
+
+    // Debounce typing in search box before applying to globalFilter used by table
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setGlobalFilter(searchInput);
+        }, 500); // 500ms debounce; adjust as needed
+
+        return () => clearTimeout(handler);
+    }, [searchInput]);
+
+    // Keep local input in sync when globalFilter changes from outside (clear, pagination, etc.)
+    useEffect(() => {
+        setSearchInput(globalFilter || '');
+    }, [globalFilter]);
 
     // Get user's access scope information
     const getUserAccessScope = () => {
@@ -946,10 +962,16 @@ const VisitListPage = () => {
                     <MainCard content={false}>
                         <Stack spacing={2} sx={{ padding: 3 }}>
                             <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                                <DebouncedInput
-                                    value={globalFilter}
-                                    onFilterChange={setGlobalFilter}
+                                <TextField
+                                    size="small"
+                                    variant="outlined"
                                     placeholder={`Search ${visits.length} records...`}
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    InputProps={{
+                                        // optionally you can add a clear button or icon here
+                                    }}
+                                    sx={{ minWidth: 300 }}
                                 />
                                 <Stack direction="row" spacing={1}>
                                     <CSVLink

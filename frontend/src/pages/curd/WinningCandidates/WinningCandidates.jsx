@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
+    TextField,
     Dialog, DialogTitle, DialogContent, DialogActions,
     FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
@@ -16,7 +17,7 @@ import {
 } from '@tanstack/react-table';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
@@ -134,6 +135,8 @@ export default function WinningCandidateListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const searchDebounceRef = useRef(null);
 
     // Filter states
     const [filterValues, setFilterValues] = useState({
@@ -969,11 +972,21 @@ export default function WinningCandidateListPage() {
             <MainCard content={false}>
                 <Stack spacing={2} sx={{ padding: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                        <DebouncedInput
-                            value={globalFilter}
-                            onFilterChange={setGlobalFilter}
-                            placeholder={`Search ${candidateList.length} winning candidate entries...`}
-                        />
+                            <TextField
+                                size="small"
+                                variant="outlined"
+                                placeholder={`Search ${candidateList.length} winning candidate entries...`}
+                                value={searchInput}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    setSearchInput(v);
+                                    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                                    searchDebounceRef.current = setTimeout(() => {
+                                        setGlobalFilter(String(v));
+                                    }, 500);
+                                }}
+                                sx={{ minWidth: 300 }}
+                            />
                         <Stack direction="row" spacing={1}>
                             <CSVLink
                                 data={csvData}

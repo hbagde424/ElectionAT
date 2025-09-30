@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-table';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
@@ -32,6 +32,18 @@ export default function ElectionYearsListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setGlobalFilter(searchInput);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchInput]);
+
+    useEffect(() => {
+        setSearchInput(globalFilter || '');
+    }, [globalFilter]);
 
     const fetchElectionYears = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
@@ -228,10 +240,13 @@ export default function ElectionYearsListPage() {
         <>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
+                    <TextField
+                        size="small"
+                        variant="outlined"
                         placeholder={`Search ${electionYears.length} election years...`}
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        sx={{ minWidth: 300 }}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink

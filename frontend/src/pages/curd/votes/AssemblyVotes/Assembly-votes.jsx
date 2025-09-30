@@ -17,7 +17,7 @@ import {
 // project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
@@ -55,6 +55,8 @@ export default function AssemblyVotesListPage() {
     parliament_id: '',
     assembly_id: ''
   });
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = useRef(null);
 
   const fetchVotes = async (pageIndex, pageSize, filterParams = filters) => {
     setLoading(true);
@@ -339,10 +341,20 @@ export default function AssemblyVotesListPage() {
           justifyContent="space-between"
           sx={{ p: 2 }}
         >
-          <DebouncedInput
-            value={table.getState().globalFilter || ''}
-            onFilterChange={(value) => table.setGlobalFilter(String(value))}
+          <TextField
+            size="small"
+            variant="outlined"
             placeholder={`Search ${votes.length} votes...`}
+            value={searchInput}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearchInput(v);
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+              searchDebounceRef.current = setTimeout(() => {
+                table.setGlobalFilter(String(v));
+              }, 500);
+            }}
+            sx={{ minWidth: 300 }}
           />
           <Stack
             direction="row"
