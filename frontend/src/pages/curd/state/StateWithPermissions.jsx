@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip
+    Button, Stack, Box, Typography, Divider, Chip, TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-table';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
@@ -38,6 +38,7 @@ export default function StatesListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
 
     const fetchUsers = async () => {
         try {
@@ -238,10 +239,19 @@ export default function StatesListPage() {
         <PermissionProvider>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ p: 2 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={setGlobalFilter}
+                    <TextField
+                        size="small"
+                        variant="outlined"
                         placeholder={`Search ${states.length} states...`}
+                        value={searchInput}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setSearchInput(v);
+                            if (debouncedFetchStates.current) clearTimeout(debouncedFetchStates.current);
+                            debouncedFetchStates.current = setTimeout(() => {
+                                setGlobalFilter(String(v));
+                            }, 300);
+                        }}
                     />
                     <Stack direction="row" spacing={1}>
                         <PermissionGate requiredPermission="state_read">

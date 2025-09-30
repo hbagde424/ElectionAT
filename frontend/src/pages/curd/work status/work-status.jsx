@@ -19,7 +19,7 @@ import { CSVLink } from 'react-csv';
 import WorkStatusModal from './WorkStatusModal';
 import AlertWorkStatusDelete from './AlertWorkStatusDelete';
 import WorkStatusView from './WorkStatusView';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 
 export default function WorkStatusListPage() {
     const theme = useTheme();
@@ -40,6 +40,12 @@ export default function WorkStatusListPage() {
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const searchDebounceRef = useRef(null);
+
+    useEffect(() => {
+        setSearchInput(globalFilter || '');
+    }, [globalFilter]);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -701,10 +707,18 @@ export default function WorkStatusListPage() {
             <MainCard content={false}>
                 <Stack spacing={2} sx={{ padding: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                        <DebouncedInput
-                            value={globalFilter}
-                            onFilterChange={setGlobalFilter}
+                        <TextField
+                            size="small"
+                            variant="outlined"
                             placeholder={`Search ${workStatuses.length} work status list...`}
+                            value={searchInput}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setSearchInput(v);
+                                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                                searchDebounceRef.current = setTimeout(() => setGlobalFilter(v), 500);
+                            }}
+                            sx={{ minWidth: 300 }}
                         />
                         <Stack direction="row" spacing={1}>
                             <CSVLink

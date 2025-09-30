@@ -1,11 +1,11 @@
 
 
 
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert,
-  FormControl, Select, MenuItem
+  FormControl, Select, MenuItem, TextField
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload } from 'iconsax-react';
@@ -19,7 +19,7 @@ import {
 // project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
@@ -31,6 +31,8 @@ import { Tooltip } from '@mui/material';
 
 export default function PotentialCandidateListPage() {
   const theme = useTheme();
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = useRef(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -518,10 +520,19 @@ export default function PotentialCandidateListPage() {
 
         <Stack spacing={2} sx={{ padding: 3 }}>
           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-            <DebouncedInput
-              value={table.getState().globalFilter || ''}
-              onFilterChange={(value) => table.setGlobalFilter(String(value))}
+            <TextField
+              size="small"
+              variant="outlined"
               placeholder={`Search ${candidates.length} potential candidates...`}
+              value={searchInput}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSearchInput(v);
+                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                searchDebounceRef.current = setTimeout(() => {
+                  table.setGlobalFilter(String(v));
+                }, 500);
+              }}
             />
             <Stack direction="row" spacing={1}>
               <Button

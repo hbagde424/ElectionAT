@@ -17,7 +17,7 @@ import {
 // project imports
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 
@@ -51,6 +51,15 @@ export default function BoothVotesListPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [selectedCandidate, setSelectedCandidate] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  // debounce ref for search input to avoid updating table on every keystroke
+  const searchDebounceRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
   const [selectedBooth, setSelectedBooth] = useState('');
   const [selectedAssembly, setSelectedAssembly] = useState('');
   const [selectedParty, setSelectedParty] = useState('');
@@ -374,10 +383,20 @@ export default function BoothVotesListPage() {
           justifyContent="space-between"
           sx={{ p: 2, gap: 2 }}
         >
-          <DebouncedInput
-            value={table.getState().globalFilter || ""}
-            onFilterChange={(value) => table.setGlobalFilter(String(value))}
+          <TextField
+            size="small"
+            variant="outlined"
             placeholder={`Search ${votes.length} votes...`}
+            value={searchInput}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearchInput(v);
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+              searchDebounceRef.current = setTimeout(() => {
+                table.setGlobalFilter(String(v));
+              }, 500);
+            }}
+            sx={{ minWidth: 300 }}
           />
 
           <Stack

@@ -11,7 +11,8 @@ import {
 import { CSVLink } from 'react-csv';
 import IconButton from 'components/@extended/IconButton';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
-import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { HeaderSort, TablePagination } from 'components/third-party/react-table';
+import TextField from '@mui/material/TextField';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
@@ -29,6 +30,8 @@ const CandidateListPage = () => {
     const [editData, setEditData] = useState(null);
     const [deleteAlert, setDeleteAlert] = useState({ open: false, id: null });
     const [globalFilter, setGlobalFilter] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const searchDebounceRef = useRef(null);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -392,10 +395,17 @@ const CandidateListPage = () => {
         <>
             <MainCard content={false}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-                    <DebouncedInput
-                        value={globalFilter}
-                        onFilterChange={handleSearchChange}
+                    <TextField
+                        size="small"
+                        variant="outlined"
                         placeholder={`Search ${candidates.length} records...`}
+                        value={searchInput}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setSearchInput(v);
+                            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                            searchDebounceRef.current = setTimeout(() => handleSearchChange(v), 500);
+                        }}
                     />
                     <Stack direction="row" spacing={1}>
                         <CSVLink

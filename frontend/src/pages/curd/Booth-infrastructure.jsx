@@ -41,13 +41,13 @@ import EmptyReactTable from 'pages/tables/react-table/empty';
 
 import {
   CSVExport,
-  DebouncedInput,
   HeaderSort,
   IndeterminateCheckbox,
   RowSelection,
   SelectColumnSorting,
   TablePagination
 } from 'components/third-party/react-table';
+import TextField from '@mui/material/TextField';
 
 import { useGetCustomer } from 'api/customer';
 import { ImagePath, getImageUrl } from 'utils/getImageUrl';
@@ -63,6 +63,8 @@ function ReactTable({ data, columns, modalToggler }) {
   const [columnFilters, setColumnFilters] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = useRef(null);
 
   const table = useReactTable({
     data,
@@ -102,10 +104,17 @@ function ReactTable({ data, columns, modalToggler }) {
   return (
     <MainCard content={false}>
       <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
-        <DebouncedInput
-          value={globalFilter ?? ''}
-          onFilterChange={(value) => setGlobalFilter(String(value))}
+        <TextField
+          size="small"
+          variant="outlined"
           placeholder={`Search ${data.length} records...`}
+          value={searchInput}
+          onChange={(e) => {
+            const v = e.target.value;
+            setSearchInput(v);
+            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+            searchDebounceRef.current = setTimeout(() => setGlobalFilter(String(v)), 500);
+          }}
         />
 
         <Stack direction="row" alignItems="center" spacing={2}>
