@@ -68,7 +68,6 @@ const VisitListPage = () => {
     const [popupInfo, setPopupInfo] = useState(null);
     const [selectedTheme, setSelectedTheme] = useState('streets');
     const [routeData, setRouteData] = useState(null);
-    const [selectedCandidate, setSelectedCandidate] = useState('');
     const mapRef = useRef(null);
 
     // Debounce typing in search box before applying to globalFilter used by table
@@ -266,11 +265,49 @@ const VisitListPage = () => {
         }
     };
 
-    const fetchMapVisits = async (candidateId = null) => {
+    const fetchMapVisits = async (filters = appliedFilters) => {
         try {
-            const path = candidateId ? `/visits?all=true&candidate=${candidateId}` : `/visits?all=true`;
+            let queryParams = ['all=true'];
 
-            console.log('Fetching map visits, path:', path, 'selectedCandidate:', candidateId, 'type:', typeof candidateId);
+            // Apply all the same filters as the visit list
+            if (filters.candidate) {
+                queryParams.push(`candidate=${filters.candidate}`);
+            }
+            if (filters.status) {
+                queryParams.push(`status=${filters.status}`);
+            }
+            if (filters.state) {
+                queryParams.push(`state=${filters.state}`);
+            }
+            if (filters.division) {
+                queryParams.push(`division=${filters.division}`);
+            }
+            if (filters.parliament) {
+                queryParams.push(`parliament=${filters.parliament}`);
+            }
+            if (filters.assembly) {
+                queryParams.push(`assembly=${filters.assembly}`);
+            }
+            if (filters.block) {
+                queryParams.push(`block=${filters.block}`);
+            }
+            if (filters.booth) {
+                queryParams.push(`booth=${filters.booth}`);
+            }
+            if (filters.startDate) {
+                // Convert YYYY-MM-DD to ISO string for proper backend comparison
+                const startDate = new Date(filters.startDate + 'T00:00:00.000Z').toISOString();
+                queryParams.push(`startDate=${encodeURIComponent(startDate)}`);
+            }
+            if (filters.endDate) {
+                // Convert YYYY-MM-DD to end of day ISO string for proper backend comparison
+                const endDate = new Date(filters.endDate + 'T23:59:59.999Z').toISOString();
+                queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
+            }
+
+            const path = `/visits?${queryParams.join('&')}`;
+
+            console.log('Fetching map visits with filters, path:', path, 'filters:', filters);
 
             // Use axiosServices with a relative path (it already has baseURL configured)
             const { data: json } = await axiosServices.get(path);
@@ -345,11 +382,44 @@ const VisitListPage = () => {
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
         try {
-            const url = selectedCandidate
-                ? `${import.meta.env.VITE_APP_API_URL}/visits?all=true&candidate=${selectedCandidate}`
-                : `${import.meta.env.VITE_APP_API_URL}/visits?all=true`;
+            let queryParams = ['all=true'];
 
-            const { data: json } = await axiosServices.get(url.replace(import.meta.env.VITE_APP_API_URL, ''));
+            // Apply all the same filters as the visit list for CSV export
+            if (appliedFilters.candidate) {
+                queryParams.push(`candidate=${appliedFilters.candidate}`);
+            }
+            if (appliedFilters.status) {
+                queryParams.push(`status=${appliedFilters.status}`);
+            }
+            if (appliedFilters.state) {
+                queryParams.push(`state=${appliedFilters.state}`);
+            }
+            if (appliedFilters.division) {
+                queryParams.push(`division=${appliedFilters.division}`);
+            }
+            if (appliedFilters.parliament) {
+                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            }
+            if (appliedFilters.assembly) {
+                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            }
+            if (appliedFilters.block) {
+                queryParams.push(`block=${appliedFilters.block}`);
+            }
+            if (appliedFilters.booth) {
+                queryParams.push(`booth=${appliedFilters.booth}`);
+            }
+            if (appliedFilters.startDate) {
+                const startDate = new Date(appliedFilters.startDate + 'T00:00:00.000Z').toISOString();
+                queryParams.push(`startDate=${encodeURIComponent(startDate)}`);
+            }
+            if (appliedFilters.endDate) {
+                const endDate = new Date(appliedFilters.endDate + 'T23:59:59.999Z').toISOString();
+                queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
+            }
+
+            const path = `/visits?${queryParams.join('&')}`;
+            const { data: json } = await axiosServices.get(path);
 
             if (json.success) {
                 const csvData = json.data.map(item => ({
@@ -446,11 +516,11 @@ const VisitListPage = () => {
     };
 
     useEffect(() => {
-        console.log('useEffect triggered with selectedCandidate:', selectedCandidate);
+        console.log('useEffect triggered with appliedFilters:', appliedFilters);
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchMapVisits(selectedCandidate || null);
+        fetchMapVisits(appliedFilters);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, selectedCandidate, appliedFilters]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -466,18 +536,13 @@ const VisitListPage = () => {
         'speech subject': 'primary'
     };
 
-    const handleCandidateChange = (event) => {
-        const candidateId = event.target.value;
-        console.log('Candidate changed to:', candidateId);
-        setSelectedCandidate(candidateId);
-    };
 
     const handleApplyFilters = () => {
         setAppliedFilters(filterValues);
-        // make sure the map shows visits for the applied candidate filter
-        setSelectedCandidate(filterValues.candidate || '');
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
+        // Update map with the new filters
+        fetchMapVisits(filterValues);
     };
 
     const handleClearFilters = () => {
@@ -495,10 +560,10 @@ const VisitListPage = () => {
         };
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
-        // reset the map to show all visits when filters are cleared
-        setSelectedCandidate('');
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
+        // Update map to show all visits when filters are cleared
+        fetchMapVisits(emptyFilters);
     };
 
     // Handle cascading filter changes
@@ -952,7 +1017,7 @@ const VisitListPage = () => {
                             <Box sx={{ position: 'absolute', bottom: 20, left: 20, zIndex: 1 }}>
                                 <Button
                                     variant="contained"
-                                    onClick={() => fetchMapVisits(selectedCandidate || null)}
+                                    onClick={() => fetchMapVisits(appliedFilters)}
                                     size="small"
                                 >
                                     Refresh Map Data
@@ -1241,7 +1306,7 @@ const VisitListPage = () => {
                 electionYears={electionYears}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(selectedCandidate || null);
+                    fetchMapVisits(appliedFilters);
                 }}
             />
             <AlertVisitDelete
@@ -1250,7 +1315,7 @@ const VisitListPage = () => {
                 id={deleteAlert.id}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(selectedCandidate || null);
+                    fetchMapVisits(appliedFilters);
                 }}
             />
         </>
