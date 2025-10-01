@@ -1,9 +1,13 @@
+const mongoose = require('mongoose');
 const Block = require('../models/block');
 const Assembly = require('../models/Assembly');
 const Parliament = require('../models/Parliament');
 // const District = require('../models/District');
 const Division = require('../models/Division');
 const State = require('../models/state');
+
+// Helper to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @desc    Get all blocks
 // @route   GET /api/blocks

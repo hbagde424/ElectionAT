@@ -7,6 +7,9 @@ const Division = require('../models/Division');
 const State = require('../models/state');
 const ElectionYear = require('../models/electionYear');
 
+// Helper to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
 // @desc    Get all booths
 // @route   GET /api/booths
 // @access  Public
@@ -31,7 +34,7 @@ exports.getBooths = async (req, res, next) => {
     let matchStage = {};
     if (req.query.search) {
       const searchTerm = req.query.search.trim();
-      
+
       // Skip if search term is empty
       if (!searchTerm) {
         return res.status(400).json({
@@ -99,8 +102,6 @@ exports.getBooths = async (req, res, next) => {
       }
     }
 
-    // Helper to validate ObjectId
-    const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
     // Build the aggregation pipeline
     const aggregationPipeline = [

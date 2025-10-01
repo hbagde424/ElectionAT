@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -22,6 +23,7 @@ import BlocksView from './BlockView';
 
 export default function BlocksListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedBlock, setSelectedBlock] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -135,11 +137,11 @@ export default function BlocksListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -291,15 +293,24 @@ export default function BlocksListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
-                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedBlock(row.original); setOpenModal(true); }}>
-                            <Edit />
-                        </IconButton>
-                        <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
-                            <Trash />
-                        </IconButton>
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={() => navigate(`/block/${row.original._id}`)}
+                            >
+                                <Eye />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                            <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedBlock(row.original); setOpenModal(true); }}>
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
+                                <Trash />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
                 );
             }

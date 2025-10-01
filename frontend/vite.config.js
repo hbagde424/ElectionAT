@@ -12,8 +12,9 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: 'https://myhostmanager.co.in/backend',
                 changeOrigin: true,
+                secure: true,
             },
         },
     },

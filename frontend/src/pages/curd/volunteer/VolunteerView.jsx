@@ -113,7 +113,7 @@ export default function BoothVolunteerView({ data }) {
                       <ListItemSecondaryAction>
                         <IconButton
                           size="small"
-                          onClick={() => window.open(`${import.meta.env.VITE_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/volunteer-docs/${doc.filename}`, '_blank')}
+                          onClick={() => window.open(`${import.meta.env.VITE_APP_API_URL?.replace('/api', '') || 'https://myhostmanager.co.in/backend'}/uploads/volunteer-docs/${doc.filename}`, '_blank')}
                         >
                           <Eye size={16} />
                         </IconButton>

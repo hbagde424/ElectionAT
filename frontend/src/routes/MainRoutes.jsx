@@ -199,7 +199,9 @@ const District = Loadable(lazy(() => import('pages/curd/district/district')));
 const Assembly = Loadable(lazy(() => import('pages/curd/assembly/assembly')));
 const Parliament = Loadable(lazy(() => import('pages/curd/parliament/parliament')));
 const Block = Loadable(lazy(() => import('pages/curd/block/block')));
+const BlockDetailPage = Loadable(lazy(() => import('pages/curd/block/BlockDetailPage')));
 const Booth = Loadable(lazy(() => import('pages/curd/booth/booth')));
+const BoothDetailPage = Loadable(lazy(() => import('pages/curd/booth/BoothDetailPage')));
 const Landing = Loadable(lazy(() => import('pages/landing')));
 const ContactUS = Loadable(lazy(() => import('pages/contact-us')));
 const PricingPage = Loadable(lazy(() => import('pages/extra-pages/price/price1')));
@@ -777,8 +779,16 @@ const MainRoutes = {
           element: <Block />
         },
         {
+          path: 'block/:id',
+          element: <BlockDetailPage />
+        },
+        {
           path: 'booth',
           element: <Booth />
+        },
+        {
+          path: 'booth/:id',
+          element: <BoothDetailPage />
         },
         {
           path: 'price',
