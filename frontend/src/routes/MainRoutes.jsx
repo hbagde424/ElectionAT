@@ -139,6 +139,7 @@ const ParliamentCandidateDetailPage = Loadable(lazy(() => import('pages/curd/par
 const AssemblyDetailPage = Loadable(lazy(() => import('pages/curd/assembly/AssemblyDetailPage')));
 const DistrictDetailPage = Loadable(lazy(() => import('pages/curd/district/DistrictDetailPage')));
 const PartyActivitiesList = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesListPage')));
+const PartyActivitiesDetailPage = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesDetailPage')));
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesList')));
 const WinningPartyDetailPage = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartyDetailPage')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
@@ -173,9 +174,11 @@ const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
 const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
 const GovernmentSchemeDetailPage = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchemeDetailPage')));
 const Influancer = Loadable(lazy(() => import('pages/curd/influancer/Influancer')));
+const InfluancerDetailPage = Loadable(lazy(() => import('pages/curd/influancer/InfluancerDetailPage')));
 const BoothDemographic = Loadable(lazy(() => import('pages/curd/booth demographic/BoothDemographic')));
 const ElectionType = Loadable(lazy(() => import('pages/curd/Election-Type/ElectionType')));
 const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issue')));
+const LocalIssueDetailPage = Loadable(lazy(() => import('pages/curd/local issue/LocalIssueDetailPage')));
 const Events = Loadable(lazy(() => import('pages/curd/events/events')));
 const EventDetailPage = Loadable(lazy(() => import('pages/curd/events/EventDetailPage')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
@@ -605,6 +608,10 @@ const MainRoutes = {
           element: <PartyActivitiesList />
         },
         {
+          path: 'party-activities/:id',
+          element: <PartyActivitiesDetailPage />
+        },
+        {
           path: 'WinningPartiesList',
           element: <WinningPartiesList />
         },
@@ -724,6 +731,10 @@ const MainRoutes = {
           element: <Influancer />
         },
         {
+          path: 'Influancer/:id',
+          element: <InfluancerDetailPage />
+        },
+        {
           path: 'roles',
           element: <RoleList />
         },
@@ -742,6 +753,10 @@ const MainRoutes = {
         {
           path: 'Local-Issue',
           element: <LocalIssue />
+        },
+        {
+          path: 'Local-Issue/:id',
+          element: <LocalIssueDetailPage />
         },
         {
           path: 'Events',

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
@@ -23,6 +24,7 @@ import LocalIssueView from './LocalView';
 
 export default function LocalIssueListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedIssue, setSelectedIssue] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -72,7 +74,7 @@ export default function LocalIssueListPage() {
     const departmentOptions = ['Education', 'Healthcare', 'Infrastructure', 'Transportation', 'Water Supply', 'Sanitation', 'Power Supply', 'Agriculture', 'Others'];
     const categoryOptions = [
         'Social Issue',
-        'Crime Issue', 
+        'Crime Issue',
         'Political Issue',
         'Farmer Issue',
         'Youth Issue',
@@ -547,8 +549,15 @@ export default function LocalIssueListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
+
+                        <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/Local-Issue/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
                         </IconButton>
                         <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedIssue(row.original); setOpenModal(true); }}>
                             <Edit />
