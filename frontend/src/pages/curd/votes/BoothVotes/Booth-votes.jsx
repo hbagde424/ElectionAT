@@ -30,6 +30,7 @@ import { Tooltip } from '@mui/material';
 export default function BoothVotesListPage() {
   const theme = useTheme();
   const csvLinkRef = useRef();
+  const navigate = useNavigate();
   const [csvData, setCsvData] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
   const [selectedVote, setSelectedVote] = useState(null);
@@ -321,11 +322,18 @@ export default function BoothVotesListPage() {
         const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View">
-              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                {expandIcon}
+            <Tooltip title="View Details">
+              <IconButton
+                color="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/Booth-Votes/${row.original._id}`);
+                }}
+              >
+                <Eye />
               </IconButton>
             </Tooltip>
+
             <Tooltip title="Edit">
               <IconButton
                 color="primary"
@@ -569,7 +577,7 @@ export default function BoothVotesListPage() {
                       <TableCell
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
-                        sx={{ 
+                        sx={{
                           cursor: header.column.getCanSort() ? 'pointer' : 'default',
                           color: 'white',
                           fontWeight: 'bold',

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, FormControl, InputLabel, Select, MenuItem
+    Button, Stack, Box, Typography, Divider, Chip, FormControl, InputLabel, Select, MenuItem, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -22,6 +23,7 @@ import CasteView from './CasteView';
 
 export default function CasteListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedCaste, setSelectedCaste] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -248,11 +250,11 @@ export default function CasteListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Caste',
@@ -436,15 +438,28 @@ export default function CasteListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
-                        <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedCaste(row.original); setOpenModal(true); }}>
-                            <Edit />
-                        </IconButton>
-                        <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
-                            <Trash />
-                        </IconButton>
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/Caste-List/${row.original._id}`);
+                                }}
+                            >
+                                <Eye />
+                            </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Edit">
+                            <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedCaste(row.original); setOpenModal(true); }}>
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
+                                <Trash />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
                 );
             }
@@ -704,7 +719,7 @@ export default function CasteListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

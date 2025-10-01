@@ -156,12 +156,14 @@ const Matrix = Loadable(lazy(() => import('pages/curd/matrix/Matrix')));
 const Division = Loadable(lazy(() => import('pages/curd/division/division')));
 const AssemblyVotes = Loadable(lazy(() => import('pages/curd/votes/AssemblyVotes/Assembly-votes')));
 const BoothVotes = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/Booth-votes')));
+const BoothVoteDetailPage = Loadable(lazy(() => import('pages/curd/votes/BoothVotes/BoothVoteDetailPage')));
 const BlockVotes = Loadable(lazy(() => import('pages/curd/votes/BlockVotes/Block-votes')));
 const ParliamentVotes = Loadable(lazy(() => import('pages/curd/votes/ParliamentVotes/Parliament-votes')));
 const Users = Loadable(lazy(() => import('pages/curd/user/Users')));
 const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
 const BoothSurveyDetailPage = Loadable(lazy(() => import('pages/curd/booth-survey/BoothSurveyDetailPage')));
-const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
+const CasteList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
+const CasteDetailPage = Loadable(lazy(() => import('pages/curd/caste list/CasteDetailPage')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
 const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
 const Matrics = Loadable(lazy(() => import('pages/curd/role/RoleMatrix')));
@@ -641,6 +643,10 @@ const MainRoutes = {
           element: <BoothVotes />
         },
         {
+          path: 'Booth-Votes/:id',
+          element: <BoothVoteDetailPage />
+        },
+        {
           path: 'Block-Votes',
           element: <BlockVotes />
         },
@@ -666,7 +672,11 @@ const MainRoutes = {
         },
         {
           path: 'Caste-List',
-          element: <CastList />
+          element: <CasteList />
+        },
+        {
+          path: 'Caste-List/:id',
+          element: <CasteDetailPage />
         },
         {
           path: 'Gender',
