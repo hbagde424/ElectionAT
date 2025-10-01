@@ -2,6 +2,7 @@ const express = require('express');
 const {
   getYears,
   getCurrentYear,
+  getYear,
   createYear,
   updateYear,
   setCurrentYear,
@@ -42,6 +43,36 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/Year'
  */
 router.get('/', getYears);
+
+/**
+ * @swagger
+ * /api/years/{id}:
+ *   get:
+ *     summary: Get a single year by ID
+ *     tags: [Years]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Year ID
+ *     responses:
+ *       200:
+ *         description: Year details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Year'
+ *       404:
+ *         description: Year not found
+ */
+router.get('/:id', getYear);
 
 /**
  * @swagger
@@ -155,7 +186,7 @@ router.put('/set-current/:id', protect, setCurrentYear);
  *       404:
  *         description: Year not found
  */
-router.delete('/:id',  deleteYear);
+router.delete('/:id', deleteYear);
 
 /**
  * @swagger

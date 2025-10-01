@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField
@@ -22,6 +23,7 @@ import ElectionYearView from './YearView';
 
 export default function ElectionYearsListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedElectionYear, setSelectedElectionYear] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -86,11 +88,11 @@ export default function ElectionYearsListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Year',
@@ -167,8 +169,15 @@ export default function ElectionYearsListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
+
+                        <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/Year/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
                         </IconButton>
                         <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedElectionYear(row.original); setOpenModal(true); }}>
                             <Edit />
@@ -274,7 +283,7 @@ export default function ElectionYearsListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

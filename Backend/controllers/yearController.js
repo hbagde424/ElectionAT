@@ -31,6 +31,29 @@ exports.getCurrentYear = async (req, res, next) => {
   }
 };
 
+// @desc    Get single year
+// @route   GET /api/years/:id
+// @access  Public
+exports.getYear = async (req, res, next) => {
+  try {
+    const year = await Year.findById(req.params.id);
+
+    if (!year) {
+      return res.status(404).json({
+        success: false,
+        message: 'Year not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: year
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Create a new year
 // @route   POST /api/years
 // @access  Private

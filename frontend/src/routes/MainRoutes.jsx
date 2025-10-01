@@ -173,6 +173,7 @@ const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
 const CodingDetailPage = Loadable(lazy(() => import('pages/curd/coding/CodingDetailPage')));
 const Matrics = Loadable(lazy(() => import('pages/curd/role/RoleMatrix')));
 const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
+const YearDetailPage = Loadable(lazy(() => import('pages/curd/year/YearDetailPage')));
 const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
 const GovernmentSchemeDetailPage = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchemeDetailPage')));
 const Influancer = Loadable(lazy(() => import('pages/curd/influancer/Influancer')));
@@ -188,6 +189,7 @@ const WorkStatusDetailPage = Loadable(lazy(() => import('pages/curd/work status/
 const PolentialCandidate = Loadable(lazy(() => import('pages/curd/potentical candidate/potentical')));
 const PotentialCandidateDetailPage = Loadable(lazy(() => import('pages/curd/potentical candidate/PotentialCandidateDetailPage')));
 const FAQCrud = Loadable(lazy(() => import('pages/curd/faq-crud/FAQ')));
+const FAQDetailPage = Loadable(lazy(() => import('pages/curd/faq-crud/FAQDetailPage')));
 const ParliamentCandidate = Loadable(lazy(() => import('pages/curd/parliament-candidate/ParliamentCandidate')));
 
 
@@ -722,6 +724,10 @@ const MainRoutes = {
           element: <Year />
         },
         {
+          path: 'Year/:id',
+          element: <YearDetailPage />
+        },
+        {
           path: 'Booth-Demographic',
           element: <BoothDemographic />
         },
@@ -828,6 +834,10 @@ const MainRoutes = {
         {
           path: 'faq-crud',
           element: <FAQCrud />
+        },
+        {
+          path: 'faq-crud/:id',
+          element: <FAQDetailPage />
         },
         {
           path: 'parliament-candidate',

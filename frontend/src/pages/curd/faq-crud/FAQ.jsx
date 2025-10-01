@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip
@@ -23,6 +24,7 @@ import FAQView from './FAQView';
 
 export default function FAQListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedFAQ, setSelectedFAQ] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -192,8 +194,15 @@ export default function FAQListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
+
+                        <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/faq-crud/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
                         </IconButton>
                         <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedFAQ(row.original); setOpenModal(true); }}>
                             <Edit />
@@ -306,7 +315,7 @@ export default function FAQListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',
