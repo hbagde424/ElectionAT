@@ -201,62 +201,14 @@ const ParliamentCandidateDetailPage = () => {
                 </Breadcrumbs>
             </Box>
 
-            <Grid container spacing={3}>
-                {/* Main Info Card */}
-                <Grid item xs={12} md={8}>
-                    <MainCard>
-                        <CardContent>
-                            {/* Candidate Header */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                                <Avatar
-                                    src={candidate.photo}
-                                    sx={{
-                                        width: 80,
-                                        height: 80,
-                                        mr: 2,
-                                        border: `3px solid ${theme.palette.primary.main}`
-                                    }}
-                                >
-                                    <Person />
-                                </Avatar>
-                                <Box sx={{ flexGrow: 1 }}>
-                                    <Typography variant="h5" component="h2" sx={{ mb: 1 }}>
-                                        {candidate.name}
-                                    </Typography>
-                                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                                        <Chip
-                                            label="Parliament Candidate"
-                                            color="primary"
-                                            size="small"
-                                        />
-                                        {candidate.party_id?.name && (
-                                            <Chip
-                                                label={candidate.party_id.name}
-                                                color="secondary"
-                                                size="small"
-                                            />
-                                        )}
-                                        {candidate.status && (
-                                            <Chip
-                                                label={candidate.status}
-                                                color={getStatusColor(candidate.status)}
-                                                size="small"
-                                            />
-                                        )}
-                                    </Stack>
-                                </Box>
-                            </Box>
-
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Basic Information */}
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <Person sx={{ mr: 1 }} />
-                                Basic Information
-                            </Typography>
-
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
-                                <Grid item xs={12} sm={6}>
+            {/* All Parliament Candidate Information in 3-column layout */}
+            <MainCard>
+                <CardContent>
+                    <Grid container spacing={3}>
+                        {/* Column 1 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Full Name
                                     </Typography>
@@ -264,7 +216,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.name}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Age
                                     </Typography>
@@ -272,7 +224,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.age || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Gender
                                     </Typography>
@@ -280,7 +232,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.gender || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Education
                                     </Typography>
@@ -288,7 +240,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.education || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Profession
                                     </Typography>
@@ -296,7 +248,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.profession || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Contact Number
                                     </Typography>
@@ -304,18 +256,29 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.phone || 'N/A'}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Email
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {candidate.email || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Address
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {candidate.address || 'N/A'}
+                                    </Typography>
+                                </Grid>
                             </Grid>
+                        </Grid>
 
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Political Information */}
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <HowToVote sx={{ mr: 1 }} />
-                                Political Information
-                            </Typography>
-
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
-                                <Grid item xs={12} sm={6}>
+                        {/* Column 2 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Party
                                     </Typography>
@@ -323,7 +286,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.party_id?.name || 'Independent'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Election Year
                                     </Typography>
@@ -331,7 +294,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.election_year_id?.year || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Parliament Constituency
                                     </Typography>
@@ -339,44 +302,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.parliament_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Candidate Status
-                                    </Typography>
-                                    <Chip
-                                        label={candidate.status || 'Active'}
-                                        color={getStatusColor(candidate.status)}
-                                        size="small"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Symbol
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.symbol || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Nomination Date
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.nomination_date ? formatDate(candidate.nomination_date) : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Constituency Information */}
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <LocationOn sx={{ mr: 1 }} />
-                                Constituency Information
-                            </Typography>
-
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         State
                                     </Typography>
@@ -384,7 +310,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.state_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Division
                                     </Typography>
@@ -392,7 +318,37 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.division_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Symbol
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {candidate.symbol || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Nomination Date
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {candidate.nomination_date ? formatDate(candidate.nomination_date) : 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Status
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {candidate.status || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        {/* Column 3 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Votes Received
                                     </Typography>
@@ -400,7 +356,7 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.votes_received ? candidate.votes_received.toLocaleString() : 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Vote Percentage
                                     </Typography>
@@ -408,106 +364,55 @@ const ParliamentCandidateDetailPage = () => {
                                         {candidate.vote_percentage ? `${candidate.vote_percentage}%` : 'N/A'}
                                     </Typography>
                                 </Grid>
-                            </Grid>
-
-                            {/* Description */}
-                            {candidate.description && (
-                                <>
-                                    <Divider sx={{ my: 2 }} />
-                                    <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                        <Description sx={{ mr: 1 }} />
-                                        Biography
-                                    </Typography>
-                                    <Paper sx={{ p: 2, backgroundColor: theme.palette.grey[50] }}>
-                                        <div dangerouslySetInnerHTML={{ __html: candidate.description }} />
-                                    </Paper>
-                                </>
-                            )}
-                        </CardContent>
-                    </MainCard>
-                </Grid>
-
-                {/* Sidebar */}
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={3}>
-                        {/* Electoral Performance */}
-                        {(candidate.votes_received || candidate.vote_percentage) && (
-                            <MainCard title="Electoral Performance">
-                                <Stack spacing={2}>
-                                    {candidate.votes_received && (
-                                        <Box>
-                                            <Typography variant="subtitle2" color="text.secondary">
-                                                Votes Received
-                                            </Typography>
-                                            <Typography variant="h6" color="primary">
-                                                {candidate.votes_received.toLocaleString()}
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                    {candidate.vote_percentage && (
-                                        <Box>
-                                            <Typography variant="subtitle2" color="text.secondary">
-                                                Vote Share
-                                            </Typography>
-                                            <Typography variant="h6" color="secondary">
-                                                {candidate.vote_percentage}%
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                    <Box>
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                            Result Status
-                                        </Typography>
-                                        <Chip
-                                            label={candidate.status || 'Pending'}
-                                            color={getStatusColor(candidate.status)}
-                                            size="small"
-                                        />
-                                    </Box>
-                                </Stack>
-                            </MainCard>
-                        )}
-
-                        {/* Metadata */}
-                        <MainCard title="Metadata">
-                            <Stack spacing={2}>
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body2">
-                                        {formatDateTime(candidate.created_at)}
-                                    </Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body2">
-                                        {formatDateTime(candidate.updated_at)}
-                                    </Typography>
-                                </Box>
-                                <Box>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Created By
                                     </Typography>
-                                    <Typography variant="body2">
-                                        {candidate.created_by?.name || (typeof candidate.created_by === 'string' ? candidate.created_by : 'System')}
+                                    <Typography variant="body1">
+                                        {candidate.created_by?.username || 'N/A'}
                                     </Typography>
-                                </Box>
-                                <Box>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Last Updated
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDateTime(candidate.updated_at)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Updated By
                                     </Typography>
-                                    <Typography variant="body2">
-                                        {candidate.updated_by?.name || (typeof candidate.updated_by === 'string' ? candidate.updated_by : 'System')}
+                                    <Typography variant="body1">
+                                        {candidate.updated_by?.username || 'N/A'}
                                     </Typography>
-                                </Box>
-                            </Stack>
-                        </MainCard>
-                    </Stack>
-                </Grid>
-            </Grid>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Created At
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDateTime(candidate.created_at)}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    {/* Full-width sections for longer content */}
+                    {candidate.description && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Biography
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>
+                                <div dangerouslySetInnerHTML={{ __html: candidate.description }} />
+                            </Typography>
+                        </Box>
+                    )}
+                </CardContent>
+            </MainCard>
         </Container>
     );
 };
