@@ -62,6 +62,7 @@ const VisitListPage = () => {
     const [booths, setBooths] = useState([]);
     const [candidates, setCandidates] = useState([]);
     const [electionYears, setElectionYears] = useState([]);
+    const [users, setUsers] = useState([]);
 
     // Map state
     const [mapVisits, setMapVisits] = useState([]);
@@ -422,10 +423,49 @@ const VisitListPage = () => {
             const { data: json } = await axiosServices.get(path);
 
             if (json.success) {
+                // Helper to remove HTML tags and normalize whitespace
+                const stripHtml = (input) => {
+                    if (input === null || input === undefined) return '';
+                    if (typeof input !== 'string') return String(input);
+                    // Remove tags and collapse whitespace
+                    return input.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+                };
+
+                // Helper to render user fields safely (avoid [object Object]).
+                // If created_by/updated_by is an id string, try to resolve it
+                // from the cached `users` list fetched by `fetchReferenceData`.
+                const formatUser = (user) => {
+                    if (!user) return '';
+                    // If it's a simple id (string/number), try to lookup
+                    if (typeof user === 'string' || typeof user === 'number') {
+                        const id = String(user);
+                        const found = users.find(u => String(u._id) === id || String(u.id) === id);
+                        return found ? (found.name || found.displayName || found.email || id) : id;
+                    }
+                    if (typeof user === 'object') {
+                        if (user.name) return user.name;
+                        if (user.displayName) return user.displayName;
+                        if (user.fullName) return user.fullName;
+                        if (user.email) return user.email;
+                        const uid = user._id || user.id;
+                        if (uid) {
+                            const found = users.find(u => String(u._id) === String(uid) || String(u.id) === String(uid));
+                            if (found) return found.name || found.displayName || found.email || String(uid);
+                            return String(uid);
+                        }
+                        try {
+                            return JSON.stringify(user);
+                        } catch (e) {
+                            return String(user);
+                        }
+                    }
+                    return String(user);
+                };
+
                 const csvData = json.data.map(item => ({
-                    'Candidate': item.candidate_id?.name || '',
-                    'Candidate ID': item.candidate_id?._id || '',
-                    'Post': item.post || '',
+                    'Candidate': stripHtml(item.candidate_id?.name || ''),
+                    // 'Candidate ID': item.candidate_id?._id || '',
+                    'Post': stripHtml(item.post || ''),
                     'Election Year': item.election_year_id?.year || '',
                     'Election Type': item.election_year_id?.election_type || '',
                     'Date': item.date ? formatDate(item.date) : '',
@@ -436,22 +476,22 @@ const VisitListPage = () => {
                     'Parliament': item.parliament_id?.name || '',
                     'Block': item.block_id?.name || '',
                     'Booth': item.booth_id?.name || '',
-                    'Location': item.locationName || '',
+                    'Location': stripHtml(item.locationName || ''),
                     'Longitude': item.longitude ?? '',
                     'Latitude': item.latitude ?? '',
                     'Coordinates': (item.latitude != null && item.longitude != null) ? `${item.latitude}, ${item.longitude}` : '',
-                    'Work Name': item.workName || '',
-                    'Visit Agenda': item.visitAgenda || item.declaration || '',
-                    'Speech (5 lines)': item.speechFiveLines || '',
-                    'Speech Issue': item.speechIssue || '',
+                    'Work Name': stripHtml(item.workName || ''),
+                    'Visit Agenda': stripHtml(item.visitAgenda || item.declaration || ''),
+                    'Speech (5 lines)': stripHtml(item.speechFiveLines || ''),
+                    'Speech Issue': stripHtml(item.speechIssue || ''),
                     'Announcement Date': item.announcementDate ? formatDate(item.announcementDate) : '',
                     'Completion Date': item.completionDate ? formatDate(item.completionDate) : '',
                     'Budget Announced Date': item.budgetAnnouncedDate ? formatDate(item.budgetAnnouncedDate) : '',
                     'Documents': Array.isArray(item.documents) ? item.documents.map(d => d.name || d.filePath || '').filter(Boolean).join('; ') : '',
-                    'Description': item.description || '',
-                    'Remark': item.remark || '',
-                    'Created By': item.created_by?.name || item.created_by || '',
-                    'Updated By': item.updated_by?.name || item.updated_by || '',
+                    'Description': stripHtml(item.description || ''),
+                    'Remark': stripHtml(item.remark || ''),
+                    'Created By': formatUser(item.created_by),
+                    'Updated By': formatUser(item.updated_by),
                     'Created At': item.created_at ? new Date(item.created_at).toLocaleString('en-IN') : '',
                     'Updated At': item.updated_at ? new Date(item.updated_at).toLocaleString('en-IN') : ''
                 }));
@@ -490,7 +530,7 @@ const VisitListPage = () => {
             const [
                 statesData, divisionsData, parliamentsData,
                 assembliesData, blocksData, boothsData,
-                candidatesData, electionYearsData
+                candidatesData, electionYearsData, usersData
             ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
@@ -499,7 +539,9 @@ const VisitListPage = () => {
                 blocksRes.json(),
                 boothsRes.json(),
                 candidatesRes.json(),
-                electionYearsRes.json()
+                electionYearsRes.json(),
+                // users may be used to resolve created_by/updated_by ids -> names
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`).then(r => r.json())
             ]);
 
             if (statesData.success) setStates(statesData.data);
@@ -510,6 +552,7 @@ const VisitListPage = () => {
             if (boothsData.success) setBooths(boothsData.data);
             if (candidatesData.success) setCandidates(candidatesData.data);
             if (electionYearsData.success) setElectionYears(electionYearsData.data);
+            if (usersData && usersData.success) setUsers(usersData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }

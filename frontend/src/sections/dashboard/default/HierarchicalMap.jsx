@@ -103,6 +103,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     // Update popup content when hover data changes
     useEffect(() => {
+        // console.log('🔄 Hover data updated:', hoverData); // Commented out to reduce noise
         if (currentLayerRef.current) {
             currentLayerRef.current.eachLayer((layer) => {
                 if (layer._popup && layer.feature) {
@@ -821,13 +822,80 @@ function HierarchicalMap({ onRegionClick }) {
                             cacheKey = `${level}_${featureId}`;
                         }
 
-                        if (level === 'assembly' || level === 'parliament' || level === 'booth' || level === 'division' || level === 'state') {
-                            const genderType = level === 'booth' ? 'booth' : (level === 'parliamentary' ? 'parliament' : level);
+                        if (level === 'assembly' || level === 'parliament' || level === 'booth' || level === 'block' || level === 'division' || level === 'state') {
+                            const genderType = level === 'booth' ? 'booth' : (level === 'block' ? 'block' : (level === 'parliamentary' ? 'parliament' : level));
                             const genderId = level === 'assembly' ? feature.properties.id :
-                                           (level === 'parliamentary' ? feature.properties.pcNo : (feature.properties.id || feature.properties.Name || feature.properties.DIVISION_CODE));
+                                           (level === 'block' ? feature.properties.id :
+                                           (level === 'parliamentary' ? feature.properties.pcNo : (feature.properties.id || feature.properties.Name || feature.properties.DIVISION_CODE)));
 
                             if (genderId && !hoverData[cacheKey]?.gender) {
                                 fetchGenderData(genderType, genderId);
+                            }
+                        }
+
+                        // Fetch block-specific gender data
+                        if (level === 'block') {
+                            // Try multiple possible ID fields for block, prefer name
+                            const blockId = feature.properties.blockName || feature.properties.BlockName ||
+                                          feature.properties.name || feature.properties.Name ||
+                                          feature.properties.id || feature.properties.BlockId || feature.properties._id;
+                            console.log('🏢 Block hover detected:', {
+                                level,
+                                blockId,
+                                cacheKey,
+                                hasExistingData: !!hoverData[cacheKey]?.genderData,
+                                properties: feature.properties,
+                                allPossibleIds: {
+                                    blockName: feature.properties.blockName,
+                                    BlockName: feature.properties.BlockName,
+                                    name: feature.properties.name,
+                                    Name: feature.properties.Name,
+                                    id: feature.properties.id,
+                                    BlockId: feature.properties.BlockId,
+                                    _id: feature.properties._id
+                                }
+                            });
+                            if (blockId && !hoverData[cacheKey]?.genderData) {
+                                console.log('🚀 Triggering block gender fetch for:', blockId);
+                                fetchBlockGenderData(blockId);
+                            } else if (!blockId) {
+                                console.warn('⚠️ No block ID found in properties:', feature.properties);
+                            }
+                        }
+
+                        // Fetch booth-specific gender data
+                        if (level === 'booth') {
+                            // Try multiple possible ID fields for booth, prefer booth_number from database
+                            const boothId = feature.properties.booth_number || feature.properties.boothNumber || 
+                                          feature.properties.boothNo || feature.properties.BoothNo || 
+                                          feature.properties.booth_no || feature.properties.BoothNumber ||
+                                          feature.properties.id || feature.properties.BoothId || feature.properties._id;
+                            console.log('🗳️ Booth hover detected:', {
+                                level,
+                                boothId,
+                                cacheKey,
+                                hasExistingData: !!hoverData[cacheKey]?.genderData,
+                                properties: feature.properties,
+                                allPossibleIds: {
+                                    boothNo: feature.properties.boothNo,
+                                    BoothNo: feature.properties.BoothNo,
+                                    boothName: feature.properties.boothName,
+                                    BoothName: feature.properties.BoothName,
+                                    id: feature.properties.id,
+                                    BoothId: feature.properties.BoothId,
+                                    _id: feature.properties._id,
+                                    booth_number: feature.properties.booth_number,
+                                    booth_id: feature.properties.booth_id,
+                                    name: feature.properties.name,
+                                    Name: feature.properties.Name
+                                },
+                                fullProperties: feature.properties
+                            });
+                            if (boothId && !hoverData[cacheKey]?.genderData) {
+                                console.log('🚀 Triggering booth gender fetch for:', boothId);
+                                fetchBoothGenderData(boothId);
+                            } else if (!boothId) {
+                                console.warn('⚠️ No booth ID found in properties:', feature.properties);
                             }
                         }
 
@@ -842,12 +910,12 @@ function HierarchicalMap({ onRegionClick }) {
                         // Fetch specific assembly data for electors and last 3 years winning party
                         if (level === 'assembly') {
                             const assemblyId = feature.properties.id;
-                            console.log('🏛️ Assembly hover detected for:', {
-                                assemblyId,
-                                assemblyName: feature.properties.name,
-                                cacheKey,
-                                hasExistingData: !!hoverData[cacheKey]?.assemblyData
-                            });
+                            // console.log('🏛️ Assembly hover detected for:', {
+                            //     assemblyId,
+                            //     assemblyName: feature.properties.name,
+                            //     cacheKey,
+                            //     hasExistingData: !!hoverData[cacheKey]?.assemblyData
+                            // });
                             
                             if (assemblyId && !hoverData[cacheKey]?.assemblyData) {
                                 console.log('🚀 Triggering assembly data fetch for:', assemblyId);
@@ -1094,6 +1162,98 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
+    // Function to fetch gender data for block hover
+    const fetchBlockGenderData = async (blockId) => {
+        try {
+            const encodedId = encodeURIComponent(blockId);
+            const url = `${import.meta.env.VITE_APP_API_URL}/genders/stats/block/${encodedId}`;
+            console.log('🔍 Fetching block gender data for:', blockId, 'URL:', url);
+            const response = await fetch(url);
+            
+            console.log('📡 Block gender response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📊 Block gender data received:', data);
+                if (data.success) {
+                    const cacheKey = `block_${blockId}`;
+                    console.log('💾 Storing block gender data with key:', cacheKey, 'Data:', data.data);
+                    setHoverData(prev => ({
+                        ...prev,
+                        [cacheKey]: {
+                            ...prev[cacheKey],
+                            genderData: data.data
+                        }
+                    }));
+                } else {
+                    console.warn('⚠️ Block gender API returned success: false', data);
+                }
+            } else {
+                let errorText;
+                try {
+                    const errorJson = await response.json();
+                    errorText = JSON.stringify(errorJson);
+                } catch (e) {
+                    errorText = await response.text();
+                }
+                console.error('❌ Failed to fetch block gender data. Status:', response.status, 'Error:', errorText);
+                
+                // If 404, likely means route not found or no matching block found
+                if (response.status === 404) {
+                    console.warn('🔍 Block API returned 404. Check if route exists and backend logs for details.');
+                }
+            }
+        } catch (error) {
+            console.error('💥 Error fetching block gender data:', error);
+        }
+    };
+
+    // Function to fetch gender data for booth hover
+    const fetchBoothGenderData = async (boothId) => {
+        try {
+            const encodedId = encodeURIComponent(boothId);
+            const url = `${import.meta.env.VITE_APP_API_URL}/genders/stats/booth/${encodedId}`;
+            console.log('🔍 Fetching booth gender data for:', boothId, 'URL:', url);
+            const response = await fetch(url);
+            
+            console.log('📡 Booth gender response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📊 Booth gender data received:', data);
+                if (data.success) {
+                    const cacheKey = `booth_${boothId}`;
+                    console.log('💾 Storing booth gender data with key:', cacheKey, 'Data:', data.data);
+                    setHoverData(prev => ({
+                        ...prev,
+                        [cacheKey]: {
+                            ...prev[cacheKey],
+                            genderData: data.data
+                        }
+                    }));
+                } else {
+                    console.warn('⚠️ Booth gender API returned success: false', data);
+                }
+            } else {
+                let errorText;
+                try {
+                    const errorJson = await response.json();
+                    errorText = JSON.stringify(errorJson);
+                } catch (e) {
+                    errorText = await response.text();
+                }
+                console.error('❌ Failed to fetch booth gender data. Status:', response.status, 'Error:', errorText);
+                
+                // If 404, likely means route not found or no matching booth found
+                if (response.status === 404) {
+                    console.warn('🔍 Booth API returned 404. Check if route exists and backend logs for details.');
+                }
+            }
+        } catch (error) {
+            console.error('💥 Error fetching booth gender data:', error);
+        }
+    };
+
     const handleLayerClick = (feature, level) => {
         setSelectedFeature(feature);
 
@@ -1157,12 +1317,33 @@ function HierarchicalMap({ onRegionClick }) {
             // Use pcNo (parliament number) for consistent matching
             const parliamentId = properties.pcNo || properties.parliamentId || properties.id;
             cacheKey = `${level}_${parliamentId}`;
+        } else if (level === 'booth') {
+            // For booth, use the same ID extraction logic as in hover detection
+            const boothId = properties.booth_number || properties.boothNumber || 
+                          properties.boothNo || properties.BoothNo || 
+                          properties.booth_no || properties.BoothNumber ||
+                          properties.id || properties.BoothId || properties._id;
+            cacheKey = `${level}_${boothId}`;
+        } else if (level === 'block') {
+            // For block, use name-based key like 'block_gandhwani'
+            const blockId = properties.name || properties.Name || properties.id;
+            cacheKey = `${level}_${blockId ? blockId.toLowerCase() : featureId}`;
         } else {
             cacheKey = `${level}_${featureId}`;
         }
 
 
         const data = hoverData[cacheKey] || {};
+        
+        // Debug logging to check cache key matching
+        if (level === 'booth' || level === 'block') {
+            console.log(`🔍 Popup cache lookup: ${level}`, {
+                cacheKey,
+                hasData: !!data.genderData,
+                availableKeys: Object.keys(hoverData),
+                dataFound: data
+            });
+        }
 
         // Build structured popup content using hover classes
         let content = `<div class="hover-popup-root">`;
@@ -1219,9 +1400,9 @@ function HierarchicalMap({ onRegionClick }) {
                 break;
             case 'assembly':
                 const assemblyData = data.assemblyData || {};
-                console.log('🏛️ Generating assembly popup for:', properties.name);
-                console.log('🏛️ Available assembly data:', assemblyData);
-                console.log('🏛️ Available data object:', data);
+                // console.log('🏛️ Generating assembly popup for:', properties.name);
+                // console.log('🏛️ Available assembly data:', assemblyData);
+                // console.log('🏛️ Available data object:', data);
                 
                 content += `
                     <p><strong>Assembly Constituency:</strong> ${properties.name || ''}</p>
@@ -1236,24 +1417,31 @@ function HierarchicalMap({ onRegionClick }) {
                     <div class="hover-stat" style="flex-basis:100%"><b>Last 3 Years Winning Party</b><span>${assemblyData.last3YearWinners || 'N/A'}</span></div>`;
                 break;
             case 'block':
+                const blockGenderData = data.genderData || {};
+                if (blockGenderData.male || blockGenderData.female) {
+                    console.log('✅ Block gender data found:', blockGenderData);
+                }
                 content += `
                     <p><strong>Block Code:</strong> ${properties.blockCode || ''}</p>
                     <p><strong>Assembly:</strong> ${properties.acName || ''}</p>
                     <p><strong>Main Town:</strong> ${properties.mainTown || ''}</p>
-                    <div class="hover-stat"><b>Population</b><span>${properties.population ? Number(properties.population).toLocaleString() : ''}</span></div>
-                    <div class="hover-stat"><b>Total Voters</b><span>${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''}</span></div>
+                    <div class="hover-stat"><b>Male</b><span>${blockGenderData.male ? Number(blockGenderData.male).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female</b><span>${blockGenderData.female ? Number(blockGenderData.female).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Total</b><span>${blockGenderData.total ? Number(blockGenderData.total).toLocaleString() : 'N/A'}</span></div>
                     <div class="hover-stat" style="flex-basis:100%"><b>Booths</b><span>Total: ${properties.totalBooths || ''} — Rural: ${properties.ruralBooths || ''} — Urban: ${properties.urbanBooths || ''}</span></div>`;
                 break;
             case 'booth':
+                const boothGenderData = data.genderData || {};
+                if (boothGenderData.male || boothGenderData.female) {
+                    console.log('✅ Booth gender data found:', boothGenderData);
+                }
                 content += `
                     <p><strong>Booth No:</strong> ${properties.boothNo || ''}</p>
                     <p><strong>Block:</strong> ${properties.blockName || ''}</p>
                     <p><strong>Location:</strong> ${properties.location || ''}</p>
-                    <div class="hover-stat"><b>Total Votes</b><span>${data.winner?.totalVotes ? Number(data.winner.totalVotes).toLocaleString() : properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Seat Reservation</b><span>${properties.seatReservation || 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Male</b><span>${data.gender?.male ? Number(data.gender.male).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Female</b><span>${data.gender?.female ? Number(data.gender.female).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Voters</b><span>Total: ${properties.totalVoters ? Number(properties.totalVoters).toLocaleString() : ''} — Ratio: ${properties.maleFemaleRatio || ''}</span></div>
+                    <div class="hover-stat"><b>Male</b><span>${boothGenderData.male ? Number(boothGenderData.male).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female</b><span>${boothGenderData.female ? Number(boothGenderData.female).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Total</b><span>${boothGenderData.total ? Number(boothGenderData.total).toLocaleString() : 'N/A'}</span></div>
                     <div class="hover-stat" style="flex-basis:100%"><b>Area & Facilities</b><span>Type: ${properties.boothArea || ''} — Facilities: ${properties.facilities ? properties.facilities.join(', ') : 'N/A'}</span></div>`;
                 break;
         }

@@ -14,7 +14,14 @@ const { protect, authorize } = require('../middlewares/auth');
 const router = express.Router();
 
 /**
+ *                     total:
+                       type: number
+ */
+// Route moved up to avoid conflict with /:id route
+
+/**
  * @swagger
+ * components:r
  * tags:
  *   name: Genders
  *   description: Gender statistics management
@@ -96,6 +103,50 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/Gender'
  */
 router.get('/', getGenders);
+
+/**
+ * @swagger
+ * /api/genders/stats/{type}/{id}:
+ *   get:
+ *     summary: Get aggregated gender statistics for map hover functionality
+ *     tags: [Genders]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [assembly, parliament, booth, block]
+ *         description: Type of geographic area
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the geographic area
+ *     responses:
+ *       200:
+ *         description: Gender statistics for the specified area
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     male:
+ *                       type: number
+ *                     female:
+ *                       type: number
+ *                     others:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ */
+router.get('/stats/:type/:id', getGenderStatsForMap);
 
 /**
  * @swagger
@@ -279,7 +330,7 @@ router.get('/state/:stateId', getGendersByState);
  *         required: true
  *         schema:
  *           type: string
- *           enum: [assembly, parliament, booth]
+ *           enum: [assembly, parliament, booth, block]
  *         description: Type of geographic area
  *       - in: path
  *         name: id
