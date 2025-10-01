@@ -166,6 +166,7 @@ const CasteList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')
 const CasteDetailPage = Loadable(lazy(() => import('pages/curd/caste list/CasteDetailPage')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
 const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
+const CodingDetailPage = Loadable(lazy(() => import('pages/curd/coding/CodingDetailPage')));
 const Matrics = Loadable(lazy(() => import('pages/curd/role/RoleMatrix')));
 const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
 const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
@@ -174,6 +175,7 @@ const BoothDemographic = Loadable(lazy(() => import('pages/curd/booth demographi
 const ElectionType = Loadable(lazy(() => import('pages/curd/Election-Type/ElectionType')));
 const LocalIssue = Loadable(lazy(() => import('pages/curd/local issue/local-issue')));
 const Events = Loadable(lazy(() => import('pages/curd/events/events')));
+const EventDetailPage = Loadable(lazy(() => import('pages/curd/events/EventDetailPage')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
 const PolentialCandidate = Loadable(lazy(() => import('pages/curd/potentical candidate/potentical')));
 const FAQCrud = Loadable(lazy(() => import('pages/curd/faq-crud/FAQ')));
@@ -687,6 +689,10 @@ const MainRoutes = {
           element: <Coding />
         },
         {
+          path: 'Coding/:id',
+          element: <CodingDetailPage />
+        },
+        {
           path: 'Year',
           element: <Year />
         },
@@ -730,6 +736,10 @@ const MainRoutes = {
         {
           path: 'Events',
           element: <Events />
+        },
+        {
+          path: 'Events/:id',
+          element: <EventDetailPage />
         },
         {
           path: 'Work-Status',
