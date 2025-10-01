@@ -8,7 +8,8 @@ const {
   getVotesByAssembly,
   getVotesByCandidate,
   getVotesByState,
-  getVotesByElectionYear
+  getVotesByElectionYear,
+  getAssemblyStats
 } = require('../controllers/assemblyVotesController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -112,6 +113,51 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/AssemblyVotes'
  */
 router.get('/', getAssemblyVotes);
+
+/**
+ * @swagger
+ * /api/assembly-votes/stats:
+ *   get:
+ *     summary: Get assembly statistics by party
+ *     tags: [Assembly Votes]
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: string
+ *         description: Election year to filter by
+ *         example: "2023"
+ *     responses:
+ *       200:
+ *         description: Assembly statistics grouped by party
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Party ID
+ *                       partyName:
+ *                         type: string
+ *                         description: Party name
+ *                       totalSeats:
+ *                         type: integer
+ *                         description: Total seats won
+ *                       totalVotes:
+ *                         type: integer
+ *                         description: Total votes received
+ *       404:
+ *         description: Election year not found
+ */
+router.get('/stats', getAssemblyStats);
 
 /**
  * @swagger

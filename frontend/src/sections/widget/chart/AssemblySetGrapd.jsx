@@ -22,9 +22,9 @@ import MoreIcon from 'components/@extended/MoreIcon';
 import { ThemeMode } from 'config';
 
 // Function to fetch assembly data
-const fetchAssemblyData = async () => {
+const fetchAssemblyData = async (year = 2023) => {
   try {
-    const response = await fetch('http://localhost:5000/api/assembly-votes/stats');
+    const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/assembly-votes/stats?year=${year}`);
     if (!response.ok) throw new Error('Network response was not ok');
     return await response.json();
   } catch (error) {
@@ -76,33 +76,30 @@ function ApexDonutChart({ data, loading }) {
   const getPartyData = useCallback(() => {
     if (!data || !data.length) return { series: [], labels: [], stats: {} };
 
-    const partyStats = {};
-    data.forEach(item => {
-      const partyName = item.party_id?.name || 'Others';
-      if (!partyStats[partyName]) {
-        partyStats[partyName] = { seats: 0, votes: 0 };
-      }
-      partyStats[partyName].seats++;
-      partyStats[partyName].votes += parseInt(item.total_votes) || 0;
-    });
-
-    const sorted = Object.entries(partyStats).sort(([, a], [, b]) => b.seats - a.seats);
+    // Data is already aggregated from the API
+    const sorted = data.sort((a, b) => b.totalSeats - a.totalSeats);
     const main = sorted.slice(0, 3);
     const others = sorted.slice(3).reduce(
-      (acc, [, val]) => ({
-        seats: acc.seats + val.seats,
-        votes: acc.votes + val.votes
+      (acc, item) => ({
+        seats: acc.seats + item.totalSeats,
+        votes: acc.votes + item.totalVotes
       }),
       { seats: 0, votes: 0 }
     );
 
     const finalData = [...main];
-    if (others.seats > 0) finalData.push(['Others', others]);
+    if (others.seats > 0) {
+      finalData.push({
+        partyName: 'Others',
+        totalSeats: others.seats,
+        totalVotes: others.votes
+      });
+    }
 
     return {
-      series: finalData.map(([, stats]) => stats.seats),
-      labels: finalData.map(([name]) => name),
-      stats: Object.fromEntries(finalData)
+      series: finalData.map(item => item.totalSeats),
+      labels: finalData.map(item => item.partyName),
+      stats: finalData
     };
   }, [data]);
 
@@ -220,34 +217,43 @@ export default function TotalIncome() {
 
   const getPartyStats = useCallback(() => {
     if (!data.length) return { partyStats: {}, totalVotes: 0, totalSeats: 0 };
-    const stats = {}, total = { seats: 0, votes: 0 };
 
-    data.forEach(item => {
-      const party = item.party_id?.name || 'Others';
-      const votes = parseInt(item.total_votes) || 0;
-      stats[party] = stats[party] || { seats: 0, votes: 0 };
-      stats[party].seats++;
-      stats[party].votes += votes;
-      total.seats++;
-      total.votes += votes;
-    });
-
-    const sorted = Object.entries(stats).sort(([, a], [, b]) => b.seats - a.seats);
-    const top3 = sorted.slice(0, 3);
-    const others = sorted.slice(3).reduce(
-      (acc, [, val]) => ({
-        seats: acc.seats + val.seats,
-        votes: acc.votes + val.votes
+    // Data is already aggregated from the API
+    const total = data.reduce(
+      (acc, item) => ({
+        seats: acc.seats + item.totalSeats,
+        votes: acc.votes + item.totalVotes
       }),
       { seats: 0, votes: 0 }
     );
 
-    const final = Object.fromEntries(top3);
-    if (others.seats > 0) final['Others'] = others;
+    const sorted = data.sort((a, b) => b.totalSeats - a.totalSeats);
+    const top3 = sorted.slice(0, 3);
+    const others = sorted.slice(3).reduce(
+      (acc, item) => ({
+        seats: acc.seats + item.totalSeats,
+        votes: acc.votes + item.totalVotes
+      }),
+      { seats: 0, votes: 0 }
+    );
 
-    for (const key in final) {
-      final[key].seatPercentage = ((final[key].seats / total.seats) * 100).toFixed(1);
-      final[key].votePercentage = ((final[key].votes / total.votes) * 100).toFixed(1);
+    const final = {};
+    top3.forEach(item => {
+      final[item.partyName] = {
+        seats: item.totalSeats,
+        votes: item.totalVotes,
+        seatPercentage: ((item.totalSeats / total.seats) * 100).toFixed(1),
+        votePercentage: ((item.totalVotes / total.votes) * 100).toFixed(1)
+      };
+    });
+
+    if (others.seats > 0) {
+      final['Others'] = {
+        seats: others.seats,
+        votes: others.votes,
+        seatPercentage: ((others.seats / total.seats) * 100).toFixed(1),
+        votePercentage: ((others.votes / total.votes) * 100).toFixed(1)
+      };
     }
 
     return { partyStats: final, totalVotes: total.votes, totalSeats: total.seats };
@@ -332,7 +338,8 @@ export default function TotalIncome() {
                         {name === 'Bharatiya Janata Party' ? 'BJP'
                           : name === 'Indian National Congress' ? 'INC'
                             : name === 'Bharat Adivasi Party' ? 'BAP'
-                              : name}
+                              : name === 'Independent' ? 'Independent'
+                                : name}
                       </Typography>
                     </Stack>
                     <Typography variant="subtitle1">

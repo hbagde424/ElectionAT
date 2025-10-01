@@ -25,19 +25,56 @@ exports.getAssemblyStats = async (req, res, next) => {
       });
     }
 
-    // Get assembly votes for the year
+    // Get assembly votes for the year with proper population
     const stats = await AssemblyVotes.aggregate([
       {
         $match: {
-          election_year: electionYear._id
+          election_year_id: electionYear._id
+        }
+      },
+      {
+        $lookup: {
+          from: 'candidates',
+          localField: 'candidate_id',
+          foreignField: '_id',
+          as: 'candidate'
+        }
+      },
+      {
+        $unwind: '$candidate'
+      },
+      {
+        $lookup: {
+          from: 'parties',
+          localField: 'candidate.party_id',
+          foreignField: '_id',
+          as: 'party'
+        }
+      },
+      {
+        $unwind: {
+          path: '$party',
+          preserveNullAndEmptyArrays: true
         }
       },
       {
         $group: {
-          _id: '$party',
+          _id: '$candidate.party_id',
+          partyName: { $first: '$party.name' },
           totalSeats: { $sum: 1 },
           totalVotes: { $sum: '$total_votes' }
         }
+      },
+      {
+        $project: {
+          _id: 1,
+          partyName: { $ifNull: ['$partyName', 'Independent'] },
+          totalSeats: 1,
+          totalVotes: 1
+        }
+      },
+      {
+        $sort: { totalSeats: -1 }
       }
     ]);
 
