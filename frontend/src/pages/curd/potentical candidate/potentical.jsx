@@ -2,6 +2,7 @@
 
 
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert,
@@ -31,6 +32,7 @@ import { Tooltip } from '@mui/material';
 
 export default function PotentialCandidateListPage() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const searchDebounceRef = useRef(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -460,6 +462,17 @@ export default function PotentialCandidateListPage() {
             <Tooltip title="View Details">
               <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
                 {expandIcon}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="View Detail Page">
+              <IconButton 
+                color="info" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/Pontentcal-Candidate/${row.original._id}`);
+                }}
+              >
+                <Eye />
               </IconButton>
             </Tooltip>
             <Tooltip title="Edit Candidate">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
@@ -23,6 +24,7 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 
 export default function WorkStatusListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedWorkStatus, setSelectedWorkStatus] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -50,7 +52,7 @@ export default function WorkStatusListPage() {
     // Filter states
     const [filters, setFilters] = useState({
         state_id: '',
-    district_id: '',
+        district_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -335,11 +337,11 @@ export default function WorkStatusListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Work Name',
@@ -604,6 +606,15 @@ export default function WorkStatusListPage() {
                             {expandIcon}
                         </IconButton>
                         <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/Work-Status/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
+                        </IconButton>
+                        <IconButton
                             color="primary"
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -677,16 +688,16 @@ export default function WorkStatusListPage() {
             'Expected End Date': item.expected_end_date,
             'Actual End Date': item.actual_end_date || '',
             'State': item.state_id?.name || '',
-                'District': item.district_id?.name || '',
+            'District': item.district_id?.name || '',
             'Division': item.division_id?.name || '',
             'Parliament': item.parliament_id?.name || '',
             'Assembly': item.assembly_id?.name || '',
             'Block': item.block_id?.name || '',
-                'Booth': item.booth_id?.name ? `${item.booth_id.name} (Booth #${item.booth_id.booth_number || ''})` : '',
-                'Panchayat': item.panchayat || '',
-                'Village': item.village || '',
-                'Announced Date': item.announced_date || '',
-                'Announced By': item.announced_by || '',
+            'Booth': item.booth_id?.name ? `${item.booth_id.name} (Booth #${item.booth_id.booth_number || ''})` : '',
+            'Panchayat': item.panchayat || '',
+            'Village': item.village || '',
+            'Announced Date': item.announced_date || '',
+            'Announced By': item.announced_by || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
             'Created At': item.created_at,
@@ -961,7 +972,7 @@ export default function WorkStatusListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

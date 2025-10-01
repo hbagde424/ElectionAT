@@ -2,6 +2,7 @@ import Grid from '@mui/material/Grid';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import ChangeTheme from 'sections/maps/change-theme copy';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
@@ -116,6 +117,7 @@ const MAPBOX_THEMES = {
 
 export default function WinningCandidateListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedCandidate, setSelectedCandidate] = useState(null); // for edit modal
     const [openModal, setOpenModal] = useState(false); // for edit modal
@@ -287,19 +289,19 @@ export default function WinningCandidateListPage() {
             } else {
                 setStates([]);
             }
-            
+
             if (partiesData.success && Array.isArray(partiesData.data)) {
                 setParties(partiesData.data);
             } else {
                 setParties([]);
             }
-            
+
             if (candidatesData.success && Array.isArray(candidatesData.data)) {
                 setCandidates(candidatesData.data);
             } else {
                 setCandidates([]);
             }
-            
+
             if (yearsData.success && Array.isArray(yearsData.data)) {
                 setYears(yearsData.data);
                 if (process.env.NODE_ENV === 'development') {
@@ -326,13 +328,13 @@ export default function WinningCandidateListPage() {
             } else {
                 setDivisions([]);
             }
-            
+
             if (parliamentsData.success && Array.isArray(parliamentsData.data)) {
                 setParliaments(parliamentsData.data);
             } else {
                 setParliaments([]);
             }
-            
+
             if (assembliesData.success && Array.isArray(assembliesData.data)) {
                 setAssemblies(assembliesData.data);
             } else {
@@ -839,6 +841,15 @@ export default function WinningCandidateListPage() {
                         <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
                             {expandIcon}
                         </IconButton>
+                        <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/WInningCandidateList/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
+                        </IconButton>
                         <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedCandidate(row.original); setOpenModal(true); }}>
                             <Edit />
                         </IconButton>
@@ -972,21 +983,21 @@ export default function WinningCandidateListPage() {
             <MainCard content={false}>
                 <Stack spacing={2} sx={{ padding: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                            <TextField
-                                size="small"
-                                variant="outlined"
-                                placeholder={`Search ${candidateList.length} winning candidate entries...`}
-                                value={searchInput}
-                                onChange={(e) => {
-                                    const v = e.target.value;
-                                    setSearchInput(v);
-                                    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-                                    searchDebounceRef.current = setTimeout(() => {
-                                        setGlobalFilter(String(v));
-                                    }, 500);
-                                }}
-                                sx={{ minWidth: 300 }}
-                            />
+                        <TextField
+                            size="small"
+                            variant="outlined"
+                            placeholder={`Search ${candidateList.length} winning candidate entries...`}
+                            value={searchInput}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setSearchInput(v);
+                                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                                searchDebounceRef.current = setTimeout(() => {
+                                    setGlobalFilter(String(v));
+                                }, 500);
+                            }}
+                            sx={{ minWidth: 300 }}
+                        />
                         <Stack direction="row" spacing={1}>
                             <CSVLink
                                 data={csvData}
@@ -1140,7 +1151,7 @@ export default function WinningCandidateListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

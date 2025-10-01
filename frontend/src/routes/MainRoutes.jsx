@@ -141,10 +141,12 @@ const DistrictDetailPage = Loadable(lazy(() => import('pages/curd/district/Distr
 const PartyActivitiesList = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesListPage')));
 const PartyActivitiesDetailPage = Loadable(lazy(() => import('pages/curd/party-activities/PartyActivitiesDetailPage')));
 const WinningPartiesList = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesList')));
+const WinningPartiesDetailPage = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartiesDetailPage')));
 const WinningPartyDetailPage = Loadable(lazy(() => import('pages/curd/winning-parties/WinningPartyDetailPage')));
 const VisitListPageList = Loadable(lazy(() => import('pages/curd/visits/VisitListPage')));
 const VisitDetailPage = Loadable(lazy(() => import('pages/curd/visits/VisitDetailPage')));
 const WInningCandidateList = Loadable(lazy(() => import('pages/curd/WinningCandidates/WinningCandidates')));
+const WinningCandidatesDetailPage = Loadable(lazy(() => import('pages/curd/WinningCandidates/WinningCandidatesDetailPage')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
@@ -182,7 +184,9 @@ const LocalIssueDetailPage = Loadable(lazy(() => import('pages/curd/local issue/
 const Events = Loadable(lazy(() => import('pages/curd/events/events')));
 const EventDetailPage = Loadable(lazy(() => import('pages/curd/events/EventDetailPage')));
 const WorkStatus = Loadable(lazy(() => import('pages/curd/work status/work-status')));
+const WorkStatusDetailPage = Loadable(lazy(() => import('pages/curd/work status/WorkStatusDetailPage')));
 const PolentialCandidate = Loadable(lazy(() => import('pages/curd/potentical candidate/potentical')));
+const PotentialCandidateDetailPage = Loadable(lazy(() => import('pages/curd/potentical candidate/PotentialCandidateDetailPage')));
 const FAQCrud = Loadable(lazy(() => import('pages/curd/faq-crud/FAQ')));
 const ParliamentCandidate = Loadable(lazy(() => import('pages/curd/parliament-candidate/ParliamentCandidate')));
 
@@ -616,6 +620,10 @@ const MainRoutes = {
           element: <WinningPartiesList />
         },
         {
+          path: 'WinningPartiesList/:id',
+          element: <WinningPartiesDetailPage />
+        },
+        {
           path: 'winning-parties/:id',
           element: <WinningPartyDetailPage />
         },
@@ -630,6 +638,10 @@ const MainRoutes = {
         {
           path: 'WInningCandidateList',
           element: <WInningCandidateList />
+        },
+        {
+          path: 'WInningCandidateList/:id',
+          element: <WinningCandidatesDetailPage />
         },
 
         {
@@ -771,8 +783,16 @@ const MainRoutes = {
           element: <WorkStatus />
         },
         {
+          path: 'Work-Status/:id',
+          element: <WorkStatusDetailPage />
+        },
+        {
           path: 'Pontentcal-Candidate',
           element: <PolentialCandidate />
+        },
+        {
+          path: 'Pontentcal-Candidate/:id',
+          element: <PotentialCandidateDetailPage />
         },
 
         {

@@ -556,12 +556,12 @@ const WinningPartyListPage = () => {
             cell: ({ row }) => {
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <Tooltip title="View">
+                        <Tooltip title="View Details">
                             <IconButton
-                                color="secondary"
+                                color="info"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/winning-parties/${row.original._id}`);
+                                    navigate(`/WinningPartiesList/${row.original._id}`);
                                 }}
                             >
                                 <Eye />
