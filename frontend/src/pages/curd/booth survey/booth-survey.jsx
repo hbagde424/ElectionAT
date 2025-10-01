@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload, MessageText1 } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 
 // third-party
 import {
@@ -28,6 +29,7 @@ import { Tooltip } from '@mui/material';
 
 export default function BoothSurveyListPage() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [selectedSurvey, setSelectedSurvey] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -160,7 +162,7 @@ export default function BoothSurveyListPage() {
       // questions q3..q36 will be included here
       'लिंग', 'आयु समूह', 'निवास', 'शिक्षा', 'व्यवसाय', 'आर्थिक स्थिति', 'परंपरागत पार्टी', 'पिछली चुनाव में वही पार्टी?', 'जीवन से संतोष', 'भविष्य के बारे में चिंता',
       'Q13', 'Q14', 'Q15', 'पिछले 5 वर्षों में सरकारी नौकरी?', 'परिवार ने वोट खोया?', 'सुधार हुआ?', 'वर्तमान विधायक से संतुष्ट?', 'फिर से विधायक चुनेंगे?', 'राज्य सरकार से संतुष्ट?', 'प्रधानमंत्री से संतुष्ट?', 'केंद्रीय सरकार से संतुष्ट?', 'मुख्यमंत्री से संतुष्ट?', 'जीवन में सुधार की धारणा',
-      'Q26','Q27','Q28','Q29','Q30','अगले विधायक चयन प्राथमिकता','अगली सरकार की प्राथमिकता','कौन सा सामाजिक समूह','पिछले विधानसभा वोट (2020)','पिछले लोकसभा वोट (2024)','यदि आज चुनाव होते तो',
+      'Q26', 'Q27', 'Q28', 'Q29', 'Q30', 'अगले विधायक चयन प्राथमिकता', 'अगली सरकार की प्राथमिकता', 'कौन सा सामाजिक समूह', 'पिछले विधानसभा वोट (2020)', 'पिछले लोकसभा वोट (2024)', 'यदि आज चुनाव होते तो',
       'टिप्पणी',
       'राज्य',
       'मंडल',
@@ -180,13 +182,13 @@ export default function BoothSurveyListPage() {
     };
 
     // define same option lists (minimal) to map values
-    const q3Options = [{ _id: 'male', name: 'पुरुष' },{ _id: 'female', name: 'महिला' },{ _id: 'other', name: 'अन्य' }];
-    const q4Options = [{ _id: '18-23', name: '18-23' },{ _id: '24-30', name: '24-30' },{ _id: '31-35', name: '31-35' },{ _id: '36-45', name: '36-45' },{ _id: '46-60', name: '46-60' },{ _id: '60+', name: '60+' }];
-    const q5Options = [{ _id: 'rural', name: 'ग्रामीण' },{ _id: 'kuragi', name: 'कृषि' },{ _id: 'urban', name: 'शहरी' }];
-    const q6Options = [{ _id: 'illiterate', name: 'अशिक्षित' },{ _id: 'literate', name: 'अशिक्षित नहीं' },{ _id: 'primary', name: 'प्राइमरी' },{ _id: '10pass', name: 'दसवीं पास' },{ _id: '12pass', name: 'बारहवीं पास' },{ _id: 'graduate', name: 'स्नातक/स्नातकोत्तर' }];
-    const q7Options = [{ _id: 'govt_job', name: 'सरकारी नौकरी' },{ _id: 'private_job', name: 'प्राइवेट नौकरी' },{ _id: 'other_govt', name: 'अन्य सरकारी नौकरी' },{ _id: 'farm_own', name: 'अपनी जमीन पर खेती' },{ _id: 'farm_rent', name: 'किराए की जमीन पर खेती' },{ _id: 'contractor', name: 'ठेकेदारी' },{ _id: 'shopkeeper', name: 'दुकानदार' },{ _id: 'teacher', name: 'शिक्षक' },{ _id: 'student', name: 'छात्र' },{ _id: 'selfhelp', name: 'स्व सहायता समूह' },{ _id: 'housewife', name: 'गृहिणी' },{ _id: 'vendor', name: 'रेहड़ी-ठेड़ा' },{ _id: 'construction', name: 'भवन निर्माण मज़दूर' },{ _id: 'daily_wage', name: 'साधारण दिहाड़ी मज़दूर' },{ _id: 'agri_wage', name: 'कृषि दिहाड़ी मज़दूर' },{ _id: 'unemployed', name: 'बेरोज़गार' },{ _id: 'hotel_small', name: 'होटल/दुकानदार/छोटा व्यवसाय' },{ _id: 'other', name: 'अन्य' }];
-    const q8Options = [{ _id: 'affluent', name: 'संपन्न' },{ _id: 'middle', name: 'मध्यम वर्ग' },{ _id: 'poor', name: 'गरीब' },{ _id: 'bpl', name: 'बीपीएल (BPL)' }];
-    const q9Options = [{ _id: 'no_party', name: 'नहीं - किसी पार्टी से नहीं' },{ _id: 'bjp', name: 'हां - भाजपा' },{ _id: 'rjd', name: 'हां - राजद' },{ _id: 'jd_u', name: 'हां - जदयू' },{ _id: 'congress', name: 'हां - कांग्रेस' },{ _id: 'ljp', name: 'हां - लोजपा' },{ _id: 'janasuraj', name: 'हां - जन सुराज' },{ _id: 'cpi', name: 'हां - CPI' },{ _id: 'cpi_m', name: 'हां - CPI(M)' },{ _id: 'other', name: 'हां - अन्य पार्टी' }];
+    const q3Options = [{ _id: 'male', name: 'पुरुष' }, { _id: 'female', name: 'महिला' }, { _id: 'other', name: 'अन्य' }];
+    const q4Options = [{ _id: '18-23', name: '18-23' }, { _id: '24-30', name: '24-30' }, { _id: '31-35', name: '31-35' }, { _id: '36-45', name: '36-45' }, { _id: '46-60', name: '46-60' }, { _id: '60+', name: '60+' }];
+    const q5Options = [{ _id: 'rural', name: 'ग्रामीण' }, { _id: 'kuragi', name: 'कृषि' }, { _id: 'urban', name: 'शहरी' }];
+    const q6Options = [{ _id: 'illiterate', name: 'अशिक्षित' }, { _id: 'literate', name: 'अशिक्षित नहीं' }, { _id: 'primary', name: 'प्राइमरी' }, { _id: '10pass', name: 'दसवीं पास' }, { _id: '12pass', name: 'बारहवीं पास' }, { _id: 'graduate', name: 'स्नातक/स्नातकोत्तर' }];
+    const q7Options = [{ _id: 'govt_job', name: 'सरकारी नौकरी' }, { _id: 'private_job', name: 'प्राइवेट नौकरी' }, { _id: 'other_govt', name: 'अन्य सरकारी नौकरी' }, { _id: 'farm_own', name: 'अपनी जमीन पर खेती' }, { _id: 'farm_rent', name: 'किराए की जमीन पर खेती' }, { _id: 'contractor', name: 'ठेकेदारी' }, { _id: 'shopkeeper', name: 'दुकानदार' }, { _id: 'teacher', name: 'शिक्षक' }, { _id: 'student', name: 'छात्र' }, { _id: 'selfhelp', name: 'स्व सहायता समूह' }, { _id: 'housewife', name: 'गृहिणी' }, { _id: 'vendor', name: 'रेहड़ी-ठेड़ा' }, { _id: 'construction', name: 'भवन निर्माण मज़दूर' }, { _id: 'daily_wage', name: 'साधारण दिहाड़ी मज़दूर' }, { _id: 'agri_wage', name: 'कृषि दिहाड़ी मज़दूर' }, { _id: 'unemployed', name: 'बेरोज़गार' }, { _id: 'hotel_small', name: 'होटल/दुकानदार/छोटा व्यवसाय' }, { _id: 'other', name: 'अन्य' }];
+    const q8Options = [{ _id: 'affluent', name: 'संपन्न' }, { _id: 'middle', name: 'मध्यम वर्ग' }, { _id: 'poor', name: 'गरीब' }, { _id: 'bpl', name: 'बीपीएल (BPL)' }];
+    const q9Options = [{ _id: 'no_party', name: 'नहीं - किसी पार्टी से नहीं' }, { _id: 'bjp', name: 'हां - भाजपा' }, { _id: 'rjd', name: 'हां - राजद' }, { _id: 'jd_u', name: 'हां - जदयू' }, { _id: 'congress', name: 'हां - कांग्रेस' }, { _id: 'ljp', name: 'हां - लोजपा' }, { _id: 'janasuraj', name: 'हां - जन सुराज' }, { _id: 'cpi', name: 'हां - CPI' }, { _id: 'cpi_m', name: 'हां - CPI(M)' }, { _id: 'other', name: 'हां - अन्य पार्टी' }];
 
     const csvData = surveys.map(survey => [
       survey._id?.slice(-8) || '',
@@ -437,9 +439,15 @@ export default function BoothSurveyListPage() {
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View Details">
-              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                {expandIcon}
+              <IconButton
+                color="secondary"
+                onClick={() => navigate(`/Booth-Survey/${row.original._id}`)}
+              >
+                <Eye />
               </IconButton>
+            </Tooltip>
+            <Tooltip title="Expand Row">
+
             </Tooltip>
             <Tooltip title="Edit Survey">
               <IconButton
@@ -734,7 +742,7 @@ export default function BoothSurveyListPage() {
                       <TableCell
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
-                        sx={{ 
+                        sx={{
                           cursor: header.column.getCanSort() ? 'pointer' : 'default',
                           color: 'white',
                           fontWeight: 'bold',

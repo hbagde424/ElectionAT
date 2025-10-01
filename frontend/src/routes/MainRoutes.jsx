@@ -126,6 +126,7 @@ const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')))
 const SampleTry = Loadable(lazy(() => import('pages/extra-pages/sample-try')));
 const BoothVolunteer = Loadable(lazy(() => import('pages/curd/volunteer/Booth-volunteer')));
 const VolunteerDetailPage = Loadable(lazy(() => import('pages/curd/volunteer/VolunteerDetailPage')));
+const BoothVolunteerDetailPage = Loadable(lazy(() => import('pages/curd/booth-volunteer/BoothVolunteerDetailPage')));
 const LocalDynamics = Loadable(lazy(() => import('pages/curd/local-dynamics/LocalDynamicsListPage')));
 const PartyListPage = Loadable(lazy(() => import('pages/curd/parties/PartyListPage')));
 const PartyDetailPage = Loadable(lazy(() => import('pages/curd/parties/PartyDetailPage')));
@@ -159,6 +160,7 @@ const BlockVotes = Loadable(lazy(() => import('pages/curd/votes/BlockVotes/Block
 const ParliamentVotes = Loadable(lazy(() => import('pages/curd/votes/ParliamentVotes/Parliament-votes')));
 const Users = Loadable(lazy(() => import('pages/curd/user/Users')));
 const BoothSurvey = Loadable(lazy(() => import('pages/curd/booth survey/booth-survey')));
+const BoothSurveyDetailPage = Loadable(lazy(() => import('pages/curd/booth-survey/BoothSurveyDetailPage')));
 const CastList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
 const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
@@ -570,7 +572,7 @@ const MainRoutes = {
         },
         {
           path: 'booth-volunteer/:id',
-          element: <VolunteerDetailPage />
+          element: <BoothVolunteerDetailPage />
         },
         {
           path: 'parties',
@@ -657,6 +659,10 @@ const MainRoutes = {
         {
           path: 'Booth-Survey',
           element: <BoothSurvey />
+        },
+        {
+          path: 'Booth-Survey/:id',
+          element: <BoothSurveyDetailPage />
         },
         {
           path: 'Caste-List',

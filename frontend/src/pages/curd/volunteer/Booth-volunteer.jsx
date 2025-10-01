@@ -29,6 +29,7 @@ import { Tooltip } from '@mui/material';
 
 export default function BoothVolunteerListPage() {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -154,11 +155,11 @@ export default function BoothVolunteerListPage() {
     {
       header: '#',
       accessorKey: '_id',
-         cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+      cell: ({ row, table }) => {
+        const { pageIndex, pageSize } = table.getState().pagination;
+        const serialNumber = pageIndex * pageSize + row.index + 1;
+        return <Typography>{serialNumber}</Typography>;
+      }
     },
     {
       header: 'Name',
@@ -471,8 +472,8 @@ export default function BoothVolunteerListPage() {
       Phone: item.phone,
       Email: item.email || '',
       Role: item.role || '',
-        'Area Responsibility': item.area_responsibility || '',
-        Post: item.post || '',
+      'Area Responsibility': item.area_responsibility || '',
+      Post: item.post || '',
       'Activity Level': item.activity_level,
       State: item.state?.name || '',
       Division: item.division?.name || '',
@@ -761,7 +762,7 @@ export default function BoothVolunteerListPage() {
                       <TableCell
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
-                        sx={{ 
+                        sx={{
                           cursor: header.column.getCanSort() ? 'pointer' : 'default',
                           color: 'white',
                           fontWeight: 'bold',
