@@ -196,55 +196,14 @@ const PartyDetailPage = () => {
                 </Breadcrumbs>
             </Box>
 
-            <Grid container spacing={3}>
-                {/* Main Info Card */}
-                <Grid item xs={12} md={8}>
-                    <MainCard>
-                        <CardContent>
-                            {/* Party Header */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                                <Avatar
-                                    src={party.logo}
-                                    sx={{
-                                        width: 80,
-                                        height: 80,
-                                        mr: 2,
-                                        border: `3px solid ${theme.palette.primary.main}`
-                                    }}
-                                >
-                                    <Group />
-                                </Avatar>
-                                <Box sx={{ flexGrow: 1 }}>
-                                    <Typography variant="h5" component="h2" sx={{ mb: 1 }}>
-                                        {party.name}
-                                    </Typography>
-                                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                                        <Chip
-                                            label={party.type || 'Political Party'}
-                                            color="primary"
-                                            size="small"
-                                        />
-                                        {party.status && (
-                                            <Chip
-                                                label={party.status}
-                                                color="secondary"
-                                                size="small"
-                                            />
-                                        )}
-                                    </Stack>
-                                </Box>
-                            </Box>
-
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Basic Information */}
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <Group sx={{ mr: 1 }} />
-                                Basic Information
-                            </Typography>
-
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
-                                <Grid item xs={12} sm={6}>
+            {/* All Party Information in 3-column layout */}
+            <MainCard>
+                <CardContent>
+                    <Grid container spacing={3}>
+                        {/* Column 1 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Party Name
                                     </Typography>
@@ -252,15 +211,15 @@ const PartyDetailPage = () => {
                                         {party.name}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Short Name
+                                        Abbreviation
                                     </Typography>
                                     <Typography variant="body1">
-                                        {party.short_name || 'N/A'}
+                                        {party.abbreviation || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Founded Year
                                     </Typography>
@@ -268,42 +227,15 @@ const PartyDetailPage = () => {
                                         {party.founded_year || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Party Type
+                                        Symbol
                                     </Typography>
                                     <Typography variant="body1">
-                                        {party.type || 'N/A'}
+                                        {party.symbol || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Contact Phone
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {party.phone || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Contact Email
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {party.email || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Leadership Information */}
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <Person sx={{ mr: 1 }} />
-                                Leadership
-                            </Typography>
-
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Party Leader
                                     </Typography>
@@ -311,7 +243,7 @@ const PartyDetailPage = () => {
                                         {party.leader_name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         President
                                     </Typography>
@@ -319,7 +251,7 @@ const PartyDetailPage = () => {
                                         {party.president_name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Secretary General
                                     </Typography>
@@ -327,7 +259,7 @@ const PartyDetailPage = () => {
                                         {party.secretary_general || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Spokesperson
                                     </Typography>
@@ -336,25 +268,28 @@ const PartyDetailPage = () => {
                                     </Typography>
                                 </Grid>
                             </Grid>
+                        </Grid>
 
-                            <Divider sx={{ my: 2 }} />
-
-                            {/* Address Information */}
-                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <LocationOn sx={{ mr: 1 }} />
-                                Address & Location
-                            </Typography>
-
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
+                        {/* Column 2 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Headquarters Address
+                                        Contact Phone
                                     </Typography>
                                     <Typography variant="body1">
-                                        {party.address || 'N/A'}
+                                        {party.phone || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Contact Email
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {party.email || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Website
                                     </Typography>
@@ -366,7 +301,7 @@ const PartyDetailPage = () => {
                                         ) : 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Social Media
                                     </Typography>
@@ -374,96 +309,93 @@ const PartyDetailPage = () => {
                                         {party.social_media || 'N/A'}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Headquarters Address
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {party.address || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Total Members
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {party.member_count ? party.member_count.toLocaleString() : 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Active Candidates
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {party.candidate_count || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Status
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {party.status || 'N/A'}
+                                    </Typography>
+                                </Grid>
                             </Grid>
+                        </Grid>
 
-                            {/* Description */}
-                            {party.description && (
-                                <>
-                                    <Divider sx={{ my: 2 }} />
-                                    <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                        <Description sx={{ mr: 1 }} />
-                                        Description & Ideology
-                                    </Typography>
-                                    <Paper sx={{ p: 2, backgroundColor: theme.palette.grey[50] }}>
-                                        <div dangerouslySetInnerHTML={{ __html: party.description }} />
-                                    </Paper>
-                                </>
-                            )}
-                        </CardContent>
-                    </MainCard>
-                </Grid>
-
-                {/* Sidebar */}
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={3}>
-                        {/* Statistics */}
-                        {(party.member_count || party.candidate_count) && (
-                            <MainCard title="Statistics">
-                                <Stack spacing={2}>
-                                    {party.member_count && (
-                                        <Box>
-                                            <Typography variant="subtitle2" color="text.secondary">
-                                                Total Members
-                                            </Typography>
-                                            <Typography variant="h6" color="primary">
-                                                {party.member_count.toLocaleString()}
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                    {party.candidate_count && (
-                                        <Box>
-                                            <Typography variant="subtitle2" color="text.secondary">
-                                                Active Candidates
-                                            </Typography>
-                                            <Typography variant="h6" color="secondary">
-                                                {party.candidate_count}
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                </Stack>
-                            </MainCard>
-                        )}
-
-                        {/* Metadata */}
-                        <MainCard title="Metadata">
-                            <Stack spacing={2}>
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body2">
-                                        {formatDateTime(party.created_at)}
-                                    </Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body2">
-                                        {formatDateTime(party.updated_at)}
-                                    </Typography>
-                                </Box>
-                                <Box>
+                        {/* Column 3 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Created By
                                     </Typography>
-                                    <Typography variant="body2">
-                                        {party.created_by?.name || (typeof party.created_by === 'string' ? party.created_by : 'System')}
+                                    <Typography variant="body1">
+                                        {party.created_by?.username || 'N/A'}
                                     </Typography>
-                                </Box>
-                                <Box>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Last Updated
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDateTime(party.updated_at)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         Updated By
                                     </Typography>
-                                    <Typography variant="body2">
-                                        {party.updated_by?.name || (typeof party.updated_by === 'string' ? party.updated_by : 'System')}
+                                    <Typography variant="body1">
+                                        {party.updated_by?.username || 'N/A'}
                                     </Typography>
-                                </Box>
-                            </Stack>
-                        </MainCard>
-                    </Stack>
-                </Grid>
-            </Grid>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Created At
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDateTime(party.created_at)}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    {/* Full-width sections for longer content */}
+                    {party.description && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Description & Ideology
+                            </Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>
+                                <div dangerouslySetInnerHTML={{ __html: party.description }} />
+                            </Typography>
+                        </Box>
+                    )}
+                </CardContent>
+            </MainCard>
         </Container>
     );
 };
