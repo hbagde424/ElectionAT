@@ -421,31 +421,50 @@ const VisitDetailPage = () => {
                     )}
 
                     {/* Documents */}
-                    {Array.isArray(visit.documents) && visit.documents.length > 0 && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                                Documents
-                            </Typography>
-                            <Stack spacing={1}>
-                                {visit.documents.map((doc, idx) => (
-                                    doc ? (
-                                        <Button
-                                            key={idx}
-                                            variant="outlined"
-                                            startIcon={<Download />}
-                                            href={doc.filePath}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            fullWidth
-                                            sx={{ justifyContent: 'flex-start' }}
-                                        >
-                                            {doc.name || `Document ${idx + 1}`}
-                                        </Button>
-                                    ) : null
-                                ))}
-                            </Stack>
-                        </Box>
-                    )}
+                    <Box sx={{ mt: 3 }}>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                            Documents
+                        </Typography>
+                        <Grid container spacing={2}>
+                            {[0, 1, 2].map((idx) => {
+                                const doc = visit.documents && visit.documents[idx];
+                                return (
+                                    <Grid item xs={12} sm={4} key={idx}>
+                                        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1, opacity: doc ? 1 : 0.5 }}>
+                                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                                                Document {idx + 1} Name:
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ mb: 2, minHeight: '1.5em' }}>
+                                                {doc?.name || 'No document uploaded'}
+                                            </Typography>
+                                            {doc ? (
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<Download />}
+                                                    href={doc.filePath}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    fullWidth
+                                                    size="small"
+                                                >
+                                                    Download
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    variant="outlined"
+                                                    disabled
+                                                    fullWidth
+                                                    size="small"
+                                                >
+                                                    No file
+                                                </Button>
+                                            )}
+                                        </Box>
+                                    </Grid>
+                                );
+                            })}
+                        </Grid>
+                    </Box>
                 </CardContent>
             </MainCard>
 
