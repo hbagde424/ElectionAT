@@ -287,16 +287,16 @@ export default function BoothsListPage() {
                 </Typography>
             )
         },
-        {
-            header: 'Coordinates',
-            accessorFn: (row) => `${row.latitude || 'N/A'}, ${row.longitude || 'N/A'}`,
-            cell: ({ getValue }) => (
-                <Typography>
-                    {getValue()}
-                </Typography>
-            )
+        // {
+        //     header: 'Coordinates',
+        //     accessorFn: (row) => `${row.latitude || 'N/A'}, ${row.longitude || 'N/A'}`,
+        //     cell: ({ getValue }) => (
+        //         <Typography>
+        //             {getValue()}
+        //         </Typography>
+        //     )
 
-        },
+        // },
         {
             header: 'Block',
             accessorKey: 'block_id',
