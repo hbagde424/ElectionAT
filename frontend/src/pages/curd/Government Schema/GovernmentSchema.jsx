@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
@@ -22,6 +23,7 @@ import GovernmentView from './GovernmentSchemaView';
 
 export default function GovernmentsListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedGovernment, setSelectedGovernment] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -244,11 +246,11 @@ export default function GovernmentsListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -414,8 +416,15 @@ export default function GovernmentsListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
+
+                        <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/Government-Schema/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
                         </IconButton>
                         <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedGovernment(row.original); setOpenModal(true); }}>
                             <Edit />
@@ -663,7 +672,7 @@ export default function GovernmentsListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

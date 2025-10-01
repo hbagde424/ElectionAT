@@ -165,11 +165,13 @@ const BoothSurveyDetailPage = Loadable(lazy(() => import('pages/curd/booth-surve
 const CasteList = Loadable(lazy(() => import('pages/curd/caste list/caste-list')));
 const CasteDetailPage = Loadable(lazy(() => import('pages/curd/caste list/CasteDetailPage')));
 const Gender = Loadable(lazy(() => import('pages/curd/gender/Gender')));
+const GenderDetailPage = Loadable(lazy(() => import('pages/curd/gender/GenderDetailPage')));
 const Coding = Loadable(lazy(() => import('pages/curd/coding/Coding')));
 const CodingDetailPage = Loadable(lazy(() => import('pages/curd/coding/CodingDetailPage')));
 const Matrics = Loadable(lazy(() => import('pages/curd/role/RoleMatrix')));
 const Year = Loadable(lazy(() => import('pages/curd/year/Year')));
 const GovernmentSchema = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchema')));
+const GovernmentSchemeDetailPage = Loadable(lazy(() => import('pages/curd/Government Schema/GovernmentSchemeDetailPage')));
 const Influancer = Loadable(lazy(() => import('pages/curd/influancer/Influancer')));
 const BoothDemographic = Loadable(lazy(() => import('pages/curd/booth demographic/BoothDemographic')));
 const ElectionType = Loadable(lazy(() => import('pages/curd/Election-Type/ElectionType')));
@@ -685,6 +687,10 @@ const MainRoutes = {
           element: <Gender />
         },
         {
+          path: 'Gender/:id',
+          element: <GenderDetailPage />
+        },
+        {
           path: 'Coding',
           element: <Coding />
         },
@@ -708,6 +714,10 @@ const MainRoutes = {
         {
           path: 'Government-Schema',
           element: <GovernmentSchema />
+        },
+        {
+          path: 'Government-Schema/:id',
+          element: <GovernmentSchemeDetailPage />
         },
         {
           path: 'Influancer',

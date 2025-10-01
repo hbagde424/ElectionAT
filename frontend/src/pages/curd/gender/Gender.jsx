@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
@@ -22,6 +23,7 @@ import GenderView from './GenderView';
 
 export default function GenderListPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const [selectedGender, setSelectedGender] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -296,11 +298,11 @@ export default function GenderListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Male Count',
@@ -474,8 +476,15 @@ export default function GenderListPage() {
                 const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
+
+                        <IconButton
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/Gender/${row.original._id}`);
+                            }}
+                        >
+                            <Eye />
                         </IconButton>
                         <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedGender(row.original); setOpenModal(true); }}>
                             <Edit />
@@ -768,7 +777,7 @@ export default function GenderListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',
