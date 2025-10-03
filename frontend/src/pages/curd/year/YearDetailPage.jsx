@@ -23,7 +23,7 @@ export default function YearDetailPage() {
             setLoading(true);
             console.log('Fetching year details for ID:', id);
             const token = localStorage.getItem('serviceToken');
-            const res = await axiosServices.get(`/years/${id}`, {
+            const res = await axiosServices.get(`/election-years/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             console.log('Year API response:', res);
@@ -102,9 +102,7 @@ export default function YearDetailPage() {
                     <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}>
                         <ArrowBack />
                     </IconButton>
-                    <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-                        Election Year Details
-                    </Typography>
+                    <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>Election Year Details</Typography>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
@@ -116,113 +114,55 @@ export default function YearDetailPage() {
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
-                        {/* Column 1: Basic Information */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Year</Typography>
-                                    <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
-                                        {year.year || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Election Type</Typography>
-                                    <Chip
-                                        label={year.election_type || 'N/A'}
-                                        color={getElectionTypeColor(year.election_type)}
-                                        size="medium"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                                    <Typography variant="body1" sx={{ mt: 0.5 }}>
-                                        {year.description || 'No description provided'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                                    <Chip
-                                        label="Active"
-                                        color="success"
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Year</Typography>
+                            <Chip
+                                label={year.year || 'N/A'}
+                                color="primary"
+                                size="large"
+                                sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Election Type</Typography>
+                            <Chip
+                                label={year.election_type || 'N/A'}
+                                color={year.election_type === 'Assembly' ? 'success' : 'secondary'}
+                                size="medium"
+                            />
                         </Grid>
 
-                        {/* Column 2: Election Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Election Period</Typography>
-                                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                        {year.year ? `${year.year} Election` : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Type Details</Typography>
-                                    <Typography variant="body1">
-                                        {year.election_type === 'Assembly'
-                                            ? 'State Assembly Elections'
-                                            : year.election_type === 'Parliament'
-                                                ? 'Parliamentary Elections'
-                                                : 'N/A'
-                                        }
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Year Range</Typography>
-                                    <Typography variant="body1">
-                                        {year.year ? `${year.year} - ${year.year + 1}` : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(year.created_at)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(year.updated_at)}</Typography>
-                                </Grid>
-                            </Grid>
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                            <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                    fontStyle: year.description ? 'normal' : 'italic',
+                                    color: year.description ? 'text.primary' : 'text.secondary'
+                                }}
+                            >
+                                {year.description ? (
+                                    <div dangerouslySetInnerHTML={{ __html: year.description }} />
+                                ) : 'No description provided'}
+                            </Typography>
                         </Grid>
 
-                        {/* Column 3: User & Metadata Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{year.created_by?.name || year.created_by?.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
-                                    <Typography variant="body1">{year.updated_by?.name || year.updated_by?.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Record ID</Typography>
-                                    <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-                                        {year._id || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Last Modified</Typography>
-                                    <Typography variant="body1">
-                                        {year.updated_at ? new Date(year.updated_at).toLocaleDateString('en-US', {
-                                            year: 'numeric', month: 'short', day: 'numeric'
-                                        }) : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created Date</Typography>
-                                    <Typography variant="body1">
-                                        {year.created_at ? new Date(year.created_at).toLocaleDateString('en-US', {
-                                            year: 'numeric', month: 'short', day: 'numeric'
-                                        }) : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                        {/* Metadata section - moved to bottom */}
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                            <Typography variant="body1">{year.created_by?.username || year.created_by?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                            <Typography variant="body1">{year.updated_by?.username || year.updated_by?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                            <Typography variant="body1">{formatDateTime(year.created_at)}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                            <Typography variant="body1">{formatDateTime(year.updated_at)}</Typography>
                         </Grid>
                     </Grid>
                 </CardContent>

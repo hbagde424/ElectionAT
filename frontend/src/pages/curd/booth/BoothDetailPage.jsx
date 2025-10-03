@@ -25,7 +25,9 @@ import {
     Edit,
     CalendarToday,
     Business,
-    HowToVote
+    HowToVote,
+    Phone,
+    Room
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
@@ -197,160 +199,101 @@ const BoothDetailPage = () => {
                 </Breadcrumbs>
             </Box>
 
-            {/* All Booth Information in 3-column layout */}
+            {/* Booth Information - Banner + Two-column layout */}
             <MainCard>
-                <CardContent>
-                    <Grid container spacing={3}>
-                        {/* Column 1 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Booth Name
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.name}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Booth Number
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.booth_number || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        State
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.state_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Division
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.division_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Parliament
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.parliament_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Assembly
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.assembly_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Block
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.block_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Election Year
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.election_year?.year || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                <Box sx={{ bgcolor: 'primary.light', color: 'primary.contrastText', p: 2, borderRadius: '8px 8px 0 0' }}>
+                    <Grid container alignItems="center">
+                        <Grid item xs>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{booth.name || 'Unnamed Booth'}</Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>Booth #{booth.booth_number || 'N/A'} • {booth.election_year?.year || 'Election Year N/A'}</Typography>
                         </Grid>
-
-                        {/* Column 2 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Full Address
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.full_address || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Latitude
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.latitude || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Longitude
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.longitude || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 3 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.created_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(booth.updated_at)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {booth.updated_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(booth.created_at)}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                        <Grid item>
+                            <Stack direction="row" spacing={1}>
+                                <Button variant="contained" color="secondary" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
+                                {booth.contact_number && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${booth.contact_number}`}>Call</Button>
+                                )}
+                                {booth.latitude && booth.longitude && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Room />} onClick={() => window.open(`https://www.google.com/maps?q=${booth.latitude},${booth.longitude}`, '_blank')}>Open Map</Button>
+                                )}
+                            </Stack>
                         </Grid>
                     </Grid>
+                </Box>
 
-                    {/* Full-width sections for longer content */}
-                    {booth.description && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Description
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: booth.description }} />
-                            </Typography>
-                        </Box>
-                    )}
+                <CardContent>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={8}>
+                            <Paper elevation={0} sx={{ p: 2, borderLeft: 4, borderColor: 'primary.main' }}>
+                                <Typography variant="subtitle2" color="text.secondary">Primary Information</Typography>
+                                <Grid container spacing={1} sx={{ mt: 1 }}>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Full Address</Typography>
+                                        <Typography variant="body2">{booth.full_address || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Booth Number</Typography>
+                                        <Typography variant="body2">{booth.booth_number || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">State</Typography>
+                                        <Typography variant="body2">{booth.state_id?.name || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Division</Typography>
+                                        <Typography variant="body2">{booth.division_id?.name || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Parliament</Typography>
+                                        <Typography variant="body2">{booth.parliament_id?.name || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Assembly</Typography>
+                                        <Typography variant="body2">{booth.assembly_id?.name || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Block</Typography>
+                                        <Typography variant="body2">{booth.block_id?.name || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Type</Typography>
+                                        <Typography variant="body2">{booth.booth_type || 'N/A'}</Typography>
+                                    </Grid>
+                                </Grid>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Paper elevation={0} sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary">Metadata & Actions</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="body2">Created: {formatDateTime(booth.created_at)}</Typography>
+                                    <Typography variant="body2">Updated: {formatDateTime(booth.updated_at)}</Typography>
+                                    <Typography variant="body2">Created By: {booth.created_by?.username || booth.created_by?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2">Updated By: {booth.updated_by?.username || booth.updated_by?.name || 'N/A'}</Typography>
+                                    {booth.contact_number && (
+                                        <Typography variant="body2" sx={{ mt: 1 }}>Contact: {booth.contact_number}</Typography>
+                                    )}
+                                    { (booth.latitude && booth.longitude) && (
+                                        <Typography variant="body2" sx={{ mt: 1 }}>Coordinates: {booth.latitude}, {booth.longitude}</Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                                <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    {booth.description ? (
+                                        <Typography variant="body1"><div dangerouslySetInnerHTML={{ __html: booth.description }} /></Typography>
+                                    ) : (
+                                        <Typography variant="body1" color="text.secondary">No description provided.</Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    </Grid>
                 </CardContent>
             </MainCard>
         </Container>

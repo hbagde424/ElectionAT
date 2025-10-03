@@ -162,7 +162,7 @@ export default function WorkStatusDetailPage() {
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
-                        {/* Column 1: Work Information */}
+                        {/* Column 1: Basic Info */}
                         <Grid item xs={12} md={4}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
@@ -193,61 +193,38 @@ export default function WorkStatusDetailPage() {
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Fund Source</Typography>
-                                    <Chip
-                                        label={workStatus.approved_fund_from || 'N/A'}
-                                        color={getFundSourceColor(workStatus.approved_fund_from)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                                    <Typography variant="body1" sx={{ mt: 0.5 }}>
-                                        {workStatus.description || 'No description provided'}
-                                    </Typography>
+                                    <Typography variant="body1">{workStatus.approved_fund_from || 'N/A'}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
 
-                        {/* Column 2: Financial Information */}
+                        {/* Column 2: Financial & Dates (only list fields) */}
                         <Grid item xs={12} md={4}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Total Budget</Typography>
-                                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                                        {formatCurrency(workStatus.total_budget)}
-                                    </Typography>
+                                    <Typography variant="body1">{formatCurrency(workStatus.total_budget)}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Spent Amount</Typography>
-                                    <Typography variant="h6" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                                        {formatCurrency(workStatus.spent_amount)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Remaining Amount</Typography>
-                                    <Typography variant="h6" color="info.main" sx={{ fontWeight: 'bold' }}>
-                                        {formatCurrency((workStatus.total_budget || 0) - (workStatus.spent_amount || 0))}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Progress</Typography>
-                                    <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                                        {progress}%
-                                    </Typography>
+                                    <Typography variant="body1">{formatCurrency(workStatus.spent_amount)}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Start Date</Typography>
                                     <Typography variant="body1">{formatDate(workStatus.start_date)}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Expected Completion</Typography>
-                                    <Typography variant="body1">{formatDate(workStatus.expected_completion_date)}</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Expected End</Typography>
+                                    <Typography variant="body1">{formatDate(workStatus.expected_end_date)}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Actual End</Typography>
+                                    <Typography variant="body1">{formatDate(workStatus.actual_end_date)}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
 
-                        {/* Column 3: Geographic & Metadata Information */}
+                        {/* Column 3: Geography & Metadata */}
                         <Grid item xs={12} md={4}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
@@ -272,21 +249,46 @@ export default function WorkStatusDetailPage() {
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{workStatus.booth_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body1">{workStatus.booth_id?.name || 'N/A'}{workStatus.booth_id?.booth_number ? ` (#${workStatus.booth_id.booth_number})` : ''}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Panchayat</Typography>
+                                    <Typography variant="body1">{workStatus.panchayat || 'N/A'}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Village</Typography>
+                                    <Typography variant="body1">{workStatus.village || 'N/A'}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Announced Date</Typography>
+                                    <Typography variant="body1">{formatDate(workStatus.announced_date)}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Announced By</Typography>
+                                    <Typography variant="body1">{workStatus.announced_by || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{workStatus.created_by?.name || workStatus.created_by?.email || 'N/A'}</Typography>
+                                    <Typography variant="body1">{workStatus.created_by?.username || 'N/A'}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                                    <Typography variant="body1">{workStatus.updated_by?.username || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(workStatus.createdAt)}</Typography>
+                                    <Typography variant="body1">{formatDate(workStatus.created_at)}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(workStatus.updatedAt)}</Typography>
+                                    <Typography variant="body1">{formatDate(workStatus.updated_at)}</Typography>
                                 </Grid>
                             </Grid>
+                        </Grid>
+                        {/* Description row (kept because list includes it) */}
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                            <Typography variant="body1">{workStatus.description || 'No description provided'}</Typography>
                         </Grid>
                     </Grid>
                 </CardContent>

@@ -52,16 +52,6 @@ export default function CodingDetailPage() {
         });
     };
 
-    const getTypeColor = (type) => {
-        switch (type) {
-            case 'influencer': return 'primary';
-            case 'volunteer': return 'secondary';
-            case 'supporter': return 'info';
-            case 'opponent': return 'error';
-            default: return 'default';
-        }
-    };
-
     const handleBack = () => navigate('/Coding');
     const handleEdit = () => navigate(`/Coding/edit/${id}`);
 
@@ -80,7 +70,7 @@ export default function CodingDetailPage() {
         return (
             <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Coding</Button>
+                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Coding List</Button>
             </Container>
         );
     }
@@ -89,13 +79,10 @@ export default function CodingDetailPage() {
         return (
             <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <Alert severity="warning" sx={{ mb: 2 }}>Coding entry not found</Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Coding</Button>
+                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Coding List</Button>
             </Container>
         );
     }
-
-    // Safety check to prevent white screen
-    console.log('Rendering coding details:', coding);
 
     return (
         <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
@@ -104,9 +91,11 @@ export default function CodingDetailPage() {
                     <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}>
                         <ArrowBack />
                     </IconButton>
-                    <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-                        Coding Details
-                    </Typography>
+                    <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="h4" component="h1">Coding Details</Typography>
+                        <Typography variant="body2" color="text.secondary">{formatDateTime(coding.created_at || coding.createdAt)}</Typography>
+                    </Box>
+                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit} sx={{ ml: 'auto' }}>Edit</Button>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
@@ -118,99 +107,92 @@ export default function CodingDetailPage() {
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
-                        {/* Column 1: Personal Information */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Name</Typography>
-                                    <Typography variant="body1">{coding.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Mobile</Typography>
-                                    <Typography variant="body1">{coding.mobile || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Email</Typography>
-                                    <Typography variant="body1">{coding.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">WhatsApp Number</Typography>
-                                    <Typography variant="body1">{coding.whatsapp_number || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Type</Typography>
-                                    <Chip
-                                        label={coding.type || 'N/A'}
-                                        color={getTypeColor(coding.type)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Name</Typography>
+                            <Typography variant="body1">{coding.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Mobile</Typography>
+                            <Typography variant="body1">{coding.mobile || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                            <Typography variant="body1">{coding.email || 'N/A'}</Typography>
                         </Grid>
 
-                        {/* Column 2: Social Media & Contact Information */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Facebook</Typography>
-                                    <Typography variant="body1">{coding.facebook || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Instagram</Typography>
-                                    <Typography variant="body1">{coding.instagram || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Twitter</Typography>
-                                    <Typography variant="body1">{coding.twitter || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Address</Typography>
-                                    <Typography variant="body1">{coding.address || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Remarks</Typography>
-                                    <Typography variant="body1">{coding.remarks || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">WhatsApp</Typography>
+                            <Typography variant="body1">{coding.whatsapp_number || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Facebook</Typography>
+                            <Typography variant="body1">{coding.facebook || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Instagram</Typography>
+                            <Typography variant="body1">{coding.instagram || 'N/A'}</Typography>
                         </Grid>
 
-                        {/* Column 3: Geographic & Metadata Information */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{coding.state_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{coding.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{coding.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{coding.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Block</Typography>
-                                    <Typography variant="body1">{coding.block_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{coding.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(coding.createdAt)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(coding.updatedAt)}</Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Twitter</Typography>
+                            <Typography variant="body1">{coding.twitter || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Coding Types</Typography>
+                            <Typography variant="body1">{coding.coding_types?.join(', ') || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">State</Typography>
+                            <Typography variant="body1">{coding.state?.name || coding.state_id?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Division</Typography>
+                            <Typography variant="body1">{coding.division?.name || coding.division_id?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
+                            <Typography variant="body1">{coding.parliament?.name || coding.parliament_id?.name || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
+                            <Typography variant="body1">{coding.assembly?.name || coding.assembly_id?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Block</Typography>
+                            <Typography variant="body1">{coding.block?.name || coding.block_id?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
+                            <Typography variant="body1">{coding.booth?.name || coding.booth_id?.name || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Booth Number</Typography>
+                            <Typography variant="body1">{coding.booth_number ?? 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                            <Typography variant="body1">{coding.description || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                            <Typography variant="body1">{coding.created_by?.username || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                            <Typography variant="body1">{coding.updated_by?.username || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                            <Typography variant="body1">{formatDateTime(coding.created_at || coding.createdAt)}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                            <Typography variant="body1">{formatDateTime(coding.updated_at || coding.updatedAt)}</Typography>
                         </Grid>
                     </Grid>
                 </CardContent>

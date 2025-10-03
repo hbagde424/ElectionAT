@@ -195,7 +195,7 @@ const CandidateDetailPage = () => {
                 </Breadcrumbs>
             </Box>
 
-            {/* All Candidate Information in 3-column layout */}
+            {/* Candidate Information - only fields shown in list/table */}
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
@@ -203,68 +203,24 @@ const CandidateDetailPage = () => {
                         <Grid item xs={12} md={4}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Full Name
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.name}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Name</Typography>
+                                    <Typography variant="body1">{candidate.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Age
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.age || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Party</Typography>
+                                    <Typography variant="body1">{candidate.party_id?.name || 'Independent'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Gender
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.gender_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Education</Typography>
+                                    <Typography variant="body1">{candidate.education || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Caste
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.caste || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Assets</Typography>
+                                    <Typography variant="body1">{candidate.assets || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Criminal Cases
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.criminal_cases || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Education
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.education || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Assets
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.assets || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Liabilities
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.liabilities || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Liabilities</Typography>
+                                    <Typography variant="body1">{candidate.liabilities || 'N/A'}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -273,60 +229,16 @@ const CandidateDetailPage = () => {
                         <Grid item xs={12} md={4}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Party
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.party_id?.name || 'Independent'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Caste</Typography>
+                                    <Typography variant="body1">{candidate.caste || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Election Year
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.election_year_id?.year || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Criminal Cases</Typography>
+                                    <Typography variant="body1">{candidate.criminal_cases || 0}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        State
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.state_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Division
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.division_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Parliament
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.parliament_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Assembly
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.assembly_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Status
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.is_active ? 'Active' : 'Inactive'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                                    <Typography variant="body1">{candidate.is_active ? 'Active' : 'Inactive'}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -335,47 +247,29 @@ const CandidateDetailPage = () => {
                         <Grid item xs={12} md={4}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.created_by?.username || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                                    <Typography variant="body1">{candidate.created_by?.username || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(candidate.updated_at)}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                                    <Typography variant="body1">{candidate.updated_by?.username || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {candidate.updated_by?.username || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                                    <Typography variant="body1">{formatDateTime(candidate.created_at)}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(candidate.created_at)}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                                    <Typography variant="body1">{formatDateTime(candidate.updated_at)}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
                     </Grid>
 
-                    {/* Full-width sections for longer content */}
+                    {/* Description (kept because it's in list preview) */}
                     {candidate.description && (
                         <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Description
-                            </Typography>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                             <Typography variant="body1" sx={{ mt: 1 }}>
                                 <div dangerouslySetInnerHTML={{ __html: candidate.description }} />
                             </Typography>

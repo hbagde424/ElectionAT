@@ -5,6 +5,7 @@ import { ArrowBack, Edit, Campaign, People, LocationOn, CalendarToday } from '@m
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import DetailRenderer from 'components/DetailRenderer';
 
 export default function PartyActivitiesDetailPage() {
     const theme = useTheme();
@@ -45,19 +46,8 @@ export default function PartyActivitiesDetailPage() {
         }
     };
 
-    const formatDateTime = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-    };
-
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric'
-        });
-    };
+    const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleString(); };
+    const formatDate = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleDateString(); };
 
     const getActivityTypeColor = (type) => {
         switch (type) {
@@ -96,169 +86,44 @@ export default function PartyActivitiesDetailPage() {
     const handleBack = () => navigate('/Party-Activities');
     const handleEdit = () => navigate(`/Party-Activities/edit/${id}`);
 
-    if (loading) {
-        return (
-            <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <LinearProgress />
-                <Box sx={{ mt: 2 }}>
-                    <Typography>Loading party activity details...</Typography>
-                </Box>
-            </Container>
-        );
-    }
+    if (loading) return (
+        <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <LinearProgress />
+            <Box sx={{ mt: 2 }}><Typography>Loading party activity details...</Typography></Box>
+        </Container>
+    );
 
-    if (error) {
-        return (
-            <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Party Activities</Button>
-            </Container>
-        );
-    }
+    if (error) return (
+        <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Party Activities</Button>
+        </Container>
+    );
 
-    if (!activity) {
-        return (
-            <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <Alert severity="warning" sx={{ mb: 2 }}>Party activity not found</Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Party Activities</Button>
-            </Container>
-        );
-    }
-
-    // Safety check to prevent white screen
-    console.log('Rendering party activity details:', activity);
+    if (!activity) return (
+        <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <Alert severity="warning" sx={{ mb: 2 }}>Party activity not found</Alert>
+            <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Party Activities</Button>
+        </Container>
+    );
 
     return (
         <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
             <Box sx={{ mb: 3 }}>
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                    <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}>
-                        <ArrowBack />
-                    </IconButton>
-                    <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-                        Party Activity Details
-                    </Typography>
+                    <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}><ArrowBack /></IconButton>
+                    <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>Party Activity Details</Typography>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/Party-Activities'); }}>Party Activities</Link>
-                    <Typography color="text.primary">{getActivityTypeLabel(activity.activity_type) || activity._id}</Typography>
+                    <Typography color="text.primary">{activity.activity_type || activity._id}</Typography>
                 </Breadcrumbs>
             </Box>
 
             <MainCard>
                 <CardContent>
-                    <Grid container spacing={3}>
-                        {/* Column 1: Activity Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Party</Typography>
-                                    <Typography variant="body1">{activity.party_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Activity Type</Typography>
-                                    <Chip
-                                        label={getActivityTypeLabel(activity.activity_type)}
-                                        color={getActivityTypeColor(activity.activity_type)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Activity Date</Typography>
-                                    <Typography variant="body1">{formatDate(activity.activity_date)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Start Time</Typography>
-                                    <Typography variant="body1">{activity.start_time || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">End Time</Typography>
-                                    <Typography variant="body1">{activity.end_time || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                                    <Chip
-                                        label={activity.status || 'N/A'}
-                                        color={getStatusColor(activity.status)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 2: Location & Participants */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Location</Typography>
-                                    <Typography variant="body1">{activity.location || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Expected Participants</Typography>
-                                    <Typography variant="body1">{activity.expected_participants || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Actual Participants</Typography>
-                                    <Typography variant="body1">{activity.actual_participants || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Key Speakers</Typography>
-                                    <Typography variant="body1">{activity.key_speakers || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                                    <Typography variant="body1" sx={{ mt: 0.5 }}>
-                                        {activity.description || 'No description provided'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 3: Geographic & Metadata Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{activity.state_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{activity.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{activity.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{activity.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Block</Typography>
-                                    <Typography variant="body1">{activity.block_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{activity.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{activity.created_by?.name || activity.created_by?.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(activity.createdAt)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(activity.updatedAt)}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Grid>
+                    <DetailRenderer data={activity} />
                 </CardContent>
             </MainCard>
         </Container>

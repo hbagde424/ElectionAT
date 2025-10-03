@@ -5,6 +5,7 @@ import { ArrowBack, Edit } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import DetailRenderer from 'components/DetailRenderer';
 
 export default function BoothVoteDetailPage() {
     const theme = useTheme();
@@ -45,12 +46,7 @@ export default function BoothVoteDetailPage() {
         }
     };
 
-    const formatDateTime = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-    };
+    const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleString(); };
 
     const handleBack = () => navigate('/Booth-Votes');
     const handleEdit = () => navigate(`/Booth-Votes/edit/${id}`);
@@ -91,76 +87,23 @@ export default function BoothVoteDetailPage() {
         <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
             <Box sx={{ mb: 3 }}>
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                    <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}>
-                        <ArrowBack />
-                    </IconButton>
+                    <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}><ArrowBack /></IconButton>
                     <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="h4" component="h1">Booth Vote Details</Typography>
-                        <Typography variant="body2" color="text.secondary">{formatDateTime(vote.created_at)}</Typography>
+                        <Typography variant="body2" color="text.secondary">{formatDateTime(vote?.created_at)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit} sx={{ ml: 'auto' }}>Edit Vote</Button>
+                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>Edit Vote</Button>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/Booth-Votes'); }}>Booth Votes</Link>
-                    <Typography color="text.primary">{vote._id}</Typography>
+                    <Typography color="text.primary">{vote?._id}</Typography>
                 </Breadcrumbs>
             </Box>
 
             <MainCard>
                 <CardContent>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Candidate</Typography>
-                                    <Typography variant="body1">{vote.candidate_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{vote.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{vote.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{vote.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{vote.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{vote.state_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Total Votes</Typography>
-                                    <Typography variant="body1">{vote.total_votes?.toLocaleString?.() || vote.total_votes || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Election Year</Typography>
-                                    <Typography variant="body1">{vote.election_year_id?.year || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{vote.created_by?.username || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Grid>
+                    <DetailRenderer data={vote} />
                 </CardContent>
             </MainCard>
         </Container>

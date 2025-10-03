@@ -5,6 +5,7 @@ import { ArrowBack, Edit, Event, LocationOn, CalendarToday, Person } from '@mui/
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import DetailRenderer from 'components/DetailRenderer';
 
 export default function EventDetailPage() {
     const theme = useTheme();
@@ -126,97 +127,7 @@ export default function EventDetailPage() {
 
             <MainCard>
                 <CardContent>
-                    <Grid container spacing={3}>
-                        {/* Column 1: Basic Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Event Name</Typography>
-                                    <Typography variant="body1">{event.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Event Type</Typography>
-                                    <Chip
-                                        label={event.type || 'N/A'}
-                                        color={getTypeColor(event.type)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                                    <Chip
-                                        label={event.status || 'N/A'}
-                                        color={getStatusColor(event.status)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                                    <Typography variant="body1" sx={{ mt: 0.5 }}>
-                                        {event.description || 'No description provided'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 2: Date & Location Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Start Date</Typography>
-                                    <Typography variant="body1">{formatDateTime(event.start_date)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">End Date</Typography>
-                                    <Typography variant="body1">{formatDateTime(event.end_date)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Location</Typography>
-                                    <Typography variant="body1">{event.location || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{event.state_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{event.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 3: Additional Information & Metadata */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{event.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{event.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Block</Typography>
-                                    <Typography variant="body1">{event.block_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{event.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(event.createdAt)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(event.updatedAt)}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Grid>
+                    <DetailRenderer data={event} />
                 </CardContent>
             </MainCard>
         </Container>

@@ -168,184 +168,96 @@ export default function WinningPartyDetailPage() {
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
-                        {/* Column 1 */}
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={6}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        State
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.state_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Candidate</Typography>
+                                    <Typography variant="body1">{winningParty.candidate_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Division
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.division_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Party</Typography>
+                                    <Typography variant="body1">{winningParty.party_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Parliament
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.parliament_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
+                                    <Typography variant="body1">{winningParty.state_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Assembly
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.assembly_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
+                                    <Typography variant="body1">{winningParty.division_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Block
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.block_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
+                                    <Typography variant="body1">{winningParty.parliament_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Booth
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.booth_id?.name || 'N/A'}
-                                        {winningParty.booth_id?.booth_number && ` (#${winningParty.booth_id.booth_number})`}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
+                                    <Typography variant="body1">{winningParty.assembly_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Party
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.party_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Block</Typography>
+                                    <Typography variant="body1">{winningParty.block_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Candidate
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.candidate_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
+                                    <Typography variant="body1">{winningParty.booth_id?.name || 'N/A'}{winningParty.booth_id?.booth_number ? ` (#${winningParty.booth_id.booth_number})` : ''}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
 
-                        {/* Column 2 */}
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={6}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Election Year
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.election_year ? `${winningParty.election_year.year} (${winningParty.election_year.election_type})` : 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Election Year</Typography>
+                                    <Typography variant="body1">{winningParty.election_year ? `${winningParty.election_year.year} (${winningParty.election_year.election_type})` : 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Votes
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.votes || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Votes</Typography>
+                                    <Typography variant="body1">{winningParty.votes || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Margin
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.margin || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Margin</Typography>
+                                    <Typography variant="body1">{winningParty.margin || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Booth Number
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.booth_number || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Electors</Typography>
+                                    <Typography variant="body1">{winningParty.electors ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.created_by?.username || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Male Electors</Typography>
+                                    <Typography variant="body1">{winningParty.male_electors ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.updated_by?.username || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Female Electors</Typography>
+                                    <Typography variant="body1">{winningParty.female_electors ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(winningParty.created_at)}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">NOTA Votes</Typography>
+                                    <Typography variant="body1">{winningParty.nota_votes ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(winningParty.updated_at)}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 3 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Record ID
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                                        {winningParty._id || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                                    <Typography variant="body1">{winningParty.created_by?.username || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Election Type
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.election_year?.election_type || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                                    <Typography variant="body1">{winningParty.updated_by?.username || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Year
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {winningParty.election_year?.year || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                                    <Typography variant="body1">{formatDateTime(winningParty.created_at)}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                                    <Typography variant="body1">{formatDateTime(winningParty.updated_at)}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
                     </Grid>
 
-                    {/* Full-width sections for longer content */}
                     {winningParty.description && (
                         <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Description
-                            </Typography>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                             <Typography variant="body1" sx={{ mt: 1 }}>
                                 <div dangerouslySetInnerHTML={{ __html: winningParty.description }} />
                             </Typography>

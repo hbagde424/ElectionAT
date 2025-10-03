@@ -197,7 +197,7 @@ const BlockDetailPage = () => {
                 </Breadcrumbs>
             </Box>
 
-            {/* All Block Information in 3-column layout */}
+            {/* Block Information - Only Available Fields */}
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
@@ -209,9 +209,31 @@ const BlockDetailPage = () => {
                                         Block Name
                                     </Typography>
                                     <Typography variant="body1">
-                                        {block.name}
+                                        {block.name || 'N/A'}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Category
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {block.category || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Status
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {block.is_active ? 'Active' : 'Inactive'}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        {/* Column 2 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         State
@@ -244,36 +266,6 @@ const BlockDetailPage = () => {
                                         {block.assembly_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        District
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {block.district_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Category
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {block.category || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 2 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Status
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {block.is_active ? 'Active' : 'Inactive'}
-                                    </Typography>
-                                </Grid>
                             </Grid>
                         </Grid>
 
@@ -286,14 +278,6 @@ const BlockDetailPage = () => {
                                     </Typography>
                                     <Typography variant="body1">
                                         {block.created_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(block.updated_at)}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -312,11 +296,19 @@ const BlockDetailPage = () => {
                                         {formatDateTime(block.created_at)}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Updated At
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDateTime(block.updated_at)}
+                                    </Typography>
+                                </Grid>
                             </Grid>
                         </Grid>
                     </Grid>
 
-                    {/* Full-width sections for longer content */}
+                    {/* Full-width section for description */}
                     {block.description && (
                         <Box sx={{ mt: 3 }}>
                             <Typography variant="subtitle2" color="text.secondary">

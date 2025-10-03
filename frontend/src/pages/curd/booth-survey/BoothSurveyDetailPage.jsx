@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -6,37 +6,20 @@ import {
     Typography,
     Grid,
     CardContent,
-    Chip,
     Stack,
-    Avatar,
-    Divider,
     Button,
     IconButton,
-    Paper,
     LinearProgress,
     Alert,
     Breadcrumbs,
     Link,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails
+    Paper
 } from '@mui/material';
-import {
-    ArrowBack,
-    LocationOn,
-    Description,
-    Edit,
-    CalendarToday,
-    Person,
-    Phone,
-    Business,
-    Public,
-    AccountBalance,
-    ExpandMore
-} from '@mui/icons-material';
+import { ArrowBack, Edit, Phone, Room } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import DetailRenderer from 'components/DetailRenderer';
 
 const BoothSurveyDetailPage = () => {
     const theme = useTheme();
@@ -47,36 +30,24 @@ const BoothSurveyDetailPage = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        console.log('BoothSurveyDetailPage mounted with ID:', id);
         fetchSurveyDetails();
     }, [id]);
 
     const fetchSurveyDetails = async () => {
         try {
             setLoading(true);
-            console.log('Fetching survey details for ID:', id);
             const token = localStorage.getItem('serviceToken');
-            console.log('Token available:', !!token);
-
             const response = await axiosServices.get(`/booth-surveys/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
-
-            console.log('Survey API response:', response);
             if (response.data.success) {
                 setSurvey(response.data.data);
                 setError(null);
             } else {
-                console.error('API returned success: false', response.data);
                 setError('Failed to fetch survey details');
             }
-        } catch (error) {
-            console.error('Error fetching survey details:', error);
-            console.error('Error response:', error.response);
-            console.error('Error status:', error.response?.status);
-            console.error('Error data:', error.response?.data);
+        } catch (err) {
+            console.error('Error fetching survey details:', err);
             setError('Error loading survey details. Please try again.');
         } finally {
             setLoading(false);
@@ -95,39 +66,20 @@ const BoothSurveyDetailPage = () => {
     const formatDateTime = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/booth-survey/edit/${id}`);
-    };
+    const handleBack = () => navigate('/booth-survey');
+    const handleEdit = () => navigate(`/booth-survey/edit/${id}`);
 
-    const handleBack = () => {
-        navigate('/booth-survey');
-    };
-
-    // Helper function to get survey questions
-    const getSurveyQuestions = () => {
-        if (!survey) return [];
-
-        const questions = [];
-        for (let i = 3; i <= 36; i++) {
-            const questionKey = `q${i}`;
-            if (survey[questionKey]) {
-                questions.push({
-                    number: i,
-                    question: `Question ${i}`,
-                    answer: survey[questionKey]
-                });
-            }
-        }
-        return questions;
-    };
+    const filteredSurvey = useMemo(() => {
+        if (!survey) return null;
+        const exclude = new Set(['created_at', 'updated_at', 'created_by', 'updated_by', 'contact_number', 'latitude', 'longitude']);
+        const out = {};
+        Object.keys(survey).forEach((k) => { if (!exclude.has(k)) out[k] = survey[k]; });
+        return out;
+    }, [survey]);
 
     if (loading) {
         return (
@@ -143,12 +95,8 @@ const BoothSurveyDetailPage = () => {
     if (error) {
         return (
             <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                </Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>
-                    Back to Surveys
-                </Button>
+                <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Surveys</Button>
             </Container>
         );
     }
@@ -156,252 +104,96 @@ const BoothSurveyDetailPage = () => {
     if (!survey) {
         return (
             <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                    Survey not found
-                </Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>
-                    Back to Surveys
-                </Button>
+                <Alert severity="warning" sx={{ mb: 2 }}>Survey not found</Alert>
+                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Surveys</Button>
             </Container>
         );
     }
 
-    const surveyQuestions = getSurveyQuestions();
-
     return (
         <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
-            {/* Header */}
             <Box sx={{ mb: 3 }}>
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
                     <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}>
                         <ArrowBack />
                     </IconButton>
                     <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="h4" component="h1">
-                            Survey Details
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            {formatDateTime(survey.created_at)}
-                        </Typography>
+                        <Typography variant="h4" component="h1">Survey Details</Typography>
+                        <Typography variant="body2" color="text.secondary">{formatDateTime(survey.created_at)}</Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Survey
-                    </Button>
+                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit} sx={{ ml: 'auto' }}>Edit Survey</Button>
                 </Stack>
-
-                {/* Breadcrumbs */}
                 <Breadcrumbs aria-label="breadcrumb">
-                    <Link
-                        underline="hover"
-                        color="inherit"
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            navigate('/');
-                        }}
-                    >
-                        Dashboard
-                    </Link>
-                    <Link
-                        underline="hover"
-                        color="inherit"
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            navigate('/booth-survey');
-                        }}
-                    >
-                        Booth Surveys
-                    </Link>
-                    <Typography color="text.primary">
-                        Survey {survey._id}
-                    </Typography>
+                    <Link underline="hover" color="inherit" href="#" onClick={(e)=>{e.preventDefault();navigate('/');}}>Dashboard</Link>
+                    <Link underline="hover" color="inherit" href="#" onClick={(e)=>{e.preventDefault();navigate('/booth-survey');}}>Booth Surveys</Link>
+                    <Typography color="text.primary">Survey {survey._id}</Typography>
                 </Breadcrumbs>
             </Box>
 
-            {/* All Survey Information in 3-column layout */}
             <MainCard>
-                <CardContent>
-                    <Grid container spacing={3}>
-                        {/* Column 1 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Survey Date
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDate(survey.survey_date)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Respondent Name
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.respondent_name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Respondent Mobile
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.respondent_mobile || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Booth
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.booth_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        State
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.state_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Division
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.division_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                <Box sx={{ bgcolor: 'primary.light', color: 'primary.contrastText', p: 2, borderRadius: '8px 8px 0 0' }}>
+                    <Grid container alignItems="center">
+                        <Grid item xs>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>Survey {survey._id || ''}</Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>{survey.respondent_name ? survey.respondent_name : 'Booth Survey'}</Typography>
                         </Grid>
-
-                        {/* Column 2 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Parliament
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.parliament_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Assembly
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.assembly_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Block
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.block_id?.name || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.created_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(survey.updated_at)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {survey.updated_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 3 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(survey.created_at)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Total Questions Answered
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {surveyQuestions.length}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                        <Grid item>
+                            <Stack direction="row" spacing={1}>
+                                <Button variant="contained" color="secondary" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
+                                {survey.contact_number && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${survey.contact_number}`}>Call</Button>
+                                )}
+                                {survey.latitude && survey.longitude && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Room />} onClick={() => window.open(`https://www.google.com/maps?q=${survey.latitude},${survey.longitude}`, '_blank')}>Open Map</Button>
+                                )}
+                            </Stack>
                         </Grid>
                     </Grid>
+                </Box>
 
-                    {/* Full-width sections for longer content */}
-                    {survey.remark && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Remarks
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1 }}>
-                                {survey.remark}
-                            </Typography>
-                        </Box>
-                    )}
+                <CardContent>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={8}>
+                            <Paper elevation={0} sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary">All Fields</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    {/* filter out metadata/contact/coords so they only show in Metadata & Actions */}
+                                    <DetailRenderer data={filteredSurvey} />
+                                </Box>
+                            </Paper>
+                        </Grid>
 
-                    {/* Survey Questions Section */}
-                    {surveyQuestions.length > 0 && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                                Survey Responses
-                            </Typography>
-                            <Accordion>
-                                <AccordionSummary expandIcon={<ExpandMore />}>
-                                    <Typography variant="h6">
-                                        View All Survey Questions & Answers ({surveyQuestions.length} responses)
-                                    </Typography>
-                                </AccordionSummary>
-                                <AccordionDetails>
-                                    <Grid container spacing={2}>
-                                        {surveyQuestions.map((q, index) => (
-                                            <Grid item xs={12} key={index}>
-                                                <Paper sx={{ p: 2, border: 1, borderColor: 'divider' }}>
-                                                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                                                        Question {q.number}
-                                                    </Typography>
-                                                    <Typography variant="body1">
-                                                        {q.answer}
-                                                    </Typography>
-                                                </Paper>
-                                            </Grid>
-                                        ))}
-                                    </Grid>
-                                </AccordionDetails>
-                            </Accordion>
-                        </Box>
-                    )}
+                        <Grid item xs={12} md={4}>
+                            <Paper elevation={0} sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary">Metadata & Actions</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="body2">Created: {formatDateTime(survey.created_at)}</Typography>
+                                    <Typography variant="body2">Updated: {formatDateTime(survey.updated_at)}</Typography>
+                                    <Typography variant="body2">Created By: {survey.created_by?.username || survey.created_by?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2">Updated By: {survey.updated_by?.username || survey.updated_by?.name || 'N/A'}</Typography>
+                                    {survey.contact_number && (
+                                        <Typography variant="body2" sx={{ mt: 1 }}>Contact: {survey.contact_number}</Typography>
+                                    )}
+                                    {survey.latitude && survey.longitude && (
+                                        <Typography variant="body2" sx={{ mt: 1 }}>Coordinates: {survey.latitude}, {survey.longitude}</Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                                <Typography variant="subtitle2" color="text.secondary">Remarks</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    {survey.remark || survey.note || survey.description ? (
+                                        <Typography variant="body1">{survey.remark || survey.note || survey.description}</Typography>
+                                    ) : (
+                                        <Typography variant="body1" color="text.secondary">No remarks provided.</Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    </Grid>
                 </CardContent>
             </MainCard>
         </Container>

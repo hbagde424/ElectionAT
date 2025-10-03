@@ -133,100 +133,51 @@ export default function GovernmentSchemeDetailPage() {
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
-                        {/* Column 1: Basic Information */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Scheme Name</Typography>
-                                    <Typography variant="body1">{scheme.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Scheme Type</Typography>
-                                    <Chip
-                                        label={scheme.type || 'N/A'}
-                                        color={getTypeColor(scheme.type)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Amount</Typography>
-                                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                                        {formatCurrency(scheme.amount)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Project Complete Date</Typography>
-                                    <Typography variant="body1">{formatDate(scheme.project_complete_date)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                                    <Typography variant="body1" sx={{ mt: 0.5 }}>
-                                        {scheme.description || 'No description provided'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Scheme Name</Typography>
+                            <Typography variant="body1">{scheme.name || 'N/A'}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Scheme Type</Typography>
+                            <Chip label={scheme.type || 'N/A'} color={getTypeColor(scheme.type)} size="small" sx={{ mt: 0.5 }} />
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Amount</Typography>
+                            <Typography variant="body1" color="primary" sx={{ fontWeight: '500' }}>{formatCurrency(scheme.amount)}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Project Complete Date</Typography>
+                            <Typography variant="body1">{formatDate(scheme.project_complete_date)}</Typography>
                         </Grid>
 
-                        {/* Column 2: Geographic Information */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{scheme.state_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{scheme.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{scheme.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{scheme.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Block</Typography>
-                                    <Typography variant="body1">{scheme.block_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">State</Typography>
+                            <Typography variant="body1">{scheme.state_id?.name || 'N/A'}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Division</Typography>
+                            <Typography variant="body1">{scheme.division_id?.name || 'N/A'}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Parliament</Typography>
+                            <Typography variant="body1">{scheme.parliament_id?.name || 'N/A'}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Assembly</Typography>
+                            <Typography variant="body1">{scheme.assembly_id?.name || 'N/A'}</Typography>
                         </Grid>
 
-                        {/* Column 3: Additional Information & Metadata */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{scheme.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{scheme.created_by?.name || scheme.created_by?.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
-                                    <Typography variant="body1">{scheme.updated_by?.name || scheme.updated_by?.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(scheme.createdAt)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(scheme.updatedAt)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                                    <Chip
-                                        label={scheme.status || 'Active'}
-                                        color="success"
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                            <Typography variant="body1">{scheme.created_by?.username || scheme.created_by?.name || 'N/A'}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Updated By</Typography>
+                            <Typography variant="body1">{scheme.updated_by?.username || scheme.updated_by?.name || 'N/A'}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Created At</Typography>
+                            <Typography variant="body1">{formatDateTime(scheme.created_at || scheme.createdAt)}</Typography>
+
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Updated At</Typography>
+                            <Typography variant="body1">{formatDateTime(scheme.updated_at || scheme.updatedAt)}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>{scheme.description || 'No description provided'}</Typography>
                         </Grid>
                     </Grid>
                 </CardContent>

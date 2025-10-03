@@ -132,124 +132,77 @@ export default function WinningCandidatesDetailPage() {
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
-                        {/* Column 1: Candidate & Party Information */}
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={6}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Winning Candidate</Typography>
-                                    <Typography variant="h6" color="primary">
-                                        {winningCandidate.candidate_id?.name || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Candidate</Typography>
+                                    <Typography variant="body1">{winningCandidate.candidate_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Party</Typography>
                                     <Typography variant="body1">{winningCandidate.party_id?.name || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{winningCandidate.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{winningCandidate.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Election Year</Typography>
                                     <Typography variant="body1">{winningCandidate.election_year?.year || 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                                    <Chip
-                                        label={winningCandidate.status || 'Active'}
-                                        color={getStatusColor(winningCandidate.status)}
-                                        size="small"
-                                        sx={{ mt: 0.5 }}
-                                    />
+                                    <Typography variant="subtitle2" color="text.secondary">Assembly No</Typography>
+                                    <Typography variant="body1">{winningCandidate.assembly_id?.AC_NO || 'N/A'}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Type</Typography>
+                                    <Typography variant="body1">{Array.isArray(winningCandidate.type) ? winningCandidate.type.join(', ') : (winningCandidate.type || 'N/A')}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
 
-                        {/* Column 2: Performance & Statistics */}
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={6}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">Poll Percentage</Typography>
-                                    <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                                        {winningCandidate.poll_percentage || 'N/A'}
-                                    </Typography>
+                                    <Typography variant="body1">{winningCandidate.poll_percentage ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Votes Received</Typography>
-                                    <Typography variant="h6" color="info.main" sx={{ fontWeight: 'bold' }}>
-                                        {formatNumber(winningCandidate.votes)}
-                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Total Votes</Typography>
+                                    <Typography variant="body1">{formatNumber(winningCandidate.total_votes)}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Margin of Victory</Typography>
-                                    <Typography variant="body1">{formatNumber(winningCandidate.margin)}</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Voting Percentage</Typography>
+                                    <Typography variant="body1">{winningCandidate.voting_percentage ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Total Electors</Typography>
-                                    <Typography variant="body1">{formatNumber(winningCandidate.total_electors)}</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Margin</Typography>
+                                    <Typography variant="body1">{winningCandidate.margin ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Total Votes Polled</Typography>
-                                    <Typography variant="body1">{formatNumber(winningCandidate.total_votes_polled)}</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Electors</Typography>
+                                    <Typography variant="body1">{winningCandidate.electors ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Polling Percentage</Typography>
-                                    <Typography variant="body1">{winningCandidate.polling_percentage || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 3: Geographic & Metadata Information */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Type</Typography>
-                                    <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                                        {winningCandidate.type && winningCandidate.type.map((type, index) => (
-                                            <Chip
-                                                key={index}
-                                                label={type}
-                                                color={getTypeColor(type)}
-                                                size="small"
-                                            />
-                                        ))}
-                                    </Stack>
+                                    <Typography variant="subtitle2" color="text.secondary">Male Electors</Typography>
+                                    <Typography variant="body1">{winningCandidate.male_electors ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{winningCandidate.state_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Female Electors</Typography>
+                                    <Typography variant="body1">{winningCandidate.female_electors ?? 'N/A'}</Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{winningCandidate.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Block</Typography>
-                                    <Typography variant="body1">{winningCandidate.block_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{winningCandidate.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{winningCandidate.created_by?.name || winningCandidate.created_by?.email || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                                    <Typography variant="body1">{formatDateTime(winningCandidate.createdAt)}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
-                                    <Typography variant="body1">{formatDateTime(winningCandidate.updatedAt)}</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">NOTA Votes</Typography>
+                                    <Typography variant="body1">{winningCandidate.nota_votes ?? 'N/A'}</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
                     </Grid>
+
+                    {winningCandidate.description && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                            <Typography variant="body1" sx={{ mt: 1 }}>
+                                <div dangerouslySetInnerHTML={{ __html: winningCandidate.description }} />
+                            </Typography>
+                        </Box>
+                    )}
                 </CardContent>
             </MainCard>
         </Container>

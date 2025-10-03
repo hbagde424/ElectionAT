@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -13,13 +13,15 @@ import {
     LinearProgress,
     Alert,
     Breadcrumbs,
-    Link
+    Link,
+    Paper
 } from '@mui/material';
-import { ArrowBack, CalendarToday } from '@mui/icons-material';
+import { ArrowBack, CalendarToday, Phone, Room } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
 import BoothVolunteerView from './VolunteerView';
+import DetailRenderer from 'components/DetailRenderer';
 
 const VolunteerDetailPage = () => {
     const theme = useTheme();
@@ -62,6 +64,14 @@ const VolunteerDetailPage = () => {
             hour12: true
         });
     };
+
+    const filteredVolunteer = useMemo(() => {
+        if (!volunteer) return null;
+        const exclude = new Set(['created_at', 'updated_at', 'created_by', 'updated_by', 'phone', 'latitude', 'longitude', 'documents', 'remarks']);
+        const out = {};
+        Object.keys(volunteer).forEach((k) => { if (!exclude.has(k)) out[k] = volunteer[k]; });
+        return out;
+    }, [volunteer]);
 
     if (loading) {
         return (
@@ -125,21 +135,64 @@ const VolunteerDetailPage = () => {
             </MainCard>
 
             <MainCard>
-                <CardContent>
-                    {/* Use the existing view component to render the detailed layout */}
-                    <BoothVolunteerView data={volunteer} />
+                <Box sx={{ bgcolor: 'primary.light', color: 'primary.contrastText', p: 2, borderRadius: '8px 8px 0 0' }}>
+                    <Grid container alignItems="center">
+                        <Grid item xs>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{volunteer.name || 'Volunteer'}</Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>{volunteer.role || volunteer.post || ''}</Typography>
+                        </Grid>
+                        <Grid item>
+                            <Stack direction="row" spacing={1}>
+                                <Button variant="contained" color="secondary" startIcon={<CalendarToday />}>Assign</Button>
+                                {volunteer.phone && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${volunteer.phone}`}>Call</Button>
+                                )}
+                                {volunteer.latitude && volunteer.longitude && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Room />} onClick={() => window.open(`https://www.google.com/maps?q=${volunteer.latitude},${volunteer.longitude}`, '_blank')}>Open Map</Button>
+                                )}
+                            </Stack>
+                        </Grid>
+                    </Grid>
+                </Box>
 
-                    {/* Additional full-width sections (remarks, bio, etc.) if present */}
-                    {volunteer.remarks && (
-                        <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Remarks
-                            </Typography>
-                            <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-line' }}>
-                                {volunteer.remarks}
-                            </Typography>
-                        </Box>
-                    )}
+                <CardContent>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={8}>
+                            <Paper elevation={0} sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary">All Fields</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    <DetailRenderer data={filteredVolunteer} />
+                                </Box>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Paper elevation={0} sx={{ p: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary">Metadata & Actions</Typography>
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="body2">Created: {formatDateTime(volunteer.created_at)}</Typography>
+                                    <Typography variant="body2">Updated: {formatDateTime(volunteer.updated_at)}</Typography>
+                                    <Typography variant="body2">Created By: {volunteer.created_by?.username || volunteer.created_by?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2">Updated By: {volunteer.updated_by?.username || volunteer.updated_by?.name || 'N/A'}</Typography>
+                                    {volunteer.phone && (
+                                        <Typography variant="body2" sx={{ mt: 1 }}>Contact: {volunteer.phone}</Typography>
+                                    )}
+                                    {volunteer.latitude && volunteer.longitude && (
+                                        <Typography variant="body2" sx={{ mt: 1 }}>Coordinates: {volunteer.latitude}, {volunteer.longitude}</Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            {volunteer.remarks && (
+                                <Box sx={{ mt: 3 }}>
+                                    <Typography variant="subtitle2" color="text.secondary">Remarks</Typography>
+                                    <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-line' }}>{volunteer.remarks}</Typography>
+                                </Box>
+                            )}
+                        </Grid>
+                    </Grid>
                 </CardContent>
             </MainCard>
         </Container>

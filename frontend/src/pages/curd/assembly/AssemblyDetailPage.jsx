@@ -188,7 +188,7 @@ const AssemblyDetailPage = () => {
                 </Breadcrumbs>
             </Box>
 
-            {/* All Assembly Information in 3-column layout */}
+            {/* Assembly Information - Only Available Fields */}
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
@@ -200,17 +200,39 @@ const AssemblyDetailPage = () => {
                                         Assembly Name
                                     </Typography>
                                     <Typography variant="body1">
-                                        {assembly.name}
+                                        {assembly.name || 'N/A'}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
-                                        Assembly Code
+                                        Assembly Number
                                     </Typography>
                                     <Typography variant="body1">
-                                        {assembly.code || 'N/A'}
+                                        {assembly.AC_NO || 'N/A'}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Type
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {assembly.type || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Category
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {assembly.category || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        {/* Column 2 */}
+                        <Grid item xs={12} md={4}>
+                            <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary">
                                         State
@@ -235,92 +257,6 @@ const AssemblyDetailPage = () => {
                                         {assembly.parliament_id?.name || 'N/A'}
                                     </Typography>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Constituency Type
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.constituency_type || 'General'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Reserved For
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.reserved_for || 'General'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Established Date
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.established_date ? formatDate(assembly.established_date) : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* Column 2 */}
-                        <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Total Voters
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.total_voters ? assembly.total_voters.toLocaleString() : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Male Voters
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.male_voters ? assembly.male_voters.toLocaleString() : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Female Voters
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.female_voters ? assembly.female_voters.toLocaleString() : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Number of Blocks
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.block_count || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Number of Booths
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.booth_count || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Area (sq km)
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.area ? `${assembly.area.toLocaleString()} sq km` : 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Status
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.status || 'N/A'}
-                                    </Typography>
-                                </Grid>
                             </Grid>
                         </Grid>
 
@@ -333,14 +269,6 @@ const AssemblyDetailPage = () => {
                                     </Typography>
                                     <Typography variant="body1">
                                         {assembly.created_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Last Updated
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(assembly.updated_at)}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
@@ -359,11 +287,19 @@ const AssemblyDetailPage = () => {
                                         {formatDateTime(assembly.created_at)}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Updated At
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {formatDateTime(assembly.updated_at)}
+                                    </Typography>
+                                </Grid>
                             </Grid>
                         </Grid>
                     </Grid>
 
-                    {/* Full-width sections for longer content */}
+                    {/* Full-width section for description */}
                     {assembly.description && (
                         <Box sx={{ mt: 3 }}>
                             <Typography variant="subtitle2" color="text.secondary">

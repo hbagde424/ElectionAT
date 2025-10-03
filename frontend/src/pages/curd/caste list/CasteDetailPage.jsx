@@ -106,59 +106,73 @@ export default function CasteDetailPage() {
                     <Typography color="text.primary">{entry.caste || entry._id}</Typography>
                 </Breadcrumbs>
             </Box>
-
             <MainCard>
                 <CardContent>
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Caste Name</Typography>
-                                    <Typography variant="body1">{entry.caste || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Category</Typography>
-                                    <Typography variant="body1">{entry.category || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
-                                    <Typography variant="body1">{entry.booth_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Caste</Typography>
+                            <Typography variant="body1">{entry.caste || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Percentage</Typography>
+                            <Typography variant="body1">{entry.percentage ?? 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Category</Typography>
+                            <Typography variant="body1">{entry.category || 'N/A'}</Typography>
                         </Grid>
 
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
-                                    <Typography variant="body1">{entry.assembly_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
-                                    <Typography variant="body1">{entry.parliament_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Division</Typography>
-                                    <Typography variant="body1">{entry.division_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">State</Typography>
+                            <Typography variant="body1">{entry.state?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Division</Typography>
+                            <Typography variant="body1">{entry.division?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Parliament</Typography>
+                            <Typography variant="body1">{entry.parliament?.name || 'N/A'}</Typography>
                         </Grid>
 
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                                    <Typography variant="body1">{entry.state_id?.name || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                                    <Typography variant="body1">{entry.created_by?.username || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
-                                    <Typography variant="body1">{entry.updated_by?.username || 'N/A'}</Typography>
-                                </Grid>
-                            </Grid>
+                            <Typography variant="subtitle2" color="text.secondary">Assembly</Typography>
+                            <Typography variant="body1">{entry.assembly?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Block</Typography>
+                            <Typography variant="body1">{entry.block?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
+                            <Typography variant="body1">{entry.booth?.name || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Booth Number</Typography>
+                            <Typography variant="body1">{entry.booth_number ?? 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                            <Typography variant="body1">{entry.description || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
+                            <Typography variant="body1">{entry.created_by?.username || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Updated By</Typography>
+                            <Typography variant="body1">{entry.updated_by?.username || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                            <Typography variant="body1">{formatDateTime(entry.created_at)}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Updated At</Typography>
+                            <Typography variant="body1">{formatDateTime(entry.updated_at)}</Typography>
                         </Grid>
                     </Grid>
                 </CardContent>
