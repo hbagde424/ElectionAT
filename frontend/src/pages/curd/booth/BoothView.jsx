@@ -173,6 +173,22 @@ export default function BoothView({ data }) {
                             <Chip label={data.block_id?.name || 'N/A'} color="default" size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Male Count</Typography>
+                            <Chip label={data.Male_Count || 0} color="primary" size="small" variant="outlined" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Female Count</Typography>
+                            <Chip label={data.Female_Count || 0} color="secondary" size="small" variant="outlined" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Others Count</Typography>
+                            <Chip label={data.others_Count || 0} color="warning" size="small" variant="outlined" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Total Count</Typography>
+                            <Chip label={data.Total || 0} color="success" size="small" variant="filled" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
                             <Typography variant="body2" color="text.secondary">
                                 {data.booth_number || 'N/A'}

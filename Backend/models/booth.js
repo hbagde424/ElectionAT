@@ -56,6 +56,26 @@ const boothSchema = new mongoose.Schema({
     ref: 'ElectionYear', 
     required: true
   },
+  Male_Count: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  Female_Count: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  others_Count: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  Total: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
     description: {
     type: String,
     default: ''

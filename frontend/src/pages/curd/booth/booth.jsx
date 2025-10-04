@@ -372,6 +372,54 @@ export default function BoothsListPage() {
             )
         },
         {
+            header: 'Male Count',
+            accessorKey: 'Male_Count',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 0}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Female Count',
+            accessorKey: 'Female_Count',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 0}
+                    color="secondary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Others Count',
+            accessorKey: 'others_Count',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 0}
+                    color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Total Count',
+            accessorKey: 'Total',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 0}
+                    color="success"
+                    size="small"
+                    variant="filled"
+                />
+            )
+        },
+        {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
@@ -480,6 +528,10 @@ export default function BoothsListPage() {
             'Full Address': item.full_address,
             Latitude: item.latitude,
             Longitude: item.longitude,
+            'Male Count': item.Male_Count || 0,
+            'Female Count': item.Female_Count || 0,
+            'Others Count': item.others_Count || 0,
+            'Total Count': item.Total || 0,
             Block: item.block_id?.name || '',
             Assembly: item.assembly_id?.name || '',
             Parliament: item.parliament_id?.name || '',

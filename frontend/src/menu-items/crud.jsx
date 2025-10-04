@@ -273,7 +273,7 @@ const CRUDMenu = {
     },
     {
       id: 'Influancer',
-      title: <FormattedMessage id="Influancer" />,
+      title: <FormattedMessage id="Influencer" />,
       type: 'item',
       url: '/Influancer',
       icon: icons.Calendar,
@@ -313,7 +313,7 @@ const CRUDMenu = {
     },
     {
       id: 'Pontentcal-Candidate',
-      title: <FormattedMessage id="Pontentcal-Candidate" />,
+      title: <FormattedMessage id="Potential-Candidate" />,
       type: 'item',
       url: '/Pontentcal-Candidate',
       icon: icons.User,

@@ -35,6 +35,10 @@ export default function BoothModal({
         assembly_id: '',
         block_id: '',
         election_year: '',
+        Male_Count: '',
+        Female_Count: '',
+        others_Count: '',
+        Total: '',
         description: ''
     });
     const [submitted, setSubmitted] = useState(false);
@@ -58,6 +62,10 @@ export default function BoothModal({
                 assembly_id: booth.assembly_id?._id?.toString() || booth.assembly_id?.toString() || '',
                 block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || '',
                 election_year: booth.election_year?._id?.toString() || booth.election_year?.toString() || '',
+                Male_Count: booth.Male_Count || '',
+                Female_Count: booth.Female_Count || '',
+                others_Count: booth.others_Count || '',
+                Total: booth.Total || '',
                 description: booth.description || ''
             });
         } else {
@@ -73,6 +81,10 @@ export default function BoothModal({
                 assembly_id: '',
                 block_id: '',
                 election_year: '',
+                Male_Count: '',
+                Female_Count: '',
+                others_Count: '',
+                Total: '',
                 description: ''
             });
         }
@@ -232,6 +244,10 @@ export default function BoothModal({
             ...userTracking,
             latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
             longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+            Male_Count: formData.Male_Count ? parseInt(formData.Male_Count) : 0,
+            Female_Count: formData.Female_Count ? parseInt(formData.Female_Count) : 0,
+            others_Count: formData.others_Count ? parseInt(formData.others_Count) : 0,
+            Total: formData.Total ? parseInt(formData.Total) : 0,
             description: typeof formData.description === 'string' ? formData.description : ''
         };
         // Remove undefined lat/lng so backend doesn't get undefined
@@ -363,7 +379,68 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: State and Division */}
+                    {/* Row 4: Demographic Counts */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Male Count</InputLabel>
+                            <TextField
+                                name="Male_Count"
+                                value={formData.Male_Count}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Enter male count"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Female Count</InputLabel>
+                            <TextField
+                                name="Female_Count"
+                                value={formData.Female_Count}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Enter female count"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Others Count</InputLabel>
+                            <TextField
+                                name="others_Count"
+                                value={formData.others_Count}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Enter others count"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Total Count</InputLabel>
+                            <TextField
+                                name="Total"
+                                value={formData.Total}
+                                onChange={handleChange}
+                                fullWidth
+                                type="number"
+                                inputProps={{ min: 0 }}
+                                placeholder="Enter total count"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 5: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>

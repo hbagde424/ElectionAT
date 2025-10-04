@@ -259,6 +259,22 @@ const BoothDetailPage = () => {
                                         <Typography variant="caption" color="text.secondary">Type</Typography>
                                         <Typography variant="body2">{booth.booth_type || 'N/A'}</Typography>
                                     </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Male Count</Typography>
+                                        <Typography variant="body2">{booth.Male_Count || 0}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Female Count</Typography>
+                                        <Typography variant="body2">{booth.Female_Count || 0}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Others Count</Typography>
+                                        <Typography variant="body2">{booth.others_Count || 0}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="text.secondary">Total Count</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{booth.Total || 0}</Typography>
+                                    </Grid>
                                 </Grid>
                             </Paper>
                         </Grid>

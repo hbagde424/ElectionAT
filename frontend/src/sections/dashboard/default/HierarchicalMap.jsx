@@ -63,6 +63,8 @@ function HierarchicalMap({ onRegionClick }) {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const currentLayerRef = useRef(null);
+    const boothLookupRef = useRef({}); // in-memory lookup: booth_number -> booth data
+    const prefetchingBlocksRef = useRef(new Set());
     const [currentLevel, setCurrentLevel] = useState('state');
     const [selectedFeature, setSelectedFeature] = useState(null);
     const [navigationHistory, setNavigationHistory] = useState([]);
@@ -638,6 +640,99 @@ function HierarchicalMap({ onRegionClick }) {
                     }))
                 };
                 showBoundaries(transformedData, 'block');
+                // Prefetch aggregated booth demographic counts for each block and cache under block_<id>
+                (async () => {
+                    try {
+                        // Build a set of block names / identifiers to query
+                        const blocks = transformedData.features.map(f => ({
+                            id: f.properties.id,
+                            name: f.properties.BlockName || f.properties.blockName || f.properties.name || f.properties.name || ''
+                        })).filter(b => b.id && b.name);
+
+                        if (blocks.length === 0) return;
+
+                        // For each block, try to fetch booths by searching with block name (API supports search)
+                        await Promise.all(blocks.map(async (blk) => {
+                            const blockCacheKey = `block_${blk.id}`;
+                            try {
+                                const searchUrl = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(blk.name)}`;
+                                const resp = await fetch(searchUrl);
+                                let booths = [];
+                                if (resp.ok) {
+                                    const body = await resp.json();
+                                    booths = Array.isArray(body.data) ? body.data : [];
+                                }
+
+                                // Fallback: if search returned nothing, fetch all and match by blockName/BlockName/BlockNumber
+                                if (booths.length === 0) {
+                                    const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`);
+                                    if (allResp.ok) {
+                                        const allBody = await allResp.json();
+                                        const candidates = Array.isArray(allBody.data) ? allBody.data : [];
+                                        // match by block fields present in booth records
+                                        booths = candidates.filter(c => {
+                                            const bn = (c.blockName || c.BlockName || c.block || c.Block || '').toString().toLowerCase();
+                                            return bn && blk.name.toLowerCase().includes(bn) || bn.includes(blk.name.toLowerCase());
+                                        });
+                                    }
+                                }
+
+                                // Aggregate counts
+                                const agg = booths.reduce((acc, b) => {
+                                    acc.male += Number(b.Male_Count || 0);
+                                    acc.female += Number(b.Female_Count || 0);
+                                    acc.others += Number(b.others_Count || 0);
+                                    acc.total += Number(b.Total || 0);
+                                    return acc;
+                                }, { male: 0, female: 0, others: 0, total: 0 });
+
+                                // If we found any booths, update hoverData; otherwise still set zeroed data to avoid repeated fetches
+                                setHoverData(prev => {
+                                    const newEntries = {};
+                                    // primary key (raw id)
+                                    newEntries[blockCacheKey] = {
+                                        ...(prev[blockCacheKey] || {}),
+                                        genderData: agg,
+                                        boothCount: booths.length,
+                                        blockName: blk.name,
+                                        blockId: blk.id
+                                    };
+                                    try {
+                                        // also set lowercased id key (some code lowercases ids)
+                                        const lcId = String(blk.id).toLowerCase();
+                                        newEntries[`block_${lcId}`] = {
+                                            ...(prev[`block_${lcId}`] || {}),
+                                            genderData: agg,
+                                            boothCount: booths.length,
+                                            blockName: blk.name,
+                                            blockId: blk.id
+                                        };
+                                    } catch (e) {}
+                                    try {
+                                        // also set lowercased name key (popup sometimes uses name)
+                                        const lcName = String(blk.name).toLowerCase();
+                                        newEntries[`block_${lcName}`] = {
+                                            ...(prev[`block_${lcName}`] || {}),
+                                            genderData: agg,
+                                            boothCount: booths.length,
+                                            blockName: blk.name,
+                                            blockId: blk.id
+                                        };
+                                    } catch (e) {}
+
+                                    return {
+                                        ...prev,
+                                        ...newEntries
+                                    };
+                                });
+                            } catch (err) {
+                                console.warn('Block prefetch failed for', blk, err);
+                            }
+                        }));
+                    } catch (err) {
+                        console.warn('Block-level prefetch failed:', err);
+                    }
+                })();
             } else {
                 alert('No block data available for this assembly constituency');
             }
@@ -715,6 +810,87 @@ function HierarchicalMap({ onRegionClick }) {
             // Show only the selected block's booths
             showBoundaries(transformedData, 'booth');
             setCurrentLevel('booth');
+
+            // Populate booth lookup cache for faster hover responses
+            try {
+                transformedData.features.forEach(f => {
+                    const p = f.properties;
+                    const boothNo = p.BoothNo || p.boothNo || p.booth_number || p.BoothNumber || p.id || p.BoothId;
+                    if (boothNo !== undefined && boothNo !== null) {
+                        boothLookupRef.current[String(boothNo)] = p;
+                    }
+                });
+            } catch (err) {
+                console.warn('Could not populate booth lookup cache:', err);
+            }
+
+            // Prefetch booth counts from backend for this block to avoid hover latency
+            (async () => {
+                try {
+                    // Try to derive block name from polygon properties
+                    const sampleProp = transformedData.features && transformedData.features[0] && transformedData.features[0].properties;
+                    const blockName = sampleProp && (sampleProp.BlockName || sampleProp.blockName || sampleProp.Block || sampleProp.block) || '';
+                    if (!blockName) return;
+
+                    const searchUrl = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(blockName)}`;
+                    const resp = await fetch(searchUrl);
+                    if (resp.ok) {
+                        const body = await resp.json();
+                        const booths = Array.isArray(body.data) ? body.data : [];
+                        // Update lookup and hover cache for booths in this block
+                        booths.forEach(b => {
+                            const key = String(b.booth_number);
+                            try { boothLookupRef.current[key] = b; } catch (e) {}
+                            const cacheKey = `booth_${key}`;
+                            const genderData = {
+                                male: b.Male_Count || 0,
+                                female: b.Female_Count || 0,
+                                others: b.others_Count || 0,
+                                total: b.Total || 0
+                            };
+                            setHoverData(prev => ({
+                                ...prev,
+                                [cacheKey]: {
+                                    ...prev[cacheKey],
+                                    genderData,
+                                    boothData: b
+                                }
+                            }));
+                        });
+                    } else {
+                        // fallback: fetch all booths and match by booth number present in transformedData
+                        const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`);
+                        if (!allResp.ok) return;
+                        const allBody = await allResp.json();
+                        const candidates = Array.isArray(allBody.data) ? allBody.data : [];
+                        // build set of boothNos from transformedData
+                        const boothNos = new Set(transformedData.features.map(f => String(f.properties.BoothNo || f.properties.boothNo || f.properties.booth_number || f.properties.BoothNumber || '')));
+                        candidates.forEach(b => {
+                            const bno = String(b.booth_number);
+                            if (boothNos.has(bno)) {
+                                try { boothLookupRef.current[bno] = b; } catch (e) {}
+                                const cacheKey = `booth_${bno}`;
+                                const genderData = {
+                                    male: b.Male_Count || 0,
+                                    female: b.Female_Count || 0,
+                                    others: b.others_Count || 0,
+                                    total: b.Total || 0
+                                };
+                                setHoverData(prev => ({
+                                    ...prev,
+                                    [cacheKey]: {
+                                        ...prev[cacheKey],
+                                        genderData,
+                                        boothData: b
+                                    }
+                                }));
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.warn('Prefetch booth counts failed:', err);
+                }
+            })();
 
             // Fit bounds to show only these booths
             if (currentLayerRef.current) {
@@ -863,39 +1039,37 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         }
 
-                        // Fetch booth-specific gender data
+                        // Fetch booth-specific data from booth API
                         if (level === 'booth') {
-                            // Try multiple possible ID fields for booth, prefer booth_number from database
-                            const boothId = feature.properties.booth_number || feature.properties.boothNumber || 
-                                          feature.properties.boothNo || feature.properties.BoothNo || 
+                            // Use BoothNo from polygon data to match with booth_number in database
+                            const boothId = feature.properties.BoothNo || feature.properties.boothNo || 
+                                          feature.properties.booth_number || feature.properties.boothNumber || 
                                           feature.properties.booth_no || feature.properties.BoothNumber ||
                                           feature.properties.id || feature.properties.BoothId || feature.properties._id;
-                            console.log('🗳️ Booth hover detected:', {
+                            
+                            // Create consistent cache key
+                            const boothCacheKey = `booth_${boothId}`;
+                            
+                            console.log('🗳️ DEBUG: Booth hover detected:', {
                                 level,
-                                boothId,
-                                cacheKey,
-                                hasExistingData: !!hoverData[cacheKey]?.genderData,
-                                properties: feature.properties,
-                                allPossibleIds: {
-                                    boothNo: feature.properties.boothNo,
-                                    BoothNo: feature.properties.BoothNo,
-                                    boothName: feature.properties.boothName,
-                                    BoothName: feature.properties.BoothName,
-                                    id: feature.properties.id,
-                                    BoothId: feature.properties.BoothId,
-                                    _id: feature.properties._id,
-                                    booth_number: feature.properties.booth_number,
-                                    booth_id: feature.properties.booth_id,
-                                    name: feature.properties.name,
-                                    Name: feature.properties.Name
-                                },
+                                extractedBoothId: boothId,
+                                originalCacheKey: cacheKey,
+                                correctedCacheKey: boothCacheKey,
+                                hasExistingData: !!hoverData[boothCacheKey]?.genderData,
+                                hasExistingBoothData: !!hoverData[boothCacheKey]?.boothData,
+                                primaryField_BoothNo: feature.properties.BoothNo,
+                                allAvailableProperties: Object.keys(feature.properties),
                                 fullProperties: feature.properties
                             });
-                            if (boothId && !hoverData[cacheKey]?.genderData) {
-                                console.log('🚀 Triggering booth gender fetch for:', boothId);
+                            
+                            if (boothId && !hoverData[boothCacheKey]?.genderData) {
+                                console.log('🚀 DEBUG: Triggering booth data fetch for booth number:', boothId, 'Cache key:', boothCacheKey);
                                 fetchBoothGenderData(boothId);
                             } else if (!boothId) {
-                                console.warn('⚠️ No booth ID found in properties:', feature.properties);
+                                console.warn('⚠️ DEBUG: No booth ID found in properties. Available properties:', Object.keys(feature.properties));
+                                console.warn('⚠️ DEBUG: Full properties object:', feature.properties);
+                            } else {
+                                console.log('✅ DEBUG: Booth data already exists for:', boothId, 'Data:', hoverData[boothCacheKey]);
                             }
                         }
 
@@ -910,20 +1084,9 @@ function HierarchicalMap({ onRegionClick }) {
                         // Fetch specific assembly data for electors and last 3 years winning party
                         if (level === 'assembly') {
                             const assemblyId = feature.properties.id;
-                            // console.log('🏛️ Assembly hover detected for:', {
-                            //     assemblyId,
-                            //     assemblyName: feature.properties.name,
-                            //     cacheKey,
-                            //     hasExistingData: !!hoverData[cacheKey]?.assemblyData
-                            // });
                             
                             if (assemblyId && !hoverData[cacheKey]?.assemblyData) {
-                                console.log('🚀 Triggering assembly data fetch for:', assemblyId);
                                 fetchAssemblyHoverData(assemblyId);
-                            } else if (!assemblyId) {
-                                console.log('⚠️ No assembly ID found in properties:', feature.properties);
-                            } else {
-                                console.log('✅ Assembly data already exists for:', assemblyId);
                             }
                         }
 
@@ -1082,56 +1245,30 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch assembly specific data for hover (electors, male/female electors, last 3 years winning party)
     const fetchAssemblyHoverData = async (assemblyId) => {
         try {
-            console.log('🔍 Fetching assembly data for ID:', assemblyId);
-            console.log('🔧 Environment VITE_APP_API_URL:', import.meta.env.VITE_APP_API_URL);
             const apiUrl = `${import.meta.env.VITE_APP_API_URL}/winning-candidates/stats/assembly/${assemblyId}`;
-            console.log('🌐 Full API URL:', apiUrl);
-            
             const response = await fetch(apiUrl);
-            console.log('📡 Response status:', response.status);
-            console.log('📡 Response ok:', response.ok);
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Assembly stats response:', data);
-                console.log('📊 Response data structure:', {
-                    success: data.success,
-                    hasData: !!data.data,
-                    electors: data.data?.electors,
-                    male_electors: data.data?.male_electors,
-                    female_electors: data.data?.female_electors,
-                    last3YearWinners: data.data?.last3YearWinners
-                });
                 
                 if (data.success) {
-                    console.log('✅ Setting hover data for assembly:', assemblyId);
-                    setHoverData(prev => {
-                        const newData = {
-                            ...prev,
-                            [`assembly_${assemblyId}`]: {
-                                ...prev[`assembly_${assemblyId}`],
-                                assemblyData: {
-                                    electors: data.data.electors || 'N/A',
-                                    male_electors: data.data.male_electors || 'N/A',
-                                    female_electors: data.data.female_electors || 'N/A',
-                                    last3YearWinners: data.data.last3YearWinners || 'N/A',
-                                    totalVotes: data.data.totalVotes || 'N/A'
-                                }
+                    setHoverData(prev => ({
+                        ...prev,
+                        [`assembly_${assemblyId}`]: {
+                            ...prev[`assembly_${assemblyId}`],
+                            assemblyData: {
+                                electors: data.data.electors || 'N/A',
+                                male_electors: data.data.male_electors || 'N/A',
+                                female_electors: data.data.female_electors || 'N/A',
+                                last3YearWinners: data.data.last3YearWinners || 'N/A',
+                                totalVotes: data.data.totalVotes || 'N/A'
                             }
-                        };
-                        console.log('📦 New hover data state:', newData[`assembly_${assemblyId}`]);
-                        return newData;
-                    });
-                } else {
-                    console.log('❌ Assembly stats API returned error:', data.message);
+                        }
+                    }));
                 }
-            } else {
-                console.log('❌ Assembly stats API response not ok:', response.status);
-                const errorText = await response.text();
-                console.log('❌ Error response text:', errorText);
             }
         } catch (error) {
-            console.error('💥 Error fetching assembly hover data:', error);
+            console.error('Error fetching assembly hover data:', error);
         }
     };
 
@@ -1208,49 +1345,171 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
-    // Function to fetch gender data for booth hover
+    // Function to fetch booth data directly from booth API
     const fetchBoothGenderData = async (boothId) => {
         try {
-            const encodedId = encodeURIComponent(boothId);
-            const url = `${import.meta.env.VITE_APP_API_URL}/genders/stats/booth/${encodedId}`;
-            console.log('🔍 Fetching booth gender data for:', boothId, 'URL:', url);
-            const response = await fetch(url);
-            
-            console.log('📡 Booth gender response status:', response.status);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📊 Booth gender data received:', data);
-                if (data.success) {
+            // If we have polygon-derived properties cached for this booth, use them immediately
+            try {
+                const cachedPolygon = boothLookupRef.current[String(boothId)];
+                if (cachedPolygon) {
                     const cacheKey = `booth_${boothId}`;
-                    console.log('💾 Storing booth gender data with key:', cacheKey, 'Data:', data.data);
+                    // populate hoverData quickly so popup can show immediate info while we fetch counts
                     setHoverData(prev => ({
                         ...prev,
                         [cacheKey]: {
                             ...prev[cacheKey],
-                            genderData: data.data
+                            boothData: cachedPolygon,
+                            // no genderData yet; will be filled below
                         }
                     }));
+                }
+            } catch (err) {
+                // non-fatal
+            }
+            // First try to get booth data by booth number
+            const encodedId = encodeURIComponent(boothId);
+            const url = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodedId}`;
+            console.log('🔍 DEBUG: Fetching booth data for booth number:', boothId);
+            console.log('🔍 DEBUG: API URL:', url);
+            
+            const response = await fetch(url);
+            
+            console.log('📡 DEBUG: Booth API response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📊 DEBUG: Booth API returned', data.total, 'total booths, showing', data.count, 'results');
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    console.log('🔍 DEBUG: Searching for booth with number:', boothId, 'Type:', typeof boothId);
+                    console.log('🔍 DEBUG: Available booth numbers:', data.data.map(b => ({
+                        booth_number: b.booth_number,
+                        type: typeof b.booth_number,
+                        matches_exact: b.booth_number === boothId,
+                        matches_string: b.booth_number == boothId,
+                        matches_toString: b.booth_number === boothId.toString(),
+                        name: b.name
+                    })));
+                    
+                    // Find the booth that matches our booth number
+                    const matchingBooth = data.data.find(booth => 
+                        booth.booth_number == boothId || 
+                        booth.booth_number === boothId.toString()
+                    );
+                    
+                    console.log('🎯 DEBUG: Matching booth found:', matchingBooth);
+                    
+                    if (matchingBooth) {
+                        const cacheKey = `booth_${boothId}`;
+                        // Transform booth API data to match expected gender data structure
+                        const genderData = {
+                            male: matchingBooth.Male_Count || 0,
+                            female: matchingBooth.Female_Count || 0,
+                            others: matchingBooth.others_Count || 0,
+                            total: matchingBooth.Total || 0
+                        };
+
+                        // Update lookup cache too
+                        try { boothLookupRef.current[String(matchingBooth.booth_number)] = matchingBooth; } catch (e) {}
+
+                        // Update hoverData (this will overwrite any quick polygon-only entry)
+                        setHoverData(prev => ({
+                            ...prev,
+                            [cacheKey]: {
+                                ...prev[cacheKey],
+                                genderData,
+                                boothData: matchingBooth
+                            }
+                        }));
+                    } else {
+                        console.warn('⚠️ DEBUG: No booth found with booth number:', boothId);
+                        console.log('📋 DEBUG: Available booths in result:', data.data.map(b => ({
+                            booth_number: b.booth_number,
+                            name: b.name
+                        })));
+                        
+                        // Try fetching all booths to see what's available
+                        console.log('🔍 DEBUG: Trying to fetch all booths to check database...');
+                        const allBoothsUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10`;
+                        const allBoothsResponse = await fetch(allBoothsUrl);
+                        if (allBoothsResponse.ok) {
+                            const allBoothsData = await allBoothsResponse.json();
+                            console.log('📋 DEBUG: Sample booths from database:', allBoothsData.data?.slice(0, 5).map(b => ({
+                                booth_number: b.booth_number,
+                                name: b.name,
+                                type_of_booth_number: typeof b.booth_number
+                            })));
+                        }
+                    }
+                } else if (data.success && data.total === 0) {
+                    console.warn('⚠️ DEBUG: Search returned 0 results for booth number:', boothId);
+                    // Fetch a larger set (or all) booths and try client-side matching to handle mismatched search behavior
+                    try {
+                        const allUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`;
+                        console.log('🔍 DEBUG: Fetching all booths for client-side matching:', allUrl);
+                        const allResp = await fetch(allUrl);
+                        if (allResp.ok) {
+                            const allData = await allResp.json();
+                            const candidates = Array.isArray(allData.data) ? allData.data : [];
+                            console.log('📋 DEBUG: Retrieved', candidates.length, 'booths for matching');
+
+                            // Normalize boothId for matching
+                            const boothIdStr = String(boothId).trim();
+                            const boothIdNum = Number(boothIdStr);
+
+                            const matchingBooth = candidates.find(b => {
+                                // try numeric match
+                                if (!isNaN(boothIdNum) && (Number(b.booth_number) === boothIdNum)) return true;
+                                // string exact
+                                if (String(b.booth_number) === boothIdStr) return true;
+                                // substring in name or booth_number
+                                if (b.name && String(b.name).toLowerCase().includes(boothIdStr.toLowerCase())) return true;
+                                if (String(b.booth_number).toLowerCase().includes(boothIdStr.toLowerCase())) return true;
+                                return false;
+                            });
+
+                            if (matchingBooth) {
+                                const cacheKey = `booth_${boothId}`;
+                                console.log('🎯 DEBUG: Client-side matched booth:', matchingBooth.booth_number, matchingBooth.name);
+                                const genderData = {
+                                    male: matchingBooth.Male_Count || 0,
+                                    female: matchingBooth.Female_Count || 0,
+                                    others: matchingBooth.others_Count || 0,
+                                    total: matchingBooth.Total || 0
+                                };
+                                setHoverData(prev => ({
+                                    ...prev,
+                                    [cacheKey]: {
+                                        ...prev[cacheKey],
+                                        genderData,
+                                        boothData: matchingBooth
+                                    }
+                                }));
+                            } else {
+                                console.warn('⚠️ DEBUG: No client-side match found for boothId:', boothId);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('💥 DEBUG: Error fetching all booths for client-side matching:', err);
+                    }
                 } else {
-                    console.warn('⚠️ Booth gender API returned success: false', data);
+                    console.warn('⚠️ DEBUG: Booth API returned unexpected structure:', data);
                 }
             } else {
                 let errorText;
                 try {
                     const errorJson = await response.json();
                     errorText = JSON.stringify(errorJson);
+                    console.log('❌ DEBUG: Error response JSON:', errorJson);
                 } catch (e) {
                     errorText = await response.text();
+                    console.log('❌ DEBUG: Error response text:', errorText);
                 }
-                console.error('❌ Failed to fetch booth gender data. Status:', response.status, 'Error:', errorText);
-                
-                // If 404, likely means route not found or no matching booth found
-                if (response.status === 404) {
-                    console.warn('🔍 Booth API returned 404. Check if route exists and backend logs for details.');
-                }
+                console.error('❌ DEBUG: Failed to fetch booth data. Status:', response.status, 'Error:', errorText);
             }
         } catch (error) {
-            console.error('💥 Error fetching booth gender data:', error);
+            console.error('� DEBUG: Error fetching booth data:', error);
+            console.error('💥 DEBUG: Error stack:', error.stack);
         }
     };
 
@@ -1318,12 +1577,12 @@ function HierarchicalMap({ onRegionClick }) {
             const parliamentId = properties.pcNo || properties.parliamentId || properties.id;
             cacheKey = `${level}_${parliamentId}`;
         } else if (level === 'booth') {
-            // For booth, use the same ID extraction logic as in hover detection
-            const boothId = properties.booth_number || properties.boothNumber || 
-                          properties.boothNo || properties.BoothNo || 
+            // For booth, use BoothNo from polygon data to match with booth_number in database
+            const boothId = properties.BoothNo || properties.boothNo || 
+                          properties.booth_number || properties.boothNumber || 
                           properties.booth_no || properties.BoothNumber ||
                           properties.id || properties.BoothId || properties._id;
-            cacheKey = `${level}_${boothId}`;
+            cacheKey = `booth_${boothId}`;
         } else if (level === 'block') {
             // For block, use name-based key like 'block_gandhwani'
             const blockId = properties.name || properties.Name || properties.id;
@@ -1348,7 +1607,15 @@ function HierarchicalMap({ onRegionClick }) {
         // Build structured popup content using hover classes
         let content = `<div class="hover-popup-root">`;
         // Header
-        const titleText = level === 'booth' ? `${properties.name || properties.Name || ''}${properties.boothNo ? ` (Booth No: ${properties.boothNo})` : ''}` : `${properties.Name || properties.name || ''}`;
+        let titleText;
+        if (level === 'booth') {
+            const boothData = data.boothData || {};
+            const boothName = boothData.name || properties.BoothName || properties.name || properties.Name || '';
+            const boothNumber = boothData.booth_number || properties.BoothNo || properties.boothNo || '';
+            titleText = `${boothName}${boothNumber ? ` (Booth No: ${boothNumber})` : ''}`;
+        } else {
+            titleText = `${properties.Name || properties.name || ''}`;
+        }
         content += `<div class="hover-header"><div class="hover-title">${titleText}</div><div class="hover-sub">${level.charAt(0).toUpperCase() + level.slice(1)}</div></div>`;
         content += `<div class="hover-body">`;
 
@@ -1432,17 +1699,47 @@ function HierarchicalMap({ onRegionClick }) {
                 break;
             case 'booth':
                 const boothGenderData = data.genderData || {};
-                if (boothGenderData.male || boothGenderData.female) {
-                    console.log('✅ Booth gender data found:', boothGenderData);
-                }
+                const boothData = data.boothData || {}; // Additional booth data from API
+                
+                console.log('🎨 DEBUG: Generating booth popup content:', {
+                    cacheKey,
+                    hasGenderData: !!boothGenderData.male || !!boothGenderData.female,
+                    genderData: boothGenderData,
+                    hasBoothData: Object.keys(boothData).length > 0,
+                    boothData: boothData,
+                    properties: properties,
+                    fullDataObject: data
+                });
+                
+                // Use booth data from API if available, otherwise fall back to polygon properties
+                const boothName = boothData.name || properties.BoothName || properties.boothName || '';
+                const boothNumber = boothData.booth_number || properties.BoothNo || properties.boothNo || '';
+                const blockName = boothData.block_id?.name || properties.BlockName || properties.blockName || '';
+                const assemblyName = boothData.assembly_id?.name || properties.AC_NAME || '';
+                const fullAddress = boothData.full_address || properties.location || '';
+                
+                console.log('🏗️ DEBUG: Booth popup display values:', {
+                    boothName,
+                    boothNumber,
+                    blockName,
+                    assemblyName,
+                    fullAddress,
+                    maleCount: boothGenderData.male,
+                    femaleCount: boothGenderData.female,
+                    othersCount: boothGenderData.others,
+                    totalCount: boothGenderData.total
+                });
+                
                 content += `
-                    <p><strong>Booth No:</strong> ${properties.boothNo || ''}</p>
-                    <p><strong>Block:</strong> ${properties.blockName || ''}</p>
-                    <p><strong>Location:</strong> ${properties.location || ''}</p>
-                    <div class="hover-stat"><b>Male</b><span>${boothGenderData.male ? Number(boothGenderData.male).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Female</b><span>${boothGenderData.female ? Number(boothGenderData.female).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat"><b>Total</b><span>${boothGenderData.total ? Number(boothGenderData.total).toLocaleString() : 'N/A'}</span></div>
-                    <div class="hover-stat" style="flex-basis:100%"><b>Area & Facilities</b><span>Type: ${properties.boothArea || ''} — Facilities: ${properties.facilities ? properties.facilities.join(', ') : 'N/A'}</span></div>`;
+                    <p><strong>Booth Name:</strong> ${boothName}</p>
+                    <p><strong>Booth No:</strong> ${boothNumber}</p>
+                    <p><strong>Block:</strong> ${blockName}</p>
+                    <p><strong>Assembly:</strong> ${assemblyName}</p>
+                    <p><strong>Address:</strong> ${fullAddress}</p>
+                    <div class="hover-stat"><b>Male Count</b><span>${boothGenderData.male ? Number(boothGenderData.male).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Female Count</b><span>${boothGenderData.female ? Number(boothGenderData.female).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Others Count</b><span>${boothGenderData.others ? Number(boothGenderData.others).toLocaleString() : 'N/A'}</span></div>
+                    <div class="hover-stat"><b>Total Count</b><span>${boothGenderData.total ? Number(boothGenderData.total).toLocaleString() : 'N/A'}</span></div>`;
                 break;
         }
 
