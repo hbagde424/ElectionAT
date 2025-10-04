@@ -74,7 +74,9 @@ function ApexDonutChart({ data, loading }) {
   const backColor = theme.palette.background.paper;
 
   const getPartyData = useCallback(() => {
-    if (!data || !data.length) return { series: [], labels: [], stats: {} };
+    if (!data || !data.length) {
+      return { series: [], labels: [], stats: {} };
+    }
 
     // Data is already aggregated from the API
     const sorted = data.sort((a, b) => b.totalSeats - a.totalSeats);
@@ -146,7 +148,7 @@ export default function TotalIncome() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(2023);
+  const [selectedYear, setSelectedYear] = useState(2022);
 
   const downloadFullChart = useCallback(async () => {
     if (contentRef.current) {
@@ -171,14 +173,23 @@ export default function TotalIncome() {
   const fetchYears = useCallback(async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch election years');
+      }
       const result = await res.json();
-      const availableYears = result.data.map(d => d.year).sort((a, b) => b - a);
-      setYears(availableYears);
-      if (!selectedYear) {
-        setSelectedYear(availableYears.includes(2023) ? 2023 : availableYears[0]);
+      if (result.success && result.data) {
+        const availableYears = result.data.map(d => d.year).sort((a, b) => b - a);
+        setYears(availableYears);
+        if (!selectedYear) {
+          setSelectedYear(availableYears.includes(2022) ? 2022 : availableYears[0]);
+        }
+      } else {
+        console.error('Failed to fetch years:', result.message);
+        setError('Failed to fetch election years');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching election years:', err);
+      setError('Failed to fetch election years');
     }
   }, [selectedYear]);
 
@@ -188,17 +199,17 @@ export default function TotalIncome() {
       setError(null); // Clear any previous errors
       const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-votes/stats?year=${selectedYear}`);
       if (!res.ok) {
-        throw new Error('Failed to fetch assembly data');
+        throw new Error(`Failed to fetch assembly data: ${res.status} ${res.statusText}`);
       }
       const result = await res.json();
       if (result.success) {
-        setData(result.data);
+        setData(result.data || []);
       } else {
         throw new Error(result.message || 'Failed to fetch data');
       }
     } catch (err) {
       console.error('Error fetching assembly data:', err);
-      setError('Failed to fetch');
+      setError(`Failed to fetch: ${err.message}`);
     } finally {
       setLoading(false);
     }

@@ -41,7 +41,10 @@ exports.getAssemblyStats = async (req, res, next) => {
         }
       },
       {
-        $unwind: '$candidate'
+        $unwind: {
+          path: '$candidate',
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $lookup: {
@@ -59,8 +62,8 @@ exports.getAssemblyStats = async (req, res, next) => {
       },
       {
         $group: {
-          _id: '$candidate.party_id',
-          partyName: { $first: '$party.name' },
+          _id: { $ifNull: ['$candidate.party_id', 'unknown'] },
+          partyName: { $first: { $ifNull: ['$party.name', 'Independent'] } },
           totalSeats: { $sum: 1 },
           totalVotes: { $sum: '$total_votes' }
         }
@@ -68,7 +71,7 @@ exports.getAssemblyStats = async (req, res, next) => {
       {
         $project: {
           _id: 1,
-          partyName: { $ifNull: ['$partyName', 'Independent'] },
+          partyName: 1,
           totalSeats: 1,
           totalVotes: 1
         }
