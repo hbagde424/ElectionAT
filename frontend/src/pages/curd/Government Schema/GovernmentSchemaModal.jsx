@@ -247,16 +247,7 @@ export default function GovernmentModal({
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
                     {/* Row 0: Description (ReactQuill) */}
-                    <Grid item xs={12}>
-                        <InputLabel>Description</InputLabel>
-                        <ReactQuill
-                            theme="snow"
-                            value={formData.description}
-                            onChange={handleDescriptionChange}
-                            placeholder="Enter government scheme description"
-                            style={{ background: 'white' }}
-                        />
-                    </Grid>
+                    
                     {/* Row 1: Name and Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -417,6 +408,16 @@ export default function GovernmentModal({
                                 <Typography variant="caption" color="error">Assembly is required</Typography>
                             )}
                         </Stack>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter government scheme description"
+                            style={{ background: 'white' }}
+                        />
                     </Grid>
                 </Grid>
             </DialogContent>

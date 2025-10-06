@@ -221,7 +221,8 @@ router.put('/:id', protect, authorize('superAdmin', 'organizer'), updateEvent);
  *       404:
  *         description: Event not found
  */
-router.delete('/:id', protect, authorize('superAdmin'), deleteEvent);
+// Allow organizers to delete events as well (align with create/update permissions)
+router.delete('/:id', protect, authorize('superAdmin', 'organizer'), deleteEvent);
 
 /**
  * @swagger

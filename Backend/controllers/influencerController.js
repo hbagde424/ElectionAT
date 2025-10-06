@@ -339,7 +339,7 @@ exports.deleteInfluencer = async (req, res, next) => {
       });
     }
 
-    await influencer.deleteOne();
+    await Influencer.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,

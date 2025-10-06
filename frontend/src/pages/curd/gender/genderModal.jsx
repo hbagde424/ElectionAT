@@ -300,16 +300,7 @@ export default function GenderModal({
             <DialogContent>
                 <Grid container spacing={4} mt={1}>
                     {/* Description (ReactQuill) */}
-                    <Grid item xs={12}>
-                        <InputLabel>Description</InputLabel>
-                        <ReactQuill
-                            theme="snow"
-                            value={formData.description}
-                            onChange={handleDescriptionChange}
-                            placeholder="Enter gender entry description"
-                            style={{ background: 'white' }}
-                        />
-                    </Grid>
+                    
                     {/* Row 1: Male and Female Count */}
                     <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
@@ -512,6 +503,16 @@ export default function GenderModal({
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Booth is required</Box>
                             )}
                         </Stack>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <InputLabel>Description</InputLabel>
+                        <ReactQuill
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="Enter gender entry description"
+                            style={{ background: 'white' }}
+                        />
                     </Grid>
                 </Grid>
             </DialogContent>

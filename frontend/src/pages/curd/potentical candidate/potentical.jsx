@@ -90,9 +90,9 @@ export default function PotentialCandidateListPage() {
   const fetchReferenceData = async () => {
     try {
       const [partiesRes, assembliesRes, electionYearsRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parties`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?all=true`)
       ]);
 
       const partiesJson = await partiesRes.json();
@@ -455,15 +455,8 @@ export default function PotentialCandidateListPage() {
       header: 'Actions',
       meta: { className: 'cell-center' },
       cell: ({ row }) => {
-        const isExpanded = row.getIsExpanded();
-        const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Tooltip title="View Details">
-              <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                {expandIcon}
-              </IconButton>
-            </Tooltip>
             <Tooltip title="View Detail Page">
               <IconButton 
                 color="info" 
@@ -516,8 +509,7 @@ export default function PotentialCandidateListPage() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getRowCanExpand: () => true
+    getPaginationRowModel: getPaginationRowModel()
   });
 
   if (loading) return <EmptyReactTable />;
@@ -668,22 +660,13 @@ export default function PotentialCandidateListPage() {
               </TableHead>
               <TableBody>
                 {table.getRowModel().rows.map((row) => (
-                  <Fragment key={row.id}>
-                    <TableRow>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                    {row.getIsExpanded() && (
-                      <TableRow>
-                        <TableCell colSpan={row.getVisibleCells().length}>
-                          <PotentialCandidateView data={row.original} />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>

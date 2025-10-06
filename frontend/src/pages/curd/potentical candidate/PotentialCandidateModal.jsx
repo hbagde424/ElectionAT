@@ -14,7 +14,8 @@ import {
     Chip,
     Avatar,
     Box,
-    Typography
+    Typography,
+    Autocomplete
 } from '@mui/material';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -207,41 +208,70 @@ export default function PotentialCandidateModal({
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
                                     <InputLabel>Party <span style={{ color: 'red' }}>*</span></InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="party_id"
-                                            value={formData.party_id}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <MenuItem value="">Select Party</MenuItem>
-                                            {parties.map((party) => (
-                                                <MenuItem key={party._id} value={party._id}>
-                                                    <Chip label={party.name} color="primary" size="small" />
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
+                                    <Autocomplete
+                                        options={parties}
+                                        getOptionLabel={(option) => option.name || ''}
+                                        value={parties.find(party => party._id === formData.party_id) || 
+                                               (formData.party_id && candidate?.party_id ? 
+                                                { _id: formData.party_id, name: candidate.party_id.name || 'Loading...' } : 
+                                                null)}
+                                        onChange={(event, newValue) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                party_id: newValue ? newValue._id : ''
+                                            }));
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                placeholder="Search and select party"
+                                                required
+                                            />
+                                        )}
+                                        renderOption={(props, option) => (
+                                            <Box component="li" {...props}>
+                                                <Chip label={option.name} color="primary" size="small" />
+                                            </Box>
+                                        )}
+                                        isOptionEqualToValue={(option, value) => option._id === value._id}
+                                        filterOptions={(options, { inputValue }) =>
+                                            options.filter(option =>
+                                                option.name.toLowerCase().includes(inputValue.toLowerCase())
+                                            )
+                                        }
+                                    />
                                 </Stack>
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
                                     <InputLabel>Constituency <span style={{ color: 'red' }}>*</span></InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="constituency_id"
-                                            value={formData.constituency_id}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <MenuItem value="">Select Constituency</MenuItem>
-                                            {assemblies.map((assembly) => (
-                                                <MenuItem key={assembly._id} value={assembly._id}>
-                                                    {assembly.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
+                                    <Autocomplete
+                                        options={assemblies}
+                                        getOptionLabel={(option) => option.name || ''}
+                                        value={assemblies.find(assembly => assembly._id === formData.constituency_id) || 
+                                               (formData.constituency_id && candidate?.constituency_id ? 
+                                                { _id: formData.constituency_id, name: candidate.constituency_id.name || 'Loading...' } : 
+                                                null)}
+                                        onChange={(event, newValue) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                constituency_id: newValue ? newValue._id : ''
+                                            }));
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                placeholder="Search and select constituency"
+                                                required
+                                            />
+                                        )}
+                                        isOptionEqualToValue={(option, value) => option._id === value._id}
+                                        filterOptions={(options, { inputValue }) =>
+                                            options.filter(option =>
+                                                option.name.toLowerCase().includes(inputValue.toLowerCase())
+                                            )
+                                        }
+                                    />
                                 </Stack>
                             </Grid>
                         </Grid>
@@ -250,23 +280,33 @@ export default function PotentialCandidateModal({
                             <Grid item xs={12} md={6}>
                                 <Stack spacing={1}>
                                     <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
-                                    <FormControl fullWidth>
-                                        <Select
-                                            name="election_year_id"
-                                            value={formData.election_year_id}
-                                            onChange={handleChange}
-                                            required
-                                            label="Election Year" // Add label prop
-                                        >
-                                            <MenuItem value="">Select Election Year</MenuItem>
-                                            {electionYears.map((year) => (
-                                                <MenuItem key={year._id} value={year._id}>
-                                                    {year.year}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-
+                                    <Autocomplete
+                                        options={electionYears}
+                                        getOptionLabel={(option) => option.year?.toString() || ''}
+                                        value={electionYears.find(year => year._id === formData.election_year_id) || 
+                                               (formData.election_year_id && candidate?.election_year_id ? 
+                                                { _id: formData.election_year_id, year: candidate.election_year_id.year || 'Loading...' } : 
+                                                null)}
+                                        onChange={(event, newValue) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                election_year_id: newValue ? newValue._id : ''
+                                            }));
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                placeholder="Search and select election year"
+                                                required
+                                            />
+                                        )}
+                                        isOptionEqualToValue={(option, value) => option._id === value._id}
+                                        filterOptions={(options, { inputValue }) =>
+                                            options.filter(option =>
+                                                option.year?.toString().includes(inputValue)
+                                            )
+                                        }
+                                    />
                                 </Stack>
                             </Grid>
                             <Grid item xs={12} md={6}>
