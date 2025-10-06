@@ -558,6 +558,22 @@ export default function ParliamentCandidateListPage() {
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
         {
+            id: 'updated_by',
+            header: 'Updated By',
+            accessorKey: 'updated_by.username',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue() || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            id: 'updated_at',
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
             id: 'actions',
             header: 'Actions',
             cell: ({ row }) => {

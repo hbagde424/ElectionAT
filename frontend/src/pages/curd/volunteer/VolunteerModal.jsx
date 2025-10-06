@@ -23,6 +23,7 @@ import {
   ListItemText,
   ListItemSecondaryAction
 } from '@mui/material';
+import Autocomplete from '@mui/material/Autocomplete';
 import { useEffect, useState } from 'react';
 import { DocumentUpload, Trash, Eye } from 'iconsax-react';
 
@@ -80,7 +81,12 @@ export default function BoothVolunteerModal({
     if (!open) return;
 
     if (volunteer) {
-      setFormData({
+      console.log('Volunteer data received:', volunteer);
+      console.log('Available states:', states);
+      console.log('Available divisions:', divisions);
+      console.log('Available parties:', parties);
+      
+      const formValues = {
         name: volunteer.name || '',
         phone: volunteer.phone || '',
         email: volunteer.email || '',
@@ -96,7 +102,47 @@ export default function BoothVolunteerModal({
         assembly_id: getID(volunteer.assembly_id),
         parliament_id: getID(volunteer.parliament_id),
         block_id: getID(volunteer.block_id)
-      });
+      };
+      
+      console.log('Form values being set:', formValues);
+      setFormData(formValues);
+      
+      // Set up filtered arrays based on volunteer's hierarchy
+      const stateId = getID(volunteer.state_id);
+      const divisionId = getID(volunteer.division_id);
+      const parliamentId = getID(volunteer.parliament_id);
+      const assemblyId = getID(volunteer.assembly_id);
+      const blockId = getID(volunteer.block_id);
+      
+      if (stateId) {
+        const filtered = divisions.filter(div => getID(div.state_id) === stateId);
+        setFilteredDivisions(filtered);
+        console.log('Setting filtered divisions:', filtered);
+      }
+      
+      if (divisionId) {
+        const filtered = parliaments.filter(par => getID(par.division_id) === divisionId);
+        setFilteredParliaments(filtered);
+        console.log('Setting filtered parliaments:', filtered);
+      }
+      
+      if (parliamentId) {
+        const filtered = assemblies.filter(asm => getID(asm.parliament_id) === parliamentId);
+        setFilteredAssemblies(filtered);
+        console.log('Setting filtered assemblies:', filtered);
+      }
+      
+      if (assemblyId) {
+        const filtered = blocks.filter(blk => getID(blk.assembly_id) === assemblyId);
+        setFilteredBlocks(filtered);
+        console.log('Setting filtered blocks:', filtered);
+      }
+      
+      if (blockId) {
+        const filtered = booths.filter(booth => getID(booth.block_id) === blockId);
+        setFilteredBooths(filtered);
+        console.log('Setting filtered booths:', filtered);
+      }
       
       // Set existing documents
       setExistingDocuments(volunteer.documents || []);
@@ -142,14 +188,6 @@ export default function BoothVolunteerModal({
   useEffect(() => {
     if (!formData.state_id) {
       setFilteredDivisions([]);
-      setFormData(prev => ({
-        ...prev,
-        division_id: '',
-        parliament_id: '',
-        assembly_id: '',
-        block_id: '',
-        booth_id: ''
-      }));
       return;
     }
 
@@ -163,13 +201,6 @@ export default function BoothVolunteerModal({
   useEffect(() => {
     if (!formData.division_id) {
       setFilteredParliaments([]);
-      setFormData(prev => ({
-        ...prev,
-        parliament_id: '',
-        assembly_id: '',
-        block_id: '',
-        booth_id: ''
-      }));
       return;
     }
 
@@ -183,12 +214,6 @@ export default function BoothVolunteerModal({
   useEffect(() => {
     if (!formData.parliament_id) {
       setFilteredAssemblies([]);
-      setFormData(prev => ({
-        ...prev,
-        assembly_id: '',
-        block_id: '',
-        booth_id: ''
-      }));
       return;
     }
 
@@ -202,11 +227,6 @@ export default function BoothVolunteerModal({
   useEffect(() => {
     if (!formData.assembly_id) {
       setFilteredBlocks([]);
-      setFormData(prev => ({
-        ...prev,
-        block_id: '',
-        booth_id: ''
-      }));
       return;
     }
 
@@ -220,10 +240,6 @@ export default function BoothVolunteerModal({
   useEffect(() => {
     if (!formData.block_id) {
       setFilteredBooths([]);
-      setFormData(prev => ({
-        ...prev,
-        booth_id: ''
-      }));
       return;
     }
 
@@ -524,22 +540,25 @@ export default function BoothVolunteerModal({
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.party_id}>
-                <InputLabel>Party *</InputLabel>
-                <Select
-                  name="party_id"
-                  value={formData.party_id}
-                  onChange={handleChange}
-                  label="Party *"
-                  required
-                >
-                  <MenuItem value="">Select Party</MenuItem>
-                  {parties.map(party => (
-                    <MenuItem key={party._id} value={party._id}>
-                      {party.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.party_id && <FormHelperText>{errors.party_id}</FormHelperText>}
+                <Autocomplete
+                  options={parties || []}
+                  getOptionLabel={(option) => option.name || ''}
+                  isOptionEqualToValue={(option, value) => option._id === value || option._id === value._id}
+                  value={parties.find(p => p._id === formData.party_id) || (formData.party_id ? { _id: formData.party_id, name: volunteer?.party_id?.name || '' } : null)}
+                  onChange={(e, newValue) => {
+                    const id = newValue ? newValue._id : '';
+                    setFormData(prev => ({ ...prev, party_id: id }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Party *"
+                      required
+                      error={!!errors.party_id}
+                      helperText={errors.party_id}
+                    />
+                  )}
+                />
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -567,6 +586,13 @@ export default function BoothVolunteerModal({
                   required
                 >
                   <MenuItem value="">Select State</MenuItem>
+                  {/* Show temporary state object if in edit mode and state not found in options */}
+                  {volunteer && volunteer.state_id && volunteer.state_id.name && 
+                   !states.find(s => s._id === getID(volunteer.state_id)) && (
+                    <MenuItem key={getID(volunteer.state_id)} value={getID(volunteer.state_id)}>
+                      {volunteer.state_id.name}
+                    </MenuItem>
+                  )}
                   {states.map(state => (
                     <MenuItem key={state._id} value={state._id}>
                       {state.name}
@@ -587,6 +613,13 @@ export default function BoothVolunteerModal({
                   disabled={!formData.state_id}
                 >
                   <MenuItem value="">Select Division</MenuItem>
+                  {/* Show volunteer's division if not in filtered list */}
+                  {volunteer && volunteer.division_id && volunteer.division_id.name && 
+                   formData.division_id && !filteredDivisions.find(d => d._id === formData.division_id) && (
+                    <MenuItem key={formData.division_id} value={formData.division_id}>
+                      {volunteer.division_id.name}
+                    </MenuItem>
+                  )}
                   {filteredDivisions.map(division => (
                     <MenuItem key={division._id} value={division._id}>
                       {division.name}
@@ -609,6 +642,13 @@ export default function BoothVolunteerModal({
                   disabled={!formData.division_id}
                 >
                   <MenuItem value="">Select Parliament</MenuItem>
+                  {/* Show volunteer's parliament if not in filtered list */}
+                  {volunteer && volunteer.parliament_id && volunteer.parliament_id.name && 
+                   formData.parliament_id && !filteredParliaments.find(p => p._id === formData.parliament_id) && (
+                    <MenuItem key={formData.parliament_id} value={formData.parliament_id}>
+                      {volunteer.parliament_id.name}
+                    </MenuItem>
+                  )}
                   {filteredParliaments.map(parliament => (
                     <MenuItem key={parliament._id} value={parliament._id}>
                       {parliament.name}
@@ -628,6 +668,13 @@ export default function BoothVolunteerModal({
                   disabled={!formData.parliament_id}
                 >
                   <MenuItem value="">Select Assembly</MenuItem>
+                  {/* Show volunteer's assembly if not in filtered list */}
+                  {volunteer && volunteer.assembly_id && volunteer.assembly_id.name && 
+                   formData.assembly_id && !filteredAssemblies.find(a => a._id === formData.assembly_id) && (
+                    <MenuItem key={formData.assembly_id} value={formData.assembly_id}>
+                      {volunteer.assembly_id.name}
+                    </MenuItem>
+                  )}
                   {filteredAssemblies.map(assembly => (
                     <MenuItem key={assembly._id} value={assembly._id}>
                       {assembly.name}
@@ -650,6 +697,13 @@ export default function BoothVolunteerModal({
                   disabled={!formData.assembly_id}
                 >
                   <MenuItem value="">Select Block</MenuItem>
+                  {/* Show volunteer's block if not in filtered list */}
+                  {volunteer && volunteer.block_id && volunteer.block_id.name && 
+                   formData.block_id && !filteredBlocks.find(b => b._id === formData.block_id) && (
+                    <MenuItem key={formData.block_id} value={formData.block_id}>
+                      {volunteer.block_id.name}
+                    </MenuItem>
+                  )}
                   {filteredBlocks.map(block => (
                     <MenuItem key={block._id} value={block._id}>
                       {block.name}
@@ -670,6 +724,13 @@ export default function BoothVolunteerModal({
                   disabled={!formData.block_id}
                 >
                   <MenuItem value="">Select Booth</MenuItem>
+                  {/* Show volunteer's booth if not in filtered list */}
+                  {volunteer && volunteer.booth_id && volunteer.booth_id.name && 
+                   formData.booth_id && !filteredBooths.find(b => b._id === formData.booth_id) && (
+                    <MenuItem key={formData.booth_id} value={formData.booth_id}>
+                      {volunteer.booth_id.name} {volunteer.booth_id.booth_number ? `(No: ${volunteer.booth_id.booth_number})` : ''}
+                    </MenuItem>
+                  )}
                   {filteredBooths.map(booth => (
                     <MenuItem key={booth._id} value={booth._id}>
                       {booth.name} (No: {booth.booth_number})

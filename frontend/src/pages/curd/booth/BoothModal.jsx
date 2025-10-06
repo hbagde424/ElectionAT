@@ -285,19 +285,7 @@ export default function BoothModal({
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
                     {/* Row: Description (Rich Text) */}
-                    <Grid item xs={12}>
-                        <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
-                            {/* Use ReactQuill for rich text editing */}
-                            <ReactQuill
-                                theme="snow"
-                                value={formData.description}
-                                onChange={handleDescriptionChange}
-                                placeholder="Enter booth description (optional)"
-                                style={{ minHeight: 100 }}
-                            />
-                        </Stack>
-                    </Grid>
+                    
                     {/* Row 1: Name and Booth Number */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -588,6 +576,20 @@ export default function BoothModal({
                             {submitted && !formData.election_year && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Election year is required</Box>
                             )}
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            {/* Use ReactQuill for rich text editing */}
+                            <ReactQuill
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                placeholder="Enter booth description (optional)"
+                                style={{ minHeight: 100 }}
+                            />
                         </Stack>
                     </Grid>
                 </Grid>

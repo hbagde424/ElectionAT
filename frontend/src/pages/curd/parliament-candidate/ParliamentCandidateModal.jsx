@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl, Box,
-    FormHelperText, Typography, Divider
+    FormHelperText, Typography, Divider, Autocomplete
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
@@ -55,15 +55,15 @@ export default function ParliamentCandidateModal({
             };
 
             try {
-                // Fetch candidates
-                const candidatesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers });
+                // Fetch candidates - get all candidates with higher limit
+                const candidatesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?limit=1000`, { headers });
                 if (candidatesRes.ok) {
                     const candidatesData = await candidatesRes.json();
                     setCandidates(candidatesData.data || []);
                 }
 
-                // Fetch parliaments
-                const parliamentsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers });
+                // Fetch parliaments - get all parliaments with higher limit  
+                const parliamentsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?limit=1000`, { headers });
                 if (parliamentsRes.ok) {
                     const parliamentsData = await parliamentsRes.json();
                     setParliaments(parliamentsData.data || []);
@@ -76,8 +76,8 @@ export default function ParliamentCandidateModal({
                     setElectionYears(yearsData.data || []);
                 }
 
-                // Fetch parties
-                const partiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties`, { headers });
+                // Fetch parties - get all parties with higher limit and search support
+                const partiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=1000`, { headers });
                 if (partiesRes.ok) {
                     const partiesData = await partiesRes.json();
                     setParties(partiesData.data || []);
@@ -285,6 +285,7 @@ export default function ParliamentCandidateModal({
             if (res.ok) {
                 modalToggler(false);
                 refresh();
+                // No success popup - direct close
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit Parliament Candidate:', errorData);
@@ -318,32 +319,45 @@ export default function ParliamentCandidateModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Candidate <span style={{ color: 'red' }}>*</span></InputLabel>
-                            <FormControl fullWidth error={submitted && !formData.candidate_id}>
-                                <Select
-                                    name="candidate_id"
-                                    value={formData.candidate_id}
-                                    renderValue={(selected) => {
-                                        if (!selected) return <em>Select Candidate</em>;
-                                        // prefer candidate_name from formData when available
-                                        if (formData.candidate_name) return formData.candidate_name;
-                                        const opt = candidates.find((c) => c._id === selected || c.id === selected);
-                                        return opt ? opt.name : selected;
-                                    }}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="">
-                                        <em>Select Candidate</em>
-                                    </MenuItem>
-                                    {candidates.map((item) => (
-                                        <MenuItem key={item._id} value={item._id}>
-                                            {item.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {submitted && !formData.candidate_id && (
-                                    <FormHelperText>Candidate is required</FormHelperText>
+                            <Autocomplete
+                                options={candidates}
+                                getOptionLabel={(option) => option.name || ''}
+                                value={(() => {
+                                    // Find candidate in loaded options
+                                    const foundCandidate = candidates.find(c => c._id === formData.candidate_id);
+                                    if (foundCandidate) return foundCandidate;
+                                    
+                                    // If not found but we have candidate_id and candidate_name, create temp object
+                                    if (formData.candidate_id && formData.candidate_name) {
+                                        return { _id: formData.candidate_id, name: formData.candidate_name };
+                                    }
+                                    
+                                    return null;
+                                })()}
+                                onChange={(event, newValue) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        candidate_id: newValue?._id || '',
+                                        candidate_name: newValue?.name || ''
+                                    }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        placeholder="Search and select candidate..."
+                                        error={submitted && !formData.candidate_id}
+                                        helperText={submitted && !formData.candidate_id ? 'Candidate is required' : ''}
+                                    />
                                 )}
-                            </FormControl>
+                                filterOptions={(options, { inputValue }) => {
+                                    return options.filter(option =>
+                                        option.name.toLowerCase().includes(inputValue.toLowerCase())
+                                    );
+                                }}
+                                noOptionsText="No candidates found"
+                                clearOnEscape
+                                fullWidth
+                            />
                         </Stack>
                     </Grid>
 
@@ -351,31 +365,45 @@ export default function ParliamentCandidateModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Parliament Constituency <span style={{ color: 'red' }}>*</span></InputLabel>
-                            <FormControl fullWidth error={submitted && !formData.parliament_id}>
-                                <Select
-                                    name="parliament_id"
-                                    value={formData.parliament_id}
-                                    renderValue={(selected) => {
-                                        if (!selected) return <em>Select Parliament</em>;
-                                        if (formData.parliament_name) return formData.parliament_name;
-                                        const opt = parliaments.find((p) => p._id === selected || p.id === selected);
-                                        return opt ? opt.name : selected;
-                                    }}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="">
-                                        <em>Select Parliament</em>
-                                    </MenuItem>
-                                    {parliaments.map((item) => (
-                                        <MenuItem key={item._id} value={item._id}>
-                                            {item.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {submitted && !formData.parliament_id && (
-                                    <FormHelperText>Parliament is required</FormHelperText>
+                            <Autocomplete
+                                options={parliaments}
+                                getOptionLabel={(option) => option.name || ''}
+                                value={(() => {
+                                    // Find parliament in loaded options
+                                    const foundParliament = parliaments.find(p => p._id === formData.parliament_id);
+                                    if (foundParliament) return foundParliament;
+                                    
+                                    // If not found but we have parliament_id and parliament_name, create temp object
+                                    if (formData.parliament_id && formData.parliament_name) {
+                                        return { _id: formData.parliament_id, name: formData.parliament_name };
+                                    }
+                                    
+                                    return null;
+                                })()}
+                                onChange={(event, newValue) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        parliament_id: newValue?._id || '',
+                                        parliament_name: newValue?.name || ''
+                                    }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        placeholder="Search and select parliament..."
+                                        error={submitted && !formData.parliament_id}
+                                        helperText={submitted && !formData.parliament_id ? 'Parliament is required' : ''}
+                                    />
                                 )}
-                            </FormControl>
+                                filterOptions={(options, { inputValue }) => {
+                                    return options.filter(option =>
+                                        option.name.toLowerCase().includes(inputValue.toLowerCase())
+                                    );
+                                }}
+                                noOptionsText="No parliaments found"
+                                clearOnEscape
+                                fullWidth
+                            />
                         </Stack>
                     </Grid>
 
@@ -415,31 +443,45 @@ export default function ParliamentCandidateModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Party <span style={{ color: 'red' }}>*</span></InputLabel>
-                            <FormControl fullWidth error={submitted && !formData.party_id}>
-                                <Select
-                                    name="party_id"
-                                    value={formData.party_id}
-                                    renderValue={(selected) => {
-                                        if (!selected) return <em>Select Party</em>;
-                                        if (formData.party_name) return formData.party_name;
-                                        const opt = parties.find((p) => p._id === selected || p.id === selected);
-                                        return opt ? opt.name : selected;
-                                    }}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="">
-                                        <em>Select Party</em>
-                                    </MenuItem>
-                                    {parties.map((item) => (
-                                        <MenuItem key={item._id} value={item._id}>
-                                            {item.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {submitted && !formData.party_id && (
-                                    <FormHelperText>Party is required</FormHelperText>
+                            <Autocomplete
+                                options={parties}
+                                getOptionLabel={(option) => option.name || ''}
+                                value={(() => {
+                                    // Find party in loaded options
+                                    const foundParty = parties.find(p => p._id === formData.party_id);
+                                    if (foundParty) return foundParty;
+                                    
+                                    // If not found but we have party_id and party_name, create temp object
+                                    if (formData.party_id && formData.party_name) {
+                                        return { _id: formData.party_id, name: formData.party_name };
+                                    }
+                                    
+                                    return null;
+                                })()}
+                                onChange={(event, newValue) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        party_id: newValue?._id || '',
+                                        party_name: newValue?.name || ''
+                                    }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        placeholder="Search and select party..."
+                                        error={submitted && !formData.party_id}
+                                        helperText={submitted && !formData.party_id ? 'Party is required' : ''}
+                                    />
                                 )}
-                            </FormControl>
+                                filterOptions={(options, { inputValue }) => {
+                                    return options.filter(option =>
+                                        option.name.toLowerCase().includes(inputValue.toLowerCase())
+                                    );
+                                }}
+                                noOptionsText="No parties found"
+                                clearOnEscape
+                                fullWidth
+                            />
                         </Stack>
                     </Grid>
 
