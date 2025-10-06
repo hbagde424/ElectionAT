@@ -49,8 +49,8 @@ export default function PotentialCandidateDetailPage() {
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleString(); };
     const formatDate = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleDateString(); };
 
-    const handleBack = () => navigate('/Potentical-Candidate');
-    const handleEdit = () => navigate(`/Potentical-Candidate/edit/${id}`);
+    const handleBack = () => navigate('/Pontentcal-Candidate');
+    const handleEdit = () => navigate(`/Pontentcal-Candidate/edit/${id}`);
 
     if (loading) return (
         <Container maxWidth="lg" sx={{ mt: 2 }}>
@@ -83,7 +83,7 @@ export default function PotentialCandidateDetailPage() {
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
-                    <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/Potentical-Candidate'); }}>Potential Candidates</Link>
+                    <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/Pontentcal-Candidate'); }}>Potential Candidates</Link>
                     <Typography color="text.primary">{candidate.name || candidate._id}</Typography>
                 </Breadcrumbs>
             </Box>

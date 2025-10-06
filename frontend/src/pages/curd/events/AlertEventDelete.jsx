@@ -11,10 +11,25 @@ export default function AlertEventDelete({ id, open, handleClose, refresh }) {
                 Authorization: `Bearer ${token}`
             }
         });
+        try {
+            // Try to parse JSON response
+            const json = await res.json().catch(() => null);
+            if (res.ok) {
+                // If server returned success flag, respect it, otherwise still proceed on 2xx
+                if (!json || json.success === undefined || json.success === true) {
+                    handleClose();
+                    refresh();
+                    return;
+                }
+            }
 
-        if (res.ok) {
-            handleClose();
-            refresh();
+            // If we reached here, deletion failed — show best available message
+            const msg = (json && (json.message || json.error)) || res.statusText || 'Failed to delete event';
+            console.error('Failed to delete event:', res.status, msg);
+            alert(msg);
+        } catch (err) {
+            console.error('Error deleting event:', err);
+            alert('An error occurred while deleting the event');
         }
     };
 

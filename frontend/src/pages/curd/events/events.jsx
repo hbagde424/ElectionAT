@@ -324,6 +324,14 @@ export default function EventListPage() {
         });
     };
 
+    // Safe date-time formatter — avoids 'Invalid Date'
+    const formatDateTime = (value) => {
+        if (!value) return 'N/A';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return 'N/A';
+        return d.toLocaleString();
+    };
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'done': return 'success';
@@ -404,7 +412,7 @@ export default function EventListPage() {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
                 }}>
-                    {getValue() || 'N/A'}
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '') : 'N/A'}
                 </Typography>
             ),
             size: 300
@@ -546,12 +554,28 @@ export default function EventListPage() {
             size: 150
         },
         {
+            header: 'Created At',
+            accessorKey: 'created_at',
+            cell: ({ getValue }) => (
+                <Typography>{formatDateTime(getValue())}</Typography>
+            ),
+            size: 150
+        },
+        {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
                 <Typography>
                     {getValue()?.username || 'N/A'}
                 </Typography>
+            ),
+            size: 150
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => (
+                <Typography>{formatDateTime(getValue())}</Typography>
             ),
             size: 150
         },

@@ -150,6 +150,15 @@ const CandidateListPage = () => {
         return number.toLocaleString();
     };
 
+    const formatDate = (value) => {
+        if (!value) return 'N/A';
+        try {
+            return new Date(value).toLocaleString();
+        } catch (e) {
+            return value;
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: '#',
@@ -297,6 +306,34 @@ const CandidateListPage = () => {
                     color={getValue() ? 'success' : 'error'}
                     size="small"
                 />
+            )
+        },
+        {
+            header: 'Created By',
+            accessorKey: 'created_by.username',
+            cell: ({ getValue }) => (
+                <Typography>{getValue() || 'N/A'}</Typography>
+            )
+        },
+        {
+            header: 'Created At',
+            accessorKey: 'created_at',
+            cell: ({ getValue }) => (
+                <Typography>{formatDate(getValue())}</Typography>
+            )
+        },
+        {
+            header: 'Updated By',
+            accessorKey: 'updated_by.username',
+            cell: ({ getValue }) => (
+                <Typography>{getValue() || 'N/A'}</Typography>
+            )
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => (
+                <Typography>{formatDate(getValue())}</Typography>
             )
         },
         {

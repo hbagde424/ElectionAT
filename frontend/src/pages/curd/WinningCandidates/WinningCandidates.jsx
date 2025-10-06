@@ -834,13 +834,8 @@ export default function WinningCandidateListPage() {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} /> : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
                         <IconButton
                             color="info"
                             onClick={(e) => {
@@ -873,8 +868,7 @@ export default function WinningCandidateListPage() {
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getRowCanExpand: () => true
+        getPaginationRowModel: getPaginationRowModel()
     });
 
     const fetchAllCandidatesForCsv = async () => {
@@ -1169,22 +1163,13 @@ export default function WinningCandidateListPage() {
                             </TableHead>
                             <TableBody>
                                 {table.getRowModel().rows.map((row) => (
-                                    <Fragment key={row.id}>
-                                        <TableRow>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                        {row.getIsExpanded() && (
-                                            <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <WinningCandidateView data={row.original} />
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </Fragment>
+                                    <TableRow key={row.id}>
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
                                 ))}
                             </TableBody>
                         </Table>

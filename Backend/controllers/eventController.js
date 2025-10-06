@@ -312,7 +312,8 @@ exports.deleteEvent = async (req, res, next) => {
       });
     }
 
-    await event.remove();
+  // Use model-level deletion to avoid issues when `event` is not a full mongoose document
+  await Event.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
