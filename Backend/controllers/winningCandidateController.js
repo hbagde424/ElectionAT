@@ -22,6 +22,7 @@ exports.getWinningCandidates = async (req, res, next) => {
     if (req.query.all === 'true') {
       try {
         let matchStage = {};
+        let doAggregate = false;
         if (req.query.year) {
           const yearValue = parseInt(req.query.year);
           const yearDoc = await Year.findOne({ year: yearValue });
@@ -29,41 +30,58 @@ exports.getWinningCandidates = async (req, res, next) => {
             return res.status(404).json({ success: false, message: `No data found for year ${req.query.year}` });
           }
           matchStage = { year_id: yearDoc._id };
+          // If a specific year is requested along with all=true, return aggregated summary for graphs
+          doAggregate = true;
         }
 
-        const aggregated = await WinningCandidate.aggregate([
-          { $match: matchStage },
-          {
-            $group: {
-              _id: '$party_id',
-              totalSeats: { $sum: 1 },
-              totalVotes: { $sum: '$total_votes' }
-            }
-          },
-          {
-            $lookup: {
-              from: 'parties',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'party'
-            }
-          },
-          { $unwind: '$party' },
-          {
-            $project: {
-              _id: 0,
-              partyName: '$party.name',
-              totalSeats: 1,
-              totalVotes: 1
-            }
-          },
-          { $sort: { totalSeats: -1 } }
-        ]);
+        if (doAggregate) {
+          const aggregated = await WinningCandidate.aggregate([
+            { $match: matchStage },
+            {
+              $group: {
+                _id: '$party_id',
+                totalSeats: { $sum: 1 },
+                totalVotes: { $sum: '$total_votes' }
+              }
+            },
+            {
+              $lookup: {
+                from: 'parties',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'party'
+              }
+            },
+            { $unwind: '$party' },
+            {
+              $project: {
+                _id: 0,
+                partyName: '$party.name',
+                totalSeats: 1,
+                totalVotes: 1
+              }
+            },
+            { $sort: { totalSeats: -1 } }
+          ]);
 
-        return res.status(200).json({ success: true, data: aggregated });
-      } catch (aggErr) {
-        console.error('Aggregation error:', aggErr);
-        return res.status(500).json({ success: false, message: 'Failed to aggregate winning candidates', error: aggErr.message });
+          return res.status(200).json({ success: true, data: aggregated });
+        }
+
+        // Default for all=true (no year): return fully populated list used by tables/CSV
+        const list = await WinningCandidate.find(matchStage)
+          .populate('candidate_id')
+          .populate('party_id')
+          .populate('year_id')
+          .populate('assembly_id')
+          .populate('state_id')
+          .populate('division_id')
+          .populate('parliament_id')
+          .lean();
+
+        return res.status(200).json({ success: true, data: list, total: list.length });
+      } catch (err) {
+        console.error('Error processing all=true request:', err);
+        return res.status(500).json({ success: false, message: 'Failed to fetch winning candidates', error: err.message });
       }
     }
 
