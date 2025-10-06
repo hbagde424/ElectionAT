@@ -18,6 +18,55 @@ exports.getWinningCandidates = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
 
+    // If client requests aggregated data for all (and optional year), return party-wise summary
+    if (req.query.all === 'true') {
+      try {
+        let matchStage = {};
+        if (req.query.year) {
+          const yearValue = parseInt(req.query.year);
+          const yearDoc = await Year.findOne({ year: yearValue });
+          if (!yearDoc) {
+            return res.status(404).json({ success: false, message: `No data found for year ${req.query.year}` });
+          }
+          matchStage = { year_id: yearDoc._id };
+        }
+
+        const aggregated = await WinningCandidate.aggregate([
+          { $match: matchStage },
+          {
+            $group: {
+              _id: '$party_id',
+              totalSeats: { $sum: 1 },
+              totalVotes: { $sum: '$total_votes' }
+            }
+          },
+          {
+            $lookup: {
+              from: 'parties',
+              localField: '_id',
+              foreignField: '_id',
+              as: 'party'
+            }
+          },
+          { $unwind: '$party' },
+          {
+            $project: {
+              _id: 0,
+              partyName: '$party.name',
+              totalSeats: 1,
+              totalVotes: 1
+            }
+          },
+          { $sort: { totalSeats: -1 } }
+        ]);
+
+        return res.status(200).json({ success: true, data: aggregated });
+      } catch (aggErr) {
+        console.error('Aggregation error:', aggErr);
+        return res.status(500).json({ success: false, message: 'Failed to aggregate winning candidates', error: aggErr.message });
+      }
+    }
+
     // First check if we have any data in the collection
     const totalDocuments = await WinningCandidate.countDocuments();
     console.log('Total documents in collection:', totalDocuments);
@@ -1036,7 +1085,7 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
 
     // Use aggregation pipeline to match assembly by AC_NO
     let aggregationPipeline = [];
-    
+
     switch (type) {
       case 'assembly':
         // Match winning candidates where assembly.AC_NO equals the provided id
@@ -1098,7 +1147,7 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
 
     // Execute aggregation to get all matching records
     const allRecords = await WinningCandidate.aggregate(aggregationPipeline);
-    
+
     console.log('Total records found:', allRecords.length);
 
     if (allRecords.length === 0) {
@@ -1110,7 +1159,7 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
 
     // Get latest winner (first record after sorting)
     const latestWinner = allRecords[0];
-    
+
     // Get last 3 years
     const last3Years = allRecords.slice(0, 3);
 
