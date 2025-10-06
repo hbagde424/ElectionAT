@@ -276,15 +276,15 @@ export default function BoothSurveyListPage() {
       accessorKey: '_id',
       cell: ({ row }) => <Typography variant="body2" color="text.secondary">{row.index + 1}</Typography>
     },
-    {
-      header: 'Survey ID',
-      accessorKey: '_id',
-      cell: ({ getValue }) => (
-        <Typography variant="body2" fontWeight="medium" color="primary.main">
-          {getValue()?.slice(-8)}
-        </Typography>
-      )
-    },
+    // {
+    //   header: 'Survey ID',
+    //   accessorKey: '_id',
+    //   cell: ({ getValue }) => (
+    //     <Typography variant="body2" fontWeight="medium" color="primary.main">
+    //       {getValue()?.slice(-8)}
+    //     </Typography>
+    //   )
+    // },
     {
       header: 'Booth',
       accessorKey: 'booth_id',
@@ -317,7 +317,94 @@ export default function BoothSurveyListPage() {
         </Stack>
       )
     },
-    // Status removed
+    {
+      header: 'Gender (Q3)',
+      accessorKey: 'q3',
+      cell: ({ getValue }) => {
+        const genderMap = {
+          'male': 'पुरुष',
+          'female': 'महिला', 
+          'other': 'अन्य'
+        };
+        const value = getValue();
+        return (
+          <Typography variant="body2">
+            {genderMap[value] || value || 'N/A'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Age Group (Q4)',
+      accessorKey: 'q4',
+      cell: ({ getValue }) => (
+        <Typography variant="body2">{getValue() || 'N/A'}</Typography>
+      )
+    },
+    {
+      header: 'Area Type (Q5)',
+      accessorKey: 'q5',
+      cell: ({ getValue }) => {
+        const areaMap = {
+          'rural': 'ग्रामीण',
+          'kuragi': 'कृषि',
+          'urban': 'शहरी'
+        };
+        const value = getValue();
+        return (
+          <Typography variant="body2">
+            {areaMap[value] || value || 'N/A'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Education (Q6)',
+      accessorKey: 'q6',
+      cell: ({ getValue }) => {
+        const educationMap = {
+          'illiterate': 'अशिक्षित',
+          'literate': 'अशिक्षित नहीं',
+          'primary': 'प्राइमरी',
+          '10pass': 'दसवीं पास',
+          '12pass': 'बारहवीं पास',
+          'graduate': 'स्नातक/स्नातकोत्तर'
+        };
+        const value = getValue();
+        return (
+          <Typography variant="body2" sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {educationMap[value] || value || 'N/A'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Party Affiliation (Q9)',
+      accessorKey: 'q9',
+      cell: ({ getValue }) => {
+        const partyMap = {
+          'no_party': 'नहीं',
+          'bjp': 'भाजपा',
+          'rjd': 'राजद',
+          'jd_u': 'जदयू',
+          'congress': 'कांग्रेस',
+          'ljp': 'लोजपा',
+          'janasuraj': 'जन सुराज',
+          'cpi': 'CPI',
+          'cpi_m': 'CPI(M)',
+          'other': 'अन्य'
+        };
+        const value = getValue();
+        return (
+          <Chip 
+            label={partyMap[value] || value || 'N/A'} 
+            size="small" 
+            variant="outlined"
+            color={value === 'no_party' ? 'default' : 'primary'}
+          />
+        );
+      }
+    },
     {
       header: 'Remark',
       accessorKey: 'remark',
@@ -382,6 +469,209 @@ export default function BoothSurveyListPage() {
         getValue() ?
           <Chip label={getValue().name} color="error" size="small" variant="outlined" /> :
           <Typography variant="caption" color="text.secondary">No block</Typography>
+      )
+    },
+    {
+      header: 'Occupation (Q7)',
+      accessorKey: 'q7',
+      cell: ({ getValue }) => {
+        const occupationMap = {
+          'govt_job': 'सरकारी नौकरी',
+          'private_job': 'प्राइवेट नौकरी',
+          'farm_own': 'अपनी खेती',
+          'farm_rent': 'किराए की खेती',
+          'contractor': 'ठेकेदारी',
+          'shopkeeper': 'दुकानदार',
+          'teacher': 'शिक्षक',
+          'student': 'छात्र',
+          'housewife': 'गृहिणी',
+          'unemployed': 'बेरोज़गार',
+          'other': 'अन्य'
+        };
+        const value = getValue();
+        return (
+          <Typography variant="body2" sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {occupationMap[value] || value || 'N/A'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Economic Status (Q8)',
+      accessorKey: 'q8',
+      cell: ({ getValue }) => {
+        const statusMap = {
+          'affluent': 'संपन्न',
+          'middle': 'मध्यम वर्ग',
+          'poor': 'गरीब',
+          'bpl': 'बीपीएल'
+        };
+        const value = getValue();
+        const getStatusColor = (status) => {
+          switch(status) {
+            case 'affluent': return 'success';
+            case 'middle': return 'info';
+            case 'poor': return 'warning';
+            case 'bpl': return 'error';
+            default: return 'default';
+          }
+        };
+        return (
+          <Chip 
+            label={statusMap[value] || value || 'N/A'} 
+            size="small" 
+            variant="outlined"
+            color={getStatusColor(value)}
+          />
+        );
+      }
+    },
+    {
+      header: 'Voting Likelihood (Q10)',
+      accessorKey: 'q10',
+      cell: ({ getValue }) => {
+        const value = getValue();
+        const yesNoMap = { 'yes': 'हां', 'no': 'नहीं' };
+        return (
+          <Chip 
+            label={yesNoMap[value] || value || 'N/A'} 
+            size="small" 
+            variant="outlined"
+            color={value === 'yes' ? 'success' : value === 'no' ? 'error' : 'default'}
+          />
+        );
+      }
+    },
+    {
+      header: 'Priority Issue (Q16)',
+      accessorKey: 'q16',
+      cell: ({ getValue }) => {
+        const priorityMap = {
+          'unemployment': 'बेरोजगारी',
+          'inflation': 'महंगाई',
+          'migration': 'पलायन',
+          'agriculture': 'कृषि',
+          'education': 'शिक्षा',
+          'health': 'स्वास्थ्य',
+          'law': 'कानून व्यवस्था',
+          'social': 'सामाजिक समान',
+          'dontknow': 'नहीं जानते'
+        };
+        const value = getValue();
+        return (
+          <Typography variant="body2" sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {priorityMap[value] || value || 'N/A'}
+          </Typography>
+        );
+      }
+    },
+    {
+      header: 'Gov Satisfaction (Q11)',
+      accessorKey: 'q11',
+      cell: ({ getValue }) => {
+        const satisfactionMap = {
+          'satisfied': 'संतोष',
+          'some': 'थोड़ा संतोष',
+          'dissatisfied': 'असंतोष',
+          'dontknow': 'कह नहीं सकते'
+        };
+        const value = getValue();
+        const getColor = (val) => {
+          switch(val) {
+            case 'satisfied': return 'success';
+            case 'some': return 'warning';
+            case 'dissatisfied': return 'error';
+            default: return 'default';
+          }
+        };
+        return (
+          <Chip 
+            label={satisfactionMap[value] || value || 'N/A'} 
+            size="small" 
+            variant="outlined"
+            color={getColor(value)}
+          />
+        );
+      }
+    },
+    {
+      header: 'Free Text (Q33)',
+      accessorKey: 'q33',
+      cell: ({ getValue }) => (
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            maxWidth: 150, 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {getValue() || 'N/A'}
+        </Typography>
+      )
+    },
+    {
+      header: 'Free Text (Q34)',
+      accessorKey: 'q34',
+      cell: ({ getValue }) => (
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            maxWidth: 150, 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {getValue() || 'N/A'}
+        </Typography>
+      )
+    },
+    {
+      header: 'Current MLA Satisfied (Q19)',
+      accessorKey: 'q19',
+      cell: ({ getValue }) => {
+        const value = getValue();
+        const satisfactionMap = {
+          'satisfied': 'संतोष',
+          'some': 'थोड़ा संतोष',
+          'dissatisfied': 'असंतोष',
+          'dontknow': 'कह नहीं सकते'
+        };
+        const getColor = (val) => {
+          switch(val) {
+            case 'satisfied': return 'success';
+            case 'some': return 'warning';
+            case 'dissatisfied': return 'error';
+            default: return 'default';
+          }
+        };
+        return (
+          <Chip 
+            label={satisfactionMap[value] || value || 'N/A'} 
+            size="small" 
+            variant="outlined"
+            color={getColor(value)}
+          />
+        );
+      }
+    },
+    {
+      header: 'Next Election Vote (Q36)',
+      accessorKey: 'q36',
+      cell: ({ getValue }) => (
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            maxWidth: 120, 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {getValue() || 'N/A'}
+        </Typography>
       )
     },
     {

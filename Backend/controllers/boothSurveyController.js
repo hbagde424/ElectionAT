@@ -272,7 +272,6 @@ exports.updateBoothSurvey = async (req, res, next) => {
       runValidators: true
     })
       .populate('booth_id', 'name booth_number')
-      .populate('survey_done_by', 'name email')
       .populate('state_id', 'name')
       .populate('division_id', 'name')
       .populate('parliament_id', 'name')
