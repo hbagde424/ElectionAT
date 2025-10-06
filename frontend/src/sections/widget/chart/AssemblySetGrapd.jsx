@@ -197,7 +197,7 @@ export default function TotalIncome() {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-votes/stats?year=${selectedYear}`);
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidate?year=${selectedYear}`);
       if (!res.ok) {
         throw new Error(`Failed to fetch assembly data: ${res.status} ${res.statusText}`);
       }
