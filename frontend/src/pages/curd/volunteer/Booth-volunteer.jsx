@@ -92,7 +92,8 @@ export default function BoothVolunteerListPage() {
         fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
         fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
         fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parties`)
+  // Request all parties so dropdowns can show the complete list
+  fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`)
       ]);
 
       const token = localStorage.getItem('serviceToken');
