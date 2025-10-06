@@ -197,7 +197,7 @@ export default function TotalIncome() {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
-      const res = await fetch(`http://localhost:5000/api/winning-candidates?all=true`);
+      const res = await fetch(`http://localhost:5000/api/winning-candidates?all=true&year=${selectedYear}`);
       if (!res.ok) {
         throw new Error(`Failed to fetch assembly data: ${res.status} ${res.statusText}`);
       }
