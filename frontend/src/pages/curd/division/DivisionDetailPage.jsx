@@ -22,7 +22,6 @@ import {
     ArrowBack,
     LocationOn,
     Description,
-    Edit,
     CalendarToday,
     Public
 } from '@mui/icons-material';
@@ -87,9 +86,7 @@ const DivisionDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/division/edit/${id}`);
-    };
+    // Edit button removed per request
 
     const handleBack = () => {
         navigate('/division');
@@ -148,14 +145,7 @@ const DivisionDetailPage = () => {
                             {formatDateTime(division.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Division
-                    </Button>
+                    {/* Edit button removed */}
                 </Stack>
 
                 {/* Breadcrumbs */}

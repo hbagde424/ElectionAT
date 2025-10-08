@@ -33,7 +33,17 @@ export default function FAQDetailPage() {
         if (!faq) return null;
         const exclude = new Set(['created_by', 'updated_by', 'created_at', 'updated_at']);
         const out = {};
-        Object.keys(faq).forEach((k) => { if (!exclude.has(k)) out[k] = faq[k]; });
+        Object.keys(faq).forEach((k) => {
+            if (!exclude.has(k)) {
+                // Strip HTML tags for answer/description so raw tags like <p> don't show in the UI
+                if (k === 'answer' || k === 'description') {
+                    const val = faq[k] || '';
+                    out[k] = typeof val === 'string' ? val.replace(/<[^>]+>/g, '') : val;
+                } else {
+                    out[k] = faq[k];
+                }
+            }
+        });
         return out;
     }, [faq]);
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleString(); } catch (e) { return 'N/A'; } };

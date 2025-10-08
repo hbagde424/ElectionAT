@@ -267,7 +267,7 @@ export default function WinningCandidateListPage() {
                 yearsRes
             ] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
             ]);
@@ -806,29 +806,39 @@ export default function WinningCandidateListPage() {
             header: 'Created By',
             accessorKey: 'created_by',
             cell: ({ getValue }) => (
-                <Typography>
-                    {getValue()?.username || 'N/A'}
-                </Typography>
+                (() => {
+                    const val = getValue();
+                    const name = val?.username || val?.name || (typeof val === 'string' ? val : null);
+                    return <Typography>{name || 'N/A'}</Typography>;
+                })()
             )
         },
         {
             header: 'Updated By',
             accessorKey: 'updated_by',
             cell: ({ getValue }) => (
-                <Typography>
-                    {getValue()?.username || 'N/A'}
-                </Typography>
+                (() => {
+                    const val = getValue();
+                    const name = val?.username || val?.name || (typeof val === 'string' ? val : null);
+                    return <Typography>{name || 'N/A'}</Typography>;
+                })()
             )
         },
         {
             header: 'Created At',
             accessorKey: 'created_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+            cell: ({ getValue }) => {
+                const v = getValue();
+                return <Typography>{formatDate(v)}</Typography>;
+            }
         },
         {
             header: 'Updated At',
             accessorKey: 'updated_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+            cell: ({ getValue }) => {
+                const v = getValue();
+                return <Typography>{formatDate(v)}</Typography>;
+            }
         },
         {
             header: 'Actions',

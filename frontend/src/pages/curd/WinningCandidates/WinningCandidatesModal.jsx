@@ -335,21 +335,32 @@ export default function WinningCandidateModal({
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Party <span style={{ color: 'red' }}>*</span></InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.party_id}>
-                                <Select
-                                    name="party_id"
-                                    value={formData.party_id}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <MenuItem value="">Select Party</MenuItem>
-                                    {parties?.map((party) => (
-                                        <MenuItem key={party._id} value={party._id}>
-                                            {party.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            <Autocomplete
+                                options={parties || []}
+                                getOptionLabel={(option) => option.name || ''}
+                                value={parties.find(p => p._id === formData.party_id) || 
+                                    (formData.party_id && candidateEntry?.party_id ? { _id: formData.party_id, name: candidateEntry.party_id.name || 'Loading...' } : null)}
+                                onChange={(event, newValue) => {
+                                    setFormData(prev => ({ ...prev, party_id: newValue ? newValue._id : '' }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        placeholder="Search and select party"
+                                        error={submitted && !formData.party_id}
+                                        required
+                                    />
+                                )}
+                                isOptionEqualToValue={(option, value) => option._id === value._id}
+                                filterOptions={(options, { inputValue }) =>
+                                    options.filter(option => option.name.toLowerCase().includes(inputValue.toLowerCase()))
+                                }
+                                renderOption={(props, option) => (
+                                    <Box component="li" {...props}>
+                                        {option.name}
+                                    </Box>
+                                )}
+                            />
                             {submitted && !formData.party_id && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Party is required</Box>
                             )}

@@ -548,13 +548,7 @@ export default function WorkStatusListPage() {
                 </Typography>
             )
         },
-        {
-            header: 'Created By',
-            accessorKey: 'created_by',
-            cell: ({ getValue }) => (
-                <Typography>{getValue()?.username || 'N/A'}</Typography>
-            )
-        },
+        
         {
             header: 'Panchayat',
             accessorKey: 'panchayat',
@@ -578,9 +572,20 @@ export default function WorkStatusListPage() {
         {
             header: 'Updated By',
             accessorKey: 'updated_by',
-            cell: ({ getValue }) => (
-                <Typography>{getValue()?.username || 'N/A'}</Typography>
-            )
+            cell: ({ getValue }) => {
+                const val = getValue();
+                const name = val?.username || val?.name || (typeof val === 'string' ? val : null);
+                return <Typography>{name || 'N/A'}</Typography>;
+            }
+        },
+        {
+            header: 'Created By',
+            accessorKey: 'created_by',
+            cell: ({ getValue }) => {
+                const val = getValue();
+                const name = val?.username || val?.name || (typeof val === 'string' ? val : null);
+                return <Typography>{name || 'N/A'}</Typography>;
+            }
         },
         {
             header: 'Created At',
@@ -596,15 +601,8 @@ export default function WorkStatusListPage() {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
-                const isExpanded = row.getIsExpanded();
-                const expandIcon = isExpanded
-                    ? <Add style={{ transform: 'rotate(45deg)', color: theme.palette.error.main }} />
-                    : <Eye />;
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                        <IconButton color="secondary" onClick={row.getToggleExpandedHandler()}>
-                            {expandIcon}
-                        </IconButton>
                         <IconButton
                             color="info"
                             onClick={(e) => {
@@ -652,7 +650,7 @@ export default function WorkStatusListPage() {
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        getRowCanExpand: () => true
+        // removed expandable rows - use detail page for full view
     });
 
     const fetchAllWorkStatusesForCsv = async () => {
@@ -990,22 +988,13 @@ export default function WorkStatusListPage() {
                             </TableHead>
                             <TableBody>
                                 {table.getRowModel().rows.map((row) => (
-                                    <Fragment key={row.id}>
-                                        <TableRow>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                        {row.getIsExpanded() && (
-                                            <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <WorkStatusView data={row.original} />
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </Fragment>
+                                    <TableRow key={row.id}>
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
