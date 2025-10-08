@@ -148,7 +148,7 @@ export default function TotalIncome() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(2022);
+  const [selectedYear, setSelectedYear] = useState(2023);
 
   const downloadFullChart = useCallback(async () => {
     if (contentRef.current) {
@@ -181,7 +181,7 @@ export default function TotalIncome() {
         const availableYears = result.data.map(d => d.year).sort((a, b) => b - a);
         setYears(availableYears);
         if (!selectedYear) {
-          setSelectedYear(availableYears.includes(2022) ? 2022 : availableYears[0]);
+          setSelectedYear(availableYears.includes(2023) ? 2023 : availableYears[0]);
         }
       } else {
         console.error('Failed to fetch years:', result.message);
