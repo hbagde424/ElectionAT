@@ -61,7 +61,7 @@ export default function YearDetailPage() {
     };
 
     const handleBack = () => navigate('/year');
-    const handleEdit = () => navigate(`/year/edit/${id}`);
+
 
     if (loading) {
         return (

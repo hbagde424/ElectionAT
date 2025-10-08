@@ -26,7 +26,6 @@ import {
     Description,
     Timeline,
     Article,
-    Edit,
     Share,
     Download,
     Phone,
@@ -94,10 +93,6 @@ const CandidateDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/candidates/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/candidates');
     };
@@ -155,14 +150,6 @@ const CandidateDetailPage = () => {
                             {formatDateTime(candidate.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Candidate
-                    </Button>
                 </Stack>
 
                 {/* Breadcrumbs */}

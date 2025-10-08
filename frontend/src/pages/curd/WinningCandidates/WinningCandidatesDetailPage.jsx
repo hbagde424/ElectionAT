@@ -77,7 +77,7 @@ export default function WinningCandidatesDetailPage() {
     };
 
     const handleBack = () => navigate('/WInningCandidateList');
-    const handleEdit = () => navigate(`/WInningCandidateList/edit/${id}`);
+
 
     if (loading) {
         return (

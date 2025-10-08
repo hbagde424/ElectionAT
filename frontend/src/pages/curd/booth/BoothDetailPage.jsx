@@ -22,7 +22,6 @@ import {
     ArrowBack,
     LocationOn,
     Description,
-    Edit,
     CalendarToday,
     Business,
     HowToVote,
@@ -98,10 +97,6 @@ const BoothDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/booth/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/booth');
     };
@@ -159,14 +154,6 @@ const BoothDetailPage = () => {
                             {formatDateTime(booth.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Booth
-                    </Button>
                 </Stack>
 
                 {/* Breadcrumbs */}
@@ -209,7 +196,6 @@ const BoothDetailPage = () => {
                         </Grid>
                         <Grid item>
                             <Stack direction="row" spacing={1}>
-                                <Button variant="contained" color="secondary" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
                                 {booth.contact_number && (
                                     <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${booth.contact_number}`}>Call</Button>
                                 )}

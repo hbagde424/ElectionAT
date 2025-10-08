@@ -23,7 +23,6 @@ import {
     Person,
     LocationOn,
     Description,
-    Edit,
     CalendarToday,
     HowToVote,
     AccountBalance
@@ -72,10 +71,6 @@ const ParliamentCandidateDetailPage = () => {
 
     const formatDate = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleDateString(); };
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleString(); };
-
-    const handleEdit = () => {
-        navigate(`/parliament-candidate/edit/${id}`);
-    };
 
     const handleBack = () => {
         navigate('/parliament-candidate');
@@ -138,7 +133,7 @@ const ParliamentCandidateDetailPage = () => {
                         <Typography variant="h4" component="h1">Parliament Candidate Details</Typography>
                         <Typography variant="body2" color="text.secondary">{formatDateTime(candidate?.created_at)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>Edit Candidate</Button>
+
                 </Stack>
 
                 <Breadcrumbs aria-label="breadcrumb">

@@ -22,7 +22,6 @@ import {
     ArrowBack,
     LocationOn,
     Description,
-    Edit,
     CalendarToday,
     Person,
     Phone,
@@ -101,10 +100,6 @@ const BoothVolunteerDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/booth-volunteer/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/booth-volunteer');
     };
@@ -162,14 +157,6 @@ const BoothVolunteerDetailPage = () => {
                             {formatDateTime(volunteer.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Volunteer
-                    </Button>
                 </Stack>
 
                 {/* Breadcrumbs */}

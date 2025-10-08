@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Grid, CardContent, Stack, Button, IconButton, LinearProgress, Alert, Breadcrumbs, Link, Chip } from '@mui/material';
-import { ArrowBack, Edit, Person, Business, CalendarToday, LocationOn } from '@mui/icons-material';
+import { ArrowBack, Person, Business, CalendarToday, LocationOn } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
@@ -50,7 +50,7 @@ export default function PotentialCandidateDetailPage() {
     const formatDate = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleDateString(); };
 
     const handleBack = () => navigate('/Pontentcal-Candidate');
-    const handleEdit = () => navigate(`/Pontentcal-Candidate/edit/${id}`);
+
 
     if (loading) return (
         <Container maxWidth="lg" sx={{ mt: 2 }}>
@@ -79,7 +79,7 @@ export default function PotentialCandidateDetailPage() {
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
                     <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}><ArrowBack /></IconButton>
                     <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>Potential Candidate Details</Typography>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
+
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>

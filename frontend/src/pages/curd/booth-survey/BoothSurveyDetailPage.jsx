@@ -15,7 +15,7 @@ import {
     Link,
     Paper
 } from '@mui/material';
-import { ArrowBack, Edit, Phone, Room } from '@mui/icons-material';
+import { ArrowBack, Phone, Room } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
@@ -71,7 +71,6 @@ const BoothSurveyDetailPage = () => {
     };
 
     const handleBack = () => navigate('/booth-survey');
-    const handleEdit = () => navigate(`/booth-survey/edit/${id}`);
 
     const filteredSurvey = useMemo(() => {
         if (!survey) return null;
@@ -121,7 +120,6 @@ const BoothSurveyDetailPage = () => {
                         <Typography variant="h4" component="h1">Survey Details</Typography>
                         <Typography variant="body2" color="text.secondary">{formatDateTime(survey.created_at)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit} sx={{ ml: 'auto' }}>Edit Survey</Button>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e)=>{e.preventDefault();navigate('/');}}>Dashboard</Link>
@@ -139,7 +137,6 @@ const BoothSurveyDetailPage = () => {
                         </Grid>
                         <Grid item>
                             <Stack direction="row" spacing={1}>
-                                <Button variant="contained" color="secondary" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
                                 {survey.contact_number && (
                                     <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${survey.contact_number}`}>Call</Button>
                                 )}

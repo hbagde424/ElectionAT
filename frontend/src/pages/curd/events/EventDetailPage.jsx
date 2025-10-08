@@ -73,7 +73,7 @@ export default function EventDetailPage() {
     };
 
     const handleBack = () => navigate('/Events');
-    const handleEdit = () => navigate(`/Events/edit/${id}`);
+
 
     if (loading) {
         return (

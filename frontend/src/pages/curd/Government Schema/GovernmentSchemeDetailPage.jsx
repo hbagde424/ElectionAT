@@ -78,7 +78,7 @@ export default function GovernmentSchemeDetailPage() {
     };
 
     const handleBack = () => navigate('/Government-Schema');
-    const handleEdit = () => navigate(`/Government-Schema/edit/${id}`);
+
 
     if (loading) {
         return (

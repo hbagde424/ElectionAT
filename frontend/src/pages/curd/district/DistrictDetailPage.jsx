@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Grid, CardContent, Stack, IconButton, LinearProgress, Alert, Breadcrumbs, Link, Button, Chip } from '@mui/material';
-import { ArrowBack, Edit } from '@mui/icons-material';
+import { ArrowBack } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
@@ -51,7 +51,7 @@ export default function DistrictDetailPage() {
     };
 
     const handleBack = () => navigate('/district');
-    const handleEdit = () => navigate(`/district/edit/${id}`);
+
 
     if (loading) {
         return (
@@ -92,9 +92,6 @@ export default function DistrictDetailPage() {
                     <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
                         District Details
                     </Typography>
-                    <IconButton onClick={handleEdit} color="primary">
-                        <Edit />
-                    </IconButton>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>

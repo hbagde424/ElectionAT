@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Grid, CardContent, Stack, Button, IconButton, LinearProgress, Alert, Breadcrumbs, Link } from '@mui/material';
-import { ArrowBack, Edit } from '@mui/icons-material';
+import { ArrowBack } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
@@ -49,7 +49,7 @@ export default function BoothVoteDetailPage() {
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleString(); };
 
     const handleBack = () => navigate('/Booth-Votes');
-    const handleEdit = () => navigate(`/Booth-Votes/edit/${id}`);
+
 
     if (loading) {
         return (
@@ -92,7 +92,7 @@ export default function BoothVoteDetailPage() {
                         <Typography variant="h4" component="h1">Booth Vote Details</Typography>
                         <Typography variant="body2" color="text.secondary">{formatDateTime(vote?.created_at)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>Edit Vote</Button>
+
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>

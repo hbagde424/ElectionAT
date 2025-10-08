@@ -18,7 +18,7 @@ import {
     Breadcrumbs,
     Link
 } from '@mui/material';
-import { ArrowBack, Edit } from '@mui/icons-material';
+import { ArrowBack } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
@@ -81,10 +81,6 @@ const PartyDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/parties/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/parties');
     };
@@ -142,14 +138,6 @@ const PartyDetailPage = () => {
                             {formatDateTime(party.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Party
-                    </Button>
                 </Stack>
 
                 {/* Breadcrumbs */}

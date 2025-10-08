@@ -105,7 +105,7 @@ export default function WorkStatusDetailPage() {
     };
 
     const handleBack = () => navigate('/Work-Status');
-    const handleEdit = () => navigate(`/Work-Status/edit/${id}`);
+
 
     if (loading) {
         return (

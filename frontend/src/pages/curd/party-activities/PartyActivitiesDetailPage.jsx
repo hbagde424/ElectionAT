@@ -84,7 +84,7 @@ export default function PartyActivitiesDetailPage() {
     };
 
     const handleBack = () => navigate('/Party-Activities');
-    const handleEdit = () => navigate(`/Party-Activities/edit/${id}`);
+
 
     if (loading) return (
         <Container maxWidth="lg" sx={{ mt: 2 }}>

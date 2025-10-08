@@ -49,7 +49,7 @@ export default function FAQDetailPage() {
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleString(); } catch (e) { return 'N/A'; } };
 
     const handleBack = () => navigate('/faq-crud');
-    const handleEdit = () => navigate(`/faq-crud/edit/${id}`);
+
 
     if (loading) return (
         <Container maxWidth="lg" sx={{ mt: 2 }}>

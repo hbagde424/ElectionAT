@@ -15,7 +15,7 @@ import {
     Breadcrumbs,
     Link
 } from '@mui/material';
-import { ArrowBack, Edit, Description } from '@mui/icons-material';
+import { ArrowBack, Description } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
@@ -66,7 +66,6 @@ const ParliamentDetailPage = () => {
         });
     };
 
-    const handleEdit = () => navigate(`/parliament/edit/${id}`);
     const handleBack = () => navigate('/parliament');
 
     if (loading) {
@@ -107,7 +106,6 @@ const ParliamentDetailPage = () => {
                         <Typography variant="h4" component="h1">Parliament Details</Typography>
                         <Typography variant="body2" color="text.secondary">{formatDateTime(parliament.created_at)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit} sx={{ ml: 'auto' }}>Edit Parliament</Button>
                 </Stack>
 
                 <Breadcrumbs aria-label="breadcrumb">
