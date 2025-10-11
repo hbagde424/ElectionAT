@@ -10,6 +10,7 @@ const {
   getSurveysByState
 } = require('../controllers/boothSurveyController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -117,7 +118,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothSurvey'
  */
-router.get('/', getBoothSurveys);
+// Public: optional authentication — getUserPermissionsAndHierarchy will attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getBoothSurveys);
 
 /**
  * @swagger
@@ -141,7 +143,7 @@ router.get('/', getBoothSurveys);
  *       404:
  *         description: Booth survey not found
  */
-router.get('/:id', getBoothSurvey);
+router.get('/:id', getUserPermissionsAndHierarchy, getBoothSurvey);
 
 /**
  * @swagger
@@ -254,7 +256,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBoothSurvey);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getSurveysByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getSurveysByBooth);
 
 /**
  * @swagger
@@ -287,7 +289,7 @@ router.get('/booth/:boothId', getSurveysByBooth);
  *       404:
  *         description: Surveyor not found
  */
-router.get('/surveyor/:surveyorId', getSurveysBySurveyor);
+router.get('/surveyor/:surveyorId', getUserPermissionsAndHierarchy, getSurveysBySurveyor);
 
 /**
  * @swagger
@@ -320,7 +322,7 @@ router.get('/surveyor/:surveyorId', getSurveysBySurveyor);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getSurveysByState);
+router.get('/state/:stateId', getUserPermissionsAndHierarchy, getSurveysByState);
 
 /**
  * @swagger

@@ -102,6 +102,23 @@ exports.getBoothSurveys = async (req, res, next) => {
       };
     }
 
+    // If userHierarchy exists, restrict by user's scope (most specific first) unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      if (req.userHierarchy.booth) {
+        filter.booth_id = req.userHierarchy.booth._id;
+      } else if (req.userHierarchy.block) {
+        filter.block_id = req.userHierarchy.block._id;
+      } else if (req.userHierarchy.assembly) {
+        filter.assembly_id = req.userHierarchy.assembly._id;
+      } else if (req.userHierarchy.parliament) {
+        filter.parliament_id = req.userHierarchy.parliament._id;
+      } else if (req.userHierarchy.division) {
+        filter.division_id = req.userHierarchy.division._id;
+      } else if (req.userHierarchy.state) {
+        filter.state_id = req.userHierarchy.state._id;
+      }
+    }
+
     // If searching, ignore pagination and return all results
     let surveys, total;
     if (req.query.search) {
@@ -167,6 +184,22 @@ exports.getBoothSurvey = async (req, res, next) => {
         success: false,
         message: 'Booth survey not found'
       });
+    }
+
+    // Enforce user hierarchy: ensure requested survey is within user's scope
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.booth && survey.booth_id.toString() !== uh.booth._id.toString()) ||
+        (uh.block && survey.block_id.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && survey.assembly_id.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && survey.parliament_id.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && survey.division_id.toString() !== uh.division._id.toString()) ||
+        (uh.state && survey.state_id.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({

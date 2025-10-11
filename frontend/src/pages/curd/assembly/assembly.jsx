@@ -98,7 +98,10 @@ export default function AssemblyListPage() {
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const url = `${import.meta.env.VITE_APP_API_URL}/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
 
-            const res = await fetch(url);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(url, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
             const json = await res.json();
 
             if (json.success) {
@@ -336,7 +339,10 @@ export default function AssemblyListPage() {
 
     const fetchAllAssembliesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
             const json = await res.json();
             if (json.success) {
                 return json.data;

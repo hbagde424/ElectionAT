@@ -70,7 +70,8 @@ export default function BoothVolunteerListPage() {
       if (filterParams.assembly_id) url += `&assembly_id=${filterParams.assembly_id}`;
       if (filterParams.block_id) url += `&block_id=${filterParams.block_id}`;
       if (filterParams.booth_id) url += `&booth_id=${filterParams.booth_id}`;
-      const res = await fetch(url);
+  const token = localStorage.getItem('serviceToken');
+  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const json = await res.json();
       if (json.success) {
         setVolunteers(json.data);
@@ -85,25 +86,21 @@ export default function BoothVolunteerListPage() {
 
   const fetchReferenceData = async () => {
     try {
+      const token = localStorage.getItem('serviceToken');
+      const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/states`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, fetchOpts),
   // Request all parties so dropdowns can show the complete list
-  fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`)
+  fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, fetchOpts)
       ]);
 
-      const token = localStorage.getItem('serviceToken');
-
       const [usersRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
+        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, fetchOpts)
       ]);
 
       const usersData = await usersRes.json();
@@ -450,7 +447,8 @@ export default function BoothVolunteerListPage() {
   // Helper to fetch all volunteers for CSV
   const fetchAllVolunteersForCsv = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true`);
+      const token = localStorage.getItem('serviceToken');
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const json = await res.json();
       if (json.success) {
         return json.data;

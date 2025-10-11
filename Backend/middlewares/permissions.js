@@ -1,3 +1,5 @@
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 const UserRole = require('../models/UserRole');
 const UserHierarchy = require('../models/UserHierarchy');
 const RolePermission = require('../models/RolePermission');
@@ -165,6 +167,25 @@ const hasPermissionAndHierarchy = (permission, level) => {
 // Middleware to get user permissions and hierarchy (for frontend use)
 const getUserPermissionsAndHierarchy = async (req, res, next) => {
     try {
+        // If protect middleware hasn't run, optionally parse Authorization header
+        if (!req.user) {
+            try {
+                const authHeader = req.headers && req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    const token = authHeader.split(' ')[1];
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                    if (decoded && decoded.id) {
+                        // Attach minimal user object so subsequent permission/hierarchy lookups work
+                        const user = await User.findById(decoded.id).select('+role');
+                        if (user) req.user = user;
+                    }
+                }
+            } catch (err) {
+                // Invalid token - don't block public routes, just continue without req.user
+                console.warn('Optional token verification failed:', err.message);
+            }
+        }
+
         if (!req.user) {
             return next();
         }

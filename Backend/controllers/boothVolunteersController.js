@@ -160,6 +160,23 @@ exports.getBoothVolunteers = async (req, res, next) => {
       filter.activity_level = req.query.activity;
     }
 
+    // If userHierarchy exists, restrict by user's scope (most specific first) unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      if (req.userHierarchy.booth) {
+        filter.booth_id = req.userHierarchy.booth._id;
+      } else if (req.userHierarchy.block) {
+        filter.block_id = req.userHierarchy.block._id;
+      } else if (req.userHierarchy.assembly) {
+        filter.assembly_id = req.userHierarchy.assembly._id;
+      } else if (req.userHierarchy.parliament) {
+        filter.parliament_id = req.userHierarchy.parliament._id;
+      } else if (req.userHierarchy.division) {
+        filter.division_id = req.userHierarchy.division._id;
+      } else if (req.userHierarchy.state) {
+        filter.state_id = req.userHierarchy.state._id;
+      }
+    }
+
     // If searching, ignore pagination and return all results
     let volunteers, total;
     if (req.query.search) {
@@ -228,6 +245,22 @@ exports.getBoothVolunteer = async (req, res, next) => {
         success: false,
         message: 'Booth volunteer not found'
       });
+    }
+
+    // Enforce user hierarchy for single resource
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.booth && volunteer.booth_id.toString() !== uh.booth._id.toString()) ||
+        (uh.block && volunteer.block_id.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && volunteer.assembly_id.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && volunteer.parliament_id.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && volunteer.division_id.toString() !== uh.division._id.toString()) ||
+        (uh.state && volunteer.state_id.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({

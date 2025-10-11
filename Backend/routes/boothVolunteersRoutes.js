@@ -11,6 +11,7 @@ const {
   getVolunteersByState
 } = require('../controllers/boothVolunteersController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 const volunteerUpload = require('../config/volunteerUpload');
 
 const router = express.Router();
@@ -108,7 +109,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothVolunteer'
  */
-router.get('/', getBoothVolunteers);
+// Public: optional authentication — attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getBoothVolunteers);
 
 /**
  * @swagger
@@ -132,7 +134,7 @@ router.get('/', getBoothVolunteers);
  *       404:
  *         description: Booth volunteer not found
  */
-router.get('/:id', getBoothVolunteer);
+router.get('/:id', getUserPermissionsAndHierarchy, getBoothVolunteer);
 
 /**
  * @swagger
@@ -352,7 +354,7 @@ router.delete('/:id/documents/:documentId', protect, authorize('superAdmin', 'co
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getVolunteersByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getVolunteersByBooth);
 
 /**
  * @swagger
@@ -385,7 +387,7 @@ router.get('/booth/:boothId', getVolunteersByBooth);
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', getVolunteersByParty);
+router.get('/party/:partyId', getUserPermissionsAndHierarchy, getVolunteersByParty);
 
 /**
  * @swagger
@@ -418,7 +420,7 @@ router.get('/party/:partyId', getVolunteersByParty);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getVolunteersByState);
+router.get('/state/:stateId', getUserPermissionsAndHierarchy, getVolunteersByState);
 
 /**
  * @swagger

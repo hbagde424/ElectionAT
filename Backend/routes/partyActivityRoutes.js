@@ -10,6 +10,7 @@ const {
   getUpcomingPartyActivities
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 /**
  * @swagger
@@ -203,7 +204,8 @@ const { protect, authorize } = require('../middlewares/auth');
  *                   items:
  *                     $ref: '#/components/schemas/PartyActivity'
  */
-router.get('/', getPartyActivities);
+// Public: optional authentication — attach hierarchy if token is present
+router.get('/', getUserPermissionsAndHierarchy, getPartyActivities);
 
 /**
  * @swagger
@@ -227,7 +229,7 @@ router.get('/', getPartyActivities);
  *       404:
  *         description: Party activity not found
  */
-router.get('/:id', getPartyActivity);
+router.get('/:id', getUserPermissionsAndHierarchy, getPartyActivity);
 
 /**
  * @swagger
@@ -340,7 +342,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePartyActi
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', getPartyActivitiesByParty);
+router.get('/party/:partyId', getUserPermissionsAndHierarchy, getPartyActivitiesByParty);
 
 /**
  * @swagger
@@ -365,6 +367,6 @@ router.get('/party/:partyId', getPartyActivitiesByParty);
  *                   items:
  *                     $ref: '#/components/schemas/PartyActivity'
  */
-router.get('/upcoming', getUpcomingPartyActivities);
+router.get('/upcoming', getUserPermissionsAndHierarchy, getUpcomingPartyActivities);
 
 module.exports = router;

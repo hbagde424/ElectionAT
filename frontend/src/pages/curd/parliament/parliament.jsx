@@ -99,7 +99,10 @@ export default function ParliamentListPage() {
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?page=${pageIndex + 1}&limit=${pageSize}${queryString}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
             const json = await res.json();
             if (json.success) {
                 setParliaments(json.data);
@@ -337,7 +340,10 @@ export default function ParliamentListPage() {
 
     const fetchAllParliamentsForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?all=true`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
             const json = await res.json();
             if (json.success) {
                 return json.data;

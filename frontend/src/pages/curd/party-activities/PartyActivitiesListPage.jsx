@@ -87,25 +87,21 @@ export default function PartyActivitiesListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=10000`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states?limit=10000`, fetchOpts),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`, fetchOpts),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?limit=10000`, fetchOpts),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`, fetchOpts),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?limit=10000`, fetchOpts),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, fetchOpts),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=10000`, fetchOpts)
             ]);
 
 
-            const token = localStorage.getItem('serviceToken');
-
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users?limit=10000`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users?limit=10000`, fetchOpts)
             ]);
 
             const usersData = await usersRes.json();
@@ -163,7 +159,9 @@ export default function PartyActivitiesListPage() {
                 ...(appliedFilters.status && { status: appliedFilters.status })
             });
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?${queryParams}`);
+            const token = localStorage.getItem('serviceToken');
+            const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?${queryParams}`, fetchOpts);
             const json = await res.json();
             if (json.success) {
                 setPartyActivities(json.data);
@@ -500,7 +498,8 @@ export default function PartyActivitiesListPage() {
     // Helper to fetch all party activities for CSV
     const fetchAllPartyActivitiesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?all=true`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
             const json = await res.json();
             if (json.success) {
                 return json.data;

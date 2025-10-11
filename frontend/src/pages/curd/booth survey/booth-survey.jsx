@@ -85,7 +85,8 @@ export default function BoothSurveyListPage() {
       } else {
         url = `${baseUrl}?page=${pageIndex + 1}&limit=${pageSize}${params.length ? '&' + params.join('&') : ''}`;
       }
-      const res = await fetch(url);
+  const token = localStorage.getItem('serviceToken');
+  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const json = await res.json();
       if (json.success) {
         setSurveys(json.data);
@@ -104,18 +105,15 @@ export default function BoothSurveyListPage() {
   const fetchReferenceData = async () => {
     try {
       const token = localStorage.getItem('serviceToken');
+      const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
       const [boothsRes, usersRes, statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`)
+        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/states`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, fetchOpts),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, fetchOpts)
       ]);
 
       const boothsJson = await boothsRes.json();

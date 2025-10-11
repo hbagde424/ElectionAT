@@ -124,6 +124,17 @@ exports.getPartyActivities = async (req, res, next) => {
       }
     }
 
+    // If userHierarchy exists, restrict by user's scope (most specific first) unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) query = query.where('booth_id').equals(uh.booth._id);
+      else if (uh.block) query = query.where('block_id').equals(uh.block._id);
+      else if (uh.assembly) query = query.where('assembly_id').equals(uh.assembly._id);
+      else if (uh.parliament) query = query.where('parliament_id').equals(uh.parliament._id);
+      else if (uh.division) query = query.where('division_id').equals(uh.division._id);
+      else if (uh.state) query = query.where('state_id').equals(uh.state._id);
+    }
+
     // Activity Type
     if (req.query.activity_type) {
       query = query.where('activity_type').equals(req.query.activity_type);
@@ -181,6 +192,22 @@ exports.getPartyActivity = async (req, res, next) => {
         success: false,
         message: 'Party activity not found'
       });
+    }
+
+    // Enforce user hierarchy for single resource
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.booth && activity.booth_id?.toString() !== uh.booth._id.toString()) ||
+        (uh.block && activity.block_id?.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && activity.assembly_id?.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && activity.parliament_id?.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && activity.division_id?.toString() !== uh.division._id.toString()) ||
+        (uh.state && activity.state_id?.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({

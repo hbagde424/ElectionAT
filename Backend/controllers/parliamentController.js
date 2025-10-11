@@ -33,6 +33,18 @@ exports.getParliaments = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
+    // If userHierarchy is present (middleware attached), restrict results to user's scope
+    if (req.userHierarchy) {
+      // Prefer most specific allocation available on user's hierarchy
+      if (req.userHierarchy.parliament) {
+        query = query.where('_id').equals(req.userHierarchy.parliament._id);
+      } else if (req.userHierarchy.division) {
+        query = query.where('division_id').equals(req.userHierarchy.division._id);
+      } else if (req.userHierarchy.state) {
+        query = query.where('state_id').equals(req.userHierarchy.state._id);
+      }
+    }
+
     // Enhanced search functionality: only apply regex to string fields
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' };
@@ -118,6 +130,28 @@ exports.getParliaments = async (req, res, next) => {
 // @access  Public
 exports.getParliament = async (req, res, next) => {
   try {
+    // If userHierarchy exists, ensure they can access this parliament
+    if (req.userHierarchy) {
+      // If user assigned to a parliament, allow only that parish
+      if (req.userHierarchy.parliament && req.userHierarchy.parliament._id.toString() !== req.params.id) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
+      // If user assigned to a division, ensure this parliament belongs to that division
+      if (req.userHierarchy.division) {
+        const p = await Parliament.findById(req.params.id).select('division_id');
+        if (!p || p.division_id.toString() !== req.userHierarchy.division._id.toString()) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+      // If user assigned to a state, ensure this parliament belongs to that state
+      if (req.userHierarchy.state) {
+        const p = await Parliament.findById(req.params.id).select('state_id');
+        if (!p || p.state_id.toString() !== req.userHierarchy.state._id.toString()) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+    }
+
     const parliament = await Parliament.findById(req.params.id)
       .populate('state_id', '_id name')
       .populate('division_id', '_id name')
@@ -319,6 +353,28 @@ exports.getParliamentsByState = async (req, res, next) => {
       });
     }
 
+    // If userHierarchy exists, restrict by user's scope
+    if (req.userHierarchy) {
+      if (req.userHierarchy.parliament) {
+        // user is attached to a specific parliament
+        const p = await Parliament.findById(req.userHierarchy.parliament._id);
+        if (!p || p.state_id.toString() !== req.params.stateId) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+      if (req.userHierarchy.division) {
+        // ensure user's division matches requested state (division belongs to state)
+        if (req.userHierarchy.division.state && req.userHierarchy.division.state.toString() !== req.params.stateId) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+      if (req.userHierarchy.state) {
+        if (req.userHierarchy.state._id.toString() !== req.params.stateId) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+    }
+
     const parliaments = await Parliament.find({ state_id: req.params.stateId })
       .sort({ name: 1 })
       .populate('division_id', 'name')
@@ -348,6 +404,27 @@ exports.getParliamentsByDivision = async (req, res, next) => {
         success: false,
         message: 'Division not found'
       });
+    }
+
+    // If userHierarchy exists, restrict by user's scope
+    if (req.userHierarchy) {
+      if (req.userHierarchy.parliament) {
+        const p = await Parliament.findById(req.userHierarchy.parliament._id);
+        if (!p || p.division_id.toString() !== req.params.divisionId) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+      if (req.userHierarchy.division) {
+        if (req.userHierarchy.division._id.toString() !== req.params.divisionId) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
+      if (req.userHierarchy.state) {
+        // If user only has state-level access, ensure the division belongs to that state
+        if (division.state && division.state.toString() !== req.userHierarchy.state._id.toString()) {
+          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+        }
+      }
     }
 
     const parliaments = await Parliament.find({ division_id: req.params.divisionId })
