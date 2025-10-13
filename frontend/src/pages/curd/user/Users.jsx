@@ -51,7 +51,7 @@ import { usePermissions } from 'contexts/PermissionContext';
 import UserModal from './UserModal';
 import CrudPageLayout from 'components/permission/CrudPageLayout';
 import PermissionGate from 'components/PermissionGate';
-// import AlertUserDelete from './AlertUserDelete';
+import AlertUserDelete from './AlertUserDelete';
 import UserView from './UserView';
 
 const Users = () => {
@@ -882,14 +882,14 @@ const Users = () => {
             )} */}
 
             {/* Delete Dialog */}
-            {/* {deleteDialog && (
+            {deleteDialog && (
                 <AlertUserDelete
+                    id={selectedUser?._id}
                     open={deleteDialog}
-                    setOpen={setDeleteDialog}
-                    userId={selectedUser?._id}
-                    fetchUsers={fetchUsers}
+                    handleClose={() => setDeleteDialog(false)}
+                    refresh={fetchUsers}
                 />
-            )} */}
+            )}
         </Box>
     );
 };
