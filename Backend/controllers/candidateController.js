@@ -60,6 +60,24 @@ exports.getCandidates = async (req, res, next) => {
       query = query.where('criminal_cases').equals(parseInt(req.query.criminal_cases));
     }
 
+    // Merge userHierarchy into filters if present (defensive: only apply fields that may exist on Candidate)
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) {
+        query = query.where('booth_id').equals(uh.booth._id);
+      } else if (uh.block) {
+        query = query.where('block_id').equals(uh.block._id);
+      } else if (uh.assembly) {
+        query = query.where('assembly_id').equals(uh.assembly._id);
+      } else if (uh.parliament) {
+        query = query.where('parliament_id').equals(uh.parliament._id);
+      } else if (uh.division) {
+        query = query.where('division_id').equals(uh.division._id);
+      } else if (uh.state) {
+        query = query.where('state_id').equals(uh.state._id);
+      }
+    }
+
     const candidates = await query.skip(skip).limit(limit).exec();
     const total = await Candidate.countDocuments(query.getFilter());
 
@@ -91,6 +109,22 @@ exports.getCandidate = async (req, res, next) => {
         success: false,
         message: 'Candidate not found'
       });
+    }
+
+    // Enforce hierarchy for single candidate defensively
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.booth && candidate.booth_id && candidate.booth_id.toString() !== uh.booth._id.toString()) ||
+        (uh.block && candidate.block_id && candidate.block_id.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && candidate.assembly_id && candidate.assembly_id.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && candidate.parliament_id && candidate.parliament_id.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && candidate.division_id && candidate.division_id.toString() !== uh.division._id.toString()) ||
+        (uh.state && candidate.state_id && candidate.state_id.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({

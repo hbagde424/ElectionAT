@@ -80,6 +80,16 @@ exports.getDivisions = async (req, res, next) => {
       }
     }
 
+    // Apply user hierarchy restriction when an authenticated user is present
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.division_id) {
+        query = query.where('_id').equals(h.division_id);
+      } else if (h.state_id) {
+        query = query.where('state_id').equals(h.state_id);
+      }
+    }
+
     const divisions = await query.skip(skip).limit(limit).exec();
     const total = await Division.countDocuments(query.getFilter());
 
@@ -107,6 +117,17 @@ exports.getDivision = async (req, res, next) => {
 
     if (!division) {
       return next(new ErrorResponse(`Division not found with id of ${req.params.id}`, 404));
+    }
+
+    // Enforce user hierarchy for single division
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.division_id && h.division_id.toString() !== division._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+      if (h.state_id && division.state_id && h.state_id.toString() !== division.state_id.toString()) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
     }
 
     res.status(200).json({
@@ -246,6 +267,20 @@ exports.getDivisionsByState = async (req, res, next) => {
 
     let query = Division.find({ state_id: req.params.stateId }).sort({ name: 1 });
     query = populateDivision(query);
+    // Enforce user hierarchy for divisions-by-state
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.state_id && h.state_id.toString() !== req.params.stateId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+      if (h.division_id) {
+        // If user is scoped to a division, ensure it belongs to this state
+        const div = await Division.findById(h.division_id);
+        if (!div || div.state_id.toString() !== req.params.stateId) {
+          return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+        }
+      }
+    }
     const divisions = await query.exec();
 
     res.status(200).json({

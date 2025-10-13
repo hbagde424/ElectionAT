@@ -29,6 +29,28 @@ exports.getLocalIssues = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ created_at: -1 });
 
+    // Apply optional user hierarchy filtering if provided and user is not superAdmin
+    try {
+      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+        const h = req.userHierarchy;
+        if (h.booth_id) {
+          query = query.where('booth_id').equals(h.booth_id);
+        } else if (h.block_id) {
+          query = query.where('block_id').equals(h.block_id);
+        } else if (h.assembly_id) {
+          query = query.where('assembly_id').equals(h.assembly_id);
+        } else if (h.parliament_id) {
+          query = query.where('parliament_id').equals(h.parliament_id);
+        } else if (h.division_id) {
+          query = query.where('division_id').equals(h.division_id);
+        } else if (h.state_id) {
+          query = query.where('state_id').equals(h.state_id);
+        }
+      }
+    } catch (e) {
+      // ignore malformed hierarchy
+    }
+
     // Search functionality
     if (req.query.search) {
       query = query.find({
@@ -171,6 +193,18 @@ exports.getLocalIssue = async (req, res, next) => {
         success: false,
         message: 'Local issue not found'
       });
+    }
+
+    // Enforce scope on single resource for non-superAdmin users
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      const outOfScope = (h.booth_id && localIssue.booth_id && localIssue.booth_id.toString() !== h.booth_id)
+        || (h.block_id && localIssue.block_id && localIssue.block_id.toString() !== h.block_id)
+        || (h.assembly_id && localIssue.assembly_id && localIssue.assembly_id.toString() !== h.assembly_id)
+        || (h.parliament_id && localIssue.parliament_id && localIssue.parliament_id.toString() !== h.parliament_id)
+        || (h.division_id && localIssue.division_id && localIssue.division_id.toString() !== h.division_id)
+        || (h.state_id && localIssue.state_id && localIssue.state_id.toString() !== h.state_id);
+      if (outOfScope) return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
     res.status(200).json({

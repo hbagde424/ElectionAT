@@ -90,6 +90,17 @@ exports.getBlocks = async (req, res, next) => {
       query = query.where('state_id').equals(req.query.state);
     }
 
+    // If userHierarchy exists, restrict by user's scope (most specific first) unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) query = query.where('booth_id').equals(uh.booth._id);
+      else if (uh.block) query = query.where('_id').equals(uh.block._id);
+      else if (uh.assembly) query = query.where('assembly_id').equals(uh.assembly._id);
+      else if (uh.parliament) query = query.where('parliament_id').equals(uh.parliament._id);
+      else if (uh.division) query = query.where('division_id').equals(uh.division._id);
+      else if (uh.state) query = query.where('state_id').equals(uh.state._id);
+    }
+
     // Filter by active status
     if (req.query.is_active !== undefined) {
       query = query.where('is_active').equals(req.query.is_active === 'true');
@@ -144,6 +155,21 @@ exports.getBlock = async (req, res, next) => {
         success: false,
         message: 'Block not found'
       });
+    }
+
+    // Enforce user hierarchy for single block resource
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.block && block._id.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && block.assembly_id?.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && block.parliament_id?.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && block.division_id?.toString() !== uh.division._id.toString()) ||
+        (uh.state && block.state_id?.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({

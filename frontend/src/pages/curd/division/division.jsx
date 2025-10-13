@@ -47,7 +47,8 @@ export default function DivisionListPage() {
         setCsvLoading(true);
         try {
             let url = `${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`;
-            const res = await fetch(url);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const data = await res.json();
             if (data.success) {
                 setCsvData(data.data);
@@ -66,17 +67,17 @@ export default function DivisionListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const getAuthHeaders = () => {
+                const token = localStorage.getItem('serviceToken');
+                return token ? { Authorization: `Bearer ${token}` } : {};
+            };
+
             const [statesRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() })
             ]);
 
-            const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: getAuthHeaders() })
             ]);
 
             const usersData = await usersRes.json();
@@ -111,7 +112,8 @@ export default function DivisionListPage() {
                 const queryString = query.length > 0 ? `&${query.join('&')}` : '';
                 url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
             }
-            const res = await fetch(url);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 setDivisions(json.data);

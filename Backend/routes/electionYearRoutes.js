@@ -7,6 +7,7 @@ const {
   deleteElectionYear
 } = require('../controllers/electionYearController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -68,7 +69,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/ElectionYear'
  */
-router.get('/', getElectionYears);
+router.get('/', getUserPermissionsAndHierarchy, getElectionYears);
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ router.get('/', getElectionYears);
  *       404:
  *         description: Election year not found
  */
-router.get('/:id', getElectionYear);
+router.get('/:id', getUserPermissionsAndHierarchy, getElectionYear);
 
 /**
  * @swagger

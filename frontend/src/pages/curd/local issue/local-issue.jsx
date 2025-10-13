@@ -143,13 +143,15 @@ export default function LocalIssueListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.serviceToken;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers })
             ]);
 
             const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
@@ -196,7 +198,9 @@ export default function LocalIssueListPage() {
                 currentLimit = 10000; // Get all results when searching
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?page=${currentPage}&limit=${currentLimit}${query}`);
+            const token = localStorage.serviceToken;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?page=${currentPage}&limit=${currentLimit}${query}`, { headers });
             const json = await res.json();
 
             if (json.success) {
@@ -589,7 +593,9 @@ export default function LocalIssueListPage() {
 
     const fetchAllLocalIssuesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?all=true`);
+            const token = localStorage.serviceToken;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;

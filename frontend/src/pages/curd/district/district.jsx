@@ -69,20 +69,20 @@ export default function DistrictListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const getAuthHeaders = () => {
+                const token = localStorage.getItem('serviceToken');
+                return token ? { Authorization: `Bearer ${token}` } : {};
+            };
+
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() })
             ]);
 
-            const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: getAuthHeaders() })
             ]);
 
             const usersData = await usersRes.json();
@@ -116,7 +116,8 @@ export default function DistrictListPage() {
             if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/districts?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/districts?page=${pageIndex + 1}&limit=${pageSize}${queryString}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 setDistricts(json.data);
@@ -361,7 +362,8 @@ export default function DistrictListPage() {
             } else {
                 url = `${import.meta.env.VITE_APP_API_URL}/districts?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
             }
-            const res = await fetch(url);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 setDistricts(json.data);

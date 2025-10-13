@@ -10,6 +10,7 @@ const {
   getCasteListsByCategory
 } = require('../controllers/casteListController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -101,7 +102,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/CasteList'
  */
-router.get('/', getCasteLists);
+router.get('/', getUserPermissionsAndHierarchy, getCasteLists);
 
 /**
  * @swagger
@@ -125,7 +126,7 @@ router.get('/', getCasteLists);
  *       404:
  *         description: Caste list not found
  */
-router.get('/:id', getCasteList);
+router.get('/:id', getUserPermissionsAndHierarchy, getCasteList);
 
 /**
  * @swagger
@@ -238,7 +239,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteCasteList);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getCasteListsByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getCasteListsByBooth);
 
 /**
  * @swagger

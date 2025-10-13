@@ -47,11 +47,9 @@ export default function PartyListPage() {
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const usersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const usersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers });
 
             const usersData = await usersRes.json();
             if (usersData.success) setUsers(usersData.data);
@@ -64,7 +62,10 @@ export default function PartyListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
                 // If API already returns user objects for created_by/updated_by, use as-is
@@ -283,7 +284,10 @@ export default function PartyListPage() {
 
     const fetchAllPartiesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data.map(party => {

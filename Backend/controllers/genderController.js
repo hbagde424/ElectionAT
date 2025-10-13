@@ -65,6 +65,28 @@ exports.getGenders = async (req, res, next) => {
     }
 
     // Division
+
+        // Apply optional user hierarchy filtering if middleware provided it and user is not superAdmin
+        try {
+          if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+            // precedence: booth -> block -> assembly -> parliament -> division -> state
+            if (req.userHierarchy.booth_id) {
+              query = query.where('booth_id').equals(req.userHierarchy.booth_id);
+            } else if (req.userHierarchy.block_id) {
+              query = query.where('block_id').equals(req.userHierarchy.block_id);
+            } else if (req.userHierarchy.assembly_id) {
+              query = query.where('assembly_id').equals(req.userHierarchy.assembly_id);
+            } else if (req.userHierarchy.parliament_id) {
+              query = query.where('parliament_id').equals(req.userHierarchy.parliament_id);
+            } else if (req.userHierarchy.division_id) {
+              query = query.where('division_id').equals(req.userHierarchy.division_id);
+            } else if (req.userHierarchy.state_id) {
+              query = query.where('state_id').equals(req.userHierarchy.state_id);
+            }
+          }
+        } catch (e) {
+          // ignore and continue if req.userHierarchy is malformed
+        }
     if (req.query.division_id || req.query.division) {
       const divisionId = await handleIdOrName('division_id', Division) || await handleIdOrName('division', Division);
       if (divisionId) {
@@ -184,6 +206,20 @@ exports.createGender = async (req, res, next) => {
     ]);
 
     if (!state) {
+
+      // If user present and not superAdmin, enforce single-resource scope
+      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+        const h = req.userHierarchy;
+        const outOfScope = (h.booth_id && gender.booth_id && gender.booth_id.toString() !== h.booth_id)
+          || (h.block_id && gender.block_id && gender.block_id.toString() !== h.block_id)
+          || (h.assembly_id && gender.assembly_id && gender.assembly_id.toString() !== h.assembly_id)
+          || (h.parliament_id && gender.parliament_id && gender.parliament_id.toString() !== h.parliament_id)
+          || (h.division_id && gender.division_id && gender.division_id.toString() !== h.division_id)
+          || (h.state_id && gender.state_id && gender.state_id.toString() !== h.state_id);
+        if (outOfScope) {
+          return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
+      }
       return res.status(400).json({ success: false, message: 'State not found' });
     }
     if (!division) {

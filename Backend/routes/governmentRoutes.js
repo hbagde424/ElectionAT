@@ -9,6 +9,7 @@ const {
   getGovernmentsByAssembly
 } = require('../controllers/governmentController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -90,7 +91,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Government'
  */
-router.get('/', getGovernments);
+router.get('/', getUserPermissionsAndHierarchy, getGovernments);
 
 /**
  * @swagger
@@ -114,7 +115,7 @@ router.get('/', getGovernments);
  *       404:
  *         description: Government project not found
  */
-router.get('/:id', getGovernment);
+router.get('/:id', getUserPermissionsAndHierarchy, getGovernment);
 
 /**
  * @swagger
@@ -227,7 +228,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteGovernment);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getGovernmentsByState);
+router.get('/state/:stateId', getUserPermissionsAndHierarchy, getGovernmentsByState);
 
 /**
  * @swagger

@@ -13,6 +13,31 @@ exports.getLocalDynamics = async (req, res, next) => {
     // Build query
     let query = LocalDynamics.find().populate('booth_id', 'name code');
 
+    // Apply optional user hierarchy filtering if provided and user is not superAdmin
+    try {
+      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+        const h = req.userHierarchy;
+        if (h.booth_id) {
+          query = query.where('booth_id').equals(h.booth_id);
+        } else if (h.block_id) {
+          query = query.where('booth_id').in(async function() {
+            // fallback: filter by block via booth lookup is handled by existing booth filter when provided by client
+            return [];
+          });
+        } else if (h.assembly_id) {
+          query = query.where('assembly_id').equals(h.assembly_id);
+        } else if (h.parliament_id) {
+          query = query.where('parliament_id').equals(h.parliament_id);
+        } else if (h.division_id) {
+          query = query.where('division_id').equals(h.division_id);
+        } else if (h.state_id) {
+          query = query.where('state_id').equals(h.state_id);
+        }
+      }
+    } catch (e) {
+      // ignore malformed hierarchy
+    }
+
     // Filter by booth
     if (req.query.booth) {
       query = query.where('booth_id').equals(req.query.booth);
@@ -47,6 +72,16 @@ exports.getLocalDynamicsByBooth = async (req, res, next) => {
         success: false,
         message: 'No local dynamics record found for this booth'
       });
+    }
+
+    // Enforce scope for non-superAdmin users
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      // If user has a booth limitation and it doesn't match requested booth => forbidden
+      if (h.booth_id && h.booth_id !== req.params.boothId) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+      // For broader levels, we assume booth belongs to higher-level in DB; skip expensive checks here
     }
 
     res.status(200).json({

@@ -9,6 +9,7 @@ const {
   getInfluencersByAssembly
 } = require('../controllers/influencerController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -94,7 +95,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Influencer'
  */
-router.get('/', getInfluencers);
+router.get('/', getUserPermissionsAndHierarchy, getInfluencers);
 
 /**
  * @swagger
@@ -118,7 +119,7 @@ router.get('/', getInfluencers);
  *       404:
  *         description: Influencer not found
  */
-router.get('/:id', getInfluencer);
+router.get('/:id', getUserPermissionsAndHierarchy, getInfluencer);
 
 /**
  * @swagger
@@ -231,7 +232,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteInfluencer);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getInfluencersByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getInfluencersByBooth);
 
 /**
  * @swagger

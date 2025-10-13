@@ -61,13 +61,15 @@ export default function CasteListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers })
             ]);
 
             const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
@@ -206,13 +208,15 @@ export default function CasteListPage() {
     const fetchCasteList = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
             Object.entries(currentFilters).forEach(([key, value]) => {
                 if (value) {
                     query += `&${key}=${encodeURIComponent(value)}`;
                 }
             });
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setCasteList(json.data);
@@ -483,7 +487,9 @@ export default function CasteListPage() {
 
     const fetchAllCastesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;

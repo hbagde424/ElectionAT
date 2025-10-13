@@ -85,11 +85,11 @@ export default function ParliamentCandidateListPage() {
             if (filterYear) params.set('election_year_id', String(filterYear));
             if (filterCandidate) params.set('candidate_id', String(filterCandidate));
 
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
             const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?${params.toString()}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                }
+                headers
             });
             const result = await response.json();
             if (result.success) {
@@ -180,7 +180,8 @@ export default function ParliamentCandidateListPage() {
     // Fetch filter options (years and candidates)
     useEffect(() => {
         const token = localStorage.getItem('serviceToken');
-        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
 
         const fetchOptions = async () => {
             try {
@@ -634,12 +635,9 @@ export default function ParliamentCandidateListPage() {
     const fetchAllCandidatesForCsv = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?all=true`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?all=true`, { headers });
             const result = await response.json();
             if (result.success && Array.isArray(result.data)) {
                 // Normalize numeric/mixed-case fields for frontend usage

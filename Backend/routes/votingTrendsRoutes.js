@@ -14,6 +14,7 @@ const {
   getTrendsByYear
 } = require('../controllers/votingTrendsController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -109,7 +110,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/VotingTrend'
  */
-router.get('/', getVotingTrends);
+router.get('/', getUserPermissionsAndHierarchy, getVotingTrends);
 
 /**
  * @swagger
@@ -133,7 +134,7 @@ router.get('/', getVotingTrends);
  *       404:
  *         description: Voting trend not found
  */
-router.get('/:id', getVotingTrendById);
+router.get('/:id', getUserPermissionsAndHierarchy, getVotingTrendById);
 
 /**
  * @swagger
@@ -246,7 +247,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteVotingTrend);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getTrendsByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getTrendsByBooth);
 
 /**
  * @swagger

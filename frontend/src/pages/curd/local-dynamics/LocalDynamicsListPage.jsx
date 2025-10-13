@@ -35,7 +35,9 @@ export default function LocalDynamicsListPage() {
     const fetchLocalDynamics = async (pageIndex, pageSize) => {
         setLoading(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-dynamics?page=${pageIndex + 1}&limit=${pageSize}`);
+            const token = localStorage.serviceToken;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-dynamics?page=${pageIndex + 1}&limit=${pageSize}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setLocalDynamics(json.data);

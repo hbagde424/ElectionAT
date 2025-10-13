@@ -10,6 +10,7 @@ const {
   getBoothsByYear
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -95,7 +96,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Booth'
  */
-router.get('/', getBooths);
+// Public: optional authentication — attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getBooths);
 
 /**
  * @swagger
@@ -119,7 +121,7 @@ router.get('/', getBooths);
  *       404:
  *         description: Booth not found
  */
-router.get('/:id', getBooth);
+router.get('/:id', getUserPermissionsAndHierarchy, getBooth);
 
 /**
  * @swagger
@@ -232,7 +234,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBooth);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getBoothsByAssembly);
+router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getBoothsByAssembly);
 
 /**
  * @swagger
@@ -265,7 +267,7 @@ router.get('/assembly/:assemblyId', getBoothsByAssembly);
  *       404:
  *         description: Block not found
  */
-router.get('/block/:blockId', getBoothsByBlock);
+router.get('/block/:blockId', getUserPermissionsAndHierarchy, getBoothsByBlock);
 
 /**
  * @swagger
@@ -298,7 +300,7 @@ router.get('/block/:blockId', getBoothsByBlock);
  *       404:
  *         description: Election year not found
  */
-router.get('/year/:yearId', getBoothsByYear);
+router.get('/year/:yearId', getUserPermissionsAndHierarchy, getBoothsByYear);
 
 /**
  * @swagger

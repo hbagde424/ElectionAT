@@ -71,7 +71,9 @@ const CandidateListPage = () => {
             }
 
             const query = globalFilter && globalFilter.trim() !== '' ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`, { headers });
             const json = await res.json();
 
             if (json.success) {
@@ -93,16 +95,18 @@ const CandidateListPage = () => {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const [
                 statesRes, divisionsRes, parliamentsRes,
                 assembliesRes, partiesRes, electionYearsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers })
             ]);
 
             const [
@@ -390,7 +394,9 @@ const CandidateListPage = () => {
 
     const fetchAllCandidatesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;

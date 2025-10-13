@@ -27,6 +27,24 @@ exports.getBoothDemographics = async (req, res, next) => {
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
+    // Merge userHierarchy into filters if present (most-specific precedence)
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) {
+        query = query.where('booth_id').equals(uh.booth._id);
+      } else if (uh.block) {
+        query = query.where('block_id').equals(uh.block._id);
+      } else if (uh.assembly) {
+        query = query.where('assembly_id').equals(uh.assembly._id);
+      } else if (uh.parliament) {
+        query = query.where('parliament_id').equals(uh.parliament._id);
+      } else if (uh.division) {
+        query = query.where('division_id').equals(uh.division._id);
+      } else if (uh.state) {
+        query = query.where('state_id').equals(uh.state._id);
+      }
+    }
+
     // Search functionality
     if (req.query.search) {
       query = query.populate({
@@ -101,6 +119,22 @@ exports.getBoothDemographic = async (req, res, next) => {
         success: false,
         message: 'Booth demographics not found'
       });
+    }
+
+    // Enforce hierarchy for single demographic
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.booth && demographic.booth_id?.toString() !== uh.booth._id.toString()) ||
+        (uh.block && demographic.block_id?.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && demographic.assembly_id?.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && demographic.parliament_id?.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && demographic.division_id?.toString() !== uh.division._id.toString()) ||
+        (uh.state && demographic.state_id?.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({

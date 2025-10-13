@@ -11,6 +11,7 @@ const {
   getWorkStatusStatistics
 } = require('../controllers/workStatusController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -143,7 +144,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WorkStatus'
  */
-router.get('/', getWorkStatuses);
+router.get('/', getUserPermissionsAndHierarchy, getWorkStatuses);
 
 /**
  * @swagger
@@ -175,7 +176,7 @@ router.get('/', getWorkStatuses);
  *                       totalSpent:
  *                         type: number
  */
-router.get('/statistics', getWorkStatusStatistics);
+router.get('/statistics', getUserPermissionsAndHierarchy, getWorkStatusStatistics);
 
 /**
  * @swagger
@@ -199,7 +200,7 @@ router.get('/statistics', getWorkStatusStatistics);
  *       404:
  *         description: Work status not found
  */
-router.get('/:id', getWorkStatus);
+router.get('/:id', getUserPermissionsAndHierarchy, getWorkStatus);
 
 /**
  * @swagger
@@ -312,7 +313,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteWorkStatu
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getWorkStatusesByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getWorkStatusesByBooth);
 
 /**
  * @swagger
@@ -345,7 +346,7 @@ router.get('/booth/:boothId', getWorkStatusesByBooth);
  *       404:
  *         description: Block not found
  */
-router.get('/block/:blockId', getWorkStatusesByBlock);
+router.get('/block/:blockId', getUserPermissionsAndHierarchy, getWorkStatusesByBlock);
 
 /**
  * @swagger
@@ -378,7 +379,7 @@ router.get('/block/:blockId', getWorkStatusesByBlock);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getWorkStatusesByAssembly);
+router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getWorkStatusesByAssembly);
 
 /**
  * @swagger

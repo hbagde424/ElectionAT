@@ -155,13 +155,17 @@ export default function CodingListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const getAuthHeaders = () => {
+                const token = localStorage.serviceToken;
+                return token ? { Authorization: `Bearer ${token}` } : {};
+            };
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() })
             ]);
 
             const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
@@ -220,7 +224,8 @@ export default function CodingListPage() {
                 }
             });
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`);
+            const token = localStorage.serviceToken;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 setCodingList(json.data);
@@ -551,7 +556,8 @@ export default function CodingListPage() {
 
     const fetchAllCodingsForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true`);
+            const token = localStorage.serviceToken;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 return json.data;

@@ -253,6 +253,16 @@ export default function WinningCandidateListPage() {
         });
     };
 
+    // Helper to return Authorization header when a token exists in localStorage
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken;
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
+
     // For entity popups
     const [entityDetails, setEntityDetails] = useState(null);
     const [openEntityModal, setOpenEntityModal] = useState(false);
@@ -266,10 +276,10 @@ export default function WinningCandidateListPage() {
                 candidatesRes,
                 yearsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers: getAuthHeaders() })
             ]);
 
             const [
@@ -312,9 +322,9 @@ export default function WinningCandidateListPage() {
 
             // Fetch all divisions, parliaments, and assemblies initially
             const [divisionsRes, parliamentsRes, assembliesRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() })
             ]);
 
             const [divisionsData, parliamentsData, assembliesData] = await Promise.all([
@@ -390,7 +400,7 @@ export default function WinningCandidateListPage() {
                 }
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?${queryParams.join('&')}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?${queryParams.join('&')}`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 setCandidateList(json.data);
@@ -525,7 +535,7 @@ export default function WinningCandidateListPage() {
                 return;
         }
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 setEntityDetails(json.data);
@@ -556,10 +566,10 @@ export default function WinningCandidateListPage() {
                     <Typography
                         fontWeight="medium"
                         sx={{ cursor: candidate ? 'pointer' : 'default', color: candidate ? 'primary.main' : 'inherit', textDecoration: candidate ? 'underline' : 'none' }}
-                        onClick={async () => {
+                                    onClick={async () => {
                             if (candidate && candidate._id) {
                                 try {
-                                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates/${candidate._id}`);
+                                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates/${candidate._id}`, { headers: getAuthHeaders() });
                                     const json = await res.json();
                                     if (json.success) {
                                         setCandidateDetails(json.data);
@@ -883,7 +893,7 @@ export default function WinningCandidateListPage() {
 
     const fetchAllCandidatesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 return json.data;

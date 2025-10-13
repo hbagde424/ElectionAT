@@ -10,6 +10,7 @@ const {
   getCodingsByType
 } = require('../controllers/codingController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -100,7 +101,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Coding'
  */
-router.get('/', getCodings);
+router.get('/', getUserPermissionsAndHierarchy, getCodings);
 
 /**
  * @swagger
@@ -124,7 +125,7 @@ router.get('/', getCodings);
  *       404:
  *         description: Coding entry not found
  */
-router.get('/:id', getCoding);
+router.get('/:id', getUserPermissionsAndHierarchy, getCoding);
 
 /**
  * @swagger

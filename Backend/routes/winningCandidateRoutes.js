@@ -15,6 +15,7 @@ const {
   getWinningCandidateStatsForMap
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -107,7 +108,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-router.get('/', getWinningCandidates);
+router.get('/', getUserPermissionsAndHierarchy, getWinningCandidates);
 
 /**
  * @swagger

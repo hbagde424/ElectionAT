@@ -30,6 +30,25 @@ exports.getWorkStatuses = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ start_date: -1 });
 
+    // If optional-auth middleware attached a user hierarchy, restrict results accordingly
+    // unless the user is superAdmin. Precedence: booth -> block -> assembly -> parliament -> division -> state
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      if (h.booth_id) {
+        query = query.where('booth_id').equals(h.booth_id);
+      } else if (h.block_id) {
+        query = query.where('block_id').equals(h.block_id);
+      } else if (h.assembly_id) {
+        query = query.where('assembly_id').equals(h.assembly_id);
+      } else if (h.parliament_id) {
+        query = query.where('parliament_id').equals(h.parliament_id);
+      } else if (h.division_id) {
+        query = query.where('division_id').equals(h.division_id);
+      } else if (h.state_id) {
+        query = query.where('state_id').equals(h.state_id);
+      }
+    }
+
     // Search functionality
     if (req.query.search) {
       query = query.find({
@@ -223,6 +242,30 @@ exports.getWorkStatus = async (req, res, next) => {
       });
     }
 
+    // If hierarchy was attached and user is not superAdmin, ensure resource is in-scope
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      // If hierarchy contains specific IDs, check against the workStatus fields
+      if (h.booth_id && String(workStatus.booth_id) !== String(h.booth_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.block_id && String(workStatus.block_id) !== String(h.block_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.assembly_id && String(workStatus.assembly_id) !== String(h.assembly_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.parliament_id && String(workStatus.parliament_id) !== String(h.parliament_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.division_id && String(workStatus.division_id) !== String(h.division_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.state_id && String(workStatus.state_id) !== String(h.state_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: workStatus
@@ -339,6 +382,31 @@ exports.getWorkStatusesByBooth = async (req, res, next) => {
       });
     }
 
+    // If hierarchy attached and user not superAdmin, ensure booth is in-scope
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      if (h.booth_id && String(h.booth_id) !== String(req.params.boothId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      // If hierarchy is at block level, ensure booth.block matches (requires lookup)
+      if (h.block_id && String(h.block_id) !== String(booth.block_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      // If hierarchy is at assembly/parliament/division/state and booth belongs to that, allow — otherwise deny conservatively
+      if (h.assembly_id && String(h.assembly_id) !== String(booth.assembly_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.parliament_id && String(h.parliament_id) !== String(booth.parliament_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.division_id && String(h.division_id) !== String(booth.division_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.state_id && String(h.state_id) !== String(booth.state_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+    }
+
     const workStatuses = await WorkStatus.find({ booth_id: req.params.boothId })
       .sort({ start_date: -1 })
       .populate('state_id', 'name')
@@ -373,6 +441,26 @@ exports.getWorkStatusesByBlock = async (req, res, next) => {
       });
     }
 
+    // If hierarchy attached and user not superAdmin, ensure block is in-scope
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      if (h.block_id && String(h.block_id) !== String(req.params.blockId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.assembly_id && String(h.assembly_id) !== String(block.assembly_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.parliament_id && String(h.parliament_id) !== String(block.parliament_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.division_id && String(h.division_id) !== String(block.division_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.state_id && String(h.state_id) !== String(block.state_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+    }
+
     const workStatuses = await WorkStatus.find({ block_id: req.params.blockId })
       .sort({ start_date: -1 })
       .populate('booth_id', 'name booth_number')
@@ -402,6 +490,23 @@ exports.getWorkStatusesByAssembly = async (req, res, next) => {
         success: false,
         message: 'Assembly not found'
       });
+    }
+
+    // If hierarchy attached and user not superAdmin, ensure assembly is in-scope
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      if (h.assembly_id && String(h.assembly_id) !== String(req.params.assemblyId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.parliament_id && String(h.parliament_id) !== String(assembly.parliament_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.division_id && String(h.division_id) !== String(assembly.division_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (h.state_id && String(h.state_id) !== String(assembly.state_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
     }
 
     const workStatuses = await WorkStatus.find({ assembly_id: req.params.assemblyId })

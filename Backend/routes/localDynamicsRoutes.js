@@ -7,6 +7,7 @@ const {
   deleteLocalDynamics
 } = require('../controllers/localDynamicsController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/LocalDynamics'
  */
-router.get('/', getLocalDynamics);
+router.get('/', getUserPermissionsAndHierarchy, getLocalDynamics);
 
 /**
  * @swagger
@@ -80,7 +81,7 @@ router.get('/', getLocalDynamics);
  *       404:
  *         description: Record not found
  */
-router.get('/booth/:boothId', getLocalDynamicsByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getLocalDynamicsByBooth);
 
 /**
  * @swagger

@@ -41,6 +41,9 @@ export default function BoothDemographicsListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
             const [
                 boothsRes,
                 statesRes,
@@ -49,12 +52,12 @@ export default function BoothDemographicsListPage() {
                 assembliesRes,
                 blocksRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers })
             ]);
 
             const [
@@ -89,7 +92,9 @@ export default function BoothDemographicsListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setDemographics(json.data);
@@ -340,7 +345,9 @@ export default function BoothDemographicsListPage() {
 
     const fetchAllDemographicsForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;

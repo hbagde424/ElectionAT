@@ -10,6 +10,7 @@ const {
   getCandidatesByCaste
 } = require('../controllers/candidateController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 const upload = require('../config/candidateUpload');
 
 const router = express.Router();
@@ -76,7 +77,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Candidate'
  */
-router.get('/', getCandidates);
+router.get('/', getUserPermissionsAndHierarchy, getCandidates);
 
 /**
  * @swagger
@@ -100,7 +101,7 @@ router.get('/', getCandidates);
  *       404:
  *         description: Candidate not found
  */
-router.get('/:id', getCandidate);
+router.get('/:id', getUserPermissionsAndHierarchy, getCandidate);
 
 /**
  * @swagger

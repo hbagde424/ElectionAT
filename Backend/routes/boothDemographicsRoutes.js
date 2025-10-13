@@ -9,6 +9,7 @@ const {
   getDemographicsByAssembly
 } = require('../controllers/boothDemographicsController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -220,7 +221,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothDemographics'
  */
-router.get('/', getBoothDemographics);
+router.get('/', getUserPermissionsAndHierarchy, getBoothDemographics);
 
 /**
  * @swagger

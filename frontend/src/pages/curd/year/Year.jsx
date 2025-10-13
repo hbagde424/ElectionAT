@@ -43,6 +43,16 @@ export default function ElectionYearsListPage() {
         return () => clearTimeout(handler);
     }, [searchInput]);
 
+    // Helper to return Authorization header when a token exists
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken;
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
+
     useEffect(() => {
         setSearchInput(globalFilter || '');
     }, [globalFilter]);
@@ -51,7 +61,7 @@ export default function ElectionYearsListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 setElectionYears(json.data);
@@ -208,7 +218,7 @@ export default function ElectionYearsListPage() {
 
     const fetchAllElectionYearsForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?all=true`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?all=true`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 return json.data;

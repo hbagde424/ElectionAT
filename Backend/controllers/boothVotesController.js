@@ -44,6 +44,24 @@ exports.getBoothVotes = async (req, res, next) => {
     // Debug: log incoming query params
     console.log('Incoming booth-votes query:', req.query);
 
+    // Apply user hierarchy scoping when available (booth->block->assembly->parliament->division->state)
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const uh = req.userHierarchy;
+      if (uh.booth && uh.booth._id) {
+        query = query.where('booth_id').equals(uh.booth._id);
+      } else if (uh.block && uh.block._id) {
+        query = query.where('block_id').equals(uh.block._id);
+      } else if (uh.assembly && uh.assembly._id) {
+        query = query.where('assembly_id').equals(uh.assembly._id);
+      } else if (uh.parliament && uh.parliament._id) {
+        query = query.where('parliament_id').equals(uh.parliament._id);
+      } else if (uh.division && uh.division._id) {
+        query = query.where('division_id').equals(uh.division._id);
+      } else if (uh.state && uh.state._id) {
+        query = query.where('state_id').equals(uh.state._id);
+      }
+    }
+
 
     // Helper function for ObjectId or name lookup (normalize dashes to spaces)
     const handleIdOrName = async (param, model, idField, nameField = 'name') => {
@@ -222,6 +240,29 @@ exports.getBoothVote = async (req, res, next) => {
         success: false,
         message: 'Vote record not found'
       });
+    }
+
+    // If userHierarchy present and user not superAdmin, ensure requested vote is within scope
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const uh = req.userHierarchy;
+      if (uh.booth && uh.booth._id && vote.booth && String(uh.booth._id) !== String(vote.booth._id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (uh.block && uh.block._id && vote.block && String(uh.block._id) !== String(vote.block._id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (uh.assembly && uh.assembly._id && vote.assembly && String(uh.assembly._id) !== String(vote.assembly._id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (uh.parliament && uh.parliament._id && vote.parliament && String(uh.parliament._id) !== String(vote.parliament._id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (uh.division && uh.division._id && vote.division && String(uh.division._id) !== String(vote.division._id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (uh.state && uh.state._id && vote.state && String(uh.state._id) !== String(vote.state._id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
     }
 
     res.status(200).json({

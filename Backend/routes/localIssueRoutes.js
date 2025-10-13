@@ -9,6 +9,7 @@ const {
   getLocalIssuesByStatus
 } = require('../controllers/localIssueController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -116,7 +117,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/LocalIssue'
  */
-router.get('/', getLocalIssues);
+router.get('/', getUserPermissionsAndHierarchy, getLocalIssues);
 
 /**
  * @swagger
@@ -140,7 +141,7 @@ router.get('/', getLocalIssues);
  *       404:
  *         description: Local issue not found
  */
-router.get('/:id', getLocalIssue);
+router.get('/:id', getUserPermissionsAndHierarchy, getLocalIssue);
 
 /**
  * @swagger
@@ -253,7 +254,7 @@ router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteLoca
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getLocalIssuesByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getLocalIssuesByBooth);
 
 /**
  * @swagger

@@ -10,6 +10,7 @@ const {
   toggleBlockActive
 } = require('../controllers/blockController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -101,7 +102,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Block'
  */
-router.get('/', getBlocks);
+// Public: optional authentication — attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getBlocks);
 
 /**
  * @swagger
@@ -125,7 +127,7 @@ router.get('/', getBlocks);
  *       404:
  *         description: Block not found
  */
-router.get('/:id', getBlock);
+router.get('/:id', getUserPermissionsAndHierarchy, getBlock);
 
 /**
  * @swagger
@@ -239,7 +241,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBlock);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getBlocksByAssembly);
+router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getBlocksByAssembly);
 
 /**
  * @swagger
@@ -272,7 +274,7 @@ router.get('/assembly/:assemblyId', getBlocksByAssembly);
  *       404:
  *         description: Parliament not found
  */
-router.get('/parliament/:parliamentId', getBlocksByParliament);
+router.get('/parliament/:parliamentId', getUserPermissionsAndHierarchy, getBlocksByParliament);
 
 /**
  * @swagger

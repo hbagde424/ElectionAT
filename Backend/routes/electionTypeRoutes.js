@@ -7,6 +7,7 @@ const {
   deleteElectionType
 } = require('../controllers/electionTypeController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/ElectionType'
  */
-router.get('/', getElectionTypes);
+router.get('/', getUserPermissionsAndHierarchy, getElectionTypes);
 
 /**
  * @swagger
@@ -116,7 +117,7 @@ router.get('/', getElectionTypes);
  *       404:
  *         description: Election type not found
  */
-router.get('/:id', getElectionType);
+router.get('/:id', getUserPermissionsAndHierarchy, getElectionType);
 
 /**
  * @swagger

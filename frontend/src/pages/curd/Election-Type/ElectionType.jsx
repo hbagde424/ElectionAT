@@ -41,6 +41,11 @@ export default function ElectionTypesListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const getAuthHeaders = () => {
+                const token = localStorage.getItem('serviceToken');
+                return token ? { Authorization: `Bearer ${token}` } : {};
+            };
+
             const [
                 statesRes, 
                 divisionsRes, 
@@ -49,12 +54,12 @@ export default function ElectionTypesListPage() {
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() })
             ]);
 
             const [
@@ -89,7 +94,8 @@ export default function ElectionTypesListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-types?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-types?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 setElectionTypes(json.data);
@@ -286,7 +292,8 @@ export default function ElectionTypesListPage() {
 
     const fetchAllElectionTypesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-types?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-types?all=true`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 return json.data;

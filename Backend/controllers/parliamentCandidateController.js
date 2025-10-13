@@ -171,6 +171,23 @@ exports.getParliamentCandidates = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ created_at: -1 });
 
+    // Apply optional user hierarchy filtering if provided and user is not superAdmin
+    try {
+      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+        const h = req.userHierarchy;
+        // Parliament-level data: if user has a parliament_id, restrict to it
+        if (h.parliament_id) {
+          query = query.where('parliament_id').equals(h.parliament_id);
+        } else if (h.division_id) {
+          query = query.where('division_id').equals(h.division_id);
+        } else if (h.state_id) {
+          query = query.where('state_id').equals(h.state_id);
+        }
+      }
+    } catch (e) {
+      // ignore malformed hierarchy
+    }
+
     // Search functionality
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' };
@@ -254,6 +271,20 @@ exports.getParliamentCandidate = async (req, res, next) => {
         success: false,
         message: 'Parliament Candidate not found'
       });
+    }
+
+    // Enforce scope for non-superAdmin users
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.parliament_id && candidate.parliament_id && candidate.parliament_id.toString() !== h.parliament_id) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+      if (h.division_id && candidate.division_id && candidate.division_id.toString() !== h.division_id) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+      if (h.state_id && candidate.state_id && candidate.state_id.toString() !== h.state_id) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
     }
 
     const normalized = normalizeCandidateDoc(candidate);

@@ -118,6 +118,18 @@ exports.getEvents = async (req, res, next) => {
       }
     }
 
+    // Apply user hierarchy restriction when an authenticated user is present
+    // Precedence: booth -> block -> assembly -> parliament -> division -> state
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.booth_id) query = query.where('booth_id').equals(h.booth_id);
+      else if (h.block_id) query = query.where('block_id').equals(h.block_id);
+      else if (h.assembly_id) query = query.where('assembly_id').equals(h.assembly_id);
+      else if (h.parliament_id) query = query.where('parliament_id').equals(h.parliament_id);
+      else if (h.division_id) query = query.where('division_id').equals(h.division_id);
+      else if (h.state_id) query = query.where('state_id').equals(h.state_id);
+    }
+
     // Filter by date range
     if (req.query.startDate) {
       const startDate = new Date(req.query.startDate);
@@ -163,6 +175,21 @@ exports.getEvent = async (req, res, next) => {
         success: false,
         message: 'Event not found'
       });
+    }
+
+    // Enforce user hierarchy: only allow access if event is within user's scope
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      const outOfScope = (h.booth_id && event.booth_id && event.booth_id.toString() !== h.booth_id.toString()) ||
+        (h.block_id && event.block_id && event.block_id.toString() !== h.block_id.toString()) ||
+        (h.assembly_id && event.assembly_id && event.assembly_id.toString() !== h.assembly_id.toString()) ||
+        (h.parliament_id && event.parliament_id && event.parliament_id.toString() !== h.parliament_id.toString()) ||
+        (h.division_id && event.division_id && event.division_id.toString() !== h.division_id.toString()) ||
+        (h.state_id && event.state_id && event.state_id.toString() !== h.state_id.toString());
+
+      if (outOfScope) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
     }
 
     res.status(200).json({
@@ -344,6 +371,20 @@ exports.getEventsByBooth = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('booth_id', 'booth_number name')
       .sort({ start_date: -1 });
+    // If user present and not superAdmin, ensure booth is within their scope
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.booth_id && h.booth_id.toString() !== req.params.boothId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+      if (h.block_id && h.block_id.toString() !== (booth.block_id?.toString())) {
+        // Note: booth variable not defined here; fetch booth for validation
+        const boothDoc = await Booth.findById(req.params.boothId);
+        if (boothDoc && boothDoc.block_id && h.block_id.toString() !== boothDoc.block_id.toString()) {
+          return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -375,6 +416,27 @@ exports.getEventsByType = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('booth_id', 'booth_number name')
       .sort({ start_date: -1 });
+    // Apply hierarchy filter when applicable
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      const baseFilter = { type: req.params.type };
+      if (h.booth_id) baseFilter.booth_id = h.booth_id;
+      else if (h.block_id) baseFilter.block_id = h.block_id;
+      else if (h.assembly_id) baseFilter.assembly_id = h.assembly_id;
+      else if (h.parliament_id) baseFilter.parliament_id = h.parliament_id;
+      else if (h.division_id) baseFilter.division_id = h.division_id;
+      else if (h.state_id) baseFilter.state_id = h.state_id;
+
+      const eventsScoped = await Event.find(baseFilter)
+        .populate('division_id', 'name')
+        .populate('parliament_id', 'name')
+        .populate('assembly_id', 'name')
+        .populate('block_id', 'name')
+        .populate('booth_id', 'booth_number name')
+        .sort({ start_date: -1 });
+
+      return res.status(200).json({ success: true, count: eventsScoped.length, data: eventsScoped });
+    }
 
     res.status(200).json({
       success: true,

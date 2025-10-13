@@ -10,18 +10,14 @@ const {
   getGenderStatsForMap
 } = require('../controllers/genderController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
-/**
- *                     total:
-                       type: number
- */
 // Route moved up to avoid conflict with /:id route
 
 /**
  * @swagger
- * components:r
  * tags:
  *   name: Genders
  *   description: Gender statistics management
@@ -102,7 +98,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Gender'
  */
-router.get('/', getGenders);
+router.get('/', getUserPermissionsAndHierarchy, getGenders);
 
 /**
  * @swagger
@@ -146,7 +142,7 @@ router.get('/', getGenders);
  *                     total:
  *                       type: number
  */
-router.get('/stats/:type/:id', getGenderStatsForMap);
+router.get('/stats/:type/:id', getUserPermissionsAndHierarchy, getGenderStatsForMap);
 
 /**
  * @swagger
@@ -170,7 +166,7 @@ router.get('/stats/:type/:id', getGenderStatsForMap);
  *       404:
  *         description: Gender entry not found
  */
-router.get('/:id', getGender);
+router.get('/:id', getUserPermissionsAndHierarchy, getGender);
 
 /**
  * @swagger

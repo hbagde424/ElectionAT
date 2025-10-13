@@ -9,6 +9,7 @@ const {
   getPotentialCandidatesByParty
 } = require('../controllers/potentialCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -85,7 +86,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/PotentialCandidate'
  */
-router.get('/', getPotentialCandidates);
+router.get('/', getUserPermissionsAndHierarchy, getPotentialCandidates);
 
 /**
  * @swagger
@@ -109,7 +110,7 @@ router.get('/', getPotentialCandidates);
  *       404:
  *         description: Potential candidate not found
  */
-router.get('/:id', getPotentialCandidate);
+router.get('/:id', getUserPermissionsAndHierarchy, getPotentialCandidate);
 
 /**
  * @swagger
@@ -222,7 +223,7 @@ router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deletePote
  *       404:
  *         description: Constituency not found
  */
-router.get('/constituency/:constituencyId', getPotentialCandidatesByConstituency);
+router.get('/constituency/:constituencyId', getUserPermissionsAndHierarchy, getPotentialCandidatesByConstituency);
 
 /**
  * @swagger

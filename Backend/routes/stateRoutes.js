@@ -7,6 +7,7 @@ const {
   deleteState
 } = require('../controllers/stateController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -62,7 +63,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/State'
  */
-router.get('/', getStates);
+router.get('/', getUserPermissionsAndHierarchy, getStates);
 
 /**
  * @swagger
@@ -86,7 +87,7 @@ router.get('/', getStates);
  *       404:
  *         description: State not found
  */
-router.get('/:id', getState);
+router.get('/:id', getUserPermissionsAndHierarchy, getState);
 
 /**
  * @swagger

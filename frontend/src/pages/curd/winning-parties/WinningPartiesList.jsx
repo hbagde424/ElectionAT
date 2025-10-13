@@ -199,7 +199,10 @@ const WinningPartyListPage = () => {
                 queryParams.push(`candidate=${appliedFilters.candidate}`);
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties?${queryParams.join('&')}`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties?${queryParams.join('&')}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setWinningParties(json.data);
@@ -214,20 +217,23 @@ const WinningPartyListPage = () => {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
             const [
                 statesRes, divisionsRes, parliamentsRes,
                 assembliesRes, blocksRes, boothsRes,
                 partiesRes, candidatesRes, electionYearsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=10000`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parties?limit=10000`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers })
             ]);
 
             const [

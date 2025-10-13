@@ -71,7 +71,10 @@ export default function PotentialCandidateListPage() {
       if (appliedFilters.year) url += `&election_year_id=${appliedFilters.year}`;
       if (appliedFilters.status) url += `&status=${appliedFilters.status}`;
 
-      const res = await fetch(url);
+  const token = localStorage.getItem('serviceToken');
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
       const json = await res.json();
       if (json.success) {
         setCandidates(json.data);
@@ -89,10 +92,13 @@ export default function PotentialCandidateListPage() {
 
   const fetchReferenceData = async () => {
     try {
+      const token = localStorage.getItem('serviceToken');
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
       const [partiesRes, assembliesRes, electionYearsRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?all=true`)
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, { headers }),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`, { headers }),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years?all=true`, { headers })
       ]);
 
       const partiesJson = await partiesRes.json();

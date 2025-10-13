@@ -9,6 +9,7 @@ const {
   getDistrictsByDivision
 } = require('../controllers/districtController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -84,7 +85,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/District'
  */
-router.get('/', getDistricts);
+router.get('/', getUserPermissionsAndHierarchy, getDistricts);
 
 /**
  * @swagger
@@ -108,7 +109,7 @@ router.get('/', getDistricts);
  *       404:
  *         description: District not found
  */
-router.get('/:id', getDistrict);
+router.get('/:id', getUserPermissionsAndHierarchy, getDistrict);
 
 /**
  * @swagger

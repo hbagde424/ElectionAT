@@ -158,6 +158,16 @@ export default function WorkStatusListPage() {
         });
     };
 
+    // Helper to add Authorization header when token exists
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken;
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
+
     const handleWorkTypeChange = (event) => {
         const workType = event.target.value;
         setTempFilters({
@@ -200,11 +210,11 @@ export default function WorkStatusListPage() {
     const fetchReferenceData = async () => {
         try {
             // Fetch states first
-            const statesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/states`);
+            const statesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() });
             const statesData = await statesRes.json();
 
             // Fetch divisions next to see their structure
-            const divisionsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`);
+            const divisionsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() });
             const divisionsData = await divisionsRes.json();
 
             // Fetch the rest
@@ -215,11 +225,11 @@ export default function WorkStatusListPage() {
                 boothsRes,
                 districtsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/districts`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/districts`, { headers: getAuthHeaders() })
             ]);
 
             const [
@@ -290,7 +300,7 @@ export default function WorkStatusListPage() {
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
 
             const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status${queryString}`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status${queryString}`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 setWorkStatuses(json.data);
@@ -655,7 +665,7 @@ export default function WorkStatusListPage() {
 
     const fetchAllWorkStatusesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true`);
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 return json.data;

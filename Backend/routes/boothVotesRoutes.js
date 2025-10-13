@@ -11,6 +11,7 @@ const {
   getVotesByElectionYear
 } = require('../controllers/boothVotesController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -111,7 +112,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothVotes'
  */
-router.get('/', getBoothVotes);
+router.get('/', getUserPermissionsAndHierarchy, getBoothVotes);
 
 /**
  * @swagger
@@ -135,7 +136,7 @@ router.get('/', getBoothVotes);
  *       404:
  *         description: Vote record not found
  */
-router.get('/:id', getBoothVote);
+router.get('/:id', getUserPermissionsAndHierarchy, getBoothVote);
 
 /**
  * @swagger
@@ -248,7 +249,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBoothVote);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getVotesByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getVotesByBooth);
 
 /**
  * @swagger

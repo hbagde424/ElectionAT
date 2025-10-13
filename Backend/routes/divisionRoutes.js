@@ -8,6 +8,7 @@ const {
   getDivisionsByState
 } = require('../controllers/divisionController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -68,7 +69,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Division'
  */
-router.get('/', getDivisions);
+router.get('/', getUserPermissionsAndHierarchy, getDivisions);
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ router.get('/', getDivisions);
  *       404:
  *         description: Division not found
  */
-router.get('/:id', getDivision);
+router.get('/:id', getUserPermissionsAndHierarchy, getDivision);
 
 /**
  * @swagger

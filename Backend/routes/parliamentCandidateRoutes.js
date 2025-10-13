@@ -9,6 +9,7 @@ const {
   getParliamentCandidateStatsByParliament
 } = require('../controllers/parliamentCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -91,7 +92,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/ParliamentCandidate'
  */
-router.get('/', getParliamentCandidates);
+router.get('/', getUserPermissionsAndHierarchy, getParliamentCandidates);
 
 /**
  * @swagger
@@ -121,7 +122,7 @@ router.get('/', getParliamentCandidates);
  *                     resultsByParty:
  *                       type: array
  */
-router.get('/stats/overview', getParliamentCandidateStats);
+router.get('/stats/overview', getUserPermissionsAndHierarchy, getParliamentCandidateStats);
 
 /**
  * @swagger
@@ -162,7 +163,7 @@ router.get('/stats/overview', getParliamentCandidateStats);
  *       404:
  *         description: No data found for this parliament
  */
-router.get('/stats/parliament/:parliamentId', getParliamentCandidateStatsByParliament);
+router.get('/stats/parliament/:parliamentId', getUserPermissionsAndHierarchy, getParliamentCandidateStatsByParliament);
 
 // Debug endpoint to check what data exists
 router.get('/debug/data', async (req, res) => {
@@ -205,7 +206,7 @@ router.get('/debug/data', async (req, res) => {
  *       404:
  *         description: Parliament Candidate not found
  */
-router.get('/:id', getParliamentCandidate);
+router.get('/:id', getUserPermissionsAndHierarchy, getParliamentCandidate);
 
 /**
  * @swagger

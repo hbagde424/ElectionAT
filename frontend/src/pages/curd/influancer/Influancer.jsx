@@ -192,6 +192,8 @@ export default function InfluencersListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.serviceToken;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const [
                 statesRes,
                 divisionsRes,
@@ -201,13 +203,13 @@ export default function InfluencersListPage() {
                 blocksRes,
                 boothsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/districts`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/districts`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers })
             ]);
 
             const [
@@ -622,7 +624,9 @@ export default function InfluencersListPage() {
 
     const fetchAllInfluencersForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true`);
+            const token = localStorage.serviceToken;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;

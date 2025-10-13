@@ -79,6 +79,21 @@ exports.getDistricts = async (req, res, next) => {
           });
         }
       }
+
+      // Apply user hierarchy restriction when an authenticated user is present
+      // Precedence: booth -> block -> assembly -> parliament -> division -> state
+      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+        const h = req.userHierarchy;
+        if (h.assembly_id) {
+          query = query.where('assembly_id').equals(h.assembly_id);
+        } else if (h.parliament_id) {
+          query = query.where('parliament_id').equals(h.parliament_id);
+        } else if (h.division_id) {
+          query = query.where('division_id').equals(h.division_id);
+        } else if (h.state_id) {
+          query = query.where('state_id').equals(h.state_id);
+        }
+      }
     }
 
     const districts = await query.skip(skip).limit(limit).exec();
@@ -130,6 +145,19 @@ exports.getDistrict = async (req, res, next) => {
         success: false,
         message: 'District not found'
       });
+    }
+
+    // Enforce user hierarchy: only allow access if district is within user's scope
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      const outOfScope = (h.assembly_id && district.assembly_id && district.assembly_id.toString() !== h.assembly_id.toString()) ||
+        (h.parliament_id && district.parliament_id && district.parliament_id.toString() !== h.parliament_id.toString()) ||
+        (h.division_id && district.division_id && district.division_id.toString() !== h.division_id.toString()) ||
+        (h.state_id && district.state_id && district.state_id.toString() !== h.state_id.toString());
+
+      if (outOfScope) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
     }
 
     res.status(200).json({
@@ -340,6 +368,19 @@ exports.getDistrictsByState = async (req, res, next) => {
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
 
+    // Enforce user hierarchy for state-scoped listing
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.state_id && h.state_id.toString() !== req.params.stateId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+      if (h.division_id) {
+        const division = await Division.findById(h.division_id);
+        if (!division || division.state_id.toString() !== req.params.stateId) {
+          return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -371,6 +412,17 @@ exports.getDistrictsByDivision = async (req, res, next) => {
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
 
+    // Enforce user hierarchy for division-scoped listing
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.division_id && h.division_id.toString() !== req.params.divisionId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+      if (h.state_id && h.state_id.toString() !== (districts[0]?.state_id?.toString())) {
+        // If user's scope is a different state, forbid
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+    }
 
     res.status(200).json({
       success: true,

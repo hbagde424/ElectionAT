@@ -39,11 +39,9 @@ export default function StatesListPage() {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers });
             const json = await res.json();
             if (json.success) setUsers(json.data);
         } catch (error) {
@@ -55,7 +53,10 @@ export default function StatesListPage() {
         setLoading(true);
         try {
             const query = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setStates(json.data);
@@ -223,7 +224,10 @@ export default function StatesListPage() {
 
     const fetchAllStatesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;

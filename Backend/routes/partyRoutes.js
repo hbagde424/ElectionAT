@@ -7,6 +7,7 @@ const {
   deleteParty
 } = require('../controllers/partyController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Party'
  */
-router.get('/', getParties);
+router.get('/', getUserPermissionsAndHierarchy, getParties);
 
 /**
  * @swagger
@@ -64,7 +65,7 @@ router.get('/', getParties);
  *       404:
  *         description: Party not found
  */
-router.get('/:id', getParty);
+router.get('/:id', getUserPermissionsAndHierarchy, getParty);
 
 /**
  * @swagger

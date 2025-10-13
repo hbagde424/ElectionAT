@@ -9,6 +9,7 @@ const {
   getEventsByType
 } = require('../controllers/eventController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -117,7 +118,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Event'
  */
-router.get('/', getEvents);
+// Public: optional authentication — attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getEvents);
 
 /**
  * @swagger
@@ -141,7 +143,7 @@ router.get('/', getEvents);
  *       404:
  *         description: Event not found
  */
-router.get('/:id', getEvent);
+router.get('/:id', getUserPermissionsAndHierarchy, getEvent);
 
 /**
  * @swagger
@@ -255,7 +257,7 @@ router.delete('/:id', protect, authorize('superAdmin', 'organizer'), deleteEvent
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getEventsByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getEventsByBooth);
 
 /**
  * @swagger
@@ -289,7 +291,7 @@ router.get('/booth/:boothId', getEventsByBooth);
  *       400:
  *         description: Invalid event type
  */
-router.get('/type/:type', getEventsByType);
+router.get('/type/:type', getUserPermissionsAndHierarchy, getEventsByType);
 
 /**
  * @swagger

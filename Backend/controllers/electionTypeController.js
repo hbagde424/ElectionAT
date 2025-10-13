@@ -65,6 +65,17 @@ exports.getElectionTypes = async (req, res, next) => {
       query = query.where('booth_id').equals(req.query.booth);
     }
 
+    // Apply user hierarchy restriction when an authenticated user is present
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      if (h.booth_id) query = query.where('booth_id').equals(h.booth_id);
+      else if (h.block_id) query = query.where('block_id').equals(h.block_id);
+      else if (h.assembly_id) query = query.where('assembly_id').equals(h.assembly_id);
+      else if (h.parliament_id) query = query.where('parliament_id').equals(h.parliament_id);
+      else if (h.division_id) query = query.where('division_id').equals(h.division_id);
+      else if (h.state_id) query = query.where('state_id').equals(h.state_id);
+    }
+
     const electionTypes = await query.skip(skip).limit(limit).exec();
     const total = await ElectionType.countDocuments(query.getFilter());
 
@@ -101,6 +112,21 @@ exports.getElectionType = async (req, res, next) => {
         success: false,
         message: 'Election type not found'
       });
+    }
+
+    // Enforce user hierarchy for single election type
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      const outOfScope = (h.booth_id && electionType.booth_id && electionType.booth_id.toString() !== h.booth_id.toString()) ||
+        (h.block_id && electionType.block_id && electionType.block_id.toString() !== h.block_id.toString()) ||
+        (h.assembly_id && electionType.assembly_id && electionType.assembly_id.toString() !== h.assembly_id.toString()) ||
+        (h.parliament_id && electionType.parliament_id && electionType.parliament_id.toString() !== h.parliament_id.toString()) ||
+        (h.division_id && electionType.division_id && electionType.division_id.toString() !== h.division_id.toString()) ||
+        (h.state_id && electionType.state_id && electionType.state_id.toString() !== h.state_id.toString());
+
+      if (outOfScope) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
     }
 
     res.status(200).json({
