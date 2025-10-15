@@ -220,26 +220,26 @@ export default function GovernmentsListPage() {
 
             // Add hierarchy-based filtering
             if (userHierarchy) {
-                const highestLevel = getUserHighestLevel();
-                if (highestLevel) {
-                    switch (highestLevel.level) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
                         case 'state':
-                            query += `&state_id=${highestLevel.value}`;
+                            query += `&state=${userHierarchy.state}`;
                             break;
                         case 'division':
-                            query += `&division_id=${highestLevel.value}`;
+                            query += `&division=${userHierarchy.division}`;
                             break;
                         case 'parliament':
-                            query += `&parliament_id=${highestLevel.value}`;
+                            query += `&parliament=${userHierarchy.parliament}`;
                             break;
                         case 'assembly':
-                            query += `&assembly_id=${highestLevel.value}`;
+                            query += `&assembly=${userHierarchy.assembly}`;
                             break;
                         case 'block':
-                            query += `&block_id=${highestLevel.value}`;
+                            query += `&block=${userHierarchy.block}`;
                             break;
                         case 'booth':
-                            query += `&booth_id=${highestLevel.value}`;
+                            query += `&booth=${userHierarchy.booth}`;
                             break;
                     }
                 }

@@ -287,26 +287,26 @@ export default function EventListPage() {
 
             // Add hierarchy-based filtering
             if (userHierarchy) {
-                const highestLevel = getUserHighestLevel();
-                if (highestLevel) {
-                    switch (highestLevel.level) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
                         case 'state':
-                            query += `&state_id=${highestLevel.value}`;
+                            query += `&state_id=${userHierarchy.state}`;
                             break;
                         case 'division':
-                            query += `&division_id=${highestLevel.value}`;
+                            query += `&division_id=${userHierarchy.division}`;
                             break;
                         case 'parliament':
-                            query += `&parliament_id=${highestLevel.value}`;
+                            query += `&parliament_id=${userHierarchy.parliament}`;
                             break;
                         case 'assembly':
-                            query += `&assembly_id=${highestLevel.value}`;
+                            query += `&assembly_id=${userHierarchy.assembly}`;
                             break;
                         case 'block':
-                            query += `&block_id=${highestLevel.value}`;
+                            query += `&block_id=${userHierarchy.block}`;
                             break;
                         case 'booth':
-                            query += `&booth_id=${highestLevel.value}`;
+                            query += `&booth_id=${userHierarchy.booth}`;
                             break;
                     }
                 }

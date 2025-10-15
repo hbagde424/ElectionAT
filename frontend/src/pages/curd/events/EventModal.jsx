@@ -75,8 +75,8 @@ export default function EventModal({
             return;
         }
 
-        const highestLevel = getUserHighestLevel();
-        if (!highestLevel) {
+        const highest = getUserHighestLevel();
+        if (!highest) {
             // No specific level - show all data
             setHierarchyFilteredStates(states);
             setHierarchyFilteredDivisions(divisions);
@@ -88,54 +88,54 @@ export default function EventModal({
         }
 
         // Filter based on user's highest access level
-        switch (highestLevel.level) {
+        switch (highest) {
             case 'state':
-                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.value));
-                setHierarchyFilteredDivisions(divisions.filter(d => d.state_id?._id === highestLevel.value));
-                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?.state_id?._id === highestLevel.value));
-                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?.state_id?._id === highestLevel.value));
-                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
-                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => (d.state_id?._id || d.state_id) === userHierarchy.state));
+                setHierarchyFilteredParliaments(parliaments.filter(p => (p.state_id?._id || p.state_id) === userHierarchy.state));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => (a.state_id?._id || a.state_id) === userHierarchy.state));
+                setHierarchyFilteredBlocks(blocks.filter(b => (b.state_id?._id || b.state_id) === userHierarchy.state));
+                setHierarchyFilteredBooths(booths.filter(booth => (booth.state_id?._id || booth.state_id) === userHierarchy.state));
                 break;
             case 'division':
-                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
-                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.value));
-                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?._id === highestLevel.value));
-                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?._id === highestLevel.value));
-                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
-                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => (p.division_id?._id || p.division_id) === userHierarchy.division));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => (a.division_id?._id || a.division_id) === userHierarchy.division));
+                setHierarchyFilteredBlocks(blocks.filter(b => (b.division_id?._id || b.division_id) === userHierarchy.division));
+                setHierarchyFilteredBooths(booths.filter(booth => (booth.division_id?._id || booth.division_id) === userHierarchy.division));
                 break;
             case 'parliament':
-                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
-                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
-                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.value));
-                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === highestLevel.value));
-                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?._id === highestLevel.value));
-                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?._id === highestLevel.value));
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => (a.parliament_id?._id || a.parliament_id) === userHierarchy.parliament));
+                setHierarchyFilteredBlocks(blocks.filter(b => (b.parliament_id?._id || b.parliament_id) === userHierarchy.parliament));
+                setHierarchyFilteredBooths(booths.filter(booth => (booth.parliament_id?._id || booth.parliament_id) === userHierarchy.parliament));
                 break;
             case 'assembly':
-                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
-                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
-                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
-                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.value));
-                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?._id === highestLevel.value));
-                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?._id === highestLevel.value));
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === userHierarchy.assembly));
+                setHierarchyFilteredBlocks(blocks.filter(b => (b.assembly_id?._id || b.assembly_id) === userHierarchy.assembly));
+                setHierarchyFilteredBooths(booths.filter(booth => (booth.assembly_id?._id || booth.assembly_id) === userHierarchy.assembly));
                 break;
             case 'block':
-                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
-                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
-                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
-                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
-                setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.value));
-                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?._id === highestLevel.value));
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === userHierarchy.assembly));
+                setHierarchyFilteredBlocks(blocks.filter(b => b._id === userHierarchy.block));
+                setHierarchyFilteredBooths(booths.filter(booth => (booth.block_id?._id || booth.block_id) === userHierarchy.block));
                 break;
             case 'booth':
-                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
-                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
-                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
-                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
-                setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.block_id));
-                setHierarchyFilteredBooths(booths.filter(booth => booth._id === highestLevel.value));
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === userHierarchy.assembly));
+                setHierarchyFilteredBlocks(blocks.filter(b => b._id === userHierarchy.block));
+                setHierarchyFilteredBooths(booths.filter(booth => booth._id === userHierarchy.booth));
                 break;
             default:
                 setHierarchyFilteredStates(states);
