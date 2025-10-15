@@ -7,6 +7,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 
 const electionTypes = ['General', 'Bye', 'Midterm', 'Special'];
 
@@ -25,6 +26,47 @@ export default function WinningCandidateModal({
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
+
+    // Apply hierarchy constraints to base data
+    const getHierarchyConstrained = () => {
+        if (!userHierarchy) {
+            return { s: states, d: divisions, p: parliaments, a: assemblies };
+        }
+        const highest = getUserHighestLevel();
+        switch (highest) {
+            case 'state':
+                return {
+                    s: states.filter(x => x._id === userHierarchy.state),
+                    d: divisions.filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    p: parliaments.filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    a: assemblies.filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state)
+                };
+            case 'division':
+                return {
+                    s: states.filter(x => x._id === userHierarchy.state),
+                    d: divisions.filter(x => x._id === userHierarchy.division),
+                    p: parliaments.filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    a: assemblies.filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division)
+                };
+            case 'parliament':
+                return {
+                    s: states.filter(x => x._id === userHierarchy.state),
+                    d: divisions.filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    p: parliaments.filter(x => x._id === userHierarchy.parliament),
+                    a: assemblies.filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament)
+                };
+            case 'assembly':
+                return {
+                    s: states.filter(x => x._id === userHierarchy.state),
+                    d: divisions.filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    p: parliaments.filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament),
+                    a: assemblies.filter(x => x._id === userHierarchy.assembly)
+                };
+            default:
+                return { s: states, d: divisions, p: parliaments, a: assemblies };
+        }
+    };
 
     const [formData, setFormData] = useState({
         candidate_id: '',
@@ -115,7 +157,8 @@ export default function WinningCandidateModal({
     // State -> Division
     useEffect(() => {
         if (formData.state_id && Array.isArray(divisions)) {
-            const filtered = divisions.filter(division => {
+            const hierarchyFiltered = getHierarchyConstrained();
+            const filtered = hierarchyFiltered.d.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
                 return divisionStateId === formData.state_id;
             });
@@ -145,7 +188,8 @@ export default function WinningCandidateModal({
     // Division -> Parliament
     useEffect(() => {
         if (formData.division_id && Array.isArray(parliaments)) {
-            const filtered = parliaments.filter(parliament => {
+            const hierarchyFiltered = getHierarchyConstrained();
+            const filtered = hierarchyFiltered.p.filter(parliament => {
                 const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
                 return parliamentDivisionId === formData.division_id;
             });
@@ -173,7 +217,8 @@ export default function WinningCandidateModal({
     // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id && Array.isArray(assemblies)) {
-            const filtered = assemblies.filter(assembly => {
+            const hierarchyFiltered = getHierarchyConstrained();
+            const filtered = hierarchyFiltered.a.filter(assembly => {
                 const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
                 return assemblyParliamentId === formData.parliament_id;
             });
@@ -338,7 +383,7 @@ export default function WinningCandidateModal({
                             <Autocomplete
                                 options={parties || []}
                                 getOptionLabel={(option) => option.name || ''}
-                                value={parties.find(p => p._id === formData.party_id) || 
+                                value={parties.find(p => p._id === formData.party_id) ||
                                     (formData.party_id && candidateEntry?.party_id ? { _id: formData.party_id, name: candidateEntry.party_id.name || 'Loading...' } : null)}
                                 onChange={(event, newValue) => {
                                     setFormData(prev => ({ ...prev, party_id: newValue ? newValue._id : '' }));
@@ -614,7 +659,7 @@ export default function WinningCandidateModal({
                                     required
                                 >
                                     <MenuItem value="">Select State</MenuItem>
-                                    {states?.map((state) => (
+                                    {getHierarchyConstrained().s?.map((state) => (
                                         <MenuItem key={state._id} value={state._id}>
                                             {state.name}
                                         </MenuItem>

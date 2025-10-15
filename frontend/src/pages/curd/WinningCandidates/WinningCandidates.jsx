@@ -22,7 +22,7 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
-
+import { usePermissions } from 'contexts/PermissionContext';
 
 import WinningCandidateModal from './WinningCandidatesModal';
 import AlertWinningCandidateDelete from './AlertWinningCandidatesDelete';
@@ -118,6 +118,7 @@ const MAPBOX_THEMES = {
 export default function WinningCandidateListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedCandidate, setSelectedCandidate] = useState(null); // for edit modal
     const [openModal, setOpenModal] = useState(false); // for edit modal
@@ -400,6 +401,33 @@ export default function WinningCandidateListPage() {
                 }
             }
 
+            // hierarchy-based filtering
+            if (userHierarchy) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
+                        case 'state':
+                            queryParams.push(`state_id=${userHierarchy.state}`);
+                            break;
+                        case 'division':
+                            queryParams.push(`division_id=${userHierarchy.division}`);
+                            break;
+                        case 'parliament':
+                            queryParams.push(`parliament_id=${userHierarchy.parliament}`);
+                            break;
+                        case 'assembly':
+                            queryParams.push(`assembly_id=${userHierarchy.assembly}`);
+                            break;
+                        case 'block':
+                            queryParams.push(`block_id=${userHierarchy.block}`);
+                            break;
+                        case 'booth':
+                            queryParams.push(`booth_id=${userHierarchy.booth}`);
+                            break;
+                    }
+                }
+            }
+
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?${queryParams.join('&')}`, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
@@ -566,7 +594,7 @@ export default function WinningCandidateListPage() {
                     <Typography
                         fontWeight="medium"
                         sx={{ cursor: candidate ? 'pointer' : 'default', color: candidate ? 'primary.main' : 'inherit', textDecoration: candidate ? 'underline' : 'none' }}
-                                    onClick={async () => {
+                        onClick={async () => {
                             if (candidate && candidate._id) {
                                 try {
                                     const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates/${candidate._id}`, { headers: getAuthHeaders() });
@@ -995,6 +1023,20 @@ export default function WinningCandidateListPage() {
                 </MainCard>
             </Grid>
             <MainCard content={false}>
+                {/* Access Scope Information */}
+                <Alert severity="info" sx={{ m: 2 }}>
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {(() => {
+                            if (!userHierarchy) return 'You have access to all Winning Candidates data';
+                            const highest = getUserHighestLevel();
+                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                            const label = labelMap[highest] || 'Unknown';
+                            const id = idMap[highest];
+                            return `You have access to Winning Candidates data for ${label}${id ? ` (ID: ${id})` : ''}`;
+                        })()}
+                    </Typography>
+                </Alert>
                 <Stack spacing={2} sx={{ padding: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                         <TextField
