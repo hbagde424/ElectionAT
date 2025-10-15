@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function BoothSurveyModal({
     open,
@@ -33,6 +34,7 @@ export default function BoothSurveyModal({
     blocks,
     refresh
 }) {
+    const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
     const [formData, setFormData] = useState({
         booth_id: '',
         survey_date: new Date(),
@@ -62,6 +64,14 @@ export default function BoothSurveyModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+
+    // Filtered data based on user hierarchy permissions
+    const [hierarchyFilteredStates, setHierarchyFilteredStates] = useState([]);
+    const [hierarchyFilteredDivisions, setHierarchyFilteredDivisions] = useState([]);
+    const [hierarchyFilteredParliaments, setHierarchyFilteredParliaments] = useState([]);
+    const [hierarchyFilteredAssemblies, setHierarchyFilteredAssemblies] = useState([]);
+    const [hierarchyFilteredBlocks, setHierarchyFilteredBlocks] = useState([]);
+    const [hierarchyFilteredBooths, setHierarchyFilteredBooths] = useState([]);
 
     // Status options
     const statusOptions = ['Pending', 'In Progress', 'Completed', 'Verified', 'Rejected'];
@@ -159,6 +169,103 @@ export default function BoothSurveyModal({
         { _id: 'dontknow', name: 'नहीं जानते' }
     ];
 
+    // Filter available options based on user hierarchy
+    useEffect(() => {
+        if (!userHierarchy) {
+            // No restrictions - show all options
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            setHierarchyFilteredBlocks(blocks);
+            setHierarchyFilteredBooths(booths);
+            return;
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            // No restrictions - show all options
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            setHierarchyFilteredBlocks(blocks);
+            setHierarchyFilteredBooths(booths);
+            return;
+        }
+
+        const userEntityId = userHierarchy[highestLevel]?._id || userHierarchy[highestLevel];
+        if (!userEntityId) {
+            // No restrictions - show all options
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            setHierarchyFilteredBlocks(blocks);
+            setHierarchyFilteredBooths(booths);
+            return;
+        }
+
+        // Filter based on user's hierarchy level
+        switch (highestLevel) {
+            case 'state':
+                setHierarchyFilteredStates(states.filter(s => s._id === userEntityId));
+                setHierarchyFilteredDivisions(divisions.filter(d => d.state_id?._id === userEntityId));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p.state_id?._id === userEntityId));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.state_id?._id === userEntityId));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.state_id?._id === userEntityId));
+                setHierarchyFilteredBooths(booths.filter(b => b.state_id?._id === userEntityId));
+                break;
+            case 'division':
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state?._id || s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userEntityId));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?._id === userEntityId));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.division_id?._id === userEntityId));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.division_id?._id === userEntityId));
+                setHierarchyFilteredBooths(booths.filter(b => b.division_id?._id === userEntityId));
+                break;
+            case 'parliament':
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state?._id || s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division?._id || d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userEntityId));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === userEntityId));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.parliament_id?._id === userEntityId));
+                setHierarchyFilteredBooths(booths.filter(b => b.parliament_id?._id === userEntityId));
+                break;
+            case 'assembly':
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state?._id || s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division?._id || d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament?._id || p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === userEntityId));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?._id === userEntityId));
+                setHierarchyFilteredBooths(booths.filter(b => b.assembly_id?._id === userEntityId));
+                break;
+            case 'block':
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state?._id || s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division?._id || d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament?._id || p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === userHierarchy.assembly?._id || a._id === userHierarchy.assembly));
+                setHierarchyFilteredBlocks(blocks.filter(b => b._id === userEntityId));
+                setHierarchyFilteredBooths(booths.filter(b => b.block_id?._id === userEntityId));
+                break;
+            case 'booth':
+                setHierarchyFilteredStates(states.filter(s => s._id === userHierarchy.state?._id || s._id === userHierarchy.state));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === userHierarchy.division?._id || d._id === userHierarchy.division));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === userHierarchy.parliament?._id || p._id === userHierarchy.parliament));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === userHierarchy.assembly?._id || a._id === userHierarchy.assembly));
+                setHierarchyFilteredBlocks(blocks.filter(b => b._id === userHierarchy.block?._id || b._id === userHierarchy.block));
+                setHierarchyFilteredBooths(booths.filter(b => b._id === userEntityId));
+                break;
+            default:
+                setHierarchyFilteredStates(states);
+                setHierarchyFilteredDivisions(divisions);
+                setHierarchyFilteredParliaments(parliaments);
+                setHierarchyFilteredAssemblies(assemblies);
+                setHierarchyFilteredBlocks(blocks);
+                setHierarchyFilteredBooths(booths);
+        }
+    }, [userHierarchy, states, divisions, parliaments, assemblies, blocks, booths]);
+
     useEffect(() => {
         if (survey) {
             setFormData({
@@ -207,7 +314,7 @@ export default function BoothSurveyModal({
     // Filter divisions by state
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions.filter(div => div.state_id?._id === formData.state_id);
+            const filtered = hierarchyFilteredDivisions.filter(div => div.state_id?._id === formData.state_id);
             setFilteredDivisions(filtered);
         } else {
             setFilteredDivisions([]);
@@ -220,12 +327,12 @@ export default function BoothSurveyModal({
                 booth_id: ''
             }));
         }
-    }, [formData.state_id, divisions]);
+    }, [formData.state_id, hierarchyFilteredDivisions]);
 
     // Filter parliaments by division
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = parliaments.filter(par => par.division_id?._id === formData.division_id);
+            const filtered = hierarchyFilteredParliaments.filter(par => par.division_id?._id === formData.division_id);
             setFilteredParliaments(filtered);
         } else {
             setFilteredParliaments([]);
@@ -237,12 +344,12 @@ export default function BoothSurveyModal({
                 booth_id: ''
             }));
         }
-    }, [formData.division_id, parliaments]);
+    }, [formData.division_id, hierarchyFilteredParliaments]);
 
     // Filter assemblies by parliament
     useEffect(() => {
         if (formData.parliament_id) {
-            const filtered = assemblies.filter(asm => asm.parliament_id?._id === formData.parliament_id);
+            const filtered = hierarchyFilteredAssemblies.filter(asm => asm.parliament_id?._id === formData.parliament_id);
             setFilteredAssemblies(filtered);
         } else {
             setFilteredAssemblies([]);
@@ -253,12 +360,12 @@ export default function BoothSurveyModal({
                 booth_id: ''
             }));
         }
-    }, [formData.parliament_id, assemblies]);
+    }, [formData.parliament_id, hierarchyFilteredAssemblies]);
 
     // Filter blocks by assembly
     useEffect(() => {
         if (formData.assembly_id) {
-            const filtered = blocks.filter(blk => blk.assembly_id?._id === formData.assembly_id);
+            const filtered = hierarchyFilteredBlocks.filter(blk => blk.assembly_id?._id === formData.assembly_id);
             setFilteredBlocks(filtered);
         } else {
             setFilteredBlocks([]);
@@ -268,12 +375,12 @@ export default function BoothSurveyModal({
                 booth_id: ''
             }));
         }
-    }, [formData.assembly_id, blocks]);
+    }, [formData.assembly_id, hierarchyFilteredBlocks]);
 
     // Filter booths by block
     useEffect(() => {
         if (formData.block_id) {
-            const filtered = booths.filter(booth => booth.block_id?._id === formData.block_id);
+            const filtered = hierarchyFilteredBooths.filter(booth => booth.block_id?._id === formData.block_id);
             setFilteredBooths(filtered);
         } else {
             setFilteredBooths([]);
@@ -282,7 +389,7 @@ export default function BoothSurveyModal({
                 booth_id: ''
             }));
         }
-    }, [formData.block_id, booths]);
+    }, [formData.block_id, hierarchyFilteredBooths]);
 
     // Validate individual field
     const validateField = (name, value) => {
@@ -328,7 +435,7 @@ export default function BoothSurveyModal({
     // Validate entire form
     const validateForm = () => {
         const newErrors = {};
-    const requiredFields = ['booth_id', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id'];
+        const requiredFields = ['booth_id', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id'];
 
         requiredFields.forEach(field => {
             const error = validateField(field, formData[field]);
@@ -500,7 +607,7 @@ export default function BoothSurveyModal({
                     <Stack spacing={2} mt={2}>
                         {/* Hierarchy Dropdowns */}
                         <Grid container spacing={2}>
-                            {renderSelect('State', 'state_id', states, 'name', true)}
+                            {renderSelect('State', 'state_id', hierarchyFilteredStates, 'name', true)}
                             {renderSelect('Division', 'division_id', filteredDivisions, 'name', true, !formData.state_id)}
                         </Grid>
 
@@ -529,140 +636,140 @@ export default function BoothSurveyModal({
                                 </Stack>
                             </Grid>
                         </Grid>
-                            {/* Respondent fields: name + mobile */}
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>उत्तरदाता का नाम</InputLabel>
-                                        <TextField
-                                            name="respondent_name"
-                                            value={formData.respondent_name}
-                                            onChange={handleChange}
-                                            fullWidth
-                                            error={!!errors.respondent_name}
-                                            helperText={errors.respondent_name}
-                                            disabled={isSubmitting}
-                                        />
-                                    </Stack>
-                                </Grid>
-
-                                <Grid item xs={12} sm={6}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>उत्तरदाता का मोबाइल</InputLabel>
-                                        <TextField
-                                            name="respondent_mobile"
-                                            value={formData.respondent_mobile}
-                                            onChange={handleChange}
-                                            fullWidth
-                                            error={!!errors.respondent_mobile}
-                                            helperText={errors.respondent_mobile}
-                                            disabled={isSubmitting}
-                                        />
-                                    </Stack>
-                                </Grid>
+                        {/* Respondent fields: name + mobile */}
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>उत्तरदाता का नाम</InputLabel>
+                                    <TextField
+                                        name="respondent_name"
+                                        value={formData.respondent_name}
+                                        onChange={handleChange}
+                                        fullWidth
+                                        error={!!errors.respondent_name}
+                                        helperText={errors.respondent_name}
+                                        disabled={isSubmitting}
+                                    />
+                                </Stack>
                             </Grid>
 
-                            {/* Questions 3-12 (dropdowns) */}
-                            <Grid container spacing={2} sx={{ mt: 1 }}>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('लिंग', 'q3', q3Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('आयु समूह', 'q4', q4Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('निवास', 'q5', q5Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('शिक्षा', 'q6', q6Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('व्यवसाय', 'q7', q7Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('आर्थिक स्थिति', 'q8', q8Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('परंपरागत पार्टी', 'q9', q9Options, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('पिछली चुनाव में वही पार्टी?', 'q10', yesNoOptions, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('जीवन से संतोष', 'q11', opinionOptions, 'name')}
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    {renderSelect('भविष्य के बारे में चिंता', 'q12', opinionOptions, 'name')}
-                                </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>उत्तरदाता का मोबाइल</InputLabel>
+                                    <TextField
+                                        name="respondent_mobile"
+                                        value={formData.respondent_mobile}
+                                        onChange={handleChange}
+                                        fullWidth
+                                        error={!!errors.respondent_mobile}
+                                        helperText={errors.respondent_mobile}
+                                        disabled={isSubmitting}
+                                    />
+                                </Stack>
                             </Grid>
+                        </Grid>
 
-                            {/* Questions 17-25 (dropdowns) */}
-                            <Grid container spacing={2} sx={{ mt: 1 }}>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या किसी परिवार के सदस्य को पिछले 5 वर्षों में सरकारी नौकरी मिली?', 'q16', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या किसी परिवार के सदस्य ने वोट खो दिया?', 'q17', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या पिछले 5 वर्षों में सुधार हुआ?', 'q18', improvementOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या वर्तमान विधायक से संतुष्ट हैं?', 'q19', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप फिर से वर्तमान विधायक को चुनेंगे?', 'q20', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप राज्य सरकार से संतुष्ट हैं?', 'q21', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप प्रधानमंत्री से संतुष्ट हैं?', 'q22', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप केंद्रीय सरकार से संतुष्ट हैं?', 'q23', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या आप वर्तमान मुख्यमंत्री से संतुष्ट हैं?', 'q24', yesNoOptions)}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('क्या आपको लगता है चुनाव के बाद जीवन सुधरेगा?', 'q25', improvementOptions)}</Grid>
+                        {/* Questions 3-12 (dropdowns) */}
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('लिंग', 'q3', q3Options, 'name')}
                             </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('आयु समूह', 'q4', q4Options, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('निवास', 'q5', q5Options, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('शिक्षा', 'q6', q6Options, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('व्यवसाय', 'q7', q7Options, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('आर्थिक स्थिति', 'q8', q8Options, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('परंपरागत पार्टी', 'q9', q9Options, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('पिछली चुनाव में वही पार्टी?', 'q10', yesNoOptions, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('जीवन से संतोष', 'q11', opinionOptions, 'name')}
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                {renderSelect('भविष्य के बारे में चिंता', 'q12', opinionOptions, 'name')}
+                            </Grid>
+                        </Grid>
 
-                            {/* Questions 31-32 (dropdowns) */}
-                            <Grid container spacing={2} sx={{ mt: 1 }}>
-                                <Grid item xs={12} sm={6}>{renderSelect('अगले विधायक को चुनने में सबसे महत्वपूर्ण क्या है?', 'q31', [{_id:'party', name:'पार्टी'},{_id:'cm', name:'मुख्यमंत्री'},{_id:'candidate', name:'उम्मीदवार'},{_id:'public_opinion', name:'समाज की राय'},{_id:'dontknow', name:'कह नहीं सकते'}])}</Grid>
-                                <Grid item xs={12} sm={6}>{renderSelect('अगली सरकार की शीर्ष प्राथमिकता क्या होनी चाहिए?', 'q32', priorityOptions)}</Grid>
-                            </Grid>
+                        {/* Questions 17-25 (dropdowns) */}
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या किसी परिवार के सदस्य को पिछले 5 वर्षों में सरकारी नौकरी मिली?', 'q16', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या किसी परिवार के सदस्य ने वोट खो दिया?', 'q17', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या पिछले 5 वर्षों में सुधार हुआ?', 'q18', improvementOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या वर्तमान विधायक से संतुष्ट हैं?', 'q19', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या आप फिर से वर्तमान विधायक को चुनेंगे?', 'q20', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या आप राज्य सरकार से संतुष्ट हैं?', 'q21', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या आप प्रधानमंत्री से संतुष्ट हैं?', 'q22', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या आप केंद्रीय सरकार से संतुष्ट हैं?', 'q23', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या आप वर्तमान मुख्यमंत्री से संतुष्ट हैं?', 'q24', yesNoOptions)}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('क्या आपको लगता है चुनाव के बाद जीवन सुधरेगा?', 'q25', improvementOptions)}</Grid>
+                        </Grid>
 
-                            {/* Questions 33-36 (free text answers) */}
-                            <Grid container spacing={2} sx={{ mt: 1 }}>
-                                <Grid item xs={12}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>कौन सा सामाजिक समूह?</InputLabel>
-                                        <TextField name="q33" value={formData.q33} onChange={handleChange} fullWidth />
-                                    </Stack>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>पिछले विधानसभा चुनाव में आपने किसे वोट दिया? (2020)</InputLabel>
-                                        <TextField name="q34" value={formData.q34} onChange={handleChange} fullWidth />
-                                    </Stack>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>पिछले लोकसभा चुनाव में आपने किसे वोट दिया? (2024)</InputLabel>
-                                        <TextField name="q35" value={formData.q35} onChange={handleChange} fullWidth />
-                                    </Stack>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>यदि चुनाव आज होते, आप किस पार्टी को वोट देते?</InputLabel>
-                                        <TextField name="q36" value={formData.q36} onChange={handleChange} fullWidth />
-                                    </Stack>
-                                </Grid>
-                            </Grid>
+                        {/* Questions 31-32 (dropdowns) */}
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            <Grid item xs={12} sm={6}>{renderSelect('अगले विधायक को चुनने में सबसे महत्वपूर्ण क्या है?', 'q31', [{ _id: 'party', name: 'पार्टी' }, { _id: 'cm', name: 'मुख्यमंत्री' }, { _id: 'candidate', name: 'उम्मीदवार' }, { _id: 'public_opinion', name: 'समाज की राय' }, { _id: 'dontknow', name: 'कह नहीं सकते' }])}</Grid>
+                            <Grid item xs={12} sm={6}>{renderSelect('अगली सरकार की शीर्ष प्राथमिकता क्या होनी चाहिए?', 'q32', priorityOptions)}</Grid>
+                        </Grid>
 
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Stack spacing={1}>
-                                        <InputLabel sx={{ whiteSpace: 'normal' }}>टिप्पणी</InputLabel>
-                                        <TextField
-                                            name="remark"
-                                            value={formData.remark}
-                                            onChange={handleChange}
-                                            fullWidth
-                                            multiline
-                                            rows={3}
-                                            error={!!errors.remark}
-                                            helperText={errors.remark || 'Maximum 500 characters'}
-                                            inputProps={{ maxLength: 500 }}
-                                            disabled={isSubmitting}
-                                        />
-                                    </Stack>
-                                </Grid>
+                        {/* Questions 33-36 (free text answers) */}
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>कौन सा सामाजिक समूह?</InputLabel>
+                                    <TextField name="q33" value={formData.q33} onChange={handleChange} fullWidth />
+                                </Stack>
                             </Grid>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>पिछले विधानसभा चुनाव में आपने किसे वोट दिया? (2020)</InputLabel>
+                                    <TextField name="q34" value={formData.q34} onChange={handleChange} fullWidth />
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>पिछले लोकसभा चुनाव में आपने किसे वोट दिया? (2024)</InputLabel>
+                                    <TextField name="q35" value={formData.q35} onChange={handleChange} fullWidth />
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>यदि चुनाव आज होते, आप किस पार्टी को वोट देते?</InputLabel>
+                                    <TextField name="q36" value={formData.q36} onChange={handleChange} fullWidth />
+                                </Stack>
+                            </Grid>
+                        </Grid>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <Stack spacing={1}>
+                                    <InputLabel sx={{ whiteSpace: 'normal' }}>टिप्पणी</InputLabel>
+                                    <TextField
+                                        name="remark"
+                                        value={formData.remark}
+                                        onChange={handleChange}
+                                        fullWidth
+                                        multiline
+                                        rows={3}
+                                        error={!!errors.remark}
+                                        helperText={errors.remark || 'Maximum 500 characters'}
+                                        inputProps={{ maxLength: 500 }}
+                                        disabled={isSubmitting}
+                                    />
+                                </Stack>
+                            </Grid>
+                        </Grid>
                     </Stack>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>

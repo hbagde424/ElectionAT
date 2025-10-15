@@ -20,11 +20,13 @@ import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
 import DetailRenderer from 'components/DetailRenderer';
+import { usePermissions } from 'contexts/PermissionContext';
 
 const BoothSurveyDetailPage = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const { id } = useParams();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [survey, setSurvey] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -71,6 +73,38 @@ const BoothSurveyDetailPage = () => {
     };
 
     const handleBack = () => navigate('/booth-survey');
+
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all booth survey data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all booth survey data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entityName = userHierarchy[highestLevel]?.name || 'Unknown';
+
+        return {
+            level: levelName,
+            entity: entityName,
+            description: `You have access to booth survey data for ${entityName} ${levelName} and all areas within it`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
 
     const filteredSurvey = useMemo(() => {
         if (!survey) return null;
@@ -122,11 +156,21 @@ const BoothSurveyDetailPage = () => {
                     </Box>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
-                    <Link underline="hover" color="inherit" href="#" onClick={(e)=>{e.preventDefault();navigate('/');}}>Dashboard</Link>
-                    <Link underline="hover" color="inherit" href="#" onClick={(e)=>{e.preventDefault();navigate('/booth-survey');}}>Booth Surveys</Link>
+                    <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
+                    <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/booth-survey'); }}>Booth Surveys</Link>
                     <Typography color="text.primary">Survey {survey._id}</Typography>
                 </Breadcrumbs>
             </Box>
+
+            {/* Access Scope Information */}
+            <Alert
+                severity="info"
+                sx={{ mb: 3 }}
+            >
+                <Typography variant="body2">
+                    <strong>Data Access:</strong> {accessScope.description}
+                </Typography>
+            </Alert>
 
             <MainCard>
                 <Box sx={{ bgcolor: 'primary.light', color: 'primary.contrastText', p: 2, borderRadius: '8px 8px 0 0' }}>

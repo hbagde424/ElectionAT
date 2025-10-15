@@ -7,6 +7,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload, MessageText1 } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
+import { usePermissions } from 'contexts/PermissionContext';
 
 // third-party
 import {
@@ -30,6 +31,7 @@ import { Tooltip } from '@mui/material';
 export default function BoothSurveyListPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
   const [selectedSurvey, setSelectedSurvey] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -63,6 +65,38 @@ export default function BoothSurveyListPage() {
     'Rejected': 'error'
   };
 
+  // Get user's access scope information
+  const getUserAccessScope = () => {
+    if (!userHierarchy) {
+      return { level: 'All', description: 'You have access to all booth survey data' };
+    }
+
+    const highestLevel = getUserHighestLevel();
+    if (!highestLevel) {
+      return { level: 'All', description: 'You have access to all booth survey data' };
+    }
+
+    const levelNames = {
+      state: 'State',
+      division: 'Division',
+      parliament: 'Parliament',
+      assembly: 'Assembly',
+      block: 'Block',
+      booth: 'Booth'
+    };
+
+    const levelName = levelNames[highestLevel] || highestLevel;
+    const entityName = userHierarchy[highestLevel]?.name || 'Unknown';
+
+    return {
+      level: levelName,
+      entity: entityName,
+      description: `You have access to booth survey data for ${entityName} ${levelName} and all areas within it`
+    };
+  };
+
+  const accessScope = getUserAccessScope();
+
   const fetchSurveys = async (pageIndex, pageSize, filterParams = filters) => {
     setLoading(true);
     setError('');
@@ -71,6 +105,19 @@ export default function BoothSurveyListPage() {
       let url;
       let baseUrl = `${import.meta.env.VITE_APP_API_URL}/booth-surveys`;
       let params = [];
+
+      // Apply hierarchy-based filtering
+      if (userHierarchy) {
+        const highestLevel = getUserHighestLevel();
+        if (highestLevel) {
+          const entityId = userHierarchy[highestLevel]?._id || userHierarchy[highestLevel];
+          if (entityId) {
+            params.push(`${highestLevel}_id=${entityId}`);
+          }
+        }
+      }
+
+      // Apply user-selected filters
       if (filterParams.state_id) params.push(`state_id=${filterParams.state_id}`);
       if (filterParams.division_id) params.push(`division=${filterParams.division_id}`);
       if (filterParams.parliament_id) params.push(`parliament_id=${filterParams.parliament_id}`);
@@ -85,8 +132,8 @@ export default function BoothSurveyListPage() {
       } else {
         url = `${baseUrl}?page=${pageIndex + 1}&limit=${pageSize}${params.length ? '&' + params.join('&') : ''}`;
       }
-  const token = localStorage.getItem('serviceToken');
-  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+      const token = localStorage.getItem('serviceToken');
+      const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const json = await res.json();
       if (json.success) {
         setSurveys(json.data);
@@ -321,7 +368,7 @@ export default function BoothSurveyListPage() {
       cell: ({ getValue }) => {
         const genderMap = {
           'male': 'पुरुष',
-          'female': 'महिला', 
+          'female': 'महिला',
           'other': 'अन्य'
         };
         const value = getValue();
@@ -394,9 +441,9 @@ export default function BoothSurveyListPage() {
         };
         const value = getValue();
         return (
-          <Chip 
-            label={partyMap[value] || value || 'N/A'} 
-            size="small" 
+          <Chip
+            label={partyMap[value] || value || 'N/A'}
+            size="small"
             variant="outlined"
             color={value === 'no_party' ? 'default' : 'primary'}
           />
@@ -506,7 +553,7 @@ export default function BoothSurveyListPage() {
         };
         const value = getValue();
         const getStatusColor = (status) => {
-          switch(status) {
+          switch (status) {
             case 'affluent': return 'success';
             case 'middle': return 'info';
             case 'poor': return 'warning';
@@ -515,9 +562,9 @@ export default function BoothSurveyListPage() {
           }
         };
         return (
-          <Chip 
-            label={statusMap[value] || value || 'N/A'} 
-            size="small" 
+          <Chip
+            label={statusMap[value] || value || 'N/A'}
+            size="small"
             variant="outlined"
             color={getStatusColor(value)}
           />
@@ -531,9 +578,9 @@ export default function BoothSurveyListPage() {
         const value = getValue();
         const yesNoMap = { 'yes': 'हां', 'no': 'नहीं' };
         return (
-          <Chip 
-            label={yesNoMap[value] || value || 'N/A'} 
-            size="small" 
+          <Chip
+            label={yesNoMap[value] || value || 'N/A'}
+            size="small"
             variant="outlined"
             color={value === 'yes' ? 'success' : value === 'no' ? 'error' : 'default'}
           />
@@ -575,7 +622,7 @@ export default function BoothSurveyListPage() {
         };
         const value = getValue();
         const getColor = (val) => {
-          switch(val) {
+          switch (val) {
             case 'satisfied': return 'success';
             case 'some': return 'warning';
             case 'dissatisfied': return 'error';
@@ -583,9 +630,9 @@ export default function BoothSurveyListPage() {
           }
         };
         return (
-          <Chip 
-            label={satisfactionMap[value] || value || 'N/A'} 
-            size="small" 
+          <Chip
+            label={satisfactionMap[value] || value || 'N/A'}
+            size="small"
             variant="outlined"
             color={getColor(value)}
           />
@@ -596,11 +643,11 @@ export default function BoothSurveyListPage() {
       header: 'Free Text (Q33)',
       accessorKey: 'q33',
       cell: ({ getValue }) => (
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            maxWidth: 150, 
-            overflow: 'hidden', 
+        <Typography
+          variant="body2"
+          sx={{
+            maxWidth: 150,
+            overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}
@@ -613,11 +660,11 @@ export default function BoothSurveyListPage() {
       header: 'Free Text (Q34)',
       accessorKey: 'q34',
       cell: ({ getValue }) => (
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            maxWidth: 150, 
-            overflow: 'hidden', 
+        <Typography
+          variant="body2"
+          sx={{
+            maxWidth: 150,
+            overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}
@@ -638,7 +685,7 @@ export default function BoothSurveyListPage() {
           'dontknow': 'कह नहीं सकते'
         };
         const getColor = (val) => {
-          switch(val) {
+          switch (val) {
             case 'satisfied': return 'success';
             case 'some': return 'warning';
             case 'dissatisfied': return 'error';
@@ -646,9 +693,9 @@ export default function BoothSurveyListPage() {
           }
         };
         return (
-          <Chip 
-            label={satisfactionMap[value] || value || 'N/A'} 
-            size="small" 
+          <Chip
+            label={satisfactionMap[value] || value || 'N/A'}
+            size="small"
             variant="outlined"
             color={getColor(value)}
           />
@@ -659,11 +706,11 @@ export default function BoothSurveyListPage() {
       header: 'Next Election Vote (Q36)',
       accessorKey: 'q36',
       cell: ({ getValue }) => (
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            maxWidth: 120, 
-            overflow: 'hidden', 
+        <Typography
+          variant="body2"
+          sx={{
+            maxWidth: 120,
+            overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}
@@ -792,6 +839,17 @@ export default function BoothSurveyListPage() {
             {error}
           </Alert>
         )}
+
+        {/* Access Scope Information */}
+        <Alert
+          severity="info"
+          sx={{ m: 2 }}
+        >
+          <Typography variant="body2">
+            <strong>Data Access:</strong> {accessScope.description}
+          </Typography>
+        </Alert>
+
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           spacing={2}
