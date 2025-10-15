@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, TextField, MenuItem
+  Button, Stack, Box, Typography, Divider, TextField, MenuItem, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
+import { usePermissions } from 'contexts/PermissionContext';
 
 // third-party
 import {
@@ -30,6 +31,7 @@ import { Tooltip } from '@mui/material';
 export default function BoothVolunteerListPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
 
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -59,6 +61,37 @@ export default function BoothVolunteerListPage() {
   const [searchInput, setSearchInput] = useState('');
   const searchDebounceRef = useRef(null);
 
+  // Get user's access scope information
+  const getUserAccessScope = () => {
+    if (!userHierarchy) {
+      return { level: 'All', description: 'You have access to all booth volunteer data' };
+    }
+
+    const highestLevel = getUserHighestLevel();
+    if (!highestLevel) {
+      return { level: 'All', description: 'You have access to all booth volunteer data' };
+    }
+
+    const levelNames = {
+      state: 'State',
+      division: 'Division',
+      parliament: 'Parliament',
+      assembly: 'Assembly',
+      block: 'Block',
+      booth: 'Booth'
+    };
+
+    const levelName = levelNames[highestLevel.level] || 'Unknown';
+    const levelValue = highestLevel.value || 'Unknown';
+
+    return {
+      level: levelName,
+      description: `You have access to booth volunteer data for ${levelName}: ${levelValue}`
+    };
+  };
+
+  const accessScope = getUserAccessScope();
+
   const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '', filterParams = filters) => {
     setLoading(true);
     try {
@@ -70,8 +103,36 @@ export default function BoothVolunteerListPage() {
       if (filterParams.assembly_id) url += `&assembly_id=${filterParams.assembly_id}`;
       if (filterParams.block_id) url += `&block_id=${filterParams.block_id}`;
       if (filterParams.booth_id) url += `&booth_id=${filterParams.booth_id}`;
-  const token = localStorage.getItem('serviceToken');
-  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+
+      // Add hierarchy-based filtering
+      if (userHierarchy) {
+        const highestLevel = getUserHighestLevel();
+        if (highestLevel) {
+          switch (highestLevel.level) {
+            case 'state':
+              url += `&state_id=${highestLevel.value}`;
+              break;
+            case 'division':
+              url += `&division_id=${highestLevel.value}`;
+              break;
+            case 'parliament':
+              url += `&parliament_id=${highestLevel.value}`;
+              break;
+            case 'assembly':
+              url += `&assembly_id=${highestLevel.value}`;
+              break;
+            case 'block':
+              url += `&block_id=${highestLevel.value}`;
+              break;
+            case 'booth':
+              url += `&booth_id=${highestLevel.value}`;
+              break;
+          }
+        }
+      }
+
+      const token = localStorage.getItem('serviceToken');
+      const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const json = await res.json();
       if (json.success) {
         setVolunteers(json.data);
@@ -95,8 +156,8 @@ export default function BoothVolunteerListPage() {
         fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, fetchOpts),
         fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, fetchOpts),
         fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, fetchOpts),
-  // Request all parties so dropdowns can show the complete list
-  fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, fetchOpts)
+        // Request all parties so dropdowns can show the complete list
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, fetchOpts)
       ]);
 
       const [usersRes] = await Promise.all([
@@ -559,6 +620,16 @@ export default function BoothVolunteerListPage() {
             </Button>
           </Stack>
         </Stack>
+
+        {/* Access Scope Information */}
+        <Alert
+          severity="info"
+          sx={{ m: 2 }}
+        >
+          <Typography variant="body2">
+            <strong>Data Access:</strong> {accessScope.description}
+          </Typography>
+        </Alert>
 
         <Stack
           direction="row"

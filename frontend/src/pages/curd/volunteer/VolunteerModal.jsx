@@ -26,6 +26,7 @@ import {
 import Autocomplete from '@mui/material/Autocomplete';
 import { useEffect, useState } from 'react';
 import { DocumentUpload, Trash, Eye } from 'iconsax-react';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function BoothVolunteerModal({
   open,
@@ -41,6 +42,7 @@ export default function BoothVolunteerModal({
   users,
   refresh
 }) {
+  const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -71,10 +73,103 @@ export default function BoothVolunteerModal({
   const [filteredBlocks, setFilteredBlocks] = useState([]);
   const [filteredBooths, setFilteredBooths] = useState([]);
 
+  // Filtered data based on user hierarchy permissions
+  const [hierarchyFilteredStates, setHierarchyFilteredStates] = useState([]);
+  const [hierarchyFilteredDivisions, setHierarchyFilteredDivisions] = useState([]);
+  const [hierarchyFilteredParliaments, setHierarchyFilteredParliaments] = useState([]);
+  const [hierarchyFilteredAssemblies, setHierarchyFilteredAssemblies] = useState([]);
+  const [hierarchyFilteredBlocks, setHierarchyFilteredBlocks] = useState([]);
+  const [hierarchyFilteredBooths, setHierarchyFilteredBooths] = useState([]);
+
   // Error and loading states
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Filter data based on user hierarchy permissions
+  useEffect(() => {
+    if (!userHierarchy) {
+      // No hierarchy restrictions - show all data
+      setHierarchyFilteredStates(states);
+      setHierarchyFilteredDivisions(divisions);
+      setHierarchyFilteredParliaments(parliaments);
+      setHierarchyFilteredAssemblies(assemblies);
+      setHierarchyFilteredBlocks(blocks);
+      setHierarchyFilteredBooths(booths);
+      return;
+    }
+
+    const highestLevel = getUserHighestLevel();
+    if (!highestLevel) {
+      // No specific level - show all data
+      setHierarchyFilteredStates(states);
+      setHierarchyFilteredDivisions(divisions);
+      setHierarchyFilteredParliaments(parliaments);
+      setHierarchyFilteredAssemblies(assemblies);
+      setHierarchyFilteredBlocks(blocks);
+      setHierarchyFilteredBooths(booths);
+      return;
+    }
+
+    // Filter based on user's highest access level
+    switch (highestLevel.level) {
+      case 'state':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.value));
+        setHierarchyFilteredDivisions(divisions.filter(d => d.state_id?._id === highestLevel.value));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?.state_id?._id === highestLevel.value));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+        break;
+      case 'division':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.value));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?._id === highestLevel.value));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+        break;
+      case 'parliament':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.value));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?._id === highestLevel.value));
+        break;
+      case 'assembly':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?._id === highestLevel.value));
+        break;
+      case 'block':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+        setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?._id === highestLevel.value));
+        break;
+      case 'booth':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+        setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.block_id));
+        setHierarchyFilteredBooths(booths.filter(booth => booth._id === highestLevel.value));
+        break;
+      default:
+        setHierarchyFilteredStates(states);
+        setHierarchyFilteredDivisions(divisions);
+        setHierarchyFilteredParliaments(parliaments);
+        setHierarchyFilteredAssemblies(assemblies);
+        setHierarchyFilteredBlocks(blocks);
+        setHierarchyFilteredBooths(booths);
+    }
+  }, [userHierarchy, states, divisions, parliaments, assemblies, blocks, booths, getUserHighestLevel]);
 
   // Initialize form data when modal opens or volunteer changes
   useEffect(() => {
@@ -85,7 +180,7 @@ export default function BoothVolunteerModal({
       console.log('Available states:', states);
       console.log('Available divisions:', divisions);
       console.log('Available parties:', parties);
-      
+
       const formValues = {
         name: volunteer.name || '',
         phone: volunteer.phone || '',
@@ -103,47 +198,47 @@ export default function BoothVolunteerModal({
         parliament_id: getID(volunteer.parliament_id),
         block_id: getID(volunteer.block_id)
       };
-      
+
       console.log('Form values being set:', formValues);
       setFormData(formValues);
-      
+
       // Set up filtered arrays based on volunteer's hierarchy
       const stateId = getID(volunteer.state_id);
       const divisionId = getID(volunteer.division_id);
       const parliamentId = getID(volunteer.parliament_id);
       const assemblyId = getID(volunteer.assembly_id);
       const blockId = getID(volunteer.block_id);
-      
+
       if (stateId) {
         const filtered = divisions.filter(div => getID(div.state_id) === stateId);
         setFilteredDivisions(filtered);
         console.log('Setting filtered divisions:', filtered);
       }
-      
+
       if (divisionId) {
         const filtered = parliaments.filter(par => getID(par.division_id) === divisionId);
         setFilteredParliaments(filtered);
         console.log('Setting filtered parliaments:', filtered);
       }
-      
+
       if (parliamentId) {
         const filtered = assemblies.filter(asm => getID(asm.parliament_id) === parliamentId);
         setFilteredAssemblies(filtered);
         console.log('Setting filtered assemblies:', filtered);
       }
-      
+
       if (assemblyId) {
         const filtered = blocks.filter(blk => getID(blk.assembly_id) === assemblyId);
         setFilteredBlocks(filtered);
         console.log('Setting filtered blocks:', filtered);
       }
-      
+
       if (blockId) {
         const filtered = booths.filter(booth => getID(booth.block_id) === blockId);
         setFilteredBooths(filtered);
         console.log('Setting filtered booths:', filtered);
       }
-      
+
       // Set existing documents
       setExistingDocuments(volunteer.documents || []);
     } else {
@@ -164,7 +259,7 @@ export default function BoothVolunteerModal({
         parliament_id: '',
         block_id: ''
       });
-      
+
       // Reset documents
       setExistingDocuments([]);
     }
@@ -191,11 +286,11 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = divisions.filter(div =>
+    const filtered = hierarchyFilteredDivisions.filter(div =>
       getID(div.state_id) === formData.state_id
     );
     setFilteredDivisions(filtered);
-  }, [formData.state_id, divisions]);
+  }, [formData.state_id, hierarchyFilteredDivisions]);
 
   // Filter parliaments when division changes
   useEffect(() => {
@@ -204,11 +299,11 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = parliaments.filter(par =>
+    const filtered = hierarchyFilteredParliaments.filter(par =>
       getID(par.division_id) === formData.division_id
     );
     setFilteredParliaments(filtered);
-  }, [formData.division_id, parliaments]);
+  }, [formData.division_id, hierarchyFilteredParliaments]);
 
   // Filter assemblies when parliament changes
   useEffect(() => {
@@ -217,11 +312,11 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = assemblies.filter(asm =>
+    const filtered = hierarchyFilteredAssemblies.filter(asm =>
       getID(asm.parliament_id) === formData.parliament_id
     );
     setFilteredAssemblies(filtered);
-  }, [formData.parliament_id, assemblies]);
+  }, [formData.parliament_id, hierarchyFilteredAssemblies]);
 
   // Filter blocks when assembly changes
   useEffect(() => {
@@ -230,11 +325,11 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = blocks.filter(blk =>
+    const filtered = hierarchyFilteredBlocks.filter(blk =>
       getID(blk.assembly_id) === formData.assembly_id
     );
     setFilteredBlocks(filtered);
-  }, [formData.assembly_id, blocks]);
+  }, [formData.assembly_id, hierarchyFilteredBlocks]);
 
   // Filter booths when block changes
   useEffect(() => {
@@ -243,11 +338,11 @@ export default function BoothVolunteerModal({
       return;
     }
 
-    const filtered = booths.filter(booth =>
+    const filtered = hierarchyFilteredBooths.filter(booth =>
       getID(booth.block_id) === formData.block_id
     );
     setFilteredBooths(filtered);
-  }, [formData.block_id, booths]);
+  }, [formData.block_id, hierarchyFilteredBooths]);
 
   // Validate individual field
   const validateField = (name, value) => {
@@ -381,24 +476,24 @@ export default function BoothVolunteerModal({
         : `${import.meta.env.VITE_APP_API_URL}/booth-volunteers`;
 
       const currentUser = JSON.parse(localStorage.getItem('user'));
-      
+
       // Create FormData for file upload
       const formDataToSend = new FormData();
-      
+
       // Add all form fields
       Object.keys(formData).forEach(key => {
         if (formData[key] !== '') {
           formDataToSend.append(key, formData[key]);
         }
       });
-      
+
       // Add user info
       if (volunteer) {
         formDataToSend.append('updated_by', currentUser?._id);
       } else {
         formDataToSend.append('created_by', currentUser?._id);
       }
-      
+
       // Add files
       selectedFiles.forEach(file => {
         formDataToSend.append('documents', file);
@@ -498,7 +593,7 @@ export default function BoothVolunteerModal({
             </Grid>
           </Grid>
 
-          
+
 
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
@@ -587,13 +682,13 @@ export default function BoothVolunteerModal({
                 >
                   <MenuItem value="">Select State</MenuItem>
                   {/* Show temporary state object if in edit mode and state not found in options */}
-                  {volunteer && volunteer.state_id && volunteer.state_id.name && 
-                   !states.find(s => s._id === getID(volunteer.state_id)) && (
-                    <MenuItem key={getID(volunteer.state_id)} value={getID(volunteer.state_id)}>
-                      {volunteer.state_id.name}
-                    </MenuItem>
-                  )}
-                  {states.map(state => (
+                  {volunteer && volunteer.state_id && volunteer.state_id.name &&
+                    !states.find(s => s._id === getID(volunteer.state_id)) && (
+                      <MenuItem key={getID(volunteer.state_id)} value={getID(volunteer.state_id)}>
+                        {volunteer.state_id.name}
+                      </MenuItem>
+                    )}
+                  {hierarchyFilteredStates.map(state => (
                     <MenuItem key={state._id} value={state._id}>
                       {state.name}
                     </MenuItem>
@@ -614,12 +709,12 @@ export default function BoothVolunteerModal({
                 >
                   <MenuItem value="">Select Division</MenuItem>
                   {/* Show volunteer's division if not in filtered list */}
-                  {volunteer && volunteer.division_id && volunteer.division_id.name && 
-                   formData.division_id && !filteredDivisions.find(d => d._id === formData.division_id) && (
-                    <MenuItem key={formData.division_id} value={formData.division_id}>
-                      {volunteer.division_id.name}
-                    </MenuItem>
-                  )}
+                  {volunteer && volunteer.division_id && volunteer.division_id.name &&
+                    formData.division_id && !filteredDivisions.find(d => d._id === formData.division_id) && (
+                      <MenuItem key={formData.division_id} value={formData.division_id}>
+                        {volunteer.division_id.name}
+                      </MenuItem>
+                    )}
                   {filteredDivisions.map(division => (
                     <MenuItem key={division._id} value={division._id}>
                       {division.name}
@@ -643,12 +738,12 @@ export default function BoothVolunteerModal({
                 >
                   <MenuItem value="">Select Parliament</MenuItem>
                   {/* Show volunteer's parliament if not in filtered list */}
-                  {volunteer && volunteer.parliament_id && volunteer.parliament_id.name && 
-                   formData.parliament_id && !filteredParliaments.find(p => p._id === formData.parliament_id) && (
-                    <MenuItem key={formData.parliament_id} value={formData.parliament_id}>
-                      {volunteer.parliament_id.name}
-                    </MenuItem>
-                  )}
+                  {volunteer && volunteer.parliament_id && volunteer.parliament_id.name &&
+                    formData.parliament_id && !filteredParliaments.find(p => p._id === formData.parliament_id) && (
+                      <MenuItem key={formData.parliament_id} value={formData.parliament_id}>
+                        {volunteer.parliament_id.name}
+                      </MenuItem>
+                    )}
                   {filteredParliaments.map(parliament => (
                     <MenuItem key={parliament._id} value={parliament._id}>
                       {parliament.name}
@@ -669,12 +764,12 @@ export default function BoothVolunteerModal({
                 >
                   <MenuItem value="">Select Assembly</MenuItem>
                   {/* Show volunteer's assembly if not in filtered list */}
-                  {volunteer && volunteer.assembly_id && volunteer.assembly_id.name && 
-                   formData.assembly_id && !filteredAssemblies.find(a => a._id === formData.assembly_id) && (
-                    <MenuItem key={formData.assembly_id} value={formData.assembly_id}>
-                      {volunteer.assembly_id.name}
-                    </MenuItem>
-                  )}
+                  {volunteer && volunteer.assembly_id && volunteer.assembly_id.name &&
+                    formData.assembly_id && !filteredAssemblies.find(a => a._id === formData.assembly_id) && (
+                      <MenuItem key={formData.assembly_id} value={formData.assembly_id}>
+                        {volunteer.assembly_id.name}
+                      </MenuItem>
+                    )}
                   {filteredAssemblies.map(assembly => (
                     <MenuItem key={assembly._id} value={assembly._id}>
                       {assembly.name}
@@ -698,12 +793,12 @@ export default function BoothVolunteerModal({
                 >
                   <MenuItem value="">Select Block</MenuItem>
                   {/* Show volunteer's block if not in filtered list */}
-                  {volunteer && volunteer.block_id && volunteer.block_id.name && 
-                   formData.block_id && !filteredBlocks.find(b => b._id === formData.block_id) && (
-                    <MenuItem key={formData.block_id} value={formData.block_id}>
-                      {volunteer.block_id.name}
-                    </MenuItem>
-                  )}
+                  {volunteer && volunteer.block_id && volunteer.block_id.name &&
+                    formData.block_id && !filteredBlocks.find(b => b._id === formData.block_id) && (
+                      <MenuItem key={formData.block_id} value={formData.block_id}>
+                        {volunteer.block_id.name}
+                      </MenuItem>
+                    )}
                   {filteredBlocks.map(block => (
                     <MenuItem key={block._id} value={block._id}>
                       {block.name}
@@ -725,12 +820,12 @@ export default function BoothVolunteerModal({
                 >
                   <MenuItem value="">Select Booth</MenuItem>
                   {/* Show volunteer's booth if not in filtered list */}
-                  {volunteer && volunteer.booth_id && volunteer.booth_id.name && 
-                   formData.booth_id && !filteredBooths.find(b => b._id === formData.booth_id) && (
-                    <MenuItem key={formData.booth_id} value={formData.booth_id}>
-                      {volunteer.booth_id.name} {volunteer.booth_id.booth_number ? `(No: ${volunteer.booth_id.booth_number})` : ''}
-                    </MenuItem>
-                  )}
+                  {volunteer && volunteer.booth_id && volunteer.booth_id.name &&
+                    formData.booth_id && !filteredBooths.find(b => b._id === formData.booth_id) && (
+                      <MenuItem key={formData.booth_id} value={formData.booth_id}>
+                        {volunteer.booth_id.name} {volunteer.booth_id.booth_number ? `(No: ${volunteer.booth_id.booth_number})` : ''}
+                      </MenuItem>
+                    )}
                   {filteredBooths.map(booth => (
                     <MenuItem key={booth._id} value={booth._id}>
                       {booth.name} (No: {booth.booth_number})
@@ -746,7 +841,7 @@ export default function BoothVolunteerModal({
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Documents
               </Typography>
-              
+
               {/* File Upload */}
               <Box sx={{ mb: 2 }}>
                 <input

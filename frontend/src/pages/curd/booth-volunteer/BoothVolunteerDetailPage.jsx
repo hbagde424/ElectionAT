@@ -34,11 +34,13 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { usePermissions } from 'contexts/PermissionContext';
 
 const BoothVolunteerDetailPage = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const { id } = useParams();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [volunteer, setVolunteer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -103,6 +105,37 @@ const BoothVolunteerDetailPage = () => {
     const handleBack = () => {
         navigate('/booth-volunteer');
     };
+
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all booth volunteer data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all booth volunteer data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel.level] || 'Unknown';
+        const levelValue = highestLevel.value || 'Unknown';
+
+        return {
+            level: levelName,
+            description: `You have access to booth volunteer data for ${levelName}: ${levelValue}`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
 
     if (loading) {
         return (
@@ -188,6 +221,16 @@ const BoothVolunteerDetailPage = () => {
                     </Typography>
                 </Breadcrumbs>
             </Box>
+
+            {/* Access Scope Information */}
+            <Alert
+                severity="info"
+                sx={{ mb: 3 }}
+            >
+                <Typography variant="body2">
+                    <strong>Data Access:</strong> {accessScope.description}
+                </Typography>
+            </Alert>
 
             {/* All Volunteer Information in 3-column layout */}
             <MainCard>
