@@ -7,6 +7,7 @@ import { useEffect, useState, useContext } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 import { Add, Trash } from 'iconsax-react';
 
 export default function InfluencerModal({
@@ -23,6 +24,7 @@ export default function InfluencerModal({
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
+    const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
 
     // Add parties state
     const [parties, setParties] = useState([]);
@@ -30,7 +32,7 @@ export default function InfluencerModal({
     // Category and Caste options
     const categoryOptions = [
         'Political Leader',
-        'Social Media Influencer', 
+        'Social Media Influencer',
         'Community Leader',
         'Business Person',
         'Religious Leader',
@@ -49,7 +51,7 @@ export default function InfluencerModal({
 
     const platformOptions = [
         'Facebook',
-        'Twitter', 
+        'Twitter',
         'Instagram',
         'LinkedIn',
         'YouTube',
@@ -84,6 +86,14 @@ export default function InfluencerModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+
+    // Filtered data based on user hierarchy permissions
+    const [hierarchyFilteredStates, setHierarchyFilteredStates] = useState([]);
+    const [hierarchyFilteredDivisions, setHierarchyFilteredDivisions] = useState([]);
+    const [hierarchyFilteredParliaments, setHierarchyFilteredParliaments] = useState([]);
+    const [hierarchyFilteredAssemblies, setHierarchyFilteredAssemblies] = useState([]);
+    const [hierarchyFilteredBlocks, setHierarchyFilteredBlocks] = useState([]);
+    const [hierarchyFilteredBooths, setHierarchyFilteredBooths] = useState([]);
 
     // Fetch parties
     const fetchParties = async () => {
@@ -146,7 +156,7 @@ export default function InfluencerModal({
             });
         }
     }, [influencer]);
-    
+
     // For ReactQuill description
     const handleDescriptionChange = (value) => {
         setFormData((prev) => ({
@@ -173,7 +183,7 @@ export default function InfluencerModal({
     const handleSocialMediaChange = (index, field, value) => {
         setFormData((prev) => ({
             ...prev,
-            social_media_links: prev.social_media_links.map((link, i) => 
+            social_media_links: prev.social_media_links.map((link, i) =>
                 i === index ? { ...link, [field]: value } : link
             )
         }));
@@ -305,6 +315,91 @@ export default function InfluencerModal({
         }
     }, [formData.block_id, booths]);
 
+    // Filter data based on user hierarchy permissions
+    useEffect(() => {
+        if (!userHierarchy) {
+            // No hierarchy restrictions - show all data
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            setHierarchyFilteredBlocks(blocks);
+            setHierarchyFilteredBooths(booths);
+            return;
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            // No specific level - show all data
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            setHierarchyFilteredBlocks(blocks);
+            setHierarchyFilteredBooths(booths);
+            return;
+        }
+
+        // Filter based on user's highest access level
+        switch (highestLevel.level) {
+            case 'state':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.value));
+                setHierarchyFilteredDivisions(divisions.filter(d => d.state_id?._id === highestLevel.value));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?.state_id?._id === highestLevel.value));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+                break;
+            case 'division':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.value));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?._id === highestLevel.value));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?._id === highestLevel.value));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+                break;
+            case 'parliament':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.value));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === highestLevel.value));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?._id === highestLevel.value));
+                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?._id === highestLevel.value));
+                break;
+            case 'assembly':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.value));
+                setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?._id === highestLevel.value));
+                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?._id === highestLevel.value));
+                break;
+            case 'block':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+                setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.value));
+                setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?._id === highestLevel.value));
+                break;
+            case 'booth':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+                setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.block_id));
+                setHierarchyFilteredBooths(booths.filter(booth => booth._id === highestLevel.value));
+                break;
+            default:
+                setHierarchyFilteredStates(states);
+                setHierarchyFilteredDivisions(divisions);
+                setHierarchyFilteredParliaments(parliaments);
+                setHierarchyFilteredAssemblies(assemblies);
+                setHierarchyFilteredBlocks(blocks);
+                setHierarchyFilteredBooths(booths);
+        }
+    }, [userHierarchy, states, divisions, parliaments, assemblies, blocks, booths, getUserHighestLevel]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -344,13 +439,13 @@ export default function InfluencerModal({
         }
 
         const userTracking = influencer ? { updated_by: userId } : { created_by: userId };
-        
+
         // Filter out incomplete social media links (must have both platform and link)
-        const validSocialMediaLinks = formData.social_media_links.filter(link => 
-            link.platform && link.platform.trim() !== '' && 
+        const validSocialMediaLinks = formData.social_media_links.filter(link =>
+            link.platform && link.platform.trim() !== '' &&
             link.link && link.link.trim() !== ''
         );
-        
+
         const submitData = {
             ...formData,
             social_media_links: validSocialMediaLinks,
@@ -540,13 +635,13 @@ export default function InfluencerModal({
                                     Add Link
                                 </Button>
                             </Stack>
-                            
+
                             {formData.social_media_links.map((link, index) => (
                                 <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
                                     <Grid container spacing={2} alignItems="center">
                                         <Grid item xs={12} md={3}>
-                                            <FormControl 
-                                                fullWidth 
+                                            <FormControl
+                                                fullWidth
                                                 error={submitted && link.platform && !link.link}
                                             >
                                                 <InputLabel>Platform *</InputLabel>
