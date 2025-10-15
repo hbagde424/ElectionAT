@@ -19,10 +19,12 @@ import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import WinningPartyModal from './WinningPartyModal';
 import AlertWinningPartyDelete from './AlertWinningPartyDelete';
+import { usePermissions } from 'contexts/PermissionContext';
 
 const WinningPartyListPage = () => {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [winningParties, setWinningParties] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
@@ -197,6 +199,35 @@ const WinningPartyListPage = () => {
             }
             if (appliedFilters.candidate) {
                 queryParams.push(`candidate=${appliedFilters.candidate}`);
+            }
+
+            // hierarchy-based filtering
+            if (userHierarchy) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
+                        case 'state':
+                            queryParams.push(`state_id=${userHierarchy.state}`);
+                            break;
+                        case 'division':
+                            queryParams.push(`division_id=${userHierarchy.division}`);
+                            break;
+                        case 'parliament':
+                            queryParams.push(`parliament_id=${userHierarchy.parliament}`);
+                            break;
+                        case 'assembly':
+                            queryParams.push(`assembly_id=${userHierarchy.assembly}`);
+                            break;
+                        case 'block':
+                            queryParams.push(`block_id=${userHierarchy.block}`);
+                            break;
+                        case 'booth':
+                            queryParams.push(`booth_id=${userHierarchy.booth}`);
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }
 
             const token = localStorage.getItem('serviceToken');
@@ -659,6 +690,19 @@ const WinningPartyListPage = () => {
     return (
         <>
             <MainCard content={false}>
+                {/* Access Scope Information */}
+                <Alert severity="info" sx={{ m: 2 }}>
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {(() => {
+                            if (!userHierarchy) return 'You have access to all Winning Parties data';
+                            const highest = getUserHighestLevel();
+                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                            return `You have access to Winning Parties data for ${labelMap[highest] || 'Unknown'}: ${idMap[highest] || 'Unknown'}`;
+                        })()}
+                    </Typography>
+                </Alert>
+
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <TextField
                         size="small"
