@@ -8,6 +8,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { DatePicker } from '@mui/x-date-pickers';
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function GovernmentModal({
     open,
@@ -21,6 +22,7 @@ export default function GovernmentModal({
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
+    const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -39,6 +41,79 @@ export default function GovernmentModal({
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+
+    // Filtered data based on user hierarchy permissions
+    const [hierarchyFilteredStates, setHierarchyFilteredStates] = useState([]);
+    const [hierarchyFilteredDivisions, setHierarchyFilteredDivisions] = useState([]);
+    const [hierarchyFilteredParliaments, setHierarchyFilteredParliaments] = useState([]);
+    const [hierarchyFilteredAssemblies, setHierarchyFilteredAssemblies] = useState([]);
+
+    // Filter data based on user hierarchy permissions
+    useEffect(() => {
+        if (!userHierarchy) {
+            // No hierarchy restrictions - show all data
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            return;
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            // No specific level - show all data
+            setHierarchyFilteredStates(states);
+            setHierarchyFilteredDivisions(divisions);
+            setHierarchyFilteredParliaments(parliaments);
+            setHierarchyFilteredAssemblies(assemblies);
+            return;
+        }
+
+        // Filter based on user's highest access level
+        switch (highestLevel.level) {
+            case 'state':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.value));
+                setHierarchyFilteredDivisions(divisions.filter(d => d.state_id?._id === highestLevel.value));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?.state_id?._id === highestLevel.value));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+                break;
+            case 'division':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.value));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?._id === highestLevel.value));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?._id === highestLevel.value));
+                break;
+            case 'parliament':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.value));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === highestLevel.value));
+                break;
+            case 'assembly':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.value));
+                break;
+            case 'block':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+                break;
+            case 'booth':
+                setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+                setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+                setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+                setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+                break;
+            default:
+                setHierarchyFilteredStates(states);
+                setHierarchyFilteredDivisions(divisions);
+                setHierarchyFilteredParliaments(parliaments);
+                setHierarchyFilteredAssemblies(assemblies);
+        }
+    }, [userHierarchy, states, divisions, parliaments, assemblies, getUserHighestLevel]);
 
     useEffect(() => {
         if (government) {
@@ -85,7 +160,7 @@ export default function GovernmentModal({
     // State -> Division
     useEffect(() => {
         if (formData.state_id) {
-            const filtered = divisions?.filter(division => {
+            const filtered = hierarchyFilteredDivisions?.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
                 return divisionStateId === formData.state_id;
             }) || [];
@@ -108,12 +183,12 @@ export default function GovernmentModal({
                 assembly_id: ''
             }));
         }
-    }, [formData.state_id, divisions]);
+    }, [formData.state_id, hierarchyFilteredDivisions]);
 
     // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
-            const filtered = parliaments?.filter(parliament => {
+            const filtered = hierarchyFilteredParliaments?.filter(parliament => {
                 const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
                 return parliamentDivisionId === formData.division_id;
             }) || [];
@@ -134,12 +209,12 @@ export default function GovernmentModal({
                 assembly_id: ''
             }));
         }
-    }, [formData.division_id, parliaments]);
+    }, [formData.division_id, hierarchyFilteredParliaments]);
 
     // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id) {
-            const filtered = assemblies?.filter(assembly => {
+            const filtered = hierarchyFilteredAssemblies?.filter(assembly => {
                 const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
                 return assemblyParliamentId === formData.parliament_id;
             }) || [];
@@ -158,7 +233,7 @@ export default function GovernmentModal({
                 assembly_id: ''
             }));
         }
-    }, [formData.parliament_id, assemblies]);
+    }, [formData.parliament_id, hierarchyFilteredAssemblies]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -247,7 +322,7 @@ export default function GovernmentModal({
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
                     {/* Row 0: Description (ReactQuill) */}
-                    
+
                     {/* Row 1: Name and Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -321,7 +396,7 @@ export default function GovernmentModal({
                                     required
                                 >
                                     <MenuItem value="">Select State</MenuItem>
-                                    {states?.map((state) => (
+                                    {hierarchyFilteredStates?.map((state) => (
                                         <MenuItem key={state._id} value={state._id}>
                                             {state.name}
                                         </MenuItem>

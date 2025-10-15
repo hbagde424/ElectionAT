@@ -5,11 +5,13 @@ import { ArrowBack, Edit, Business, AttachMoney, CalendarToday, Description } fr
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function GovernmentSchemeDetailPage() {
     const theme = useTheme();
     const navigate = useNavigate();
     const { id } = useParams();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [scheme, setScheme] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -79,6 +81,36 @@ export default function GovernmentSchemeDetailPage() {
 
     const handleBack = () => navigate('/Government-Schema');
 
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all government schemes data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all government schemes data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel.level] || 'Unknown';
+        const levelValue = highestLevel.value || 'Unknown';
+
+        return {
+            level: levelName,
+            description: `You have access to government schemes data for ${levelName}: ${levelValue}`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
 
     if (loading) {
         return (
@@ -129,6 +161,16 @@ export default function GovernmentSchemeDetailPage() {
                     <Typography color="text.primary">{scheme.name || scheme._id}</Typography>
                 </Breadcrumbs>
             </Box>
+
+            {/* Access Scope Information */}
+            <Alert
+                severity="info"
+                sx={{ mb: 3 }}
+            >
+                <Typography variant="body2">
+                    <strong>Data Access:</strong> {accessScope.description}
+                </Typography>
+            </Alert>
 
             <MainCard>
                 <CardContent>
