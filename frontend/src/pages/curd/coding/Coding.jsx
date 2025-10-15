@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -21,10 +21,12 @@ import { CSVLink } from 'react-csv';
 import CodingModal from './CodingModal';
 import AlertCodingDelete from './AlertCodingDelete';
 import CodingView from './CodingView';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function CodingListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
 
     const [selectedCoding, setSelectedCoding] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -153,6 +155,37 @@ export default function CodingListPage() {
 
     const [columnFilters, setColumnFilters] = useState([]);
 
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all coding data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all coding data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel.level] || 'Unknown';
+        const levelValue = highestLevel.value || 'Unknown';
+
+        return {
+            level: levelName,
+            description: `You have access to coding data for ${levelName}: ${levelValue}`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
+
     const fetchReferenceData = async () => {
         try {
             const getAuthHeaders = () => {
@@ -223,6 +256,33 @@ export default function CodingListPage() {
                     query += `&${filter.id}=${encodeURIComponent(filter.value)}`;
                 }
             });
+
+            // Add hierarchy-based filtering
+            if (userHierarchy) {
+                const highestLevel = getUserHighestLevel();
+                if (highestLevel) {
+                    switch (highestLevel.level) {
+                        case 'state':
+                            query += `&state_id=${highestLevel.value}`;
+                            break;
+                        case 'division':
+                            query += `&division_id=${highestLevel.value}`;
+                            break;
+                        case 'parliament':
+                            query += `&parliament_id=${highestLevel.value}`;
+                            break;
+                        case 'assembly':
+                            query += `&assembly_id=${highestLevel.value}`;
+                            break;
+                        case 'block':
+                            query += `&block_id=${highestLevel.value}`;
+                            break;
+                        case 'booth':
+                            query += `&booth_id=${highestLevel.value}`;
+                            break;
+                    }
+                }
+            }
 
             const token = localStorage.serviceToken;
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
@@ -653,6 +713,16 @@ export default function CodingListPage() {
                             </Button>
                         </Stack>
                     </Stack>
+
+                    {/* Access Scope Information */}
+                    <Alert
+                        severity="info"
+                        sx={{ m: 2 }}
+                    >
+                        <Typography variant="body2">
+                            <strong>Data Access:</strong> {accessScope.description}
+                        </Typography>
+                    </Alert>
 
                     {/* Filters */}
                     <Stack
