@@ -29,10 +29,12 @@ import PotentialCandidateModal from 'pages/curd/potentical candidate/PotentialCa
 import AlertPotentialCandidateDelete from 'pages/curd/potentical candidate/AlertPotentialCandidateDelete';
 import PotentialCandidateView from 'pages/curd/potentical candidate/PotentialCandidateView';
 import { Tooltip } from '@mui/material';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function PotentialCandidateListPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { userHierarchy, getUserHighestLevel } = usePermissions();
   const [searchInput, setSearchInput] = useState('');
   const searchDebounceRef = useRef(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -71,10 +73,39 @@ export default function PotentialCandidateListPage() {
       if (appliedFilters.year) url += `&election_year_id=${appliedFilters.year}`;
       if (appliedFilters.status) url += `&status=${appliedFilters.status}`;
 
-  const token = localStorage.getItem('serviceToken');
-  const headers = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+      // hierarchy-based filtering
+      if (userHierarchy) {
+        const highest = getUserHighestLevel();
+        if (highest) {
+          switch (highest) {
+            case 'state':
+              url += `&state_id=${userHierarchy.state}`;
+              break;
+            case 'division':
+              url += `&division_id=${userHierarchy.division}`;
+              break;
+            case 'parliament':
+              url += `&parliament_id=${userHierarchy.parliament}`;
+              break;
+            case 'assembly':
+              url += `&assembly_id=${userHierarchy.assembly}`;
+              break;
+            case 'block':
+              url += `&block_id=${userHierarchy.block}`;
+              break;
+            case 'booth':
+              url += `&booth_id=${userHierarchy.booth}`;
+              break;
+            default:
+              break;
+          }
+        }
+      }
+
+      const token = localStorage.getItem('serviceToken');
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(url, { headers });
       const json = await res.json();
       if (json.success) {
         setCandidates(json.data);
@@ -464,8 +495,8 @@ export default function PotentialCandidateListPage() {
         return (
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
             <Tooltip title="View Detail Page">
-              <IconButton 
-                color="info" 
+              <IconButton
+                color="info"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/Pontentcal-Candidate/${row.original._id}`);
@@ -528,6 +559,19 @@ export default function PotentialCandidateListPage() {
             {error}
           </Alert>
         )}
+
+        {/* Access Scope Information */}
+        <Alert severity="info" sx={{ m: 2 }}>
+          <Typography variant="body2">
+            <strong>Data Access:</strong> {(() => {
+              if (!userHierarchy) return 'You have access to all Potential Candidates data';
+              const highest = getUserHighestLevel();
+              const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+              const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+              return `You have access to Potential Candidates data for ${labelMap[highest] || 'Unknown'}: ${idMap[highest] || 'Unknown'}`;
+            })()}
+          </Typography>
+        </Alert>
 
         <Stack spacing={2} sx={{ padding: 3 }}>
           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
@@ -648,7 +692,7 @@ export default function PotentialCandidateListPage() {
                       <TableCell
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
-                        sx={{ 
+                        sx={{
                           cursor: header.column.getCanSort() ? 'pointer' : 'default',
                           color: 'white',
                           fontWeight: 'bold',

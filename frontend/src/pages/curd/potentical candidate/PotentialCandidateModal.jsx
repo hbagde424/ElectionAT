@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function PotentialCandidateModal({
     open,
@@ -33,6 +34,32 @@ export default function PotentialCandidateModal({
     electionYears = [], // Provide default empty array
     refresh
 }) {
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
+
+    // Apply hierarchy constraints to assemblies
+    const getHierarchyConstrainedAssemblies = () => {
+        if (!userHierarchy) {
+            return assemblies || [];
+        }
+        const highest = getUserHighestLevel();
+        switch (highest) {
+            case 'state':
+                return (assemblies || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state);
+            case 'division':
+                return (assemblies || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division);
+            case 'parliament':
+                return (assemblies || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament);
+            case 'assembly':
+                return (assemblies || []).filter(x => x._id === userHierarchy.assembly);
+            case 'block':
+                return (assemblies || []).filter(x => (x.block_id?._id || x.block_id) === userHierarchy.block);
+            case 'booth':
+                return (assemblies || []).filter(x => (x.booth_id?._id || x.booth_id) === userHierarchy.booth);
+            default:
+                return assemblies || [];
+        }
+    };
+
     const [formData, setFormData] = useState({
         name: '',
         party_id: '',
@@ -211,9 +238,9 @@ export default function PotentialCandidateModal({
                                     <Autocomplete
                                         options={parties}
                                         getOptionLabel={(option) => option.name || ''}
-                                        value={parties.find(party => party._id === formData.party_id) || 
-                                               (formData.party_id && candidate?.party_id ? 
-                                                { _id: formData.party_id, name: candidate.party_id.name || 'Loading...' } : 
+                                        value={parties.find(party => party._id === formData.party_id) ||
+                                            (formData.party_id && candidate?.party_id ?
+                                                { _id: formData.party_id, name: candidate.party_id.name || 'Loading...' } :
                                                 null)}
                                         onChange={(event, newValue) => {
                                             setFormData(prev => ({
@@ -246,11 +273,11 @@ export default function PotentialCandidateModal({
                                 <Stack spacing={1}>
                                     <InputLabel>Constituency <span style={{ color: 'red' }}>*</span></InputLabel>
                                     <Autocomplete
-                                        options={assemblies}
+                                        options={getHierarchyConstrainedAssemblies()}
                                         getOptionLabel={(option) => option.name || ''}
-                                        value={assemblies.find(assembly => assembly._id === formData.constituency_id) || 
-                                               (formData.constituency_id && candidate?.constituency_id ? 
-                                                { _id: formData.constituency_id, name: candidate.constituency_id.name || 'Loading...' } : 
+                                        value={getHierarchyConstrainedAssemblies().find(assembly => assembly._id === formData.constituency_id) ||
+                                            (formData.constituency_id && candidate?.constituency_id ?
+                                                { _id: formData.constituency_id, name: candidate.constituency_id.name || 'Loading...' } :
                                                 null)}
                                         onChange={(event, newValue) => {
                                             setFormData(prev => ({
@@ -283,9 +310,9 @@ export default function PotentialCandidateModal({
                                     <Autocomplete
                                         options={electionYears}
                                         getOptionLabel={(option) => option.year?.toString() || ''}
-                                        value={electionYears.find(year => year._id === formData.election_year_id) || 
-                                               (formData.election_year_id && candidate?.election_year_id ? 
-                                                { _id: formData.election_year_id, year: candidate.election_year_id.year || 'Loading...' } : 
+                                        value={electionYears.find(year => year._id === formData.election_year_id) ||
+                                            (formData.election_year_id && candidate?.election_year_id ?
+                                                { _id: formData.election_year_id, year: candidate.election_year_id.year || 'Loading...' } :
                                                 null)}
                                         onChange={(event, newValue) => {
                                             setFormData(prev => ({
