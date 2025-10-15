@@ -17,6 +17,8 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { Alert } from '@mui/material';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import LocalIssueModal from './LocalModal';
 import AlertLocalIssueDelete from './AlertLocalDelete';
@@ -25,6 +27,7 @@ import LocalIssueView from './LocalView';
 export default function LocalIssueListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedIssue, setSelectedIssue] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -189,6 +192,35 @@ export default function LocalIssueListPage() {
             if (selectedPriority) query += `&priority=${encodeURIComponent(selectedPriority)}`;
             if (selectedDepartment) query += `&department=${encodeURIComponent(selectedDepartment)}`;
             if (selectedCategory) query += `&category=${encodeURIComponent(selectedCategory)}`;
+
+            // hierarchy-based filtering
+            if (userHierarchy) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
+                        case 'state':
+                            query += `&state_id=${userHierarchy.state}`;
+                            break;
+                        case 'division':
+                            query += `&division_id=${userHierarchy.division}`;
+                            break;
+                        case 'parliament':
+                            query += `&parliament_id=${userHierarchy.parliament}`;
+                            break;
+                        case 'assembly':
+                            query += `&assembly_id=${userHierarchy.assembly}`;
+                            break;
+                        case 'block':
+                            query += `&block_id=${userHierarchy.block}`;
+                            break;
+                        case 'booth':
+                            query += `&booth_id=${userHierarchy.booth}`;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
 
             // When searching, fetch all results on first page
             let currentPage = pageIndex + 1;
@@ -667,6 +699,19 @@ export default function LocalIssueListPage() {
                         </Button>
                     </Stack>
                 </Stack>
+
+                {/* Access Scope Information */}
+                <Alert severity="info" sx={{ m: 2 }}>
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {(() => {
+                            if (!userHierarchy) return 'You have access to all Local Issues data';
+                            const highest = getUserHighestLevel();
+                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                            return `You have access to Local Issues data for ${labelMap[highest] || 'Unknown'}: ${idMap[highest] || 'Unknown'}`;
+                        })()}
+                    </Typography>
+                </Alert>
 
                 <Stack
                     direction="row"

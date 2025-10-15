@@ -7,6 +7,7 @@ import { useEffect, useState, useContext, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function LocalIssueModal({
     open,
@@ -22,6 +23,7 @@ export default function LocalIssueModal({
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [formData, setFormData] = useState({
         issue_name: '',
@@ -46,11 +48,70 @@ export default function LocalIssueModal({
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
+    // Apply hierarchy constraints to base sets
+    const getHierarchyConstrained = () => {
+        if (!userHierarchy) {
+            return { s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [], bt: booths || [] };
+        }
+        const highest = getUserHighestLevel();
+        switch (highest) {
+            case 'state':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    p: (parliaments || []).filter(x => (x.division_id?.state_id?._id) === userHierarchy.state),
+                    a: (assemblies || []).filter(x => (x.parliament_id?.division_id?.state_id?._id) === userHierarchy.state),
+                    b: (blocks || []).filter(x => (x.assembly_id?.parliament_id?.division_id?.state_id?._id) === userHierarchy.state),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?.parliament_id?.division_id?.state_id?._id) === userHierarchy.state)
+                };
+            case 'division':
+                return {
+                    s: states || [],
+                    d: (divisions || []).filter(x => x._id === userHierarchy.division),
+                    p: (parliaments || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    a: (assemblies || []).filter(x => (x.parliament_id?.division_id?._id) === userHierarchy.division),
+                    b: (blocks || []).filter(x => (x.assembly_id?.parliament_id?.division_id?._id) === userHierarchy.division),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?.parliament_id?.division_id?._id) === userHierarchy.division)
+                };
+            case 'parliament':
+                return {
+                    s: states || [],
+                    d: divisions || [],
+                    p: (parliaments || []).filter(x => x._id === userHierarchy.parliament),
+                    a: (assemblies || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament),
+                    b: (blocks || []).filter(x => (x.assembly_id?.parliament_id?._id) === userHierarchy.parliament),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?.parliament_id?._id) === userHierarchy.parliament)
+                };
+            case 'assembly':
+                return {
+                    s: states || [],
+                    d: divisions || [],
+                    p: parliaments || [],
+                    a: (assemblies || []).filter(x => x._id === userHierarchy.assembly),
+                    b: (blocks || []).filter(x => (x.assembly_id?._id || x.assembly_id) === userHierarchy.assembly),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?._id) === userHierarchy.assembly)
+                };
+            case 'block':
+                return {
+                    s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [],
+                    b: (blocks || []).filter(x => x._id === userHierarchy.block),
+                    bt: (booths || []).filter(x => (x.block_id?._id || x.block_id) === userHierarchy.block)
+                };
+            case 'booth':
+                return {
+                    s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [],
+                    bt: (booths || []).filter(x => x._id === userHierarchy.booth)
+                };
+            default:
+                return { s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [], bt: booths || [] };
+        }
+    };
+
     const statusOptions = ['Reported', 'In Progress', 'Resolved', 'Rejected'];
     const priorityOptions = ['Low', 'Medium', 'High', 'Critical'];
     const categoryOptions = [
         'Social Issue',
-        'Crime Issue', 
+        'Crime Issue',
         'Political Issue',
         'Farmer Issue',
         'Youth Issue',
@@ -65,7 +126,7 @@ export default function LocalIssueModal({
             if (statusValue === 'In Progess') {
                 statusValue = 'In Progress';
             }
-            
+
             setFormData({
                 issue_name: localIssue.issue_name || '',
                 department: localIssue.department || '',
@@ -105,9 +166,11 @@ export default function LocalIssueModal({
             return;
         }
 
+        const base = getHierarchyConstrained();
+
         if (formData.state_id) {
             // Filter divisions by state
-            const filteredDivs = divisions?.filter(division => {
+            const filteredDivs = base.d?.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
                 return divisionStateId === formData.state_id;
             }) || [];
@@ -121,14 +184,14 @@ export default function LocalIssueModal({
             let filteredParls;
             if (formData.division_id) {
                 // If division is selected, filter parliaments by that specific division
-                filteredParls = parliaments?.filter(parliament => {
+                filteredParls = base.p?.filter(parliament => {
                     const divId = parliament.division_id?._id || parliament.division_id;
                     return divId === formData.division_id;
                 }) || [];
             } else {
                 // If no division selected, show all parliaments in the state
                 const stateDivisionIds = filteredDivs.map(div => div._id);
-                filteredParls = parliaments?.filter(parliament => {
+                filteredParls = base.p?.filter(parliament => {
                     const divId = parliament.division_id?._id || parliament.division_id;
                     return stateDivisionIds.includes(divId);
                 }) || [];
@@ -139,14 +202,14 @@ export default function LocalIssueModal({
             let filteredAssems;
             if (formData.parliament_id) {
                 // If parliament is selected, filter assemblies by that specific parliament
-                filteredAssems = assemblies?.filter(assembly => {
+                filteredAssems = base.a?.filter(assembly => {
                     const parlId = assembly.parliament_id?._id || assembly.parliament_id;
                     return parlId === formData.parliament_id;
                 }) || [];
             } else {
                 // If no parliament selected, show assemblies based on available parliaments
                 const availableParliamentIds = filteredParls.map(parl => parl._id);
-                filteredAssems = assemblies?.filter(assembly => {
+                filteredAssems = base.a?.filter(assembly => {
                     const parlId = assembly.parliament_id?._id || assembly.parliament_id;
                     return availableParliamentIds.includes(parlId);
                 }) || [];
@@ -157,14 +220,14 @@ export default function LocalIssueModal({
             let filteredBlks;
             if (formData.assembly_id) {
                 // If assembly is selected, filter blocks by that specific assembly
-                filteredBlks = blocks?.filter(block => {
+                filteredBlks = base.b?.filter(block => {
                     const assemId = block.assembly_id?._id || block.assembly_id;
                     return assemId === formData.assembly_id;
                 }) || [];
             } else {
                 // If no assembly selected, show blocks based on available assemblies
                 const availableAssemblyIds = filteredAssems.map(assem => assem._id);
-                filteredBlks = blocks?.filter(block => {
+                filteredBlks = base.b?.filter(block => {
                     const assemId = block.assembly_id?._id || block.assembly_id;
                     return availableAssemblyIds.includes(assemId);
                 }) || [];
@@ -175,14 +238,14 @@ export default function LocalIssueModal({
             let filteredBths;
             if (formData.block_id) {
                 // If block is selected, filter booths by that specific block
-                filteredBths = booths?.filter(booth => {
+                filteredBths = base.bt?.filter(booth => {
                     const blockId = booth.block_id?._id || booth.block_id;
                     return blockId === formData.block_id;
                 }) || [];
             } else {
                 // If no block selected, show booths based on available blocks
                 const availableBlockIds = filteredBlks.map(block => block._id);
-                filteredBths = booths?.filter(booth => {
+                filteredBths = base.bt?.filter(booth => {
                     const blockId = booth.block_id?._id || booth.block_id;
                     return availableBlockIds.includes(blockId);
                 }) || [];
@@ -197,7 +260,7 @@ export default function LocalIssueModal({
             setFilteredBlocks([]);
             setFilteredBooths([]);
         }
-    }, [formData.state_id, formData.division_id, formData.parliament_id, formData.assembly_id, formData.block_id, divisions, parliaments, assemblies, blocks, booths]);
+    }, [formData.state_id, formData.division_id, formData.parliament_id, formData.assembly_id, formData.block_id, divisions, parliaments, assemblies, blocks, booths, userHierarchy]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -345,7 +408,7 @@ export default function LocalIssueModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit local issue:', errorData);
-                
+
                 if (errorData.error && errorData.error.includes('In Progess')) {
                     alert('Data validation error: Status field contains invalid value. Please select a valid status and try again.');
                 } else {

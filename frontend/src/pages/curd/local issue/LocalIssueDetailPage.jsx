@@ -4,6 +4,7 @@ import { Box, Container, Typography, Grid, CardContent, Stack, Button, IconButto
 import { ArrowBack } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
+import { usePermissions } from 'contexts/PermissionContext';
 import axiosServices from 'utils/axios';
 import DetailRenderer from 'components/DetailRenderer';
 
@@ -11,6 +12,7 @@ export default function LocalIssueDetailPage() {
     const theme = useTheme();
     const navigate = useNavigate();
     const { id } = useParams();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -67,6 +69,19 @@ export default function LocalIssueDetailPage() {
                     <Typography color="text.primary">{item.issue_name || item._id}</Typography>
                 </Breadcrumbs>
             </Box>
+
+            {/* Access Scope Information */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+                <Typography variant="body2">
+                    <strong>Data Access:</strong> {(() => {
+                        if (!userHierarchy) return 'You have access to all Local Issues data';
+                        const highest = getUserHighestLevel();
+                        const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                        const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                        return `You have access to Local Issues data for ${labelMap[highest] || 'Unknown'}: ${idMap[highest] || 'Unknown'}`;
+                    })()}
+                </Typography>
+            </Alert>
 
             <MainCard>
                 <CardContent>
