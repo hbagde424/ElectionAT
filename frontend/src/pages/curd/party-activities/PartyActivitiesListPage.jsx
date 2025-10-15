@@ -18,6 +18,8 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { Alert } from '@mui/material';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import PartyActivitiesModal from './PartyActivitiesModal';
 import AlertPartyActivitiesDelete from './AlertPartyActivitiesDelete';
@@ -26,6 +28,7 @@ import PartyActivitiesView from './PartyActivitiesView';
 export default function PartyActivitiesListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedPartyActivity, setSelectedPartyActivity] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -158,6 +161,35 @@ export default function PartyActivitiesListPage() {
                 ...(appliedFilters.activity_type && { activity_type: appliedFilters.activity_type }),
                 ...(appliedFilters.status && { status: appliedFilters.status })
             });
+
+            // hierarchy-based filtering
+            if (userHierarchy) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
+                        case 'state':
+                            queryParams.append('state_id', userHierarchy.state);
+                            break;
+                        case 'division':
+                            queryParams.append('division_id', userHierarchy.division);
+                            break;
+                        case 'parliament':
+                            queryParams.append('parliament_id', userHierarchy.parliament);
+                            break;
+                        case 'assembly':
+                            queryParams.append('assembly_id', userHierarchy.assembly);
+                            break;
+                        case 'block':
+                            queryParams.append('block_id', userHierarchy.block);
+                            break;
+                        case 'booth':
+                            queryParams.append('booth_id', userHierarchy.booth);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
 
             const token = localStorage.getItem('serviceToken');
             const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
@@ -576,6 +608,20 @@ export default function PartyActivitiesListPage() {
 
                     </Stack>
                 </Stack>
+
+                {/* Access Scope Information */}
+                <Alert severity="info" sx={{ m: 2 }}>
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {(() => {
+                            if (!userHierarchy) return 'You have access to all Party Activities data';
+                            const highest = getUserHighestLevel();
+                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                            return `You have access to Party Activities data for ${labelMap[highest] || 'Unknown'}: ${idMap[highest] || 'Unknown'}`;
+                        })()}
+                    </Typography>
+                </Alert>
+
                 <Stack
                     direction="row"
                     spacing={2}

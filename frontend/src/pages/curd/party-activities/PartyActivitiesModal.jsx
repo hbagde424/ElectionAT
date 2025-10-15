@@ -12,6 +12,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 // project imports
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function PartyActivitiesModal({
     open,
@@ -30,6 +31,7 @@ export default function PartyActivitiesModal({
     // Get logged-in user from context
     const contextValue = useContext(JWTContext);
     const { user, isLoggedIn, isInitialized } = contextValue || {};
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [formData, setFormData] = useState({
         party_id: '',
@@ -60,6 +62,65 @@ export default function PartyActivitiesModal({
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
     const [mediaLinkInput, setMediaLinkInput] = useState('');
+
+    // Apply hierarchy constraints to base sets
+    const getHierarchyConstrained = () => {
+        if (!userHierarchy) {
+            return { s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [], bt: booths || [] };
+        }
+        const highest = getUserHighestLevel();
+        switch (highest) {
+            case 'state':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    p: (parliaments || []).filter(x => (x.division_id?.state_id?._id) === userHierarchy.state),
+                    a: (assemblies || []).filter(x => (x.parliament_id?.division_id?.state_id?._id) === userHierarchy.state),
+                    b: (blocks || []).filter(x => (x.assembly_id?.parliament_id?.division_id?.state_id?._id) === userHierarchy.state),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?.parliament_id?.division_id?.state_id?._id) === userHierarchy.state)
+                };
+            case 'division':
+                return {
+                    s: states || [],
+                    d: (divisions || []).filter(x => x._id === userHierarchy.division),
+                    p: (parliaments || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    a: (assemblies || []).filter(x => (x.parliament_id?.division_id?._id) === userHierarchy.division),
+                    b: (blocks || []).filter(x => (x.assembly_id?.parliament_id?.division_id?._id) === userHierarchy.division),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?.parliament_id?.division_id?._id) === userHierarchy.division)
+                };
+            case 'parliament':
+                return {
+                    s: states || [],
+                    d: divisions || [],
+                    p: (parliaments || []).filter(x => x._id === userHierarchy.parliament),
+                    a: (assemblies || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament),
+                    b: (blocks || []).filter(x => (x.assembly_id?.parliament_id?._id) === userHierarchy.parliament),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?.parliament_id?._id) === userHierarchy.parliament)
+                };
+            case 'assembly':
+                return {
+                    s: states || [],
+                    d: divisions || [],
+                    p: parliaments || [],
+                    a: (assemblies || []).filter(x => x._id === userHierarchy.assembly),
+                    b: (blocks || []).filter(x => (x.assembly_id?._id || x.assembly_id) === userHierarchy.assembly),
+                    bt: (booths || []).filter(x => (x.block_id?.assembly_id?._id) === userHierarchy.assembly)
+                };
+            case 'block':
+                return {
+                    s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [],
+                    b: (blocks || []).filter(x => x._id === userHierarchy.block),
+                    bt: (booths || []).filter(x => (x.block_id?._id || x.block_id) === userHierarchy.block)
+                };
+            case 'booth':
+                return {
+                    s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [],
+                    bt: (booths || []).filter(x => x._id === userHierarchy.booth)
+                };
+            default:
+                return { s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [], bt: booths || [] };
+        }
+    };
 
     const activityTypes = [
         'rally', 'sabha', 'meeting', 'campaign', 'door_to_door', 'press_conference'
@@ -119,9 +180,11 @@ export default function PartyActivitiesModal({
 
     // Cascading dropdown logic: State -> Division
     useEffect(() => {
+        const base = getHierarchyConstrained();
+
         if (formData.state_id) {
             // Handle both string IDs and object references
-            const filtered = divisions?.filter(division => {
+            const filtered = base.d?.filter(division => {
                 const divisionStateId = division.state_id?._id || division.state_id;
                 return divisionStateId === formData.state_id;
             }) || [];
@@ -150,13 +213,15 @@ export default function PartyActivitiesModal({
                 booth_id: ''
             }));
         }
-    }, [formData.state_id, divisions]);
+    }, [formData.state_id, divisions, userHierarchy]);
 
     // Division -> Parliament
     useEffect(() => {
+        const base = getHierarchyConstrained();
+
         if (formData.division_id) {
             // Handle both string IDs and object references
-            const filtered = parliaments?.filter(parliament => {
+            const filtered = base.p?.filter(parliament => {
                 const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
                 return parliamentDivisionId === formData.division_id;
             }) || [];
@@ -182,13 +247,15 @@ export default function PartyActivitiesModal({
                 booth_id: ''
             }));
         }
-    }, [formData.division_id, parliaments]);
+    }, [formData.division_id, parliaments, userHierarchy]);
 
     // Parliament -> Assembly
     useEffect(() => {
+        const base = getHierarchyConstrained();
+
         if (formData.parliament_id) {
             // Handle both string IDs and object references
-            const filtered = assemblies?.filter(assembly => {
+            const filtered = base.a?.filter(assembly => {
                 const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
                 return assemblyParliamentId === formData.parliament_id;
             }) || [];
@@ -212,13 +279,15 @@ export default function PartyActivitiesModal({
                 booth_id: ''
             }));
         }
-    }, [formData.parliament_id, assemblies]);
+    }, [formData.parliament_id, assemblies, userHierarchy]);
 
     // Assembly -> Block
     useEffect(() => {
+        const base = getHierarchyConstrained();
+
         if (formData.assembly_id) {
             // Handle both string IDs and object references
-            const filtered = blocks?.filter(block => {
+            const filtered = base.b?.filter(block => {
                 const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
                 return blockAssemblyId === formData.assembly_id;
             }) || [];
@@ -240,13 +309,15 @@ export default function PartyActivitiesModal({
                 booth_id: ''
             }));
         }
-    }, [formData.assembly_id, blocks]);
+    }, [formData.assembly_id, blocks, userHierarchy]);
 
     // Block -> Booth
     useEffect(() => {
+        const base = getHierarchyConstrained();
+
         if (formData.block_id) {
             // Handle both string IDs and object references
-            const filtered = booths?.filter(booth => {
+            const filtered = base.bt?.filter(booth => {
                 const boothBlockId = booth.block_id?._id || booth.block_id;
                 return boothBlockId === formData.block_id;
             }) || [];
@@ -260,7 +331,7 @@ export default function PartyActivitiesModal({
             setFilteredBooths([]);
             setFormData(prev => ({ ...prev, booth_id: '' }));
         }
-    }, [formData.block_id, booths]);
+    }, [formData.block_id, booths, userHierarchy]);
 
 
     const handleChange = (e) => {
@@ -425,7 +496,7 @@ export default function PartyActivitiesModal({
                                         required
                                     >
                                         <MenuItem value="">Select State</MenuItem>
-                                        {states?.map((state) => (
+                                        {getHierarchyConstrained().s?.map((state) => (
                                             <MenuItem key={state._id} value={state._id}>
                                                 {state.name}
                                             </MenuItem>
