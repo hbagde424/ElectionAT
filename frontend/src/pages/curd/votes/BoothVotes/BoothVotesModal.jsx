@@ -12,6 +12,7 @@ import {
   FormControl
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function BoothVotesModal({
   open,
@@ -28,6 +29,7 @@ export default function BoothVotesModal({
   users,
   refresh
 }) {
+  const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
   const [formData, setFormData] = useState({
     candidate_id: '',
     assembly_id: '',
@@ -48,6 +50,98 @@ export default function BoothVotesModal({
   const [isEditMode, setIsEditMode] = useState(false);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
 
+  // Filtered data based on user hierarchy permissions
+  const [hierarchyFilteredStates, setHierarchyFilteredStates] = useState([]);
+  const [hierarchyFilteredDivisions, setHierarchyFilteredDivisions] = useState([]);
+  const [hierarchyFilteredParliaments, setHierarchyFilteredParliaments] = useState([]);
+  const [hierarchyFilteredAssemblies, setHierarchyFilteredAssemblies] = useState([]);
+  const [hierarchyFilteredBlocks, setHierarchyFilteredBlocks] = useState([]);
+  const [hierarchyFilteredBooths, setHierarchyFilteredBooths] = useState([]);
+
+  // Filter data based on user hierarchy permissions
+  useEffect(() => {
+    if (!userHierarchy) {
+      // No hierarchy restrictions - show all data
+      setHierarchyFilteredStates(states);
+      setHierarchyFilteredDivisions(divisions);
+      setHierarchyFilteredParliaments(parliaments);
+      setHierarchyFilteredAssemblies(assemblies);
+      setHierarchyFilteredBlocks(blocks);
+      setHierarchyFilteredBooths(booths);
+      return;
+    }
+
+    const highestLevel = getUserHighestLevel();
+    if (!highestLevel) {
+      // No specific level - show all data
+      setHierarchyFilteredStates(states);
+      setHierarchyFilteredDivisions(divisions);
+      setHierarchyFilteredParliaments(parliaments);
+      setHierarchyFilteredAssemblies(assemblies);
+      setHierarchyFilteredBlocks(blocks);
+      setHierarchyFilteredBooths(booths);
+      return;
+    }
+
+    // Filter based on user's highest access level
+    switch (highestLevel.level) {
+      case 'state':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.value));
+        setHierarchyFilteredDivisions(divisions.filter(d => d.state_id?._id === highestLevel.value));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?.state_id?._id === highestLevel.value));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?.state_id?._id === highestLevel.value));
+        break;
+      case 'division':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.value));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p.division_id?._id === highestLevel.value));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?.division_id?._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?.division_id?._id === highestLevel.value));
+        break;
+      case 'parliament':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.value));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a.parliament_id?._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?.parliament_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?.parliament_id?._id === highestLevel.value));
+        break;
+      case 'assembly':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.value));
+        setHierarchyFilteredBlocks(blocks.filter(b => b.assembly_id?._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?.assembly_id?._id === highestLevel.value));
+        break;
+      case 'block':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+        setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.value));
+        setHierarchyFilteredBooths(booths.filter(booth => booth.block_id?._id === highestLevel.value));
+        break;
+      case 'booth':
+        setHierarchyFilteredStates(states.filter(s => s._id === highestLevel.state_id));
+        setHierarchyFilteredDivisions(divisions.filter(d => d._id === highestLevel.division_id));
+        setHierarchyFilteredParliaments(parliaments.filter(p => p._id === highestLevel.parliament_id));
+        setHierarchyFilteredAssemblies(assemblies.filter(a => a._id === highestLevel.assembly_id));
+        setHierarchyFilteredBlocks(blocks.filter(b => b._id === highestLevel.block_id));
+        setHierarchyFilteredBooths(booths.filter(booth => booth._id === highestLevel.value));
+        break;
+      default:
+        setHierarchyFilteredStates(states);
+        setHierarchyFilteredDivisions(divisions);
+        setHierarchyFilteredParliaments(parliaments);
+        setHierarchyFilteredAssemblies(assemblies);
+        setHierarchyFilteredBlocks(blocks);
+        setHierarchyFilteredBooths(booths);
+    }
+  }, [userHierarchy, states, divisions, parliaments, assemblies, blocks, booths, getUserHighestLevel]);
 
   useEffect(() => {
     if (vote) {
@@ -91,7 +185,7 @@ export default function BoothVotesModal({
 
   useEffect(() => {
     if (formData.state_id) {
-      const filtered = divisions?.filter(division => division.state_id?._id === formData.state_id) || [];
+      const filtered = hierarchyFilteredDivisions?.filter(division => division.state_id?._id === formData.state_id) || [];
       setFilteredDivisions(filtered);
     } else {
       setFilteredDivisions([]);
@@ -99,11 +193,11 @@ export default function BoothVotesModal({
     if (!isEditMode) {
       setFormData(prev => ({ ...prev, division_id: '', parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
     }
-  }, [formData.state_id, divisions]);
+  }, [formData.state_id, hierarchyFilteredDivisions]);
 
   useEffect(() => {
     if (formData.division_id) {
-      const filtered = parliaments?.filter(parliament => parliament.division_id?._id === formData.division_id) || [];
+      const filtered = hierarchyFilteredParliaments?.filter(parliament => parliament.division_id?._id === formData.division_id) || [];
       setFilteredParliaments(filtered);
     } else {
       setFilteredParliaments([]);
@@ -111,11 +205,11 @@ export default function BoothVotesModal({
     if (!isEditMode) {
       setFormData(prev => ({ ...prev, parliament_id: '', assembly_id: '', block_id: '', booth_id: '' }));
     }
-  }, [formData.division_id, parliaments]);
+  }, [formData.division_id, hierarchyFilteredParliaments]);
 
   useEffect(() => {
     if (formData.parliament_id) {
-      const filtered = assemblies?.filter(assembly => assembly.parliament_id?._id === formData.parliament_id) || [];
+      const filtered = hierarchyFilteredAssemblies?.filter(assembly => assembly.parliament_id?._id === formData.parliament_id) || [];
       setFilteredAssemblies(filtered);
     } else {
       setFilteredAssemblies([]);
@@ -123,11 +217,11 @@ export default function BoothVotesModal({
     if (!isEditMode) {
       setFormData(prev => ({ ...prev, assembly_id: '', block_id: '', booth_id: '' }));
     }
-  }, [formData.parliament_id, assemblies]);
+  }, [formData.parliament_id, hierarchyFilteredAssemblies]);
 
   useEffect(() => {
     if (formData.assembly_id) {
-      const filtered = blocks?.filter(block => block.assembly_id?._id === formData.assembly_id) || [];
+      const filtered = hierarchyFilteredBlocks?.filter(block => block.assembly_id?._id === formData.assembly_id) || [];
       setFilteredBlocks(filtered);
     } else {
       setFilteredBlocks([]);
@@ -135,16 +229,16 @@ export default function BoothVotesModal({
     if (!isEditMode) {
       setFormData(prev => ({ ...prev, block_id: '', booth_id: '' }));
     }
-  }, [formData.assembly_id, blocks]);
+  }, [formData.assembly_id, hierarchyFilteredBlocks]);
 
   useEffect(() => {
     if (formData.block_id) {
-      const filtered = booths?.filter(booth => booth.block_id?._id === formData.block_id) || [];
+      const filtered = hierarchyFilteredBooths?.filter(booth => booth.block_id?._id === formData.block_id) || [];
       setFilteredBooths(filtered);
     } else {
       setFilteredBooths([]);
     }
-  }, [formData.block_id, booths]);
+  }, [formData.block_id, hierarchyFilteredBooths]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -192,7 +286,7 @@ export default function BoothVotesModal({
               label="State"
               required
             >
-              {states?.map((state) => (
+              {hierarchyFilteredStates?.map((state) => (
                 <MenuItem key={state._id} value={state._id}>
                   {state.name}
                 </MenuItem>

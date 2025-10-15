@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
   Avatar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Stack, Box, Typography, Divider, TextField, InputLabel, Select, MenuItem
+  Button, Stack, Box, Typography, Divider, TextField, InputLabel, Select, MenuItem, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
 import { CSVLink } from 'react-csv';
+import { usePermissions } from 'contexts/PermissionContext';
 
 // third-party
 import {
@@ -31,6 +32,7 @@ export default function BoothVotesListPage() {
   const theme = useTheme();
   const csvLinkRef = useRef();
   const navigate = useNavigate();
+  const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
   const [csvData, setCsvData] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
   const [selectedVote, setSelectedVote] = useState(null);
@@ -73,6 +75,37 @@ export default function BoothVotesListPage() {
   });
   const [selectedPartyName, setSelectedPartyName] = useState('');
 
+  // Get user's access scope information
+  const getUserAccessScope = () => {
+    if (!userHierarchy) {
+      return { level: 'All', description: 'You have access to all booth vote data' };
+    }
+
+    const highestLevel = getUserHighestLevel();
+    if (!highestLevel) {
+      return { level: 'All', description: 'You have access to all booth vote data' };
+    }
+
+    const levelNames = {
+      state: 'State',
+      division: 'Division',
+      parliament: 'Parliament',
+      assembly: 'Assembly',
+      block: 'Block',
+      booth: 'Booth'
+    };
+
+    const levelName = levelNames[highestLevel.level] || 'Unknown';
+    const levelValue = highestLevel.value || 'Unknown';
+
+    return {
+      level: levelName,
+      description: `You have access to booth vote data for ${levelName}: ${levelValue}`
+    };
+  };
+
+  const accessScope = getUserAccessScope();
+
   const fetchVotes = async (pageIndex, pageSize) => {
     setLoading(true);
     try {
@@ -89,10 +122,37 @@ export default function BoothVotesListPage() {
       if (selectedParty) url += `&party=${selectedParty}`;
       if (selectedPartyName) url += `&party_name=${encodeURIComponent(selectedPartyName)}`;
 
-  const token = localStorage.getItem('serviceToken');
-  const headers = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+      // Add hierarchy-based filtering
+      if (userHierarchy) {
+        const highestLevel = getUserHighestLevel();
+        if (highestLevel) {
+          switch (highestLevel.level) {
+            case 'state':
+              url += `&state_id=${highestLevel.value}`;
+              break;
+            case 'division':
+              url += `&division_id=${highestLevel.value}`;
+              break;
+            case 'parliament':
+              url += `&parliament_id=${highestLevel.value}`;
+              break;
+            case 'assembly':
+              url += `&assembly_id=${highestLevel.value}`;
+              break;
+            case 'block':
+              url += `&block_id=${highestLevel.value}`;
+              break;
+            case 'booth':
+              url += `&booth_id=${highestLevel.value}`;
+              break;
+          }
+        }
+      }
+
+      const token = localStorage.getItem('serviceToken');
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(url, { headers });
       const json = await res.json();
       if (json.success) {
         setVotes(json.data);
@@ -447,6 +507,16 @@ export default function BoothVotesListPage() {
             </Button>
           </Stack>
         </Stack>
+
+        {/* Access Scope Information */}
+        <Alert
+          severity="info"
+          sx={{ m: 2 }}
+        >
+          <Typography variant="body2">
+            <strong>Data Access:</strong> {accessScope.description}
+          </Typography>
+        </Alert>
 
         <Stack
           direction="row"
