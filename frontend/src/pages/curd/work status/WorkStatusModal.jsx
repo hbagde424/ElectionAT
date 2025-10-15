@@ -8,6 +8,7 @@ import 'react-quill/dist/quill.snow.css';
 import { useEffect, useState, useContext } from 'react';
 import { DatePicker } from '@mui/x-date-pickers';
 import JWTContext from 'contexts/JWTContext';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function WorkStatusModal({
     open,
@@ -24,6 +25,7 @@ export default function WorkStatusModal({
 }) {
     const contextValue = useContext(JWTContext);
     const { user } = contextValue || {};
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [formData, setFormData] = useState({
         work_name: '',
@@ -39,7 +41,7 @@ export default function WorkStatusModal({
         expected_end_date: null,
         actual_end_date: null,
         state_id: '',
-    district_id: '',
+        district_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
@@ -52,6 +54,78 @@ export default function WorkStatusModal({
         documents: []
     });
     const [submitted, setSubmitted] = useState(false);
+
+    // Hierarchy-constrained base data
+    const getHierarchyConstrained = () => {
+        if (!userHierarchy) {
+            return { s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [], bo: booths || [], di: districts || [] };
+        }
+        const highest = getUserHighestLevel();
+        switch (highest) {
+            case 'state':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    p: (parliaments || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    a: (assemblies || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    b: (blocks || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    bo: (booths || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state),
+                    di: (districts || []).filter(x => (x.state_id?._id || x.state_id) === userHierarchy.state)
+                };
+            case 'division':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => x._id === userHierarchy.division),
+                    p: (parliaments || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    a: (assemblies || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    b: (blocks || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    bo: (booths || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division),
+                    di: (districts || []).filter(x => (x.division_id?._id || x.division_id) === userHierarchy.division)
+                };
+            case 'parliament':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x._id === userHierarchy.division)),
+                    p: (parliaments || []).filter(x => x._id === userHierarchy.parliament),
+                    a: (assemblies || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament),
+                    b: (blocks || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament),
+                    bo: (booths || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament),
+                    di: (districts || []).filter(x => (x.parliament_id?._id || x.parliament_id) === userHierarchy.parliament)
+                };
+            case 'assembly':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x._id === userHierarchy.division)),
+                    p: (parliaments || []).filter(x => (x._id === userHierarchy.parliament)),
+                    a: (assemblies || []).filter(x => x._id === userHierarchy.assembly),
+                    b: (blocks || []).filter(x => (x.assembly_id?._id || x.assembly_id) === userHierarchy.assembly),
+                    bo: (booths || []).filter(x => (x.assembly_id?._id || x.assembly_id) === userHierarchy.assembly),
+                    di: (districts || []).filter(x => (x.assembly_id?._id || x.assembly_id) === userHierarchy.assembly)
+                };
+            case 'block':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x._id === userHierarchy.division)),
+                    p: (parliaments || []).filter(x => (x._id === userHierarchy.parliament)),
+                    a: (assemblies || []).filter(x => (x._id === userHierarchy.assembly)),
+                    b: (blocks || []).filter(x => x._id === userHierarchy.block),
+                    bo: (booths || []).filter(x => (x.block_id?._id || x.block_id) === userHierarchy.block),
+                    di: (districts || []).filter(x => (x.block_id?._id || x.block_id) === userHierarchy.block)
+                };
+            case 'booth':
+                return {
+                    s: (states || []).filter(x => x._id === userHierarchy.state),
+                    d: (divisions || []).filter(x => (x._id === userHierarchy.division)),
+                    p: (parliaments || []).filter(x => (x._id === userHierarchy.parliament)),
+                    a: (assemblies || []).filter(x => (x._id === userHierarchy.assembly)),
+                    b: (blocks || []).filter(x => (x._id === userHierarchy.block)),
+                    bo: (booths || []).filter(x => x._id === userHierarchy.booth),
+                    di: (districts || []).filter(x => (x.booth_id?._id || x.booth_id) === userHierarchy.booth)
+                };
+            default:
+                return { s: states || [], d: divisions || [], p: parliaments || [], a: assemblies || [], b: blocks || [], bo: booths || [], di: districts || [] };
+        }
+    };
 
     // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -517,7 +591,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                     <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Panchayat</InputLabel>
                             <TextField
@@ -559,7 +633,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                      <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Announced Date</InputLabel>
                             <DatePicker
@@ -645,7 +719,7 @@ export default function WorkStatusModal({
                         </Stack>
                     </Grid>
 
-                   
+
 
                     {/* Row 6: State and Division */}
                     <Grid item xs={12} sm={6}>
@@ -659,7 +733,7 @@ export default function WorkStatusModal({
                                     required
                                 >
                                     <MenuItem value="">Select State</MenuItem>
-                                    {states?.map((state) => (
+                                    {getHierarchyConstrained().s?.map((state) => (
                                         <MenuItem key={state._id} value={state._id}>
                                             {state.name}
                                         </MenuItem>
@@ -682,7 +756,7 @@ export default function WorkStatusModal({
                                     onChange={handleChange}
                                 >
                                     <MenuItem value="">Select District</MenuItem>
-                                    {Array.isArray(districts) && districts
+                                    {getHierarchyConstrained().di
                                         .filter(d => {
                                             const stateId = d.state_id?._id || d.state_id;
                                             return !formData.state_id || stateId === formData.state_id;
@@ -707,7 +781,10 @@ export default function WorkStatusModal({
                                     disabled={!formData.state_id}
                                 >
                                     <MenuItem value="">Select Division</MenuItem>
-                                    {filteredDivisions.map((division) => (
+                                    {getHierarchyConstrained().d.filter(division => {
+                                        const divisionStateId = division.state_id?._id || division.state_id;
+                                        return divisionStateId === formData.state_id;
+                                    }).map((division) => (
                                         <MenuItem key={division._id} value={division._id}>
                                             {division.name}
                                         </MenuItem>
@@ -733,7 +810,10 @@ export default function WorkStatusModal({
                                     disabled={!formData.division_id}
                                 >
                                     <MenuItem value="">Select Parliament</MenuItem>
-                                    {filteredParliaments.map((parliament) => (
+                                    {getHierarchyConstrained().p.filter(parliament => {
+                                        const parliamentDivisionId = parliament.division_id?._id || parliament.division_id;
+                                        return parliamentDivisionId === formData.division_id;
+                                    }).map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>
                                             {parliament.name}
                                         </MenuItem>
@@ -758,7 +838,10 @@ export default function WorkStatusModal({
                                     disabled={!formData.parliament_id}
                                 >
                                     <MenuItem value="">Select Assembly</MenuItem>
-                                    {filteredAssemblies.map((assembly) => (
+                                    {getHierarchyConstrained().a.filter(assembly => {
+                                        const assemblyParliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                                        return assemblyParliamentId === formData.parliament_id;
+                                    }).map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>
                                             {assembly.name}
                                         </MenuItem>
@@ -784,7 +867,10 @@ export default function WorkStatusModal({
                                     disabled={!formData.assembly_id}
                                 >
                                     <MenuItem value="">Select Block</MenuItem>
-                                    {filteredBlocks.map((block) => (
+                                    {getHierarchyConstrained().b.filter(block => {
+                                        const blockAssemblyId = block.assembly_id?._id || block.assembly_id;
+                                        return blockAssemblyId === formData.assembly_id;
+                                    }).map((block) => (
                                         <MenuItem key={block._id} value={block._id}>
                                             {block.name}
                                         </MenuItem>
@@ -809,7 +895,10 @@ export default function WorkStatusModal({
                                     disabled={!formData.block_id}
                                 >
                                     <MenuItem value="">Select Booth</MenuItem>
-                                    {filteredBooths.map((booth) => (
+                                    {getHierarchyConstrained().bo.filter(booth => {
+                                        const boothBlockId = booth.block_id?._id || booth.block_id;
+                                        return boothBlockId === formData.block_id;
+                                    }).map((booth) => (
                                         <MenuItem key={booth._id} value={booth._id}>
                                             {booth.name} (Booth #{booth.booth_number})
                                         </MenuItem>
@@ -823,10 +912,10 @@ export default function WorkStatusModal({
                     </Grid>
 
                     {/* Row 9: Panchayat and Village */}
-                   
+
 
                     {/* Row 10: Announced Date and Announced By */}
-                   
+
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>

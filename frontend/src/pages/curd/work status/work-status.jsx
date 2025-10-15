@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
-    FormControl, InputLabel, Select, MenuItem, Grid, TextField
+    FormControl, InputLabel, Select, MenuItem, Grid, TextField, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -16,6 +16,7 @@ import ScrollX from 'components/ScrollX';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import WorkStatusModal from './WorkStatusModal';
 import AlertWorkStatusDelete from './AlertWorkStatusDelete';
@@ -25,6 +26,7 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 export default function WorkStatusListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedWorkStatus, setSelectedWorkStatus] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -73,6 +75,16 @@ export default function WorkStatusListPage() {
         workType: '',
         status: ''
     });
+
+    // Helper to add Authorization header when token exists
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken;
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
 
     const handleStateChange = (event) => {
         const stateId = event.target.value;
@@ -156,16 +168,6 @@ export default function WorkStatusListPage() {
             ...tempFilters,
             booth_id: boothId
         });
-    };
-
-    // Helper to add Authorization header when token exists
-    const getAuthHeaders = () => {
-        try {
-            const token = localStorage.serviceToken;
-            return token ? { Authorization: `Bearer ${token}` } : {};
-        } catch (err) {
-            return {};
-        }
     };
 
     const handleWorkTypeChange = (event) => {
@@ -298,6 +300,33 @@ export default function WorkStatusListPage() {
             if (currentFilters.announced_by) queryParams.push(`announced_by=${encodeURIComponent(currentFilters.announced_by)}`);
             if (currentFilters.workType) queryParams.push(`workType=${encodeURIComponent(currentFilters.workType)}`);
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
+
+            // hierarchy-based filtering
+            if (userHierarchy) {
+                const highest = getUserHighestLevel();
+                if (highest) {
+                    switch (highest) {
+                        case 'state':
+                            queryParams.push(`state_id=${userHierarchy.state}`);
+                            break;
+                        case 'division':
+                            queryParams.push(`division_id=${userHierarchy.division}`);
+                            break;
+                        case 'parliament':
+                            queryParams.push(`parliament_id=${userHierarchy.parliament}`);
+                            break;
+                        case 'assembly':
+                            queryParams.push(`assembly_id=${userHierarchy.assembly}`);
+                            break;
+                        case 'block':
+                            queryParams.push(`block_id=${userHierarchy.block}`);
+                            break;
+                        case 'booth':
+                            queryParams.push(`booth_id=${userHierarchy.booth}`);
+                            break;
+                    }
+                }
+            }
 
             const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status${queryString}`, { headers: getAuthHeaders() });
@@ -558,7 +587,7 @@ export default function WorkStatusListPage() {
                 </Typography>
             )
         },
-        
+
         {
             header: 'Panchayat',
             accessorKey: 'panchayat',
@@ -724,6 +753,20 @@ export default function WorkStatusListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Access Scope Information */}
+                <Alert severity="info" sx={{ m: 2 }}>
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {(() => {
+                            if (!userHierarchy) return 'You have access to all Work Status data';
+                            const highest = getUserHighestLevel();
+                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                            const label = labelMap[highest] || 'Unknown';
+                            const id = idMap[highest];
+                            return `You have access to Work Status data for ${label}${id ? ` (ID: ${id})` : ''}`;
+                        })()}
+                    </Typography>
+                </Alert>
                 <Stack spacing={2} sx={{ padding: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                         <TextField

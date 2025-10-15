@@ -5,11 +5,13 @@ import { ArrowBack, Edit, Work, Business, AttachMoney, CalendarToday } from '@mu
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function WorkStatusDetailPage() {
     const theme = useTheme();
     const navigate = useNavigate();
     const { id } = useParams();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [workStatus, setWorkStatus] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -158,6 +160,21 @@ export default function WorkStatusDetailPage() {
                     <Typography color="text.primary">{workStatus.work_name || workStatus._id}</Typography>
                 </Breadcrumbs>
             </Box>
+
+            {/* Access Scope Information */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+                <Typography variant="body2">
+                    <strong>Data Access:</strong> {(() => {
+                        if (!userHierarchy) return 'You have access to all Work Status data';
+                        const highest = getUserHighestLevel();
+                        const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
+                        const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
+                        const label = labelMap[highest] || 'Unknown';
+                        const id = idMap[highest];
+                        return `You have access to Work Status data for ${label}${id ? ` (ID: ${id})` : ''}`;
+                    })()}
+                </Typography>
+            </Alert>
 
             <MainCard>
                 <CardContent>
