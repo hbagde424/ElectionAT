@@ -201,6 +201,14 @@ export default function GovernmentSchemeDetailPage() {
 
                             <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Assembly</Typography>
                             <Typography variant="body1">{scheme.assembly_id?.name || 'N/A'}</Typography>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Block</Typography>
+                            <Typography variant="body1">{scheme.block_id?.name || 'N/A'}</Typography>
+                            {scheme.booth_id && (
+                                <>
+                                    <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Booth</Typography>
+                                    <Typography variant="body1">{scheme.booth_id?.name || scheme.booth_id?.booth_number || 'N/A'}</Typography>
+                                </>
+                            )}
                         </Grid>
 
                         <Grid item xs={12} md={4}>

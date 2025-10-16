@@ -1,7 +1,7 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
 import { CalendarTick, User, Location, Money, DocumentText1 } from 'iconsax-react';
 
-export default function GovernmentView({ data }) {
+export default function GovernmentView({ data, blocks = [], booths = [] }) {
     if (!data) return null;
 
     const formatDate = (dateString) => {
@@ -143,16 +143,33 @@ export default function GovernmentView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
                             <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
                         </Grid>
-                        {/* <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
-                            <Chip label={data.block_id?.name || 'N/A'} color="default" size="small" />
+                            {(() => {
+                                const b = data.block_id;
+                                if (!b) return <Chip label={'N/A'} color="default" size="small" />;
+                                if (typeof b === 'object') return <Chip label={b.name || 'N/A'} color="default" size="small" />;
+                                const found = blocks.find(x => x._id === b) || null;
+                                return <Chip label={found?.name || 'N/A'} color="default" size="small" />;
+                            })()}
                         </Grid>
-                        {data.booth_id && (
-                            <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
-                                <Chip label={data.booth_id?.name || 'N/A'} color="success" size="small" />
-                            </Grid>
-                        )} */}
+                        {(() => {
+                            const booth = data.booth_id;
+                            if (!booth) return null;
+                            if (typeof booth === 'object') return (
+                                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                                    <Chip label={booth.name || booth.booth_number || 'N/A'} color="success" size="small" />
+                                </Grid>
+                            );
+                            const foundB = booths.find(x => x._id === booth) || null;
+                            return (
+                                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                                    <Chip label={foundB?.name || foundB?.booth_number || 'N/A'} color="success" size="small" />
+                                </Grid>
+                            );
+                        })()}
                     </Grid>
                 </Grid>
             </Grid>

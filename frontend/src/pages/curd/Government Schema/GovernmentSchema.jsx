@@ -36,8 +36,8 @@ export default function GovernmentsListPage() {
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
-    // const [blocks, setBlocks] = useState([]);
-    // const [booths, setBooths] = useState([]);
+    const [blocks, setBlocks] = useState([]);
+    const [booths, setBooths] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -49,6 +49,8 @@ export default function GovernmentsListPage() {
     const [selectedParliament, setSelectedParliament] = useState('');
     const [selectedAssembly, setSelectedAssembly] = useState('');
     const [selectedType, setSelectedType] = useState('');
+    const [selectedBlock, setSelectedBlock] = useState('');
+    const [selectedBooth, setSelectedBooth] = useState('');
 
     // Temporary filter states
     const [tempFilters, setTempFilters] = useState({
@@ -56,6 +58,8 @@ export default function GovernmentsListPage() {
         division: '',
         parliament: '',
         assembly: '',
+        block: '',
+        booth: '',
         type: ''
     });
 
@@ -63,6 +67,8 @@ export default function GovernmentsListPage() {
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
+    const [filteredBlocks, setFilteredBlocks] = useState([]);
+    const [filteredBooths, setFilteredBooths] = useState([]);
 
     // Add useRef to track if reference data has been fetched
     const referenceDataFetched = useRef(false);
@@ -170,14 +176,15 @@ export default function GovernmentsListPage() {
                 divisionsRes,
                 parliamentsRes,
                 assembliesRes,
-
+                blocksRes,
+                boothsRes,
             ] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
-                // fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                // fetch(`${import.meta.env.VITE_APP_API_URL}/booths`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers })
             ]);
 
             const [
@@ -185,28 +192,57 @@ export default function GovernmentsListPage() {
                 divisionsData,
                 parliamentsData,
                 assembliesData,
-                // blocksData,
-                // boothsData
+                blocksData,
+                boothsData
             ] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
-                // blocksRes.json(),
-                // boothsRes.json()
+                blocksRes.json(),
+                boothsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
             if (divisionsData.success) setDivisions(divisionsData.data);
             if (parliamentsData.success) setParliaments(parliamentsData.data);
             if (assembliesData.success) setAssemblies(assembliesData.data);
-            // if (blocksData.success) setBlocks(blocksData.data);
-            // if (boothsData.success) setBooths(boothsData.data);
+            if (blocksData?.success) setBlocks(blocksData.data);
+            if (boothsData?.success) setBooths(boothsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
     };
+
+    // Assembly -> Blocks
+    useEffect(() => {
+        if (tempFilters.assembly) {
+            const filtered = blocks?.filter(block => (block.assembly_id?._id || block.assembly_id) === tempFilters.assembly) || [];
+            setFilteredBlocks(filtered);
+            // clear dependent fields
+            if (tempFilters.block && !filtered.find(b => b._id === tempFilters.block)) {
+                setTempFilters(prev => ({ ...prev, block: '', booth: '' }));
+            }
+        } else {
+            setFilteredBlocks([]);
+            setTempFilters(prev => ({ ...prev, block: '', booth: '' }));
+        }
+    }, [tempFilters.assembly, blocks]);
+
+    // Block -> Booths
+    useEffect(() => {
+        if (tempFilters.block) {
+            const filtered = booths?.filter(booth => (booth.block_id?._id || booth.block_id) === tempFilters.block) || [];
+            setFilteredBooths(filtered);
+            if (tempFilters.booth && !filtered.find(b => b._id === tempFilters.booth)) {
+                setTempFilters(prev => ({ ...prev, booth: '' }));
+            }
+        } else {
+            setFilteredBooths([]);
+            setTempFilters(prev => ({ ...prev, booth: '' }));
+        }
+    }, [tempFilters.block, booths]);
 
     const fetchGovernments = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
@@ -245,6 +281,9 @@ export default function GovernmentsListPage() {
                 }
             }
 
+            if (selectedBlock) query += `&block=${selectedBlock}`;
+            if (selectedBooth) query += `&booth=${selectedBooth}`;
+
             const token = localStorage.serviceToken;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
@@ -277,6 +316,8 @@ export default function GovernmentsListPage() {
         selectedDivision,
         selectedParliament,
         selectedAssembly,
+        selectedBlock,
+        selectedBooth,
         selectedType
     ]);
 
@@ -403,30 +444,30 @@ export default function GovernmentsListPage() {
                 />
             )
         },
-        // {
-        //     header: 'Block',
-        //     accessorKey: 'block_id',
-        //     cell: ({ getValue }) => (
-        //         <Chip
-        //             label={getValue()?.name || 'N/A'}
-        //             color="default"
-        //             size="small"
-        //             variant="outlined"
-        //         />
-        //     )
-        // },
-        // {
-        //     header: 'Booth',
-        //     accessorKey: 'booth_id',
-        //     cell: ({ getValue }) => (
-        //         <Chip
-        //             label={getValue()?.name || 'N/A'}
-        //             color="success"
-        //             size="small"
-        //             variant="outlined"
-        //         />
-        //     )
-        // },
+        {
+            header: 'Block',
+            accessorKey: 'block_id',
+            cell: ({ getValue, row }) => {
+                const val = getValue();
+                // If populated object
+                if (val && typeof val === 'object') return <Chip label={val.name || 'N/A'} color="default" size="small" variant="outlined" />;
+                // If id string, lookup in local blocks
+                const blockId = val || row.original.block_id;
+                const found = blocks.find(b => (b._id === blockId) || (b._id === (blockId?._id))) || null;
+                return <Chip label={found?.name || 'N/A'} color="default" size="small" variant="outlined" />;
+            }
+        },
+        {
+            header: 'Booth',
+            accessorKey: 'booth_id',
+            cell: ({ getValue, row }) => {
+                const val = getValue();
+                if (val && typeof val === 'object') return <Chip label={val.name || val.booth_number || 'N/A'} color="success" size="small" variant="outlined" />;
+                const boothId = val || row.original.booth_id;
+                const found = booths.find(b => (b._id === boothId) || (b._id === (boothId?._id))) || null;
+                return <Chip label={found?.name || found?.booth_number || 'N/A'} color="success" size="small" variant="outlined" />;
+            }
+        },
         {
             header: 'Description',
             accessorKey: 'description',
@@ -548,7 +589,7 @@ export default function GovernmentsListPage() {
             Division: item.division_id?.name || '',
             Parliament: item.parliament_id?.name || '',
             Assembly: item.assembly_id?.name || '',
-            // Block: item.block_id?.name || '',
+            Block: item.block_id?.name || '',
             Booth: item.booth_id?.name || '',
             Booth_Number: item.booth_id?.booth_number || '',
 
@@ -701,6 +742,46 @@ export default function GovernmentsListPage() {
                         ))}
                     </TextField>
 
+                    {/* Block */}
+                    <TextField
+                        select
+                        label="Block"
+                        value={tempFilters.block}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, block: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                        disabled={!tempFilters.assembly}
+                    >
+                        <MenuItem value="">All Blocks</MenuItem>
+                        {filteredBlocks.map((block) => (
+                            <MenuItem key={block._id} value={block._id}>
+                                {block.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    {/* Booth */}
+                    <TextField
+                        select
+                        label="Booth"
+                        value={tempFilters.booth}
+                        onChange={(e) =>
+                            setTempFilters((prev) => ({ ...prev, booth: e.target.value }))
+                        }
+                        sx={{ minWidth: 180 }}
+                        size="small"
+                        disabled={!tempFilters.block}
+                    >
+                        <MenuItem value="">All Booths</MenuItem>
+                        {filteredBooths.map((booth) => (
+                            <MenuItem key={booth._id} value={booth._id}>
+                                {booth.name || booth.booth_number || booth._id}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
                     {/* Apply and Clear Buttons */}
                     <Button
                         variant="contained"
@@ -709,6 +790,8 @@ export default function GovernmentsListPage() {
                             setSelectedDivision(tempFilters.division);
                             setSelectedParliament(tempFilters.parliament);
                             setSelectedAssembly(tempFilters.assembly);
+                            setSelectedBlock(tempFilters.block);
+                            setSelectedBooth(tempFilters.booth);
                             setSelectedType(tempFilters.type);
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                         }}
@@ -724,12 +807,16 @@ export default function GovernmentsListPage() {
                                 division: '',
                                 parliament: '',
                                 assembly: '',
+                                block: '',
+                                booth: '',
                                 type: ''
                             });
                             setSelectedState('');
                             setSelectedDivision('');
                             setSelectedParliament('');
                             setSelectedAssembly('');
+                            setSelectedBlock('');
+                            setSelectedBooth('');
                             setSelectedType('');
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                         }}
@@ -777,7 +864,7 @@ export default function GovernmentsListPage() {
                                         {row.getIsExpanded() && (
                                             <TableRow>
                                                 <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <GovernmentView data={row.original} />
+                                                    <GovernmentView data={row.original} blocks={blocks} booths={booths} />
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -806,8 +893,8 @@ export default function GovernmentsListPage() {
                 divisions={divisions}
                 parliaments={parliaments}
                 assemblies={assemblies}
-                // blocks={blocks}
-                // booths={booths}
+                blocks={blocks}
+                booths={booths}
                 refresh={() => fetchGovernments(pagination.pageIndex, pagination.pageSize)}
             />
 
