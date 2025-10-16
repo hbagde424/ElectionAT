@@ -17,16 +17,33 @@ exports.getAssemblies = async (req, res, next) => {
     // Build filter object
     const filter = {};
 
-    // Enhanced search functionality: search across all string fields in the model
+    // Enhanced search functionality: prefer exact matches when appropriate
     if (req.query.search) {
-      const searchRegex = { $regex: req.query.search, $options: 'i' };
-      filter.$or = [
-        { name: searchRegex },
-        { description: searchRegex },
-        { AC_NO: searchRegex },
-        { type: searchRegex },
-        { category: searchRegex }
-      ];
+      const raw = String(req.query.search).trim();
+
+      // If search looks like a Mongo ObjectId (24 hex chars), try exact _id match first
+      const isObjectIdLike = /^[a-fA-F0-9]{24}$/.test(raw);
+
+      // If search is numeric only (e.g., AC_NO like '197'), prefer exact AC_NO match
+      const isNumeric = /^\d+$/.test(raw);
+
+      if (isObjectIdLike) {
+        filter._id = raw;
+      } else if (isNumeric) {
+        // exact AC_NO equality first
+        filter.AC_NO = raw;
+      } else {
+        // Fuzzy search across useful string fields
+        const searchRegex = { $regex: raw, $options: 'i' };
+        filter.$or = [
+          { name: searchRegex },
+          { description: searchRegex },
+          { AC_NO: searchRegex },
+          { type: searchRegex },
+          { category: searchRegex }
+        ];
+      }
+      console.log('🔎 Assembly search filter applied:', JSON.stringify(filter));
     }
 
     // Filter by type (case-insensitive)
@@ -83,6 +100,16 @@ exports.getAssemblies = async (req, res, next) => {
 
     const assemblies = await query.skip(skip).limit(limit).exec();
     const total = await Assembly.countDocuments(filter);
+
+    // Diagnostic logging: show a trimmed sample of returned assemblies when search is provided
+    try {
+      if (req.query.search) {
+        console.log('🔎 Assemblies search:', req.query.search, '=> returned', assemblies.length, 'candidates');
+        console.log('🔎 Candidate sample:', assemblies.slice(0,10).map(a => ({ _id: a._id, AC_NO: a.AC_NO, name: a.name })));
+      }
+    } catch (e) {
+      console.warn('Could not log assembly candidates:', e && e.message);
+    }
 
     res.status(200).json({
       success: true,
