@@ -71,17 +71,9 @@ const VisitListPage = () => {
     const [routeData, setRouteData] = useState(null);
     const mapRef = useRef(null);
 
-    // Debounce typing in search box before applying to globalFilter used by table
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setGlobalFilter(searchInput);
-        }, 500); // 500ms debounce; adjust as needed
-
-        return () => clearTimeout(handler);
-    }, [searchInput]);
-
     // Keep local input in sync when globalFilter changes from outside (clear, pagination, etc.)
     useEffect(() => {
+        console.log('🔍 globalFilter changed to:', globalFilter);
         setSearchInput(globalFilter || '');
     }, [globalFilter]);
 
@@ -217,6 +209,7 @@ const VisitListPage = () => {
 
             if (globalFilter) {
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
+                console.log('🔍 Sending search parameter:', globalFilter);
             }
 
             if (appliedFilters.candidate) {
@@ -254,7 +247,10 @@ const VisitListPage = () => {
                 queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
             }
 
-            const { data: json } = await axiosServices.get(`/visits?${queryParams.join('&')}`);
+            const url = `/visits?${queryParams.join('&')}`;
+            console.log('🔍 API URL:', url);
+            const { data: json } = await axiosServices.get(url);
+            console.log('🔍 API Response:', json);
             if (json.success) {
                 setVisits(json.data);
                 setPageCount(json.pages);
@@ -559,7 +555,12 @@ const VisitListPage = () => {
     };
 
     useEffect(() => {
-        console.log('useEffect triggered with appliedFilters:', appliedFilters);
+        console.log('🔍 useEffect triggered with:', {
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+            globalFilter: globalFilter,
+            appliedFilters: appliedFilters
+        });
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchMapVisits(appliedFilters);
         fetchReferenceData();
@@ -672,6 +673,12 @@ const VisitListPage = () => {
 
     const handleThemeChange = (theme) => {
         setSelectedTheme(theme);
+    };
+
+    const handleSearch = () => {
+        console.log('🔍 Search triggered with term:', searchInput);
+        setGlobalFilter(searchInput.trim());
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
     const columns = useMemo(() => [
@@ -1077,13 +1084,28 @@ const VisitListPage = () => {
                                 <TextField
                                     size="small"
                                     variant="outlined"
-                                    placeholder={`Search ${visits.length} records...`}
+                                    placeholder={`Search all fields (candidate, state, division, etc.) - Press Enter to search...`}
                                     value={searchInput}
-                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setSearchInput(value);
+                                        // Clear search if input is empty
+                                        if (value.trim() === '') {
+                                            setGlobalFilter('');
+                                            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        console.log('🔍 Key pressed:', e.key);
+                                        if (e.key === 'Enter') {
+                                            console.log('🔍 Enter key detected, triggering search');
+                                            handleSearch();
+                                        }
+                                    }}
                                     InputProps={{
                                         // optionally you can add a clear button or icon here
                                     }}
-                                    sx={{ minWidth: 300 }}
+                                    sx={{ minWidth: 400 }}
                                 />
                                 <Stack direction="row" spacing={1}>
                                     <CSVLink
