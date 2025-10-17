@@ -133,7 +133,6 @@ export default function BoothsListPage() {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
                 // Remove pagination and get all results by setting a very high limit
                 const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-
                 const resp = await fetch(url, { headers });
 
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -143,22 +142,14 @@ export default function BoothsListPage() {
                 // Handle nested features structure - check if features[0] has nested features
                 let features = j.features || j.data || [];
                 if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
-                    console.log('Found nested features structure, extracting:', features[0].features.length, 'features');
                     features = features[0].features;
                 }
-
-                console.log('Features count for ALL polygons:', features.length);
                 if (!features || !Array.isArray(features) || features.length === 0) {
                     setMapError('No booth polygons found');
                     setBoothGeoJSON(null);
                     return;
                 }
                 const fc = { type: 'FeatureCollection', features };
-                console.log('Setting boothGeoJSON with', features.length, 'features');
-                console.log('First few features:', features.slice(0, 3).map(f => ({
-                    type: f.type,
-                    properties: f.properties?.BoothName || f.properties?.BoothNo || 'No name'
-                })));
                 setBoothGeoJSON(fc);
                 // auto-fit handled below
                 setTimeout(() => {
@@ -197,7 +188,6 @@ export default function BoothsListPage() {
             let json = null;
             for (const url of candidates) {
                 try {
-                    console.log('Trying booth polygons URL:', url);
                     const resp = await fetch(url, { headers });
                     if (!resp.ok) {
                         console.warn('Non-ok response from', url, resp.status);
@@ -211,7 +201,6 @@ export default function BoothsListPage() {
                         break;
                     }
                     // Some endpoints respond with empty features but valid structure; keep trying
-                    console.log('No features from', url, 'response:', j.message || '(no message)');
                 } catch (innerErr) {
                     console.warn('Error fetching booth polygons from candidate url:', innerErr);
                 }
@@ -261,7 +250,6 @@ export default function BoothsListPage() {
     // Fetch booth details and recent visits when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
-            console.log(`🔍 Searching for booth with BoothNo: "${boothNo}"`);
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -272,8 +260,6 @@ export default function BoothsListPage() {
 
             if (json.success && Array.isArray(json.data)) {
                 const boothNoStr = String(boothNo).trim();
-                console.log(`📊 Total booths available: ${json.data.length}`);
-                console.log(`🔍 Looking for booth_number matching: "${boothNoStr}"`);
 
                 // Try exact match first
                 booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr);
@@ -288,16 +274,8 @@ export default function BoothsListPage() {
                     booth = json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
                 }
 
-                if (booth) {
-                    console.log(`✅ Found matching booth:`, {
-                        id: booth._id,
-                        booth_number: booth.booth_number,
-                        name: booth.name,
-                        block: booth.block_id?.name
-                    });
-                } else {
-                    console.warn(`❌ No booth found for BoothNo: "${boothNoStr}"`);
-                    console.log('Available booth numbers:', json.data.slice(0, 10).map(b => b.booth_number));
+                if (!booth) {
+                    console.warn(`No booth found for BoothNo: "${boothNoStr}"`);
                 }
             } else {
                 console.error('Failed to fetch booths:', json);
@@ -316,7 +294,6 @@ export default function BoothsListPage() {
             let gender = null;
 
             if (booth && booth._id) {
-                console.log(`Fetching related data for booth ID: ${booth._id}, booth number: ${booth.booth_number}`);
 
                 const fetchPromises = [
                     fetch(`${import.meta.env.VITE_APP_API_URL}/visits?booth=${encodeURIComponent(booth._id)}&all=true`, { headers }),
@@ -541,7 +518,6 @@ export default function BoothsListPage() {
 
     // Fetch booths for table
     const fetchBooths = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
-        console.log('fetchBooths called with:', { pageIndex, pageSize, globalFilter, currentFilters });
         setLoading(true);
         try {
             const queryParams = [];
@@ -573,19 +549,12 @@ export default function BoothsListPage() {
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            console.log('Token exists:', !!token);
-            console.log('Headers:', headers);
             const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
             const url = `${apiUrl}/booths?page=${actualPageIndex + 1}&limit=${actualPageSize}${queryString}`;
-            console.log('API URL:', apiUrl);
-            console.log('Fetching booths from URL:', url);
             const res = await fetch(url, { headers });
-            console.log('Response status:', res.status);
             const json = await res.json();
-            console.log('Response data:', json);
 
             if (json.success) {
-                console.log('Setting booths data:', json.data);
                 setBooths(json.data);
                 setIsSearching(isSearchingOnly);
 
@@ -600,7 +569,6 @@ export default function BoothsListPage() {
         } catch (error) {
             console.error('Failed to fetch booths:', error);
         } finally {
-            console.log('Setting loading to false');
             setLoading(false);
         }
     };
@@ -1035,7 +1003,6 @@ export default function BoothsListPage() {
 
 
 
-    console.log('Component render - loading:', loading, 'booths:', booths?.length);
 
     if (loading) {
         return (
@@ -1126,7 +1093,6 @@ export default function BoothsListPage() {
                                             const props = boothFeature.properties || {};
                                             // try multiple property names and nested structures
                                             const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number));
-                                            console.debug('Booth feature properties:', props, 'resolved boothNo:', boothNo);
                                             // Open drawer and start loading details
                                             setDrawerOpen(true);
                                             setDrawerData({ loading: true, boothNo, details: null });
