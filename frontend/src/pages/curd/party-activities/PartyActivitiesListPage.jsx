@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField,
-    FormControl, InputLabel, Select, MenuItem
+    FormControl, InputLabel, Select, MenuItem, Grid, Drawer, Paper
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -20,6 +20,10 @@ import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 import { Alert } from '@mui/material';
 import { usePermissions } from 'contexts/PermissionContext';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
+import CloseIcon from '@mui/icons-material/Close';
 
 import PartyActivitiesModal from './PartyActivitiesModal';
 import AlertPartyActivitiesDelete from './AlertPartyActivitiesDelete';
@@ -49,6 +53,16 @@ export default function PartyActivitiesListPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [filters, setFilters] = useState({});
     const [appliedFilters, setAppliedFilters] = useState({});
+
+    // Map state
+    const [blockNumberInput, setBlockNumberInput] = useState('');
+    const [boothGeoJSON, setBoothGeoJSON] = useState(null);
+    const [mapTheme, setMapTheme] = useState('streets');
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     // Handle filter changes
     const handleFilterChange = (field, value) => {
@@ -134,7 +148,180 @@ export default function PartyActivitiesListPage() {
         }
     };
 
+    // Load booth polygons by block name or id (tries multiple backend endpoints)
+    const loadBoothPolygons = async (blockInput) => {
+        if (!blockInput) {
+            setMapError('Please select a Block');
+            return;
+        }
+        setMapError('');
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
+            // If user selected ALL blocks, fetch all polygons (large result)
+            if (blockInput === 'ALL') {
+                const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+                const resp = await fetch(url, { headers });
+
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const j = await resp.json();
+
+                let features = j.features || j.data || [];
+                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
+                    features = features[0].features;
+                }
+                if (!features || !Array.isArray(features) || features.length === 0) {
+                    setMapError('No booth polygons found');
+                    setBoothGeoJSON(null);
+                    return;
+                }
+                const fc = { type: 'FeatureCollection', features };
+                setBoothGeoJSON(fc);
+                setTimeout(() => {
+                    try {
+                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                        if (!map || !fc.features?.length) return;
+                        const coords = [];
+                        fc.features.forEach(f => {
+                            const geom = f.geometry;
+                            if (!geom) return;
+                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                            if (geom.type === 'Polygon') collect(geom.coordinates);
+                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                        });
+                        if (coords.length) {
+                            const lons = coords.map(c => c[0]);
+                            const lats = coords.map(c => c[1]);
+                            const bounds = [
+                                [Math.min(...lons), Math.min(...lats)],
+                                [Math.max(...lons), Math.max(...lats)]
+                            ];
+                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                        }
+                    } catch { }
+                }, 0);
+                return;
+            }
+
+            // Try multiple endpoints in order until we get features
+            const candidates = [
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockInput)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockInput)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockInput)}`
+            ];
+
+            let json = null;
+            for (const url of candidates) {
+                try {
+                    const resp = await fetch(url, { headers });
+                    if (!resp.ok) {
+                        console.warn('Non-ok response from', url, resp.status);
+                        continue;
+                    }
+                    const j = await resp.json();
+                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
+                    if (features && Array.isArray(features) && features.length > 0) {
+                        json = { type: 'FeatureCollection', features };
+                        break;
+                    }
+                } catch (innerErr) {
+                    console.warn('Error fetching booth polygons from candidate url:', innerErr);
+                }
+            }
+
+            if (!json) {
+                setMapError(`No booth polygons found for block '${blockInput}'`);
+                setBoothGeoJSON(null);
+                return;
+            }
+
+            const fc = { type: 'FeatureCollection', features: json.features };
+            setBoothGeoJSON(fc);
+            setTimeout(() => {
+                try {
+                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                    if (!map || !fc.features?.length) return;
+                    const coords = [];
+                    fc.features.forEach(f => {
+                        const geom = f.geometry;
+                        if (!geom) return;
+                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                        if (geom.type === 'Polygon') collect(geom.coordinates);
+                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                    });
+                    if (coords.length) {
+                        const lons = coords.map(c => c[0]);
+                        const lats = coords.map(c => c[1]);
+                        const bounds = [
+                            [Math.min(...lons), Math.min(...lats)],
+                            [Math.max(...lons), Math.max(...lats)]
+                        ];
+                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                    }
+                } catch { }
+            }, 0);
+        } catch (e) {
+            console.error('Failed to load booth polygons:', e);
+            setMapError(`Failed to load booth polygons: ${e.message}`);
+            setBoothGeoJSON(null);
+        }
+    };
+
+    // Fetch booth details and party activities when a polygon is clicked
+    const fetchBoothDetailsByPolygon = async (boothNo) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
+            const json = await res.json();
+            let booth = null;
+
+            if (json.success && Array.isArray(json.data)) {
+                const boothNoStr = String(boothNo).trim();
+                booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr);
+                if (!booth) {
+                    booth = json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase());
+                }
+                if (!booth) {
+                    booth = json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
+                }
+                if (!booth) {
+                    console.warn(`No booth found for BoothNo: "${boothNoStr}"`);
+                }
+            } else {
+                console.error('Failed to fetch booths:', json);
+            }
+
+            // Get party activities for this booth
+            let partyActivities = [];
+            if (booth && booth._id) {
+                try {
+                    const activitiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?booth=${encodeURIComponent(booth._id)}&all=true`, { headers });
+                    const activitiesJson = await activitiesRes.json();
+                    if (activitiesJson.success && Array.isArray(activitiesJson.data)) {
+                        partyActivities = activitiesJson.data;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch party activities for booth:', e);
+                }
+            }
+
+            setDrawerData({
+                loading: false,
+                boothNo,
+                details: {
+                    booth,
+                    partyActivities
+                }
+            });
+        } catch (e) {
+            console.error('Failed to load booth details by polygon:', e);
+            setDrawerData({ loading: false, boothNo, details: { booth: null, partyActivities: [] }, error: e.message });
+        }
+    };
 
     const fetchPartyActivities = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
@@ -584,6 +771,118 @@ export default function PartyActivitiesListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Mapbox Booth Polygons */}
+                <Grid container spacing={2} sx={{ p: 2 }}>
+                    <Grid item xs={12}>
+                        <Typography variant="h5" sx={{ mb: 1 }}>Party Activities Map</Typography>
+                        {!mapboxToken && (
+                            <Alert severity="warning" sx={{ mb: 1 }}>Mapbox token missing. Set VITE_APP_MAPBOX_ACCESS_TOKEN.</Alert>
+                        )}
+                        {mapError && (
+                            <Alert severity="error" sx={{ mb: 1 }}>{mapError}</Alert>
+                        )}
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
+                            <TextField
+                                select
+                                size="small"
+                                label="Block"
+                                value={blockNumberInput}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setBlockNumberInput(value);
+                                }}
+                                sx={{ width: { xs: '100%', sm: 260 } }}
+                            >
+                                <MenuItem value="">Select Block</MenuItem>
+                                <MenuItem value="ALL">All Blocks</MenuItem>
+                                {blocks?.map((b) => (
+                                    <MenuItem key={b._id} value={b.name}>{b.name}</MenuItem>
+                                ))}
+                            </TextField>
+                            <Button variant="contained" size="small" onClick={() => loadBoothPolygons(blockNumberInput)}>
+                                Load Polygons
+                            </Button>
+                            <TextField
+                                select
+                                size="small"
+                                label="Map Theme"
+                                value={mapTheme}
+                                onChange={(e) => setMapTheme(e.target.value)}
+                                sx={{ width: { xs: '100%', sm: 180 } }}
+                            >
+                                <MenuItem value="streets">Streets</MenuItem>
+                                <MenuItem value="satellite">Satellite</MenuItem>
+                                <MenuItem value="light">Light</MenuItem>
+                                <MenuItem value="dark">Dark</MenuItem>
+                            </TextField>
+                        </Stack>
+
+                        <MapContainerStyled>
+                            <Map
+                                ref={mapRef}
+                                initialViewState={{ latitude: 23.4707, longitude: 77.9455, zoom: 6 }}
+                                mapStyle={
+                                    mapTheme === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' :
+                                        mapTheme === 'light' ? 'mapbox://styles/mapbox/light-v10' :
+                                            mapTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' :
+                                                'mapbox://styles/mapbox/streets-v11'
+                                }
+                                mapboxAccessToken={mapboxToken}
+                                interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
+                                onClick={(e) => {
+                                    if (!boothGeoJSON) return;
+                                    try {
+                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                        let features = e.features || [];
+                                        if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
+                                            const point = e.point || { x: e.x, y: e.y };
+                                            if (point) {
+                                                features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                            }
+                                        }
+
+                                        const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
+                                        if (boothFeature) {
+                                            const props = boothFeature.properties || {};
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number));
+                                            setDrawerOpen(true);
+                                            setDrawerData({ loading: true, boothNo, details: null });
+                                            fetchBoothDetailsByPolygon(boothNo);
+                                        }
+                                    } catch (err) {
+                                        console.error('Error handling map click:', err);
+                                    }
+                                }}
+                            >
+                                <MapControl />
+                                {boothGeoJSON && (
+                                    <Source id="booth-source" type="geojson" data={boothGeoJSON}>
+                                        <Layer id="booth-fill" type="fill" paint={{ 'fill-color': '#1e88e5', 'fill-opacity': 0.25 }} />
+                                        <Layer id="booth-outline" type="line" paint={{ 'line-color': '#1565c0', 'line-width': 1 }} />
+                                        <Layer
+                                            id="booth-label"
+                                            type="symbol"
+                                            layout={{
+                                                'text-field': ['format', ['coalesce', ['get', 'BoothNo'], ['get', 'BoothNumber'], ['get', 'boothNo'], ['get', 'booth_number'], ['get', 'Booth_Name'], ['get', 'BoothName'], ['get', 'name'], ['literal', '']], { 'font-scale': 1 }, '\n', { 'font-scale': 0.85 }, ['coalesce', ['get', 'BoothName'], ['get', 'Booth_Name'], ['get', 'name'], ['literal', '']]],
+                                                'text-size': 12,
+                                                'text-offset': [0, 0.6],
+                                                'text-anchor': 'top',
+                                                'text-allow-overlap': true,
+                                                'text-ignore-placement': true
+                                            }}
+                                            paint={{
+                                                'text-color': '#000000',
+                                                'text-halo-color': '#ffffff',
+                                                'text-halo-width': 1
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                            </Map>
+                        </MapContainerStyled>
+                    </Grid>
+                </Grid>
+
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
 
@@ -864,6 +1163,90 @@ export default function PartyActivitiesListPage() {
                     </Box>
                 </ScrollX>
             </MainCard >
+
+            {/* Right-side Drawer for clicked booth info */}
+            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+                <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
+                        <Box>
+                            <Typography variant="h6">Booth Details</Typography>
+                            <Typography variant="caption" color="text.secondary">Click a booth polygon to view party activities</Typography>
+                        </Box>
+                        <IconButton color="secondary" onClick={() => setDrawerOpen(false)} sx={{ p: 0.5 }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 72px)' }}>
+                        {!drawerData && <Typography variant="body2">Click a booth polygon to view details.</Typography>}
+                        {drawerData?.loading && <Typography variant="body2">Loading...</Typography>}
+
+                        {drawerData?.details && (
+                            <Stack spacing={2}>
+                                <Paper elevation={1} sx={{ p: 2, borderRadius: 1 }}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Booth Information</Typography>
+                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth?.booth_number || drawerData.details.boothNo || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth?.block_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth?.assembly_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth?.parliament_id?.name || 'N/A'}</Typography>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Party Activities ({drawerData.details.partyActivities?.length || 0})</Typography>
+                                    {drawerData.details.partyActivities?.length ? drawerData.details.partyActivities.slice(0, 10).map(activity => (
+                                        <Box key={activity._id} sx={{ mb: 1, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{activity.title}</Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {activity.activity_type} • {activity.status}
+                                            </Typography>
+                                            <Box sx={{ mt: 0.5 }}>
+                                                <Chip
+                                                    label={activity.activity_type?.toUpperCase() || 'N/A'}
+                                                    size="small"
+                                                    color="primary"
+                                                    sx={{ mr: 0.5 }}
+                                                />
+                                                <Chip
+                                                    label={activity.status?.toUpperCase() || 'N/A'}
+                                                    size="small"
+                                                    color={activity.status === 'completed' ? 'success' : activity.status === 'ongoing' ? 'warning' : 'error'}
+                                                />
+                                            </Box>
+                                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                                📅 {activity.activity_date ? new Date(activity.activity_date).toLocaleDateString() : 'N/A'} - {activity.end_date ? new Date(activity.end_date).toLocaleDateString() : 'N/A'}
+                                            </Typography>
+                                            {activity.location && (
+                                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                                    📍 {activity.location}
+                                                </Typography>
+                                            )}
+                                            {activity.attendance_count && (
+                                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                                    👥 Attendance: {activity.attendance_count.toLocaleString()}
+                                                </Typography>
+                                            )}
+                                            {activity.media_coverage && (
+                                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                                    📺 Media Coverage: Yes
+                                                </Typography>
+                                            )}
+                                            {activity.description && (
+                                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                                    {activity.description.slice(0, 100)}...
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    )) : (
+                                        <Typography variant="body2">No party activities found for this booth.</Typography>
+                                    )}
+                                </Paper>
+                            </Stack>
+                        )}
+                    </Box>
+                </Box>
+            </Drawer>
 
             <PartyActivitiesModal
                 open={openModal}

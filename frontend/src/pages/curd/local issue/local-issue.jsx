@@ -901,10 +901,6 @@ export default function LocalIssueListPage() {
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     setBlockNumberInput(value);
-                                    // Automatically load polygons when "All" is selected
-                                    if (value === 'ALL') {
-                                        loadBoothPolygons(value);
-                                    }
                                 }}
                                 sx={{ width: { xs: '100%', sm: 260 } }}
                             >
