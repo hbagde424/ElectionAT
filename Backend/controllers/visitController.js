@@ -115,6 +115,10 @@ exports.getVisits = async (req, res, next) => {
 
     console.log('🔍 Final filter applied:', filter);
 
+    // Check total visits in database
+    const totalVisitsInDB = await Visit.countDocuments();
+    console.log('🔍 Total visits in database:', totalVisitsInDB);
+
     // Basic query for main data fetch
     let query = Visit.find(filter)
       .populate('state_id', 'name')
@@ -133,36 +137,210 @@ exports.getVisits = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ date: -1 });
 
-    // Search functionality
+    // Enhanced search functionality - search across all fields including populated references
     if (req.query.search) {
-      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      const searchTerm = req.query.search.trim();
+      const searchRegex = { $regex: searchTerm, $options: 'i' };
 
-      // First find candidates that match the search term
-      const matchingCandidates = await Candidate.find({
-        name: searchRegex
-      }).select('_id');
+      console.log('🔍 Search term received:', searchTerm);
+      console.log('🔍 Search regex:', searchRegex);
 
-      const candidateIds = matchingCandidates.map(c => c._id);
+      // Debug: Let's also test if we can find "indore" in divisions
+      if (searchTerm.toLowerCase() === 'bagh') {
+        const indoreDivisions = await Division.find({ name: { $regex: 'indore', $options: 'i' } }).select('_id name');
+        console.log('🔍 Found Indore divisions:', indoreDivisions);
+
+        const indoreVisits = await Visit.find({ division_id: { $in: indoreDivisions.map(d => d._id) } }).select('_id division_id');
+        console.log('🔍 Visits in Indore divisions:', indoreVisits.length);
+      }
+
+      // Find matching IDs from all related collections
+      const [
+        matchingCandidates,
+        matchingStates,
+        matchingDivisions,
+        matchingAssemblies,
+        matchingParliaments,
+        matchingBlocks,
+        matchingBooths,
+        matchingElectionYears
+      ] = await Promise.all([
+        Candidate.find({ name: searchRegex }).select('_id'),
+        State.find({ name: searchRegex }).select('_id'),
+        Division.find({ name: searchRegex }).select('_id'),
+        Assembly.find({ name: searchRegex }).select('_id'),
+        Parliament.find({ name: searchRegex }).select('_id'),
+        Block.find({ name: searchRegex }).select('_id'),
+        Booth.find({
+          $or: [
+            { name: searchRegex },
+            { booth_number: searchRegex }
+          ]
+        }).select('_id'),
+        ElectionYear.find({
+          election_type: searchRegex
+        }).select('_id')
+      ]);
+
+      console.log('🔍 Matching candidates found:', matchingCandidates.length);
+      console.log('🔍 Matching states found:', matchingStates.length);
+      console.log('🔍 Matching divisions found:', matchingDivisions.length);
+      console.log('🔍 Matching assemblies found:', matchingAssemblies.length);
+      console.log('🔍 Matching parliaments found:', matchingParliaments.length);
+      console.log('🔍 Matching blocks found:', matchingBlocks.length);
+      console.log('🔍 Matching booths found:', matchingBooths.length);
+      console.log('🔍 Matching election years found:', matchingElectionYears.length);
 
       const searchConditions = [
+        // Direct string fields
         { post: searchRegex },
         { locationName: searchRegex },
         { visitAgenda: searchRegex },
         { speechFiveLines: searchRegex },
         { speechIssue: searchRegex },
-        { remark: searchRegex }
+        { remark: searchRegex },
+        { workName: searchRegex },
+        { work_status: searchRegex },
+        { description: searchRegex }
       ];
 
-      // Add candidate search if we found matching candidates
-      if (candidateIds.length > 0) {
-        searchConditions.push({ candidate_id: { $in: candidateIds } });
+      // Collect matched ids for each referenced collection so the API can surface them
+      const matchedIds = {
+        candidateIds: matchingCandidates.map(c => c._id),
+        stateIds: matchingStates.map(s => s._id),
+        divisionIds: matchingDivisions.map(d => d._id),
+        assemblyIds: matchingAssemblies.map(a => a._id),
+        parliamentIds: matchingParliaments.map(p => p._id),
+        blockIds: matchingBlocks.map(b => b._id),
+        boothIds: matchingBooths.map(b => b._id),
+        electionYearIds: matchingElectionYears.map(e => e._id)
+      };
+
+      // Add reference field searches
+      if (matchingCandidates.length > 0) {
+        searchConditions.push({ candidate_id: { $in: matchedIds.candidateIds } });
+      }
+      if (matchingStates.length > 0) {
+        searchConditions.push({ state_id: { $in: matchedIds.stateIds } });
+      }
+      if (matchingDivisions.length > 0) {
+        searchConditions.push({ division_id: { $in: matchedIds.divisionIds } });
+      }
+      if (matchingAssemblies.length > 0) {
+        searchConditions.push({ assembly_id: { $in: matchedIds.assemblyIds } });
+      }
+      if (matchingParliaments.length > 0) {
+        searchConditions.push({ parliament_id: { $in: matchedIds.parliamentIds } });
+      }
+      if (matchingBlocks.length > 0) {
+        searchConditions.push({ block_id: { $in: matchedIds.blockIds } });
+      }
+      if (matchingBooths.length > 0) {
+        searchConditions.push({ booth_id: { $in: matchedIds.boothIds } });
+      }
+      if (matchingElectionYears.length > 0) {
+        searchConditions.push({ election_year_id: { $in: matchedIds.electionYearIds } });
       }
 
-      query = query.find({
-        $or: searchConditions
-      });
+      // Search by date (if search term looks like a date)
+      const dateRegex = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/;
+      if (dateRegex.test(searchTerm)) {
+        try {
+          // Try to parse the date in different formats
+          const dateFormats = [
+            'DD/MM/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'MM-DD-YYYY'
+          ];
 
-      filter.$or = searchConditions;
+          for (const format of dateFormats) {
+            try {
+              let date;
+              if (format.includes('/')) {
+                const parts = searchTerm.split('/');
+                if (format === 'DD/MM/YYYY') {
+                  date = new Date(parts[2], parts[1] - 1, parts[0]);
+                } else {
+                  date = new Date(parts[2], parts[0] - 1, parts[1]);
+                }
+              } else {
+                const parts = searchTerm.split('-');
+                if (format === 'DD-MM-YYYY') {
+                  date = new Date(parts[2], parts[1] - 1, parts[0]);
+                } else {
+                  date = new Date(parts[2], parts[0] - 1, parts[1]);
+                }
+              }
+
+              if (!isNaN(date.getTime())) {
+                const startOfDay = new Date(date);
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date(date);
+                endOfDay.setHours(23, 59, 59, 999);
+
+                searchConditions.push({
+                  date: { $gte: startOfDay, $lte: endOfDay }
+                });
+                break;
+              }
+            } catch (e) {
+              // Continue to next format
+            }
+          }
+        } catch (e) {
+          // Ignore date parsing errors
+        }
+      }
+
+      console.log('🔍 Search conditions count:', searchConditions.length);
+      console.log('🔍 Search conditions:', JSON.stringify(searchConditions, null, 2));
+
+      // Always apply search conditions if we have any
+      if (searchConditions.length > 0) {
+        query = query.find({
+          $or: searchConditions
+        });
+
+        filter.$or = searchConditions;
+        console.log('🔍 Applied search filter with', searchConditions.length, 'conditions');
+      } else {
+        console.log('🔍 No search conditions found, applying fallback search');
+        // Fallback: if no conditions were created, try a basic text search
+        const fallbackConditions = [
+          { post: searchRegex },
+          { locationName: searchRegex },
+          { visitAgenda: searchRegex },
+          { speechFiveLines: searchRegex },
+          { speechIssue: searchRegex },
+          { remark: searchRegex },
+          { workName: searchRegex },
+          { work_status: searchRegex },
+          { description: searchRegex }
+        ];
+
+        query = query.find({
+          $or: fallbackConditions
+        });
+
+        filter.$or = fallbackConditions;
+        console.log('🔍 Applied fallback search filter');
+      }
+
+      // If caller only wants the matched ids (for global search box etc.), short-circuit here
+      if (req.query.idsOnly === 'true') {
+        return res.status(200).json({
+          success: true,
+          matches: matchedIds
+        });
+      }
+
+      console.log('🔍 Search filter applied, continuing with query execution...');
+
+      // Debug: Let's also check what visits exist without any search
+      const allVisitsCount = await Visit.countDocuments();
+      console.log('🔍 Total visits in database (before search filter):', allVisitsCount);
+
+      // Debug: Check visits with the search filter
+      const searchFilterCount = await Visit.countDocuments(filter);
+      console.log('🔍 Visits matching search filter:', searchFilterCount);
     }
 
     // Filter by work status
@@ -380,6 +558,8 @@ exports.getVisits = async (req, res, next) => {
       const visits = await query.exec();
       const total = await Visit.countDocuments(filter);
 
+      console.log('🔍 FetchAll - Found visits:', visits.length, 'Total:', total);
+
       res.status(200).json({
         success: true,
         count: visits.length,
@@ -388,8 +568,11 @@ exports.getVisits = async (req, res, next) => {
       });
     } else {
       // Apply pagination
+      console.log('🔍 Executing paginated query...');
       const visits = await query.skip(skip).limit(limit).exec();
       const total = await Visit.countDocuments(filter);
+
+      console.log('🔍 Paginated - Found visits:', visits.length, 'Total:', total, 'Page:', page, 'Pages:', Math.ceil(total / limit));
 
       res.status(200).json({
         success: true,
@@ -401,6 +584,7 @@ exports.getVisits = async (req, res, next) => {
       });
     }
   } catch (err) {
+    console.error('🔍 Error in getVisits:', err);
     next(err);
   }
 };
@@ -816,7 +1000,7 @@ exports.getVisitsByBooth = async (req, res, next) => {
 // @access  Public
 exports.getVisitsByStatus = async (req, res, next) => {
   try {
-  const validStatuses = ['announced', 'approved', 'in progress', 'complete'];
+    const validStatuses = ['announced', 'approved', 'in progress', 'complete'];
     if (!validStatuses.includes(req.params.status)) {
       return res.status(400).json({
         success: false,

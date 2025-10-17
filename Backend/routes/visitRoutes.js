@@ -16,6 +16,7 @@ const {
   deleteVisitDocument
 } = require('../controllers/visitController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 const visitUpload = require('../config/visitUpload');
 
 const router = express.Router();
@@ -48,7 +49,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for candidate names, posts, or location names
+ *         description: Comprehensive search across all fields - candidate names, states, divisions, assemblies, parliaments, blocks, booths, posts, work status, dates, location names, visit agendas, speech content, remarks, and descriptions
  *       - in: query
  *         name: work_status
  *         schema:
@@ -75,6 +76,54 @@ const router = express.Router();
  *         schema:
  *           type: number
  *         description: Radius in kilometers for proximity search
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State ID or name to filter by
+ *       - in: query
+ *         name: division
+ *         schema:
+ *           type: string
+ *         description: Division ID or name to filter by
+ *       - in: query
+ *         name: parliament
+ *         schema:
+ *           type: string
+ *         description: Parliament ID or name to filter by
+ *       - in: query
+ *         name: assembly
+ *         schema:
+ *           type: string
+ *         description: Assembly ID or name to filter by
+ *       - in: query
+ *         name: block
+ *         schema:
+ *           type: string
+ *         description: Block ID or name to filter by
+ *       - in: query
+ *         name: booth
+ *         schema:
+ *           type: string
+ *         description: Booth ID or name to filter by
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering (ISO format)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering (ISO format)
+ *       - in: query
+ *         name: all
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Set to 'true' to fetch all records without pagination
  *     responses:
  *       200:
  *         description: List of visits
@@ -98,7 +147,18 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Visit'
  */
-router.get('/', protect, getVisits);
+// Test endpoint to check if API is working
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Visits API is working',
+    timestamp: new Date().toISOString(),
+    query: req.query
+  });
+});
+
+// Public: optional authentication — attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getVisits);
 
 /**
  * @swagger

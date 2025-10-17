@@ -13,7 +13,7 @@ const menuController = {
                         id: 'dashboard',
                         title: 'dashboard',
                         type: 'item',
-                        url: 'election/dashboard/default',
+                        url: '/dashboard/default',
                         icon: 'dashboard',
                         breadcrumbs: false
                     }
