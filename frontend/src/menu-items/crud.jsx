@@ -180,6 +180,30 @@ const CRUDMenu = {
       icon: icons.Home, // Polling booth
       permissions: ['booth']
     },
+    {
+      id: 'panchayat',
+      title: <FormattedMessage id="Panchayat" />,
+      type: 'item',
+      url: '/panchayat',
+      icon: icons.HierarchySqu,
+      permissions: ['panchayat']
+    },
+    {
+      id: 'village',
+      title: <FormattedMessage id="Village" />,
+      type: 'item',
+      url: '/village',
+      icon: icons.HierarchySqu,
+      permissions: ['village']
+    },
+    {
+      id: 'falliya',
+      title: <FormattedMessage id="Falliya" />,
+      type: 'item',
+      url: '/falliya',
+      icon: icons.HierarchySqu,
+      permissions: ['falliya']
+    },
     // {
     //   id: 'Assembly-Votes',
     //   title: <FormattedMessage id="Assembly-Votes" />,
@@ -327,6 +351,14 @@ const CRUDMenu = {
       url: '/visits',
       icon: icons.ReceiptText, // Visit records
       permissions: ['Our visits']
+    },
+    {
+      id: 'Samiti',
+      title: <FormattedMessage id="Samiti" />,
+      type: 'item',
+      url: '/samitis',
+      icon: icons.ReceiptText, // Visit records
+      permissions: ['samitis']
     },
     {
       id: 'WinningPartiesList',

@@ -13,7 +13,7 @@ import Typography from '@mui/material/Typography';
 
 // ==============================|| TABLE PAGINATION ||============================== //
 
-export default function TablePagination({ getPageCount, setPageIndex, setPageSize, getState, initialPageSize }) {
+export default function TablePagination({ table, getPageCount, setPageIndex, setPageSize, getState, initialPageSize }) {
   const [open, setOpen] = useState(false);
   let options = [10, 25, 50, 100];
 
@@ -26,11 +26,17 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
   }
 
   // Only set initial page size if it hasn't been set before
+  // Support passing the full `table` object or individual handlers for backwards compatibility
+  const _getState = table ? () => table.getState() : getState;
+  const _setPageSize = table ? (size) => table.setPageSize(size) : setPageSize;
+  const _setPageIndex = table ? (index) => table.setPageIndex(index) : setPageIndex;
+  const _getPageCount = table ? () => table.getPageCount() : getPageCount;
+
   useEffect(() => {
-    if (getState().pagination.pageSize === undefined) {
-      setPageSize(initialPageSize || 10);
+    if (_getState && _getState().pagination?.pageSize === undefined) {
+      _setPageSize && _setPageSize(initialPageSize || 10);
     }
-  }, [initialPageSize, setPageSize, getState]);
+  }, [initialPageSize, _setPageSize, _getState]);
 
   const handleClose = () => {
     setOpen(false);
@@ -41,13 +47,13 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
   };
 
   const handleChangePagination = (event, value) => {
-    setPageIndex(value - 1);
+    _setPageIndex && _setPageIndex(value - 1);
   };
 
   const handleChange = (event) => {
     const newSize = Number(event.target.value);
-    setPageSize(newSize);
-    setPageIndex(0); // Reset to first page when changing page size
+    _setPageSize && _setPageSize(newSize);
+    _setPageIndex && _setPageIndex(0); // Reset to first page when changing page size
   };
 
   return (
@@ -64,7 +70,7 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
                 open={open}
                 onClose={handleClose}
                 onOpen={handleOpen}
-                value={getState().pagination.pageSize}
+                value={_getState ? _getState().pagination.pageSize : ''}
                 onChange={handleChange}
                 size="small"
                 sx={{ '& .MuiSelect-select': { py: 0.75, px: 1.25 } }}
@@ -80,13 +86,13 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
           <Typography variant="caption" color="secondary">
             Go to
           </Typography>
-          <TextField
+            <TextField
             size="small"
             type="number"
-            value={getState().pagination.pageIndex + 1}
+              value={_getState ? _getState().pagination.pageIndex + 1 : 0}
             onChange={(e) => {
               const page = e.target.value ? Number(e.target.value) - 1 : 0;
-              setPageIndex(page);
+                _setPageIndex && _setPageIndex(page);
             }}
             sx={{ '& .MuiOutlinedInput-input': { py: 0.75, px: 1.25, width: 36 } }}
           />
@@ -95,8 +101,8 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
       <Grid item sx={{ mt: { xs: 2, sm: 0 } }}>
         <Pagination
           sx={{ '& .MuiPaginationItem-root': { my: 0.5 } }}
-          count={getPageCount()}
-          page={getState().pagination.pageIndex + 1}
+          count={_getPageCount ? _getPageCount() : 0}
+          page={_getState ? _getState().pagination.pageIndex + 1 : 1}
           onChange={handleChangePagination}
           color="primary"
           variant="combined"
@@ -109,6 +115,7 @@ export default function TablePagination({ getPageCount, setPageIndex, setPageSiz
 }
 
 TablePagination.propTypes = {
+  table: PropTypes.object,
   getPageCount: PropTypes.func,
   setPageIndex: PropTypes.func,
   setPageSize: PropTypes.func,

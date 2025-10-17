@@ -81,4 +81,5 @@ blockSchema.index({ name: 'text' });
  // blockSchema.index({ category: 1 }); // Removed duplicate index, use index: true in schema if needed
  // blockSchema.index({ is_active: 1 }); // Removed duplicate index, use index: true in schema if needed
 
-module.exports = mongoose.model('Block', blockSchema);
+// Guard model registration to avoid OverwriteModelError during hot-reloads or multiple requires
+module.exports = mongoose.models.Block || mongoose.model('Block', blockSchema);
