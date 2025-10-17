@@ -262,9 +262,14 @@ const VisitListPage = () => {
         }
     };
 
-    const fetchMapVisits = async (filters = appliedFilters) => {
+    const fetchMapVisits = async (filters = appliedFilters, searchTerm = globalFilter) => {
         try {
             let queryParams = ['all=true'];
+
+            // Apply search filter to map as well
+            if (searchTerm) {
+                queryParams.push(`search=${encodeURIComponent(searchTerm)}`);
+            }
 
             // Apply all the same filters as the visit list
             if (filters.candidate) {
@@ -562,7 +567,7 @@ const VisitListPage = () => {
             appliedFilters: appliedFilters
         });
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchMapVisits(appliedFilters);
+        fetchMapVisits(appliedFilters, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
@@ -586,7 +591,7 @@ const VisitListPage = () => {
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
         // Update map with the new filters
-        fetchMapVisits(filterValues);
+        fetchMapVisits(filterValues, globalFilter);
     };
 
     const handleClearFilters = () => {
@@ -607,7 +612,7 @@ const VisitListPage = () => {
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
         // Update map to show all visits when filters are cleared
-        fetchMapVisits(emptyFilters);
+        fetchMapVisits(emptyFilters, globalFilter);
     };
 
     // Handle cascading filter changes
@@ -677,8 +682,11 @@ const VisitListPage = () => {
 
     const handleSearch = () => {
         console.log('🔍 Search triggered with term:', searchInput);
-        setGlobalFilter(searchInput.trim());
+        const searchTerm = searchInput.trim();
+        setGlobalFilter(searchTerm);
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        // Also update map with search results
+        fetchMapVisits(appliedFilters, searchTerm);
     };
 
     const columns = useMemo(() => [
@@ -912,6 +920,8 @@ const VisitListPage = () => {
     return (
         <>
             <Grid container spacing={3}>
+
+
                 <Grid item xs={12}>
                     <MainCard
                         title="Visit Locations Map"
@@ -1067,7 +1077,7 @@ const VisitListPage = () => {
                             <Box sx={{ position: 'absolute', bottom: 20, left: 20, zIndex: 1 }}>
                                 <Button
                                     variant="contained"
-                                    onClick={() => fetchMapVisits(appliedFilters)}
+                                    onClick={() => fetchMapVisits(appliedFilters, globalFilter)}
                                     size="small"
                                 >
                                     Refresh Map Data
@@ -1371,7 +1381,7 @@ const VisitListPage = () => {
                 electionYears={electionYears}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(appliedFilters);
+                    fetchMapVisits(appliedFilters, globalFilter);
                 }}
             />
             <AlertVisitDelete
@@ -1380,7 +1390,7 @@ const VisitListPage = () => {
                 id={deleteAlert.id}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(appliedFilters);
+                    fetchMapVisits(appliedFilters, globalFilter);
                 }}
             />
         </>
