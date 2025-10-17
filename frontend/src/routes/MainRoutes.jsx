@@ -191,6 +191,20 @@ const PotentialCandidateDetailPage = Loadable(lazy(() => import('pages/curd/pote
 const FAQCrud = Loadable(lazy(() => import('pages/curd/faq-crud/FAQ')));
 const FAQDetailPage = Loadable(lazy(() => import('pages/curd/faq-crud/FAQDetailPage')));
 const ParliamentCandidate = Loadable(lazy(() => import('pages/curd/parliament-candidate/ParliamentCandidate')));
+const SamitiListPage = Loadable(lazy(() => import('pages/curd/samiti/SamitiListPage')));
+const SamitiDetailPage = Loadable(lazy(() => import('pages/curd/samiti/SamitiDetailPage')));
+
+// Panchayat CRUD Components
+const PanchayatListPage = Loadable(lazy(() => import('pages/curd/panchayat/PanchayatListPage')));
+const PanchayatDetailPage = Loadable(lazy(() => import('pages/curd/panchayat/PanchayatDetailPage')));
+
+// Village CRUD Components
+const VillageListPage = Loadable(lazy(() => import('pages/curd/village/VillageListPage')));
+const VillageDetailPage = Loadable(lazy(() => import('pages/curd/village/VillageDetailPage')));
+
+// Falliya CRUD Components
+const FalliyaListPage = Loadable(lazy(() => import('pages/curd/falliya/FalliyaListPage')));
+const FalliyaDetailPage = Loadable(lazy(() => import('pages/curd/falliya/FalliyaDetailPage')));
 
 
 // const Divisionadd = Loadable(lazy(() => import('pages/curd/division/add')));
@@ -870,6 +884,38 @@ const MainRoutes = {
         {
           path: 'booth/:id',
           element: <BoothDetailPage />
+        },
+        {
+          path: 'samitis',
+          element: <SamitiListPage />
+        },
+        {
+          path: 'samitis/:id',
+          element: <SamitiDetailPage />
+        },
+        {
+          path: 'panchayat',
+          element: <PanchayatListPage />
+        },
+        {
+          path: 'panchayat/:id',
+          element: <PanchayatDetailPage />
+        },
+        {
+          path: 'village',
+          element: <VillageListPage />
+        },
+        {
+          path: 'village/:id',
+          element: <VillageDetailPage />
+        },
+        {
+          path: 'falliya',
+          element: <FalliyaListPage />
+        },
+        {
+          path: 'falliya/:id',
+          element: <FalliyaDetailPage />
         },
         {
           path: 'price',

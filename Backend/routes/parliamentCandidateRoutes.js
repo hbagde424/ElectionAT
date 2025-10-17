@@ -267,65 +267,67 @@ router.put('/:id', protect, authorize('superAdmin', 'admin'), updateParliamentCa
 /**
  * @swagger
  * /api/parliament-candidates/{id}:
- *   delete:
- *     summary: Delete Parliament Candidate
- *     tags: [Parliament Candidates]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Parliament Candidate deleted
- *       401:
- *         description: Not authorized
- *       404:
- *         description: Parliament Candidate not found
- */
-router.delete('/:id', protect, authorize('superAdmin', 'admin'), deleteParliamentCandidate);
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     ParliamentCandidate:
- *       type: object
- *       properties:
- *         _id:
- *           type: string
- *           description: Unique identifier
- *         candidate_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             name:
- *               type: string
- *         parliament_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             name:
- *               type: string
- *         election_year_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             year:
- *               type: number
- *         party_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             name:
- *               type: string
+        margin_percentage:
+          type: number
+          description: Margin as decimal fraction (e.g., 0.03 = 3%)
+          example: 0.03
+        electors:
+          type: number
+          description: Total electors in the constituency
+          example: 200000
+        turnout:
+          type: number
+          description: Turnout count (number of voters who voted)
+          example: 150000
+        male_electors:
+          type: number
+          description: Male electors count
+          example: 100000
+        female_electors:
+          type: number
+          description: Female electors count
+          example: 100000
+        total_votes_polled:
+          type: number
+          description: Total votes polled
+          example: 149500
+        valid_votes:
+          type: number
+          description: Valid votes count
+          example: 148000
+        total_male_voters:
+          type: number
+          description: Total male voters
+          example: 90000
+        female_voters:
+          type: number
+          description: Female voters
+          example: 59000
+        nota_votes:
+          type: number
+          description: NOTA votes count
+          example: 1500
+        parliament_id:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+        election_year_id:
+          type: object
+          properties:
+            _id:
+              type: string
+            year:
+              type: number
+        party_id:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
  *         position_result:
  *           type: string
  *           enum: [win, loss]
@@ -436,42 +438,42 @@ router.delete('/:id', protect, authorize('superAdmin', 'admin'), deleteParliamen
  *           type: number
  *           description: Margin as decimal fraction (e.g., 0.03 = 3%)
  *           example: 0.03
- *        electors:
- *          type: number
- *          description: Total electors in the constituency
- *          example: 200000
- *        turnout:
- *          type: number
- *          description: Turnout count (number of voters who voted)
- *          example: 150000
- *        male_electors:
- *          type: number
- *          description: Male electors count
- *          example: 100000
- *        female_electors:
- *          type: number
- *          description: Female electors count
- *          example: 100000
- *        total_votes_polled:
- *          type: number
- *          description: Total votes polled
- *          example: 149500
- *        valid_votes:
- *          type: number
- *          description: Valid votes count
- *          example: 148000
- *        total_male_voters:
- *          type: number
- *          description: Total male voters
- *          example: 90000
- *        female_voters:
- *          type: number
- *          description: Female voters
- *          example: 59000
- *        nota_votes:
- *          type: number
- *          description: NOTA votes count
- *          example: 1500
+ *         electors:
+ *           type: number
+ *           description: Total electors in the constituency
+ *           example: 200000
+ *         turnout:
+ *           type: number
+ *           description: Turnout count (number of voters who voted)
+ *           example: 150000
+ *         male_electors:
+ *           type: number
+ *           description: Male electors count
+ *           example: 100000
+ *         female_electors:
+ *           type: number
+ *           description: Female electors count
+ *           example: 100000
+ *         total_votes_polled:
+ *           type: number
+ *           description: Total votes polled
+ *           example: 149500
+ *         valid_votes:
+ *           type: number
+ *           description: Valid votes count
+ *           example: 148000
+ *         total_male_voters:
+ *           type: number
+ *           description: Total male voters
+ *           example: 90000
+ *         female_voters:
+ *           type: number
+ *           description: Female voters
+ *           example: 59000
+ *         nota_votes:
+ *           type: number
+ *           description: NOTA votes count
+ *           example: 1500
  *   securitySchemes:
  *     bearerAuth:
  *       type: http
