@@ -132,26 +132,47 @@ exports.getBoothPolygonsByBlock = async (req, res, next) => {
         error: "Block name parameter is required"
       });
     }
+    // Use aggregation to search for BlockName either at top-level properties or inside features.properties
+    const regex = new RegExp(blockName, 'i');
 
-    // Case-insensitive search with regex
-    const polygons = await BoothPolygon.find({ 
-      'properties.BlockName': { 
-        $regex: new RegExp(blockName, 'i') 
+    // First, try to match top-level properties.BlockName
+    const topLevelMatches = await BoothPolygon.find({ 'properties.BlockName': { $regex: regex } }).sort({ 'properties.BoothNo': 1 }).exec();
+    if (topLevelMatches && topLevelMatches.length > 0) {
+      return res.status(200).json({ type: 'FeatureCollection', features: topLevelMatches });
+    }
+
+    // Otherwise, unwind features and match features.properties.BlockName
+    const polygonsAgg = await BoothPolygon.aggregate([
+      { $unwind: '$features' },
+      {
+        $match: {
+          'features.properties.BlockName': { $regex: regex }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          features: { $push: '$features' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          type: { $literal: 'FeatureCollection' },
+          features: 1
+        }
       }
-    }).sort({ 'properties.BoothNo': 1 });
+    ]).exec();
 
-    if (polygons.length === 0) {
+    if (!polygonsAgg || polygonsAgg.length === 0 || !polygonsAgg[0].features || polygonsAgg[0].features.length === 0) {
       return res.status(200).json({
-        type: "FeatureCollection",
+        type: 'FeatureCollection',
         features: [],
         message: `No booth polygons found for block '${blockName}'`
       });
     }
 
-    res.status(200).json({
-      type: "FeatureCollection",
-      features: polygons
-    });
+    res.status(200).json({ type: 'FeatureCollection', features: polygonsAgg[0].features });
   } catch (err) {
     next(err);
   }

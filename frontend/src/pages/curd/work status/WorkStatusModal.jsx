@@ -30,7 +30,7 @@ export default function WorkStatusModal({
     const [formData, setFormData] = useState({
         work_name: '',
         department: '',
-        status: 'Pending',
+        status: 'in progress',
         work_type: '',
         approved_fund_from: '',
         total_budget: '',
@@ -134,7 +134,7 @@ export default function WorkStatusModal({
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
 
-    const statusOptions = ['Pending', 'In Progress', 'Completed', 'Halted', 'Cancelled'];
+    const statusOptions = ['in progress', 'completed', 'in complete', 'announced'];
     const workTypeOptions = ['infrastructure', 'social', 'education', 'health', 'other'];
     const fundSourceOptions = ['vidhayak nidhi', 'swechcha nidhi'];
 

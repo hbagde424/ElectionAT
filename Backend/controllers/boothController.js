@@ -43,7 +43,9 @@ exports.getBooths = async (req, res, next) => {
         });
       }
 
-      const searchRegex = { $regex: searchTerm, $options: 'i' };
+  const searchRegex = { $regex: searchTerm, $options: 'i' };
+  // If searchTerm is numeric, also add direct numeric match to booth_number
+  const numericSearch = !isNaN(searchTerm) ? parseInt(searchTerm) : null;
 
       try {
         // First, find related IDs from referenced collections that match the search
@@ -74,20 +76,25 @@ exports.getBooths = async (req, res, next) => {
         const stateIds = matchingStates.map(s => s._id);
         const electionYearIds = matchingElectionYears.map(y => y._id);
 
-        matchStage = {
-          $or: [
-            { name: searchRegex },
-            { booth_number: searchRegex },
-            { full_address: searchRegex },
-            { description: searchRegex },
-            ...(blockIds.length > 0 ? [{ block_id: { $in: blockIds } }] : []),
-            ...(assemblyIds.length > 0 ? [{ assembly_id: { $in: assemblyIds } }] : []),
-            ...(parliamentIds.length > 0 ? [{ parliament_id: { $in: parliamentIds } }] : []),
-            ...(divisionIds.length > 0 ? [{ division_id: { $in: divisionIds } }] : []),
-            ...(stateIds.length > 0 ? [{ state_id: { $in: stateIds } }] : []),
-            ...(electionYearIds.length > 0 ? [{ election_year: { $in: electionYearIds } }] : [])
-          ]
-        };
+        // Build OR clauses; include numeric booth_number match when applicable
+        const orClauses = [
+          { name: searchRegex },
+          { booth_number: searchRegex },
+          { full_address: searchRegex },
+          { description: searchRegex }
+        ];
+        if (numericSearch !== null) {
+          // match numeric field equality as well as string regex
+          orClauses.push({ booth_number: numericSearch });
+        }
+        if (blockIds.length > 0) orClauses.push({ block_id: { $in: blockIds } });
+        if (assemblyIds.length > 0) orClauses.push({ assembly_id: { $in: assemblyIds } });
+        if (parliamentIds.length > 0) orClauses.push({ parliament_id: { $in: parliamentIds } });
+        if (divisionIds.length > 0) orClauses.push({ division_id: { $in: divisionIds } });
+        if (stateIds.length > 0) orClauses.push({ state_id: { $in: stateIds } });
+        if (electionYearIds.length > 0) orClauses.push({ election_year: { $in: electionYearIds } });
+
+        matchStage = { $or: orClauses };
       } catch (error) {
         console.error('Search error:', error);
         // If search fails, fall back to basic search

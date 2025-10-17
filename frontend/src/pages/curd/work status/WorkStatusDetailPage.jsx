@@ -72,14 +72,13 @@ export default function WorkStatusDetailPage() {
     };
 
     const getStatusColor = (status) => {
-        switch (status) {
-            case 'Completed': return 'success';
-            case 'In Progress': return 'warning';
-            case 'Pending': return 'info';
-            case 'Halted': return 'error';
-            case 'Cancelled': return 'error';
-            default: return 'default';
-        }
+        switch ((status || '').toLowerCase()) {
+                case 'completed': return 'success';
+                case 'in progress': return 'warning';
+                case 'in complete': return 'info';
+                case 'announced': return 'primary';
+                default: return 'default';
+            }
     };
 
     const getWorkTypeColor = (type) => {

@@ -23,9 +23,7 @@ exports.getSamitis = async (req, res, next) => {
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' };
       filter.$or = [
-        { samiti_name: searchRegex },
-        { village: searchRegex },
-        { falia: searchRegex }
+        { samiti_name: searchRegex }
       ];
     }
 
@@ -49,13 +47,10 @@ exports.getSamitis = async (req, res, next) => {
       filter.booth_id = req.query.booth_id;
     }
 
-    // Filter by village/falia
-    if (req.query.village) {
-      filter.village = { $regex: req.query.village, $options: 'i' };
-    }
-    if (req.query.falia) {
-      filter.falia = { $regex: req.query.falia, $options: 'i' };
-    }
+    // Filter by local administrative refs
+    if (req.query.panchayat_id) filter.panchayat_id = req.query.panchayat_id;
+    if (req.query.village_id) filter.village_id = req.query.village_id;
+    if (req.query.falliya_id) filter.falliya_id = req.query.falliya_id;
 
     // Apply user hierarchy restrictions if exists
     if (req.userHierarchy) {
@@ -81,6 +76,9 @@ exports.getSamitis = async (req, res, next) => {
       .populate('assembly_id', '_id name')
       .populate('block_id', '_id name')
       .populate('booth_id', '_id name')
+      .populate('panchayat_id', '_id panchayat_name')
+      .populate('village_id', '_id village_name')
+      .populate('falliya_id', '_id falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ created_at: -1 });
@@ -194,8 +192,6 @@ exports.createSamiti = async (req, res, next) => {
 
     const samitiData = {
       samiti_name: req.body.samiti_name,
-      village: req.body.village,
-      falia: req.body.falia,
       count: req.body.count || 0,
       state_id: req.body.state_id,
       division_id: req.body.division_id,
@@ -203,6 +199,9 @@ exports.createSamiti = async (req, res, next) => {
       assembly_id: req.body.assembly_id,
       block_id: req.body.block_id,
       booth_id: req.body.booth_id,
+      panchayat_id: req.body.panchayat_id,
+      village_id: req.body.village_id,
+      falliya_id: req.body.falliya_id,
       created_by: req.user.id,
       updated_by: req.user.id
     };
@@ -250,7 +249,7 @@ exports.updateSamiti = async (req, res, next) => {
       });
     }
 
-    // Verify referenced entities exist if being updated
+  // Verify referenced entities exist if being updated
     if (req.body.state_id && req.body.state_id !== samiti.state_id.toString()) {
       const state = await State.findById(req.body.state_id);
       if (!state) {
@@ -309,6 +308,25 @@ exports.updateSamiti = async (req, res, next) => {
           message: 'Booth not found'
         });
       }
+    }
+
+    // Verify panchayat/village/falliya refs if provided
+    if (req.body.panchayat_id && (!samiti.panchayat_id || req.body.panchayat_id !== samiti.panchayat_id.toString())) {
+      const Panchayat = require('../models/Panchayat');
+      const p = await Panchayat.findById(req.body.panchayat_id);
+      if (!p) return res.status(400).json({ success: false, message: 'Panchayat not found' });
+    }
+
+    if (req.body.village_id && (!samiti.village_id || req.body.village_id !== samiti.village_id.toString())) {
+      const Village = require('../models/Village');
+      const v = await Village.findById(req.body.village_id);
+      if (!v) return res.status(400).json({ success: false, message: 'Village not found' });
+    }
+
+    if (req.body.falliya_id && (!samiti.falliya_id || req.body.falliya_id !== samiti.falliya_id.toString())) {
+      const Falliya = require('../models/Falliya');
+      const f = await Falliya.findById(req.body.falliya_id);
+      if (!f) return res.status(400).json({ success: false, message: 'Falliya not found' });
     }
 
     // Set updated_by from authenticated user

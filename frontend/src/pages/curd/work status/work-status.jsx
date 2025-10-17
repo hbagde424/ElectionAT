@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip,
-    FormControl, InputLabel, Select, MenuItem, Grid, TextField, Alert
+    FormControl, InputLabel, Select, MenuItem, Grid, TextField, Alert, Drawer, Paper, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import CloseIcon from '@mui/icons-material/Close';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -22,6 +23,9 @@ import WorkStatusModal from './WorkStatusModal';
 import AlertWorkStatusDelete from './AlertWorkStatusDelete';
 import WorkStatusView from './WorkStatusView';
 import { HeaderSort, TablePagination } from 'components/third-party/react-table';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 
 export default function WorkStatusListPage() {
     const theme = useTheme();
@@ -46,6 +50,15 @@ export default function WorkStatusListPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const searchDebounceRef = useRef(null);
+
+    // Map state
+    const [blockNumberInput, setBlockNumberInput] = useState('');
+    const [boothGeoJSON, setBoothGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
         setSearchInput(globalFilter || '');
@@ -342,6 +355,163 @@ export default function WorkStatusListPage() {
         }
     };
 
+    const loadBoothPolygonsByBlockNumber = async (blockNumberVal) => {
+        if (!blockNumberVal) {
+            setMapError('Please enter Block Number');
+            return;
+        }
+        setMapError('');
+        try {
+            const headers = getAuthHeaders();
+            const resp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockNumberVal)}`, { headers });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const j = await resp.json();
+            const features = j?.features || j?.data || [];
+            if (!Array.isArray(features) || features.length === 0) {
+                setMapError(`No booth polygons found for block number '${blockNumberVal}'`);
+                setBoothGeoJSON(null);
+                return;
+            }
+            const fc = { type: 'FeatureCollection', features };
+            setBoothGeoJSON(fc);
+            // Fit bounds to polygons
+            setTimeout(() => {
+                try {
+                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                    if (!map || !fc.features?.length) return;
+                    const coords = [];
+                    fc.features.forEach(f => {
+                        const geom = f.geometry;
+                        if (!geom) return;
+                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                        if (geom.type === 'Polygon') collect(geom.coordinates);
+                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                    });
+                    if (coords.length) {
+                        const lons = coords.map(c => c[0]);
+                        const lats = coords.map(c => c[1]);
+                        const bounds = [
+                            [Math.min(...lons), Math.min(...lats)],
+                            [Math.max(...lons), Math.max(...lats)]
+                        ];
+                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                    }
+                } catch {}
+            }, 0);
+        } catch (e) {
+            console.error('Failed to load booth polygons:', e);
+            setMapError(`Failed to load booth polygons: ${e.message}`);
+            setBoothGeoJSON(null);
+        }
+    };
+
+    const fetchBoothDetailsByPolygon = async (boothNo) => {
+        try {
+            const headers = getAuthHeaders();
+            // Get all booths to find booth by number
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
+            const json = await res.json();
+            let booth = null;
+            if (json.success && Array.isArray(json.data)) {
+                const boothNoStr = String(boothNo).trim();
+                booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr)
+                    || json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase())
+                    || json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
+            }
+
+            let visits = [];
+            let volunteers = [];
+            let surveys = [];
+            let infra = [];
+            let partyPresence = [];
+            let demographics = null;
+            let votes = [];
+            let electionStats = [];
+            let workStatusesForBooth = [];
+            let samitis = [];
+            let gender = null;
+
+            if (booth && booth._id) {
+                const fetchPromises = [
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/visits?booth=${encodeURIComponent(booth._id)}&all=true`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booth-surveys/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booth-infrastructure?booth=${encodeURIComponent(booth._id)}&limit=100`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/party-presence/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booth-demographics/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/genders/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booth-votes/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booth-stats/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/work-status/booth/${encodeURIComponent(booth._id)}`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/samitis?booth_id=${encodeURIComponent(booth._id)}&limit=100`, { headers })
+                ];
+
+                const [vRes, volRes, sRes, iRes, ppRes, dRes, genderRes, bvRes, esRes, wsRes, smRes] = await Promise.allSettled(fetchPromises);
+
+                const tryJson = async (r) => { try { const j = await r.json(); return j; } catch { return null; } };
+
+                if (vRes.status === 'fulfilled' && vRes.value.ok) { const j = await tryJson(vRes.value); if (j?.success && Array.isArray(j.data)) visits = j.data; }
+                if (volRes.status === 'fulfilled' && volRes.value.ok) { const j = await tryJson(volRes.value); if (j?.success && Array.isArray(j.data)) volunteers = j.data; }
+                if (sRes.status === 'fulfilled' && sRes.value.ok) { const j = await tryJson(sRes.value); if (j?.success && Array.isArray(j.data)) surveys = j.data; }
+                if (iRes.status === 'fulfilled' && iRes.value.ok) { const j = await tryJson(iRes.value); if (j?.success && Array.isArray(j.data)) infra = j.data; }
+                if (ppRes.status === 'fulfilled' && ppRes.value.ok) { const j = await tryJson(ppRes.value); if (j?.success && Array.isArray(j.data)) partyPresence = j.data; }
+                if (dRes.status === 'fulfilled' && dRes.value.ok) { const j = await tryJson(dRes.value); if (j?.success) demographics = j.data; }
+                if (bvRes.status === 'fulfilled' && bvRes.value.ok) { const j = await tryJson(bvRes.value); if (j?.success && Array.isArray(j.data)) votes = j.data; }
+                if (esRes.status === 'fulfilled' && esRes.value.ok) { const j = await tryJson(esRes.value); if (j?.success && Array.isArray(j.data)) electionStats = j.data; }
+                if (wsRes.status === 'fulfilled' && wsRes.value.ok) { const j = await tryJson(wsRes.value); if (j?.success && Array.isArray(j.data)) workStatusesForBooth = j.data; }
+                if (smRes.status === 'fulfilled' && smRes.value.ok) { const j = await tryJson(smRes.value); if (j?.success && Array.isArray(j.data)) samitis = j.data; }
+
+                if (genderRes.status === 'fulfilled' && genderRes.value.ok) {
+                    const gJson = await tryJson(genderRes.value);
+                    if (gJson?.success) {
+                        if (Array.isArray(gJson.data) && gJson.data.length > 0) {
+                            const g = gJson.data[0];
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0)+(g.female||0)+(g.others||0) };
+                        } else if (gJson.data && typeof gJson.data === 'object') {
+                            const g = gJson.data;
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0)+(g.female||0)+(g.others||0) };
+                        }
+                    }
+                }
+
+                if (!gender || (gender.male === 0 && gender.female === 0 && gender.others === 0 && gender.total === 0)) {
+                    const male = Number(booth?.Male_Count ?? booth?.male ?? 0) || 0;
+                    const female = Number(booth?.Female_Count ?? booth?.female ?? 0) || 0;
+                    const others = Number(booth?.others_Count ?? booth?.others ?? 0) || 0;
+                    const total = Number(booth?.Total ?? booth?.total ?? (male + female + others)) || (male + female + others);
+                    gender = { male, female, others, total };
+                }
+
+                setDrawerData({
+                    loading: false,
+                    boothNo,
+                    details: {
+                        booth,
+                        visits,
+                        volunteers,
+                        surveys,
+                        infra,
+                        partyPresence,
+                        demographics,
+                        votes,
+                        electionStats,
+                        workStatuses: workStatusesForBooth,
+                        samitis,
+                        gender
+                    }
+                });
+                setDrawerOpen(true);
+            } else {
+                setDrawerData({ loading: false, boothNo, details: null, error: 'Booth not found' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch booth details by polygon:', err);
+            setDrawerData({ loading: false, boothNo, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
+    };
+
     useEffect(() => {
         fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
@@ -411,12 +581,12 @@ export default function WorkStatusListPage() {
             header: 'Status',
             accessorKey: 'status',
             cell: ({ getValue }) => {
-                const status = getValue();
+                const status = (getValue() || '').toLowerCase();
                 let color = 'default';
-                if (status === 'Completed') color = 'success';
-                else if (status === 'In Progress') color = 'info';
-                else if (status === 'Pending') color = 'warning';
-                else if (status === 'Halted' || status === 'Cancelled') color = 'error';
+                if (status === 'completed') color = 'success';
+                else if (status === 'in progress') color = 'info';
+                else if (status === 'in complete') color = 'warning';
+                else if (status === 'announced') color = 'primary';
 
                 return (
                     <Chip
@@ -753,6 +923,71 @@ export default function WorkStatusListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>Booth Map</Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <TextField
+                            size="small"
+                            label="Block Number"
+                            value={blockNumberInput}
+                            onChange={(e) => setBlockNumberInput(e.target.value)}
+                            sx={{ minWidth: 180 }}
+                        />
+                        <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlockNumber(blockNumberInput)}>
+                            Load Polygons
+                        </Button>
+                        {mapError && <Alert severity="warning" sx={{ ml: 2 }}>{mapError}</Alert>}
+                    </Stack>
+                    <MapContainerStyled>
+                        <Map
+                            ref={mapRef}
+                            mapboxAccessToken={mapboxToken}
+                            initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
+                            mapStyle="mapbox://styles/mapbox/streets-v12"
+                            interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
+                            onClick={(e) => {
+                                if (!boothGeoJSON) return;
+                                try {
+                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                    const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                    let features = e.features || [];
+                                    if ((!features || features.length === 0) && map && point) {
+                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                    }
+                                    const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
+                                    if (boothFeature) {
+                                        const props = boothFeature.properties || {};
+                                        const boothNo = props.BoothNo || props.boothNo || props.booth_number || props['Booth No'] || '';
+                                        setDrawerData({ loading: true, boothNo, details: null });
+                                        setDrawerOpen(true);
+                                        fetchBoothDetailsByPolygon(boothNo);
+                                    }
+                                } catch (err) {
+                                    console.warn('Map click handler error:', err);
+                                }
+                            }}
+                        >
+                            <MapControl />
+                            {boothGeoJSON && (
+                                <Source id="booth-polygons" type="geojson" data={boothGeoJSON}>
+                                    <Layer
+                                        id="booth-fill"
+                                        type="fill"
+                                        paint={{ 'fill-color': '#1E90FF', 'fill-opacity': 0.25 }}
+                                    />
+                                    <Layer id="booth-outline" type="line" paint={{ 'line-color': '#1E90FF', 'line-width': 2 }} />
+                                    <Layer
+                                        id="booth-label"
+                                        type="symbol"
+                                        layout={{ 'text-field': ['concat', 'Booth ', ['get', 'BoothNo']], 'text-size': 10 }}
+                                        paint={{ 'text-color': '#333' }}
+                                    />
+                                </Source>
+                            )}
+                        </Map>
+                    </MapContainerStyled>
+                </Box>
                 {/* Access Scope Information */}
                 <Alert severity="info" sx={{ m: 2 }}>
                     <Typography variant="body2">
@@ -984,11 +1219,10 @@ export default function WorkStatusListPage() {
                                     label="Status"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    <MenuItem value="Pending">Pending</MenuItem>
-                                    <MenuItem value="In Progress">In Progress</MenuItem>
-                                    <MenuItem value="Completed">Completed</MenuItem>
-                                    <MenuItem value="Halted">Halted</MenuItem>
-                                    <MenuItem value="Cancelled">Cancelled</MenuItem>
+                                    <MenuItem value="in progress">in progress</MenuItem>
+                                    <MenuItem value="completed">completed</MenuItem>
+                                    <MenuItem value="in complete">in complete</MenuItem>
+                                    <MenuItem value="announced">announced</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -1067,6 +1301,164 @@ export default function WorkStatusListPage() {
                     </Box>
                 </ScrollX>
             </MainCard>
+
+            {/* Right-side Drawer for clicked booth info */}
+            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+                <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
+                        <Box>
+                            <Typography variant="h6">Booth Details</Typography>
+                            <Typography variant="caption" color="text.secondary">Click a booth polygon to view more information</Typography>
+                        </Box>
+                        <IconButton color="secondary" onClick={() => setDrawerOpen(false)} sx={{ p: 0.5 }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 72px)' }}>
+                        {!drawerData && <Typography variant="body2">Click a booth polygon to view details.</Typography>}
+                        {drawerData?.loading && <Typography variant="body2">Loading...</Typography>}
+
+                        {drawerData?.details && (
+                            <Stack spacing={2}>
+                                <Paper elevation={1} sx={{ p: 2, borderRadius: 1 }}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Basic</Typography>
+                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth?.booth_number || drawerData.details.boothNo || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth?.block_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth?.assembly_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth?.parliament_id?.name || 'N/A'}</Typography>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Gender</Typography>
+                                    {drawerData.details.gender ? (
+                                        <Box>
+                                            <Typography variant="body2">Male: {drawerData.details.gender.male}</Typography>
+                                            <Typography variant="body2">Female: {drawerData.details.gender.female}</Typography>
+                                            <Typography variant="body2">Others: {drawerData.details.gender.others}</Typography>
+                                            <Typography variant="body2">Total: {drawerData.details.gender.total}</Typography>
+                                        </Box>
+                                    ) : (
+                                        <Typography variant="body2">No gender data.</Typography>
+                                    )}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Work Status ({drawerData.details.workStatuses?.length || 0})</Typography>
+                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0,5).map(ws => (
+                                        <Box key={ws._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {ws.work_name || 'Work'} — {ws.status || ''}</Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                Budget: {ws.total_budget ?? 'N/A'} | Spent: {ws.spent_amount ?? 0} | Start: {ws.start_date ? new Date(ws.start_date).toLocaleDateString('en-IN') : 'N/A'}
+                                            </Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No work status records.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Samiti ({drawerData.details.samitis?.length || 0})</Typography>
+                                    {drawerData.details.samitis?.length ? drawerData.details.samitis.slice(0,5).map(sm => (
+                                        <Box key={sm._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {sm.samiti_name || 'Samiti'}</Typography>
+                                            <Typography variant="caption" color="text.secondary">Count: {sm.count ?? 0}</Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No samiti records.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Stack spacing={1}>
+                                        <Typography variant="subtitle2">Visits ({drawerData.details.visits?.length || 0})</Typography>
+                                        {drawerData.details.visits?.length ? drawerData.details.visits.slice(0,5).map(v => (
+                                            <Box key={v._id} sx={{ mb: 0.5 }}>
+                                                <Typography variant="body2">• {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} - {v.candidate_id?.name || ''}</Typography>
+                                                <Typography variant="caption" color="text.secondary">{v.locationName || ''}</Typography>
+                                            </Box>
+                                        )) : (
+                                            <Typography variant="body2">No visits found.</Typography>
+                                        )}
+                                    </Stack>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Volunteers ({drawerData.details.volunteers?.length || 0})</Typography>
+                                    {drawerData.details.volunteers?.length ? drawerData.details.volunteers.slice(0,5).map(p => (
+                                        <Typography key={p._id} variant="body2">• {p.name || p.username || p.phone || 'Unknown'} {p.party?.name ? `(${p.party.name})` : ''}</Typography>
+                                    )) : <Typography variant="body2">No volunteers found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Surveys ({drawerData.details.surveys?.length || 0})</Typography>
+                                    {drawerData.details.surveys?.length ? drawerData.details.surveys.slice(0,5).map(s => (
+                                        <Box key={s._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {s.remark ? s.remark.slice(0,80) : (s.respondent_name || 'Survey')}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{s.survey_date ? new Date(s.survey_date).toLocaleDateString('en-IN') : ''}</Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No surveys found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Infrastructure ({drawerData.details.infra?.length || 0})</Typography>
+                                    {drawerData.details.infra?.length ? drawerData.details.infra.slice(0,5).map(i => (
+                                        <Typography key={i._id} variant="body2">• {i.premises_type || i.categorization || i.note || 'Infrastructure'}</Typography>
+                                    )) : <Typography variant="body2">No infrastructure records.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Party Presence ({drawerData.details.partyPresence?.length || 0})</Typography>
+                                    {drawerData.details.partyPresence?.length ? drawerData.details.partyPresence.slice(0,5).map(pp => (
+                                        <Typography key={pp._id} variant="body2">• {pp.party_id?.name || pp.party?.name || 'Party'} - {pp.count || ''}</Typography>
+                                    )) : <Typography variant="body2">No party presence data.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Demographics</Typography>
+                                    {drawerData.details.demographics ? (
+                                        <Box>
+                                            <Typography variant="body2">Male: {drawerData.details.demographics.male || 'N/A'}</Typography>
+                                            <Typography variant="body2">Female: {drawerData.details.demographics.female || 'N/A'}</Typography>
+                                            <Typography variant="body2">Total: {drawerData.details.demographics.total || 'N/A'}</Typography>
+                                        </Box>
+                                    ) : <Typography variant="body2">No demographics data.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Votes ({drawerData.details.votes?.length || 0})</Typography>
+                                    {drawerData.details.votes?.length ? drawerData.details.votes.slice(0,5).map(v => {
+                                        const candidateVal = v?.candidate_name || v?.candidate || v?.party_name || v?.party || 'Candidate';
+                                        const candidateLabel = (typeof candidateVal === 'object') ? (candidateVal.name || candidateVal._id || JSON.stringify(candidateVal)) : candidateVal;
+                                        const voteCount = v?.votes ?? v?.vote_count ?? 'N/A';
+                                        const electionYearVal = v?.election_year;
+                                        const electionYearLabel = electionYearVal ? (typeof electionYearVal === 'object' ? (electionYearVal.year || electionYearVal._id || electionYearVal.name) : electionYearVal) : '';
+                                        return (
+                                            <Box key={v._id} sx={{ mb: 0.5 }}>
+                                                <Typography variant="body2">• {candidateLabel}: {voteCount} votes</Typography>
+                                                <Typography variant="caption" color="text.secondary">{electionYearLabel}</Typography>
+                                            </Box>
+                                        );
+                                    }) : <Typography variant="body2">No vote records found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Election Stats ({drawerData.details.electionStats?.length || 0})</Typography>
+                                    {drawerData.details.electionStats?.length ? drawerData.details.electionStats.slice(0,5).map(es => {
+                                        const yearVal = es?.election_year;
+                                        const yearLabel = yearVal ? (typeof yearVal === 'object' ? (yearVal.year || yearVal.name || yearVal._id) : yearVal) : 'Election';
+                                        const turnoutVal = es?.turnout_percentage ?? es?.total_voters ?? 'N/A';
+                                        return (
+                                            <Box key={es._id} sx={{ mb: 0.5 }}>
+                                                <Typography variant="body2">• {yearLabel}: {turnoutVal}</Typography>
+                                                <Typography variant="caption" color="text.secondary">Turnout: {es?.turnout_percentage ? `${es.turnout_percentage}%` : 'N/A'}</Typography>
+                                            </Box>
+                                        );
+                                    }) : <Typography variant="body2">No election stats found.</Typography>}
+                                </Paper>
+                            </Stack>
+                        )}
+                    </Box>
+                </Box>
+            </Drawer>
 
             <WorkStatusModal
                 open={openModal}

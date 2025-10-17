@@ -18,10 +18,10 @@ const workStatusSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['Pending', 'In Progress', 'Completed', 'Halted', 'Cancelled'],
-      message: 'Status must be Pending, In Progress, Completed, Halted, or Cancelled'
+      values: ['in progress', 'completed', 'in complete', 'announced'],
+      message: 'Status must be ie of: in progress, completed, in complete, announced'
     },
-    default: 'Pending',
+    default: 'in progress',
     index: true
   },
   work_type: {

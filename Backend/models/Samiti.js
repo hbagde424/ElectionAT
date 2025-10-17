@@ -7,17 +7,21 @@ const samitiSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Samiti name cannot exceed 200 characters']
   },
-  village: {
-    type: String,
-    required: [true, 'Village is required'],
-    trim: true,
-    maxlength: [100, 'Village name cannot exceed 100 characters']
+  // References for local administrative units
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat',
+    required: [true, 'Panchayat reference is required']
   },
-  falia: {
-    type: String,
-    required: [true, 'Falia is required'],
-    trim: true,
-    maxlength: [100, 'Falia name cannot exceed 100 characters']
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village',
+    required: [true, 'Village reference is required']
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya',
+    required: [true, 'Falliya reference is required']
   },
   count: {
     type: Number,
@@ -82,13 +86,16 @@ samitiSchema.pre('save', function(next) {
 });
 
 // Indexes for better performance
-samitiSchema.index({ samiti_name: 'text', village: 'text', falia: 'text' });
+samitiSchema.index({ samiti_name: 'text' });
 samitiSchema.index({ state_id: 1 });
 samitiSchema.index({ division_id: 1 });
 samitiSchema.index({ parliament_id: 1 });
 samitiSchema.index({ assembly_id: 1 });
 samitiSchema.index({ block_id: 1 });
 samitiSchema.index({ booth_id: 1 });
+samitiSchema.index({ panchayat_id: 1 });
+samitiSchema.index({ village_id: 1 });
+samitiSchema.index({ falliya_id: 1 });
 samitiSchema.index({ created_at: -1 });
 
 module.exports = mongoose.model('Samiti', samitiSchema);
