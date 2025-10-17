@@ -130,16 +130,35 @@ export default function BoothsListPage() {
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
-                const resp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-polygons?limit=10000`, { headers });
+                const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
+                // Remove pagination and get all results by setting a very high limit
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+
+                const resp = await fetch(url, { headers });
+
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const j = await resp.json();
-                const features = j.features || j.data || [];
+
+
+                // Handle nested features structure - check if features[0] has nested features
+                let features = j.features || j.data || [];
+                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
+                    console.log('Found nested features structure, extracting:', features[0].features.length, 'features');
+                    features = features[0].features;
+                }
+
+                console.log('Features count for ALL polygons:', features.length);
                 if (!features || !Array.isArray(features) || features.length === 0) {
                     setMapError('No booth polygons found');
                     setBoothGeoJSON(null);
                     return;
                 }
                 const fc = { type: 'FeatureCollection', features };
+                console.log('Setting boothGeoJSON with', features.length, 'features');
+                console.log('First few features:', features.slice(0, 3).map(f => ({
+                    type: f.type,
+                    properties: f.properties?.BoothName || f.properties?.BoothNo || 'No name'
+                })));
                 setBoothGeoJSON(fc);
                 // auto-fit handled below
                 setTimeout(() => {
@@ -163,7 +182,7 @@ export default function BoothsListPage() {
                             ];
                             map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
                         }
-                    } catch {}
+                    } catch { }
                 }, 0);
                 return;
             }
@@ -230,7 +249,7 @@ export default function BoothsListPage() {
                         ];
                         map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
                     }
-                } catch {}
+                } catch { }
             }, 0);
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
@@ -245,30 +264,30 @@ export default function BoothsListPage() {
             console.log(`🔍 Searching for booth with BoothNo: "${boothNo}"`);
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            
+
             // Get all booths to find exact booth number match
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
             const json = await res.json();
             let booth = null;
-            
+
             if (json.success && Array.isArray(json.data)) {
                 const boothNoStr = String(boothNo).trim();
                 console.log(`📊 Total booths available: ${json.data.length}`);
                 console.log(`🔍 Looking for booth_number matching: "${boothNoStr}"`);
-                
+
                 // Try exact match first
                 booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr);
-                
+
                 if (!booth) {
                     // Try case-insensitive match
                     booth = json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase());
                 }
-                
+
                 if (!booth) {
                     // Try partial match if booth number is contained
                     booth = json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
                 }
-                
+
                 if (booth) {
                     console.log(`✅ Found matching booth:`, {
                         id: booth._id,
@@ -295,10 +314,10 @@ export default function BoothsListPage() {
             let workStatuses = [];
             let samitis = [];
             let gender = null;
-            
+
             if (booth && booth._id) {
                 console.log(`Fetching related data for booth ID: ${booth._id}, booth number: ${booth.booth_number}`);
-                
+
                 const fetchPromises = [
                     fetch(`${import.meta.env.VITE_APP_API_URL}/visits?booth=${encodeURIComponent(booth._id)}&all=true`, { headers }),
                     fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers/booth/${encodeURIComponent(booth._id)}`, { headers }),
@@ -368,8 +387,8 @@ export default function BoothsListPage() {
                         } else {
                             console.warn(`⚠️ Infrastructure API returned no data for booth ${booth.booth_number}:`, iJson);
                         }
-                    } catch (e) { 
-                        console.warn('❌ Failed to parse infrastructure response:', e); 
+                    } catch (e) {
+                        console.warn('❌ Failed to parse infrastructure response:', e);
                     }
                 } else {
                     console.warn(`❌ Infrastructure fetch failed for booth ${booth.booth_number}:`, {
@@ -389,8 +408,8 @@ export default function BoothsListPage() {
                         } else {
                             console.log(`ℹ️ No party presence data for booth ${booth.booth_number} (this is normal)`);
                         }
-                    } catch (e) { 
-                        console.warn('❌ Failed to parse party presence response:', e); 
+                    } catch (e) {
+                        console.warn('❌ Failed to parse party presence response:', e);
                     }
                 } else {
                     console.warn(`❌ Party presence fetch failed for booth ${booth.booth_number}:`, {
@@ -446,10 +465,10 @@ export default function BoothsListPage() {
                         // Endpoint may return { success, count, data: [...] } or { success, data: {...} }
                         if (gJson && gJson.success && Array.isArray(gJson.data) && gJson.data.length > 0) {
                             const g = gJson.data[0];
-                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0)+(g.female||0)+(g.others||0) };
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         } else if (gJson && gJson.success && typeof gJson.data === 'object') {
                             const g = gJson.data;
-                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0)+(g.female||0)+(g.others||0) };
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         }
                     } catch (e) { console.warn('Failed to parse gender response:', e); }
                 } else {
@@ -496,23 +515,23 @@ export default function BoothsListPage() {
                 }
             }
 
-            setDrawerData({ 
-                loading: false, 
-                boothNo, 
-                details: { 
-                    booth, 
-                    visits, 
-                    volunteers, 
-                    surveys, 
-                    infra, 
-                    partyPresence, 
-                    demographics, 
-                    votes, 
+            setDrawerData({
+                loading: false,
+                boothNo,
+                details: {
+                    booth,
+                    visits,
+                    volunteers,
+                    surveys,
+                    infra,
+                    partyPresence,
+                    demographics,
+                    votes,
                     electionStats,
                     workStatuses,
                     samitis,
                     gender
-                } 
+                }
             });
         } catch (e) {
             console.error('Failed to load booth details by polygon:', e);
@@ -522,6 +541,7 @@ export default function BoothsListPage() {
 
     // Fetch booths for table
     const fetchBooths = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
+        console.log('fetchBooths called with:', { pageIndex, pageSize, globalFilter, currentFilters });
         setLoading(true);
         try {
             const queryParams = [];
@@ -553,10 +573,19 @@ export default function BoothsListPage() {
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?page=${actualPageIndex + 1}&limit=${actualPageSize}${queryString}`, { headers });
+            console.log('Token exists:', !!token);
+            console.log('Headers:', headers);
+            const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
+            const url = `${apiUrl}/booths?page=${actualPageIndex + 1}&limit=${actualPageSize}${queryString}`;
+            console.log('API URL:', apiUrl);
+            console.log('Fetching booths from URL:', url);
+            const res = await fetch(url, { headers });
+            console.log('Response status:', res.status);
             const json = await res.json();
+            console.log('Response data:', json);
 
             if (json.success) {
+                console.log('Setting booths data:', json.data);
                 setBooths(json.data);
                 setIsSearching(isSearchingOnly);
 
@@ -571,6 +600,7 @@ export default function BoothsListPage() {
         } catch (error) {
             console.error('Failed to fetch booths:', error);
         } finally {
+            console.log('Setting loading to false');
             setLoading(false);
         }
     };
@@ -1005,7 +1035,17 @@ export default function BoothsListPage() {
 
 
 
-    if (loading) return <EmptyReactTable />;
+    console.log('Component render - loading:', loading, 'booths:', booths?.length);
+
+    if (loading) {
+        return (
+            <MainCard>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                    <Typography variant="h6">Loading booth data...</Typography>
+                </Box>
+            </MainCard>
+        );
+    }
     return (
         <>
             <MainCard content={false}>
@@ -1026,7 +1066,10 @@ export default function BoothsListPage() {
                                 size="small"
                                 label="Block"
                                 value={blockNumberInput}
-                                onChange={(e) => setBlockNumberInput(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setBlockNumberInput(value);
+                                }}
                                 sx={{ width: { xs: '100%', sm: 260 } }}
                             >
                                 <MenuItem value="">Select Block</MenuItem>
@@ -1059,9 +1102,9 @@ export default function BoothsListPage() {
                                 initialViewState={{ latitude: 23.4707, longitude: 77.9455, zoom: 6 }}
                                 mapStyle={
                                     mapTheme === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' :
-                                    mapTheme === 'light' ? 'mapbox://styles/mapbox/light-v10' :
-                                    mapTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' :
-                                    'mapbox://styles/mapbox/streets-v11'
+                                        mapTheme === 'light' ? 'mapbox://styles/mapbox/light-v10' :
+                                            mapTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' :
+                                                'mapbox://styles/mapbox/streets-v11'
                                 }
                                 mapboxAccessToken={mapboxToken}
                                 interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
@@ -1077,7 +1120,7 @@ export default function BoothsListPage() {
                                                 features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
                                             }
                                         }
-                                        console.debug('Booth map click features:', features);
+
                                         const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
                                         if (boothFeature) {
                                             const props = boothFeature.properties || {};
@@ -1406,7 +1449,7 @@ export default function BoothsListPage() {
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Stack spacing={1}>
                                         <Typography variant="subtitle2">Visits ({drawerData.details.visits?.length || 0})</Typography>
-                                        {drawerData.details.visits?.length ? drawerData.details.visits.slice(0,5).map(v => (
+                                        {drawerData.details.visits?.length ? drawerData.details.visits.slice(0, 5).map(v => (
                                             <Box key={v._id} sx={{ mb: 0.5 }}>
                                                 <Typography variant="body2">• {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} - {v.candidate_id?.name || ''}</Typography>
                                                 <Typography variant="caption" color="text.secondary">{v.locationName || ''}</Typography>
@@ -1419,16 +1462,16 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Volunteers ({drawerData.details.volunteers?.length || 0})</Typography>
-                                    {drawerData.details.volunteers?.length ? drawerData.details.volunteers.slice(0,5).map(p => (
+                                    {drawerData.details.volunteers?.length ? drawerData.details.volunteers.slice(0, 5).map(p => (
                                         <Typography key={p._id} variant="body2">• {p.name || p.username || p.phone || 'Unknown'} {p.party?.name ? `(${p.party.name})` : ''}</Typography>
                                     )) : <Typography variant="body2">No volunteers found.</Typography>}
                                 </Paper>
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Surveys ({drawerData.details.surveys?.length || 0})</Typography>
-                                    {drawerData.details.surveys?.length ? drawerData.details.surveys.slice(0,5).map(s => (
+                                    {drawerData.details.surveys?.length ? drawerData.details.surveys.slice(0, 5).map(s => (
                                         <Box key={s._id} sx={{ mb: 0.5 }}>
-                                            <Typography variant="body2">• {s.remark ? s.remark.slice(0,80) : (s.respondent_name || 'Survey')}</Typography>
+                                            <Typography variant="body2">• {s.remark ? s.remark.slice(0, 80) : (s.respondent_name || 'Survey')}</Typography>
                                             <Typography variant="caption" color="text.secondary">{s.survey_date ? new Date(s.survey_date).toLocaleDateString('en-IN') : ''}</Typography>
                                         </Box>
                                     )) : <Typography variant="body2">No surveys found.</Typography>}
@@ -1436,7 +1479,7 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Infrastructure ({drawerData.details.infra?.length || 0})</Typography>
-                                    {drawerData.details.infra?.length ? drawerData.details.infra.slice(0,5).map(i => (
+                                    {drawerData.details.infra?.length ? drawerData.details.infra.slice(0, 5).map(i => (
                                         <Typography key={i._id} variant="body2">• {i.premises_type || i.categorization || i.note || 'Infrastructure'}</Typography>
                                     )) : <Typography variant="body2">No infrastructure records.</Typography>}
                                 </Paper>
@@ -1457,7 +1500,7 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Work Status ({drawerData.details.workStatuses?.length || 0})</Typography>
-                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0,5).map(ws => (
+                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0, 5).map(ws => (
                                         <Box key={ws._id} sx={{ mb: 0.5 }}>
                                             <Typography variant="body2">• {ws.work_name || 'Work'} — {ws.status || ''}</Typography>
                                             <Typography variant="caption" color="text.secondary">
@@ -1469,7 +1512,7 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Samiti ({drawerData.details.samitis?.length || 0})</Typography>
-                                    {drawerData.details.samitis?.length ? drawerData.details.samitis.slice(0,5).map(sm => (
+                                    {drawerData.details.samitis?.length ? drawerData.details.samitis.slice(0, 5).map(sm => (
                                         <Box key={sm._id} sx={{ mb: 0.5 }}>
                                             <Typography variant="body2">• {sm.samiti_name || 'Samiti'} — {sm.village || ''}{sm.falia ? `, ${sm.falia}` : ''}</Typography>
                                             <Typography variant="caption" color="text.secondary">Count: {sm.count ?? 0}</Typography>
@@ -1479,7 +1522,7 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Party Presence ({drawerData.details.partyPresence?.length || 0})</Typography>
-                                    {drawerData.details.partyPresence?.length ? drawerData.details.partyPresence.slice(0,5).map(pp => (
+                                    {drawerData.details.partyPresence?.length ? drawerData.details.partyPresence.slice(0, 5).map(pp => (
                                         <Typography key={pp._id} variant="body2">• {pp.party_id?.name || pp.party?.name || 'Party'} - {pp.count || ''}</Typography>
                                     )) : <Typography variant="body2">No party presence data.</Typography>}
                                 </Paper>
@@ -1497,7 +1540,7 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Votes ({drawerData.details.votes?.length || 0})</Typography>
-                                    {drawerData.details.votes?.length ? drawerData.details.votes.slice(0,5).map(v => {
+                                    {drawerData.details.votes?.length ? drawerData.details.votes.slice(0, 5).map(v => {
                                         const candidateVal = v?.candidate_name || v?.candidate || v?.party_name || v?.party || 'Candidate';
                                         const candidateLabel = (typeof candidateVal === 'object') ? (candidateVal.name || candidateVal._id || JSON.stringify(candidateVal)) : candidateVal;
                                         const voteCount = v?.votes ?? v?.vote_count ?? 'N/A';
@@ -1514,7 +1557,7 @@ export default function BoothsListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Election Stats ({drawerData.details.electionStats?.length || 0})</Typography>
-                                    {drawerData.details.electionStats?.length ? drawerData.details.electionStats.slice(0,5).map(es => {
+                                    {drawerData.details.electionStats?.length ? drawerData.details.electionStats.slice(0, 5).map(es => {
                                         // election_year can be an object like { _id, year } or a plain value
                                         const yearVal = es?.election_year;
                                         const yearLabel = yearVal ? (typeof yearVal === 'object' ? (yearVal.year || yearVal.name || yearVal._id) : yearVal) : 'Election';
