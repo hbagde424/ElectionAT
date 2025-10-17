@@ -1034,10 +1034,10 @@ const VisitListPage = () => {
                                                         const v = popupInfo.visit;
                                                         return (
                                                             <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
-                                                                <Typography variant="body2"><strong>📅</strong> {formatDate(v.date)}</Typography>
+                                                                <Typography variant="body2"><strong>📅</strong> <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{formatDate(v.date)}</span></Typography>
                                                                 <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
                                                                 <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
-                                                                <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'white' }} /></Typography>
+                                                                <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'blue' }} /></Typography>
                                                                 {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
                                                                 {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
                                                                 <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>

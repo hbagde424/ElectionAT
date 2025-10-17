@@ -354,7 +354,7 @@ const CRUDMenu = {
     },
     {
       id: 'Year',
-      title: <FormattedMessage id="Year" />,
+      title: <FormattedMessage id="Election Year" />,
       type: 'item',
       url: '/Year',
       icon: icons.ClipboardTick, // Completed work
