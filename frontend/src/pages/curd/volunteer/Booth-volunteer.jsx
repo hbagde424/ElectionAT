@@ -61,6 +61,11 @@ export default function BoothVolunteerListPage() {
   const [searchInput, setSearchInput] = useState('');
   const searchDebounceRef = useRef(null);
 
+  // Keep local input in sync when globalFilter changes from outside (clear, pagination, etc.)
+  useEffect(() => {
+    setSearchInput(globalFilter || '');
+  }, [globalFilter]);
+
   // Get user's access scope information
   const getUserAccessScope = () => {
     if (!userHierarchy) {
@@ -558,6 +563,12 @@ export default function BoothVolunteerListPage() {
 
   if (loading) return <EmptyReactTable />;
 
+  const handleSearch = () => {
+    const searchTerm = searchInput.trim();
+    setGlobalFilter(searchTerm);
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  };
+
   const handleFilterApply = () => {
     fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
   };
@@ -575,17 +586,23 @@ export default function BoothVolunteerListPage() {
           <TextField
             size="small"
             variant="outlined"
-            placeholder={`Search ${volunteers.length} volunteers...`}
+            placeholder={`Search all fields (name, phone, email, role, etc.) - Press Enter to search...`}
             value={searchInput}
             onChange={(e) => {
-              const v = e.target.value;
-              setSearchInput(v);
-              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-              searchDebounceRef.current = setTimeout(() => {
-                setGlobalFilter(String(v));
-              }, 500);
+              const value = e.target.value;
+              setSearchInput(value);
+              // Clear search if input is empty
+              if (value.trim() === '') {
+                setGlobalFilter('');
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }
             }}
-            sx={{ width: { xs: '100%', sm: 250 } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+            sx={{ width: { xs: '100%', sm: 400 } }}
           />
           <Stack
             direction="row"
