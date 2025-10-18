@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
-    Grid, Tooltip
+    Grid, Tooltip, Drawer, Paper, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,10 @@ import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
+import CloseIcon from '@mui/icons-material/Close';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 import { CSVLink } from 'react-csv';
 
 import AssemblyModal from './AssemblyModal';
@@ -46,6 +50,14 @@ export default function AssemblyListPage() {
         division_id: '',
         parliament_id: ''
     });
+
+    // Map state
+    const [assemblyGeoJSON, setAssemblyGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     const typeOptions = ['Urban', 'Rural', 'Mixed'];
     const categoryOptions = ['General', 'Reserved', 'Special'];
@@ -119,6 +131,28 @@ export default function AssemblyListPage() {
         // Initial load
         fetchAssemblies(0, 10); // Default values for first load
         fetchReferenceData();
+        // Load assembly polygons for map
+        (async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                let features = [];
+                if (Array.isArray(data?.features)) features = data.features;
+                else if (Array.isArray(data?.data?.[0]?.features)) features = data.data[0].features;
+                else if (Array.isArray(data) && Array.isArray(data[0]?.features)) features = data[0].features;
+                if (!features.length) {
+                    setMapError('No assembly polygons found');
+                    setAssemblyGeoJSON(null);
+                } else {
+                    setAssemblyGeoJSON({ type: 'FeatureCollection', features });
+                }
+            } catch (e) {
+                console.error('Failed to load assembly polygons:', e);
+                setMapError(`Failed to load assembly polygons: ${e.message}`);
+                setAssemblyGeoJSON(null);
+            }
+        })();
     }, []); // Empty dependency array for initial load only
 
     useEffect(() => {
@@ -406,9 +440,140 @@ export default function AssemblyListPage() {
         });
     };
 
+    const fetchAssemblyDetailsByPolygon = async (acNo, acName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Find the assembly by AC_NO or name
+            let assembly = null;
+            try {
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true&limit=10000`, { headers });
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data)) {
+                    const acNoStr = String(acNo || '').trim();
+                    const nameStr = String(acName || '').trim().toLowerCase();
+                    assembly = json.data.find(a => String(a.AC_NO || '').trim() === acNoStr)
+                        || json.data.find(a => String(a.name || '').trim().toLowerCase() === nameStr);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch all assemblies for matching:', e);
+            }
+
+            let blocks = [];
+            let booths = [];
+            let visits = [];
+            let workStatuses = [];
+            let winners = [];
+
+            if (assembly && assembly._id) {
+                const assemblyId = assembly._id;
+                const fetches = [
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?assembly=${encodeURIComponent(assemblyId)}&all=true&limit=1000`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/booths?assembly=${encodeURIComponent(assemblyId)}&all=true&limit=10000`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/visits?assembly=${encodeURIComponent(assemblyId)}&all=true`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?assembly=${encodeURIComponent(assemblyId)}&all=true`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${encodeURIComponent(assemblyId)}&all=true`, { headers })
+                ];
+                const [bRes, boothRes, vRes, wsRes, wcRes] = await Promise.allSettled(fetches);
+                const tryJson = async (r) => { try { const j = await r.json(); return j; } catch { return null; } };
+                if (bRes.status === 'fulfilled' && bRes.value.ok) { const j = await tryJson(bRes.value); if (j?.success && Array.isArray(j.data)) blocks = j.data; }
+                if (boothRes.status === 'fulfilled' && boothRes.value.ok) { const j = await tryJson(boothRes.value); if (j?.success && Array.isArray(j.data)) booths = j.data; }
+                if (vRes.status === 'fulfilled' && vRes.value.ok) { const j = await tryJson(vRes.value); if (j?.success && Array.isArray(j.data)) visits = j.data; }
+                if (wsRes.status === 'fulfilled' && wsRes.value.ok) { const j = await tryJson(wsRes.value); if (j?.success && Array.isArray(j.data)) workStatuses = j.data; }
+                if (wcRes.status === 'fulfilled' && wcRes.value.ok) { const j = await tryJson(wcRes.value); if (j?.success && Array.isArray(j.data)) winners = j.data; }
+
+                // Fallback for winners by AC_NO
+                if ((!winners || winners.length === 0) && acNo) {
+                    try {
+                        const wr = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?ac_no=${encodeURIComponent(acNo)}&all=true`, { headers });
+                        const wj = await wr.json();
+                        if (wj?.success && Array.isArray(wj.data)) winners = wj.data;
+                    } catch {}
+                }
+
+                setDrawerData({
+                    loading: false,
+                    acNo,
+                    acName,
+                    details: {
+                        assembly,
+                        blocks,
+                        booths,
+                        visits,
+                        workStatuses,
+                        winners
+                    }
+                });
+                setDrawerOpen(true);
+            } else {
+                setDrawerData({ loading: false, acNo, acName, details: null, error: 'Assembly not found' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch assembly details by polygon:', err);
+            setDrawerData({ loading: false, acNo, acName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
+    };
+
     return (
         <>
             <MainCard content={false}>
+                {/* Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>Assembly Map</Typography>
+                    {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
+                    <MapContainerStyled>
+                        <Map
+                            ref={mapRef}
+                            mapboxAccessToken={mapboxToken}
+                            initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 6 }}
+                            mapStyle="mapbox://styles/mapbox/streets-v12"
+                            interactiveLayerIds={assemblyGeoJSON ? ['assembly-fill'] : []}
+                            onClick={(e) => {
+                                if (!assemblyGeoJSON) return;
+                                try {
+                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                    const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                    let features = e.features || [];
+                                    if ((!features || features.length === 0) && map && point) {
+                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['assembly-fill'] }) || [];
+                                    }
+                                    const assemblyFeature = features.find(f => f.layer && f.layer.id === 'assembly-fill') || features[0];
+                                    if (assemblyFeature) {
+                                        const props = assemblyFeature.properties || {};
+                                        const acNo = props.AC_NO || props.ac_no || props.acNo || '';
+                                        const acName = props.AC_NAME || props.name || '';
+                                        setDrawerData({ loading: true, acNo, acName, details: null });
+                                        setDrawerOpen(true);
+                                        fetchAssemblyDetailsByPolygon(acNo, acName);
+                                    }
+                                } catch (err) {
+                                    console.warn('Map click handler error:', err);
+                                }
+                            }}
+                        >
+                            <MapControl />
+                            {assemblyGeoJSON && (
+                                <Source id="assembly-polygons" type="geojson" data={assemblyGeoJSON}>
+                                    <Layer
+                                        id="assembly-fill"
+                                        type="fill"
+                                        paint={{ 'fill-color': '#8BC34A', 'fill-opacity': 0.25 }}
+                                    />
+                                    <Layer id="assembly-outline" type="line" paint={{ 'line-color': '#4CAF50', 'line-width': 2 }} />
+                                    <Layer
+                                        id="assembly-label"
+                                        type="symbol"
+                                        layout={{ 'text-field': ['concat', ['get', 'AC_NO'], '\n', ['get', 'AC_NAME']], 'text-size': 10, 'text-allow-overlap': true }}
+                                        paint={{ 'text-color': '#333', 'text-halo-color': '#fff', 'text-halo-width': 1 }}
+                                    />
+                                </Source>
+                            )}
+                        </Map>
+                    </MapContainerStyled>
+                </Box>
                 {/* Header: Search + Actions */}
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
@@ -632,6 +797,86 @@ export default function AssemblyListPage() {
                     </Box>
                 </ScrollX>
             </MainCard >
+
+            {/* Right-side Drawer for clicked assembly info */}
+            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+                <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
+                        <Box>
+                            <Typography variant="h6">Assembly Details</Typography>
+                            <Typography variant="caption" color="text.secondary">Click an assembly polygon to view more information</Typography>
+                        </Box>
+                        <IconButton color="secondary" onClick={() => setDrawerOpen(false)} sx={{ p: 0.5 }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 72px)' }}>
+                        {!drawerData && <Typography variant="body2">Click an assembly polygon to view details.</Typography>}
+                        {drawerData?.loading && <Typography variant="body2">Loading...</Typography>}
+
+                        {drawerData?.details && (
+                            <Stack spacing={2}>
+                                <Paper elevation={1} sx={{ p: 2, borderRadius: 1 }}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Basic</Typography>
+                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.assembly?.name || drawerData.acName || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>AC No:</strong> {drawerData.details.assembly?.AC_NO || drawerData.acNo || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Division:</strong> {drawerData.details.assembly?.division_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.assembly?.parliament_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>State:</strong> {drawerData.details.assembly?.state_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Type:</strong> {drawerData.details.assembly?.type || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Category:</strong> {drawerData.details.assembly?.category || 'N/A'}</Typography>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Blocks ({drawerData.details.blocks?.length || 0})</Typography>
+                                    {drawerData.details.blocks?.length ? drawerData.details.blocks.slice(0,8).map(b => (
+                                        <Typography key={b._id} variant="body2">• {b.name}</Typography>
+                                    )) : <Typography variant="body2">No blocks found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Booths ({drawerData.details.booths?.length || 0})</Typography>
+                                    {drawerData.details.booths?.length ? drawerData.details.booths.slice(0,8).map(bt => (
+                                        <Typography key={bt._id} variant="body2">• #{bt.booth_number} — {bt.name}</Typography>
+                                    )) : <Typography variant="body2">No booths found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Visits ({drawerData.details.visits?.length || 0})</Typography>
+                                    {drawerData.details.visits?.length ? drawerData.details.visits.slice(0,5).map(v => (
+                                        <Box key={v._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} - {v.candidate_id?.name || ''}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{v.locationName || ''}</Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No visits found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Work Status ({drawerData.details.workStatuses?.length || 0})</Typography>
+                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0,5).map(ws => (
+                                        <Box key={ws._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {ws.work_name || 'Work'} — {ws.status || ''}</Typography>
+                                            <Typography variant="caption" color="text.secondary">Budget: {ws.total_budget ?? 'N/A'} | Spent: {ws.spent_amount ?? 0}</Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No work status records.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Winning Candidates ({drawerData.details.winners?.length || 0})</Typography>
+                                    {drawerData.details.winners?.length ? drawerData.details.winners.slice(0,5).map(w => (
+                                        <Box key={w._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {w.name || w.candidate_id?.name || 'Candidate'} — {w.party_id?.name || w.party || 'Party'}</Typography>
+                                            <Typography variant="caption" color="text.secondary">Year: {typeof w.year_id === 'object' ? (w.year_id?.year || w.year_id?.name) : w.year_id}</Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No winners data.</Typography>}
+                                </Paper>
+                            </Stack>
+                        )}
+                    </Box>
+                </Box>
+            </Drawer>
 
             <AssemblyModal
                 open={openModal}

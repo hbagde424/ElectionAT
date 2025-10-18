@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip,
+    Drawer, Paper, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +17,10 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import CloseIcon from '@mui/icons-material/Close';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 
 import ParliamentModal from './ParliamentModal';
 import AlertParliamentDelete from './AlertParliamentDelete';
@@ -45,6 +50,14 @@ export default function ParliamentListPage() {
         state_id: '',
         division_id: ''
     });
+
+    // Map & Drawer state
+    const [parliamentGeoJSON, setParliamentGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     // Use lowercase for modal compatibility
     const categoryOptions = ['general', 'reserved', 'special'];
@@ -119,6 +132,31 @@ export default function ParliamentListPage() {
         fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    // Load parliament polygons for map
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                let features = [];
+                if (Array.isArray(data?.features)) features = data.features;
+                else if (Array.isArray(data?.data?.[0]?.features)) features = data.data[0].features;
+                else if (Array.isArray(data) && Array.isArray(data[0]?.features)) features = data[0].features;
+                if (!features.length) {
+                    setMapError('No parliament polygons found');
+                    setParliamentGeoJSON(null);
+                } else {
+                    setParliamentGeoJSON({ type: 'FeatureCollection', features });
+                }
+            } catch (e) {
+                console.error('Failed to load parliament polygons:', e);
+                setMapError(`Failed to load parliament polygons: ${e.message}`);
+                setParliamentGeoJSON(null);
+            }
+        })();
+    }, []);
 
     const handleDeleteOpen = (id) => {
         setParliamentDeleteId(id);
@@ -391,9 +429,128 @@ export default function ParliamentListPage() {
         fetchParliaments(0, pagination.pageSize, globalFilter, filters); // Use page index 0
     };
 
+    const fetchParliamentDetailsByPolygon = async (pcNo, pcName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Find parliament by number or name
+            let parliament = null;
+            try {
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?all=true&limit=10000`, { headers });
+                const json = await res.json();
+                if (json?.success && Array.isArray(json.data)) {
+                    const pcNoStr = String(pcNo || '').trim();
+                    const nameStr = String(pcName || '').trim().toLowerCase();
+                    parliament = json.data.find(p => String(p.parliament_no || p['Parliament No'] || '').trim() === pcNoStr) ||
+                                 json.data.find(p => String(p.name || '').trim().toLowerCase() === nameStr);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch all parliaments for matching:', e);
+            }
+
+            let assembliesList = [];
+            let winners = [];
+            let visits = [];
+
+            if (parliament && parliament._id) {
+                const pid = parliament._id;
+                const fetches = [
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?parliament=${encodeURIComponent(pid)}&all=true&limit=10000`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?parliament=${encodeURIComponent(pid)}&all=true`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/visits?parliament=${encodeURIComponent(pid)}&all=true`, { headers })
+                ];
+                const [aRes, cRes, vRes] = await Promise.allSettled(fetches);
+                const tryJson = async (r) => { try { const j = await r.json(); return j; } catch { return null; } };
+                if (aRes.status === 'fulfilled' && aRes.value.ok) { const j = await tryJson(aRes.value); if (j?.success && Array.isArray(j.data)) assembliesList = j.data; }
+                if (cRes.status === 'fulfilled' && cRes.value.ok) { const j = await tryJson(cRes.value); if (j?.success && Array.isArray(j.data)) winners = j.data; }
+                if (vRes.status === 'fulfilled' && vRes.value.ok) { const j = await tryJson(vRes.value); if (j?.success && Array.isArray(j.data)) visits = j.data; }
+
+                // Fallback: try by pc_no
+                if ((!winners || winners.length === 0) && pcNo) {
+                    try {
+                        const wr = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?pc_no=${encodeURIComponent(pcNo)}&all=true`, { headers });
+                        const wj = await wr.json();
+                        if (wj?.success && Array.isArray(wj.data)) winners = wj.data;
+                    } catch {}
+                }
+
+                // Strictly filter winners to selected parliament by id or pc_no
+                const pcNoStr = String(pcNo || '').trim();
+                const filteredWinners = (winners || []).filter(w => {
+                    const wid = (w.parliament_id && (w.parliament_id._id || w.parliament_id)) || null;
+                    const wPcNo = (w.parliament_id && (w.parliament_id.parliament_no || w.parliament_id['Parliament No'])) || w.pc_no || w.PC_NO || w['Parliament No'] || null;
+                    const matchById = wid && String(wid) === String(pid);
+                    const matchByNo = wPcNo && String(wPcNo).trim() === pcNoStr;
+                    return matchById || matchByNo;
+                });
+
+                setDrawerData({ loading: false, pcNo, pcName, details: { parliament, assemblies: assembliesList, winners: filteredWinners, visits } });
+                setDrawerOpen(true);
+            } else {
+                setDrawerData({ loading: false, pcNo, pcName, details: null, error: 'Parliament not found' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch parliament details by polygon:', err);
+            setDrawerData({ loading: false, pcNo, pcName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
+    };
+
     return (
         <>
             <MainCard content={false}>
+                {/* Parliament Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>Parliament Map</Typography>
+                    {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
+                    <MapContainerStyled>
+                        <Map
+                            ref={mapRef}
+                            mapboxAccessToken={mapboxToken}
+                            initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 6 }}
+                            mapStyle="mapbox://styles/mapbox/streets-v12"
+                            interactiveLayerIds={parliamentGeoJSON ? ['parliament-fill'] : []}
+                            onClick={(e) => {
+                                if (!parliamentGeoJSON) return;
+                                try {
+                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                    const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                    let features = e.features || [];
+                                    if ((!features || features.length === 0) && map && point) {
+                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['parliament-fill'] }) || [];
+                                    }
+                                    const f = features.find(f => f.layer && f.layer.id === 'parliament-fill') || features[0];
+                                    if (f) {
+                                        const props = f.properties || {};
+                                        const pcNo = props.PC_NO || props.pc_no || props['Parliament No'] || '';
+                                        const pcName = props.PC_NAME || props.name || '';
+                                        setDrawerData({ loading: true, pcNo, pcName, details: null });
+                                        setDrawerOpen(true);
+                                        fetchParliamentDetailsByPolygon(pcNo, pcName);
+                                    }
+                                } catch (err) {
+                                    console.warn('Map click handler error:', err);
+                                }
+                            }}
+                        >
+                            <MapControl />
+                            {parliamentGeoJSON && (
+                                <Source id="parliament-polygons" type="geojson" data={parliamentGeoJSON}>
+                                    <Layer id="parliament-fill" type="fill" paint={{ 'fill-color': '#2196F3', 'fill-opacity': 0.22 }} />
+                                    <Layer id="parliament-outline" type="line" paint={{ 'line-color': '#1976D2', 'line-width': 2 }} />
+                                    <Layer
+                                        id="parliament-label"
+                                        type="symbol"
+                                        layout={{ 'text-field': ['concat', ['coalesce', ['get', 'PC_NO'], ['get', 'AC_NO'], ''], '\n', ['coalesce', ['get', 'PC_NAME'], ['get', 'AC_NAME'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
+                                        paint={{ 'text-color': '#333', 'text-halo-color': '#fff', 'text-halo-width': 1 }}
+                                    />
+                                </Source>
+                            )}
+                        </Map>
+                    </MapContainerStyled>
+                </Box>
                 {/* Header Section */}
                 <Stack
                     direction={{ xs: 'column', lg: 'row' }}
@@ -652,6 +809,86 @@ export default function ParliamentListPage() {
                     </Box>
                 </ScrollX>
             </MainCard >
+
+            {/* Right-side Drawer for clicked parliament info */}
+            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+                <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
+                        <Box>
+                            <Typography variant="h6">Parliament Details</Typography>
+                            <Typography variant="caption" color="text.secondary">Click a parliament polygon to view more information</Typography>
+                        </Box>
+                        <IconButton color="secondary" onClick={() => setDrawerOpen(false)} sx={{ p: 0.5 }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 72px)' }}>
+                        {!drawerData && <Typography variant="body2">Click a parliament polygon to view details.</Typography>}
+                        {drawerData?.loading && <Typography variant="body2">Loading...</Typography>}
+
+                        {drawerData?.details && (
+                            <Stack spacing={2}>
+                                <Paper elevation={1} sx={{ p: 2, borderRadius: 1 }}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Basic</Typography>
+                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.parliament?.name || drawerData.pcName || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Parliament No:</strong> {drawerData.details.parliament?.parliament_no || drawerData.details.parliament?.['Parliament No'] || drawerData.pcNo || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Division:</strong> {drawerData.details.parliament?.division_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>State:</strong> {drawerData.details.parliament?.state_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Category:</strong> {drawerData.details.parliament?.category || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Regional Type:</strong> {drawerData.details.parliament?.regional_type || 'N/A'}</Typography>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Assemblies ({drawerData.details.assemblies?.length || 0})</Typography>
+                                    {drawerData.details.assemblies?.length ? drawerData.details.assemblies.slice(0, 12).map(a => (
+                                        <Typography key={a._id} variant="body2">• {a.AC_NO ? `#${a.AC_NO} — ` : ''}{a.name}</Typography>
+                                    )) : <Typography variant="body2">No assemblies found.</Typography>}
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Parliament Winners ({drawerData.details.winners?.length || 0})</Typography>
+                                    {drawerData.details.winners?.length ? drawerData.details.winners.slice(0, 6).map(w => (
+                                        <Box key={w._id} sx={{ mb: 0.5 }}>
+                                            <Typography variant="body2">• {w.name || w.candidate_id?.name || 'Candidate'} — {w.party_id?.name || w.party || 'Party'}</Typography>
+                                            <Typography variant="caption" color="text.secondary">Year: {typeof w.election_year_id === 'object' ? (w.election_year_id?.year || w.election_year_id?.name) : w.election_year_id}</Typography>
+                                        </Box>
+                                    )) : <Typography variant="body2">No winners data.</Typography>}
+                                    <Box sx={{ mt: 1 }}>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => {
+                                                const pid = drawerData.details.parliament?._id;
+                                                if (pid) {
+                                                    navigate(`/parliament-candidate?parliament=${encodeURIComponent(pid)}`);
+                                                } else {
+                                                    navigate(`/parliament-candidate`);
+                                                }
+                                            }}
+                                        >
+                                            View all candidates (all years)
+                                        </Button>
+                                    </Box>
+                                </Paper>
+
+                                {!!drawerData.details.visits?.length && (
+                                    <Paper elevation={0} sx={{ p: 1 }}>
+                                        <Typography variant="subtitle2">Visits ({drawerData.details.visits?.length || 0})</Typography>
+                                        {drawerData.details.visits.slice(0, 6).map(v => (
+                                            <Box key={v._id} sx={{ mb: 0.5 }}>
+                                                <Typography variant="body2">• {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} — {v.candidate_id?.name || ''}</Typography>
+                                                <Typography variant="caption" color="text.secondary">{v.locationName || ''}</Typography>
+                                            </Box>
+                                        ))}
+                                    </Paper>
+                                )}
+                            </Stack>
+                        )}
+                    </Box>
+                </Box>
+            </Drawer>
 
             {/* Modals */}
             < ParliamentModal

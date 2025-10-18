@@ -71,7 +71,11 @@ export default function ParliamentCandidateListPage() {
     const searchDebounceRef = useRef(null);
     const [filterYear, setFilterYear] = useState('');
     const [filterCandidate, setFilterCandidate] = useState('');
+    const [filterParliament, setFilterParliament] = useState('');
+    const [filterParty, setFilterParty] = useState('');
     const [yearOptions, setYearOptions] = useState([]);
+    const [parliamentOptions, setParliamentOptions] = useState([]);
+    const [partyOptions, setPartyOptions] = useState([]);
 
     const fetchCandidates = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
@@ -84,6 +88,9 @@ export default function ParliamentCandidateListPage() {
             if (globalFilter) params.set('search', String(globalFilter));
             if (filterYear) params.set('election_year_id', String(filterYear));
             if (filterCandidate) params.set('candidate_id', String(filterCandidate));
+            // Backend expects 'parliament_id'
+            if (filterParliament) params.set('parliament_id', String(filterParliament));
+            if (filterParty) params.set('party_id', String(filterParty));
 
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers.Authorization = `Bearer ${token}`;
@@ -167,17 +174,29 @@ export default function ParliamentCandidateListPage() {
 
     useEffect(() => {
         fetchCandidates(pagination.pageIndex, pagination.pageSize, globalFilter);
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, filterYear, filterCandidate]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, filterYear, filterCandidate, filterParliament, filterParty]);
 
     useEffect(() => {
         setSearchInput(globalFilter || '');
     }, [globalFilter]);
 
+    // Apply initial parliament filter from URL (if present)
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const pid = params.get('parliament');
+            if (pid) {
+                setFilterParliament(pid);
+                setPagination((p) => ({ ...p, pageIndex: 0 }));
+            }
+        } catch {}
+    }, []);
+
     useEffect(() => () => {
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     }, []);
 
-    // Fetch filter options (years and candidates)
+    // Fetch filter options (years, candidates, parliaments)
     useEffect(() => {
         const token = localStorage.getItem('serviceToken');
         const headers = { 'Content-Type': 'application/json' };
@@ -192,6 +211,19 @@ export default function ParliamentCandidateListPage() {
                 const candRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers });
                 const candJson = await candRes.json();
                 if (candJson.success && Array.isArray(candJson.data)) setCandidatesOptions(candJson.data);
+
+                const parlRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?all=true`, { headers });
+                const parlJson = await parlRes.json();
+                if (parlJson.success && Array.isArray(parlJson.data)) setParliamentOptions(parlJson.data);
+
+                // Parties
+                try {
+                    const partyRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, { headers });
+                    const partyJson = await partyRes.json();
+                    if (partyJson.success && Array.isArray(partyJson.data)) setPartyOptions(partyJson.data);
+                } catch (e) {
+                    // optional; ignore
+                }
             } catch (err) {
                 console.error('Error fetching filter options:', err);
             }
@@ -760,6 +792,22 @@ export default function ParliamentCandidateListPage() {
                                 </Select>
                             </FormControl>
                             <FormControl size="small" sx={{ minWidth: 220 }}>
+                                <InputLabel id="filter-parliament-label">Parliament</InputLabel>
+                                <Select
+                                    labelId="filter-parliament-label"
+                                    value={filterParliament}
+                                    label="Parliament"
+                                    onChange={(e) => { setFilterParliament(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
+                                >
+                                    <MenuItem value="">All Parliaments</MenuItem>
+                                    {parliamentOptions.map((p) => (
+                                        <MenuItem key={p._id} value={p._id}>
+                                            {p.name}{p.parliament_no || p['Parliament No'] ? ` (#${p.parliament_no || p['Parliament No']})` : ''}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 220 }}>
                                 <InputLabel id="filter-candidate-label">Candidate</InputLabel>
                                 <Select
                                     labelId="filter-candidate-label"
@@ -770,6 +818,20 @@ export default function ParliamentCandidateListPage() {
                                     <MenuItem value="">All Candidates</MenuItem>
                                     {candidatesOptions.map((c) => (
                                         <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 200 }}>
+                                <InputLabel id="filter-party-label">Party</InputLabel>
+                                <Select
+                                    labelId="filter-party-label"
+                                    value={filterParty}
+                                    label="Party"
+                                    onChange={(e) => { setFilterParty(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
+                                >
+                                    <MenuItem value="">All Parties</MenuItem>
+                                    {partyOptions.map((p) => (
+                                        <MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>

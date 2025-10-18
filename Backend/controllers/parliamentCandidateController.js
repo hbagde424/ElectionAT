@@ -4,6 +4,7 @@
 const Parliament = require('../models/Parliament');
 const Party = require('../models/party');
 const Year = require('../models/electionYear');
+const Candidate = require('../models/Candidate');
 exports.getWinningPartyByParliament = async (req, res, next) => {
   try {
     let yearId = req.query.year_id;
@@ -188,14 +189,63 @@ exports.getParliamentCandidates = async (req, res, next) => {
       // ignore malformed hierarchy
     }
 
-    // Search functionality
+    // Search functionality: support searching by candidate name, party name, parliament name/no, year or result
     if (req.query.search) {
-      const searchRegex = { $regex: req.query.search, $options: 'i' };
-      query = query.find({
-        $or: [
-          { position_result: searchRegex }
-        ]
-      });
+      const q = String(req.query.search).trim();
+      const searchRegex = { $regex: q, $options: 'i' };
+
+      const orClauses = [];
+
+      // position_result (win/loss)
+      orClauses.push({ position_result: searchRegex });
+
+      // Try to resolve candidate IDs matching the search term
+      try {
+        const candDocs = await Candidate.find({ name: searchRegex }).select('_id').limit(50).lean();
+        if (Array.isArray(candDocs) && candDocs.length) orClauses.push({ candidate_id: { $in: candDocs.map(c => c._id) } });
+      } catch (e) {
+        // ignore lookup error
+      }
+
+      // Try to resolve party IDs matching the search term
+      try {
+        const partyDocs = await Party.find({ name: searchRegex }).select('_id').limit(50).lean();
+        if (Array.isArray(partyDocs) && partyDocs.length) orClauses.push({ party_id: { $in: partyDocs.map(p => p._id) } });
+      } catch (e) {
+        // ignore
+      }
+
+      // Try to resolve parliament by name or number
+      try {
+        // exact number match
+        const num = parseInt(q);
+        if (!isNaN(num)) {
+          const pByNo = await Parliament.find({ parliament_no: num }).select('_id').limit(20).lean();
+          if (pByNo.length) orClauses.push({ parliament_id: { $in: pByNo.map(p => p._id) } });
+        }
+        // name match
+        const pByName = await Parliament.find({ name: searchRegex }).select('_id').limit(50).lean();
+        if (pByName.length) orClauses.push({ parliament_id: { $in: pByName.map(p => p._id) } });
+      } catch (e) {
+        // ignore
+      }
+
+      // Try to resolve election years (search by year number or name)
+      try {
+        const yNum = parseInt(q);
+        if (!isNaN(yNum)) {
+          const yDocs = await Year.find({ year: yNum }).select('_id').limit(20).lean();
+          if (Array.isArray(yDocs) && yDocs.length) orClauses.push({ election_year_id: { $in: yDocs.map(y => y._id) } });
+        }
+        const yByName = await Year.find({ year: searchRegex }).select('_id').limit(20).lean();
+        if (Array.isArray(yByName) && yByName.length) orClauses.push({ election_year_id: { $in: yByName.map(y => y._id) } });
+      } catch (e) {
+        // ignore
+      }
+
+      if (orClauses.length) {
+        query = query.find({ $or: orClauses });
+      }
     }
 
     // Filter by parliament

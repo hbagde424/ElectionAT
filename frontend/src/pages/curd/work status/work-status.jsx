@@ -355,6 +355,30 @@ export default function WorkStatusListPage() {
         }
     };
 
+    // Apply a prefilled filter (from Drawer) for a specific booth and status
+    const applyPrefilledFilter = (status) => {
+        try {
+            const boothId = drawerData?.details?.booth?._id;
+            if (!boothId) return;
+            const statusVal = (status === 'all') ? '' : status;
+            const newFilters = {
+                ...filters,
+                booth_id: boothId,
+                status: statusVal
+            };
+            // Update both temp filters and active filters for visibility in UI
+            setTempFilters(newFilters);
+            setFilters(newFilters);
+            // Reset pagination and fetch
+            const newPageSize = pagination.pageSize || 10;
+            setPagination({ pageIndex: 0, pageSize: newPageSize });
+            fetchWorkStatuses(0, newPageSize, globalFilter, newFilters);
+            // Keep Drawer open so user can see filtered table
+        } catch (err) {
+            console.error('Failed to apply prefilled filter:', err);
+        }
+    };
+
     const loadBoothPolygonsByBlockNumber = async (blockNumberVal) => {
         if (!blockNumberVal) {
             setMapError('Please enter Block Number');
@@ -482,6 +506,24 @@ export default function WorkStatusListPage() {
                     gender = { male, female, others, total };
                 }
 
+                // compute work status summary counts
+                const workSummary = {
+                    total: workStatusesForBooth.length || 0,
+                    completed: 0,
+                    in_progress: 0,
+                    in_complete: 0,
+                    announced: 0,
+                    other: 0
+                };
+                workStatusesForBooth.forEach(ws => {
+                    const s = (ws.status || '').toLowerCase();
+                    if (s === 'completed') workSummary.completed += 1;
+                    else if (s === 'in progress') workSummary.in_progress += 1;
+                    else if (s === 'in complete') workSummary.in_complete += 1;
+                    else if (s === 'announced') workSummary.announced += 1;
+                    else workSummary.other += 1;
+                });
+
                 setDrawerData({
                     loading: false,
                     boothNo,
@@ -497,7 +539,8 @@ export default function WorkStatusListPage() {
                         electionStats,
                         workStatuses: workStatusesForBooth,
                         samitis,
-                        gender
+                        gender,
+                        workSummary
                     }
                 });
                 setDrawerOpen(true);
@@ -927,13 +970,20 @@ export default function WorkStatusListPage() {
                 <Box sx={{ p: 2, pb: 0 }}>
                     <Typography variant="h6" sx={{ mb: 1 }}>Booth Map</Typography>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                            size="small"
-                            label="Block Number"
-                            value={blockNumberInput}
-                            onChange={(e) => setBlockNumberInput(e.target.value)}
-                            sx={{ minWidth: 180 }}
-                        />
+                        <FormControl size="small" sx={{ minWidth: 260 }}>
+                            <InputLabel id="workstatus-block-select">Block</InputLabel>
+                            <Select
+                                labelId="workstatus-block-select"
+                                value={blockNumberInput}
+                                label="Block"
+                                onChange={(e) => setBlockNumberInput(e.target.value)}
+                            >
+                                <MenuItem value="">Select Block</MenuItem>
+                                {blocks.map((b) => (
+                                    <MenuItem key={b._id} value={b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                         <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlockNumber(blockNumberInput)}>
                             Load Polygons
                         </Button>
@@ -1346,7 +1396,15 @@ export default function WorkStatusListPage() {
                                 </Paper>
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
-                                    <Typography variant="subtitle2">Work Status ({drawerData.details.workStatuses?.length || 0})</Typography>
+                                    <Typography variant="subtitle2">Work Status ({drawerData.details.workSummary?.total ?? drawerData.details.workStatuses?.length ?? 0})</Typography>
+                                    <Stack direction="row" spacing={1} sx={{ my: 1, flexWrap: 'wrap' }}>
+                                        <Chip label={`All (${(drawerData.details.workSummary?.total ?? 0)})`} size="small" clickable onClick={() => applyPrefilledFilter('all')} />
+                                        <Chip label={`Completed (${(drawerData.details.workSummary?.completed ?? 0)})`} color="success" size="small" clickable onClick={() => applyPrefilledFilter('completed')} />
+                                        <Chip label={`In Progress (${(drawerData.details.workSummary?.in_progress ?? 0)})`} color="info" size="small" clickable onClick={() => applyPrefilledFilter('in progress')} />
+                                        <Chip label={`In Complete (${(drawerData.details.workSummary?.in_complete ?? 0)})`} color="warning" size="small" clickable onClick={() => applyPrefilledFilter('in complete')} />
+                                        <Chip label={`Announced (${(drawerData.details.workSummary?.announced ?? 0)})`} color="primary" size="small" clickable onClick={() => applyPrefilledFilter('announced')} />
+                                        <Chip label={`Other (${(drawerData.details.workSummary?.other ?? 0)})`} size="small" clickable onClick={() => applyPrefilledFilter('')} />
+                                    </Stack>
                                     {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0,5).map(ws => (
                                         <Box key={ws._id} sx={{ mb: 0.5 }}>
                                             <Typography variant="body2">• {ws.work_name || 'Work'} — {ws.status || ''}</Typography>
