@@ -492,6 +492,72 @@ export default function AssemblyListPage() {
                     } catch {}
                 }
 
+                // Narrow winners to only those belonging to this assembly (by assembly id or AC No).
+                if (Array.isArray(winners) && winners.length > 0) {
+                    const matchesAssembly = (w) => {
+                        try {
+                            // assembly id checks
+                            const wa = w.assembly_id || w.assembly || (w._source && (w._source.assembly_id || w._source.assembly));
+                            if (wa) {
+                                if (typeof wa === 'object' && (wa._id || wa.id)) {
+                                    if (String(wa._id || wa.id) === String(assembly._id)) return true;
+                                } else if (String(wa) === String(assembly._id)) return true;
+                            }
+                            // candidate nested assembly
+                            if (w.candidate_id && (w.candidate_id.assembly_id || w.candidate_id.assembly)) {
+                                const ca = w.candidate_id.assembly_id || w.candidate_id.assembly;
+                                if (typeof ca === 'object' && (ca._id || ca.id)) {
+                                    if (String(ca._id || ca.id) === String(assembly._id)) return true;
+                                } else if (String(ca) === String(assembly._id)) return true;
+                            }
+                            // AC/AC_NO checks
+                            const acField = w.ac_no || w.AC_NO || w.acNo || (w._source && (w._source.ac_no || w._source.AC_NO)) || w.constituency_no || w.constituency?.AC_NO;
+                            if (acField && String(acField) === String(acNo)) return true;
+                            // candidate nested ac_no
+                            if (w.candidate_id && (w.candidate_id.ac_no || w.candidate_id.AC_NO || w.candidate_id.acNo)) {
+                                const caNo = w.candidate_id.ac_no || w.candidate_id.AC_NO || w.candidate_id.acNo;
+                                if (String(caNo) === String(acNo)) return true;
+                            }
+                        } catch (err) {
+                            // ignore
+                        }
+                        return false;
+                    };
+
+                    const narrowed = winners.filter(matchesAssembly);
+                    if (narrowed.length > 0) winners = narrowed;
+                    else winners = []; // don't show a global list for this assembly if none match
+
+                    // Normalize and deduplicate winners by candidate + year to avoid duplicate display
+                    if (Array.isArray(winners) && winners.length > 0) {
+                        winners = winners.map(w => {
+                            const yearLabel = (w.year_id && typeof w.year_id === 'object') ? (w.year_id.year || w.year_id.name) : w.year_id;
+                            const yearStr = yearLabel != null ? String(yearLabel) : '';
+                            const candidateLabel = w.name || (w.candidate_id && (w.candidate_id.name || w.candidate_id._id)) || w.candidate || '';
+                            return { ...w, _yearLabel: yearStr, _candidateLabel: candidateLabel };
+                        });
+
+                        const seen = new Set();
+                        const deduped = [];
+                        for (const w of winners) {
+                            const key = `${w._candidateLabel}::${w._yearLabel}`;
+                            if (!seen.has(key)) {
+                                seen.add(key);
+                                deduped.push(w);
+                            }
+                        }
+
+                        deduped.sort((a, b) => {
+                            const ay = parseInt(a._yearLabel) || 0;
+                            const by = parseInt(b._yearLabel) || 0;
+                            if (by !== ay) return by - ay;
+                            return (a._candidateLabel || '').localeCompare(b._candidateLabel || '');
+                        });
+
+                        winners = deduped;
+                    }
+                }
+
                 setDrawerData({
                     loading: false,
                     acNo,

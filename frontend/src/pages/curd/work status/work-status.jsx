@@ -387,18 +387,95 @@ export default function WorkStatusListPage() {
         setMapError('');
         try {
             const headers = getAuthHeaders();
-            const resp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockNumberVal)}`, { headers });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const j = await resp.json();
-            const features = j?.features || j?.data || [];
-            if (!Array.isArray(features) || features.length === 0) {
-                setMapError(`No booth polygons found for block number '${blockNumberVal}'`);
+
+            // Support fetching ALL polygons (could be large)
+            if (blockNumberVal === 'ALL') {
+                const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+                console.log('[work-status] Loading ALL booth polygons from', url);
+                const resp = await fetch(url, { headers });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const j = await resp.json();
+                let features = j.features || j.data || [];
+                console.log('[work-status] ALL polygons response features length:', (features && features.length) || 0);
+                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
+                    features = features[0].features;
+                }
+                if (!features || !Array.isArray(features) || features.length === 0) {
+                    setMapError('No booth polygons found');
+                    setBoothGeoJSON(null);
+                    return;
+                }
+                const fc = { type: 'FeatureCollection', features };
+                console.log('[work-status] setBoothGeoJSON with features count:', fc.features.length);
+                // Log a sample of properties for debugging label rendering
+                try { console.log('[work-status] sample feature properties:', fc.features[0] && fc.features[0].properties); } catch { }
+                setBoothGeoJSON(fc);
+                // fit bounds
+                setTimeout(() => {
+                    try {
+                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                        if (!map || !fc.features?.length) return;
+                        const coords = [];
+                        fc.features.forEach(f => {
+                            const geom = f.geometry;
+                            if (!geom) return;
+                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                            if (geom.type === 'Polygon') collect(geom.coordinates);
+                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                        });
+                        if (coords.length) {
+                            const lons = coords.map(c => c[0]);
+                            const lats = coords.map(c => c[1]);
+                            const bounds = [
+                                [Math.min(...lons), Math.min(...lats)],
+                                [Math.max(...lons), Math.max(...lats)]
+                            ];
+                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                        }
+                    } catch { }
+                }, 0);
+                return;
+            }
+
+            // Try multiple endpoints (block id, block-number, query param)
+            const candidates = [
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockNumberVal)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockNumberVal)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockNumberVal)}`
+            ];
+            console.log('[work-status] Trying candidate booth polygon endpoints for block:', blockNumberVal, candidates);
+            let json = null;
+            for (const url of candidates) {
+                try {
+                    console.log('[work-status] Fetching candidate URL:', url);
+                    const resp = await fetch(url, { headers });
+                    console.log('[work-status] Response status for', url, resp.status);
+                    if (!resp.ok) {
+                        console.warn('[work-status] Non-ok response from', url, resp.status);
+                        continue;
+                    }
+                    const j = await resp.json();
+                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
+                    console.log('[work-status] Candidate response features (or data) length for', url, (features && features.length) || 0);
+                    if (features && Array.isArray(features) && features.length > 0) {
+                        console.log('[work-status] Found features for block', blockNumberVal, 'from', url);
+                        json = { type: 'FeatureCollection', features };
+                        break;
+                    }
+                } catch (innerErr) {
+                    console.warn('[work-status] Error fetching booth polygons from candidate url:', innerErr);
+                }
+            }
+
+            if (!json) {
+                setMapError(`No booth polygons found for block '${blockNumberVal}'`);
                 setBoothGeoJSON(null);
                 return;
             }
-            const fc = { type: 'FeatureCollection', features };
+
+            const fc = { type: 'FeatureCollection', features: json.features };
             setBoothGeoJSON(fc);
-            // Fit bounds to polygons
             setTimeout(() => {
                 try {
                     const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
@@ -420,7 +497,7 @@ export default function WorkStatusListPage() {
                         ];
                         map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
                     }
-                } catch {}
+                } catch { }
             }, 0);
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
@@ -979,8 +1056,9 @@ export default function WorkStatusListPage() {
                                 onChange={(e) => setBlockNumberInput(e.target.value)}
                             >
                                 <MenuItem value="">Select Block</MenuItem>
+                                  <MenuItem value="ALL">All Blocks</MenuItem>
                                 {blocks.map((b) => (
-                                    <MenuItem key={b._id} value={b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
+                                    <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -997,26 +1075,32 @@ export default function WorkStatusListPage() {
                             mapStyle="mapbox://styles/mapbox/streets-v12"
                             interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
                             onClick={(e) => {
-                                if (!boothGeoJSON) return;
-                                try {
-                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                                    const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
-                                    let features = e.features || [];
-                                    if ((!features || features.length === 0) && map && point) {
-                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                    if (!boothGeoJSON) return;
+                                    try {
+                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                        let features = e.features || [];
+                                        // If features not provided by event, query at point
+                                        if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
+                                            const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY } || { x: e.x, y: e.y };
+                                            if (point) {
+                                                features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                            }
+                                        }
+
+                                        const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-source')) || features[0];
+                                        if (boothFeature) {
+                                                        const props = boothFeature.properties || {};
+                                                        console.log('[work-status] Map click - boothFeature found', { boothFeatureId: boothFeature.id, layer: boothFeature.layer && boothFeature.layer.id, props });
+                                            // try multiple possible property names
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number)) || '';
+                                            setDrawerData({ loading: true, boothNo, details: null });
+                                            setDrawerOpen(true);
+                                            fetchBoothDetailsByPolygon(boothNo);
+                                        }
+                                    } catch (err) {
+                                        console.warn('Map click handler error:', err);
                                     }
-                                    const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
-                                    if (boothFeature) {
-                                        const props = boothFeature.properties || {};
-                                        const boothNo = props.BoothNo || props.boothNo || props.booth_number || props['Booth No'] || '';
-                                        setDrawerData({ loading: true, boothNo, details: null });
-                                        setDrawerOpen(true);
-                                        fetchBoothDetailsByPolygon(boothNo);
-                                    }
-                                } catch (err) {
-                                    console.warn('Map click handler error:', err);
-                                }
-                            }}
+                                }}
                         >
                             <MapControl />
                             {boothGeoJSON && (
@@ -1030,8 +1114,19 @@ export default function WorkStatusListPage() {
                                     <Layer
                                         id="booth-label"
                                         type="symbol"
-                                        layout={{ 'text-field': ['concat', 'Booth ', ['get', 'BoothNo']], 'text-size': 10 }}
-                                        paint={{ 'text-color': '#333' }}
+                                        layout={{
+                                            'text-field': ['format', ['coalesce', ['get', 'BoothNo'], ['get', 'BoothNumber'], ['get', 'boothNo'], ['get', 'booth_number'], ['get', 'Booth_Name'], ['get', 'BoothName'], ['get', 'name'], ['literal', '']], { 'font-scale': 1 }, '\n', { 'font-scale': 0.85 }, ['coalesce', ['get', 'BoothName'], ['get', 'Booth_Name'], ['get', 'name'], ['literal', '']]],
+                                            'text-size': 12,
+                                            'text-offset': [0, 0.6],
+                                            'text-anchor': 'top',
+                                            'text-allow-overlap': true,
+                                            'text-ignore-placement': true
+                                        }}
+                                        paint={{
+                                            'text-color': '#000000',
+                                            'text-halo-color': '#ffffff',
+                                            'text-halo-width': 1
+                                        }}
                                     />
                                 </Source>
                             )}
@@ -1397,7 +1492,7 @@ export default function WorkStatusListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Work Status ({drawerData.details.workSummary?.total ?? drawerData.details.workStatuses?.length ?? 0})</Typography>
-                                    <Stack direction="row" spacing={1} sx={{ my: 1, flexWrap: 'wrap' }}>
+                                    <Stack direction="column" spacing={1} sx={{ my: 1 }}>
                                         <Chip label={`All (${(drawerData.details.workSummary?.total ?? 0)})`} size="small" clickable onClick={() => applyPrefilledFilter('all')} />
                                         <Chip label={`Completed (${(drawerData.details.workSummary?.completed ?? 0)})`} color="success" size="small" clickable onClick={() => applyPrefilledFilter('completed')} />
                                         <Chip label={`In Progress (${(drawerData.details.workSummary?.in_progress ?? 0)})`} color="info" size="small" clickable onClick={() => applyPrefilledFilter('in progress')} />

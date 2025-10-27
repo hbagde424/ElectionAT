@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Alert, Drawer, Paper
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -20,6 +20,9 @@ import { CSVLink } from 'react-csv';
 import GenderModal from './genderModal';
 import AlertGenderDelete from './AlertGenderDelete';
 import GenderView from './GenderView';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 
 export default function GenderListPage() {
     const theme = useTheme();
@@ -72,6 +75,25 @@ export default function GenderListPage() {
     const prevParliamentRef = useRef('');
     const prevAssemblyRef = useRef('');
     const prevBlockRef = useRef('');
+
+    // Map state (similar to Work Status)
+    const [blockNumberInput, setBlockNumberInput] = useState('');
+    const [boothGeoJSON, setBoothGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+    // Helper to add Authorization header when token exists
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken || localStorage.getItem('serviceToken');
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
 
     // State -> Division
     useEffect(() => {
@@ -205,8 +227,7 @@ export default function GenderListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const token = localStorage.serviceToken;
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const headers = getAuthHeaders();
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
@@ -248,8 +269,7 @@ export default function GenderListPage() {
             if (selectedBlock) query += `&block_id=${selectedBlock}`;
             if (selectedBooth) query += `&booth_id=${selectedBooth}`;
 
-            const token = localStorage.serviceToken;
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const headers = getAuthHeaders();
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
@@ -260,6 +280,167 @@ export default function GenderListPage() {
             console.error('Failed to fetch gender list:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Map: Load booth polygons by block (robust, like Work Status)
+    const loadBoothPolygonsByBlock = async (blockVal) => {
+        if (!blockVal) {
+            setMapError('Please select Block');
+            return;
+        }
+        setMapError('');
+        try {
+            const headers = getAuthHeaders();
+
+            if (blockVal === 'ALL') {
+                const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+                const resp = await fetch(url, { headers });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const j = await resp.json();
+                let features = j.features || j.data || [];
+                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
+                    features = features[0].features;
+                }
+                if (!features || !Array.isArray(features) || features.length === 0) {
+                    setMapError('No booth polygons found');
+                    setBoothGeoJSON(null);
+                    return;
+                }
+                const fc = { type: 'FeatureCollection', features };
+                setBoothGeoJSON(fc);
+                setTimeout(() => {
+                    try {
+                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                        if (!map || !fc.features?.length) return;
+                        const coords = [];
+                        fc.features.forEach(f => {
+                            const geom = f.geometry;
+                            if (!geom) return;
+                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                            if (geom.type === 'Polygon') collect(geom.coordinates);
+                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                        });
+                        if (coords.length) {
+                            const lons = coords.map(c => c[0]);
+                            const lats = coords.map(c => c[1]);
+                            const bounds = [
+                                [Math.min(...lons), Math.min(...lats)],
+                                [Math.max(...lons), Math.max(...lats)]
+                            ];
+                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                        }
+                    } catch { }
+                }, 0);
+                return;
+            }
+
+            const candidates = [
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockVal)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockVal)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockVal)}`
+            ];
+
+            let json = null;
+            for (const url of candidates) {
+                try {
+                    const resp = await fetch(url, { headers });
+                    if (!resp.ok) {
+                        continue;
+                    }
+                    const j = await resp.json();
+                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
+                    if (features && Array.isArray(features) && features.length > 0) {
+                        json = { type: 'FeatureCollection', features };
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            if (!json) {
+                setMapError(`No booth polygons found for block '${blockVal}'`);
+                setBoothGeoJSON(null);
+                return;
+            }
+
+            const fc = { type: 'FeatureCollection', features: json.features };
+            setBoothGeoJSON(fc);
+            setTimeout(() => {
+                try {
+                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                    if (!map || !fc.features?.length) return;
+                    const coords = [];
+                    fc.features.forEach(f => {
+                        const geom = f.geometry;
+                        if (!geom) return;
+                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                        if (geom.type === 'Polygon') collect(geom.coordinates);
+                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                    });
+                    if (coords.length) {
+                        const lons = coords.map(c => c[0]);
+                        const lats = coords.map(c => c[1]);
+                        const bounds = [
+                            [Math.min(...lons), Math.min(...lats)],
+                            [Math.max(...lons), Math.max(...lats)]
+                        ];
+                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                    }
+                } catch { }
+            }, 0);
+        } catch (e) {
+            console.error('Failed to load booth polygons:', e);
+            setMapError(`Failed to load booth polygons: ${e.message}`);
+            setBoothGeoJSON(null);
+        }
+    };
+
+    // On polygon click, fetch Gender details for that booth
+    const fetchBoothGenderDetails = async (boothNo) => {
+        try {
+            const headers = getAuthHeaders();
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
+            const json = await res.json();
+            let booth = null;
+            if (json.success && Array.isArray(json.data)) {
+                const boothNoStr = String(boothNo).trim();
+                booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr)
+                    || json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase())
+                    || json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
+            }
+
+            let gender = null;
+            if (booth && booth._id) {
+                try {
+                    const gRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders/booth/${encodeURIComponent(booth._id)}`, { headers });
+                    const gJson = await gRes.json();
+                    if (gJson?.success) {
+                        if (Array.isArray(gJson.data) && gJson.data.length > 0) {
+                            const g = gJson.data[0];
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0) + (g.female||0) + (g.others||0) };
+                        } else if (gJson.data && typeof gJson.data === 'object') {
+                            const g = gJson.data;
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0) + (g.female||0) + (g.others||0) };
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            if (!gender) {
+                const male = Number(booth?.Male_Count ?? booth?.male ?? 0) || 0;
+                const female = Number(booth?.Female_Count ?? booth?.female ?? 0) || 0;
+                const others = Number(booth?.others_Count ?? booth?.others ?? 0) || 0;
+                const total = Number(booth?.Total ?? booth?.total ?? (male + female + others)) || (male + female + others);
+                gender = { male, female, others, total };
+            }
+
+            setDrawerData({ loading: false, boothNo, details: { booth, gender } });
+            setDrawerOpen(true);
+        } catch (err) {
+            console.error('Failed to fetch booth gender details:', err);
+            setDrawerData({ loading: false, boothNo, details: null, error: err.message });
+            setDrawerOpen(true);
         }
     };
 
@@ -586,6 +767,79 @@ export default function GenderListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>Booth Map</Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <TextField
+                            select
+                            size="small"
+                            label="Block"
+                            value={blockNumberInput}
+                            onChange={(e) => setBlockNumberInput(e.target.value)}
+                            sx={{ minWidth: 260 }}
+                        >
+                            <MenuItem value="">Select Block</MenuItem>
+                            <MenuItem value="ALL">All Blocks</MenuItem>
+                            {blocks?.map((b) => (
+                                <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
+                            ))}
+                        </TextField>
+                        <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlock(blockNumberInput)}>Load Polygons</Button>
+                        {mapError && <Alert severity="warning" sx={{ ml: 2 }}>{mapError}</Alert>}
+                    </Stack>
+                    <MapContainerStyled>
+                        <Map
+                            ref={mapRef}
+                            mapboxAccessToken={mapboxToken}
+                            initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
+                            mapStyle="mapbox://styles/mapbox/streets-v12"
+                            interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
+                            onClick={(e) => {
+                                if (!boothGeoJSON) return;
+                                try {
+                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                    let features = e.features || [];
+                                    if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
+                                        const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY } || { x: e.x, y: e.y };
+                                        if (point) {
+                                            features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                        }
+                                    }
+                                    const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-source')) || features[0];
+                                    if (boothFeature) {
+                                        const props = boothFeature.properties || {};
+                                        const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number)) || '';
+                                        setDrawerData({ loading: true, boothNo, details: null });
+                                        setDrawerOpen(true);
+                                        fetchBoothGenderDetails(boothNo);
+                                    }
+                                } catch (err) { console.warn('Map click handler error:', err); }
+                            }}
+                        >
+                            <MapControl />
+                            {boothGeoJSON && (
+                                <Source id="booth-polygons" type="geojson" data={boothGeoJSON}>
+                                    <Layer id="booth-fill" type="fill" paint={{ 'fill-color': '#1E90FF', 'fill-opacity': 0.25 }} />
+                                    <Layer id="booth-outline" type="line" paint={{ 'line-color': '#1E90FF', 'line-width': 2 }} />
+                                    <Layer
+                                        id="booth-label"
+                                        type="symbol"
+                                        layout={{
+                                            'text-field': ['format', ['coalesce', ['get', 'BoothNo'], ['get', 'BoothNumber'], ['get', 'boothNo'], ['get', 'booth_number'], ['get', 'Booth_Name'], ['get', 'BoothName'], ['get', 'name'], ['literal', '']], { 'font-scale': 1 }, '\n', { 'font-scale': 0.85 }, ['coalesce', ['get', 'BoothName'], ['get', 'Booth_Name'], ['get', 'name'], ['literal', '']]],
+                                            'text-size': 12,
+                                            'text-offset': [0, 0.6],
+                                            'text-anchor': 'top',
+                                            'text-allow-overlap': true,
+                                            'text-ignore-placement': true
+                                        }}
+                                        paint={{ 'text-color': '#000000', 'text-halo-color': '#ffffff', 'text-halo-width': 1 }}
+                                    />
+                                </Source>
+                            )}
+                        </Map>
+                    </MapContainerStyled>
+                </Box>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
                         value={globalFilter}
@@ -832,6 +1086,67 @@ export default function GenderListPage() {
                     </Box>
                 </ScrollX>
             </MainCard>
+
+            {/* Right-side Drawer for clicked booth info */}
+            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+                <Box sx={{ width: { xs: 340, sm: 420 }, p: 0, height: '100%' }}>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
+                        <Box>
+                            <Typography variant="h6">Booth Details</Typography>
+                            <Typography variant="caption" color="text.secondary">Click a booth polygon to view gender data</Typography>
+                        </Box>
+                        <Button size="small" onClick={() => setDrawerOpen(false)}>Close</Button>
+                    </Box>
+
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 72px)' }}>
+                        {!drawerData && <Typography variant="body2">Click a booth polygon to view details.</Typography>}
+                        {drawerData?.loading && <Typography variant="body2">Loading...</Typography>}
+
+                        {drawerData?.details && (
+                            <Stack spacing={2}>
+                                <Paper elevation={1} sx={{ p: 2, borderRadius: 1 }}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Basic</Typography>
+                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth?.booth_number || drawerData.boothNo || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth?.block_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth?.assembly_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth?.parliament_id?.name || 'N/A'}</Typography>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 1 }}>
+                                    <Typography variant="subtitle2">Gender</Typography>
+                                    {drawerData.details.gender ? (
+                                        <Box>
+                                            <Typography variant="body2">Male: {drawerData.details.gender.male}</Typography>
+                                            <Typography variant="body2">Female: {drawerData.details.gender.female}</Typography>
+                                            <Typography variant="body2">Others: {drawerData.details.gender.others}</Typography>
+                                            <Typography variant="body2">Total: {drawerData.details.gender.total}</Typography>
+                                        </Box>
+                                    ) : (
+                                        <Typography variant="body2">No gender data for this booth.</Typography>
+                                    )}
+                                </Paper>
+
+                                <Stack direction="row" spacing={1}>
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => {
+                                            const boothId = drawerData?.details?.booth?._id;
+                                            if (!boothId) return;
+                                            setSelectedBooth(boothId);
+                                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                                        }}
+                                    >
+                                        Filter by this Booth
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        )}
+                    </Box>
+                </Box>
+            </Drawer>
 
             <GenderModal
                 open={openModal}
