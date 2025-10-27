@@ -94,6 +94,7 @@ export default function EventListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithEvents, setBoothsWithEvents] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -298,6 +299,30 @@ export default function EventListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch booths with events to mark them on the map
+            const fetchBoothsWithEvents = async () => {
+                try {
+                    const eventsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/events?all=true&limit=50000`, { headers });
+                    const eventsJson = await eventsRes.json();
+                    if (eventsJson.success && Array.isArray(eventsJson.data)) {
+                        const boothIds = new Set();
+                        eventsJson.data.forEach(event => {
+                            if (event.booth_id) {
+                                const boothId = event.booth_id._id || event.booth_id;
+                                boothIds.add(String(boothId));
+                            }
+                        });
+                        setBoothsWithEvents(boothIds);
+                        console.log('✅ Booths with events:', boothIds.size);
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch booths with events:', err);
+                }
+            };
+
+            // Fetch booths with events in parallel
+            fetchBoothsWithEvents();
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -1095,8 +1120,22 @@ export default function EventListPage() {
                                 <MapControl />
                                 {boothGeoJSON && (
                                     <Source id="booth-source" type="geojson" data={boothGeoJSON}>
-                                        <Layer id="booth-fill" type="fill" paint={{ 'fill-color': '#1e88e5', 'fill-opacity': 0.25 }} />
-                                        <Layer id="booth-outline" type="line" paint={{ 'line-color': '#1565c0', 'line-width': 1 }} />
+                                        <Layer 
+                                            id="booth-fill" 
+                                            type="fill" 
+                                            paint={{ 
+                                                'fill-color': '#1e88e5', 
+                                                'fill-opacity': 0.25 
+                                            }} 
+                                        />
+                                        <Layer 
+                                            id="booth-outline" 
+                                            type="line" 
+                                            paint={{ 
+                                                'line-color': '#1565c0', 
+                                                'line-width': 1 
+                                            }} 
+                                        />
                                         <Layer
                                             id="booth-label"
                                             type="symbol"
@@ -1116,8 +1155,109 @@ export default function EventListPage() {
                                         />
                                     </Source>
                                 )}
+                                {/* Event Markers Layer - Show green dots for booths with data, red for without */}
+                                {boothGeoJSON && (
+                                    <Source 
+                                        id="booth-markers" 
+                                        type="geojson" 
+                                        data={{
+                                            type: 'FeatureCollection',
+                                            features: boothGeoJSON.features.map(feature => {
+                                                const props = feature.properties || {};
+                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                                
+                                                // Get centroid of the polygon for marker placement
+                                                let coordinates = [0, 0];
+                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0][0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                }
+                                                
+                                                // Check if booth has events
+                                                const hasEvents = Array.from(boothsWithEvents).some(eventBoothId => {
+                                                    const booth = booths.find(b => String(b._id) === eventBoothId);
+                                                    if (booth) {
+                                                        return String(booth.booth_number) === String(boothNo);
+                                                    }
+                                                    return false;
+                                                });
+                                                
+                                                return {
+                                                    type: 'Feature',
+                                                    geometry: {
+                                                        type: 'Point',
+                                                        coordinates: coordinates
+                                                    },
+                                                    properties: {
+                                                        ...props,
+                                                        hasEvents: hasEvents
+                                                    }
+                                                };
+                                            })
+                                        }}
+                                    >
+                                        <Layer
+                                            id="booth-event-markers"
+                                            type="circle"
+                                            paint={{
+                                                'circle-radius': 6,
+                                                'circle-color': [
+                                                    'case',
+                                                    ['get', 'hasEvents'],
+                                                    '#22c55e', // Green for booths with events
+                                                    '#ef4444'  // Red for booths without events
+                                                ],
+                                                'circle-stroke-width': 2,
+                                                'circle-stroke-color': '#ffffff',
+                                                'circle-opacity': 0.9
+                                            }}
+                                        />
+                                    </Source>
+                                )}
                             </Map>
                         </MapContainerStyled>
+                        
+                        {/* Map Legend */}
+                        <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Stack direction="row" spacing={3}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#22c55e',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">Has Events</Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#ef4444',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">No Events</Typography>
+                                </Stack>
+                            </Stack>
+                        </Paper>
                     </Grid>
                 </Grid>
 

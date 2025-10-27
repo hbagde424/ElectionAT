@@ -55,6 +55,7 @@ export default function CodingListPage() {
     // Drawer for polygon click
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithCoding, setBoothsWithCoding] = useState(new Set());
 
     // Filtered dropdown data
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -261,6 +262,30 @@ export default function CodingListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch booths with coding to mark them on the map
+            const fetchBoothsWithCoding = async () => {
+                try {
+                    const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`, { headers });
+                    const codingJson = await codingRes.json();
+                    if (codingJson.success && Array.isArray(codingJson.data)) {
+                        const boothIds = new Set();
+                        codingJson.data.forEach(coding => {
+                            if (coding.booth_id) {
+                                const boothId = coding.booth_id._id || coding.booth_id;
+                                boothIds.add(String(boothId));
+                            }
+                        });
+                        setBoothsWithCoding(boothIds);
+                        console.log('✅ Booths with coding:', boothIds.size);
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch booths with coding:', err);
+                }
+            };
+
+            // Fetch booths with coding in parallel
+            fetchBoothsWithCoding();
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -1016,8 +1041,107 @@ export default function CodingListPage() {
                                         />
                                     </Source>
                                 )}
+                                {/* Coding Markers Layer */}
+                                {boothGeoJSON && (
+                                    <Source 
+                                        id="booth-markers" 
+                                        type="geojson" 
+                                        data={{
+                                            type: 'FeatureCollection',
+                                            features: boothGeoJSON.features.map(feature => {
+                                                const props = feature.properties || {};
+                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                                
+                                                let coordinates = [0, 0];
+                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0][0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                }
+                                                
+                                                const hasCoding = Array.from(boothsWithCoding).some(codingBoothId => {
+                                                    const booth = booths.find(b => String(b._id) === codingBoothId);
+                                                    if (booth) {
+                                                        return String(booth.booth_number) === String(boothNo);
+                                                    }
+                                                    return false;
+                                                });
+                                                
+                                                return {
+                                                    type: 'Feature',
+                                                    geometry: {
+                                                        type: 'Point',
+                                                        coordinates: coordinates
+                                                    },
+                                                    properties: {
+                                                        ...props,
+                                                        hasCoding: hasCoding
+                                                    }
+                                                };
+                                            })
+                                        }}
+                                    >
+                                        <Layer
+                                            id="booth-coding-markers"
+                                            type="circle"
+                                            paint={{
+                                                'circle-radius': 6,
+                                                'circle-color': [
+                                                    'case',
+                                                    ['get', 'hasCoding'],
+                                                    '#22c55e',
+                                                    '#ef4444'
+                                                ],
+                                                'circle-stroke-width': 2,
+                                                'circle-stroke-color': '#ffffff',
+                                                'circle-opacity': 0.9
+                                            }}
+                                        />
+                                    </Source>
+                                )}
                             </Map>
                         </MapContainerStyled>
+                        
+                        {/* Map Legend */}
+                        <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Stack direction="row" spacing={3}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#22c55e',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">Has Coding</Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#ef4444',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">No Coding</Typography>
+                                </Stack>
+                            </Stack>
+                        </Paper>
                         {/* Right-side Drawer */}
                         <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
                             <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>

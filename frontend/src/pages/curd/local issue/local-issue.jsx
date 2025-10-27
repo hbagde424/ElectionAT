@@ -104,6 +104,7 @@ export default function LocalIssueListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithLocalIssues, setBoothsWithLocalIssues] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -203,6 +204,30 @@ export default function LocalIssueListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch booths that have local issues
+            const fetchBoothsWithLocalIssues = async () => {
+                try {
+                    const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
+                    const response = await fetch(`${apiUrl}/local-issues`, { headers });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const issues = data.data || data;
+                        const boothIds = new Set();
+                        issues.forEach(issue => {
+                            if (issue.booth_id?._id) {
+                                boothIds.add(String(issue.booth_id._id));
+                            } else if (issue.booth_id) {
+                                boothIds.add(String(issue.booth_id));
+                            }
+                        });
+                        setBoothsWithLocalIssues(boothIds);
+                    }
+                } catch (error) {
+                    console.error('Error fetching booths with local issues:', error);
+                }
+            };
+            await fetchBoothsWithLocalIssues();
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -1067,8 +1092,107 @@ export default function LocalIssueListPage() {
                                         />
                                     </Source>
                                 )}
+                                {/* Local Issue Markers Layer */}
+                                {boothGeoJSON && (
+                                    <Source 
+                                        id="booth-markers" 
+                                        type="geojson" 
+                                        data={{
+                                            type: 'FeatureCollection',
+                                            features: boothGeoJSON.features.map(feature => {
+                                                const props = feature.properties || {};
+                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                                
+                                                let coordinates = [0, 0];
+                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0][0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                }
+                                                
+                                                const hasLocalIssues = Array.from(boothsWithLocalIssues).some(issueBoothId => {
+                                                    const booth = booths.find(b => String(b._id) === issueBoothId);
+                                                    if (booth) {
+                                                        return String(booth.booth_number) === String(boothNo);
+                                                    }
+                                                    return false;
+                                                });
+                                                
+                                                return {
+                                                    type: 'Feature',
+                                                    geometry: {
+                                                        type: 'Point',
+                                                        coordinates: coordinates
+                                                    },
+                                                    properties: {
+                                                        ...props,
+                                                        hasLocalIssues: hasLocalIssues
+                                                    }
+                                                };
+                                            })
+                                        }}
+                                    >
+                                        <Layer
+                                            id="booth-local-issue-markers"
+                                            type="circle"
+                                            paint={{
+                                                'circle-radius': 6,
+                                                'circle-color': [
+                                                    'case',
+                                                    ['get', 'hasLocalIssues'],
+                                                    '#22c55e',
+                                                    '#ef4444'
+                                                ],
+                                                'circle-stroke-width': 2,
+                                                'circle-stroke-color': '#ffffff',
+                                                'circle-opacity': 0.9
+                                            }}
+                                        />
+                                    </Source>
+                                )}
                             </Map>
                         </MapContainerStyled>
+                        
+                        {/* Map Legend */}
+                        <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Stack direction="row" spacing={3}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#22c55e',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">Has Local Issues</Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#ef4444',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">No Local Issues</Typography>
+                                </Stack>
+                            </Stack>
+                        </Paper>
                     </Grid>
                 </Grid>
 

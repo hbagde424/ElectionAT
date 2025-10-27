@@ -58,6 +58,7 @@ export default function WorkStatusListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithWorkStatus, setBoothsWithWorkStatus] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -399,6 +400,30 @@ export default function WorkStatusListPage() {
         setMapError('');
         try {
             const headers = getAuthHeaders();
+
+            // Fetch booths with work status to mark them on the map
+            const fetchBoothsWithWorkStatus = async () => {
+                try {
+                    const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
+                    const workStatusJson = await workStatusRes.json();
+                    if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
+                        const boothIds = new Set();
+                        workStatusJson.data.forEach(workStatus => {
+                            if (workStatus.booth_id) {
+                                const boothId = workStatus.booth_id._id || workStatus.booth_id;
+                                boothIds.add(String(boothId));
+                            }
+                        });
+                        setBoothsWithWorkStatus(boothIds);
+                        console.log('✅ Booths with work status:', boothIds.size);
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch booths with work status:', err);
+                }
+            };
+
+            // Fetch booths with work status in parallel
+            fetchBoothsWithWorkStatus();
 
             // Support fetching ALL polygons (could be large)
             if (blockNumberVal === 'ALL') {
@@ -1204,8 +1229,109 @@ export default function WorkStatusListPage() {
                                     />
                                 </Source>
                             )}
+                            {/* Work Status Markers Layer - Show green dots for booths with data, red for without */}
+                            {boothGeoJSON && (
+                                <Source 
+                                    id="booth-markers" 
+                                    type="geojson" 
+                                    data={{
+                                        type: 'FeatureCollection',
+                                        features: boothGeoJSON.features.map(feature => {
+                                            const props = feature.properties || {};
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                            
+                                            // Get centroid of the polygon for marker placement
+                                            let coordinates = [0, 0];
+                                            if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                const coords = feature.geometry.coordinates[0];
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                coordinates = [
+                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                    lats.reduce((a, b) => a + b, 0) / lats.length
+                                                ];
+                                            } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                const coords = feature.geometry.coordinates[0][0];
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                coordinates = [
+                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                    lats.reduce((a, b) => a + b, 0) / lats.length
+                                                ];
+                                            }
+                                            
+                                            // Check if booth has work status
+                                            const hasWorkStatus = Array.from(boothsWithWorkStatus).some(workStatusBoothId => {
+                                                const booth = booths.find(b => String(b._id) === workStatusBoothId);
+                                                if (booth) {
+                                                    return String(booth.booth_number) === String(boothNo);
+                                                }
+                                                return false;
+                                            });
+                                            
+                                            return {
+                                                type: 'Feature',
+                                                geometry: {
+                                                    type: 'Point',
+                                                    coordinates: coordinates
+                                                },
+                                                properties: {
+                                                    ...props,
+                                                    hasWorkStatus: hasWorkStatus
+                                                }
+                                            };
+                                        })
+                                    }}
+                                >
+                                    <Layer
+                                        id="booth-work-status-markers"
+                                        type="circle"
+                                        paint={{
+                                            'circle-radius': 6,
+                                            'circle-color': [
+                                                'case',
+                                                ['get', 'hasWorkStatus'],
+                                                '#22c55e', // Green for booths with work status
+                                                '#ef4444'  // Red for booths without work status
+                                            ],
+                                            'circle-stroke-width': 2,
+                                            'circle-stroke-color': '#ffffff',
+                                            'circle-opacity': 0.9
+                                        }}
+                                    />
+                                </Source>
+                            )}
                         </Map>
                     </MapContainerStyled>
+                    
+                    {/* Map Legend */}
+                    <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                        <Stack direction="row" spacing={3}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Box sx={{ 
+                                    width: 16, 
+                                    height: 16, 
+                                    borderRadius: '50%', 
+                                    backgroundColor: '#22c55e',
+                                    border: '2px solid #ffffff',
+                                    boxShadow: 1
+                                }} />
+                                <Typography variant="caption">Has Work Status</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Box sx={{ 
+                                    width: 16, 
+                                    height: 16, 
+                                    borderRadius: '50%', 
+                                    backgroundColor: '#ef4444',
+                                    border: '2px solid #ffffff',
+                                    boxShadow: 1
+                                }} />
+                                <Typography variant="caption">No Work Status</Typography>
+                            </Stack>
+                        </Stack>
+                    </Paper>
                 </Box>
                 {/* Access Scope Information */}
                 <Alert severity="info" sx={{ m: 2 }}>

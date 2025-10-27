@@ -86,6 +86,7 @@ const SamitiListPage = () => {
     // Drawer state for map click
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithSamiti, setBoothsWithSamiti] = useState(new Set());
     
     // Filters
     const [filterValues, setFilterValues] = useState({
@@ -279,6 +280,30 @@ const SamitiListPage = () => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch booths that have samiti data
+            const fetchBoothsWithSamiti = async () => {
+                try {
+                    const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+                    const response = await fetch(`${apiUrl}/samitis`, { headers });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const samitis = data.data || data;
+                        const boothIds = new Set();
+                        samitis.forEach(samiti => {
+                            if (samiti.booth_id?._id) {
+                                boothIds.add(String(samiti.booth_id._id));
+                            } else if (samiti.booth_id) {
+                                boothIds.add(String(samiti.booth_id));
+                            }
+                        });
+                        setBoothsWithSamiti(boothIds);
+                    }
+                } catch (error) {
+                    console.error('Error fetching booths with samiti:', error);
+                }
+            };
+            await fetchBoothsWithSamiti();
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -879,8 +904,107 @@ const SamitiListPage = () => {
                                                 />
                                             </Source>
                                         )}
+                                        {/* Samiti Markers Layer */}
+                                        {boothGeoJSON && (
+                                            <Source 
+                                                id="booth-markers" 
+                                                type="geojson" 
+                                                data={{
+                                                    type: 'FeatureCollection',
+                                                    features: boothGeoJSON.features.map(feature => {
+                                                        const props = feature.properties || {};
+                                                        const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                                        
+                                                        let coordinates = [0, 0];
+                                                        if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                            const coords = feature.geometry.coordinates[0];
+                                                            const lngs = coords.map(c => c[0]);
+                                                            const lats = coords.map(c => c[1]);
+                                                            coordinates = [
+                                                                lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                                lats.reduce((a, b) => a + b, 0) / lats.length
+                                                            ];
+                                                        } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                            const coords = feature.geometry.coordinates[0][0];
+                                                            const lngs = coords.map(c => c[0]);
+                                                            const lats = coords.map(c => c[1]);
+                                                            coordinates = [
+                                                                lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                                lats.reduce((a, b) => a + b, 0) / lats.length
+                                                            ];
+                                                        }
+                                                        
+                                                        const hasSamiti = Array.from(boothsWithSamiti).some(samitiBoothId => {
+                                                            const booth = booths.find(b => String(b._id) === samitiBoothId);
+                                                            if (booth) {
+                                                                return String(booth.booth_number) === String(boothNo);
+                                                            }
+                                                            return false;
+                                                        });
+                                                        
+                                                        return {
+                                                            type: 'Feature',
+                                                            geometry: {
+                                                                type: 'Point',
+                                                                coordinates: coordinates
+                                                            },
+                                                            properties: {
+                                                                ...props,
+                                                                hasSamiti: hasSamiti
+                                                            }
+                                                        };
+                                                    })
+                                                }}
+                                            >
+                                                <Layer
+                                                    id="booth-samiti-markers"
+                                                    type="circle"
+                                                    paint={{
+                                                        'circle-radius': 6,
+                                                        'circle-color': [
+                                                            'case',
+                                                            ['get', 'hasSamiti'],
+                                                            '#22c55e',
+                                                            '#ef4444'
+                                                        ],
+                                                        'circle-stroke-width': 2,
+                                                        'circle-stroke-color': '#ffffff',
+                                                        'circle-opacity': 0.9
+                                                    }}
+                                                />
+                                            </Source>
+                                        )}
                                     </Map>
                                 </MapContainerStyled>
+                                
+                                {/* Map Legend */}
+                                <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                                    <Stack direction="row" spacing={3}>
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <Box sx={{ 
+                                                width: 16, 
+                                                height: 16, 
+                                                borderRadius: '50%', 
+                                                backgroundColor: '#22c55e',
+                                                border: '2px solid #ffffff',
+                                                boxShadow: 1
+                                            }} />
+                                            <Typography variant="caption">Has Samiti Data</Typography>
+                                        </Stack>
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <Box sx={{ 
+                                                width: 16, 
+                                                height: 16, 
+                                                borderRadius: '50%', 
+                                                backgroundColor: '#ef4444',
+                                                border: '2px solid #ffffff',
+                                                boxShadow: 1
+                                            }} />
+                                            <Typography variant="caption">No Samiti Data</Typography>
+                                        </Stack>
+                                    </Stack>
+                                </Paper>
                             </Box>
                             {/* Right-side Drawer for clicked booth info */}
                             <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

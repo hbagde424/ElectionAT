@@ -86,6 +86,7 @@ export default function GovernmentsListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithGovernmentScheme, setBoothsWithGovernmentScheme] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -241,6 +242,29 @@ export default function GovernmentsListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch booths with government schemes
+            const fetchBoothsWithGovernmentScheme = async () => {
+                try {
+                    const schemesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`, { headers });
+                    const schemesJson = await schemesRes.json();
+                    if (schemesJson.success && Array.isArray(schemesJson.data)) {
+                        const boothIds = new Set();
+                        schemesJson.data.forEach(scheme => {
+                            if (scheme.booth_id) {
+                                const boothId = scheme.booth_id._id || scheme.booth_id;
+                                boothIds.add(String(boothId));
+                            }
+                        });
+                        setBoothsWithGovernmentScheme(boothIds);
+                        console.log('✅ Booths with government schemes:', boothIds.size);
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch booths with schemes:', err);
+                }
+            };
+
+            fetchBoothsWithGovernmentScheme();
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -959,8 +983,107 @@ export default function GovernmentsListPage() {
                                         />
                                     </Source>
                                 )}
+                                {/* Government Scheme Markers Layer */}
+                                {boothGeoJSON && (
+                                    <Source 
+                                        id="booth-markers" 
+                                        type="geojson" 
+                                        data={{
+                                            type: 'FeatureCollection',
+                                            features: boothGeoJSON.features.map(feature => {
+                                                const props = feature.properties || {};
+                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                                
+                                                let coordinates = [0, 0];
+                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                    const coords = feature.geometry.coordinates[0][0];
+                                                    const lngs = coords.map(c => c[0]);
+                                                    const lats = coords.map(c => c[1]);
+                                                    coordinates = [
+                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                        lats.reduce((a, b) => a + b, 0) / lats.length
+                                                    ];
+                                                }
+                                                
+                                                const hasGovernmentScheme = Array.from(boothsWithGovernmentScheme).some(schemeBoothId => {
+                                                    const booth = booths.find(b => String(b._id) === schemeBoothId);
+                                                    if (booth) {
+                                                        return String(booth.booth_number) === String(boothNo);
+                                                    }
+                                                    return false;
+                                                });
+                                                
+                                                return {
+                                                    type: 'Feature',
+                                                    geometry: {
+                                                        type: 'Point',
+                                                        coordinates: coordinates
+                                                    },
+                                                    properties: {
+                                                        ...props,
+                                                        hasGovernmentScheme: hasGovernmentScheme
+                                                    }
+                                                };
+                                            })
+                                        }}
+                                    >
+                                        <Layer
+                                            id="booth-government-markers"
+                                            type="circle"
+                                            paint={{
+                                                'circle-radius': 6,
+                                                'circle-color': [
+                                                    'case',
+                                                    ['get', 'hasGovernmentScheme'],
+                                                    '#22c55e',
+                                                    '#ef4444'
+                                                ],
+                                                'circle-stroke-width': 2,
+                                                'circle-stroke-color': '#ffffff',
+                                                'circle-opacity': 0.9
+                                            }}
+                                        />
+                                    </Source>
+                                )}
                             </Map>
                         </MapContainerStyled>
+                        
+                        {/* Map Legend */}
+                        <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Stack direction="row" spacing={3}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#22c55e',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">Has Government Schemes</Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: '#ef4444',
+                                        border: '2px solid #ffffff',
+                                        boxShadow: 1
+                                    }} />
+                                    <Typography variant="caption">No Government Schemes</Typography>
+                                </Stack>
+                            </Stack>
+                        </Paper>
                     </Grid>
                 </Grid>
 
