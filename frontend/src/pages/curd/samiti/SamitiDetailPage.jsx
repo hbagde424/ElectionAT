@@ -281,6 +281,21 @@ const SamitiDetailPage = () => {
                                             </CardContent>
                                         </Card>
                                     </Grid>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Year
+                                                </Typography>
+                                                <Chip 
+                                                    label={samiti.year || 'N/A'} 
+                                                    color="info" 
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
                                 </Grid>
                             </Box>
 
@@ -359,6 +374,66 @@ const SamitiDetailPage = () => {
                                                 <Typography variant="h6">
                                                     {samiti.booth_id?.name || 'N/A'}
                                                 </Typography>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Panchayat
+                                                </Typography>
+                                                <Chip 
+                                                    label={samiti.panchayat_id?.panchayat_name || 'N/A'}
+                                                    color="info"
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Village
+                                                </Typography>
+                                                <Chip 
+                                                    label={samiti.village_id?.village_name || 'N/A'}
+                                                    color="success"
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Falliya
+                                                </Typography>
+                                                <Chip 
+                                                    label={samiti.falliya_id?.falliya_name || 'N/A'}
+                                                    color="warning"
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Year
+                                                </Typography>
+                                                <Chip 
+                                                    label={samiti.year || 'N/A'}
+                                                    color="primary"
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
                                             </CardContent>
                                         </Card>
                                     </Grid>

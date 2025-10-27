@@ -24,6 +24,9 @@ exports.getEvents = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('state_id', 'name')
       .populate('booth_id', 'booth_number name')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ start_date: -1 });
@@ -118,6 +121,35 @@ exports.getEvents = async (req, res, next) => {
       }
     }
 
+    // Panchayat
+    if (req.query.panchayat_id || req.query.panchayat) {
+      const panchayatId = await handleIdOrName('panchayat_id', require('../models/Panchayat'), 'panchayat_name') || await handleIdOrName('panchayat', require('../models/Panchayat'), 'panchayat_name');
+      if (panchayatId) {
+        query = query.where('panchayat_id').equals(panchayatId);
+      }
+    }
+
+    // Village
+    if (req.query.village_id || req.query.village) {
+      const villageId = await handleIdOrName('village_id', require('../models/Village'), 'village_name') || await handleIdOrName('village', require('../models/Village'), 'village_name');
+      if (villageId) {
+        query = query.where('village_id').equals(villageId);
+      }
+    }
+
+    // Falliya
+    if (req.query.falliya_id || req.query.falliya) {
+      const falliyaId = await handleIdOrName('falliya_id', require('../models/Falliya'), 'falliya_name') || await handleIdOrName('falliya', require('../models/Falliya'), 'falliya_name');
+      if (falliyaId) {
+        query = query.where('falliya_id').equals(falliyaId);
+      }
+    }
+
+    // Year filter
+    if (req.query.year) {
+      query = query.where('year').equals(parseInt(req.query.year));
+    }
+
     // Apply user hierarchy restriction when an authenticated user is present
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
@@ -167,6 +199,9 @@ exports.getEvent = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'booth_number name')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -206,6 +241,11 @@ exports.getEvent = async (req, res, next) => {
 // @access  Private (Admin/Organizer)
 exports.createEvent = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Verify all references exist
     const [
       state, division, parliament, assembly, block, booth
@@ -253,6 +293,11 @@ exports.createEvent = async (req, res, next) => {
 // @access  Private (Admin/Organizer)
 exports.updateEvent = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let event = await Event.findById(req.params.id);
 
     if (!event) {

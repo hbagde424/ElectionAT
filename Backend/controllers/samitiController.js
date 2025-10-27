@@ -135,6 +135,10 @@ exports.getSamiti = async (req, res, next) => {
 // @access  Private
 exports.createSamiti = async (req, res, next) => {
   try {
+    // Sanitize optional refs: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
     // Verify all referenced entities exist
     const [state, division, parliament, assembly, block, booth] = await Promise.all([
       State.findById(req.body.state_id),
@@ -199,9 +203,11 @@ exports.createSamiti = async (req, res, next) => {
       assembly_id: req.body.assembly_id,
       block_id: req.body.block_id,
       booth_id: req.body.booth_id,
+      // Optional local references
       panchayat_id: req.body.panchayat_id,
       village_id: req.body.village_id,
       falliya_id: req.body.falliya_id,
+      year: req.body.year,
       created_by: req.user.id,
       updated_by: req.user.id
     };
@@ -310,6 +316,11 @@ exports.updateSamiti = async (req, res, next) => {
       }
     }
 
+    // Sanitize optional refs: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Verify panchayat/village/falliya refs if provided
     if (req.body.panchayat_id && (!samiti.panchayat_id || req.body.panchayat_id !== samiti.panchayat_id.toString())) {
       const Panchayat = require('../models/Panchayat');
@@ -330,7 +341,7 @@ exports.updateSamiti = async (req, res, next) => {
     }
 
     // Set updated_by from authenticated user
-    req.body.updated_by = req.user.id;
+  req.body.updated_by = req.user.id;
     req.body.updated_at = new Date();
 
     samiti = await Samiti.findByIdAndUpdate(req.params.id, req.body, {

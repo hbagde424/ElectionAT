@@ -215,6 +215,24 @@ export default function CodingDetailPage() {
                             <Typography variant="body1">{coding.booth_number ?? 'N/A'}</Typography>
                         </Grid>
 
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Panchayat</Typography>
+                            <Typography variant="body1">{coding.panchayat?.panchayat_name || coding.panchayat_id?.panchayat_name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Village</Typography>
+                            <Typography variant="body1">{coding.village?.village_name || coding.village_id?.village_name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Falliya</Typography>
+                            <Typography variant="body1">{coding.falliya?.falliya_name || coding.falliya_id?.falliya_name || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">Year</Typography>
+                            <Typography variant="body1">{coding.year || 'N/A'}</Typography>
+                        </Grid>
+
                         <Grid item xs={12}>
                             <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                             <Typography variant="body1">{coding.description || 'N/A'}</Typography>

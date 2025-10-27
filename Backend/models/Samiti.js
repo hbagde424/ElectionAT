@@ -11,17 +11,22 @@ const samitiSchema = new mongoose.Schema({
   panchayat_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Panchayat',
-    required: [true, 'Panchayat reference is required']
+    required: false
   },
   village_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Village',
-    required: [true, 'Village reference is required']
+    required: false
   },
   falliya_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Falliya',
-    required: [true, 'Falliya reference is required']
+    required: false
+  },
+  year: {
+    type: Number,
+    min: 2020,
+    max: 2030
   },
   count: {
     type: Number,

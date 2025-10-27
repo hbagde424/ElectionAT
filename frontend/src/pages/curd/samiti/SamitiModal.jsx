@@ -61,9 +61,10 @@ const SamitiModal = ({
             .required('Samiti Name is required')
             .min(2, 'Samiti Name must be at least 2 characters')
             .max(100, 'Samiti Name must not exceed 100 characters'),
-        panchayat_id: Yup.string().required('Panchayat is required'),
-        village_id: Yup.string().required('Village is required'),
-        falliya_id: Yup.string().required('Falliya is required'),
+        // Optional local fields as requested
+        panchayat_id: Yup.string().nullable(),
+        village_id: Yup.string().nullable(),
+        falliya_id: Yup.string().nullable(),
         count: Yup.number()
             .required('Count is required')
             .min(0, 'Count must be non-negative')
@@ -82,6 +83,7 @@ const SamitiModal = ({
                 panchayat_id: '',
                 village_id: '',
                 falliya_id: '',
+                year: '',
                 count: '',
             state_id: '',
             division_id: '',
@@ -97,8 +99,13 @@ const SamitiModal = ({
             setSuccess('');
 
             try {
+                // Transform empty optional fields to undefined to avoid backend cast errors
                 const payload = {
                     ...values,
+                    panchayat_id: values.panchayat_id || undefined,
+                    village_id: values.village_id || undefined,
+                    falliya_id: values.falliya_id || undefined,
+                    year: values.year || undefined,
                     count: parseInt(values.count, 10)
                 };
 
@@ -274,6 +281,7 @@ const SamitiModal = ({
                     panchayat_id: samiti.panchayat_id?._id || samiti.panchayat_id || '',
                     village_id: samiti.village_id?._id || samiti.village_id || '',
                     falliya_id: samiti.falliya_id?._id || samiti.falliya_id || '',
+                    year: samiti.year || '',
                     count: samiti.count?.toString() || '',
                     state_id: samiti.state_id?._id || samiti.state_id || '',
                     division_id: samiti.division_id?._id || samiti.division_id || '',
@@ -289,6 +297,44 @@ const SamitiModal = ({
             setSuccess('');
         }
     }, [open, samiti, isEdit]);
+
+    // Cascading filter: Panchayat -> Village
+    useEffect(() => {
+        if (formik.values.panchayat_id) {
+            const filtered = villages.filter(v => {
+                const villagePanchayatId = v.panchayat_id?._id || v.panchayat_id;
+                return villagePanchayatId?.toString() === formik.values.panchayat_id.toString();
+            });
+            setFilteredVillages(filtered);
+            
+            if (formik.values.village_id && !filtered.find(v => v._id?.toString() === formik.values.village_id.toString())) {
+                formik.setFieldValue('village_id', '');
+                formik.setFieldValue('falliya_id', '');
+            }
+        } else {
+            setFilteredVillages([]);
+            formik.setFieldValue('village_id', '');
+            formik.setFieldValue('falliya_id', '');
+        }
+    }, [formik.values.panchayat_id, villages]);
+
+    // Cascading filter: Village -> Falliya
+    useEffect(() => {
+        if (formik.values.village_id) {
+            const filtered = falliyas.filter(f => {
+                const falliyaVillageId = f.village_id?._id || f.village_id;
+                return falliyaVillageId?.toString() === formik.values.village_id.toString();
+            });
+            setFilteredFalliyas(filtered);
+            
+            if (formik.values.falliya_id && !filtered.find(f => f._id?.toString() === formik.values.falliya_id.toString())) {
+                formik.setFieldValue('falliya_id', '');
+            }
+        } else {
+            setFilteredFalliyas([]);
+            formik.setFieldValue('falliya_id', '');
+        }
+    }, [formik.values.village_id, falliyas]);
 
     const handleClose = () => {
         formik.resetForm();
@@ -565,13 +611,13 @@ const SamitiModal = ({
                                 fullWidth
                                 error={formik.touched.panchayat_id && Boolean(formik.errors.panchayat_id)}
                             >
-                                <InputLabel>Panchayat *</InputLabel>
+                                <InputLabel>Panchayat</InputLabel>
                                 <Select
                                     name="panchayat_id"
                                     value={formik.values.panchayat_id}
                                     onChange={(e) => formik.setFieldValue('panchayat_id', e.target.value)}
                                     onBlur={formik.handleBlur}
-                                    label="Panchayat *"
+                                    label="Panchayat"
                                     disabled={!formik.values.block_id}
                                 >
                                     <MenuItem value="">{!formik.values.block_id ? 'Select Block First' : 'Select Panchayat'}</MenuItem>
@@ -590,13 +636,13 @@ const SamitiModal = ({
                                 fullWidth
                                 error={formik.touched.village_id && Boolean(formik.errors.village_id)}
                             >
-                                <InputLabel>Village *</InputLabel>
+                                <InputLabel>Village</InputLabel>
                                 <Select
                                     name="village_id"
                                     value={formik.values.village_id}
                                     onChange={(e) => formik.setFieldValue('village_id', e.target.value)}
                                     onBlur={formik.handleBlur}
-                                    label="Village *"
+                                    label="Village"
                                     disabled={!formik.values.panchayat_id}
                                 >
                                     <MenuItem value="">{!formik.values.panchayat_id ? 'Select Panchayat First' : 'Select Village'}</MenuItem>
@@ -615,13 +661,13 @@ const SamitiModal = ({
                                 fullWidth
                                 error={formik.touched.falliya_id && Boolean(formik.errors.falliya_id)}
                             >
-                                <InputLabel>Falliya *</InputLabel>
+                                <InputLabel>Falliya</InputLabel>
                                 <Select
                                     name="falliya_id"
                                     value={formik.values.falliya_id}
                                     onChange={(e) => formik.setFieldValue('falliya_id', e.target.value)}
                                     onBlur={formik.handleBlur}
-                                    label="Falliya *"
+                                    label="Falliya"
                                     disabled={!formik.values.village_id}
                                 >
                                     <MenuItem value="">{!formik.values.village_id ? 'Select Village First' : 'Select Falliya'}</MenuItem>
@@ -689,6 +735,21 @@ const SamitiModal = ({
                                 placeholder="Enter count"
                                 inputProps={{ min: 0, step: 1 }}
                             />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Year</InputLabel>
+                                <Select
+                                    name="year"
+                                    value={formik.values.year}
+                                    onChange={formik.handleChange}
+                                    label="Year"
+                                >
+                                    <MenuItem value=""><em>None</em></MenuItem>
+                                    {[2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030].map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+                                </Select>
+                            </FormControl>
                         </Grid>
 
 

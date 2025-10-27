@@ -199,6 +199,22 @@ export default function GenderView({ data }) {
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
                     <Chip label={data.booth?.name || 'N/A'} color="error" size="small" />
                 </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Panchayat</Typography>
+                    <Chip label={data.panchayat?.panchayat_name || 'N/A'} color="info" size="small" variant="outlined" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Village</Typography>
+                    <Chip label={data.village?.village_name || 'N/A'} color="success" size="small" variant="outlined" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Falliya</Typography>
+                    <Chip label={data.falliya?.falliya_name || 'N/A'} color="warning" size="small" variant="outlined" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Year</Typography>
+                    <Chip label={data.year || 'N/A'} color="primary" size="small" variant="outlined" />
+                </Grid>
             </Grid>
         </Box>
     );

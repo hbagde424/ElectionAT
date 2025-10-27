@@ -99,7 +99,27 @@ const codingSchema = new mongoose.Schema({
     required: [true, 'Booth reference is required'],
     index: true
   },
-    description: {
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat',
+    index: true
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village',
+    index: true
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya',
+    index: true
+  },
+  year: {
+    type: Number,
+    min: [2020, 'Year must be between 2020 and 2030'],
+    max: [2030, 'Year must be between 2020 and 2030']
+  },
+  description: {
     type: String,
     default: ''
   },
@@ -190,6 +210,27 @@ codingSchema.virtual('block', {
 codingSchema.virtual('booth', {
   ref: 'Booth',
   localField: 'booth_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+codingSchema.virtual('panchayat', {
+  ref: 'Panchayat',
+  localField: 'panchayat_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+codingSchema.virtual('village', {
+  ref: 'Village',
+  localField: 'village_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+codingSchema.virtual('falliya', {
+  ref: 'Falliya',
+  localField: 'falliya_id',
   foreignField: '_id',
   justOne: true
 });

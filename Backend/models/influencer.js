@@ -54,6 +54,23 @@ const influencerSchema = new mongoose.Schema({
     ref: 'Booth',
     required: true
   },
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat'
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village'
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya'
+  },
+  year: {
+    type: Number,
+    min: [2020, 'Year must be between 2020 and 2030'],
+    max: [2030, 'Year must be between 2020 and 2030']
+  },
   category: {
     type: String,
     enum: [

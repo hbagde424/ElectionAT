@@ -127,6 +127,9 @@ exports.getVisits = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate({
         path: 'candidate_id',
         select: 'name photo mobile caste education',
@@ -601,6 +604,9 @@ exports.getVisit = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('candidate_id', 'name')
       .populate('election_year_id', 'year election_type')
       .populate('created_by', 'username')
@@ -627,6 +633,11 @@ exports.getVisit = async (req, res, next) => {
 // @access  Private (Admin/SuperAdmin)
 exports.createVisit = async (req, res, next) => {
   try {
+    // Sanitize optional fields - remove empty strings to prevent ObjectId casting errors
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Clean up empty strings for ObjectId fields
     if (req.body.block_id === '' || req.body.block_id === null) {
       delete req.body.block_id;
@@ -773,6 +784,11 @@ exports.createVisit = async (req, res, next) => {
 // @access  Private (Admin/SuperAdmin)
 exports.updateVisit = async (req, res, next) => {
   try {
+    // Sanitize optional fields - remove empty strings to prevent ObjectId casting errors
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let visit = await Visit.findById(req.params.id);
 
     if (!visit) {
@@ -881,6 +897,9 @@ exports.updateVisit = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
@@ -1057,6 +1076,9 @@ exports.getVisitsByStatus = async (req, res, next) => {
     const visits = await Visit.find(filter)
       .sort({ date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username');
 
@@ -1138,6 +1160,9 @@ exports.getVisitsByDateRange = async (req, res, next) => {
     const visits = await Visit.find(filter)
       .sort({ date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username');
 
@@ -1177,6 +1202,9 @@ exports.getNearbyVisits = async (req, res, next) => {
       }
     })
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('candidate_id', 'name')
       .populate('created_by', 'username');
 
@@ -1197,6 +1225,9 @@ exports.getCandidatePath = async (req, res, next) => {
   try {
     const visits = await Visit.find({ candidate_id: req.params.candidateId })
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .sort({ date: 1 }); // Sort by date to show chronological path
 
     // Filter visits with coordinates

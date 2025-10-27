@@ -194,6 +194,22 @@ export default function PartyActivitiesView({ data }) {
                             <Chip label={data.booth_id ? `${data.booth_id.name} (${data.booth_id.booth_number})` : 'N/A'} color="success" size="small" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Panchayat</Typography>
+                            <Chip label={data.panchayat_id?.panchayat_name || 'N/A'} color="info" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Village</Typography>
+                            <Chip label={data.village_id?.village_name || 'N/A'} color="success" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Falliya</Typography>
+                            <Chip label={data.falliya_id?.falliya_name || 'N/A'} color="warning" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Year</Typography>
+                            <Chip label={data.year || 'N/A'} color="primary" size="small" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4} lg={2.4} xl={2.4}>
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
                             <Chip label={data.status?.toUpperCase() || 'N/A'} color={getStatusColor(data.status)} size="small" />
                         </Grid>

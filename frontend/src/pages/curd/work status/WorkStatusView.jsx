@@ -211,6 +211,22 @@ export default function WorkStatusView({ data }) {
                                         {data.booth_id?.name || 'N/A'} {data.booth_id?.booth_number ? `(Booth #${data.booth_id.booth_number})` : ''}
                                     </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="body2">Panchayat:</Typography>
+                                    <Chip label={data.panchayat_id?.panchayat_name || 'N/A'} color="info" size="small" />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="body2">Village:</Typography>
+                                    <Chip label={data.village_id?.village_name || 'N/A'} color="success" size="small" />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="body2">Falliya:</Typography>
+                                    <Chip label={data.falliya_id?.falliya_name || 'N/A'} color="warning" size="small" />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="body2">Year:</Typography>
+                                    <Chip label={data.year || 'N/A'} color="primary" size="small" />
+                                </Grid>
                             </Grid>
                         </Box>
 

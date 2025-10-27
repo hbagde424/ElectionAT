@@ -63,6 +63,7 @@ const VisitListPage = () => {
     const [candidates, setCandidates] = useState([]);
     const [electionYears, setElectionYears] = useState([]);
     const [users, setUsers] = useState([]);
+    const [yearFilter, setYearFilter] = useState('');
 
     // Map state
     const [mapVisits, setMapVisits] = useState([]);
@@ -305,6 +306,12 @@ const VisitListPage = () => {
                 // Convert YYYY-MM-DD to end of day ISO string for proper backend comparison
                 const endDate = new Date(filters.endDate + 'T23:59:59.999Z').toISOString();
                 queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
+            }
+
+            // Optional: Year filter for map view
+            if (yearFilter) {
+                // Using a generic param; backend may ignore if unsupported
+                queryParams.push(`year=${encodeURIComponent(yearFilter)}`);
             }
 
             const path = `/visits?${queryParams.join('&')}`;
@@ -803,6 +810,54 @@ const VisitListPage = () => {
             )
         },
         {
+            header: 'Panchayat',
+            accessorKey: 'panchayat_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.panchayat_name || 'N/A'}
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Village',
+            accessorKey: 'village_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.village_name || 'N/A'}
+                    color="success"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Falliya',
+            accessorKey: 'falliya_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.falliya_name || 'N/A'}
+                    color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Year',
+            accessorKey: 'year',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
             header: 'Location',
             accessorKey: 'locationName',
             cell: ({ getValue }) => (
@@ -1054,7 +1109,7 @@ const VisitListPage = () => {
                             </Map>
 
 
-                            <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1 }}>
+                            <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
                                 <select
                                     value={selectedTheme}
                                     onChange={(e) => handleThemeChange(e.target.value)}
@@ -1070,6 +1125,28 @@ const VisitListPage = () => {
                                         <option key={theme} value={theme}>
                                             {theme.charAt(0).toUpperCase() + theme.slice(1)}
                                         </option>
+                                    ))}
+                                </select>
+
+                                {/* Year filter for Map markers */}
+                                <select
+                                    value={yearFilter}
+                                    onChange={(e) => {
+                                        setYearFilter(e.target.value);
+                                        // refresh map data when year changes
+                                        setTimeout(() => fetchMapVisits(appliedFilters, globalFilter), 0);
+                                    }}
+                                    style={{
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        border: `1px solid ${theme.palette.divider}`,
+                                        backgroundColor: theme.palette.background.paper,
+                                        color: theme.palette.text.primary
+                                    }}
+                                >
+                                    <option value="">All Years</option>
+                                    {Array.isArray(electionYears) && electionYears.map((ey) => (
+                                        <option key={ey._id || ey.year} value={ey.year}>{ey.year}{ey.election_type ? ` (${ey.election_type})` : ''}</option>
                                     ))}
                                 </select>
                             </Box>

@@ -221,6 +221,22 @@ export default function LocalIssueView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth Number</Typography>
                             <Chip label={data.booth_id?.booth_number || 'N/A'} color="error" size="small" />
                         </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Panchayat</Typography>
+                            <Chip label={data.panchayat_id?.panchayat_name || 'N/A'} color="info" size="small" variant="outlined" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Village</Typography>
+                            <Chip label={data.village_id?.village_name || 'N/A'} color="success" size="small" variant="outlined" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Falliya</Typography>
+                            <Chip label={data.falliya_id?.falliya_name || 'N/A'} color="warning" size="small" variant="outlined" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Year</Typography>
+                            <Chip label={data.year || 'N/A'} color="primary" size="small" variant="outlined" />
+                        </Grid>
                     </Grid>
                 </Grid>
             </Grid>

@@ -79,7 +79,8 @@ export default function GovernmentsListPage() {
     const referenceDataFetched = useRef(false);
 
     // Map state
-    const [blockNumberInput, setBlockNumberInput] = useState('');
+    const [blockNumberInput, setBlockNumberInput] = useState('ALL');
+    const [yearFilter, setYearFilter] = useState('');
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapTheme, setMapTheme] = useState('streets');
     const [mapError, setMapError] = useState('');
@@ -350,6 +351,13 @@ export default function GovernmentsListPage() {
             setBoothGeoJSON(null);
         }
     };
+
+    // Auto-load ALL blocks map on component mount
+    useEffect(() => {
+        if (mapboxToken && blocks && blocks.length > 0) {
+            loadBoothPolygons('ALL');
+        }
+    }, [blocks, mapboxToken]);
 
     // Fetch booth details and government schemes when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
@@ -659,6 +667,38 @@ export default function GovernmentsListPage() {
             }
         },
         {
+            header: 'Panchayat',
+            accessorKey: 'panchayat_id',
+            cell: ({ getValue }) => {
+                const val = getValue();
+                return <Chip label={val?.panchayat_name || 'N/A'} color="info" size="small" variant="outlined" />;
+            }
+        },
+        {
+            header: 'Village',
+            accessorKey: 'village_id',
+            cell: ({ getValue }) => {
+                const val = getValue();
+                return <Chip label={val?.village_name || 'N/A'} color="success" size="small" variant="outlined" />;
+            }
+        },
+        {
+            header: 'Falliya',
+            accessorKey: 'falliya_id',
+            cell: ({ getValue }) => {
+                const val = getValue();
+                return <Chip label={val?.falliya_name || 'N/A'} color="warning" size="small" variant="outlined" />;
+            }
+        },
+        {
+            header: 'Year',
+            accessorKey: 'year',
+            cell: ({ getValue }) => {
+                const val = getValue();
+                return <Chip label={val || 'N/A'} color="primary" size="small" variant="outlined" />;
+            }
+        },
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -825,6 +865,19 @@ export default function GovernmentsListPage() {
                                 <MenuItem value="ALL">All Blocks</MenuItem>
                                 {blocks?.map((b) => (
                                     <MenuItem key={b._id} value={b.name}>{b.name}</MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                size="small"
+                                label="Year"
+                                value={yearFilter}
+                                onChange={(e) => setYearFilter(e.target.value)}
+                                sx={{ width: { xs: '100%', sm: 150 } }}
+                            >
+                                <MenuItem value="">All Years</MenuItem>
+                                {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
+                                    <MenuItem key={year} value={year}>{year}</MenuItem>
                                 ))}
                             </TextField>
                             <Button variant="contained" size="small" onClick={() => loadBoothPolygons(blockNumberInput)}>

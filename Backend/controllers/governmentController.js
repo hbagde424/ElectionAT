@@ -24,6 +24,9 @@ exports.getGovernments = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -94,6 +97,26 @@ exports.getGovernments = async (req, res, next) => {
       query = query.where('booth_id').equals(req.query.booth);
     }
 
+    // Filter by panchayat
+    if (req.query.panchayat) {
+      query = query.where('panchayat_id').equals(req.query.panchayat);
+    }
+
+    // Filter by village
+    if (req.query.village) {
+      query = query.where('village_id').equals(req.query.village);
+    }
+
+    // Filter by falliya
+    if (req.query.falliya) {
+      query = query.where('falliya_id').equals(req.query.falliya);
+    }
+
+    // Filter by year
+    if (req.query.year) {
+      query = query.where('year').equals(parseInt(req.query.year));
+    }
+
     const governments = await query.skip(skip).limit(limit).exec();
     const total = await Government.countDocuments(query.getFilter());
 
@@ -122,6 +145,9 @@ exports.getGovernment = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -158,6 +184,11 @@ exports.getGovernment = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createGovernment = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Verify all references exist
     const [
       state,
@@ -225,6 +256,11 @@ exports.createGovernment = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateGovernment = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let government = await Government.findById(req.params.id);
 
     if (!government) {

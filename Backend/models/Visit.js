@@ -37,6 +37,26 @@ const visitSchema = new mongoose.Schema({
     required: false, // Made optional
     index: true
   },
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat',
+    index: true
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village',
+    index: true
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya',
+    index: true
+  },
+  year: {
+    type: Number,
+    min: 2020,
+    max: 2030
+  },
   candidate_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Candidate',

@@ -77,6 +77,26 @@ const localIssueSchema = new mongoose.Schema({
     required: [true, 'Booth reference is required'],
     index: true
   },
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat',
+    index: true
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village',
+    index: true
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya',
+    index: true
+  },
+  year: {
+    type: Number,
+    min: 2020,
+    max: 2030
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -159,6 +179,27 @@ localIssueSchema.virtual('block', {
 localIssueSchema.virtual('booth', {
   ref: 'Booth',
   localField: 'booth_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+localIssueSchema.virtual('panchayat', {
+  ref: 'Panchayat',
+  localField: 'panchayat_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+localIssueSchema.virtual('village', {
+  ref: 'Village',
+  localField: 'village_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+localIssueSchema.virtual('falliya', {
+  ref: 'Falliya',
+  localField: 'falliya_id',
   foreignField: '_id',
   justOne: true
 });

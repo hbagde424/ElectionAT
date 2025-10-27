@@ -52,7 +52,8 @@ export default function WorkStatusListPage() {
     const searchDebounceRef = useRef(null);
 
     // Map state
-    const [blockNumberInput, setBlockNumberInput] = useState('');
+    const [blockNumberInput, setBlockNumberInput] = useState('ALL');
+    const [yearFilter, setYearFilter] = useState('');
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -63,6 +64,17 @@ export default function WorkStatusListPage() {
     useEffect(() => {
         setSearchInput(globalFilter || '');
     }, [globalFilter]);
+
+    // Auto-load ALL booth polygons on mount for default view
+    useEffect(() => {
+        if (mapboxToken) {
+            try {
+                loadBoothPolygonsByBlockNumber('ALL');
+            } catch (e) {
+                // non-blocking
+            }
+        }
+    }, [mapboxToken]);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -795,6 +807,54 @@ export default function WorkStatusListPage() {
             )
         },
         {
+            header: 'Panchayat',
+            accessorKey: 'panchayat_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.panchayat_name || 'N/A'}
+                    color="info"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Village',
+            accessorKey: 'village_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.village_name || 'N/A'}
+                    color="success"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Falliya',
+            accessorKey: 'falliya_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.falliya_name || 'N/A'}
+                    color="warning"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Year',
+            accessorKey: 'year',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
             header: 'District',
             accessorKey: 'district_id',
             cell: ({ getValue }) => (
@@ -1059,6 +1119,20 @@ export default function WorkStatusListPage() {
                                   <MenuItem value="ALL">All Blocks</MenuItem>
                                 {blocks.map((b) => (
                                     <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel id="workstatus-year-select">Year</InputLabel>
+                            <Select
+                                labelId="workstatus-year-select"
+                                value={yearFilter}
+                                label="Year"
+                                onChange={(e) => setYearFilter(e.target.value)}
+                            >
+                                <MenuItem value="">All Years</MenuItem>
+                                {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
+                                    <MenuItem key={year} value={year}>{year}</MenuItem>
                                 ))}
                             </Select>
                         </FormControl>

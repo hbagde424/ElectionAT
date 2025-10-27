@@ -25,6 +25,9 @@ exports.getGenders = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ female: 1 });
@@ -136,6 +139,35 @@ exports.getGenders = async (req, res, next) => {
       }
     }
 
+    // Panchayat
+    if (req.query.panchayat_id || req.query.panchayat) {
+      const panchayatId = await handleIdOrName('panchayat_id', require('../models/Panchayat'), 'panchayat_name') || await handleIdOrName('panchayat', require('../models/Panchayat'), 'panchayat_name');
+      if (panchayatId) {
+        query = query.where('panchayat_id').equals(panchayatId);
+      }
+    }
+
+    // Village
+    if (req.query.village_id || req.query.village) {
+      const villageId = await handleIdOrName('village_id', require('../models/Village'), 'village_name') || await handleIdOrName('village', require('../models/Village'), 'village_name');
+      if (villageId) {
+        query = query.where('village_id').equals(villageId);
+      }
+    }
+
+    // Falliya
+    if (req.query.falliya_id || req.query.falliya) {
+      const falliyaId = await handleIdOrName('falliya_id', require('../models/Falliya'), 'falliya_name') || await handleIdOrName('falliya', require('../models/Falliya'), 'falliya_name');
+      if (falliyaId) {
+        query = query.where('falliya_id').equals(falliyaId);
+      }
+    }
+
+    // Year filter
+    if (req.query.year) {
+      query = query.where('year').equals(parseInt(req.query.year));
+    }
+
     const genders = await query.skip(skip).limit(limit).exec();
     const total = await Gender.countDocuments(query.getFilter());
 
@@ -164,6 +196,9 @@ exports.getGender = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -188,6 +223,11 @@ exports.getGender = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createGender = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Verify all references exist
     const [
       state,
@@ -274,6 +314,11 @@ exports.createGender = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateGender = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let gender = await Gender.findById(req.params.id);
 
     if (!gender) {

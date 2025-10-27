@@ -33,7 +33,11 @@ export default function GenderModal({
         parliament_id: '',
         assembly_id: '',
         block_id: '',
-        booth_id: ''
+        booth_id: '',
+        panchayat_id: '',
+        village_id: '',
+        falliya_id: '',
+        year: ''
     });
     const [submitted, setSubmitted] = useState(false);
 
@@ -42,6 +46,12 @@ export default function GenderModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+
+    const [panchayats, setPanchayats] = useState([]);
+    const [villages, setVillages] = useState([]);
+    const [falliyas, setFalliyas] = useState([]);
+    const [filteredVillages, setFilteredVillages] = useState([]);
+    const [filteredFalliyas, setFilteredFalliyas] = useState([]);
 
     useEffect(() => {
         if (genderEntry) {
@@ -55,7 +65,11 @@ export default function GenderModal({
                 parliament_id: genderEntry.parliament_id?._id?.toString() || genderEntry.parliament_id?.toString() || '',
                 assembly_id: genderEntry.assembly_id?._id?.toString() || genderEntry.assembly_id?.toString() || '',
                 block_id: genderEntry.block_id?._id?.toString() || genderEntry.block_id?.toString() || '',
-                booth_id: genderEntry.booth_id?._id?.toString() || genderEntry.booth_id?.toString() || ''
+                booth_id: genderEntry.booth_id?._id?.toString() || genderEntry.booth_id?.toString() || '',
+                panchayat_id: genderEntry.panchayat_id?._id?.toString() || genderEntry.panchayat_id?.toString() || '',
+                village_id: genderEntry.village_id?._id?.toString() || genderEntry.village_id?.toString() || '',
+                falliya_id: genderEntry.falliya_id?._id?.toString() || genderEntry.falliya_id?.toString() || '',
+                year: genderEntry.year || ''
             });
         } else {
             setFormData({
@@ -68,7 +82,11 @@ export default function GenderModal({
                 parliament_id: '',
                 assembly_id: '',
                 block_id: '',
-                booth_id: ''
+                booth_id: '',
+                panchayat_id: '',
+                village_id: '',
+                falliya_id: '',
+                year: ''
             });
         }
     }, [genderEntry]);
@@ -219,6 +237,72 @@ export default function GenderModal({
             }));
         }
     }, [formData.block_id, booths]);
+
+    // Fetch all panchayats, villages, and falliyas
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = { Authorization: `Bearer ${token}` };
+
+                const [panchayatRes, villageRes, falliyaRes] = await Promise.all([
+                    fetch('http://localhost:5000/api/panchayats?limit=10000', { headers }),
+                    fetch('http://localhost:5000/api/villages?limit=10000', { headers }),
+                    fetch('http://localhost:5000/api/falliyas?limit=10000', { headers })
+                ]);
+
+                const panchayatData = await panchayatRes.json();
+                const villageData = await villageRes.json();
+                const falliyaData = await falliyaRes.json();
+
+                if (panchayatData.success) setPanchayats(panchayatData.data || []);
+                if (villageData.success) setVillages(villageData.data || []);
+                if (falliyaData.success) setFalliyas(falliyaData.data || []);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        if (open) {
+            fetchAllData();
+        }
+    }, [open]);
+
+    // Cascading filter: Panchayat -> Village
+    useEffect(() => {
+        if (formData.panchayat_id) {
+            const filtered = villages.filter(v => {
+                const villagePanchayatId = v.panchayat_id?._id || v.panchayat_id;
+                return villagePanchayatId?.toString() === formData.panchayat_id.toString();
+            });
+            setFilteredVillages(filtered);
+            
+            if (formData.village_id && !filtered.find(v => v._id?.toString() === formData.village_id.toString())) {
+                setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
+            }
+        } else {
+            setFilteredVillages([]);
+            setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
+        }
+    }, [formData.panchayat_id, villages]);
+
+    // Cascading filter: Village -> Falliya
+    useEffect(() => {
+        if (formData.village_id) {
+            const filtered = falliyas.filter(f => {
+                const falliyaVillageId = f.village_id?._id || f.village_id;
+                return falliyaVillageId?.toString() === formData.village_id.toString();
+            });
+            setFilteredFalliyas(filtered);
+            
+            if (formData.falliya_id && !filtered.find(f => f._id?.toString() === formData.falliya_id.toString())) {
+                setFormData(prev => ({ ...prev, falliya_id: '' }));
+            }
+        } else {
+            setFilteredFalliyas([]);
+            setFormData(prev => ({ ...prev, falliya_id: '' }));
+        }
+    }, [formData.village_id, falliyas]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -504,6 +588,88 @@ export default function GenderModal({
                             )}
                         </Stack>
                     </Grid>
+
+                    {/* New Fields: Panchayat, Village, Falliya, Year */}
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Panchayat</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="panchayat_id"
+                                    value={formData.panchayat_id}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="">Select Panchayat</MenuItem>
+                                    {panchayats.map((panchayat) => (
+                                        <MenuItem key={panchayat._id} value={panchayat._id}>
+                                            {panchayat.panchayat_name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Village</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="village_id"
+                                    value={formData.village_id}
+                                    onChange={handleChange}
+                                    disabled={!formData.panchayat_id}
+                                >
+                                    <MenuItem value="">Select Village</MenuItem>
+                                    {filteredVillages.map((village) => (
+                                        <MenuItem key={village._id} value={village._id}>
+                                            {village.village_name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Falliya</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="falliya_id"
+                                    value={formData.falliya_id}
+                                    onChange={handleChange}
+                                    disabled={!formData.village_id}
+                                >
+                                    <MenuItem value="">Select Falliya</MenuItem>
+                                    {filteredFalliyas.map((falliya) => (
+                                        <MenuItem key={falliya._id} value={falliya._id}>
+                                            {falliya.falliya_name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Year</InputLabel>
+                            <FormControl fullWidth>
+                                <Select
+                                    name="year"
+                                    value={formData.year}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="">Select Year</MenuItem>
+                                    {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030].map((yr) => (
+                                        <MenuItem key={yr} value={yr}>{yr}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </Grid>
+
                     <Grid item xs={12}>
                         <InputLabel>Description</InputLabel>
                         <ReactQuill

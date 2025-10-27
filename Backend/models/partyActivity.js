@@ -39,6 +39,26 @@ const partyActivitySchema = new mongoose.Schema({
     ref: 'Booth',
     index: true
   },
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat',
+    index: true
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village',
+    index: true
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya',
+    index: true
+  },
+  year: {
+    type: Number,
+    min: 2020,
+    max: 2030
+  },
   activity_type: {
     type: String,
     enum: {
@@ -186,6 +206,27 @@ partyActivitySchema.virtual('block', {
 partyActivitySchema.virtual('booth', {
   ref: 'Booth',
   localField: 'booth_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+partyActivitySchema.virtual('panchayat', {
+  ref: 'Panchayat',
+  localField: 'panchayat_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+partyActivitySchema.virtual('village', {
+  ref: 'Village',
+  localField: 'village_id',
+  foreignField: '_id',
+  justOne: true
+});
+
+partyActivitySchema.virtual('falliya', {
+  ref: 'Falliya',
+  localField: 'falliya_id',
   foreignField: '_id',
   justOne: true
 });

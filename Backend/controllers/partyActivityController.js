@@ -24,6 +24,9 @@ exports.getPartyActivities = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username name')
       .populate('updated_by', 'username name')
       .sort({ activity_date: -1 });
@@ -184,6 +187,9 @@ exports.getPartyActivity = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username name')
       .populate('updated_by', 'username name');
 
@@ -224,6 +230,11 @@ exports.getPartyActivity = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createPartyActivity = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     const [
       party,
       state,
@@ -277,6 +288,11 @@ exports.createPartyActivity = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updatePartyActivity = async (req, res, next) => {
   try {
+    // Sanitize optional fields - remove empty strings to prevent ObjectId casting errors
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let activity = await PartyActivity.findById(req.params.id);
 
     if (!activity) {
@@ -322,6 +338,9 @@ exports.updatePartyActivity = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username name')
       .populate('updated_by', 'username name');
 
@@ -380,6 +399,9 @@ exports.getPartyActivitiesByParty = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username name');
 
     res.status(200).json({
@@ -412,6 +434,9 @@ exports.getUpcomingPartyActivities = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .limit(10);
 
     res.status(200).json({

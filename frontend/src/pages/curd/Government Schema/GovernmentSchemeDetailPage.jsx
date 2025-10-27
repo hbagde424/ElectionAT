@@ -209,6 +209,18 @@ export default function GovernmentSchemeDetailPage() {
                                     <Typography variant="body1">{scheme.booth_id?.name || scheme.booth_id?.booth_number || 'N/A'}</Typography>
                                 </>
                             )}
+                            
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Panchayat</Typography>
+                            <Typography variant="body1">{scheme.panchayat_id?.panchayat_name || 'N/A'}</Typography>
+                            
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Village</Typography>
+                            <Typography variant="body1">{scheme.village_id?.village_name || 'N/A'}</Typography>
+                            
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Falliya</Typography>
+                            <Typography variant="body1">{scheme.falliya_id?.falliya_name || 'N/A'}</Typography>
+                            
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Year</Typography>
+                            <Typography variant="body1">{scheme.year || 'N/A'}</Typography>
                         </Grid>
 
                         <Grid item xs={12} md={4}>

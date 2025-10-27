@@ -84,6 +84,10 @@ const workStatusSchema = new mongoose.Schema({
   booth_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Booth', required: true },
 
   // New locality fields
+  panchayat_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Panchayat', index: true },
+  village_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Village', index: true },
+  falliya_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Falliya', index: true },
+  year: { type: Number, min: 2020, max: 2030 },
   panchayat: { type: String, trim: true, maxlength: [200, 'Panchayat name cannot exceed 200 characters'], index: true },
   village: { type: String, trim: true, maxlength: [200, 'Village name cannot exceed 200 characters'], index: true },
 

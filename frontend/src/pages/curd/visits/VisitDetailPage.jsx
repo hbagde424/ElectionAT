@@ -226,6 +226,22 @@ const VisitDetailPage = () => {
                                     <Typography variant="subtitle2" color="text.secondary">Booth</Typography>
                                     <Typography variant="body1">{visit.booth_id?.name || 'N/A'}{visit.booth_id?.booth_number ? ` (#${visit.booth_id.booth_number})` : ''}</Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Panchayat</Typography>
+                                    <Chip label={visit.panchayat_id?.panchayat_name || 'N/A'} color="info" size="small" />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Village</Typography>
+                                    <Chip label={visit.village_id?.village_name || 'N/A'} color="success" size="small" />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Falliya</Typography>
+                                    <Chip label={visit.falliya_id?.falliya_name || 'N/A'} color="warning" size="small" />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">Year</Typography>
+                                    <Chip label={visit.year || 'N/A'} color="primary" size="small" />
+                                </Grid>
                             </Grid>
                         </Grid>
 

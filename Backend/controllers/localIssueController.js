@@ -25,6 +25,9 @@ exports.getLocalIssues = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ created_at: -1 });
@@ -185,6 +188,9 @@ exports.getLocalIssue = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username email')
       .populate('updated_by', 'username email');
 
@@ -221,6 +227,11 @@ exports.getLocalIssue = async (req, res, next) => {
 // @access  Private
 exports.createLocalIssue = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Verify all references exist
     const [
       state,
@@ -283,6 +294,11 @@ exports.createLocalIssue = async (req, res, next) => {
 // @access  Private
 exports.updateLocalIssue = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let localIssue = await LocalIssue.findById(req.params.id);
 
     if (!localIssue) {
@@ -345,6 +361,9 @@ exports.updateLocalIssue = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -427,6 +446,9 @@ exports.getLocalIssuesByStatus = async (req, res, next) => {
     const localIssues = await LocalIssue.find({ status: req.params.status })
       .populate('state_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .sort({ priority: -1, created_at: -1 })
       .populate('created_by', 'username');
 

@@ -47,6 +47,10 @@ export default function WorkStatusModal({
         assembly_id: '',
         block_id: '',
         booth_id: '',
+        panchayat_id: '',
+        village_id: '',
+        falliya_id: '',
+        year: '',
         panchayat: '',
         village: '',
         announced_date: null,
@@ -133,6 +137,11 @@ export default function WorkStatusModal({
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+    const [panchayats, setPanchayats] = useState([]);
+    const [villages, setVillages] = useState([]);
+    const [falliyas, setFalliyas] = useState([]);
+    const [filteredVillages, setFilteredVillages] = useState([]);
+    const [filteredFalliyas, setFilteredFalliyas] = useState([]);
 
     const statusOptions = ['in progress', 'completed', 'in complete', 'announced'];
     const workTypeOptions = ['infrastructure', 'social', 'education', 'health', 'other'];
@@ -160,6 +169,10 @@ export default function WorkStatusModal({
                 assembly_id: workStatus.assembly_id?._id?.toString() || workStatus.assembly_id?.toString() || '',
                 block_id: workStatus.block_id?._id?.toString() || workStatus.block_id?.toString() || '',
                 booth_id: workStatus.booth_id?._id?.toString() || workStatus.booth_id?.toString() || '',
+                panchayat_id: workStatus.panchayat_id?._id?.toString() || workStatus.panchayat_id?.toString() || '',
+                village_id: workStatus.village_id?._id?.toString() || workStatus.village_id?.toString() || '',
+                falliya_id: workStatus.falliya_id?._id?.toString() || workStatus.falliya_id?.toString() || '',
+                year: workStatus.year || '',
                 panchayat: workStatus.panchayat || '',
                 village: workStatus.village || '',
                 announced_date: workStatus.announced_date ? new Date(workStatus.announced_date) : null,
@@ -195,6 +208,57 @@ export default function WorkStatusModal({
             });
         }
     }, [workStatus]);
+
+    useEffect(() => {
+        const API_URL = import.meta.env.VITE_APP_API_URL;
+        if (open) {
+            Promise.all([
+                fetch(`${API_URL}/panchayats?limit=10000`).then(r => r.json()),
+                fetch(`${API_URL}/villages?limit=10000`).then(r => r.json()),
+                fetch(`${API_URL}/falliyas?limit=10000`).then(r => r.json())
+            ]).then(([pData, vData, fData]) => {
+                setPanchayats(pData.data || pData || []);
+                setVillages(vData.data || vData || []);
+                setFalliyas(fData.data || fData || []);
+            }).catch(err => console.error('Error fetching dropdowns:', err));
+        }
+    }, [open]);
+
+    // Cascading filter: Panchayat -> Village
+    useEffect(() => {
+        if (formData.panchayat_id) {
+            const filtered = villages.filter(v => {
+                const villagePanchayatId = v.panchayat_id?._id || v.panchayat_id;
+                return villagePanchayatId?.toString() === formData.panchayat_id.toString();
+            });
+            setFilteredVillages(filtered);
+            
+            if (formData.village_id && !filtered.find(v => v._id?.toString() === formData.village_id.toString())) {
+                setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
+            }
+        } else {
+            setFilteredVillages([]);
+            setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
+        }
+    }, [formData.panchayat_id, villages]);
+
+    // Cascading filter: Village -> Falliya
+    useEffect(() => {
+        if (formData.village_id) {
+            const filtered = falliyas.filter(f => {
+                const falliyaVillageId = f.village_id?._id || f.village_id;
+                return falliyaVillageId?.toString() === formData.village_id.toString();
+            });
+            setFilteredFalliyas(filtered);
+            
+            if (formData.falliya_id && !filtered.find(f => f._id?.toString() === formData.falliya_id.toString())) {
+                setFormData(prev => ({ ...prev, falliya_id: '' }));
+            }
+        } else {
+            setFilteredFalliyas([]);
+            setFormData(prev => ({ ...prev, falliya_id: '' }));
+        }
+    }, [formData.village_id, falliyas]);
 
     // State -> Division
     useEffect(() => {
@@ -912,7 +976,38 @@ export default function WorkStatusModal({
                     </Grid>
 
                     {/* Row 9: Panchayat and Village */}
-
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}><InputLabel>Panchayat</InputLabel>
+                            <FormControl fullWidth><Select name="panchayat_id" value={formData.panchayat_id} onChange={handleChange}>
+                                <MenuItem value=""><em>None</em></MenuItem>
+                                {panchayats.map(p => <MenuItem key={p._id} value={p._id}>{p.panchayat_name}</MenuItem>)}
+                            </Select></FormControl>
+                        </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}><InputLabel>Village</InputLabel>
+                            <FormControl fullWidth><Select name="village_id" value={formData.village_id} onChange={handleChange} disabled={!formData.panchayat_id}>
+                                <MenuItem value=""><em>None</em></MenuItem>
+                                {filteredVillages.map(v => <MenuItem key={v._id} value={v._id}>{v.village_name}</MenuItem>)}
+                            </Select></FormControl>
+                        </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}><InputLabel>Falliya</InputLabel>
+                            <FormControl fullWidth><Select name="falliya_id" value={formData.falliya_id} onChange={handleChange} disabled={!formData.village_id}>
+                                <MenuItem value=""><em>None</em></MenuItem>
+                                {filteredFalliyas.map(f => <MenuItem key={f._id} value={f._id}>{f.falliya_name}</MenuItem>)}
+                            </Select></FormControl>
+                        </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}><InputLabel>Year</InputLabel>
+                            <FormControl fullWidth><Select name="year" value={formData.year} onChange={handleChange}>
+                                <MenuItem value=""><em>None</em></MenuItem>
+                                {[2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030].map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+                            </Select></FormControl>
+                        </Stack>
+                    </Grid>
 
                     {/* Row 10: Announced Date and Announced By */}
 

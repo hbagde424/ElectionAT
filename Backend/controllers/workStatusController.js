@@ -26,6 +26,9 @@ exports.getWorkStatuses = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ start_date: -1 });
@@ -232,6 +235,9 @@ exports.getWorkStatus = async (req, res, next) => {
       .populate('assembly_id', 'name')
       .populate('block_id', 'name')
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -280,6 +286,11 @@ exports.getWorkStatus = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createWorkStatus = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // ✅ Validate date order first
     if (req.body.expected_end_date && new Date(req.body.expected_end_date) < new Date(req.body.start_date)) {
       return res.status(400).json({ success: false, message: 'Expected end date must be after start date' });
@@ -310,6 +321,11 @@ exports.createWorkStatus = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateWorkStatus = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let workStatus = await WorkStatus.findById(req.params.id);
     if (!workStatus) {
       return res.status(404).json({ success: false, message: 'Work status not found' });
@@ -464,6 +480,9 @@ exports.getWorkStatusesByBlock = async (req, res, next) => {
     const workStatuses = await WorkStatus.find({ block_id: req.params.blockId })
       .sort({ start_date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('district_id', 'name')
       .populate('assembly_id', 'name')
       .populate('created_by', 'username');
@@ -512,6 +531,9 @@ exports.getWorkStatusesByAssembly = async (req, res, next) => {
     const workStatuses = await WorkStatus.find({ assembly_id: req.params.assemblyId })
       .sort({ start_date: -1 })
       .populate('booth_id', 'name booth_number')
+      .populate('panchayat_id', 'panchayat_name')
+      .populate('village_id', 'village_name')
+      .populate('falliya_id', 'falliya_name')
       .populate('district_id', 'name')
       .populate('block_id', 'name')
       .populate('created_by', 'username');

@@ -25,6 +25,9 @@ exports.getCodings = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
+      .populate('panchayat', 'panchayat_name')
+      .populate('village', 'village_name')
+      .populate('falliya', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .sort({ name: 1 });
@@ -126,6 +129,41 @@ exports.getCodings = async (req, res, next) => {
       }
     }
 
+    // Panchayat
+    if (req.query.panchayat) {
+      const panchayatId = await handleIdOrName('panchayat', require('../models/Panchayat'));
+      if (panchayatId) {
+        query = query.where('panchayat_id').equals(panchayatId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
+    }
+
+    // Village
+    if (req.query.village) {
+      const villageId = await handleIdOrName('village', require('../models/Village'));
+      if (villageId) {
+        query = query.where('village_id').equals(villageId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
+    }
+
+    // Falliya
+    if (req.query.falliya) {
+      const falliyaId = await handleIdOrName('falliya', require('../models/Falliya'));
+      if (falliyaId) {
+        query = query.where('falliya_id').equals(falliyaId);
+      } else {
+        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
+      }
+    }
+
+    // Year filter
+    if (req.query.year) {
+      query = query.where('year').equals(parseInt(req.query.year));
+    }
+
     // Apply user hierarchy restriction when an authenticated user is present
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
@@ -173,6 +211,9 @@ exports.getCoding = async (req, res, next) => {
       .populate('assembly', 'name')
       .populate('block', 'name')
       .populate('booth', 'name booth_number')
+      .populate('panchayat', 'panchayat_name')
+      .populate('village', 'village_name')
+      .populate('falliya', 'falliya_name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -212,6 +253,11 @@ exports.getCoding = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createCoding = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     // Validate coding types
     const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
 
@@ -232,21 +278,37 @@ exports.createCoding = async (req, res, next) => {
     }
 
     // Verify all references exist
-    const [
-      state,
-      division,
-      parliament,
-      assembly,
-      block,
-      booth
-    ] = await Promise.all([
+    const verificationPromises = [
       State.findById(req.body.state_id),
       Division.findById(req.body.division_id),
       Parliament.findById(req.body.parliament_id),
       Assembly.findById(req.body.assembly_id),
       Block.findById(req.body.block_id),
       Booth.findById(req.body.booth_id)
-    ]);
+    ];
+
+    // Add optional reference checks
+    if (req.body.panchayat_id) {
+      verificationPromises.push(require('../models/Panchayat').findById(req.body.panchayat_id));
+    }
+    if (req.body.village_id) {
+      verificationPromises.push(require('../models/Village').findById(req.body.village_id));
+    }
+    if (req.body.falliya_id) {
+      verificationPromises.push(require('../models/Falliya').findById(req.body.falliya_id));
+    }
+
+    const [
+      state,
+      division,
+      parliament,
+      assembly,
+      block,
+      booth,
+      panchayat,
+      village,
+      falliya
+    ] = await Promise.all(verificationPromises);
 
     if (!state) {
       return res.status(400).json({ success: false, message: 'State not found' });
@@ -265,6 +327,15 @@ exports.createCoding = async (req, res, next) => {
     }
     if (!booth) {
       return res.status(400).json({ success: false, message: 'Booth not found' });
+    }
+    if (req.body.panchayat_id && !panchayat) {
+      return res.status(400).json({ success: false, message: 'Panchayat not found' });
+    }
+    if (req.body.village_id && !village) {
+      return res.status(400).json({ success: false, message: 'Village not found' });
+    }
+    if (req.body.falliya_id && !falliya) {
+      return res.status(400).json({ success: false, message: 'Falliya not found' });
     }
 
     // Check if user exists in request
@@ -303,6 +374,11 @@ exports.createCoding = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateCoding = async (req, res, next) => {
   try {
+    // Sanitize optional fields: treat empty string as undefined
+    ['panchayat_id', 'village_id', 'falliya_id', 'year'].forEach((k) => {
+      if (req.body && (req.body[k] === '' || req.body[k] === null)) delete req.body[k];
+    });
+
     let coding = await Coding.findById(req.params.id);
 
     if (!coding) {

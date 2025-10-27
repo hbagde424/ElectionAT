@@ -72,6 +72,26 @@ const eventSchema = new mongoose.Schema({
     ref: 'Booth',
     required: [true, 'Booth reference is required']
   },
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat',
+    index: true
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village',
+    index: true
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya',
+    index: true
+  },
+  year: {
+    type: Number,
+    min: [2020, 'Year must be between 2020 and 2030'],
+    max: [2030, 'Year must be between 2020 and 2030']
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -47,7 +47,24 @@ const governmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booth'
   },
-    description: {
+  panchayat_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Panchayat'
+  },
+  village_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Village'
+  },
+  falliya_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Falliya'
+  },
+  year: {
+    type: Number,
+    min: [2020, 'Year must be between 2020 and 2030'],
+    max: [2030, 'Year must be between 2020 and 2030']
+  },
+  description: {
     type: String,
     default: ''
   },
