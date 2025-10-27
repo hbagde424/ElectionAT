@@ -1196,32 +1196,54 @@ function HierarchicalMap({ onRegionClick }) {
         currentLayerRef.current = L.geoJSON(data, {
             style: style,
             onEachFeature: (feature, layer) => {
-                // Add permanent label - use displayName if available, otherwise name
-                const labelText = feature.properties.displayName || feature.properties.name || '';
-                layer.bindTooltip(labelText, {
+                // Create permanent label with number-name format for all levels
+                let labelText = '';
+                
+                if (level === 'state') {
+                    labelText = feature.properties.Name || feature.properties.name || '';
+                } else if (level === 'division') {
+                    labelText = feature.properties.name || feature.properties.DIVISION_NAME || '';
+                } else if (level === 'parliamentary') {
+                    const pcNo = feature.properties.pcNo || feature.properties.PC_NO || '';
+                    const pcName = feature.properties.name || feature.properties.PC_NAME || '';
+                    labelText = pcNo && pcName ? `${pcNo}-${pcName}` : (pcName || '');
+                } else if (level === 'assembly') {
+                    const acNo = feature.properties.acNo || feature.properties.AC_NO || '';
+                    const acName = feature.properties.name || feature.properties.AC_NAME || '';
+                    labelText = acNo && acName ? `${acNo}-${acName}` : (acName || '');
+                } else if (level === 'block') {
+                    labelText = feature.properties.name || feature.properties.BlockName || '';
+                } else if (level === 'booth') {
+                    const boothNo = feature.properties.boothNo || feature.properties.BoothNo || feature.properties.booth_number || '';
+                    const boothName = feature.properties.boothName || feature.properties.BoothName || feature.properties.name || '';
+                    labelText = boothNo && boothName ? `${boothNo}-${boothName}` : (boothNo || boothName || '');
+                }
+                
+                // Bind permanent label that never closes
+                const permanentTooltip = layer.bindTooltip(labelText, {
                     permanent: true,
                     direction: 'center',
                     className: 'permanent-label',
                     offset: [0, 0],
-                    opacity: 0.9
+                    opacity: 1,
+                    interactive: false
                 });
-
-                // Add tooltip instead of popup for basic info
-                layer.bindTooltip(`${feature.properties.Name || feature.properties.name || ''}`, {
-                    permanent: false,
-                    direction: 'center',
-                    closeButton: false,
-                    className: 'custom-tooltip'
-                });
+                
+                // Open the tooltip immediately and keep it open
+                permanentTooltip.openTooltip();
 
                 // Single click handler for showing dynamic data in panel
-                layer.on('click', () => {
+                layer.on('click', (e) => {
                     handleSingleClick(feature, level);
+                    // Ensure permanent label stays visible after click
+                    L.DomEvent.stopPropagation(e);
                 });
 
                 // Double click handler for hierarchy navigation
-                layer.on('dblclick', () => {
+                layer.on('dblclick', (e) => {
                     handleDoubleClick(feature, level);
+                    // Ensure permanent label stays visible after double click
+                    L.DomEvent.stopPropagation(e);
                 });
 
                 // Hover-like behavior on mouseover with delayed close on mouseout so popup remains reachable
