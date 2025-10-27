@@ -268,6 +268,40 @@ exports.createPartyActivity = async (req, res, next) => {
       });
     }
 
+    // Handle media files if uploaded
+    if (req.files && req.files.length > 0) {
+      req.body.media = req.files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        type: file.mimetype.startsWith('image/') ? 'photo' : 'video',
+        caption: '',
+        uploaded_at: new Date()
+      }));
+    } else if (req.body.media && typeof req.body.media === 'string') {
+      try {
+        req.body.media = JSON.parse(req.body.media);
+      } catch (e) {
+        req.body.media = [];
+      }
+    }
+
+    // Handle media_links - parse and filter empty values
+    if (req.body.media_links) {
+      try {
+        const links = typeof req.body.media_links === 'string' 
+          ? JSON.parse(req.body.media_links) 
+          : req.body.media_links;
+        req.body.media_links = Array.isArray(links) 
+          ? links.filter(link => link && link.trim() !== '') 
+          : [];
+      } catch (e) {
+        req.body.media_links = [];
+      }
+    }
+
     const activity = await PartyActivity.create({
       ...req.body,
       created_by: req.user.id,
@@ -320,6 +354,47 @@ exports.updatePartyActivity = async (req, res, next) => {
           success: false,
           message: 'Referenced document not found'
         });
+      }
+    }
+
+    // Handle media files if uploaded
+    if (req.files && req.files.length > 0) {
+      const newMedia = req.files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        type: file.mimetype.startsWith('image/') ? 'photo' : 'video',
+        caption: '',
+        uploaded_at: new Date()
+      }));
+      
+      // Merge with existing media if any
+      if (activity.media && activity.media.length > 0) {
+        req.body.media = [...activity.media, ...newMedia];
+      } else {
+        req.body.media = newMedia;
+      }
+    } else if (req.body.media && typeof req.body.media === 'string') {
+      try {
+        req.body.media = JSON.parse(req.body.media);
+      } catch (e) {
+        req.body.media = activity.media || [];
+      }
+    }
+
+    // Handle media_links - parse and filter empty values
+    if (req.body.media_links) {
+      try {
+        const links = typeof req.body.media_links === 'string' 
+          ? JSON.parse(req.body.media_links) 
+          : req.body.media_links;
+        req.body.media_links = Array.isArray(links) 
+          ? links.filter(link => link && link.trim() !== '') 
+          : [];
+      } catch (e) {
+        req.body.media_links = activity.media_links || [];
       }
     }
 

@@ -11,6 +11,7 @@ const {
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
+const upload = require('../config/mediaUpload');
 
 /**
  * @swagger
@@ -253,7 +254,7 @@ router.get('/:id', getUserPermissionsAndHierarchy, getPartyActivity);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('admin', 'superAdmin'), createPartyActivity);
+router.post('/', protect, authorize('admin', 'superAdmin'), upload.array('media', 10), createPartyActivity);
 
 /**
  * @swagger
@@ -285,7 +286,7 @@ router.post('/', protect, authorize('admin', 'superAdmin'), createPartyActivity)
  *       404:
  *         description: Party activity not found
  */
-router.put('/:id', protect, authorize('admin', 'superAdmin'), updatePartyActivity);
+router.put('/:id', protect, authorize('admin', 'superAdmin'), upload.array('media', 10), updatePartyActivity);
 
 /**
  * @swagger

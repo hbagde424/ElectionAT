@@ -92,6 +92,43 @@ const eventSchema = new mongoose.Schema({
     min: [2020, 'Year must be between 2020 and 2030'],
     max: [2030, 'Year must be between 2020 and 2030']
   },
+  media: [{
+    filename: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    originalname: {
+      type: String,
+      trim: true
+    },
+    path: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    mimetype: {
+      type: String,
+      required: true
+    },
+    size: {
+      type: Number
+    },
+    type: {
+      type: String,
+      enum: ['photo', 'video'],
+      required: true
+    },
+    caption: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Caption cannot exceed 200 characters']
+    },
+    uploaded_at: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

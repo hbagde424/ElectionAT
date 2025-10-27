@@ -10,6 +10,7 @@ const {
 } = require('../controllers/eventController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
+const upload = require('../config/mediaUpload');
 
 const router = express.Router();
 
@@ -167,7 +168,7 @@ router.get('/:id', getUserPermissionsAndHierarchy, getEvent);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin', 'organizer'), createEvent);
+router.post('/', protect, authorize('superAdmin', 'organizer'), upload.array('media', 10), createEvent);
 
 /**
  * @swagger
@@ -199,7 +200,7 @@ router.post('/', protect, authorize('superAdmin', 'organizer'), createEvent);
  *       404:
  *         description: Event not found
  */
-router.put('/:id', protect, authorize('superAdmin', 'organizer'), updateEvent);
+router.put('/:id', protect, authorize('superAdmin', 'organizer'), upload.array('media', 10), updateEvent);
 
 /**
  * @swagger

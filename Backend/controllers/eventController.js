@@ -269,6 +269,27 @@ exports.createEvent = async (req, res, next) => {
     req.body.created_by = req.user.id;
     req.body.description = req.body.description || '';
 
+    // Handle media files if uploaded
+    if (req.files && req.files.length > 0) {
+      req.body.media = req.files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        type: file.mimetype.startsWith('image/') ? 'photo' : 'video',
+        caption: '', // Caption will be added from frontend if needed
+        uploaded_at: new Date()
+      }));
+    } else if (req.body.media && typeof req.body.media === 'string') {
+      // Handle existing media data if editing
+      try {
+        req.body.media = JSON.parse(req.body.media);
+      } catch (e) {
+        req.body.media = [];
+      }
+    }
+
     // Validate date range
     if (new Date(req.body.start_date) > new Date(req.body.end_date)) {
       return res.status(400).json({
@@ -347,6 +368,34 @@ exports.updateEvent = async (req, res, next) => {
     req.body.updated_by = req.user.id;
     req.body.description = req.body.description || '';
     req.body.updated_at = new Date();
+
+    // Handle media files if uploaded
+    if (req.files && req.files.length > 0) {
+      const newMedia = req.files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        type: file.mimetype.startsWith('image/') ? 'photo' : 'video',
+        caption: '',
+        uploaded_at: new Date()
+      }));
+      
+      // Merge with existing media if any
+      if (event.media && event.media.length > 0) {
+        req.body.media = [...event.media, ...newMedia];
+      } else {
+        req.body.media = newMedia;
+      }
+    } else if (req.body.media && typeof req.body.media === 'string') {
+      try {
+        req.body.media = JSON.parse(req.body.media);
+      } catch (e) {
+        // Keep existing media if parsing fails
+        req.body.media = event.media || [];
+      }
+    }
 
     event = await Event.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

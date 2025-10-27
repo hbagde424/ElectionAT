@@ -127,6 +127,43 @@ const partyActivitySchema = new mongoose.Schema({
       message: props => `${props.value} is not a valid URL!`
     }
   }],
+  media: [{
+    filename: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    originalname: {
+      type: String,
+      trim: true
+    },
+    path: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    mimetype: {
+      type: String,
+      required: true
+    },
+    size: {
+      type: Number
+    },
+    type: {
+      type: String,
+      enum: ['photo', 'video'],
+      required: true
+    },
+    caption: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Caption cannot exceed 200 characters']
+    },
+    uploaded_at: {
+      type: Date,
+      default: Date.now
+    }
+  }],
     description: {
       type: String,
       trim: true,

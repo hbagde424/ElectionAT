@@ -54,7 +54,8 @@ export default function PartyActivitiesModal({
         status: 'scheduled',
         attendance_count: '',
         media_coverage: false,
-        media_links: []
+        media_links: [],
+        media: []
         // Note: created_by and updated_by are handled separately in handleSubmit
     });
     const [submitted, setSubmitted] = useState(false);
@@ -66,6 +67,7 @@ export default function PartyActivitiesModal({
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
     const [mediaLinkInput, setMediaLinkInput] = useState('');
+    const [mediaFiles, setMediaFiles] = useState([]);
 
     // New location data states
     const [panchayats, setPanchayats] = useState([]);
@@ -166,7 +168,8 @@ export default function PartyActivitiesModal({
                 status: partyActivity.status || 'scheduled',
                 attendance_count: partyActivity.attendance_count || '',
                 media_coverage: partyActivity.media_coverage || false,
-                media_links: partyActivity.media_links || []
+                media_links: partyActivity.media_links || [],
+                media: partyActivity.media || []
                 // Note: created_by and updated_by are handled separately in handleSubmit
             });
         } else if (!partyActivity) {
@@ -191,7 +194,8 @@ export default function PartyActivitiesModal({
                 status: 'scheduled',
                 attendance_count: '',
                 media_coverage: false,
-                media_links: []
+                media_links: [],
+                media: []
                 // Note: created_by and updated_by are handled separately in handleSubmit
             });
         }
@@ -445,6 +449,15 @@ export default function PartyActivitiesModal({
         }));
     };
 
+    const handleMediaFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        setMediaFiles(prevFiles => [...prevFiles, ...files]);
+    };
+
+    const handleRemoveMediaFile = (index) => {
+        setMediaFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+    };
+
     const handleSubmit = async () => {
         setSubmitted(true);
         // Validation: check all required fields (excluding end_date and attendance_count which are optional)
@@ -478,39 +491,57 @@ export default function PartyActivitiesModal({
             }
         }
 
-        // Ensure userId is always set
-        if (!userId) {
-            //  alert('User not logged in. Please login again.');
-            //  return;
-        }
-
         // Create user tracking object
         const userTracking = partyActivity ? { updated_by: userId } : { created_by: userId };
 
         // Remove created_by and updated_by from formData to avoid override
         const { created_by, updated_by, ...cleanFormData } = formData;
 
-        const submitData = {
-            ...cleanFormData,
-            attendance_count: formData.attendance_count ? parseInt(formData.attendance_count) : 0,
-            activity_date: formData.activity_date.toISOString(),
-            end_date: formData.end_date ? formData.end_date.toISOString() : null,
-            ...userTracking
-        };
+        // Use FormData for file upload
+        const submitData = new FormData();
+        
+        // Append all form fields
+        Object.keys(cleanFormData).forEach(key => {
+            if (key !== 'media' && cleanFormData[key] !== '' && cleanFormData[key] !== null && cleanFormData[key] !== undefined) {
+                if (key === 'attendance_count') {
+                    submitData.append(key, cleanFormData[key] ? parseInt(cleanFormData[key]) : 0);
+                } else if (key === 'activity_date') {
+                    submitData.append(key, cleanFormData[key].toISOString());
+                } else if (key === 'end_date') {
+                    submitData.append(key, cleanFormData[key] ? cleanFormData[key].toISOString() : '');
+                } else if (key === 'media_links') {
+                    submitData.append(key, JSON.stringify(cleanFormData[key]));
+                } else {
+                    submitData.append(key, cleanFormData[key]);
+                }
+            }
+        });
+        
+        // Append user tracking
+        Object.keys(userTracking).forEach(key => {
+            if (userTracking[key]) {
+                submitData.append(key, userTracking[key]);
+            }
+        });
+        
+        // Append media files
+        mediaFiles.forEach(file => {
+            submitData.append('media', file);
+        });
 
         try {
             const res = await fetch(url, {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(submitData)
+                body: submitData
             });
 
             if (res.ok) {
                 modalToggler(false);
                 refresh();
+                setMediaFiles([]); // Clear media files after successful submit
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit party activity:', errorData);
@@ -934,6 +965,64 @@ export default function PartyActivitiesModal({
                                 }
                                 label="Media Coverage"
                             />
+                        </Grid>
+
+                        {/* Row 11: Photos/Videos */}
+                        <Grid item xs={12}>
+                            <Stack spacing={1}>
+                                <InputLabel>Photos / Videos</InputLabel>
+                                <Box sx={{ border: '1px solid #ddd', borderRadius: 1, p: 2 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        sx={{ mb: 2 }}
+                                    >
+                                        Select Photos/Videos to Upload
+                                        <input
+                                            type="file"
+                                            hidden
+                                            multiple
+                                            accept="image/*,video/*"
+                                            onChange={handleMediaFileChange}
+                                        />
+                                    </Button>
+
+                                    {/* Display Selected Files */}
+                                    {mediaFiles && mediaFiles.length > 0 && (
+                                        <Box sx={{ mt: 2 }}>
+                                            <InputLabel sx={{ mb: 1 }}>Selected Files ({mediaFiles.length})</InputLabel>
+                                            <Stack spacing={1}>
+                                                {mediaFiles.map((file, index) => (
+                                                    <Chip
+                                                        key={index}
+                                                        label={`${file.type.startsWith('image/') ? '📷' : '🎥'} ${file.name} (${(file.size / 1024).toFixed(2)} KB)`}
+                                                        onDelete={() => handleRemoveMediaFile(index)}
+                                                        sx={{ justifyContent: 'space-between' }}
+                                                    />
+                                                ))}
+                                            </Stack>
+                                        </Box>
+                                    )}
+
+                                    {/* Display existing media for edit mode */}
+                                    {partyActivity && formData.media && formData.media.length > 0 && (
+                                        <Box sx={{ mt: 2 }}>
+                                            <InputLabel sx={{ mb: 1 }}>Existing Media ({formData.media.length})</InputLabel>
+                                            <Stack spacing={1}>
+                                                {formData.media.map((item, index) => (
+                                                    <Chip
+                                                        key={index}
+                                                        label={`${item.type === 'photo' ? '📷' : '🎥'} ${item.originalname || item.filename}`}
+                                                        color="success"
+                                                        size="small"
+                                                    />
+                                                ))}
+                                            </Stack>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Stack>
                         </Grid>
                     </Grid>
                 </DialogContent>

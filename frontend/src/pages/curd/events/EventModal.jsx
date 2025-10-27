@@ -44,9 +44,11 @@ export default function EventModal({
         panchayat_id: '',
         village_id: '',
         falliya_id: '',
-        year: ''
+        year: '',
+        media: []
     });
     const [submitted, setSubmitted] = useState(false);
+    const [mediaFiles, setMediaFiles] = useState([]);
 
     // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -177,7 +179,8 @@ export default function EventModal({
                 panchayat_id: event.panchayat_id?._id?.toString() || event.panchayat_id?.toString() || '',
                 village_id: event.village_id?._id?.toString() || event.village_id?.toString() || '',
                 falliya_id: event.falliya_id?._id?.toString() || event.falliya_id?.toString() || '',
-                year: event.year || ''
+                year: event.year || '',
+                media: event.media || []
             });
         } else {
             setFormData({
@@ -197,7 +200,8 @@ export default function EventModal({
                 panchayat_id: '',
                 village_id: '',
                 falliya_id: '',
-                year: ''
+                year: '',
+                media: []
             });
         }
     }, [event]);
@@ -432,6 +436,15 @@ export default function EventModal({
         }));
     };
 
+    const handleMediaFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        setMediaFiles(prev => [...prev, ...files]);
+    };
+
+    const handleRemoveMediaFile = (index) => {
+        setMediaFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
     const validateForm = () => {
         const errors = {};
 
@@ -506,24 +519,40 @@ export default function EventModal({
         }
 
         const userTracking = event ? { updated_by: userId } : { created_by: userId };
-        const submitData = {
-            ...formData,
-            ...userTracking
-        };
+        
+        // Use FormData for file upload
+        const submitData = new FormData();
+        
+        // Append all form fields
+        Object.keys(formData).forEach(key => {
+            if (key !== 'media' && formData[key] !== '' && formData[key] !== null && formData[key] !== undefined) {
+                submitData.append(key, formData[key]);
+            }
+        });
+        
+        // Append user tracking
+        Object.keys(userTracking).forEach(key => {
+            submitData.append(key, userTracking[key]);
+        });
+        
+        // Append media files
+        mediaFiles.forEach(file => {
+            submitData.append('media', file);
+        });
 
         try {
             const res = await fetch(url, {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(submitData)
+                body: submitData
             });
 
             if (res.ok) {
                 modalToggler(false);
                 refresh();
+                setMediaFiles([]); // Clear media files after successful submit
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit event:', errorData);
@@ -900,6 +929,64 @@ export default function EventModal({
                                     <MenuItem value={2030}>2030</MenuItem>
                                 </Select>
                             </FormControl>
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 10: Photos/Videos */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Photos / Videos</InputLabel>
+                            <Box sx={{ border: '1px solid #ddd', borderRadius: 1, p: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                    fullWidth
+                                    sx={{ mb: 2 }}
+                                >
+                                    Select Photos/Videos to Upload
+                                    <input
+                                        type="file"
+                                        hidden
+                                        multiple
+                                        accept="image/*,video/*"
+                                        onChange={handleMediaFileChange}
+                                    />
+                                </Button>
+
+                                {/* Display Selected Files */}
+                                {mediaFiles && mediaFiles.length > 0 && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <InputLabel sx={{ mb: 1 }}>Selected Files ({mediaFiles.length})</InputLabel>
+                                        <Stack spacing={1}>
+                                            {mediaFiles.map((file, index) => (
+                                                <Chip
+                                                    key={index}
+                                                    label={`${file.type.startsWith('image/') ? '📷' : '🎥'} ${file.name} (${(file.size / 1024).toFixed(2)} KB)`}
+                                                    onDelete={() => handleRemoveMediaFile(index)}
+                                                    sx={{ justifyContent: 'space-between' }}
+                                                />
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                )}
+
+                                {/* Display existing media for edit mode */}
+                                {event && formData.media && formData.media.length > 0 && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <InputLabel sx={{ mb: 1 }}>Existing Media ({formData.media.length})</InputLabel>
+                                        <Stack spacing={1}>
+                                            {formData.media.map((item, index) => (
+                                                <Chip
+                                                    key={index}
+                                                    label={`${item.type === 'photo' ? '📷' : '🎥'} ${item.originalname || item.filename}`}
+                                                    color="success"
+                                                    size="small"
+                                                />
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                )}
+                            </Box>
                         </Stack>
                     </Grid>
                 </Grid>

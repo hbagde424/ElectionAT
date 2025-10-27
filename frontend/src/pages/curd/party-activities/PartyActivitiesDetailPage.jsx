@@ -141,6 +141,107 @@ export default function PartyActivitiesDetailPage() {
                     <DetailRenderer data={activity} />
                 </CardContent>
             </MainCard>
+
+            {/* Media Gallery */}
+            {activity.media && activity.media.length > 0 && (
+                <MainCard sx={{ mt: 3 }}>
+                    <CardContent>
+                        <Typography variant="h5" gutterBottom>
+                            Photos & Videos ({activity.media.length})
+                        </Typography>
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            {activity.media.map((item, index) => (
+                                <Grid item xs={12} sm={6} md={4} key={index}>
+                                    <Box
+                                        sx={{
+                                            border: '1px solid #ddd',
+                                            borderRadius: 2,
+                                            overflow: 'hidden',
+                                            '&:hover': {
+                                                boxShadow: 3
+                                            }
+                                        }}
+                                    >
+                                        {item.type === 'photo' ? (
+                                            <img
+                                                src={`${import.meta.env.VITE_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/media/${item.filename}`}
+                                                alt={item.caption || 'Activity photo'}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '200px',
+                                                    objectFit: 'cover'
+                                                }}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : (
+                                            <Box
+                                                sx={{
+                                                    width: '100%',
+                                                    height: '200px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    bgcolor: '#f5f5f5'
+                                                }}
+                                            >
+                                                <a
+                                                    href={`${import.meta.env.VITE_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/media/${item.filename}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        fontSize: '48px',
+                                                        textDecoration: 'none'
+                                                    }}
+                                                >
+                                                    🎥
+                                                </a>
+                                            </Box>
+                                        )}
+                                        <Box
+                                            sx={{
+                                                display: 'none',
+                                                width: '100%',
+                                                height: '200px',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                bgcolor: '#f5f5f5',
+                                                color: '#999'
+                                            }}
+                                        >
+                                            Image not available
+                                        </Box>
+                                        {item.caption && (
+                                            <Box sx={{ p: 1.5, bgcolor: '#fafafa' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {item.caption}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                        <Box sx={{ p: 1, bgcolor: '#f5f5f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Chip
+                                                label={item.type === 'photo' ? 'Photo' : 'Video'}
+                                                size="small"
+                                                color={item.type === 'photo' ? 'primary' : 'secondary'}
+                                            />
+                                            <Button
+                                                size="small"
+                                                href={`${import.meta.env.VITE_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/media/${item.filename}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                View
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </CardContent>
+                </MainCard>
+            )}
         </Container>
     );
 }
