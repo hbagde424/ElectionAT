@@ -27,7 +27,7 @@ const FormSelect = ({
                 <MenuItem value=""><em>Select {label}</em></MenuItem>
                 {options.map((opt) => (
                     <MenuItem key={opt._id || opt} value={opt._id || opt}>
-                        {opt[labelKey] || opt}
+                        {(opt && opt[labelKey]) || opt}{opt && opt.booth_number ? ` (${opt.booth_number})` : ''}
                     </MenuItem>
                 ))}
             </Select>

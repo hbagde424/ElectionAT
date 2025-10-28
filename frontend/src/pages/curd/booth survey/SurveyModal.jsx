@@ -583,7 +583,7 @@ export default function BoothSurveyModal({
                         </MenuItem>
                         {options.map((opt) => (
                             <MenuItem key={opt._id} value={opt._id}>
-                                {opt[labelKey] || 'Unknown'}
+                                {opt[labelKey] || 'Unknown'}{opt.booth_number ? ` (${opt.booth_number})` : ''}
                             </MenuItem>
                         ))}
                     </Select>
