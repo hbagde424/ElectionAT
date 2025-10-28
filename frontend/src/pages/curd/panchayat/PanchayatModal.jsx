@@ -6,7 +6,7 @@ import {
     IconButton, Tooltip
 } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axiosServices from 'utils/axios';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
@@ -102,6 +102,7 @@ export default function PanchayatModal({
     // Location suggestions state
     const [locationOptions, setLocationOptions] = useState([]);
     const [locationLoading, setLocationLoading] = useState(false);
+    const locationSearchDebounce = useRef(null);
 
     // Filtered data for hierarchical dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -287,28 +288,56 @@ export default function PanchayatModal({
         }
     };
 
-    // Location autocomplete handler with Mapbox geocoding
-    const handleLocationInputChange = async (event, value) => {
+    // Location autocomplete handler with Mapbox geocoding (debounced + fuzzy + fallback)
+    const handleLocationInputChange = (event, value) => {
         setFormData(prev => ({ ...prev, location: value }));
-        if (value && value.length > 2) {
-            setLocationLoading(true);
+
+        // Clear any pending debounce
+        if (locationSearchDebounce.current) {
+            clearTimeout(locationSearchDebounce.current);
+            locationSearchDebounce.current = null;
+        }
+
+        // Only search when user typed at least 2 characters
+        if (!value || value.length < 2) {
+            setLocationOptions([]);
+            return;
+        }
+
+        setLocationLoading(true);
+
+        // Debounce requests to avoid rate limiting
+        locationSearchDebounce.current = setTimeout(async () => {
             try {
-                const res = await fetch(
-                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&limit=5`
-                );
+                // Mapbox request with fuzzyMatch and sensible types
+                const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&fuzzyMatch=true&limit=5&types=place,locality,neighborhood,address`;
+                const res = await fetch(mapboxUrl);
                 const data = await res.json();
-                if (data.features) {
+
+                if (data?.features && data.features.length > 0) {
                     setLocationOptions(data.features);
                 } else {
-                    setLocationOptions([]);
+                    // Fallback to Nominatim (OpenStreetMap) which can be more tolerant to misspellings
+                    try {
+                        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(value)}`;
+                        const nomRes = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
+                        const nomData = await nomRes.json();
+                        const mapped = (nomData || []).map(item => ({
+                            place_name: item.display_name,
+                            center: [parseFloat(item.lon), parseFloat(item.lat)]
+                        }));
+                        setLocationOptions(mapped);
+                    } catch (nomErr) {
+                        setLocationOptions([]);
+                    }
                 }
             } catch (err) {
                 setLocationOptions([]);
+            } finally {
+                setLocationLoading(false);
+                locationSearchDebounce.current = null;
             }
-            setLocationLoading(false);
-        } else {
-            setLocationOptions([]);
-        }
+        }, 500);
     };
 
     // When user selects a location suggestion
@@ -426,7 +455,21 @@ export default function PanchayatModal({
         setErrors({});
         setSubmitError('');
         setLocationOptions([]);
+        if (locationSearchDebounce.current) {
+            clearTimeout(locationSearchDebounce.current);
+            locationSearchDebounce.current = null;
+        }
     };
+
+    // cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (locationSearchDebounce.current) {
+                clearTimeout(locationSearchDebounce.current);
+                locationSearchDebounce.current = null;
+            }
+        };
+    }, []);
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>

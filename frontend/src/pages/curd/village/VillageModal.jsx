@@ -6,7 +6,7 @@ import {
     IconButton, Tooltip
 } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axiosServices from 'utils/axios';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
@@ -103,6 +103,7 @@ export default function VillageModal({
     // Location suggestions state
     const [locationOptions, setLocationOptions] = useState([]);
     const [locationLoading, setLocationLoading] = useState(false);
+    const locationSearchDebounce = useRef(null);
 
     // Filtered data for hierarchical dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -310,28 +311,66 @@ export default function VillageModal({
         }
     };
 
-    // Location autocomplete handler with Mapbox geocoding
-    const handleLocationInputChange = async (event, value) => {
+    // Location autocomplete handler with debounced Mapbox geocoding + Nominatim fallback
+    const handleLocationInputChange = (event, value) => {
         setFormData(prev => ({ ...prev, location: value }));
-        if (value && value.length > 2) {
-            setLocationLoading(true);
+
+        // Clear previous debounce
+        if (locationSearchDebounce.current) {
+            clearTimeout(locationSearchDebounce.current);
+            locationSearchDebounce.current = null;
+        }
+
+        if (!value || value.length <= 2) {
+            setLocationOptions([]);
+            return;
+        }
+
+        setLocationLoading(true);
+
+        // Debounce the search to avoid rate limits
+        locationSearchDebounce.current = setTimeout(async () => {
             try {
-                const res = await fetch(
-                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&limit=5`
+                // Prefer Mapbox fuzzy match
+                const mbRes = await fetch(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&limit=5&fuzzyMatch=true&types=place,locality,neighborhood,address,poi`
                 );
-                const data = await res.json();
-                if (data.features) {
-                    setLocationOptions(data.features);
-                } else {
-                    setLocationOptions([]);
+                const mbData = await mbRes.json();
+
+                if (mbData?.features && mbData.features.length > 0) {
+                    setLocationOptions(mbData.features);
+                    return;
                 }
+
+                // Fallback to Nominatim when Mapbox returns no results
+                try {
+                    const nomRes = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&addressdetails=0`
+                    );
+                    const nomData = await nomRes.json();
+                    if (Array.isArray(nomData) && nomData.length > 0) {
+                        // Convert Nominatim results to Mapbox-like feature objects
+                        const features = nomData.map(item => ({
+                            place_name: item.display_name,
+                            center: [parseFloat(item.lon), parseFloat(item.lat)],
+                            // keep original for potential debugging
+                            _source: 'nominatim',
+                            raw: item
+                        }));
+                        setLocationOptions(features);
+                        return;
+                    }
+                } catch (nomErr) {
+                    // ignore nominatim errors
+                }
+
+                setLocationOptions([]);
             } catch (err) {
                 setLocationOptions([]);
+            } finally {
+                setLocationLoading(false);
             }
-            setLocationLoading(false);
-        } else {
-            setLocationOptions([]);
-        }
+        }, 500);
     };
 
     // When user selects a location suggestion
@@ -442,7 +481,21 @@ export default function VillageModal({
         setErrors({});
         setSubmitError('');
         setLocationOptions([]);
+        if (locationSearchDebounce.current) {
+            clearTimeout(locationSearchDebounce.current);
+            locationSearchDebounce.current = null;
+        }
     };
+
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (locationSearchDebounce.current) {
+                clearTimeout(locationSearchDebounce.current);
+                locationSearchDebounce.current = null;
+            }
+        };
+    }, []);
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>

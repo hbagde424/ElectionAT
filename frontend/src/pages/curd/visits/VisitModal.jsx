@@ -8,7 +8,7 @@ import {
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 import { DatePicker } from '@mui/x-date-pickers';
@@ -104,6 +104,7 @@ export default function VisitModal({
     // Location suggestions state
     const [locationOptions, setLocationOptions] = useState([]);
     const [locationLoading, setLocationLoading] = useState(false);
+    const locationSearchDebounce = useRef(null);
 
     // Initialize form data
     function initializeFormData(visit) {
@@ -401,28 +402,51 @@ export default function VisitModal({
         setFormData(prev => ({ ...prev, date }));
     };
 
-    // Location Name autocomplete handler with Mapbox geocoding
-    const handleLocationInputChange = async (event, value) => {
+    // Location Name autocomplete handler with Mapbox geocoding (debounced + fuzzy + fallback)
+    const handleLocationInputChange = (event, value) => {
         setFormData(prev => ({ ...prev, locationName: value }));
-        if (value && value.length > 2) {
-            setLocationLoading(true);
+
+        if (locationSearchDebounce.current) {
+            clearTimeout(locationSearchDebounce.current);
+            locationSearchDebounce.current = null;
+        }
+
+        if (!value || value.length < 2) {
+            setLocationOptions([]);
+            return;
+        }
+
+        setLocationLoading(true);
+        locationSearchDebounce.current = setTimeout(async () => {
             try {
-                const res = await fetch(
-                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&limit=5`
-                );
+                const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&autocomplete=true&fuzzyMatch=true&limit=5&types=place,locality,neighborhood,address`;
+                const res = await fetch(mapboxUrl);
                 const data = await res.json();
-                if (data.features) {
+
+                if (data?.features && data.features.length > 0) {
                     setLocationOptions(data.features);
                 } else {
-                    setLocationOptions([]);
+                    // fallback to Nominatim
+                    try {
+                        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(value)}`;
+                        const nomRes = await fetch(nominatimUrl, { headers: { 'Accept-Language': 'en' } });
+                        const nomData = await nomRes.json();
+                        const mapped = (nomData || []).map(item => ({
+                            place_name: item.display_name,
+                            center: [parseFloat(item.lon), parseFloat(item.lat)]
+                        }));
+                        setLocationOptions(mapped);
+                    } catch (nomErr) {
+                        setLocationOptions([]);
+                    }
                 }
             } catch (err) {
                 setLocationOptions([]);
+            } finally {
+                setLocationLoading(false);
+                locationSearchDebounce.current = null;
             }
-            setLocationLoading(false);
-        } else {
-            setLocationOptions([]);
-        }
+        }, 500);
     };
 
     // When user selects a suggestion
@@ -600,6 +624,16 @@ export default function VisitModal({
             setSubmitError(data.message || 'An error occurred while saving the record');
         }
     };
+
+    // cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (locationSearchDebounce.current) {
+                clearTimeout(locationSearchDebounce.current);
+                locationSearchDebounce.current = null;
+            }
+        };
+    }, []);
 
     return (
         <Dialog open={open} onClose={() => modalToggler(false)} fullWidth maxWidth="md">
