@@ -1,8 +1,9 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Box
+    Box, IconButton, Tooltip, CircularProgress
 } from '@mui/material';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
 import ReactQuill from 'react-quill';
@@ -42,6 +43,7 @@ export default function BoothModal({
         description: ''
     });
     const [submitted, setSubmitted] = useState(false);
+    const [locationLoading, setLocationLoading] = useState(false);
 
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
@@ -204,6 +206,49 @@ export default function BoothModal({
         }));
     };
 
+    const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+    // Use browser geolocation to auto-fill coordinates and optionally address
+    const handleUseCurrentLocation = async () => {
+        if (!('geolocation' in navigator)) {
+            // No inline error system here; just log
+            console.error('Geolocation not supported');
+            return;
+        }
+
+        setLocationLoading(true);
+        const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+        const getPosition = () => new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions);
+        });
+
+        try {
+            const position = await getPosition();
+            const { latitude, longitude } = position.coords;
+
+            setFormData(prev => ({ ...prev, latitude, longitude }));
+
+            // Try reverse geocode to fill full_address if empty
+            try {
+                if (MAPBOX_ACCESS_TOKEN) {
+                    const res = await fetch(
+                        `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
+                    );
+                    const data = await res.json();
+                    const place = data?.features?.[0]?.place_name;
+                    if (place && !formData.full_address) {
+                        setFormData(prev => ({ ...prev, full_address: place }));
+                    }
+                }
+            } catch (e) {
+                // Ignore reverse geocode errors
+            }
+        } catch (err) {
+            console.error('Failed to get current location', err);
+        } finally {
+            setLocationLoading(false);
+        }
+    };
 
 
     const handleSubmit = async () => {
@@ -349,6 +394,27 @@ export default function BoothModal({
                                 fullWidth
                                 type="number"
                                 placeholder="Enter latitude"
+                                InputProps={{
+                                    endAdornment: (
+                                        <>
+                                            <Tooltip title="Use current location">
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={handleUseCurrentLocation}
+                                                        disabled={locationLoading}
+                                                        aria-label="Use current location"
+                                                        edge="end"
+                                                        sx={{ mr: 0.5 }}
+                                                    >
+                                                        <MyLocationIcon fontSize="small" />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
+                                            {locationLoading && <CircularProgress color="inherit" size={20} />}
+                                        </>
+                                    )
+                                }}
                             />
                         </Stack>
                     </Grid>

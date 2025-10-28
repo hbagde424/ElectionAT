@@ -2,8 +2,10 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Grid, Stack, TextField, InputLabel, Select,
     MenuItem, FormControl, FormHelperText, Alert,
-    CircularProgress, Typography, Autocomplete, Divider
+    CircularProgress, Typography, Autocomplete, Divider,
+    IconButton, Tooltip
 } from '@mui/material';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { useEffect, useState } from 'react';
 import axiosServices from 'utils/axios';
 
@@ -344,6 +346,50 @@ export default function VillageModal({
         }
     };
 
+    // Use browser geolocation to auto-fill coordinates and location name
+    const handleUseCurrentLocation = async () => {
+        if (!('geolocation' in navigator)) {
+            setErrors(prev => ({ ...prev, location: 'Geolocation is not supported by this browser.' }));
+            return;
+        }
+
+        setLocationLoading(true);
+        const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+        const getPosition = () => new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions);
+        });
+
+        try {
+            const position = await getPosition();
+            const { latitude, longitude } = position.coords;
+
+            setFormData(prev => ({ ...prev, latitude, longitude }));
+
+            try {
+                if (MAPBOX_ACCESS_TOKEN) {
+                    const res = await fetch(
+                        `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
+                    );
+                    const data = await res.json();
+                    const place = data?.features?.[0]?.place_name;
+                    setFormData(prev => ({ ...prev, location: place || `${latitude}, ${longitude}` }));
+                } else {
+                    setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}` }));
+                }
+            } catch (rgErr) {
+                setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}` }));
+            }
+        } catch (err) {
+            let msg = 'Unable to fetch current location.';
+            if (err?.code === 1) msg = 'Location permission denied. Please allow access.';
+            if (err?.code === 2) msg = 'Location unavailable. Try again.';
+            if (err?.code === 3) msg = 'Location request timed out. Try again.';
+            setErrors(prev => ({ ...prev, location: msg }));
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
     const handleSubmit = async () => {
         if (!validateForm()) return;
 
@@ -555,6 +601,20 @@ export default function VillageModal({
                                             ...params.InputProps,
                                             endAdornment: (
                                                 <>
+                                                    <Tooltip title="Use current location">
+                                                        <span>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={handleUseCurrentLocation}
+                                                                disabled={locationLoading}
+                                                                aria-label="Use current location"
+                                                                edge="end"
+                                                                sx={{ mr: 0.5 }}
+                                                            >
+                                                                <MyLocationIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </span>
+                                                    </Tooltip>
                                                     {locationLoading && <CircularProgress color="inherit" size={20} />}
                                                     {params.InputProps.endAdornment}
                                                 </>
