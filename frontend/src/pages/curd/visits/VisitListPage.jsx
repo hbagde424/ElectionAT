@@ -20,25 +20,7 @@ import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import VisitModal from './VisitModal';
 import AlertVisitDelete from './AlertVisitDelete';
-import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
-
-// Map components
-import Map, { Marker, Popup, Source, Layer } from 'react-map-gl';
-import MapControl from 'components/third-party/map/MapControl';
-
-const mapConfiguration = {
-    mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
-    minZoom: 1
-};
-
-const MAPBOX_THEMES = {
-    light: 'mapbox://styles/mapbox/light-v10',
-    dark: 'mapbox://styles/mapbox/dark-v10',
-    streets: 'mapbox://styles/mapbox/streets-v11',
-    outdoors: 'mapbox://styles/mapbox/outdoors-v11',
-    satellite: 'mapbox://styles/mapbox/satellite-v9',
-    satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
-};
+import VisitMapTabs from './VisitMapTabs';
 
 const VisitListPage = () => {
     const theme = useTheme();
@@ -64,13 +46,6 @@ const VisitListPage = () => {
     const [electionYears, setElectionYears] = useState([]);
     const [users, setUsers] = useState([]);
     const [yearFilter, setYearFilter] = useState('');
-
-    // Map state
-    const [mapVisits, setMapVisits] = useState([]);
-    const [popupInfo, setPopupInfo] = useState(null);
-    const [selectedTheme, setSelectedTheme] = useState('streets');
-    const [routeData, setRouteData] = useState(null);
-    const mapRef = useRef(null);
 
     // Keep local input in sync when globalFilter changes from outside (clear, pagination, etc.)
     useEffect(() => {
@@ -263,130 +238,6 @@ const VisitListPage = () => {
         }
     };
 
-    const fetchMapVisits = async (filters = appliedFilters, searchTerm = globalFilter) => {
-        try {
-            let queryParams = ['all=true'];
-
-            // Apply search filter to map as well
-            if (searchTerm) {
-                queryParams.push(`search=${encodeURIComponent(searchTerm)}`);
-            }
-
-            // Apply all the same filters as the visit list
-            if (filters.candidate) {
-                queryParams.push(`candidate=${filters.candidate}`);
-            }
-            if (filters.status) {
-                queryParams.push(`status=${filters.status}`);
-            }
-            if (filters.state) {
-                queryParams.push(`state=${filters.state}`);
-            }
-            if (filters.division) {
-                queryParams.push(`division=${filters.division}`);
-            }
-            if (filters.parliament) {
-                queryParams.push(`parliament=${filters.parliament}`);
-            }
-            if (filters.assembly) {
-                queryParams.push(`assembly=${filters.assembly}`);
-            }
-            if (filters.block) {
-                queryParams.push(`block=${filters.block}`);
-            }
-            if (filters.booth) {
-                queryParams.push(`booth=${filters.booth}`);
-            }
-            if (filters.startDate) {
-                // Convert YYYY-MM-DD to ISO string for proper backend comparison
-                const startDate = new Date(filters.startDate + 'T00:00:00.000Z').toISOString();
-                queryParams.push(`startDate=${encodeURIComponent(startDate)}`);
-            }
-            if (filters.endDate) {
-                // Convert YYYY-MM-DD to end of day ISO string for proper backend comparison
-                const endDate = new Date(filters.endDate + 'T23:59:59.999Z').toISOString();
-                queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
-            }
-
-            // Optional: Year filter for map view
-            if (yearFilter) {
-                // Using a generic param; backend may ignore if unsupported
-                queryParams.push(`year=${encodeURIComponent(yearFilter)}`);
-            }
-
-            const path = `/visits?${queryParams.join('&')}`;
-
-            console.log('Fetching map visits with filters, path:', path, 'filters:', filters);
-
-            // Use axiosServices with a relative path (it already has baseURL configured)
-            const { data: json } = await axiosServices.get(path);
-            console.log('Map visits API response summary:', json && { success: json.success, count: json.data?.length });
-
-            if (json && json.success) {
-                const rawVisits = Array.isArray(json.data) ? json.data : [];
-                console.log('Total visits received for map (raw):', rawVisits.length);
-                if (rawVisits.length === 0) {
-                    setMapVisits([]);
-                    setRouteData(null);
-                    return;
-                }
-
-                // Normalize and coerce coordinates to numbers, then filter out invalid ones
-                const visitsWithCoords = rawVisits
-                    .map(v => ({
-                        ...v,
-                        latitude: v.latitude !== undefined && v.latitude !== null && v.latitude !== '' ? Number(v.latitude) : NaN,
-                        longitude: v.longitude !== undefined && v.longitude !== null && v.longitude !== '' ? Number(v.longitude) : NaN
-                    }))
-                    .filter(v => !isNaN(v.latitude) && !isNaN(v.longitude));
-
-                console.log('visitsWithCoords count (numeric):', visitsWithCoords.length);
-                if (visitsWithCoords.length > 0) console.log('sample coords:', visitsWithCoords.slice(0, 3).map(v => ({ lat: v.latitude, lon: v.longitude })));
-
-                setMapVisits(visitsWithCoords);
-
-                if (visitsWithCoords.length > 1) {
-                    const coordinates = visitsWithCoords.map(v => [v.longitude, v.latitude]);
-                    setRouteData({
-                        type: 'Feature',
-                        properties: {},
-                        geometry: {
-                            type: 'LineString',
-                            coordinates: coordinates
-                        }
-                    });
-                } else {
-                    setRouteData(null);
-                }
-
-                // Center map on first visit if available
-                if (visitsWithCoords.length > 0 && mapRef.current) {
-                    // react-map-gl's Map ref may expose getMap()
-                    const mapInstance = (typeof mapRef.current.getMap === 'function') ? mapRef.current.getMap() : mapRef.current;
-                    if (mapInstance && typeof mapInstance.flyTo === 'function') {
-                        try {
-                            mapInstance.flyTo({
-                                center: [visitsWithCoords[0].longitude, visitsWithCoords[0].latitude],
-                                zoom: 10
-                            });
-                        } catch (err) {
-                            console.warn('mapInstance.flyTo failed', err);
-                        }
-                    }
-                }
-                return;
-            }
-
-            // If API didn't return success
-            setMapVisits([]);
-            setRouteData(null);
-        } catch (error) {
-            console.error('Error loading visit data:', error);
-            setMapVisits([]);
-            setRouteData(null);
-        }
-    };
-
     // Add this function right before the return statement in your component
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
@@ -574,7 +425,6 @@ const VisitListPage = () => {
             appliedFilters: appliedFilters
         });
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
-        fetchMapVisits(appliedFilters, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
@@ -597,8 +447,6 @@ const VisitListPage = () => {
         setAppliedFilters(filterValues);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
-        // Update map with the new filters
-        fetchMapVisits(filterValues, globalFilter);
     };
 
     const handleClearFilters = () => {
@@ -618,8 +466,6 @@ const VisitListPage = () => {
         setAppliedFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchVisits(0, 10, globalFilter);
-        // Update map to show all visits when filters are cleared
-        fetchMapVisits(emptyFilters, globalFilter);
     };
 
     // Handle cascading filter changes
@@ -673,27 +519,11 @@ const VisitListPage = () => {
         });
     };
 
-    const handleMarkerClick = (visit) => {
-        // Show only the clicked visit in the popup (not all visits for the candidate)
-        setPopupInfo({
-            longitude: visit.longitude,
-            latitude: visit.latitude,
-            candidate: visit.candidate_id,
-            visit // single visit object
-        });
-    };
-
-    const handleThemeChange = (theme) => {
-        setSelectedTheme(theme);
-    };
-
     const handleSearch = () => {
         console.log('🔍 Search triggered with term:', searchInput);
         const searchTerm = searchInput.trim();
         setGlobalFilter(searchTerm);
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
-        // Also update map with search results
-        fetchMapVisits(appliedFilters, searchTerm);
     };
 
     const columns = useMemo(() => [
@@ -978,190 +808,7 @@ const VisitListPage = () => {
 
 
                 <Grid item xs={12}>
-                    <MainCard
-                        title="Visit Locations Map"
-                    >
-                        {/* Access Scope Information */}
-                        <Alert
-                            severity="info"
-                            sx={{ mb: 2 }}
-                        >
-                            <Typography variant="body2">
-                                <strong>Data Access:</strong> {accessScope.description}
-                            </Typography>
-                        </Alert>
-
-                        <MapContainerStyled>
-                            <Map
-                                ref={mapRef}
-                                initialViewState={{
-                                    latitude: 23.4707,
-                                    longitude: 77.9455,
-                                    zoom: 6
-                                }}
-                                mapStyle={MAPBOX_THEMES[selectedTheme]}
-                                mapboxAccessToken={mapConfiguration.mapboxAccessToken}
-                            >
-                                <MapControl />
-
-                                {/* India background layer */}
-                                <Source id="india-source" type="geojson" data="/india.geojson">
-                                    <Layer
-                                        id="india-fill"
-                                        type="fill"
-                                        paint={{
-                                            'fill-color': '#e0e0e0',
-                                            'fill-opacity': 0.07
-                                        }}
-                                    />
-                                    <Layer
-                                        id="india-outline"
-                                        type="line"
-                                        paint={{
-                                            'line-color': '#003366',
-                                            'line-width': 1
-                                        }}
-                                    />
-                                </Source>
-
-                                {/* Route line (optional) */}
-                                {routeData && (
-                                    <Source id="route" type="geojson" data={routeData}>
-                                        <Layer
-                                            id="route-line"
-                                            type="line"
-                                            paint={{
-                                                'line-color': theme.palette.primary.main,
-                                                'line-width': 2
-                                            }}
-                                        />
-                                    </Source>
-                                )}
-
-                                {/* Marker for each visit */}
-                                {console.log('Rendering markers for mapVisits:', mapVisits.length, 'visits')}
-                                {mapVisits.map((visit, idx) => (
-                                    <Marker
-                                        key={idx}
-                                        longitude={visit.longitude}
-                                        latitude={visit.latitude}
-                                        anchor="bottom"
-                                    >
-                                        <Avatar
-                                            src={visit.candidate_id?.photo}
-                                            sx={{
-                                                width: 32,
-                                                height: 32,
-                                                border: `2px solid ${theme.palette.primary.main}`,
-                                                cursor: 'pointer'
-                                            }}
-                                            onClick={(e) => {
-                                                // prevent the map from handling the click (which can require a second click)
-                                                if (e && e.stopPropagation) e.stopPropagation();
-                                                handleMarkerClick(visit);
-                                            }}
-                                        />
-                                    </Marker>
-                                ))}
-
-                                {/* Popup when a marker is clicked */}
-                                {popupInfo && (
-                                    <Popup
-                                        longitude={popupInfo.longitude}
-                                        latitude={popupInfo.latitude}
-                                        closeButton={true}
-                                        anchor="bottom"
-                                        onClose={() => setPopupInfo(null)}
-                                        maxWidth="400px"
-                                    >
-                                        <Box sx={{ p: 1, minWidth: 300 }}>
-                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                <Avatar src={popupInfo.candidate?.photo} sx={{ width: 48, height: 48 }} />
-                                                <Box>
-                                                    <Typography fontWeight="bold">{popupInfo.candidate?.name}</Typography>
-                                                </Box>
-                                            </Stack>
-                                            <Divider sx={{ my: 1 }} />
-                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>Visit Details:</Typography>
-                                            <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
-                                                {popupInfo.visit ? (
-                                                    (() => {
-                                                        const v = popupInfo.visit;
-                                                        return (
-                                                            <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid #eee' }}>
-                                                                <Typography variant="body2"><strong>📅</strong> <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{formatDate(v.date)}</span></Typography>
-                                                                <Typography variant="body2"><strong>📍</strong> {v.locationName || 'N/A'}</Typography>
-                                                                <Typography variant="body2"><strong>📌 Booth:</strong> {v.booth_id?.name || 'N/A'}</Typography>
-                                                                <Typography variant="body2"><strong>🔄 Status:</strong> <Chip label={v.work_status?.toUpperCase() || 'N/A'} size="small" sx={{ ml: 1, backgroundColor: workStatusColor[v.work_status] || theme.palette.grey[400], color: 'blue' }} /></Typography>
-                                                                {v.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {v.visitAgenda}</Typography>)}
-                                                                {v.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {v.remark}</Typography>)}
-                                                                <Typography variant="caption"><strong>🌐</strong> {v.latitude?.toFixed(4)}, {v.longitude?.toFixed(4)}</Typography>
-                                                            </Box>
-                                                        );
-                                                    })()
-                                                ) : (
-                                                    <Typography variant="body2">No visit found.</Typography>
-                                                )}
-                                            </Box>
-                                        </Box>
-                                    </Popup>
-                                )}
-                            </Map>
-
-
-                            <Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
-                                <select
-                                    value={selectedTheme}
-                                    onChange={(e) => handleThemeChange(e.target.value)}
-                                    style={{
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        border: `1px solid ${theme.palette.divider}`,
-                                        backgroundColor: theme.palette.background.paper,
-                                        color: theme.palette.text.primary
-                                    }}
-                                >
-                                    {Object.keys(MAPBOX_THEMES).map((theme) => (
-                                        <option key={theme} value={theme}>
-                                            {theme.charAt(0).toUpperCase() + theme.slice(1)}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {/* Year filter for Map markers */}
-                                <select
-                                    value={yearFilter}
-                                    onChange={(e) => {
-                                        setYearFilter(e.target.value);
-                                        // refresh map data when year changes
-                                        setTimeout(() => fetchMapVisits(appliedFilters, globalFilter), 0);
-                                    }}
-                                    style={{
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        border: `1px solid ${theme.palette.divider}`,
-                                        backgroundColor: theme.palette.background.paper,
-                                        color: theme.palette.text.primary
-                                    }}
-                                >
-                                    <option value="">All Years</option>
-                                    {Array.isArray(electionYears) && electionYears.map((ey) => (
-                                        <option key={ey._id || ey.year} value={ey.year}>{ey.year}{ey.election_type ? ` (${ey.election_type})` : ''}</option>
-                                    ))}
-                                </select>
-                            </Box>
-
-                            <Box sx={{ position: 'absolute', bottom: 20, left: 20, zIndex: 1 }}>
-                                <Button
-                                    variant="contained"
-                                    onClick={() => fetchMapVisits(appliedFilters, globalFilter)}
-                                    size="small"
-                                >
-                                    Refresh Map Data
-                                </Button>
-                            </Box>
-                        </MapContainerStyled>
-                    </MainCard>
+                    <VisitMapTabs />
                 </Grid>
 
                 <Grid item xs={12}>
@@ -1458,7 +1105,6 @@ const VisitListPage = () => {
                 electionYears={electionYears}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(appliedFilters, globalFilter);
                 }}
             />
             <AlertVisitDelete
@@ -1467,7 +1113,6 @@ const VisitListPage = () => {
                 id={deleteAlert.id}
                 refresh={() => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
-                    fetchMapVisits(appliedFilters, globalFilter);
                 }}
             />
         </>
