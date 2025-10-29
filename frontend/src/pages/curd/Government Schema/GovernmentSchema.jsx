@@ -90,6 +90,60 @@ export default function GovernmentsListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Build booth-number set for coloring markers
+    const schemeBoothNumberSet = useMemo(() => {
+        const set = new Set();
+        try {
+            Array.from(boothsWithGovernmentScheme || []).forEach((id) => {
+                const booth = booths?.find((b) => String(b._id) === String(id));
+                const num = booth && String(booth.booth_number).trim().toLowerCase();
+                if (num) set.add(num);
+            });
+        } catch {}
+        return set;
+    }, [boothsWithGovernmentScheme, booths]);
+
+    // Dedupe markers: prefer booth number, else quantized coordinates
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON?.features) return null;
+        const seen = new Set();
+        const features = [];
+
+        const centroid = (geometry) => {
+            try {
+                if (geometry?.type === 'Polygon' && geometry.coordinates?.[0]) {
+                    const coords = geometry.coordinates[0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+                if (geometry?.type === 'MultiPolygon' && geometry.coordinates?.[0]?.[0]) {
+                    const coords = geometry.coordinates[0][0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+            } catch {}
+            return [0, 0];
+        };
+
+        for (const f of boothGeoJSON.features) {
+            const props = f.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+            const pt = centroid(f.geometry);
+            const coordKey = `coord:${pt[0].toFixed(5)},${pt[1].toFixed(5)}`;
+            const boothKey = boothNoRaw !== undefined && boothNoRaw !== null ? `booth:${String(boothNoRaw).trim().toLowerCase()}` : '';
+            const key = boothKey || coordKey;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const hasGovernmentScheme = boothKey
+                ? schemeBoothNumberSet.has(boothKey.replace('booth:', ''))
+                : schemeBoothNumberSet.has(String(boothNoRaw || '').trim().toLowerCase());
+            features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pt }, properties: { ...props, hasGovernmentScheme, _dedupeKey: key } });
+        }
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, schemeBoothNumberSet]);
+
     // Get user's access scope information
     const getUserAccessScope = () => {
         if (!userHierarchy) {
@@ -421,6 +475,21 @@ export default function GovernmentsListPage() {
                 } catch (e) {
                     console.warn('Failed to fetch government schemes for booth:', e);
                 }
+            }
+
+            // Also filter the table to this booth without full-page refresh
+            if (booth && booth._id) {
+                setSelectedBooth(booth._id);
+                setTempFilters((prev) => ({
+                    ...prev,
+                    state: booth.state_id?._id || booth.state_id || prev.state,
+                    division: booth.division_id?._id || booth.division_id || prev.division,
+                    parliament: booth.parliament_id?._id || booth.parliament_id || prev.parliament,
+                    assembly: booth.assembly_id?._id || booth.assembly_id || prev.assembly,
+                    block: booth.block_id?._id || booth.block_id || prev.block,
+                    booth: booth._id,
+                }));
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }
 
             setDrawerData({
@@ -858,7 +927,7 @@ export default function GovernmentsListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    // Render inline loader in table instead of replacing whole page
 
     return (
         <>
@@ -983,58 +1052,9 @@ export default function GovernmentsListPage() {
                                         />
                                     </Source>
                                 )}
-                                {/* Government Scheme Markers Layer */}
-                                {boothGeoJSON && (
-                                    <Source 
-                                        id="booth-markers" 
-                                        type="geojson" 
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.map(feature => {
-                                                const props = feature.properties || {};
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                                
-                                                let coordinates = [0, 0];
-                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0][0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                }
-                                                
-                                                const hasGovernmentScheme = Array.from(boothsWithGovernmentScheme).some(schemeBoothId => {
-                                                    const booth = booths.find(b => String(b._id) === schemeBoothId);
-                                                    if (booth) {
-                                                        return String(booth.booth_number) === String(boothNo);
-                                                    }
-                                                    return false;
-                                                });
-                                                
-                                                return {
-                                                    type: 'Feature',
-                                                    geometry: {
-                                                        type: 'Point',
-                                                        coordinates: coordinates
-                                                    },
-                                                    properties: {
-                                                        ...props,
-                                                        hasGovernmentScheme: hasGovernmentScheme
-                                                    }
-                                                };
-                                            })
-                                        }}
-                                    >
+                                {/* Government Scheme Markers Layer (deduped) */}
+                                {boothMarkersGeoJSON && (
+                                    <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                         <Layer
                                             id="booth-government-markers"
                                             type="circle"
@@ -1330,24 +1350,32 @@ export default function GovernmentsListPage() {
                                 ))}
                             </TableHead>
                             <TableBody>
-                                {table.getRowModel().rows.map((row) => (
-                                    <Fragment key={row.id}>
-                                        <TableRow>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                        {row.getIsExpanded() && (
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={table.getAllLeafColumns().length}>
+                                            <Typography variant="body2">Loading...</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    table.getRowModel().rows.map((row) => (
+                                        <Fragment key={row.id}>
                                             <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <GovernmentView data={row.original} blocks={blocks} booths={booths} />
-                                                </TableCell>
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell key={cell.id}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
-                                        )}
-                                    </Fragment>
-                                ))}
+                                            {row.getIsExpanded() && (
+                                                <TableRow>
+                                                    <TableCell colSpan={row.getVisibleCells().length}>
+                                                        <GovernmentView data={row.original} blocks={blocks} booths={booths} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </Fragment>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>

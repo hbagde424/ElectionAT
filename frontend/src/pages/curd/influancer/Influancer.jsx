@@ -92,6 +92,60 @@ export default function InfluencersListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Build booth-number set of influencers for marker color
+    const influencerBoothNumberSet = useMemo(() => {
+        const set = new Set();
+        try {
+            Array.from(boothsWithInfluencers || []).forEach((id) => {
+                const booth = booths?.find((b) => String(b._id) === String(id));
+                const num = booth && String(booth.booth_number).trim().toLowerCase();
+                if (num) set.add(num);
+            });
+        } catch {}
+        return set;
+    }, [boothsWithInfluencers, booths]);
+
+    // Deduped booth markers source
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON?.features) return null;
+        const seen = new Set();
+        const features = [];
+
+        const centroid = (geometry) => {
+            try {
+                if (geometry?.type === 'Polygon' && geometry.coordinates?.[0]) {
+                    const coords = geometry.coordinates[0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+                if (geometry?.type === 'MultiPolygon' && geometry.coordinates?.[0]?.[0]) {
+                    const coords = geometry.coordinates[0][0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+            } catch {}
+            return [0, 0];
+        };
+
+        for (const f of boothGeoJSON.features) {
+            const props = f.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+            const pt = centroid(f.geometry);
+            const coordKey = `coord:${pt[0].toFixed(5)},${pt[1].toFixed(5)}`;
+            const boothKey = boothNoRaw !== undefined && boothNoRaw !== null ? `booth:${String(boothNoRaw).trim().toLowerCase()}` : '';
+            const key = boothKey || coordKey;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const hasInfluencers = boothKey
+                ? influencerBoothNumberSet.has(boothKey.replace('booth:', ''))
+                : influencerBoothNumberSet.has(String(boothNoRaw || '').trim().toLowerCase());
+            features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pt }, properties: { ...props, hasInfluencers, _dedupeKey: key } });
+        }
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, influencerBoothNumberSet]);
+
     // Get user's access scope information
     const getUserAccessScope = () => {
         if (!userHierarchy) {
@@ -482,6 +536,21 @@ export default function InfluencersListPage() {
                 } catch (e) {
                     console.warn('Failed to fetch influencers for booth:', e);
                 }
+            }
+
+            // Sync table filters to clicked booth (no full-page refresh)
+            if (booth && booth._id) {
+                setSelectedBooth(booth._id);
+                setTempFilters((prev) => ({
+                    ...prev,
+                    state: booth.state_id?._id || booth.state_id || prev.state,
+                    division: booth.division_id?._id || booth.division_id || prev.division,
+                    parliament: booth.parliament_id?._id || booth.parliament_id || prev.parliament,
+                    assembly: booth.assembly_id?._id || booth.assembly_id || prev.assembly,
+                    block: booth.block_id?._id || booth.block_id || prev.block,
+                    booth: booth._id,
+                }));
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }
 
             setDrawerData({
@@ -1001,7 +1070,7 @@ export default function InfluencersListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    // Avoid replacing the full page on loading; show a loader inside the table body instead
 
     return (
         <>
@@ -1126,58 +1195,9 @@ export default function InfluencersListPage() {
                                         />
                                     </Source>
                                 )}
-                                {/* Influencer Markers Layer */}
-                                {boothGeoJSON && (
-                                    <Source 
-                                        id="booth-markers" 
-                                        type="geojson" 
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.map(feature => {
-                                                const props = feature.properties || {};
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                                
-                                                let coordinates = [0, 0];
-                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0][0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                }
-                                                
-                                                const hasInfluencers = Array.from(boothsWithInfluencers).some(influencerBoothId => {
-                                                    const booth = booths.find(b => String(b._id) === influencerBoothId);
-                                                    if (booth) {
-                                                        return String(booth.booth_number) === String(boothNo);
-                                                    }
-                                                    return false;
-                                                });
-                                                
-                                                return {
-                                                    type: 'Feature',
-                                                    geometry: {
-                                                        type: 'Point',
-                                                        coordinates: coordinates
-                                                    },
-                                                    properties: {
-                                                        ...props,
-                                                        hasInfluencers: hasInfluencers
-                                                    }
-                                                };
-                                            })
-                                        }}
-                                    >
+                                {/* Influencer Markers Layer (deduped) */}
+                                {boothMarkersGeoJSON && (
+                                    <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                         <Layer
                                             id="booth-influencer-markers"
                                             type="circle"

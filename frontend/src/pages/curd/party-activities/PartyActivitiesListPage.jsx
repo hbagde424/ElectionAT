@@ -66,6 +66,61 @@ export default function PartyActivitiesListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Memo: Deduplicated marker points for booths (1 per unique booth number)
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON?.features) return { type: 'FeatureCollection', features: [] };
+
+        // Build quick lookup of booth numbers that have activities
+        const boothNumbersWithActivities = new Set();
+        if (Array.isArray(booths) && boothsWithActivities && boothsWithActivities.size) {
+            booths.forEach(b => {
+                if (!b) return;
+                const id = String(b._id || '');
+                const num = b.booth_number != null ? String(b.booth_number) : '';
+                if (id && num && boothsWithActivities.has(id)) {
+                    boothNumbersWithActivities.add(num);
+                }
+            });
+        }
+
+        const seen = new Set();
+        const features = [];
+
+        const getCentroid = (feature) => {
+            let coordsArr = [];
+            const geom = feature.geometry;
+            if (!geom) return [0, 0];
+            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coordsArr.push(pt));
+            if (geom.type === 'Polygon') collect(geom.coordinates || []);
+            if (geom.type === 'MultiPolygon') (geom.coordinates || []).forEach(poly => collect(poly));
+            if (!coordsArr.length) return [0, 0];
+            const lngs = coordsArr.map(c => c[0]);
+            const lats = coordsArr.map(c => c[1]);
+            return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+        };
+
+        for (const feature of boothGeoJSON.features) {
+            const props = feature.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+            const boothNoStr = boothNoRaw != null ? String(boothNoRaw).trim() : '';
+            const centroid = getCentroid(feature);
+            const coordKey = `coord:${centroid[0].toFixed(5)},${centroid[1].toFixed(5)}`;
+            const key = boothNoStr ? `booth:${boothNoStr.toLowerCase()}` : coordKey;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            const hasActivities = boothNoStr ? boothNumbersWithActivities.has(boothNoStr) : false;
+
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: centroid },
+                properties: { ...props, hasActivities }
+            });
+        }
+
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, boothsWithActivities, booths]);
+
     // Handle filter changes
     const handleFilterChange = (field, value) => {
         const newFilters = { ...filters, [field]: value };
@@ -350,6 +405,21 @@ export default function PartyActivitiesListPage() {
                     partyActivities
                 }
             });
+
+            // Sync table filters so only this booth's activities show and reset pagination
+            if (booth && booth._id) {
+                const newFilters = {
+                    state_id: booth.state_id?._id || booth.state_id || '',
+                    division_id: booth.division_id?._id || booth.division_id || '',
+                    parliament_id: booth.parliament_id?._id || booth.parliament_id || '',
+                    assembly_id: booth.assembly_id?._id || booth.assembly_id || '',
+                    block_id: booth.block_id?._id || booth.block_id || '',
+                    booth_id: booth._id
+                };
+                setFilters(prev => ({ ...prev, ...newFilters }));
+                setAppliedFilters(prev => ({ ...prev, ...newFilters }));
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            }
         } catch (e) {
             console.error('Failed to load booth details by polygon:', e);
             setDrawerData({ loading: false, boothNo, details: { booth: null, partyActivities: [] }, error: e.message });
@@ -847,7 +917,7 @@ export default function PartyActivitiesListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    // Removed page-level loading; show inline loading row in the table instead
 
     return (
         <>
@@ -986,60 +1056,9 @@ export default function PartyActivitiesListPage() {
                                         />
                                     </Source>
                                 )}
-                                {/* Activity Markers Layer - Show green dots for booths with data, red for without */}
+                                {/* Activity Markers Layer - deduped */}
                                 {boothGeoJSON && (
-                                    <Source 
-                                        id="booth-markers" 
-                                        type="geojson" 
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.map(feature => {
-                                                const props = feature.properties || {};
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                                
-                                                // Get centroid of the polygon for marker placement
-                                                let coordinates = [0, 0];
-                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0][0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                }
-                                                
-                                                // Check if booth has party activities
-                                                const hasActivities = Array.from(boothsWithActivities).some(activityBoothId => {
-                                                    const booth = booths.find(b => String(b._id) === activityBoothId);
-                                                    if (booth) {
-                                                        return String(booth.booth_number) === String(boothNo);
-                                                    }
-                                                    return false;
-                                                });
-                                                
-                                                return {
-                                                    type: 'Feature',
-                                                    geometry: {
-                                                        type: 'Point',
-                                                        coordinates: coordinates
-                                                    },
-                                                    properties: {
-                                                        ...props,
-                                                        hasActivities: hasActivities
-                                                    }
-                                                };
-                                            })
-                                        }}
-                                    >
+                                    <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                         <Layer
                                             id="booth-activity-markers"
                                             type="circle"
@@ -1340,6 +1359,13 @@ export default function PartyActivitiesListPage() {
                                 ))}
                             </TableHead>
                             <TableBody>
+                                {loading && (
+                                    <TableRow>
+                                        <TableCell colSpan={table.getAllLeafColumns().length}>
+                                            <Typography variant="body2" sx={{ p: 2 }}>Loading...</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                                 {table.getRowModel().rows.map((row) => (
                                     <Fragment key={row.id}>
                                         <TableRow>

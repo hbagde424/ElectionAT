@@ -129,6 +129,108 @@ export default function EventListPage() {
 
     const accessScope = getUserAccessScope();
 
+    // Memo: map event booth IDs to booth numbers for quick lookup (used for marker coloring)
+    const eventBoothNumberSet = useMemo(() => {
+        const set = new Set();
+        try {
+            Array.from(boothsWithEvents || []).forEach((id) => {
+                const booth = booths?.find((b) => String(b._id) === String(id));
+                const num = booth && String(booth.booth_number).trim().toLowerCase();
+                if (num) set.add(num);
+            });
+        } catch {}
+        return set;
+    }, [boothsWithEvents, booths]);
+
+    // Memo: Build deduplicated marker source (1 point per unique booth number)
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON?.features) return null;
+        const seen = new Set();
+        const features = [];
+
+        // helper: centroid from geom (Polygon/MultiPolygon)
+        const centroidFromGeom = (geometry) => {
+            try {
+                const coordsArr = [];
+                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coordsArr.push(pt));
+                if (!geometry) return [0, 0];
+                if (geometry.type === 'Polygon') collect(geometry.coordinates || []);
+                if (geometry.type === 'MultiPolygon') (geometry.coordinates || []).forEach(poly => collect(poly));
+                if (!coordsArr.length) return [0, 0];
+                const lngs = coordsArr.map(c => c[0]);
+                const lats = coordsArr.map(c => c[1]);
+                return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+            } catch (e) { return [0, 0]; }
+        };
+
+        // helper: normalize booth number string
+        const normalizeBoothNo = (raw) => {
+            if (raw === undefined || raw === null) return '';
+            const s = String(raw).trim();
+            if (!s) return '';
+            // remove surrounding whitespace and lowercase
+            let n = s.toLowerCase();
+            // if numeric-like, strip leading zeros for consistent matching
+            if (/^0*\d+$/.test(n)) n = String(Number(n));
+            return n;
+        };
+
+        // helper: distance in meters between two [lng,lat]
+        const distanceMeters = (a, b) => {
+            try {
+                const toRad = (v) => v * Math.PI / 180;
+                const [lng1, lat1] = a; const [lng2, lat2] = b;
+                const R = 6371000; // meters
+                const dLat = toRad(lat2 - lat1);
+                const dLon = toRad(lng2 - lng1);
+                const rLat1 = toRad(lat1); const rLat2 = toRad(lat2);
+                const aa = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+                return R * c;
+            } catch { return Infinity; }
+        };
+
+        // store centroids added to compare proximity for features without booth numbers
+        const addedCentroids = [];
+
+        for (const feature of boothGeoJSON.features) {
+            const props = feature.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+            const boothNoNorm = normalizeBoothNo(boothNoRaw);
+            const coordinates = centroidFromGeom(feature.geometry);
+
+            // if we have a normalized booth number, dedupe by that
+            if (boothNoNorm) {
+                const key = `booth:${boothNoNorm}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+
+                const hasEvents = eventBoothNumberSet.has(boothNoNorm);
+                features.push({ type: 'Feature', geometry: { type: 'Point', coordinates }, properties: { ...props, hasEvents, _dedupeKey: key } });
+                addedCentroids.push(coordinates);
+                continue;
+            }
+
+            // For features without booth number: skip if centroid is very close (within 30m) to an already added centroid
+            const close = addedCentroids.some(c => distanceMeters(c, coordinates) <= 30);
+            if (close) continue;
+
+            // quantize key as fallback
+            const coordKey = `coord:${coordinates[0].toFixed(5)},${coordinates[1].toFixed(5)}`;
+            if (seen.has(coordKey)) continue;
+            seen.add(coordKey);
+
+            // determine hasEvents by trying to find matching booth number in booths array via properties if possible
+            const propsBoothNo = normalizeBoothNo(props.booth_number || props.BoothNo || props.BoothNumber || props.boothNo);
+            const hasEvents = propsBoothNo ? eventBoothNumberSet.has(propsBoothNo) : false;
+
+            features.push({ type: 'Feature', geometry: { type: 'Point', coordinates }, properties: { ...props, hasEvents, _dedupeKey: coordKey } });
+            addedCentroids.push(coordinates);
+        }
+
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, eventBoothNumberSet]);
+
     // State -> Division
     useEffect(() => {
         if (tempFilters.state) {
@@ -479,6 +581,22 @@ export default function EventListPage() {
                 } catch (e) {
                     console.warn('Failed to fetch events for booth:', e);
                 }
+            }
+
+            // When a booth is found, also filter the table below to this booth
+            if (booth && booth._id) {
+                setSelectedBooth(booth._id);
+                setTempFilters((prev) => ({
+                    ...prev,
+                    state: booth.state_id?._id || booth.state_id || prev.state,
+                    division: booth.division_id?._id || booth.division_id || prev.division,
+                    parliament: booth.parliament_id?._id || booth.parliament_id || prev.parliament,
+                    assembly: booth.assembly_id?._id || booth.assembly_id || prev.assembly,
+                    block: booth.block_id?._id || booth.block_id || prev.block,
+                    booth: booth._id
+                }));
+                // reset to first page so user sees results immediately
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }
 
             setDrawerData({
@@ -1015,7 +1133,7 @@ export default function EventListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    // Do not block the entire page during table fetches; we'll show a loader inside the table instead
 
     return (
         <>
@@ -1155,60 +1273,9 @@ export default function EventListPage() {
                                         />
                                     </Source>
                                 )}
-                                {/* Event Markers Layer - Show green dots for booths with data, red for without */}
-                                {boothGeoJSON && (
-                                    <Source 
-                                        id="booth-markers" 
-                                        type="geojson" 
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.map(feature => {
-                                                const props = feature.properties || {};
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                                
-                                                // Get centroid of the polygon for marker placement
-                                                let coordinates = [0, 0];
-                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0][0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                }
-                                                
-                                                // Check if booth has events
-                                                const hasEvents = Array.from(boothsWithEvents).some(eventBoothId => {
-                                                    const booth = booths.find(b => String(b._id) === eventBoothId);
-                                                    if (booth) {
-                                                        return String(booth.booth_number) === String(boothNo);
-                                                    }
-                                                    return false;
-                                                });
-                                                
-                                                return {
-                                                    type: 'Feature',
-                                                    geometry: {
-                                                        type: 'Point',
-                                                        coordinates: coordinates
-                                                    },
-                                                    properties: {
-                                                        ...props,
-                                                        hasEvents: hasEvents
-                                                    }
-                                                };
-                                            })
-                                        }}
-                                    >
+                                {/* Event Markers Layer - deduped by booth number */}
+                                {boothMarkersGeoJSON && (
+                                    <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                         <Layer
                                             id="booth-event-markers"
                                             type="circle"
@@ -1531,24 +1598,32 @@ export default function EventListPage() {
                                 ))}
                             </TableHead>
                             <TableBody>
-                                {table.getRowModel().rows.map((row) => (
-                                    <Fragment key={row.id}>
-                                        <TableRow>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                        {row.getIsExpanded() && (
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={table.getAllLeafColumns().length}>
+                                            <Typography variant="body2">Loading...</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    table.getRowModel().rows.map((row) => (
+                                        <Fragment key={row.id}>
                                             <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <EventView data={row.original} />
-                                                </TableCell>
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell key={cell.id}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
-                                        )}
-                                    </Fragment>
-                                ))}
+                                            {row.getIsExpanded() && (
+                                                <TableRow>
+                                                    <TableCell colSpan={row.getVisibleCells().length}>
+                                                        <EventView data={row.original} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </Fragment>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>

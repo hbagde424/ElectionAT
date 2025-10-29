@@ -87,6 +87,68 @@ export default function GenderListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Build a set of booth numbers that have gender entries (for marker color)
+    const genderBoothNumberSet = useMemo(() => {
+        const set = new Set();
+        try {
+            Array.from(boothsWithGender || []).forEach((id) => {
+                const booth = booths?.find((b) => String(b._id) === String(id));
+                const num = booth && String(booth.booth_number).trim().toLowerCase();
+                if (num) set.add(num);
+            });
+        } catch {}
+        return set;
+    }, [boothsWithGender, booths]);
+
+    // Dedupe markers: 1 dot per booth number; fallback to quantized centroid if booth number missing
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON?.features) return null;
+        const seen = new Set();
+        const features = [];
+
+        const centroidFromGeom = (geometry) => {
+            try {
+                if (geometry?.type === 'Polygon' && geometry.coordinates?.[0]) {
+                    const coords = geometry.coordinates[0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+                if (geometry?.type === 'MultiPolygon' && geometry.coordinates?.[0]?.[0]) {
+                    const coords = geometry.coordinates[0][0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+            } catch {}
+            return [0, 0];
+        };
+
+        for (const feature of boothGeoJSON.features) {
+            const props = feature.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+            const coordinates = centroidFromGeom(feature.geometry);
+            const coordKey = `coord:${coordinates[0].toFixed(5)},${coordinates[1].toFixed(5)}`;
+            const boothKeyNorm = boothNoRaw !== undefined && boothNoRaw !== null ? `booth:${String(boothNoRaw).trim().toLowerCase()}` : '';
+
+            const key = boothKeyNorm || coordKey;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            const hasGender = boothKeyNorm
+                ? genderBoothNumberSet.has(boothKeyNorm.replace('booth:', ''))
+                : genderBoothNumberSet.has(String(boothNoRaw || '').trim().toLowerCase());
+
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates },
+                properties: { ...props, hasGender, _dedupeKey: key }
+            });
+        }
+
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, genderBoothNumberSet]);
+
     // Helper to add Authorization header when token exists
     const getAuthHeaders = () => {
         try {
@@ -467,6 +529,21 @@ export default function GenderListPage() {
                 gender = { male, female, others, total };
             }
 
+            // Also sync table filters to the clicked booth to avoid manual refresh
+            if (booth && booth._id) {
+                setSelectedBooth(booth._id);
+                setTempFilters((prev) => ({
+                    ...prev,
+                    state: booth.state_id?._id || booth.state_id || prev.state,
+                    division: booth.division_id?._id || booth.division_id || prev.division,
+                    parliament: booth.parliament_id?._id || booth.parliament_id || prev.parliament,
+                    assembly: booth.assembly_id?._id || booth.assembly_id || prev.assembly,
+                    block: booth.block_id?._id || booth.block_id || prev.block,
+                    booth: booth._id
+                }));
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            }
+
             setDrawerData({ loading: false, boothNo, details: { booth, gender } });
             setDrawerOpen(true);
         } catch (err) {
@@ -842,7 +919,7 @@ export default function GenderListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    // Do not replace the entire page during loading; show a loading row in the table instead
 
     return (
         <>
@@ -930,58 +1007,9 @@ export default function GenderListPage() {
                                     />
                                 </Source>
                             )}
-                            {/* Gender Markers Layer */}
-                            {boothGeoJSON && (
-                                <Source 
-                                    id="booth-markers" 
-                                    type="geojson" 
-                                    data={{
-                                        type: 'FeatureCollection',
-                                        features: boothGeoJSON.features.map(feature => {
-                                            const props = feature.properties || {};
-                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                            
-                                            let coordinates = [0, 0];
-                                            if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                const coords = feature.geometry.coordinates[0];
-                                                const lngs = coords.map(c => c[0]);
-                                                const lats = coords.map(c => c[1]);
-                                                coordinates = [
-                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                    lats.reduce((a, b) => a + b, 0) / lats.length
-                                                ];
-                                            } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                const coords = feature.geometry.coordinates[0][0];
-                                                const lngs = coords.map(c => c[0]);
-                                                const lats = coords.map(c => c[1]);
-                                                coordinates = [
-                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                    lats.reduce((a, b) => a + b, 0) / lats.length
-                                                ];
-                                            }
-                                            
-                                            const hasGender = Array.from(boothsWithGender).some(genderBoothId => {
-                                                const booth = booths.find(b => String(b._id) === genderBoothId);
-                                                if (booth) {
-                                                    return String(booth.booth_number) === String(boothNo);
-                                                }
-                                                return false;
-                                            });
-                                            
-                                            return {
-                                                type: 'Feature',
-                                                geometry: {
-                                                    type: 'Point',
-                                                    coordinates: coordinates
-                                                },
-                                                properties: {
-                                                    ...props,
-                                                    hasGender: hasGender
-                                                }
-                                            };
-                                        })
-                                    }}
-                                >
+                            {/* Gender Markers Layer (deduped) */}
+                            {boothMarkersGeoJSON && (
+                                <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                     <Layer
                                         id="booth-gender-markers"
                                         type="circle"
@@ -1246,24 +1274,32 @@ export default function GenderListPage() {
                                 ))}
                             </TableHead>
                             <TableBody>
-                                {table.getRowModel().rows.map((row) => (
-                                    <Fragment key={row.id}>
-                                        <TableRow>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                        {row.getIsExpanded() && (
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={table.getAllLeafColumns().length}>
+                                            <Typography variant="body2">Loading...</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    table.getRowModel().rows.map((row) => (
+                                        <Fragment key={row.id}>
                                             <TableRow>
-                                                <TableCell colSpan={row.getVisibleCells().length}>
-                                                    <GenderView data={row.original} />
-                                                </TableCell>
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell key={cell.id}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
-                                        )}
-                                    </Fragment>
-                                ))}
+                                            {row.getIsExpanded() && (
+                                                <TableRow>
+                                                    <TableCell colSpan={row.getVisibleCells().length}>
+                                                        <GenderView data={row.original} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </Fragment>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
