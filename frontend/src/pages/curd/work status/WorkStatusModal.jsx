@@ -980,7 +980,7 @@ export default function WorkStatusModal({
                         <Stack spacing={1}><InputLabel>Panchayat</InputLabel>
                             <FormControl fullWidth><Select name="panchayat_id" value={formData.panchayat_id} onChange={handleChange}>
                                 <MenuItem value=""><em>None</em></MenuItem>
-                                {panchayats.map(p => <MenuItem key={p._id} value={p._id}>{p.panchayat_name}</MenuItem>)}
+                                {(Array.isArray(panchayats) ? panchayats : []).map(p => <MenuItem key={p._id} value={p._id}>{p.panchayat_name}</MenuItem>)}
                             </Select></FormControl>
                         </Stack>
                     </Grid>

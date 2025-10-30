@@ -11,6 +11,7 @@ const {
   getWorkStatusStatistics
 } = require('../controllers/workStatusController');
 const { protect, authorize } = require('../middlewares/auth');
+const validateObjectIdParams = require('../middlewares/validateObjectIdParams');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
@@ -200,7 +201,7 @@ router.get('/statistics', getUserPermissionsAndHierarchy, getWorkStatusStatistic
  *       404:
  *         description: Work status not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getWorkStatus);
+router.get('/:id', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatus);
 
 /**
  * @swagger
@@ -256,7 +257,7 @@ router.post('/', protect, authorize('admin', 'superAdmin'), createWorkStatus);
  *       404:
  *         description: Work status not found
  */
-router.put('/:id', protect, authorize('admin', 'superAdmin'), updateWorkStatus);
+router.put('/:id', validateObjectIdParams, protect, authorize('admin', 'superAdmin'), updateWorkStatus);
 
 /**
  * @swagger
@@ -280,7 +281,7 @@ router.put('/:id', protect, authorize('admin', 'superAdmin'), updateWorkStatus);
  *       404:
  *         description: Work status not found
  */
-router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteWorkStatus);
+router.delete('/:id', validateObjectIdParams, protect, authorize('admin', 'superAdmin'), deleteWorkStatus);
 
 /**
  * @swagger
@@ -313,7 +314,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteWorkStatu
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getWorkStatusesByBooth);
+router.get('/booth/:boothId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByBooth);
 
 /**
  * @swagger
@@ -346,7 +347,7 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getWorkStatusesByB
  *       404:
  *         description: Block not found
  */
-router.get('/block/:blockId', getUserPermissionsAndHierarchy, getWorkStatusesByBlock);
+router.get('/block/:blockId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByBlock);
 
 /**
  * @swagger
@@ -379,7 +380,7 @@ router.get('/block/:blockId', getUserPermissionsAndHierarchy, getWorkStatusesByB
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getWorkStatusesByAssembly);
+router.get('/assembly/:assemblyId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByAssembly);
 
 /**
  * @swagger

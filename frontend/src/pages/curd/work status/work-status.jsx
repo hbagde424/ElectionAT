@@ -24,7 +24,7 @@ import AlertWorkStatusDelete from './AlertWorkStatusDelete';
 import WorkStatusView from './WorkStatusView';
 import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
-import Map, { Source, Layer } from 'react-map-gl';
+import MapGL, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 
 export default function WorkStatusListPage() {
@@ -59,6 +59,104 @@ export default function WorkStatusListPage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const [boothsWithWorkStatus, setBoothsWithWorkStatus] = useState(new Set());
+    // Memoized maps/sets for efficient lookups
+    const normalizeBoothNo = (raw) => {
+        if (raw === null || raw === undefined) return '';
+        const s = String(raw).trim().toLowerCase();
+        // strip non-alphanumerics except slash/hyphen, and remove leading zeros for pure numbers
+        const cleaned = s.replace(/\s+/g, ' ').replace(/[^a-z0-9\/-]/g, '');
+        return cleaned.replace(/\b0+(?=\d)/g, '');
+    };
+    const boothIdToNumberMap = useMemo(() => {
+        const m = new Map();
+        booths.forEach((b) => {
+            m.set(String(b._id), normalizeBoothNo(b.booth_number));
+        });
+        return m;
+    }, [booths]);
+    const boothNumbersWithWorkStatus = useMemo(() => {
+        const s = new Set();
+        boothsWithWorkStatus.forEach((id) => {
+            const key = boothIdToNumberMap.get(String(id));
+            if (key) s.add(key);
+        });
+        return s;
+    }, [boothsWithWorkStatus, boothIdToNumberMap]);
+    
+    // Build a deduped FeatureCollection of point markers from booth polygons
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON || !Array.isArray(boothGeoJSON.features)) return null;
+
+        // approximate distance in meters using equirectangular approximation
+        const distanceMeters = (a, b) => {
+            if (!a || !b) return Infinity;
+            const R = 6371000; // meters
+            const toRad = (d) => (d * Math.PI) / 180;
+            const lat1 = toRad(a[1]);
+            const lat2 = toRad(b[1]);
+            const dLat = lat2 - lat1;
+            const dLon = toRad(b[0] - a[0]);
+            const x = dLon * Math.cos((lat1 + lat2) / 2);
+            const y = dLat;
+            return Math.sqrt(x * x + y * y) * R;
+        };
+
+        const centroidOf = (feature) => {
+            try {
+                const geom = feature.geometry;
+                if (!geom) return null;
+                const coords = [];
+                const collect = (arr) => arr.forEach((pt) => (Array.isArray(pt[0]) ? collect(pt) : coords.push(pt)));
+                if (geom.type === 'Polygon') collect(geom.coordinates);
+                if (geom.type === 'MultiPolygon') geom.coordinates.forEach((poly) => collect(poly));
+                if (!coords.length) return null;
+                const lng = coords.reduce((s, c) => s + c[0], 0) / coords.length;
+                const lat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
+                return [lng, lat];
+            } catch {
+                return null;
+            }
+        };
+
+        const seenBoothNos = new Set();
+        const seenKeys = new Set();
+        const keptCentroids = [];
+        const features = [];
+        const PROXIMITY_M = 30; // 30 meters
+
+        for (const f of boothGeoJSON.features) {
+            const props = f.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || '';
+            const boothNoNorm = normalizeBoothNo(boothNoRaw);
+            const center = centroidOf(f);
+            if (!center) continue;
+            const coordKey = `${center[0].toFixed(5)},${center[1].toFixed(5)}`;
+
+            let shouldKeep = false;
+            if (boothNoNorm && !seenBoothNos.has(boothNoNorm)) {
+                seenBoothNos.add(boothNoNorm);
+                shouldKeep = true;
+            } else if (!seenKeys.has(coordKey)) {
+                // proximity-based collapse
+                const tooClose = keptCentroids.some((c) => distanceMeters(c, center) <= PROXIMITY_M);
+                if (!tooClose) {
+                    seenKeys.add(coordKey);
+                    shouldKeep = true;
+                }
+            }
+
+            if (!shouldKeep) continue;
+            keptCentroids.push(center);
+            const hasWork = boothNumbersWithWorkStatus.has(boothNoNorm);
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: center },
+                properties: { ...props, boothNo: boothNoRaw, hasWorkStatus: hasWork }
+            });
+        }
+
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, boothNumbersWithWorkStatus]);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -551,10 +649,9 @@ export default function WorkStatusListPage() {
             const json = await res.json();
             let booth = null;
             if (json.success && Array.isArray(json.data)) {
-                const boothNoStr = String(boothNo).trim();
-                booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr)
-                    || json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase())
-                    || json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
+                const boothNoStr = normalizeBoothNo(boothNo);
+                booth = json.data.find(b => normalizeBoothNo(b.booth_number) === boothNoStr)
+                    || json.data.find(b => normalizeBoothNo(b.booth_number).includes(boothNoStr) || boothNoStr.includes(normalizeBoothNo(b.booth_number)));
             }
 
             let visits = [];
@@ -658,6 +755,24 @@ export default function WorkStatusListPage() {
                     }
                 });
                 setDrawerOpen(true);
+
+                // Sync table filters to this booth and reset pagination without full page refresh
+                try {
+                    const newFilters = {
+                        ...filters,
+                        state_id: booth?.state_id?._id || booth?.state_id || '',
+                        division_id: booth?.division_id?._id || booth?.division_id || '',
+                        parliament_id: booth?.parliament_id?._id || booth?.parliament_id || '',
+                        assembly_id: booth?.assembly_id?._id || booth?.assembly_id || '',
+                        block_id: booth?.block_id?._id || booth?.block_id || '',
+                        booth_id: booth?._id || ''
+                    };
+                    setTempFilters(newFilters);
+                    setFilters(newFilters);
+                    const newPageSize = pagination.pageSize || 10;
+                    setPagination({ pageIndex: 0, pageSize: newPageSize });
+                    fetchWorkStatuses(0, newPageSize, globalFilter, newFilters);
+                } catch {}
             } else {
                 setDrawerData({ loading: false, boothNo, details: null, error: 'Booth not found' });
                 setDrawerOpen(true);
@@ -1123,7 +1238,7 @@ export default function WorkStatusListPage() {
         }, 100);
     };
 
-    if (loading) return <EmptyReactTable />;
+    // Page-level loading removed; show inline loader row in table instead
 
     return (
         <>
@@ -1167,7 +1282,7 @@ export default function WorkStatusListPage() {
                         {mapError && <Alert severity="warning" sx={{ ml: 2 }}>{mapError}</Alert>}
                     </Stack>
                     <MapContainerStyled>
-                        <Map
+                        <MapGL
                             ref={mapRef}
                             mapboxAccessToken={mapboxToken}
                             initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
@@ -1231,58 +1346,7 @@ export default function WorkStatusListPage() {
                             )}
                             {/* Work Status Markers Layer - Show green dots for booths with data, red for without */}
                             {boothGeoJSON && (
-                                <Source 
-                                    id="booth-markers" 
-                                    type="geojson" 
-                                    data={{
-                                        type: 'FeatureCollection',
-                                        features: boothGeoJSON.features.map(feature => {
-                                            const props = feature.properties || {};
-                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                            
-                                            // Get centroid of the polygon for marker placement
-                                            let coordinates = [0, 0];
-                                            if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                const coords = feature.geometry.coordinates[0];
-                                                const lngs = coords.map(c => c[0]);
-                                                const lats = coords.map(c => c[1]);
-                                                coordinates = [
-                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                    lats.reduce((a, b) => a + b, 0) / lats.length
-                                                ];
-                                            } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                const coords = feature.geometry.coordinates[0][0];
-                                                const lngs = coords.map(c => c[0]);
-                                                const lats = coords.map(c => c[1]);
-                                                coordinates = [
-                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                    lats.reduce((a, b) => a + b, 0) / lats.length
-                                                ];
-                                            }
-                                            
-                                            // Check if booth has work status
-                                            const hasWorkStatus = Array.from(boothsWithWorkStatus).some(workStatusBoothId => {
-                                                const booth = booths.find(b => String(b._id) === workStatusBoothId);
-                                                if (booth) {
-                                                    return String(booth.booth_number) === String(boothNo);
-                                                }
-                                                return false;
-                                            });
-                                            
-                                            return {
-                                                type: 'Feature',
-                                                geometry: {
-                                                    type: 'Point',
-                                                    coordinates: coordinates
-                                                },
-                                                properties: {
-                                                    ...props,
-                                                    hasWorkStatus: hasWorkStatus
-                                                }
-                                            };
-                                        })
-                                    }}
-                                >
+                                <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                     <Layer
                                         id="booth-work-status-markers"
                                         type="circle"
@@ -1291,8 +1355,8 @@ export default function WorkStatusListPage() {
                                             'circle-color': [
                                                 'case',
                                                 ['get', 'hasWorkStatus'],
-                                                '#22c55e', // Green for booths with work status
-                                                '#ef4444'  // Red for booths without work status
+                                                '#22c55e',
+                                                '#ef4444'
                                             ],
                                             'circle-stroke-width': 2,
                                             'circle-stroke-color': '#ffffff',
@@ -1301,7 +1365,7 @@ export default function WorkStatusListPage() {
                                     />
                                 </Source>
                             )}
-                        </Map>
+                        </MapGL>
                     </MapContainerStyled>
                     
                     {/* Map Legend */}
@@ -1619,7 +1683,16 @@ export default function WorkStatusListPage() {
                                 ))}
                             </TableHead>
                             <TableBody>
-                                {table.getRowModel().rows.map((row) => (
+                                {loading && (
+                                    <TableRow>
+                                        <TableCell colSpan={table.getAllLeafColumns().length}>
+                                            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ py: 2 }}>
+                                                <Typography variant="body2">Loading...</Typography>
+                                            </Stack>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!loading && table.getRowModel().rows.map((row) => (
                                     <TableRow key={row.id}>
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id}>
