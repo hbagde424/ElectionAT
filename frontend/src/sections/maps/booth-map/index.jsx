@@ -3,7 +3,19 @@ import { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Map, { Source, Layer, Popup } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
-import { Box, Typography, CircularProgress, Select, MenuItem, FormControl, InputLabel, Drawer, Paper, Stack, Divider, Autocomplete, TextField } from '@mui/material';
+import { Box, Typography, CircularProgress, Select, MenuItem, FormControl, InputLabel, Drawer, Paper, Stack, Divider, Autocomplete, TextField, Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemAvatar, ListItemText, Chip, Button, Avatar, Skeleton } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EventIcon from '@mui/icons-material/Event';
+import GroupIcon from '@mui/icons-material/Group';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import FlagIcon from '@mui/icons-material/Flag';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import ConstructionIcon from '@mui/icons-material/Construction';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 function BoothMap({ themes, onRegionClick, ...other }) {
   const theme = useTheme();
@@ -13,6 +25,9 @@ function BoothMap({ themes, onRegionClick, ...other }) {
   const [boothsList, setBoothsList] = useState([]); // List of booths for dropdown
   const [selectedBoothNo, setSelectedBoothNo] = useState(''); // Selected booth number
   const [selectedBoothDetails, setSelectedBoothDetails] = useState(null); // Details of selected booth
+  const [extraDataLoading, setExtraDataLoading] = useState(false);
+  const [extraDataError, setExtraDataError] = useState(null);
+  const [boothAggregates, setBoothAggregates] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [popupInfo, setPopupInfo] = useState(null);
@@ -132,6 +147,126 @@ function BoothMap({ themes, onRegionClick, ...other }) {
 
   // Removed block-based fetching/UI; loading all booths instead
 
+  // Helper to add Authorization header when token exists
+  const getAuthHeaders = () => {
+    try {
+      const token = localStorage.serviceToken;
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch (err) {
+      return {};
+    }
+  };
+
+  // Fetch aggregated per-booth datasets in parallel
+  const fetchBoothAggregates = async (booth) => {
+    if (!booth || !booth._id) return;
+    const base = import.meta.env.VITE_APP_API_URL;
+    const headers = getAuthHeaders();
+    setExtraDataLoading(true);
+    setExtraDataError(null);
+    setBoothAggregates(null);
+    try {
+      const boothId = encodeURIComponent(booth._id);
+
+      const reqs = {
+        events: fetch(`${base}/events?booth=${boothId}&all=true`, { headers }),
+        partyActivities: fetch(`${base}/party-activities?booth=${boothId}&all=true`, { headers }),
+        visits: fetch(`${base}/visits?booth=${boothId}&all=true`, { headers }),
+        influencers: fetch(`${base}/influencers?booth=${boothId}&all=true`, { headers }),
+        volunteers1: fetch(`${base}/booth-volunteers?booth_id=${boothId}&all=true`, { headers }),
+        volunteers2: fetch(`${base}/booth-volunteers?booth=${boothId}&all=true`, { headers }),
+        volunteers3: fetch(`${base}/booth-volunteers/booth/${boothId}`, { headers }),
+        gender: fetch(`${base}/genders/booth/${boothId}`, { headers }),
+        governments: fetch(`${base}/governments?booth=${boothId}&all=true`, { headers }),
+        localIssues: fetch(`${base}/local-issues?booth=${boothId}&all=true`, { headers }),
+        samitis: fetch(`${base}/samitis?booth_id=${boothId}&limit=100`, { headers }),
+        workStatuses: fetch(`${base}/work-status/booth/${boothId}`, { headers }),
+        winningParties: fetch(`${base}/winning-parties?booth=${boothId}&all=true`, { headers }),
+        boothVotes: fetch(`${base}/booth-votes/booth/${boothId}`, { headers })
+      };
+
+      const settled = await Promise.allSettled(Object.values(reqs));
+      const keys = Object.keys(reqs);
+
+      const toJson = async (res) => {
+        try { return await res.json(); } catch { return null; }
+      };
+
+      const out = {};
+      for (let i = 0; i < settled.length; i++) {
+        const key = keys[i];
+        const st = settled[i];
+        if (st.status === 'fulfilled' && st.value && st.value.ok) {
+          const j = await toJson(st.value);
+          out[key] = j;
+        } else {
+          out[key] = null;
+        }
+      }
+
+      // Normalize volunteers (first successful variant wins)
+      let volunteers = [];
+      for (const vKey of ['volunteers1', 'volunteers2', 'volunteers3']) {
+        const j = out[vKey];
+        if (j && j.success) {
+          if (Array.isArray(j.data)) { volunteers = j.data; break; }
+          if (Array.isArray(j)) { volunteers = j; break; }
+        }
+      }
+
+      // Normalize gender with fallback to booth counts
+      let gender = null;
+      const g = out.gender;
+      if (g && g.success) {
+        let gd = null;
+        if (Array.isArray(g.data) && g.data.length) gd = g.data[0]; else if (g.data && typeof g.data === 'object') gd = g.data;
+        if (gd) gender = { male: gd.male || 0, female: gd.female || 0, others: gd.others || 0, total: (gd.male||0)+(gd.female||0)+(gd.others||0) };
+      }
+      if (!gender) {
+        const male = Number(booth?.Male_Count ?? booth?.male ?? 0) || 0;
+        const female = Number(booth?.Female_Count ?? booth?.female ?? 0) || 0;
+        const others = Number(booth?.others_Count ?? booth?.others ?? 0) || 0;
+        const total = Number(booth?.Total ?? booth?.total ?? (male + female + others)) || (male + female + others);
+        gender = { male, female, others, total };
+      }
+
+      // Simple extract helper
+      const extractList = (j) => (j && j.success && Array.isArray(j.data)) ? j.data : [];
+
+      // Compute work status summary
+      const workStatuses = extractList(out.workStatuses);
+      const workSummary = { total: workStatuses.length, completed: 0, in_progress: 0, in_complete: 0, announced: 0, other: 0 };
+      workStatuses.forEach(ws => {
+        const s = (ws.status || '').toLowerCase();
+        if (s === 'completed') workSummary.completed++;
+        else if (s === 'in progress') workSummary.in_progress++;
+        else if (s === 'in complete') workSummary.in_complete++;
+        else if (s === 'announced') workSummary.announced++;
+        else workSummary.other++;
+      });
+
+      setBoothAggregates({
+        events: extractList(out.events),
+        partyActivities: extractList(out.partyActivities),
+        visits: extractList(out.visits),
+        influencers: extractList(out.influencers),
+        volunteers,
+        gender,
+        governments: extractList(out.governments),
+        localIssues: extractList(out.localIssues),
+        samitis: extractList(out.samitis),
+        workStatuses,
+        workSummary,
+        winningParties: extractList(out.winningParties),
+        boothVotes: extractList(out.boothVotes)
+      });
+    } catch (err) {
+      setExtraDataError(err.message || 'Failed to fetch booth data');
+    } finally {
+      setExtraDataLoading(false);
+    }
+  };
+
   // Handle booth selection from dropdown
   const handleBoothSelect = async (boothNo) => {
     if (!boothNo) {
@@ -158,14 +293,27 @@ function BoothMap({ themes, onRegionClick, ...other }) {
       
       // Fetch full booth details from API using booth_number
       try {
-        const resp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothNo)}`);
-        if (resp.ok) {
-          const body = await resp.json();
-          const arr = Array.isArray(body.data) ? body.data : [];
-          // Find exact match by booth_number
-          const exact = arr.find(b => String(b.booth_number) === String(boothNo)) || arr[0];
-          
-          if (exact) {
+        // Prefer robust matching by fetching all booths and matching normalized numbers
+        const headers = getAuthHeaders();
+        const allRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
+        let exact = null;
+        if (allRes.ok) {
+          const allJson = await allRes.json();
+          const arr = Array.isArray(allJson.data) ? allJson.data : [];
+          const norm = (v) => String(v ?? '').trim().toLowerCase();
+          exact = arr.find(b => norm(b.booth_number) === norm(boothNo))
+               || arr.find(b => norm(b.booth_number).includes(norm(boothNo)) || norm(boothNo).includes(norm(b.booth_number)));
+        }
+        if (!exact) {
+          // Fallback to search endpoint
+          const resp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothNo)}`, { headers });
+          if (resp.ok) {
+            const body = await resp.json();
+            const arr = Array.isArray(body.data) ? body.data : [];
+            exact = arr.find(b => String(b.booth_number) === String(boothNo)) || arr[0];
+          }
+        }
+        if (exact) {
             // Fetch additional related data if needed
             const boothDetails = {
               _id: exact._id,
@@ -192,12 +340,13 @@ function BoothMap({ themes, onRegionClick, ...other }) {
             
             setSelectedBoothDetails(boothDetails);
             setDrawerOpen(true);
+            // Kick off aggregates load
+            fetchBoothAggregates(exact);
             
             // Trigger onRegionClick for external filtering
             if (onRegionClick) {
               onRegionClick({ level: 'booth', id: exact._id });
             }
-          }
         }
       } catch (err) {
         setError('Failed to fetch booth details');
@@ -619,6 +768,177 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                 </Stack>
               </Paper>
             )}
+
+            {/* Aggregated Sections - nicer UI using Accordions, icons, avatars and chips */}
+            {(() => {
+              const S = ({ title, items = [], IconComp, renderPrimary, renderSecondary, viewPath }) => (
+                <Accordion key={title} sx={{ boxShadow: 'none', mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 36, height: 36 }}>
+                        <IconComp style={{ color: '#fff' }} fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle2">{title}</Typography>
+                      <Chip label={items?.length || 0} size="small" sx={{ ml: 'auto' }} />
+                    </Stack>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    {extraDataLoading && !boothAggregates ? (
+                      <Skeleton variant="rectangular" height={80} />
+                    ) : (items && items.length > 0) ? (
+                      <List dense>
+                        {items.slice(0, 5).map(it => (
+                          <ListItem key={it._id || it.id || JSON.stringify(it)} alignItems="flex-start" sx={{ py: 0.5 }}>
+                            <ListItemAvatar>
+                              <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
+                                <IconComp fontSize="small" />
+                              </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText
+                              primary={renderPrimary ? renderPrimary(it) : (it.title || it.name || it.samiti_name || it.issue_name || it.work_name || it.candidate_name || it.person_name || it.username || '—')}
+                              secondary={renderSecondary ? renderSecondary(it) : (it.date ? new Date(it.date).toLocaleDateString('en-IN') : (it.status || it.locationName || ''))}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    ) : (
+                      <Typography variant="body2">No records found.</Typography>
+                    )}
+
+                    {viewPath && items && items.length > 0 && selectedBoothDetails && (
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                        <Button size="small" onClick={() => window.open(`${viewPath}?booth=${selectedBoothDetails._id}`, '_blank')}>View more</Button>
+                      </Box>
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              );
+
+              return (
+                <Box>
+                  {/* Gender - show compact stats */}
+                  <Paper elevation={0} sx={{ p: 1, mb: 1 }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}><GroupIcon style={{ color: '#fff' }} /></Avatar>
+                      <Box>
+                        <Typography variant="subtitle2">Gender</Typography>
+                        {boothAggregates?.gender ? (
+                          <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                            <Chip label={`M ${boothAggregates.gender.male}`} color="info" size="small" />
+                            <Chip label={`F ${boothAggregates.gender.female}`} color="secondary" size="small" />
+                            <Chip label={`O ${boothAggregates.gender.others}`} size="small" />
+                            <Chip label={`T ${boothAggregates.gender.total}`} variant="outlined" size="small" />
+                          </Stack>
+                        ) : extraDataLoading ? (
+                          <Skeleton variant="text" width={120} />
+                        ) : (
+                          <Typography variant="caption">No gender data</Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </Paper>
+
+                  {S({
+                    title: `Events (${boothAggregates?.events?.length || 0})`,
+                    items: boothAggregates?.events || [],
+                    IconComp: EventIcon,
+                    renderPrimary: (ev) => ev.title || ev.event_name || 'Event',
+                    renderSecondary: (ev) => ev.date ? new Date(ev.date).toLocaleDateString('en-IN') : ev.location || '',
+                    viewPath: '/curd/events'
+                  })}
+
+                  {S({
+                    title: `Party Activities (${boothAggregates?.partyActivities?.length || 0})`,
+                    items: boothAggregates?.partyActivities || [],
+                    IconComp: FlagIcon,
+                    renderPrimary: (a) => a.activity_name || a.title || 'Activity',
+                    renderSecondary: (a) => a.date ? new Date(a.date).toLocaleDateString('en-IN') : a.description || '' ,
+                    viewPath: '/curd/party-activities'
+                  })}
+
+                  {S({
+                    title: `Visits (${boothAggregates?.visits?.length || 0})`,
+                    items: boothAggregates?.visits || [],
+                    IconComp: VisibilityIcon,
+                    renderPrimary: (v) => `${v.candidate_id?.name || v.person_name || 'Visit'}`,
+                    renderSecondary: (v) => v.date ? new Date(v.date).toLocaleDateString('en-IN') : v.locationName || '',
+                    viewPath: '/curd/visits'
+                  })}
+
+                  {S({
+                    title: `Influencers (${boothAggregates?.influencers?.length || 0})`,
+                    items: boothAggregates?.influencers || [],
+                    IconComp: AccountCircleIcon,
+                    renderPrimary: (p) => p.name || p.person_name || p.phone || 'Influencer',
+                    renderSecondary: (p) => p.designation || p.address || '',
+                    viewPath: '/curd/influancer'
+                  })}
+
+                  {S({
+                    title: `Volunteers (${boothAggregates?.volunteers?.length || 0})`,
+                    items: boothAggregates?.volunteers || [],
+                    IconComp: VolunteerActivismIcon,
+                    renderPrimary: (p) => p.name || p.username || p.phone || 'Volunteer',
+                    renderSecondary: (p) => p.party?.name || p.role || '',
+                    viewPath: '/curd/volunteer'
+                  })}
+
+                  {S({
+                    title: `Government Schemes (${boothAggregates?.governments?.length || 0})`,
+                    items: boothAggregates?.governments || [],
+                    IconComp: LocalHospitalIcon,
+                    renderPrimary: (s) => s.name || 'Scheme',
+                    renderSecondary: (s) => s.amount ? `₹${Number(s.amount).toLocaleString()}` : s.type || '',
+                    viewPath: '/curd/Government Schema'
+                  })}
+
+                  {S({
+                    title: `Local Issues (${boothAggregates?.localIssues?.length || 0})`,
+                    items: boothAggregates?.localIssues || [],
+                    IconComp: ReportProblemIcon,
+                    renderPrimary: (it) => it.issue_name || 'Issue',
+                    renderSecondary: (it) => it.status || it.priority || '',
+                    viewPath: '/curd/local-issue'
+                  })}
+
+                  {S({
+                    title: `Samiti (${boothAggregates?.samitis?.length || 0})`,
+                    items: boothAggregates?.samitis || [],
+                    IconComp: GroupIcon,
+                    renderPrimary: (s) => s.samiti_name || 'Samiti',
+                    renderSecondary: (s) => s.leader || '',
+                    viewPath: '/curd/samitis'
+                  })}
+
+                  {S({
+                    title: `Work Status (${boothAggregates?.workSummary?.total || 0})`,
+                    items: boothAggregates?.workStatuses || [],
+                    IconComp: ConstructionIcon,
+                    renderPrimary: (w) => w.work_name || 'Work',
+                    renderSecondary: (w) => w.status || w.progress || '',
+                    viewPath: '/curd/work-status'
+                  })}
+
+                  {S({
+                    title: `Winning Assembly (${boothAggregates?.winningParties?.length || 0})`,
+                    items: boothAggregates?.winningParties || [],
+                    IconComp: EmojiEventsIcon,
+                    renderPrimary: (wp) => wp.candidate_id?.name || wp.candidate_name || 'Candidate',
+                    renderSecondary: (wp) => `${wp.party_id?.name || wp.party_name || ''} • ${wp.election_year?.year || wp.election_year || ''}`,
+                    viewPath: '/curd/winning-parties'
+                  })}
+
+                  {S({
+                    title: `Booth Votes (${boothAggregates?.boothVotes?.length || 0})`,
+                    items: boothAggregates?.boothVotes || [],
+                    IconComp: HowToVoteIcon,
+                    renderPrimary: (v) => (typeof v.candidate_name === 'string' ? v.candidate_name : (v.candidate_name?.name || v.party_name || 'Candidate')),
+                    renderSecondary: (v) => `Votes: ${v.votes ?? v.vote_count ?? 'N/A'}`,
+                    viewPath: '/curd/booth-votes'
+                  })}
+                </Box>
+              );
+            })()}
           </Stack>
         )}
       </Drawer>
