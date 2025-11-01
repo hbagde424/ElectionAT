@@ -562,6 +562,7 @@ function HierarchicalMap({ onRegionClick }) {
                     level: panelLevel,
                     data: updatedData
                 });
+                // Stop loading when data arrives
                 setIsPanelLoading(false);
             }
         }
@@ -1471,9 +1472,10 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         } else if (level === 'parliamentary') {
                             const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                            const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
                             if (parliamentId && !hoverData[cacheKey]?.parliamentData) {
-
-                                fetchParliamentData(parliamentId);
+                                console.log('🔍 Hover: Fetching parliament data - ID:', parliamentId, 'Name:', parliamentName);
+                                fetchParliamentData(parliamentId, parliamentName);
                             }
                         } else if (level === 'assembly') {
                             const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
@@ -1773,9 +1775,9 @@ function HierarchicalMap({ onRegionClick }) {
     };
 
     // Function to fetch comprehensive parliament data
-    const fetchParliamentData = async (parliamentId) => {
+    const fetchParliamentData = async (parliamentId, parliamentName = null) => {
         try {
-
+            console.log('🔍 fetchParliamentData called with:', { parliamentId, parliamentName });
             
             // Fetch parliament basic info
             let parliamentResponse;
@@ -1790,7 +1792,44 @@ function HierarchicalMap({ onRegionClick }) {
             if (parliamentResponse.ok) {
                 const result = await parliamentResponse.json();
                 if (result.success) {
-                    parliamentData = Array.isArray(result.data) ? result.data[0] : result.data;
+                    // If API returns array, try to find exact match by parliament number and name
+                    if (Array.isArray(result.data)) {
+                        const needle = String(parliamentId).trim();
+                        
+                        // First try exact match by PC number and name (if name provided)
+                        let exact = null;
+                        if (parliamentName) {
+                            exact = result.data.find(p => {
+                                if (!p) return false;
+                                const pcNo = String(p.parliament_no || p.PC_NO || p.pc_no || '').trim();
+                                const pcName = String(p.name || p.PC_NAME || p.pc_name || '').trim().toLowerCase();
+                                const searchName = String(parliamentName).trim().toLowerCase();
+                                return pcNo === needle && pcName === searchName;
+                            });
+                        }
+                        
+                        // If not found by name, try exact match by PC number only
+                        if (!exact) {
+                            exact = result.data.find(p => {
+                                if (!p) return false;
+                                const pcNo = String(p.parliament_no || p.PC_NO || p.pc_no || '').trim();
+                                return pcNo === needle;
+                            });
+                        }
+                        
+                        if (exact) {
+                            parliamentData = exact;
+                            console.log('✅ Found exact parliament match:', parliamentData.name || parliamentData.PC_NAME);
+                        } else if (result.data.length === 1) {
+                            parliamentData = result.data[0];
+                            console.log('⚠️ Using single result:', parliamentData.name || parliamentData.PC_NAME);
+                        } else {
+                            console.warn('⚠️ Multiple results found, no exact match. Using first:', result.data[0]);
+                            parliamentData = result.data[0];
+                        }
+                    } else {
+                        parliamentData = result.data;
+                    }
 
                 }
             }
@@ -1877,7 +1916,19 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-
+            console.error('❌ Error fetching parliament data:', error);
+            // Set empty data to prevent infinite loading
+            setHoverData(prev => ({
+                ...prev,
+                [`parliamentary_${parliamentId}`]: {
+                    parliamentData: {},
+                    genderData: {},
+                    winningData: {},
+                    assembliesData: [],
+                    totalBooths: 0,
+                    error: true
+                }
+            }));
         }
     };
 
@@ -2508,10 +2559,16 @@ function HierarchicalMap({ onRegionClick }) {
         setPanelLevel(level);
         setIsPanelOpen(true);
 
+        // Set timeout to stop loading after 10 seconds
+        const loadingTimeout = setTimeout(() => {
+            console.warn('⏱️ Loading timeout reached for', level, cacheKey);
+            setIsPanelLoading(false);
+        }, 10000);
+
         // Check if we already have data in hoverData cache
         const existingData = hoverData[cacheKey];
         if (existingData && Object.keys(existingData).length > 0) {
-
+            clearTimeout(loadingTimeout);
             setIsPanelLoading(false);
             return;
         }
@@ -2533,9 +2590,10 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             } else if (level === 'parliamentary') {
                 const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
                 if (parliamentId) {
-
-                    await fetchParliamentData(parliamentId);
+                    console.log('🔍 Fetching parliament data - ID:', parliamentId, 'Name:', parliamentName);
+                    await fetchParliamentData(parliamentId, parliamentName);
                 }
             } else if (level === 'assembly') {
                 const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
@@ -2595,6 +2653,8 @@ function HierarchicalMap({ onRegionClick }) {
 
             // Data will be automatically updated via useEffect when hoverData changes
         } catch (error) {
+            console.error('❌ Error in handleSingleClick:', error);
+            clearTimeout(loadingTimeout);
             setIsPanelLoading(false);
         }
     };
