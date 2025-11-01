@@ -408,6 +408,28 @@ export default function GenderListPage() {
         }
     };
 
+    // Fetch booths with gender data
+    const fetchBoothsWithGender = async () => {
+        try {
+            const headers = getAuthHeaders();
+            const genderRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`, { headers });
+            const genderJson = await genderRes.json();
+            if (genderJson.success && Array.isArray(genderJson.data)) {
+                const boothIds = new Set();
+                genderJson.data.forEach(gender => {
+                    if (gender.booth_id) {
+                        const boothId = gender.booth_id._id || gender.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithGender(boothIds);
+                console.log('✅ Booths with gender data updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with gender:', err);
+        }
+    };
+
     // Map: Load booth polygons by block (robust, like Work Status)
     const loadBoothPolygonsByBlock = async (blockVal) => {
         if (!blockVal) {
@@ -417,27 +439,6 @@ export default function GenderListPage() {
         setMapError('');
         try {
             const headers = getAuthHeaders();
-
-            // Fetch booths with gender data
-            const fetchBoothsWithGender = async () => {
-                try {
-                    const genderRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`, { headers });
-                    const genderJson = await genderRes.json();
-                    if (genderJson.success && Array.isArray(genderJson.data)) {
-                        const boothIds = new Set();
-                        genderJson.data.forEach(gender => {
-                            if (gender.booth_id) {
-                                const boothId = gender.booth_id._id || gender.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithGender(boothIds);
-                        console.log('✅ Booths with gender data:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with gender:', err);
-                }
-            };
 
             fetchBoothsWithGender();
 
@@ -1519,14 +1520,20 @@ export default function GenderListPage() {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchGenderList(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchGenderList(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithGender();
+                }}
             />
 
             <AlertGenderDelete
                 id={genderDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchGenderList(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchGenderList(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithGender();
+                }}
             />
         </>
     );

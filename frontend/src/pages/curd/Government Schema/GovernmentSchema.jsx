@@ -373,6 +373,29 @@ export default function GovernmentsListPage() {
         }
     };
 
+    // Fetch booths with government schemes
+    const fetchBoothsWithGovernmentScheme = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const schemesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`, { headers });
+            const schemesJson = await schemesRes.json();
+            if (schemesJson.success && Array.isArray(schemesJson.data)) {
+                const boothIds = new Set();
+                schemesJson.data.forEach(scheme => {
+                    if (scheme.booth_id) {
+                        const boothId = scheme.booth_id._id || scheme.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithGovernmentScheme(boothIds);
+                console.log('✅ Booths with government schemes updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with schemes:', err);
+        }
+    };
+
     // Load booth polygons by block name or id (tries multiple backend endpoints)
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -383,27 +406,6 @@ export default function GovernmentsListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with government schemes
-            const fetchBoothsWithGovernmentScheme = async () => {
-                try {
-                    const schemesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`, { headers });
-                    const schemesJson = await schemesRes.json();
-                    if (schemesJson.success && Array.isArray(schemesJson.data)) {
-                        const boothIds = new Set();
-                        schemesJson.data.forEach(scheme => {
-                            if (scheme.booth_id) {
-                                const boothId = scheme.booth_id._id || scheme.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithGovernmentScheme(boothIds);
-                        console.log('✅ Booths with government schemes:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with schemes:', err);
-                }
-            };
 
             fetchBoothsWithGovernmentScheme();
 
@@ -1634,14 +1636,20 @@ export default function GovernmentsListPage() {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchGovernments(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchGovernments(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithGovernmentScheme();
+                }}
             />
 
             <AlertGovernmentDelete
                 id={governmentDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchGovernments(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchGovernments(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithGovernmentScheme();
+                }}
             />
         </>
     );

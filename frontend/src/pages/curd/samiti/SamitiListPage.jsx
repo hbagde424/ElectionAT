@@ -270,6 +270,32 @@ const SamitiListPage = () => {
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
+    // Fetch booths that have samiti data
+    const fetchBoothsWithSamiti = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+            const response = await fetch(`${apiUrl}/samitis`, { headers });
+            if (response.ok) {
+                const data = await response.json();
+                const samitis = data.data || data;
+                const boothIds = new Set();
+                samitis.forEach(samiti => {
+                    if (samiti.booth_id?._id) {
+                        boothIds.add(String(samiti.booth_id._id));
+                    } else if (samiti.booth_id) {
+                        boothIds.add(String(samiti.booth_id));
+                    }
+                });
+                setBoothsWithSamiti(boothIds);
+                console.log('✅ Booths with samiti updated:', boothIds.size);
+            }
+        } catch (error) {
+            console.error('Error fetching booths with samiti:', error);
+        }
+    };
+
     // Load booth polygons by block
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -281,28 +307,6 @@ const SamitiListPage = () => {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            // Fetch booths that have samiti data
-            const fetchBoothsWithSamiti = async () => {
-                try {
-                    const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-                    const response = await fetch(`${apiUrl}/samitis`, { headers });
-                    if (response.ok) {
-                        const data = await response.json();
-                        const samitis = data.data || data;
-                        const boothIds = new Set();
-                        samitis.forEach(samiti => {
-                            if (samiti.booth_id?._id) {
-                                boothIds.add(String(samiti.booth_id._id));
-                            } else if (samiti.booth_id) {
-                                boothIds.add(String(samiti.booth_id));
-                            }
-                        });
-                        setBoothsWithSamiti(boothIds);
-                    }
-                } catch (error) {
-                    console.error('Error fetching booths with samiti:', error);
-                }
-            };
             await fetchBoothsWithSamiti();
 
             if (blockInput === 'ALL') {
@@ -1318,14 +1322,20 @@ const SamitiListPage = () => {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter)}
+                refresh={() => {
+                    fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
+                    fetchBoothsWithSamiti();
+                }}
             />
 
             <AlertSamitiDelete
                 open={deleteAlert.open}
                 handleClose={() => setDeleteAlert({ open: false, id: null })}
                 id={deleteAlert.id}
-                refresh={() => fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter)}
+                refresh={() => {
+                    fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
+                    fetchBoothsWithSamiti();
+                }}
             />
         </>
     );

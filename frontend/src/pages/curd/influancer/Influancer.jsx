@@ -411,6 +411,29 @@ export default function InfluencersListPage() {
         }
     };
 
+    // Fetch booths with influencers
+    const fetchBoothsWithInfluencers = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const influencersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`, { headers });
+            const influencersJson = await influencersRes.json();
+            if (influencersJson.success && Array.isArray(influencersJson.data)) {
+                const boothIds = new Set();
+                influencersJson.data.forEach(influencer => {
+                    if (influencer.booth_id) {
+                        const boothId = influencer.booth_id._id || influencer.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithInfluencers(boothIds);
+                console.log('✅ Booths with influencers updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with influencers:', err);
+        }
+    };
+
     // Load booth polygons by block name or id (tries multiple backend endpoints)
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -421,27 +444,6 @@ export default function InfluencersListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with influencers
-            const fetchBoothsWithInfluencers = async () => {
-                try {
-                    const influencersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`, { headers });
-                    const influencersJson = await influencersRes.json();
-                    if (influencersJson.success && Array.isArray(influencersJson.data)) {
-                        const boothIds = new Set();
-                        influencersJson.data.forEach(influencer => {
-                            if (influencer.booth_id) {
-                                const boothId = influencer.booth_id._id || influencer.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithInfluencers(boothIds);
-                        console.log('✅ Booths with influencers:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with influencers:', err);
-                }
-            };
 
             fetchBoothsWithInfluencers();
 
@@ -1753,14 +1755,20 @@ export default function InfluencersListPage() {
                 districts={districts}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchInfluencers(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchInfluencers(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithInfluencers();
+                }}
             />
 
             <AlertInfluencerDelete
                 id={influencerDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchInfluencers(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchInfluencers(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithInfluencers();
+                }}
             />
         </>
     );
