@@ -112,10 +112,14 @@ exports.login = async (req, res, next) => {
     // Create token
     const token = generateToken(user._id);
 
-    // If user is assembly user, fetch the map data
+    // If user is Assembly user, fetch the map data
     let assemblyMap = null;
-    if (user.role === 'assembly') {
-      assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: user.regionIds } }); // updated to check in array
+    if (user.role === 'Assembly') {
+      // When role is Assembly, prefer assembly_ids from User schema
+      const assemblyIds = Array.isArray(user.assembly_ids) ? user.assembly_ids : [];
+      if (assemblyIds.length > 0) {
+        assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: assemblyIds } });
+      }
     }
 
     res.status(200).json({
@@ -125,9 +129,15 @@ exports.login = async (req, res, next) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        regionIds: user.regionIds, // changed from regionId to regionIds
-        regionModel: user.regionModel,
-        isActive: user.isActive // added isActive field
+        username: user.username,
+        isActive: user.isActive,
+        // Include hierarchical scopes so frontend can infer hierarchy when needed
+        state_ids: user.state_ids || [],
+        division_ids: user.division_ids || [],
+        parliament_ids: user.parliament_ids || [],
+        assembly_ids: user.assembly_ids || [],
+        block_ids: user.block_ids || [],
+        booth_ids: user.booth_ids || []
       },
       assemblyMap: assemblyMap || undefined
     });
@@ -144,8 +154,11 @@ exports.getMe = async (req, res, next) => {
     const user = await User.findById(req.user.id);
 
     let assemblyMap = null;
-    if (user.role === 'assembly') {
-      assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: user.regionIds } }); // updated to check in array
+    if (user.role === 'Assembly') {
+      const assemblyIds = Array.isArray(user.assembly_ids) ? user.assembly_ids : [];
+      if (assemblyIds.length > 0) {
+        assemblyMap = await AssemblyMap.findOne({ assemblyId: { $in: assemblyIds } });
+      }
     }
 
     res.status(200).json({
@@ -154,9 +167,14 @@ exports.getMe = async (req, res, next) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        regionIds: user.regionIds, // changed from regionId to regionIds
-        regionModel: user.regionModel,
-        isActive: user.isActive // added isActive field
+        username: user.username,
+        isActive: user.isActive,
+        state_ids: user.state_ids || [],
+        division_ids: user.division_ids || [],
+        parliament_ids: user.parliament_ids || [],
+        assembly_ids: user.assembly_ids || [],
+        block_ids: user.block_ids || [],
+        booth_ids: user.booth_ids || []
       },
       assemblyMap: assemblyMap || undefined
     });

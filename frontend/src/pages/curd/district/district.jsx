@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import DistrictModal from './DistrictModal';
 import AlertDistrictDelete from './AlertDistrictDelete';
@@ -24,6 +25,7 @@ import DistrictView from './DistritView';
 export default function DistrictListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
     // Clear all filters and reload districts
     const handleClearFilter = () => {
         setFilters({
@@ -105,6 +107,39 @@ export default function DistrictListPage() {
         }
     };
 
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all district data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all district data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entity = userHierarchy[highestLevel];
+        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
+
+        return {
+            level: levelName,
+            entity: entityName,
+            description: `You have access to district data for ${entityName} ${levelName} and all areas within it`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
+
     const fetchDistricts = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
@@ -114,6 +149,9 @@ export default function DistrictListPage() {
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
             if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
+
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const token = localStorage.getItem('serviceToken');
@@ -333,46 +371,28 @@ export default function DistrictListPage() {
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
-        const allData = await fetchAllDistrictsForCsv();
-        setCsvData(allData.map(item => ({
-            Name: item.name,
-            State: item.state_id?.name || '',
-            Division: item.division_id?.name || '',
-            Parliament: item.parliament_id?.name || '',
-            Assembly: item.assembly_id?.name || '',
-            // Status: item.is_active ? 'Active' : 'Inactive',
-            'Created By': item.created_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
-        })));
-        setLoading(true);
         try {
-            const queryParams = [];
-            if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
-            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
-            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
-            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
-            if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
-
-            let url;
-            let ignorePagination = !!globalFilter;
-            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            if (ignorePagination) {
-                url = `${import.meta.env.VITE_APP_API_URL}/districts?page=1&limit=10000${queryString}`;
-            } else {
-                url = `${import.meta.env.VITE_APP_API_URL}/districts?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
-            }
-            const token = localStorage.getItem('serviceToken');
-            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-            const json = await res.json();
-            if (json.success) {
-                setDistricts(json.data);
-                setPageCount(ignorePagination ? 1 : json.pages);
-            }
+            const allData = await fetchAllDistrictsForCsv();
+            setCsvData(allData.map(item => ({
+                Name: item.name,
+                State: item.state_id?.name || '',
+                Division: item.division_id?.name || '',
+                Parliament: item.parliament_id?.name || '',
+                Assembly: item.assembly_id?.name || '',
+                // Status: item.is_active ? 'Active' : 'Inactive',
+                'Created By': item.created_by?.username || '',
+                'Created At': item.created_at,
+                'Updated At': item.updated_at
+            })));
+            setTimeout(() => {
+                if (csvLinkRef.current) {
+                    csvLinkRef.current.link.click();
+                }
+            }, 100);
         } catch (error) {
-            console.error('Failed to fetch districts:', error);
+            console.error('Failed to generate CSV:', error);
         } finally {
-            setLoading(false);
+            setCsvLoading(false);
         }
     };
 
@@ -422,6 +442,17 @@ export default function DistrictListPage() {
                         </Button>
                     </Stack>
                 </Stack>
+
+                {/* Access Scope Information */}
+                <Alert
+                    severity="info"
+                    sx={{ m: 2 }}
+                >
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {accessScope.description}
+                    </Typography>
+                </Alert>
+
                 <Stack
                     direction="row"
                     spacing={2}
