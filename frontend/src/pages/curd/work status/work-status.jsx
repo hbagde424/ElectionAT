@@ -450,6 +450,28 @@ export default function WorkStatusListPage() {
         }
     };
 
+    // Fetch booths with work status to mark them on the map
+    const fetchBoothsWithWorkStatus = async () => {
+        try {
+            const headers = getAuthHeaders();
+            const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
+            const workStatusJson = await workStatusRes.json();
+            if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
+                const boothIds = new Set();
+                workStatusJson.data.forEach(workStatus => {
+                    if (workStatus.booth_id) {
+                        const boothId = workStatus.booth_id._id || workStatus.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithWorkStatus(boothIds);
+                console.log('✅ Booths with work status updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with work status:', err);
+        }
+    };
+
     // Apply a prefilled filter (from Drawer) for a specific booth and status
     const applyPrefilledFilter = (status) => {
         try {
@@ -482,27 +504,6 @@ export default function WorkStatusListPage() {
         setMapError('');
         try {
             const headers = getAuthHeaders();
-
-            // Fetch booths with work status to mark them on the map
-            const fetchBoothsWithWorkStatus = async () => {
-                try {
-                    const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
-                    const workStatusJson = await workStatusRes.json();
-                    if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
-                        const boothIds = new Set();
-                        workStatusJson.data.forEach(workStatus => {
-                            if (workStatus.booth_id) {
-                                const boothId = workStatus.booth_id._id || workStatus.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithWorkStatus(boothIds);
-                        console.log('✅ Booths with work status:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with work status:', err);
-                }
-            };
 
             // Fetch booths with work status in parallel
             fetchBoothsWithWorkStatus();
@@ -1913,14 +1914,20 @@ export default function WorkStatusListPage() {
                 divisions={divisions}
                 states={states}
                 districts={districts}
-                refresh={() => fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter)}
+                refresh={() => {
+                    fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
+                    fetchBoothsWithWorkStatus();
+                }}
             />
 
             <AlertWorkStatusDelete
                 id={workStatusDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter)}
+                refresh={() => {
+                    fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
+                    fetchBoothsWithWorkStatus();
+                }}
             />
         </>
     );

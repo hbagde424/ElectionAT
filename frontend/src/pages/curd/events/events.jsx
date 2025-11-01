@@ -461,6 +461,29 @@ export default function EventListPage() {
         }
     };
 
+    // Fetch booths with events to mark them on the map
+    const fetchBoothsWithEvents = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const eventsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/events?all=true&limit=50000`, { headers });
+            const eventsJson = await eventsRes.json();
+            if (eventsJson.success && Array.isArray(eventsJson.data)) {
+                const boothIds = new Set();
+                eventsJson.data.forEach(event => {
+                    if (event.booth_id) {
+                        const boothId = event.booth_id._id || event.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithEvents(boothIds);
+                console.log('✅ Booths with events updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with events:', err);
+        }
+    };
+
     // Load booth polygons by block name or id (tries multiple backend endpoints)
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -471,27 +494,6 @@ export default function EventListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with events to mark them on the map
-            const fetchBoothsWithEvents = async () => {
-                try {
-                    const eventsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/events?all=true&limit=50000`, { headers });
-                    const eventsJson = await eventsRes.json();
-                    if (eventsJson.success && Array.isArray(eventsJson.data)) {
-                        const boothIds = new Set();
-                        eventsJson.data.forEach(event => {
-                            if (event.booth_id) {
-                                const boothId = event.booth_id._id || event.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithEvents(boothIds);
-                        console.log('✅ Booths with events:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with events:', err);
-                }
-            };
 
             // Fetch booths with events in parallel
             fetchBoothsWithEvents();
@@ -1844,14 +1846,20 @@ export default function EventListPage() {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchEvents(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchEvents(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithEvents();
+                }}
             />
 
             <AlertEventDelete
                 id={eventDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchEvents(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchEvents(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithEvents();
+                }}
             />
         </>
     );

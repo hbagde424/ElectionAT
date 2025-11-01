@@ -326,6 +326,29 @@ export default function CodingListPage() {
         }
     };
 
+    // Fetch booths with coding to mark them on the map
+    const fetchBoothsWithCoding = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`, { headers });
+            const codingJson = await codingRes.json();
+            if (codingJson.success && Array.isArray(codingJson.data)) {
+                const boothIds = new Set();
+                codingJson.data.forEach(coding => {
+                    if (coding.booth_id) {
+                        const boothId = coding.booth_id._id || coding.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithCoding(boothIds);
+                console.log('✅ Booths with coding updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with coding:', err);
+        }
+    };
+
     // Load booth polygons by block name/id or ALL
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -336,27 +359,6 @@ export default function CodingListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with coding to mark them on the map
-            const fetchBoothsWithCoding = async () => {
-                try {
-                    const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`, { headers });
-                    const codingJson = await codingRes.json();
-                    if (codingJson.success && Array.isArray(codingJson.data)) {
-                        const boothIds = new Set();
-                        codingJson.data.forEach(coding => {
-                            if (coding.booth_id) {
-                                const boothId = coding.booth_id._id || coding.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithCoding(boothIds);
-                        console.log('✅ Booths with coding:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with coding:', err);
-                }
-            };
 
             // Fetch booths with coding in parallel
             fetchBoothsWithCoding();
@@ -1522,14 +1524,20 @@ export default function CodingListPage() {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchCodingList(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchCodingList(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithCoding();
+                }}
             />
 
             <AlertCodingDelete
                 id={codingDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchCodingList(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchCodingList(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithCoding();
+                }}
             />
         </>
     );

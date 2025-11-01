@@ -209,6 +209,29 @@ const VisitMapTabs = () => {
         }
     };
 
+    // Fetch booths with Visit Booth
+    const fetchBoothsWithWorkStatus = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
+            const workStatusJson = await workStatusRes.json();
+            if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
+                const boothIds = new Set();
+                workStatusJson.data.forEach(workStatus => {
+                    if (workStatus.booth_id) {
+                        const boothId = workStatus.booth_id._id || workStatus.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithWorkStatus(boothIds);
+                console.log('✅ Booths with Visit Booth updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with Visit Booth:', err);
+        }
+    };
+
     // Fetch Visit Booth data and booth polygons
     const loadBoothPolygonsByBlockNumber = async (blockNumberVal) => {
         if (!blockNumberVal) {
@@ -219,26 +242,6 @@ const VisitMapTabs = () => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with Visit Booth
-            const fetchBoothsWithWorkStatus = async () => {
-                try {
-                    const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
-                    const workStatusJson = await workStatusRes.json();
-                    if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
-                        const boothIds = new Set();
-                        workStatusJson.data.forEach(workStatus => {
-                            if (workStatus.booth_id) {
-                                const boothId = workStatus.booth_id._id || workStatus.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithWorkStatus(boothIds);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with Visit Booth:', err);
-                }
-            };
 
             fetchBoothsWithWorkStatus();
 

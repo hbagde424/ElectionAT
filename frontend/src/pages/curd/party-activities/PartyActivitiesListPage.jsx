@@ -205,6 +205,29 @@ export default function PartyActivitiesListPage() {
         }
     };
 
+    // Fetch booths with activities to mark them on the map
+    const fetchBoothsWithActivities = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const activitiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?all=true&limit=50000`, { headers });
+            const activitiesJson = await activitiesRes.json();
+            if (activitiesJson.success && Array.isArray(activitiesJson.data)) {
+                const boothIds = new Set();
+                activitiesJson.data.forEach(activity => {
+                    if (activity.booth_id) {
+                        const boothId = activity.booth_id._id || activity.booth_id;
+                        boothIds.add(String(boothId));
+                    }
+                });
+                setBoothsWithActivities(boothIds);
+                console.log('✅ Booths with activities updated:', boothIds.size);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch booths with activities:', err);
+        }
+    };
+
     // Load booth polygons by block name or id (tries multiple backend endpoints)
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -215,27 +238,6 @@ export default function PartyActivitiesListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with activities to mark them on the map
-            const fetchBoothsWithActivities = async () => {
-                try {
-                    const activitiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?all=true&limit=50000`, { headers });
-                    const activitiesJson = await activitiesRes.json();
-                    if (activitiesJson.success && Array.isArray(activitiesJson.data)) {
-                        const boothIds = new Set();
-                        activitiesJson.data.forEach(activity => {
-                            if (activity.booth_id) {
-                                const boothId = activity.booth_id._id || activity.booth_id;
-                                boothIds.add(String(boothId));
-                            }
-                        });
-                        setBoothsWithActivities(boothIds);
-                        console.log('✅ Booths with activities:', boothIds.size);
-                    }
-                } catch (err) {
-                    console.warn('Failed to fetch booths with activities:', err);
-                }
-            };
 
             // Fetch booths with activities in parallel
             fetchBoothsWithActivities();
@@ -1495,14 +1497,20 @@ export default function PartyActivitiesListPage() {
                 booths={booths}
                 parties={parties}
                 users={users}
-                refresh={() => fetchPartyActivities(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithActivities();
+                }}
             />
 
             <AlertPartyActivitiesDelete
                 id={partyActivityDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchPartyActivities(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithActivities();
+                }}
             />
         </>
     );

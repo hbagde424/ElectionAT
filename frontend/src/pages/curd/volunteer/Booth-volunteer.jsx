@@ -342,6 +342,28 @@ export default function BoothVolunteerListPage() {
 
   const accessScope = getUserAccessScope();
 
+  // Fetch booths with volunteer data
+  const fetchBoothsWithVolunteers = async () => {
+    try {
+      const headers = getAuthHeaders();
+      const volunteerRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true&limit=50000`, { headers });
+      const volunteerJson = await volunteerRes.json();
+      if (volunteerJson.success && Array.isArray(volunteerJson.data)) {
+        const boothIds = new Set();
+        volunteerJson.data.forEach(volunteer => {
+          if (volunteer.booth) {
+            const boothId = volunteer.booth._id || volunteer.booth;
+            boothIds.add(String(boothId));
+          }
+        });
+        setBoothsWithVolunteers(boothIds);
+        console.log('✅ Booths with volunteers updated:', boothIds.size);
+      }
+    } catch (err) {
+      console.error('Failed to fetch booths with volunteers:', err);
+    }
+  };
+
   const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '', override = {}) => {
     setLoading(true);
     try {
@@ -431,26 +453,6 @@ export default function BoothVolunteerListPage() {
     setMapError('');
     try {
       const headers = getAuthHeaders();
-
-      // Fetch booths with volunteer data
-      const fetchBoothsWithVolunteers = async () => {
-        try {
-          const volunteerRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true&limit=50000`, { headers });
-          const volunteerJson = await volunteerRes.json();
-          if (volunteerJson.success && Array.isArray(volunteerJson.data)) {
-            const boothIds = new Set();
-            volunteerJson.data.forEach(volunteer => {
-              if (volunteer.booth) {
-                const boothId = volunteer.booth._id || volunteer.booth;
-                boothIds.add(String(boothId));
-              }
-            });
-            setBoothsWithVolunteers(boothIds);
-          }
-        } catch (err) {
-          console.error('Failed to fetch booths with volunteers:', err);
-        }
-      };
 
       fetchBoothsWithVolunteers();
 
@@ -1845,14 +1847,20 @@ export default function BoothVolunteerListPage() {
         booths={booths}
         parties={parties}
         users={users}
-        refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}
+        refresh={() => {
+          fetchVolunteers(pagination.pageIndex, pagination.pageSize);
+          fetchBoothsWithVolunteers();
+        }}
       />
 
       <AlertBoothVolunteerDelete
         id={volunteerDeleteId}
         open={openDelete}
         handleClose={handleDeleteClose}
-        refresh={() => fetchVolunteers(pagination.pageIndex, pagination.pageSize)}
+        refresh={() => {
+          fetchVolunteers(pagination.pageIndex, pagination.pageSize);
+          fetchBoothsWithVolunteers();
+        }}
       />
     </>
   );

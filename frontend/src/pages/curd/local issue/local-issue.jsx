@@ -310,6 +310,32 @@ export default function LocalIssueListPage() {
         }
     };
 
+    // Fetch booths that have local issues
+    const fetchBoothsWithLocalIssues = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
+            const response = await fetch(`${apiUrl}/local-issues`, { headers });
+            if (response.ok) {
+                const data = await response.json();
+                const issues = data.data || data;
+                const boothIds = new Set();
+                issues.forEach(issue => {
+                    if (issue.booth_id?._id) {
+                        boothIds.add(String(issue.booth_id._id));
+                    } else if (issue.booth_id) {
+                        boothIds.add(String(issue.booth_id));
+                    }
+                });
+                setBoothsWithLocalIssues(boothIds);
+                console.log('✅ Booths with local issues updated:', boothIds.size);
+            }
+        } catch (error) {
+            console.error('Error fetching booths with local issues:', error);
+        }
+    };
+
     // Load booth polygons by block name or id (tries multiple backend endpoints)
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -321,28 +347,6 @@ export default function LocalIssueListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            // Fetch booths that have local issues
-            const fetchBoothsWithLocalIssues = async () => {
-                try {
-                    const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
-                    const response = await fetch(`${apiUrl}/local-issues`, { headers });
-                    if (response.ok) {
-                        const data = await response.json();
-                        const issues = data.data || data;
-                        const boothIds = new Set();
-                        issues.forEach(issue => {
-                            if (issue.booth_id?._id) {
-                                boothIds.add(String(issue.booth_id._id));
-                            } else if (issue.booth_id) {
-                                boothIds.add(String(issue.booth_id));
-                            }
-                        });
-                        setBoothsWithLocalIssues(boothIds);
-                    }
-                } catch (error) {
-                    console.error('Error fetching booths with local issues:', error);
-                }
-            };
             await fetchBoothsWithLocalIssues();
 
             // If user selected ALL blocks, fetch all polygons (large result)
@@ -1765,14 +1769,20 @@ export default function LocalIssueListPage() {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={() => fetchLocalIssues(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchLocalIssues(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithLocalIssues();
+                }}
             />
 
             <AlertLocalIssueDelete
                 id={issueDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchLocalIssues(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => {
+                    fetchLocalIssues(pagination.pageIndex, pagination.pageSize);
+                    fetchBoothsWithLocalIssues();
+                }}
             />
         </>
     );
