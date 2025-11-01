@@ -23,10 +23,12 @@ import GenderView from './GenderView';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
+import { usePermissions } from 'contexts/PermissionContext';
 
 export default function GenderListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedGender, setSelectedGender] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -108,7 +110,7 @@ export default function GenderListPage() {
                 const num = booth && String(booth.booth_number).trim().toLowerCase();
                 if (num) set.add(num);
             });
-        } catch {}
+        } catch { }
         return set;
     }, [boothsWithGender, booths]);
 
@@ -132,7 +134,7 @@ export default function GenderListPage() {
                     const lats = coords.map((c) => c[1]);
                     return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
                 }
-            } catch {}
+            } catch { }
             return [0, 0];
         };
 
@@ -394,6 +396,9 @@ export default function GenderListPage() {
             if (selectedVillage) query += `&village_id=${selectedVillage}`;
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
 
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
+
             const headers = getAuthHeaders();
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
@@ -503,7 +508,7 @@ export default function GenderListPage() {
                         json = { type: 'FeatureCollection', features };
                         break;
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
 
             if (!json) {
@@ -573,13 +578,13 @@ export default function GenderListPage() {
                     if (gJson?.success) {
                         if (Array.isArray(gJson.data) && gJson.data.length > 0) {
                             const g = gJson.data[0];
-                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0) + (g.female||0) + (g.others||0) };
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         } else if (gJson.data && typeof gJson.data === 'object') {
                             const g = gJson.data;
-                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0) + (g.female||0) + (g.others||0) };
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         }
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
 
             if (!gender) {
@@ -1094,16 +1099,16 @@ export default function GenderListPage() {
                             )}
                         </Map>
                     </MapContainerStyled>
-                    
+
                     {/* Map Legend */}
                     <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                         <Stack direction="row" spacing={3}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{ 
-                                    width: 16, 
-                                    height: 16, 
-                                    borderRadius: '50%', 
+                                <Box sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
                                     backgroundColor: '#22c55e',
                                     border: '2px solid #ffffff',
                                     boxShadow: 1
@@ -1111,10 +1116,10 @@ export default function GenderListPage() {
                                 <Typography variant="caption">Has Gender Data</Typography>
                             </Stack>
                             <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{ 
-                                    width: 16, 
-                                    height: 16, 
-                                    borderRadius: '50%', 
+                                <Box sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
                                     backgroundColor: '#ef4444',
                                     border: '2px solid #ffffff',
                                     boxShadow: 1
@@ -1124,6 +1129,45 @@ export default function GenderListPage() {
                         </Stack>
                     </Paper>
                 </Box>
+
+                {/* Access Scope Information */}
+                {(() => {
+                    const getUserAccessScope = () => {
+                        if (!userHierarchy) {
+                            return { level: 'All', description: 'You have access to all gender data' };
+                        }
+                        const highestLevel = getUserHighestLevel();
+                        if (!highestLevel) {
+                            return { level: 'All', description: 'You have access to all gender data' };
+                        }
+                        const levelNames = {
+                            state: 'State',
+                            division: 'Division',
+                            parliament: 'Parliament',
+                            assembly: 'Assembly',
+                            block: 'Block',
+                            booth: 'Booth'
+                        };
+                        const levelName = levelNames[highestLevel] || highestLevel;
+                        const entity = userHierarchy[highestLevel];
+                        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
+
+                        return {
+                            level: levelName,
+                            entity: entityName,
+                            description: `You have access to gender data for ${entityName} ${levelName} and all areas within it`
+                        };
+                    };
+                    const accessScope = getUserAccessScope();
+                    return (
+                        <Alert severity="info" sx={{ m: 2 }}>
+                            <Typography variant="body2">
+                                <strong>Data Access:</strong> {accessScope.description}
+                            </Typography>
+                        </Alert>
+                    );
+                })()}
+
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <DebouncedInput
                         value={globalFilter}

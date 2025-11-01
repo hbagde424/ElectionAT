@@ -199,12 +199,42 @@ exports.getBooths = async (req, res, next) => {
           as: 'updated_by'
         }
       },
-      { $unwind: { path: '$updated_by', preserveNullAndEmptyArrays: true } },
-      // Sort and paginate
+      { $unwind: { path: '$updated_by', preserveNullAndEmptyArrays: true } }
+    ];
+
+    // Apply user hierarchy restriction when an authenticated user is present
+    // Precedence: booth -> block -> assembly -> parliament -> division -> state
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) {
+        aggregationPipeline.push({ $match: { _id: new mongoose.Types.ObjectId(boothId) } });
+      } else if (blockId) {
+        aggregationPipeline.push({ $match: { block_id: new mongoose.Types.ObjectId(blockId) } });
+      } else if (assemblyId) {
+        aggregationPipeline.push({ $match: { assembly_id: new mongoose.Types.ObjectId(assemblyId) } });
+      } else if (parliamentId) {
+        aggregationPipeline.push({ $match: { parliament_id: new mongoose.Types.ObjectId(parliamentId) } });
+      } else if (divisionId) {
+        aggregationPipeline.push({ $match: { division_id: new mongoose.Types.ObjectId(divisionId) } });
+      } else if (stateId) {
+        aggregationPipeline.push({ $match: { state_id: new mongoose.Types.ObjectId(stateId) } });
+      }
+    }
+
+    // Sort and paginate
+    aggregationPipeline.push(
       { $sort: { booth_number: 1 } },
       { $skip: skip },
       { $limit: limit }
-    ];
+    );
 
     // Execute aggregation
     const booths = await Booth.aggregate(aggregationPipeline);
@@ -225,9 +255,36 @@ exports.getBooths = async (req, res, next) => {
       // Filter by state
       ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: new mongoose.Types.ObjectId(req.query.state) } }] : []),
       // Filter by election year
-      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: new mongoose.Types.ObjectId(req.query.election_year) } }] : []),
-      { $count: "total" }
+      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: new mongoose.Types.ObjectId(req.query.election_year) } }] : [])
     ];
+
+    // Apply user hierarchy restriction for count pipeline as well
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) {
+        countPipeline.push({ $match: { _id: new mongoose.Types.ObjectId(boothId) } });
+      } else if (blockId) {
+        countPipeline.push({ $match: { block_id: new mongoose.Types.ObjectId(blockId) } });
+      } else if (assemblyId) {
+        countPipeline.push({ $match: { assembly_id: new mongoose.Types.ObjectId(assemblyId) } });
+      } else if (parliamentId) {
+        countPipeline.push({ $match: { parliament_id: new mongoose.Types.ObjectId(parliamentId) } });
+      } else if (divisionId) {
+        countPipeline.push({ $match: { division_id: new mongoose.Types.ObjectId(divisionId) } });
+      } else if (stateId) {
+        countPipeline.push({ $match: { state_id: new mongoose.Types.ObjectId(stateId) } });
+      }
+    }
+
+    countPipeline.push({ $count: "total" });
 
     const totalResult = await Booth.aggregate(countPipeline);
     const total = totalResult.length > 0 ? totalResult[0].total : 0;
@@ -274,6 +331,29 @@ exports.getBooth = async (req, res, next) => {
         success: false,
         message: 'Booth not found'
       });
+    }
+
+    // Enforce user hierarchy: only allow access if booth is within user's scope
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      const outOfScope = (boothId && booth._id.toString() !== boothId.toString()) ||
+        (blockId && booth.block_id && booth.block_id.toString() !== blockId.toString()) ||
+        (assemblyId && booth.assembly_id && booth.assembly_id.toString() !== assemblyId.toString()) ||
+        (parliamentId && booth.parliament_id && booth.parliament_id.toString() !== parliamentId.toString()) ||
+        (divisionId && booth.division_id && booth.division_id.toString() !== divisionId.toString()) ||
+        (stateId && booth.state_id && booth.state_id.toString() !== stateId.toString());
+
+      if (outOfScope) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
     }
 
     res.status(200).json({
@@ -493,6 +573,35 @@ exports.getBoothsByAssembly = async (req, res, next) => {
         success: false,
         message: 'Assembly not found'
       });
+    }
+
+    // Enforce user hierarchy for assembly-scoped listing
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      // If user's scope is narrower than the requested assembly and doesn't match, forbid
+      if (assemblyId && assemblyId.toString() !== req.params.assemblyId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+      }
+      // If user has booth or block level access, ensure the assembly matches
+      if (boothId || blockId) {
+        const testBooth = await Booth.findOne({ assembly_id: req.params.assemblyId });
+        if (testBooth) {
+          if (boothId && testBooth._id.toString() !== boothId.toString()) {
+            return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+          }
+          if (blockId && testBooth.block_id.toString() !== blockId.toString()) {
+            return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+          }
+        }
+      }
     }
 
     const booths = await Booth.find({ assembly_id: req.params.assemblyId })

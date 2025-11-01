@@ -32,6 +32,31 @@ exports.getGenders = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ female: 1 });
 
+    // Apply user hierarchy scoping when available (booth->block->assembly->parliament->division->state)
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else if (stateId) {
+        query = query.where('state_id').equals(stateId);
+      }
+    }
+
     // Search functionality
     if (req.query.search) {
       query = query.find({
@@ -68,28 +93,6 @@ exports.getGenders = async (req, res, next) => {
     }
 
     // Division
-
-        // Apply optional user hierarchy filtering if middleware provided it and user is not superAdmin
-        try {
-          if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-            // precedence: booth -> block -> assembly -> parliament -> division -> state
-            if (req.userHierarchy.booth_id) {
-              query = query.where('booth_id').equals(req.userHierarchy.booth_id);
-            } else if (req.userHierarchy.block_id) {
-              query = query.where('block_id').equals(req.userHierarchy.block_id);
-            } else if (req.userHierarchy.assembly_id) {
-              query = query.where('assembly_id').equals(req.userHierarchy.assembly_id);
-            } else if (req.userHierarchy.parliament_id) {
-              query = query.where('parliament_id').equals(req.userHierarchy.parliament_id);
-            } else if (req.userHierarchy.division_id) {
-              query = query.where('division_id').equals(req.userHierarchy.division_id);
-            } else if (req.userHierarchy.state_id) {
-              query = query.where('state_id').equals(req.userHierarchy.state_id);
-            }
-          }
-        } catch (e) {
-          // ignore and continue if req.userHierarchy is malformed
-        }
     if (req.query.division_id || req.query.division) {
       const divisionId = await handleIdOrName('division_id', Division) || await handleIdOrName('division', Division);
       if (divisionId) {
@@ -207,6 +210,36 @@ exports.getGender = async (req, res, next) => {
         success: false,
         message: 'Gender entry not found'
       });
+    }
+
+    // Enforce scope for single resource if userHierarchy present
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId && gender.booth_id && String(boothId) !== String(gender.booth_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (blockId && gender.block_id && String(blockId) !== String(gender.block_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (assemblyId && gender.assembly_id && String(assemblyId) !== String(gender.assembly_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (parliamentId && gender.parliament_id && String(parliamentId) !== String(gender.parliament_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (divisionId && gender.division_id && String(divisionId) !== String(gender.division_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
+      if (stateId && gender.state_id && String(stateId) !== String(gender.state_id)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      }
     }
 
     res.status(200).json({
@@ -499,6 +532,38 @@ exports.getGenderStatsForMap = async (req, res, next) => {
         break;
     }
 
+    // Apply user hierarchy scoping when available
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const h = req.userHierarchy;
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      // Check if requested id matches user's hierarchy
+      if (boothId) {
+        if (type === 'booth' && String(boothId) !== String(id)) {
+          return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+        }
+      } else if (blockId) {
+        if (type === 'block' && String(blockId) !== String(id)) {
+          return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+        }
+      } else if (assemblyId) {
+        if (type === 'assembly' && String(assemblyId) !== String(id)) {
+          return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+        }
+      } else if (parliamentId) {
+        if (type === 'parliament' && String(parliamentId) !== String(id)) {
+          return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+        }
+      }
+      // For division and state, we allow access if the requested entity belongs to them
+      // This is handled by the aggregation query itself since it filters by the requested type
+    }
+
     console.log('📊 Query constructed:', query);
 
     // First, let's check if there are any matching records with a simple find
@@ -518,13 +583,13 @@ exports.getGenderStatsForMap = async (req, res, next) => {
       console.log('✅ ID is valid ObjectId format');
     } else {
       console.log('⚠️ ID is not ObjectId format, might need conversion or alternative lookup');
-      
+
       // If not a valid ObjectId, we might need to lookup by booth/block number or name
       if (type === 'booth') {
         // Try to find booth by booth number and get the ObjectId
         const Booth = require('../models/booth');
         console.log('🔍 Looking up booth with ID:', id);
-        
+
         // Try multiple variations of booth lookup
         const searchPatterns = [
           { booth_number: id },
@@ -532,15 +597,15 @@ exports.getGenderStatsForMap = async (req, res, next) => {
           { name: { $regex: id, $options: 'i' } },
           { name: { $regex: `booth.*${id}`, $options: 'i' } }, // Booth 60, etc.
         ];
-        
+
         if (mongoose.Types.ObjectId.isValid(id)) {
           searchPatterns.unshift({ _id: id });
         }
-        
+
         try {
           console.log('🔍 Searching with patterns:', searchPatterns);
           const booth = await Booth.findOne({ $or: searchPatterns });
-          
+
           if (booth) {
             console.log('🎯 Found booth by number/name:', { _id: booth._id, name: booth.name, booth_number: booth.booth_number });
             query.booth_id = booth._id;
@@ -548,22 +613,22 @@ exports.getGenderStatsForMap = async (req, res, next) => {
             console.log('❌ No booth found for ID:', id);
             // Show what booths are available with detailed info
             const availableBooths = await Booth.find().limit(5).select('name booth_number');
-            console.log('📋 Available booths (sample):', availableBooths.map(b => ({ 
-              name: b.name, 
+            console.log('📋 Available booths (sample):', availableBooths.map(b => ({
+              name: b.name,
               booth_number: b.booth_number,
               booth_number_type: typeof b.booth_number,
               booth_number_raw: JSON.stringify(b.booth_number),
               matches_156: b.booth_number === '156',
               matches_156_num: b.booth_number === 156
             })));
-            
+
             // Try direct lookup with the first available booth_number
             if (availableBooths.length > 0) {
               const testBoothNumber = availableBooths[0].booth_number;
               console.log(`🧪 Testing direct lookup with booth_number: ${testBoothNumber}`);
               const directLookup = await Booth.findOne({ booth_number: testBoothNumber });
               console.log('🧪 Direct lookup result:', directLookup ? 'FOUND' : 'NOT FOUND');
-              
+
               // Since direct lookup is failing, let's use the availableBooths array
               const matchingBooth = availableBooths.find(b => b.booth_number === id);
               if (matchingBooth) {
@@ -583,7 +648,7 @@ exports.getGenderStatsForMap = async (req, res, next) => {
         // Try to find block by name and get the ObjectId
         const Block = require('../models/block');
         console.log('🔍 Looking up block with ID:', id);
-        
+
         // Try multiple variations of the name
         const searchPatterns = [
           { name: { $regex: `^${id}$`, $options: 'i' } }, // Exact match
@@ -591,13 +656,13 @@ exports.getGenderStatsForMap = async (req, res, next) => {
           { name: { $regex: `^${id.toLowerCase()}$`, $options: 'i' } }, // Lowercase exact
           { name: { $regex: `^${id.toUpperCase()}$`, $options: 'i' } }, // Uppercase exact
         ];
-        
+
         if (mongoose.Types.ObjectId.isValid(id)) {
           searchPatterns.unshift({ _id: id });
         }
-        
+
         const block = await Block.findOne({ $or: searchPatterns });
-        
+
         if (block) {
           console.log('🎯 Found block by name:', { _id: block._id, name: block.name });
           query.block_id = block._id;
@@ -612,11 +677,11 @@ exports.getGenderStatsForMap = async (req, res, next) => {
 
     // Check which collection to use based on type
     let genderStats;
-    
+
     if (type === 'booth') {
-      console.log('🏗️ Using BoothDemographics for booth data');  
+      console.log('🏗️ Using BoothDemographics for booth data');
       const BoothDemographics = require('../models/boothDemographics');
-      
+
       // If we found a booth ObjectId, use it, otherwise try to get any random booth data for testing
       if (query.booth_id && mongoose.Types.ObjectId.isValid(query.booth_id)) {
         console.log('✅ Using valid booth ObjectId for query');
@@ -636,21 +701,21 @@ exports.getGenderStatsForMap = async (req, res, next) => {
       } else {
         // Fallback: Generate booth-specific sample data based on booth ID
         console.log('🔄 Fallback: Generating booth-specific sample data for:', id);
-        
+
         // Generate pseudo-random but consistent data based on booth ID
         const boothHash = id.toString().split('').reduce((a, b) => {
           a = ((a << 5) - a) + b.charCodeAt(0);
           return a & a;
         }, 0);
-        
+
         // Generate realistic electoral numbers based on booth ID
         const basePopulation = 800 + (Math.abs(boothHash) % 400); // 800-1200 base
         const maleRatio = 0.51 + (Math.abs(boothHash * 2) % 100) / 1000; // 0.51-0.61
         const totalMale = Math.floor(basePopulation * maleRatio);
         const totalFemale = basePopulation - totalMale;
-        
+
         console.log(`📊 Generated data for booth ${id}:`, { totalMale, totalFemale, total: basePopulation });
-        
+
         // Create synthetic result in the expected format
         genderStats = [{
           _id: null,
@@ -683,7 +748,7 @@ exports.getGenderStatsForMap = async (req, res, next) => {
       male: genderStats[0].totalMale || 0,
       female: genderStats[0].totalFemale || 0,
       others: genderStats[0].totalOthers || 0,
-      total: type === 'booth' 
+      total: type === 'booth'
         ? (genderStats[0].totalElectors || (genderStats[0].totalMale + genderStats[0].totalFemale))
         : (genderStats[0].totalMale + genderStats[0].totalFemale + (genderStats[0].totalOthers || 0))
     } : {
@@ -698,10 +763,10 @@ exports.getGenderStatsForMap = async (req, res, next) => {
     // If no data found, let's provide helpful debugging info
     if (result.total === 0) {
       console.log('⚠️ No gender data found for query:', query);
-      
+
       if (!mongoose.Types.ObjectId.isValid(id)) {
         console.log('🔍 Checking available records...');
-        
+
         if (type === 'booth') {
           const BoothDemographics = require('../models/boothDemographics');
           const availableRecords = await BoothDemographics.find().limit(3).populate('booth_id', 'name booth_number');

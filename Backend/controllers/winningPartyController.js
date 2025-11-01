@@ -97,19 +97,26 @@ exports.getWinningParties = async (req, res, next) => {
 
     // Apply user hierarchy scoping when available (booth->block->assembly->parliament->division->state)
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
-      const uh = req.userHierarchy;
-      if (uh.booth && uh.booth._id) {
-        query = query.where('booth_id').equals(uh.booth._id);
-      } else if (uh.block && uh.block._id) {
-        query = query.where('block_id').equals(uh.block._id);
-      } else if (uh.assembly && uh.assembly._id) {
-        query = query.where('assembly_id').equals(uh.assembly._id);
-      } else if (uh.parliament && uh.parliament._id) {
-        query = query.where('parliament_id').equals(uh.parliament._id);
-      } else if (uh.division && uh.division._id) {
-        query = query.where('division_id').equals(uh.division._id);
-      } else if (uh.state && uh.state._id) {
-        query = query.where('state_id').equals(uh.state._id);
+      const h = req.userHierarchy;
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else if (stateId) {
+        query = query.where('state_id').equals(stateId);
       }
     }
 
@@ -278,23 +285,30 @@ exports.getWinningParty = async (req, res, next) => {
 
     // Enforce scope for single resource if userHierarchy present
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
-      const uh = req.userHierarchy;
-      if (uh.booth && uh.booth._id && winningParty.booth_id && String(uh.booth._id) !== String(winningParty.booth_id)) {
+      const h = req.userHierarchy;
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId && winningParty.booth_id && String(boothId) !== String(winningParty.booth_id)) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
-      if (uh.block && uh.block._id && winningParty.block_id && String(uh.block._id) !== String(winningParty.block_id)) {
+      if (blockId && winningParty.block_id && String(blockId) !== String(winningParty.block_id)) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
-      if (uh.assembly && uh.assembly._id && winningParty.assembly_id && String(uh.assembly._id) !== String(winningParty.assembly_id)) {
+      if (assemblyId && winningParty.assembly_id && String(assemblyId) !== String(winningParty.assembly_id)) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
-      if (uh.parliament && uh.parliament._id && winningParty.parliament_id && String(uh.parliament._id) !== String(winningParty.parliament_id)) {
+      if (parliamentId && winningParty.parliament_id && String(parliamentId) !== String(winningParty.parliament_id)) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
-      if (uh.division && uh.division._id && winningParty.division_id && String(uh.division._id) !== String(winningParty.division_id)) {
+      if (divisionId && winningParty.division_id && String(divisionId) !== String(winningParty.division_id)) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
-      if (uh.state && uh.state._id && winningParty.state_id && String(uh.state._id) !== String(winningParty.state_id)) {
+      if (stateId && winningParty.state_id && String(stateId) !== String(winningParty.state_id)) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
     }

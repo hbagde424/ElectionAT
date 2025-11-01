@@ -18,6 +18,7 @@ import IconButton from 'components/@extended/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import BoothModal from './BoothModal';
 import AlertBoothDelete from './AlertBoothDelete';
@@ -29,6 +30,7 @@ import MapControl from 'components/third-party/map/MapControl';
 export default function BoothsListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedBooth, setSelectedBooth] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -116,6 +118,39 @@ export default function BoothsListPage() {
             console.error('Failed to fetch reference data:', error);
         }
     };
+
+    // Get user's access scope information
+    const getUserAccessScope = () => {
+        if (!userHierarchy) {
+            return { level: 'All', description: 'You have access to all booth data' };
+        }
+
+        const highestLevel = getUserHighestLevel();
+        if (!highestLevel) {
+            return { level: 'All', description: 'You have access to all booth data' };
+        }
+
+        const levelNames = {
+            state: 'State',
+            division: 'Division',
+            parliament: 'Parliament',
+            assembly: 'Assembly',
+            block: 'Block',
+            booth: 'Booth'
+        };
+
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entity = userHierarchy[highestLevel];
+        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
+
+        return {
+            level: levelName,
+            entity: entityName,
+            description: `You have access to booth data for ${entityName} ${levelName} and all areas within it`
+        };
+    };
+
+    const accessScope = getUserAccessScope();
 
     // Load booth polygons by block name or id (tries multiple backend endpoints)
     const loadBoothPolygons = async (blockInput) => {
@@ -545,6 +580,9 @@ export default function BoothsListPage() {
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
             if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
             if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
+
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const token = localStorage.getItem('serviceToken');
@@ -1133,6 +1171,16 @@ export default function BoothsListPage() {
                         </MapContainerStyled>
                     </Grid>
                 </Grid>
+
+                {/* Access Scope Information */}
+                <Alert
+                    severity="info"
+                    sx={{ m: 2 }}
+                >
+                    <Typography variant="body2">
+                        <strong>Data Access:</strong> {accessScope.description}
+                    </Typography>
+                </Alert>
 
                 {/* Search + Actions */}
                 <Stack

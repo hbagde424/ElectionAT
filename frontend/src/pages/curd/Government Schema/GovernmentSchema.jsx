@@ -111,7 +111,7 @@ export default function GovernmentsListPage() {
                 const num = booth && String(booth.booth_number).trim().toLowerCase();
                 if (num) set.add(num);
             });
-        } catch {}
+        } catch { }
         return set;
     }, [boothsWithGovernmentScheme, booths]);
 
@@ -135,7 +135,7 @@ export default function GovernmentsListPage() {
                     const lats = coords.map((c) => c[1]);
                     return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
                 }
-            } catch {}
+            } catch { }
             return [0, 0];
         };
 
@@ -176,12 +176,14 @@ export default function GovernmentsListPage() {
             booth: 'Booth'
         };
 
-        const levelName = levelNames[highestLevel.level] || 'Unknown';
-        const levelValue = highestLevel.value || 'Unknown';
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entity = userHierarchy[highestLevel];
+        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
 
         return {
             level: levelName,
-            description: `You have access to government schemes data for ${levelName}: ${levelValue}`
+            entity: entityName,
+            description: `You have access to government schemes data for ${entityName} ${levelName} and all areas within it`
         };
     };
 
@@ -637,35 +639,8 @@ export default function GovernmentsListPage() {
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
             if (selectedType) query += `&type=${selectedType}`;
 
-            // Add hierarchy-based filtering
-            if (userHierarchy) {
-                const highest = getUserHighestLevel();
-                if (highest) {
-                    switch (highest) {
-                        case 'state':
-                            query += `&state=${userHierarchy.state}`;
-                            break;
-                        case 'division':
-                            query += `&division=${userHierarchy.division}`;
-                            break;
-                        case 'parliament':
-                            query += `&parliament=${userHierarchy.parliament}`;
-                            break;
-                        case 'assembly':
-                            query += `&assembly=${userHierarchy.assembly}`;
-                            break;
-                        case 'block':
-                            query += `&block=${userHierarchy.block}`;
-                            break;
-                        case 'booth':
-                            query += `&booth=${userHierarchy.booth}`;
-                            break;
-                    }
-                }
-            }
-
-            if (selectedBlock) query += `&block=${selectedBlock}`;
-            if (selectedBooth) query += `&booth=${selectedBooth}`;
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             const token = localStorage.serviceToken;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -1170,16 +1145,16 @@ export default function GovernmentsListPage() {
                                 )}
                             </Map>
                         </MapContainerStyled>
-                        
+
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#22c55e',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1
@@ -1187,10 +1162,10 @@ export default function GovernmentsListPage() {
                                     <Typography variant="caption">Has Government Schemes</Typography>
                                 </Stack>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#ef4444',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1

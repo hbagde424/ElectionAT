@@ -11,6 +11,7 @@ const {
   getWinningPartysForGraph
 } = require('../controllers/winningPartyController');
 const { protect, authorize } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 const router = express.Router();
 
@@ -116,7 +117,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningParty'
  */
-router.get('/', getWinningParties);
+router.get('/', getUserPermissionsAndHierarchy, getWinningParties);
 
 /**
  * @swagger

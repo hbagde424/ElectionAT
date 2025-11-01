@@ -201,34 +201,8 @@ const WinningPartyListPage = () => {
                 queryParams.push(`candidate=${appliedFilters.candidate}`);
             }
 
-            // hierarchy-based filtering
-            if (userHierarchy) {
-                const highest = getUserHighestLevel();
-                if (highest) {
-                    switch (highest) {
-                        case 'state':
-                            queryParams.push(`state_id=${userHierarchy.state}`);
-                            break;
-                        case 'division':
-                            queryParams.push(`division_id=${userHierarchy.division}`);
-                            break;
-                        case 'parliament':
-                            queryParams.push(`parliament_id=${userHierarchy.parliament}`);
-                            break;
-                        case 'assembly':
-                            queryParams.push(`assembly_id=${userHierarchy.assembly}`);
-                            break;
-                        case 'block':
-                            queryParams.push(`block_id=${userHierarchy.block}`);
-                            break;
-                        case 'booth':
-                            queryParams.push(`booth_id=${userHierarchy.booth}`);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             const token = localStorage.getItem('serviceToken');
             const headers = {};
@@ -691,17 +665,42 @@ const WinningPartyListPage = () => {
         <>
             <MainCard content={false}>
                 {/* Access Scope Information */}
-                <Alert severity="info" sx={{ m: 2 }}>
-                    <Typography variant="body2">
-                        <strong>Data Access:</strong> {(() => {
-                            if (!userHierarchy) return 'You have access to all Winning Parties data';
-                            const highest = getUserHighestLevel();
-                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
-                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
-                            return `You have access to Winning Parties data for ${labelMap[highest] || 'Unknown'}: ${idMap[highest] || 'Unknown'}`;
-                        })()}
-                    </Typography>
-                </Alert>
+                {(() => {
+                    const getUserAccessScope = () => {
+                        if (!userHierarchy) {
+                            return { level: 'All', description: 'You have access to all winning parties data' };
+                        }
+                        const highestLevel = getUserHighestLevel();
+                        if (!highestLevel) {
+                            return { level: 'All', description: 'You have access to all winning parties data' };
+                        }
+                        const levelNames = {
+                            state: 'State',
+                            division: 'Division',
+                            parliament: 'Parliament',
+                            assembly: 'Assembly',
+                            block: 'Block',
+                            booth: 'Booth'
+                        };
+                        const levelName = levelNames[highestLevel] || highestLevel;
+                        const entity = userHierarchy[highestLevel];
+                        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
+
+                        return {
+                            level: levelName,
+                            entity: entityName,
+                            description: `You have access to winning parties data for ${entityName} ${levelName} and all areas within it`
+                        };
+                    };
+                    const accessScope = getUserAccessScope();
+                    return (
+                        <Alert severity="info" sx={{ m: 2 }}>
+                            <Typography variant="body2">
+                                <strong>Data Access:</strong> {accessScope.description}
+                            </Typography>
+                        </Alert>
+                    );
+                })()}
 
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <TextField

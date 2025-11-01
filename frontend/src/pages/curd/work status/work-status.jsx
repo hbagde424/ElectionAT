@@ -85,7 +85,7 @@ export default function WorkStatusListPage() {
         });
         return s;
     }, [boothsWithWorkStatus, boothIdToNumberMap]);
-    
+
     // Build a deduped FeatureCollection of point markers from booth polygons
     const boothMarkersGeoJSON = useMemo(() => {
         if (!boothGeoJSON || !Array.isArray(boothGeoJSON.features)) return null;
@@ -433,32 +433,8 @@ export default function WorkStatusListPage() {
             if (currentFilters.workType) queryParams.push(`workType=${encodeURIComponent(currentFilters.workType)}`);
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
 
-            // hierarchy-based filtering
-            if (userHierarchy) {
-                const highest = getUserHighestLevel();
-                if (highest) {
-                    switch (highest) {
-                        case 'state':
-                            queryParams.push(`state_id=${userHierarchy.state}`);
-                            break;
-                        case 'division':
-                            queryParams.push(`division_id=${userHierarchy.division}`);
-                            break;
-                        case 'parliament':
-                            queryParams.push(`parliament_id=${userHierarchy.parliament}`);
-                            break;
-                        case 'assembly':
-                            queryParams.push(`assembly_id=${userHierarchy.assembly}`);
-                            break;
-                        case 'block':
-                            queryParams.push(`block_id=${userHierarchy.block}`);
-                            break;
-                        case 'booth':
-                            queryParams.push(`booth_id=${userHierarchy.booth}`);
-                            break;
-                    }
-                }
-            }
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status${queryString}`, { headers: getAuthHeaders() });
@@ -709,10 +685,10 @@ export default function WorkStatusListPage() {
                     if (gJson?.success) {
                         if (Array.isArray(gJson.data) && gJson.data.length > 0) {
                             const g = gJson.data[0];
-                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0)+(g.female||0)+(g.others||0) };
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         } else if (gJson.data && typeof gJson.data === 'object') {
                             const g = gJson.data;
-                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male||0)+(g.female||0)+(g.others||0) };
+                            gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         }
                     }
                 }
@@ -780,7 +756,7 @@ export default function WorkStatusListPage() {
                     const newPageSize = pagination.pageSize || 10;
                     setPagination({ pageIndex: 0, pageSize: newPageSize });
                     fetchWorkStatuses(0, newPageSize, globalFilter, newFilters);
-                } catch {}
+                } catch { }
             } else {
                 setDrawerData({ loading: false, boothNo, details: null, error: 'Booth not found' });
                 setDrawerOpen(true);
@@ -1264,7 +1240,7 @@ export default function WorkStatusListPage() {
                                 onChange={(e) => setBlockNumberInput(e.target.value)}
                             >
                                 <MenuItem value="">Select Block</MenuItem>
-                                  <MenuItem value="ALL">All Blocks</MenuItem>
+                                <MenuItem value="ALL">All Blocks</MenuItem>
                                 {blocks.map((b) => (
                                     <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
                                 ))}
@@ -1297,32 +1273,32 @@ export default function WorkStatusListPage() {
                             mapStyle="mapbox://styles/mapbox/streets-v12"
                             interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
                             onClick={(e) => {
-                                    if (!boothGeoJSON) return;
-                                    try {
-                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                                        let features = e.features || [];
-                                        // If features not provided by event, query at point
-                                        if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
-                                            const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY } || { x: e.x, y: e.y };
-                                            if (point) {
-                                                features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
-                                            }
+                                if (!boothGeoJSON) return;
+                                try {
+                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                    let features = e.features || [];
+                                    // If features not provided by event, query at point
+                                    if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
+                                        const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY } || { x: e.x, y: e.y };
+                                        if (point) {
+                                            features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
                                         }
-
-                                        const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-source')) || features[0];
-                                        if (boothFeature) {
-                                                        const props = boothFeature.properties || {};
-                                                        console.log('[work-status] Map click - boothFeature found', { boothFeatureId: boothFeature.id, layer: boothFeature.layer && boothFeature.layer.id, props });
-                                            // try multiple possible property names
-                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number)) || '';
-                                            setDrawerData({ loading: true, boothNo, details: null });
-                                            setDrawerOpen(true);
-                                            fetchBoothDetailsByPolygon(boothNo);
-                                        }
-                                    } catch (err) {
-                                        console.warn('Map click handler error:', err);
                                     }
-                                }}
+
+                                    const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-source')) || features[0];
+                                    if (boothFeature) {
+                                        const props = boothFeature.properties || {};
+                                        console.log('[work-status] Map click - boothFeature found', { boothFeatureId: boothFeature.id, layer: boothFeature.layer && boothFeature.layer.id, props });
+                                        // try multiple possible property names
+                                        const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number)) || '';
+                                        setDrawerData({ loading: true, boothNo, details: null });
+                                        setDrawerOpen(true);
+                                        fetchBoothDetailsByPolygon(boothNo);
+                                    }
+                                } catch (err) {
+                                    console.warn('Map click handler error:', err);
+                                }
+                            }}
                         >
                             <MapControl />
                             {boothGeoJSON && (
@@ -1375,16 +1351,16 @@ export default function WorkStatusListPage() {
                             )}
                         </MapGL>
                     </MapContainerStyled>
-                    
+
                     {/* Map Legend */}
                     <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                         <Stack direction="row" spacing={3}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{ 
-                                    width: 16, 
-                                    height: 16, 
-                                    borderRadius: '50%', 
+                                <Box sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
                                     backgroundColor: '#22c55e',
                                     border: '2px solid #ffffff',
                                     boxShadow: 1
@@ -1392,10 +1368,10 @@ export default function WorkStatusListPage() {
                                 <Typography variant="caption">Has Work Status</Typography>
                             </Stack>
                             <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{ 
-                                    width: 16, 
-                                    height: 16, 
-                                    borderRadius: '50%', 
+                                <Box sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
                                     backgroundColor: '#ef4444',
                                     border: '2px solid #ffffff',
                                     boxShadow: 1
@@ -1406,19 +1382,42 @@ export default function WorkStatusListPage() {
                     </Paper>
                 </Box>
                 {/* Access Scope Information */}
-                <Alert severity="info" sx={{ m: 2 }}>
-                    <Typography variant="body2">
-                        <strong>Data Access:</strong> {(() => {
-                            if (!userHierarchy) return 'You have access to all Work Status data';
-                            const highest = getUserHighestLevel();
-                            const labelMap = { state: 'State', division: 'Division', parliament: 'Parliament', assembly: 'Assembly', block: 'Block', booth: 'Booth' };
-                            const idMap = { state: userHierarchy.state, division: userHierarchy.division, parliament: userHierarchy.parliament, assembly: userHierarchy.assembly, block: userHierarchy.block, booth: userHierarchy.booth };
-                            const label = labelMap[highest] || 'Unknown';
-                            const id = idMap[highest];
-                            return `You have access to Work Status data for ${label}${id ? ` (ID: ${id})` : ''}`;
-                        })()}
-                    </Typography>
-                </Alert>
+                {(() => {
+                    const getUserAccessScope = () => {
+                        if (!userHierarchy) {
+                            return { level: 'All', description: 'You have access to all work status data' };
+                        }
+                        const highestLevel = getUserHighestLevel();
+                        if (!highestLevel) {
+                            return { level: 'All', description: 'You have access to all work status data' };
+                        }
+                        const levelNames = {
+                            state: 'State',
+                            division: 'Division',
+                            parliament: 'Parliament',
+                            assembly: 'Assembly',
+                            block: 'Block',
+                            booth: 'Booth'
+                        };
+                        const levelName = levelNames[highestLevel] || highestLevel;
+                        const entity = userHierarchy[highestLevel];
+                        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
+
+                        return {
+                            level: levelName,
+                            entity: entityName,
+                            description: `You have access to work status data for ${entityName} ${levelName} and all areas within it`
+                        };
+                    };
+                    const accessScope = getUserAccessScope();
+                    return (
+                        <Alert severity="info" sx={{ m: 2 }}>
+                            <Typography variant="body2">
+                                <strong>Data Access:</strong> {accessScope.description}
+                            </Typography>
+                        </Alert>
+                    );
+                })()}
                 <Stack spacing={2} sx={{ padding: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                         <TextField
@@ -1790,7 +1789,7 @@ export default function WorkStatusListPage() {
                                         <Chip label={`Announced (${(drawerData.details.workSummary?.announced ?? 0)})`} color="primary" size="small" clickable onClick={() => applyPrefilledFilter('announced')} />
                                         <Chip label={`Other (${(drawerData.details.workSummary?.other ?? 0)})`} size="small" clickable onClick={() => applyPrefilledFilter('')} />
                                     </Stack>
-                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0,5).map(ws => (
+                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0, 5).map(ws => (
                                         <Box key={ws._id} sx={{ mb: 0.5 }}>
                                             <Typography variant="body2">• {ws.work_name || 'Work'} — {ws.status || ''}</Typography>
                                             <Typography variant="caption" color="text.secondary">
@@ -1802,7 +1801,7 @@ export default function WorkStatusListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Samiti ({drawerData.details.samitis?.length || 0})</Typography>
-                                    {drawerData.details.samitis?.length ? drawerData.details.samitis.slice(0,5).map(sm => (
+                                    {drawerData.details.samitis?.length ? drawerData.details.samitis.slice(0, 5).map(sm => (
                                         <Box key={sm._id} sx={{ mb: 0.5 }}>
                                             <Typography variant="body2">• {sm.samiti_name || 'Samiti'}</Typography>
                                             <Typography variant="caption" color="text.secondary">Count: {sm.count ?? 0}</Typography>
@@ -1813,7 +1812,7 @@ export default function WorkStatusListPage() {
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Stack spacing={1}>
                                         <Typography variant="subtitle2">Visits ({drawerData.details.visits?.length || 0})</Typography>
-                                        {drawerData.details.visits?.length ? drawerData.details.visits.slice(0,5).map(v => (
+                                        {drawerData.details.visits?.length ? drawerData.details.visits.slice(0, 5).map(v => (
                                             <Box key={v._id} sx={{ mb: 0.5 }}>
                                                 <Typography variant="body2">• {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} - {v.candidate_id?.name || ''}</Typography>
                                                 <Typography variant="caption" color="text.secondary">{v.locationName || ''}</Typography>
@@ -1826,16 +1825,16 @@ export default function WorkStatusListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Volunteers ({drawerData.details.volunteers?.length || 0})</Typography>
-                                    {drawerData.details.volunteers?.length ? drawerData.details.volunteers.slice(0,5).map(p => (
+                                    {drawerData.details.volunteers?.length ? drawerData.details.volunteers.slice(0, 5).map(p => (
                                         <Typography key={p._id} variant="body2">• {p.name || p.username || p.phone || 'Unknown'} {p.party?.name ? `(${p.party.name})` : ''}</Typography>
                                     )) : <Typography variant="body2">No volunteers found.</Typography>}
                                 </Paper>
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Surveys ({drawerData.details.surveys?.length || 0})</Typography>
-                                    {drawerData.details.surveys?.length ? drawerData.details.surveys.slice(0,5).map(s => (
+                                    {drawerData.details.surveys?.length ? drawerData.details.surveys.slice(0, 5).map(s => (
                                         <Box key={s._id} sx={{ mb: 0.5 }}>
-                                            <Typography variant="body2">• {s.remark ? s.remark.slice(0,80) : (s.respondent_name || 'Survey')}</Typography>
+                                            <Typography variant="body2">• {s.remark ? s.remark.slice(0, 80) : (s.respondent_name || 'Survey')}</Typography>
                                             <Typography variant="caption" color="text.secondary">{s.survey_date ? new Date(s.survey_date).toLocaleDateString('en-IN') : ''}</Typography>
                                         </Box>
                                     )) : <Typography variant="body2">No surveys found.</Typography>}
@@ -1843,14 +1842,14 @@ export default function WorkStatusListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Infrastructure ({drawerData.details.infra?.length || 0})</Typography>
-                                    {drawerData.details.infra?.length ? drawerData.details.infra.slice(0,5).map(i => (
+                                    {drawerData.details.infra?.length ? drawerData.details.infra.slice(0, 5).map(i => (
                                         <Typography key={i._id} variant="body2">• {i.premises_type || i.categorization || i.note || 'Infrastructure'}</Typography>
                                     )) : <Typography variant="body2">No infrastructure records.</Typography>}
                                 </Paper>
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Party Presence ({drawerData.details.partyPresence?.length || 0})</Typography>
-                                    {drawerData.details.partyPresence?.length ? drawerData.details.partyPresence.slice(0,5).map(pp => (
+                                    {drawerData.details.partyPresence?.length ? drawerData.details.partyPresence.slice(0, 5).map(pp => (
                                         <Typography key={pp._id} variant="body2">• {pp.party_id?.name || pp.party?.name || 'Party'} - {pp.count || ''}</Typography>
                                     )) : <Typography variant="body2">No party presence data.</Typography>}
                                 </Paper>
@@ -1868,7 +1867,7 @@ export default function WorkStatusListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Votes ({drawerData.details.votes?.length || 0})</Typography>
-                                    {drawerData.details.votes?.length ? drawerData.details.votes.slice(0,5).map(v => {
+                                    {drawerData.details.votes?.length ? drawerData.details.votes.slice(0, 5).map(v => {
                                         const candidateVal = v?.candidate_name || v?.candidate || v?.party_name || v?.party || 'Candidate';
                                         const candidateLabel = (typeof candidateVal === 'object') ? (candidateVal.name || candidateVal._id || JSON.stringify(candidateVal)) : candidateVal;
                                         const voteCount = v?.votes ?? v?.vote_count ?? 'N/A';
@@ -1885,7 +1884,7 @@ export default function WorkStatusListPage() {
 
                                 <Paper elevation={0} sx={{ p: 1 }}>
                                     <Typography variant="subtitle2">Election Stats ({drawerData.details.electionStats?.length || 0})</Typography>
-                                    {drawerData.details.electionStats?.length ? drawerData.details.electionStats.slice(0,5).map(es => {
+                                    {drawerData.details.electionStats?.length ? drawerData.details.electionStats.slice(0, 5).map(es => {
                                         const yearVal = es?.election_year;
                                         const yearLabel = yearVal ? (typeof yearVal === 'object' ? (yearVal.year || yearVal.name || yearVal._id) : yearVal) : 'Election';
                                         const turnoutVal = es?.turnout_percentage ?? es?.total_voters ?? 'N/A';

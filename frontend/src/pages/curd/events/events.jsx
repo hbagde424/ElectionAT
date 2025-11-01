@@ -130,12 +130,14 @@ export default function EventListPage() {
             booth: 'Booth'
         };
 
-        const levelName = levelNames[highestLevel.level] || 'Unknown';
-        const levelValue = highestLevel.value || 'Unknown';
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entity = userHierarchy[highestLevel];
+        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
 
         return {
             level: levelName,
-            description: `You have access to events data for ${levelName}: ${levelValue}`
+            entity: entityName,
+            description: `You have access to events data for ${entityName} ${levelName} and all areas within it`
         };
     };
 
@@ -150,7 +152,7 @@ export default function EventListPage() {
                 const num = booth && String(booth.booth_number).trim().toLowerCase();
                 if (num) set.add(num);
             });
-        } catch {}
+        } catch { }
         return set;
     }, [boothsWithEvents, booths]);
 
@@ -196,8 +198,8 @@ export default function EventListPage() {
                 const dLat = toRad(lat2 - lat1);
                 const dLon = toRad(lng2 - lng1);
                 const rLat1 = toRad(lat1); const rLat2 = toRad(lat2);
-                const aa = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon/2) * Math.sin(dLon/2);
-                const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+                const aa = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rLat1) * Math.cos(rLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
                 return R * c;
             } catch { return Infinity; }
         };
@@ -384,7 +386,7 @@ export default function EventListPage() {
                 village.panchayat_id === tempFilters.panchayat
             ) || [];
             setFilteredVillages(filtered);
-            
+
             setTempFilters(prev => ({
                 ...prev,
                 village: '',
@@ -403,7 +405,7 @@ export default function EventListPage() {
                 falliya.village_id === tempFilters.village
             ) || [];
             setFilteredFalliyas(filtered);
-            
+
             setTempFilters(prev => ({
                 ...prev,
                 falliya: ''
@@ -697,32 +699,8 @@ export default function EventListPage() {
             if (selectedStatus) query += `&status=${selectedStatus}`;
             if (selectedType) query += `&type=${selectedType}`;
 
-            // Add hierarchy-based filtering
-            if (userHierarchy) {
-                const highest = getUserHighestLevel();
-                if (highest) {
-                    switch (highest) {
-                        case 'state':
-                            query += `&state_id=${userHierarchy.state}`;
-                            break;
-                        case 'division':
-                            query += `&division_id=${userHierarchy.division}`;
-                            break;
-                        case 'parliament':
-                            query += `&parliament_id=${userHierarchy.parliament}`;
-                            break;
-                        case 'assembly':
-                            query += `&assembly_id=${userHierarchy.assembly}`;
-                            break;
-                        case 'block':
-                            query += `&block_id=${userHierarchy.block}`;
-                            break;
-                        case 'booth':
-                            query += `&booth_id=${userHierarchy.booth}`;
-                            break;
-                    }
-                }
-            }
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             // When searching, fetch all results on first page
             let currentPage = pageIndex + 1;
@@ -1312,21 +1290,21 @@ export default function EventListPage() {
                                 <MapControl />
                                 {boothGeoJSON && (
                                     <Source id="booth-source" type="geojson" data={boothGeoJSON}>
-                                        <Layer 
-                                            id="booth-fill" 
-                                            type="fill" 
-                                            paint={{ 
-                                                'fill-color': '#1e88e5', 
-                                                'fill-opacity': 0.25 
-                                            }} 
+                                        <Layer
+                                            id="booth-fill"
+                                            type="fill"
+                                            paint={{
+                                                'fill-color': '#1e88e5',
+                                                'fill-opacity': 0.25
+                                            }}
                                         />
-                                        <Layer 
-                                            id="booth-outline" 
-                                            type="line" 
-                                            paint={{ 
-                                                'line-color': '#1565c0', 
-                                                'line-width': 1 
-                                            }} 
+                                        <Layer
+                                            id="booth-outline"
+                                            type="line"
+                                            paint={{
+                                                'line-color': '#1565c0',
+                                                'line-width': 1
+                                            }}
                                         />
                                         <Layer
                                             id="booth-label"
@@ -1370,16 +1348,16 @@ export default function EventListPage() {
                                 )}
                             </Map>
                         </MapContainerStyled>
-                        
+
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#22c55e',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1
@@ -1387,10 +1365,10 @@ export default function EventListPage() {
                                     <Typography variant="caption">Has Events</Typography>
                                 </Stack>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#ef4444',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1

@@ -35,18 +35,26 @@ exports.getGovernments = async (req, res, next) => {
     try {
       if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
         const h = req.userHierarchy;
-        if (h.booth_id) {
-          query = query.where('booth_id').equals(h.booth_id);
-        } else if (h.block_id) {
-          query = query.where('block_id').equals(h.block_id);
-        } else if (h.assembly_id) {
-          query = query.where('assembly_id').equals(h.assembly_id);
-        } else if (h.parliament_id) {
-          query = query.where('parliament_id').equals(h.parliament_id);
-        } else if (h.division_id) {
-          query = query.where('division_id').equals(h.division_id);
-        } else if (h.state_id) {
-          query = query.where('state_id').equals(h.state_id);
+        // Extract IDs from populated objects or direct ID values
+        const boothId = h.booth?._id || h.booth;
+        const blockId = h.block?._id || h.block;
+        const assemblyId = h.assembly?._id || h.assembly;
+        const parliamentId = h.parliament?._id || h.parliament;
+        const divisionId = h.division?._id || h.division;
+        const stateId = h.state?._id || h.state;
+
+        if (boothId) {
+          query = query.where('booth_id').equals(boothId);
+        } else if (blockId) {
+          query = query.where('block_id').equals(blockId);
+        } else if (assemblyId) {
+          query = query.where('assembly_id').equals(assemblyId);
+        } else if (parliamentId) {
+          query = query.where('parliament_id').equals(parliamentId);
+        } else if (divisionId) {
+          query = query.where('division_id').equals(divisionId);
+        } else if (stateId) {
+          query = query.where('state_id').equals(stateId);
         }
       }
     } catch (e) {
@@ -161,12 +169,20 @@ exports.getGovernment = async (req, res, next) => {
     // Enforce single-resource scope for non-superAdmin users if hierarchy present
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      const outOfScope = (h.booth_id && government.booth_id && government.booth_id.toString() !== h.booth_id)
-        || (h.block_id && government.block_id && government.block_id.toString() !== h.block_id)
-        || (h.assembly_id && government.assembly_id && government.assembly_id.toString() !== h.assembly_id)
-        || (h.parliament_id && government.parliament_id && government.parliament_id.toString() !== h.parliament_id)
-        || (h.division_id && government.division_id && government.division_id.toString() !== h.division_id)
-        || (h.state_id && government.state_id && government.state_id.toString() !== h.state_id);
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      const outOfScope = (boothId && government.booth_id && government.booth_id.toString() !== boothId.toString())
+        || (blockId && government.block_id && government.block_id.toString() !== blockId.toString())
+        || (assemblyId && government.assembly_id && government.assembly_id.toString() !== assemblyId.toString())
+        || (parliamentId && government.parliament_id && government.parliament_id.toString() !== parliamentId.toString())
+        || (divisionId && government.division_id && government.division_id.toString() !== divisionId.toString())
+        || (stateId && government.state_id && government.state_id.toString() !== stateId.toString());
       if (outOfScope) return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
