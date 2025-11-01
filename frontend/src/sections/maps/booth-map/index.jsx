@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 import Map, { Source, Layer, Popup } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 import { Box, Typography, CircularProgress, Select, MenuItem, FormControl, InputLabel, Drawer, Paper, Stack, Divider, Autocomplete, TextField, Accordion, AccordionSummary, AccordionDetails, List, ListItem, ListItemAvatar, ListItemText, Chip, Button, Avatar, Skeleton } from '@mui/material';
@@ -19,6 +20,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 function BoothMap({ themes, onRegionClick, ...other }) {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [selectTheme, setSelectTheme] = useState('outdoors');
   const [allBoothsData, setAllBoothsData] = useState(null); // All booths
   const [boothData, setBoothData] = useState(null); // Filtered booth for display
@@ -771,7 +773,27 @@ function BoothMap({ themes, onRegionClick, ...other }) {
 
             {/* Aggregated Sections - nicer UI using Accordions, icons, avatars and chips */}
             {(() => {
-              const S = ({ title, items = [], IconComp, renderPrimary, renderSecondary, viewPath }) => (
+              const getEntityId = (it) => {
+                if (!it) return null;
+                if (it._id) return it._id;
+                if (it.id) return it.id;
+                // common nested patterns
+                const keys = Object.keys(it);
+                for (const k of keys) {
+                  if (k.endsWith('_id') && it[k]) {
+                    // could be object or string
+                    if (typeof it[k] === 'string') return it[k];
+                    if (it[k]._id) return it[k]._id;
+                    if (it[k].id) return it[k].id;
+                  }
+                }
+                // sometimes wrapped in data or document
+                if (it.data && (it.data._id || it.data.id)) return it.data._id || it.data.id;
+                if (it.document && (it.document._id || it.document.id)) return it.document._id || it.document.id;
+                return null;
+              };
+
+              const S = ({ title, items = [], IconComp, renderPrimary, renderSecondary, listPath, detailPath }) => (
                 <Accordion key={title} sx={{ boxShadow: 'none', mb: 1 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
@@ -787,27 +809,59 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                       <Skeleton variant="rectangular" height={80} />
                     ) : (items && items.length > 0) ? (
                       <List dense>
-                        {items.slice(0, 5).map(it => (
-                          <ListItem key={it._id || it.id || JSON.stringify(it)} alignItems="flex-start" sx={{ py: 0.5 }}>
-                            <ListItemAvatar>
-                              <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
-                                <IconComp fontSize="small" />
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={renderPrimary ? renderPrimary(it) : (it.title || it.name || it.samiti_name || it.issue_name || it.work_name || it.candidate_name || it.person_name || it.username || '—')}
-                              secondary={renderSecondary ? renderSecondary(it) : (it.date ? new Date(it.date).toLocaleDateString('en-IN') : (it.status || it.locationName || ''))}
-                            />
-                          </ListItem>
-                        ))}
+                        {items.slice(0, 5).map(it => {
+                          const entityId = getEntityId(it);
+                          return (
+                            <ListItem 
+                              key={it._id || it.id || JSON.stringify(it)} 
+                              alignItems="flex-start" 
+                              sx={{ py: 0.5, cursor: detailPath && entityId ? 'pointer' : 'default' }}
+                              onClick={() => {
+                                // debug
+                                console.debug('BoothMap: item click', { title, entityId, item: it, detailPath, listPath });
+                                if (detailPath && entityId) {
+                                  navigate(`${detailPath}/${entityId}`);
+                                } else if (listPath && selectedBoothDetails) {
+                                  // fallback: open list filtered by booth
+                                  navigate(listPath, { state: { boothId: selectedBoothDetails._id, boothNumber: selectedBoothDetails.booth_number, boothName: selectedBoothDetails.booth_name } });
+                                }
+                              }}
+                            >
+                              <ListItemAvatar>
+                                <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
+                                  <IconComp fontSize="small" />
+                                </Avatar>
+                              </ListItemAvatar>
+                              <ListItemText
+                                primary={renderPrimary ? renderPrimary(it) : (it.title || it.name || it.samiti_name || it.issue_name || it.work_name || it.candidate_name || it.person_name || it.username || '—')}
+                                secondary={renderSecondary ? renderSecondary(it) : (it.date ? new Date(it.date).toLocaleDateString('en-IN') : (it.status || it.locationName || ''))}
+                              />
+                            </ListItem>
+                          );
+                        })}
                       </List>
                     ) : (
                       <Typography variant="body2">No records found.</Typography>
                     )}
 
-                    {viewPath && items && items.length > 0 && selectedBoothDetails && (
+                    {listPath && items && items.length > 0 && selectedBoothDetails && (
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                        <Button size="small" onClick={() => window.open(`${viewPath}?booth=${selectedBoothDetails._id}`, '_blank')}>View more</Button>
+                        <Button 
+                          size="small" 
+                          variant="contained"
+                          onClick={() => {
+                            // Try to navigate directly to the related detail if we can resolve an entity id from items
+                            const firstEntityId = (items || []).map(getEntityId).find(x => x);
+                            if (detailPath && firstEntityId) {
+                              navigate(`${detailPath}/${firstEntityId}`);
+                              return;
+                            }
+                            // Fallback: open list page filtered by booth
+                            navigate(listPath, { state: { boothId: selectedBoothDetails._id, boothNumber: selectedBoothDetails.booth_number, boothName: selectedBoothDetails.booth_name } });
+                          }}
+                        >
+                          View more
+                        </Button>
                       </Box>
                     )}
                   </AccordionDetails>
@@ -844,7 +898,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: EventIcon,
                     renderPrimary: (ev) => ev.title || ev.event_name || 'Event',
                     renderSecondary: (ev) => ev.date ? new Date(ev.date).toLocaleDateString('en-IN') : ev.location || '',
-                    viewPath: '/curd/events'
+                    listPath: '/Events',
+                    detailPath: '/Events'
                   })}
 
                   {S({
@@ -853,7 +908,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: FlagIcon,
                     renderPrimary: (a) => a.activity_name || a.title || 'Activity',
                     renderSecondary: (a) => a.date ? new Date(a.date).toLocaleDateString('en-IN') : a.description || '' ,
-                    viewPath: '/curd/party-activities'
+                    listPath: '/party-activities',
+                    detailPath: '/party-activities'
                   })}
 
                   {S({
@@ -862,7 +918,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: VisibilityIcon,
                     renderPrimary: (v) => `${v.candidate_id?.name || v.person_name || 'Visit'}`,
                     renderSecondary: (v) => v.date ? new Date(v.date).toLocaleDateString('en-IN') : v.locationName || '',
-                    viewPath: '/curd/visits'
+                    listPath: '/visits',
+                    detailPath: '/visits'
                   })}
 
                   {S({
@@ -871,7 +928,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: AccountCircleIcon,
                     renderPrimary: (p) => p.name || p.person_name || p.phone || 'Influencer',
                     renderSecondary: (p) => p.designation || p.address || '',
-                    viewPath: '/curd/influancer'
+                    listPath: '/Influancer',
+                    detailPath: '/Influancer'
                   })}
 
                   {S({
@@ -880,7 +938,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: VolunteerActivismIcon,
                     renderPrimary: (p) => p.name || p.username || p.phone || 'Volunteer',
                     renderSecondary: (p) => p.party?.name || p.role || '',
-                    viewPath: '/curd/volunteer'
+                    listPath: '/booth-volunteer',
+                    detailPath: '/booth-volunteer'
                   })}
 
                   {S({
@@ -889,7 +948,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: LocalHospitalIcon,
                     renderPrimary: (s) => s.name || 'Scheme',
                     renderSecondary: (s) => s.amount ? `₹${Number(s.amount).toLocaleString()}` : s.type || '',
-                    viewPath: '/curd/Government Schema'
+                    listPath: '/Government-Schema',
+                    detailPath: '/Government-Schema'
                   })}
 
                   {S({
@@ -898,7 +958,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: ReportProblemIcon,
                     renderPrimary: (it) => it.issue_name || 'Issue',
                     renderSecondary: (it) => it.status || it.priority || '',
-                    viewPath: '/curd/local-issue'
+                    listPath: '/Local-Issue',
+                    detailPath: '/Local-Issue'
                   })}
 
                   {S({
@@ -907,7 +968,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: GroupIcon,
                     renderPrimary: (s) => s.samiti_name || 'Samiti',
                     renderSecondary: (s) => s.leader || '',
-                    viewPath: '/curd/samitis'
+                    listPath: '/samitis',
+                    detailPath: '/samitis'
                   })}
 
                   {S({
@@ -916,7 +978,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: ConstructionIcon,
                     renderPrimary: (w) => w.work_name || 'Work',
                     renderSecondary: (w) => w.status || w.progress || '',
-                    viewPath: '/curd/work-status'
+                    listPath: '/Work-Status',
+                    detailPath: '/Work-Status'
                   })}
 
                   {S({
@@ -925,7 +988,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: EmojiEventsIcon,
                     renderPrimary: (wp) => wp.candidate_id?.name || wp.candidate_name || 'Candidate',
                     renderSecondary: (wp) => `${wp.party_id?.name || wp.party_name || ''} • ${wp.election_year?.year || wp.election_year || ''}`,
-                    viewPath: '/curd/winning-parties'
+                    listPath: '/WinningPartiesList',
+                    detailPath: '/WinningPartiesList'
                   })}
 
                   {S({
@@ -934,7 +998,8 @@ function BoothMap({ themes, onRegionClick, ...other }) {
                     IconComp: HowToVoteIcon,
                     renderPrimary: (v) => (typeof v.candidate_name === 'string' ? v.candidate_name : (v.candidate_name?.name || v.party_name || 'Candidate')),
                     renderSecondary: (v) => `Votes: ${v.votes ?? v.vote_count ?? 'N/A'}`,
-                    viewPath: '/curd/booth-votes'
+                    listPath: '/Booth-Votes',
+                    detailPath: '/Booth-Votes'
                   })}
                 </Box>
               );
