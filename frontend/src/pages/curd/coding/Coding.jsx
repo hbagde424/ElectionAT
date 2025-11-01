@@ -192,12 +192,14 @@ export default function CodingListPage() {
             booth: 'Booth'
         };
 
-        const levelName = levelNames[highestLevel.level] || 'Unknown';
-        const levelValue = highestLevel.value || 'Unknown';
+        const levelName = levelNames[highestLevel] || highestLevel;
+        const entity = userHierarchy[highestLevel];
+        const entityName = entity?.name || (typeof entity === 'object' && entity !== null ? (entity.displayName || entity.title || String(entity._id || entity.id || '')) : String(entity || 'Unknown'));
 
         return {
             level: levelName,
-            description: `You have access to coding data for ${levelName}: ${levelValue}`
+            entity: entityName,
+            description: `You have access to coding data for ${entityName} ${levelName} and all areas within it`
         };
     };
 
@@ -408,12 +410,12 @@ export default function CodingListPage() {
                 const boothNoStr = String(boothNo || '').trim();
                 // Try exact match first (case-sensitive)
                 booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr);
-                
+
                 if (!booth) {
                     // Try case-insensitive match
                     booth = json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase());
                 }
-                
+
                 console.log('[Coding Map] Matched booth:', booth ? { id: booth._id, name: booth.name, booth_number: booth.booth_number } : 'NOT FOUND');
             }
 
@@ -423,10 +425,10 @@ export default function CodingListPage() {
                 try {
                     const apiUrl = `${import.meta.env.VITE_APP_API_URL}/codings?booth_id=${encodeURIComponent(booth._id)}&limit=100`;
                     console.log('[Coding Map] Fetching from:', apiUrl);
-                    
+
                     const cRes = await fetch(apiUrl, { headers });
                     const cJson = await cRes.json();
-                    
+
                     if (cJson.success && Array.isArray(cJson.data)) {
                         codingsForBooth = cJson.data;
                         console.log('[Coding Map] Found codings:', codingsForBooth.length);
@@ -467,32 +469,8 @@ export default function CodingListPage() {
                 }
             });
 
-            // Add hierarchy-based filtering
-            if (userHierarchy) {
-                const highestLevel = getUserHighestLevel();
-                if (highestLevel) {
-                    switch (highestLevel.level) {
-                        case 'state':
-                            query += `&state_id=${highestLevel.value}`;
-                            break;
-                        case 'division':
-                            query += `&division_id=${highestLevel.value}`;
-                            break;
-                        case 'parliament':
-                            query += `&parliament_id=${highestLevel.value}`;
-                            break;
-                        case 'assembly':
-                            query += `&assembly_id=${highestLevel.value}`;
-                            break;
-                        case 'block':
-                            query += `&block_id=${highestLevel.value}`;
-                            break;
-                        case 'booth':
-                            query += `&booth_id=${highestLevel.value}`;
-                            break;
-                    }
-                }
-            }
+            // Hierarchy-based filtering is handled automatically by the backend
+            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
 
             const token = localStorage.serviceToken;
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
@@ -1043,15 +1021,15 @@ export default function CodingListPage() {
                                 )}
                                 {/* Coding Markers Layer */}
                                 {boothGeoJSON && (
-                                    <Source 
-                                        id="booth-markers" 
-                                        type="geojson" 
+                                    <Source
+                                        id="booth-markers"
+                                        type="geojson"
                                         data={{
                                             type: 'FeatureCollection',
                                             features: boothGeoJSON.features.map(feature => {
                                                 const props = feature.properties || {};
                                                 const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                                
+
                                                 let coordinates = [0, 0];
                                                 if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
                                                     const coords = feature.geometry.coordinates[0];
@@ -1070,7 +1048,7 @@ export default function CodingListPage() {
                                                         lats.reduce((a, b) => a + b, 0) / lats.length
                                                     ];
                                                 }
-                                                
+
                                                 const hasCoding = Array.from(boothsWithCoding).some(codingBoothId => {
                                                     const booth = booths.find(b => String(b._id) === codingBoothId);
                                                     if (booth) {
@@ -1078,7 +1056,7 @@ export default function CodingListPage() {
                                                     }
                                                     return false;
                                                 });
-                                                
+
                                                 return {
                                                     type: 'Feature',
                                                     geometry: {
@@ -1113,16 +1091,16 @@ export default function CodingListPage() {
                                 )}
                             </Map>
                         </MapContainerStyled>
-                        
+
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#22c55e',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1
@@ -1130,10 +1108,10 @@ export default function CodingListPage() {
                                     <Typography variant="caption">Has Coding</Typography>
                                 </Stack>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#ef4444',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1

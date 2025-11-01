@@ -80,19 +80,28 @@ exports.getDistricts = async (req, res, next) => {
         }
       }
 
-      // Apply user hierarchy restriction when an authenticated user is present
-      // Precedence: booth -> block -> assembly -> parliament -> division -> state
-      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-        const h = req.userHierarchy;
-        if (h.assembly_id) {
-          query = query.where('assembly_id').equals(h.assembly_id);
-        } else if (h.parliament_id) {
-          query = query.where('parliament_id').equals(h.parliament_id);
-        } else if (h.division_id) {
-          query = query.where('division_id').equals(h.division_id);
-        } else if (h.state_id) {
-          query = query.where('state_id').equals(h.state_id);
-        }
+    }
+
+    // Apply user hierarchy restriction when an authenticated user is present
+    // Precedence: booth -> block -> assembly -> parliament -> division -> state
+    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
+      const h = req.userHierarchy;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else if (stateId) {
+        query = query.where('state_id').equals(stateId);
       }
     }
 
@@ -150,10 +159,18 @@ exports.getDistrict = async (req, res, next) => {
     // Enforce user hierarchy: only allow access if district is within user's scope
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      const outOfScope = (h.assembly_id && district.assembly_id && district.assembly_id.toString() !== h.assembly_id.toString()) ||
-        (h.parliament_id && district.parliament_id && district.parliament_id.toString() !== h.parliament_id.toString()) ||
-        (h.division_id && district.division_id && district.division_id.toString() !== h.division_id.toString()) ||
-        (h.state_id && district.state_id && district.state_id.toString() !== h.state_id.toString());
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      const outOfScope = (assemblyId && district.assembly_id && district.assembly_id.toString() !== assemblyId.toString()) ||
+        (parliamentId && district.parliament_id && district.parliament_id.toString() !== parliamentId.toString()) ||
+        (divisionId && district.division_id && district.division_id.toString() !== divisionId.toString()) ||
+        (stateId && district.state_id && district.state_id.toString() !== stateId.toString());
 
       if (outOfScope) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
@@ -371,11 +388,15 @@ exports.getDistrictsByState = async (req, res, next) => {
     // Enforce user hierarchy for state-scoped listing
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.state_id && h.state_id.toString() !== req.params.stateId) {
+      // Extract IDs from populated objects or direct ID values
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (stateId && stateId.toString() !== req.params.stateId) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.division_id) {
-        const division = await Division.findById(h.division_id);
+      if (divisionId) {
+        const division = await Division.findById(divisionId);
         if (!division || division.state_id.toString() !== req.params.stateId) {
           return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
         }
@@ -415,10 +436,14 @@ exports.getDistrictsByDivision = async (req, res, next) => {
     // Enforce user hierarchy for division-scoped listing
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.division_id && h.division_id.toString() !== req.params.divisionId) {
+      // Extract IDs from populated objects or direct ID values
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (divisionId && divisionId.toString() !== req.params.divisionId) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.state_id && h.state_id.toString() !== (districts[0]?.state_id?.toString())) {
+      if (stateId && stateId.toString() !== (districts[0]?.state_id?.toString())) {
         // If user's scope is a different state, forbid
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }

@@ -168,18 +168,26 @@ exports.getCodings = async (req, res, next) => {
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.booth_id) {
-        query = query.where('booth_id').equals(h.booth_id);
-      } else if (h.block_id) {
-        query = query.where('block_id').equals(h.block_id);
-      } else if (h.assembly_id) {
-        query = query.where('assembly_id').equals(h.assembly_id);
-      } else if (h.parliament_id) {
-        query = query.where('parliament_id').equals(h.parliament_id);
-      } else if (h.division_id) {
-        query = query.where('division_id').equals(h.division_id);
-      } else if (h.state_id) {
-        query = query.where('state_id').equals(h.state_id);
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) {
+        query = query.where('booth_id').equals(boothId);
+      } else if (blockId) {
+        query = query.where('block_id').equals(blockId);
+      } else if (assemblyId) {
+        query = query.where('assembly_id').equals(assemblyId);
+      } else if (parliamentId) {
+        query = query.where('parliament_id').equals(parliamentId);
+      } else if (divisionId) {
+        query = query.where('division_id').equals(divisionId);
+      } else if (stateId) {
+        query = query.where('state_id').equals(stateId);
       }
     }
 
@@ -227,12 +235,20 @@ exports.getCoding = async (req, res, next) => {
     // Enforce user hierarchy: only allow access if coding is within user's scope
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      const outOfScope = (h.booth_id && coding.booth_id && coding.booth_id.toString() !== h.booth_id.toString()) ||
-        (h.block_id && coding.block_id && coding.block_id.toString() !== h.block_id.toString()) ||
-        (h.assembly_id && coding.assembly_id && coding.assembly_id.toString() !== h.assembly_id.toString()) ||
-        (h.parliament_id && coding.parliament_id && coding.parliament_id.toString() !== h.parliament_id.toString()) ||
-        (h.division_id && coding.division_id && coding.division_id.toString() !== h.division_id.toString()) ||
-        (h.state_id && coding.state_id && coding.state_id.toString() !== h.state_id.toString());
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      const outOfScope = (boothId && coding.booth_id && coding.booth_id.toString() !== boothId.toString()) ||
+        (blockId && coding.block_id && coding.block_id.toString() !== blockId.toString()) ||
+        (assemblyId && coding.assembly_id && coding.assembly_id.toString() !== assemblyId.toString()) ||
+        (parliamentId && coding.parliament_id && coding.parliament_id.toString() !== parliamentId.toString()) ||
+        (divisionId && coding.division_id && coding.division_id.toString() !== divisionId.toString()) ||
+        (stateId && coding.state_id && coding.state_id.toString() !== stateId.toString());
 
       if (outOfScope) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
@@ -504,22 +520,30 @@ exports.getCodingsByBooth = async (req, res, next) => {
     // If user is present and not superAdmin, ensure booth is within user's scope
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.booth_id && h.booth_id.toString() !== req.params.boothId) {
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId && boothId.toString() !== req.params.boothId) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.block_id && h.block_id.toString() !== booth.block_id.toString()) {
+      if (blockId && blockId.toString() !== booth.block_id.toString()) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.assembly_id && h.assembly_id.toString() !== booth.assembly_id.toString()) {
+      if (assemblyId && assemblyId.toString() !== booth.assembly_id.toString()) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.parliament_id && h.parliament_id.toString() !== booth.parliament_id.toString()) {
+      if (parliamentId && parliamentId.toString() !== booth.parliament_id.toString()) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.division_id && h.division_id.toString() !== booth.division_id.toString()) {
+      if (divisionId && divisionId.toString() !== booth.division_id.toString()) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.state_id && h.state_id.toString() !== booth.state_id.toString()) {
+      if (stateId && stateId.toString() !== booth.state_id.toString()) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
     }
@@ -556,13 +580,17 @@ exports.getCodingsByState = async (req, res, next) => {
     // Enforce user hierarchy for state-scoped listing
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
+      // Extract IDs from populated objects or direct ID values
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
       // If user's scope is narrower than the requested state and doesn't match, forbid
-      if (h.state_id && h.state_id.toString() !== req.params.stateId) {
+      if (stateId && stateId.toString() !== req.params.stateId) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
-      if (h.division_id) {
+      if (divisionId) {
         // user limited to a division inside some state - ensure division belongs to this state
-        const division = await Division.findById(h.division_id);
+        const division = await Division.findById(divisionId);
         if (!division || division.state_id.toString() !== req.params.stateId) {
           return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
         }
@@ -602,12 +630,20 @@ exports.getCodingsByType = async (req, res, next) => {
     const baseFilter = { coding_types: req.params.type };
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.booth_id) baseFilter.booth_id = h.booth_id;
-      else if (h.block_id) baseFilter.block_id = h.block_id;
-      else if (h.assembly_id) baseFilter.assembly_id = h.assembly_id;
-      else if (h.parliament_id) baseFilter.parliament_id = h.parliament_id;
-      else if (h.division_id) baseFilter.division_id = h.division_id;
-      else if (h.state_id) baseFilter.state_id = h.state_id;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) baseFilter.booth_id = boothId;
+      else if (blockId) baseFilter.block_id = blockId;
+      else if (assemblyId) baseFilter.assembly_id = assemblyId;
+      else if (parliamentId) baseFilter.parliament_id = parliamentId;
+      else if (divisionId) baseFilter.division_id = divisionId;
+      else if (stateId) baseFilter.state_id = stateId;
     }
 
     const codings = await Coding.find(baseFilter)
@@ -646,12 +682,20 @@ exports.getCodingsByTypes = async (req, res, next) => {
     const baseFilter = { coding_types: { $all: types } };
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.booth_id) baseFilter.booth_id = h.booth_id;
-      else if (h.block_id) baseFilter.block_id = h.block_id;
-      else if (h.assembly_id) baseFilter.assembly_id = h.assembly_id;
-      else if (h.parliament_id) baseFilter.parliament_id = h.parliament_id;
-      else if (h.division_id) baseFilter.division_id = h.division_id;
-      else if (h.state_id) baseFilter.state_id = h.state_id;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) baseFilter.booth_id = boothId;
+      else if (blockId) baseFilter.block_id = blockId;
+      else if (assemblyId) baseFilter.assembly_id = assemblyId;
+      else if (parliamentId) baseFilter.parliament_id = parliamentId;
+      else if (divisionId) baseFilter.division_id = divisionId;
+      else if (stateId) baseFilter.state_id = stateId;
     }
 
     const codings = await Coding.find(baseFilter)
@@ -690,12 +734,20 @@ exports.getCodingsByAnyTypes = async (req, res, next) => {
     const baseFilter = { coding_types: { $in: types } };
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      if (h.booth_id) baseFilter.booth_id = h.booth_id;
-      else if (h.block_id) baseFilter.block_id = h.block_id;
-      else if (h.assembly_id) baseFilter.assembly_id = h.assembly_id;
-      else if (h.parliament_id) baseFilter.parliament_id = h.parliament_id;
-      else if (h.division_id) baseFilter.division_id = h.division_id;
-      else if (h.state_id) baseFilter.state_id = h.state_id;
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
+
+      if (boothId) baseFilter.booth_id = boothId;
+      else if (blockId) baseFilter.block_id = blockId;
+      else if (assemblyId) baseFilter.assembly_id = assemblyId;
+      else if (parliamentId) baseFilter.parliament_id = parliamentId;
+      else if (divisionId) baseFilter.division_id = divisionId;
+      else if (stateId) baseFilter.state_id = stateId;
     }
 
     const codings = await Coding.find(baseFilter)
