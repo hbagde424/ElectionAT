@@ -316,7 +316,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     // Update popup content when hover data changes
     useEffect(() => {
-        // console.log('🔄 Hover data updated:', hoverData); // Commented out to reduce noise
+        
         if (currentLayerRef.current) {
             currentLayerRef.current.eachLayer((layer) => {
                 if (layer._popup && layer.feature) {
@@ -366,7 +366,7 @@ function HierarchicalMap({ onRegionClick }) {
 
             const updatedData = hoverData[cacheKey];
             if (updatedData && Object.keys(updatedData).length > 0) {
-                console.log('🔄 Updating panel with new hover data:', cacheKey, updatedData);
+                console.log('📦 Panel data updating with cache key:', cacheKey, 'Data:', updatedData);
                 setPanelData({
                     feature: panelData.feature,
                     level: panelLevel,
@@ -402,7 +402,7 @@ function HierarchicalMap({ onRegionClick }) {
                     }).addTo(mapInstanceRef.current);
                 })
                 .catch(err => {
-                    console.error('Could not load India GeoJSON:', err);
+
                 });
             // --- End India GeoJSON block ---
 
@@ -507,7 +507,6 @@ function HierarchicalMap({ onRegionClick }) {
     };
 
     // State data will be fetched from API
-
     // Parliamentary constituency data by division
     const parliamentaryData = {
         bhopal: [
@@ -568,7 +567,7 @@ function HierarchicalMap({ onRegionClick }) {
                 alert('No state data available');
             }
         } catch (error) {
-            console.error('Error loading state data:', error);
+
         }
     };
 
@@ -633,15 +632,14 @@ function HierarchicalMap({ onRegionClick }) {
 
                 showBoundaries(transformedData, 'division');
             } else {
-                console.warn('No division data available');
+
             }
         } catch (error) {
-            console.error('Error loading division data:', error);
+
         }
     };
 
     // Parliamentary data will be fetched from API
-
     const loadParliamentaryData = async (divisionName) => {
         try {
             const parliamentName = divisionName;
@@ -680,7 +678,7 @@ function HierarchicalMap({ onRegionClick }) {
                 alert('No parliamentary data available');
             }
         } catch (error) {
-            console.error('Error loading parliamentary data:', error);
+
         }
     };
 
@@ -853,12 +851,11 @@ function HierarchicalMap({ onRegionClick }) {
                 setCurrentLevel('assembly');
             }
         } catch (error) {
-            console.error('Error loading assembly data:', error);
+
         }
     };
 
     // Block data will be fetched from API
-
     const loadBlockData = async (assemblyId) => {
         try {
             const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
@@ -898,7 +895,6 @@ function HierarchicalMap({ onRegionClick }) {
                         })).filter(b => b.id && b.name);
 
                         if (blocks.length === 0) return;
-
                         // For each block, try to fetch booths by searching with block name (API supports search)
                         await Promise.all(blocks.map(async (blk) => {
                             const blockCacheKey = `block_${blk.id}`;
@@ -974,18 +970,18 @@ function HierarchicalMap({ onRegionClick }) {
                                     };
                                 });
                             } catch (err) {
-                                console.warn('Block prefetch failed for', blk, err);
+
                             }
                         }));
                     } catch (err) {
-                        console.warn('Block-level prefetch failed:', err);
+
                     }
                 })();
             } else {
                 alert('No block data available for this assembly constituency');
             }
         } catch (error) {
-            console.error('Error loading block data:', error);
+
         }
     };
 
@@ -998,7 +994,6 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             const responseData = await response.json();
-
             // Validate API response structure
             if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
                 throw new Error('Invalid API response structure');
@@ -1015,7 +1010,7 @@ function HierarchicalMap({ onRegionClick }) {
                 features: responseData.features.map((feature, index) => {
                     // Validate geometry
                     if (!feature.geometry || !feature.geometry.coordinates) {
-                        console.warn(`Feature ${index} missing geometry`, feature);
+
                         return null;
                     }
 
@@ -1069,9 +1064,8 @@ function HierarchicalMap({ onRegionClick }) {
                     }
                 });
             } catch (err) {
-                console.warn('Could not populate booth lookup cache:', err);
-            }
 
+            }
             // Prefetch booth counts from backend for this block to avoid hover latency
             (async () => {
                 try {
@@ -1136,7 +1130,7 @@ function HierarchicalMap({ onRegionClick }) {
                         });
                     }
                 } catch (err) {
-                    console.warn('Prefetch booth counts failed:', err);
+
                 }
             })();
 
@@ -1149,9 +1143,7 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
         } catch (error) {
-            console.error('Error in loadBoothData:', error);
             alert(`Failed to load booth data: ${error.message}`);
-
             // Fallback: Show the block boundaries again
             if (selectedFeature && selectedFeature.properties) {
                 loadBlockData(selectedFeature.properties.blockCode || selectedFeature.properties.id);
@@ -1170,7 +1162,6 @@ function HierarchicalMap({ onRegionClick }) {
             let fillOpacity = 0.2;
 
             if (level === 'state') {
-
                 weight = 3;
                 fillOpacity = 0.15;
                 // Add specific styling for MP state
@@ -1182,9 +1173,7 @@ function HierarchicalMap({ onRegionClick }) {
 
 
                 weight = 4;
-
             }
-
             return {
                 color: color,
                 weight: weight,
@@ -1281,38 +1270,38 @@ function HierarchicalMap({ onRegionClick }) {
                         if (level === 'state') {
                             const stateId = feature.properties.id || feature.properties.Name || feature.properties._id;
                             if (stateId && !hoverData[cacheKey]?.stateData) {
-                                console.log('🏛️ Triggering state data fetch for:', stateId);
+
                                 fetchStateData(stateId);
                             }
                         } else if (level === 'division') {
                             const divisionId = feature.properties.id || feature.properties.DIVISION_CODE || feature.properties.name || feature.properties._id;
                             if (divisionId && !hoverData[cacheKey]?.divisionData) {
-                                console.log('🗺️ Triggering division data fetch for:', divisionId);
+
                                 fetchDivisionData(divisionId);
                             }
                         } else if (level === 'parliamentary') {
                             const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
                             if (parliamentId && !hoverData[cacheKey]?.parliamentData) {
-                                console.log('🏛️ Triggering parliament data fetch for:', parliamentId);
+
                                 fetchParliamentData(parliamentId);
                             }
                         } else if (level === 'assembly') {
                             const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
                             if (assemblyId && !hoverData[cacheKey]?.assemblyData) {
-                                console.log('🏛️ Triggering assembly data fetch for:', assemblyId);
+
                                 fetchAssemblyDataDetailed(assemblyId);
                             }
                         } else if (level === 'block') {
                             const blockId = feature.properties.id || feature.properties.blockName || feature.properties.BlockName || 
                                           feature.properties.name || feature.properties._id;
                             if (blockId && !hoverData[cacheKey]?.blockData) {
-                                console.log('🏢 Triggering block data fetch for:', blockId);
+
                                 fetchBlockDataDetailed(blockId);
                             }
                             
                             // Also fetch gender data specifically for blocks using existing method
                             if (blockId && !hoverData[cacheKey]?.genderData) {
-                                console.log('🚀 Triggering block gender fetch for:', blockId);
+
                                 fetchBlockGenderData(blockId);
                             }
                         } else if (level === 'booth') {
@@ -1322,13 +1311,12 @@ function HierarchicalMap({ onRegionClick }) {
                             const boothCacheKey = `booth_${boothId}`;
                             
                             if (boothId && !hoverData[boothCacheKey]?.boothData) {
-                                console.log('🗳️ Triggering booth data fetch for:', boothId);
                                 fetchBoothDataDetailed(boothId);
                             }
                             
                             // Also fetch booth gender data specifically using existing method
                             if (boothId && !hoverData[boothCacheKey]?.genderData) {
-                                console.log('🚀 Triggering booth gender fetch for:', boothId);
+
                                 fetchBoothGenderData(boothId);
                             }
                         }
@@ -1463,17 +1451,31 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch comprehensive state data
     const fetchStateData = async (stateId) => {
         try {
-            console.log('🏛️ Fetching state data for:', stateId);
+            console.log('🔍 Attempting to fetch state data for:', stateId);
             
-            // Fetch state basic info
-            const stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/${stateId}`);
+            // Try direct ID fetch first
+            let stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/${stateId}`);
             let stateData = {};
+            
+            // If direct fetch fails or returns nothing, try search by name
+            if (!stateResponse.ok || stateResponse.status === 404) {
+                console.log('⚠️ Direct ID fetch failed, trying search by name...');
+                // Convert slug to proper name (e.g., "madhya-pradesh" -> "Madhya Pradesh")
+                const stateName = stateId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?search=${encodeURIComponent(stateName)}`);
+            }
+            
             if (stateResponse.ok) {
                 const result = await stateResponse.json();
                 if (result.success) {
-                    stateData = result.data;
-                    console.log('✅ State data fetched:', stateData);
+                    // Handle both single object and array response
+                    stateData = Array.isArray(result.data) ? result.data[0] : result.data;
+                    console.log('✅ State data fetched with description:', stateData?.description ? 'YES' : 'NO', stateData);
+                } else {
+                    console.log('⚠️ API returned success=false:', result);
                 }
+            } else {
+                console.log('❌ State API call failed with status:', stateResponse.status);
             }
 
             // Fetch aggregated gender stats for state using existing API
@@ -1492,7 +1494,7 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-                    console.log('✅ State gender data aggregated:', genderData);
+
                 }
             }
 
@@ -1514,7 +1516,7 @@ function HierarchicalMap({ onRegionClick }) {
                         winner_2018: partyByYear['2018'] || 'INC', 
                         winner_2013: partyByYear['2013'] || 'BJP'
                     };
-                    console.log('✅ State winning data processed:', winningData);
+
                 }
             }
 
@@ -1528,14 +1530,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching state data:', error);
+
         }
     };
 
     // Function to fetch comprehensive division data
     const fetchDivisionData = async (divisionId) => {
         try {
-            console.log('🗺️ Fetching division data for:', divisionId);
+
             
             // Try to find division by ID or name
             let divisionResponse;
@@ -1551,7 +1553,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await divisionResponse.json();
                 if (result.success) {
                     divisionData = Array.isArray(result.data) ? result.data[0] : result.data;
-                    console.log('✅ Division data fetched:', divisionData);
+
                 }
             }
 
@@ -1563,7 +1565,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await parliamentsResponse.json();
                 if (result.success) {
                     parliamentsData = result.data || [];
-                    console.log('✅ Parliaments data fetched:', parliamentsData.length, 'constituencies');
+
                 }
             }
 
@@ -1576,14 +1578,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching division data:', error);
+
         }
     };
 
     // Function to fetch comprehensive parliament data
     const fetchParliamentData = async (parliamentId) => {
         try {
-            console.log('🏛️ Fetching parliament data for:', parliamentId);
+
             
             // Fetch parliament basic info
             let parliamentResponse;
@@ -1599,7 +1601,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await parliamentResponse.json();
                 if (result.success) {
                     parliamentData = Array.isArray(result.data) ? result.data[0] : result.data;
-                    console.log('✅ Parliament data fetched:', parliamentData);
+
                 }
             }
 
@@ -1620,7 +1622,7 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-                    console.log('✅ Parliament gender data aggregated:', genderData);
+
                 }
             }
 
@@ -1647,7 +1649,7 @@ function HierarchicalMap({ onRegionClick }) {
                         winner_2014: partyByYear['2014'] || 'BJP',
                         current_mp: currentMP
                     };
-                    console.log('✅ Parliament winning data processed:', winningData);
+
                 }
             }
 
@@ -1658,7 +1660,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await assembliesResponse.json();
                 if (result.success) {
                     assembliesData = result.data || [];
-                    console.log('✅ Assemblies data fetched:', assembliesData.length, 'assemblies');
+
                 }
             }
 
@@ -1669,7 +1671,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-                    console.log('✅ Parliament total booths:', totalBooths);
+
                 }
             }
 
@@ -1685,23 +1687,23 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching parliament data:', error);
+
         }
     };
 
     // Function to fetch comprehensive assembly data
     const fetchAssemblyDataDetailed = async (assemblyId) => {
         try {
-            console.log('🏛️ Fetching assembly data for:', assemblyId, 'Type:', typeof assemblyId);
+
             
             // Fetch assembly basic info
             let assemblyResponse;
             if (assemblyId.length === 24) { // ObjectId format
-                console.log('📡 Using ObjectId route for assembly:', assemblyId);
+
                 assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`);
             } else {
                 // Search by AC_NO
-                console.log('📡 Using search route for assembly AC_NO:', assemblyId);
+
                 assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?search=${encodeURIComponent(assemblyId)}`);
             }
             
@@ -1722,32 +1724,28 @@ function HierarchicalMap({ onRegionClick }) {
 
                         if (exact) {
                             assemblyData = exact;
-                            console.log('✅ Assembly data exact-match found in API array:', assemblyData);
+
                         } else if (result.data.length === 1) {
                             assemblyData = result.data[0];
-                            console.log('⚠️ Assembly API returned single element, using it:', assemblyData);
+
                         } else {
                             // Unexpected: multiple results and none match exactly
-                            console.warn('⚠️ Assembly API returned multiple candidates but none matched exactly. Search:', assemblyId, 'Candidates count:', result.data.length);
-                            // Log a trimmed version of candidates to avoid flooding
-                            console.log('🔎 Candidate sample:', result.data.slice(0,5).map(c => ({ _id: c._id, AC_NO: c.AC_NO, name: c.name })));
                             // We'll try client-side matching later, so leave assemblyData empty for now
                         }
                     } else {
                         assemblyData = result.data;
-                        console.log('✅ Assembly data fetched (single object):', assemblyData);
                     }
                 } else {
-                    console.warn('⚠️ Assembly API returned no success (search). Will try client-side matching. Result:', result);
+                    // Assembly API returned no success
                 }
             } else {
-                console.error('❌ Assembly API call failed (search):', assemblyResponse.status);
+                // Assembly API call failed
             }
 
             // Fallback: if API search didn't return usable assemblyData, fetch a larger set and try client-side matching
             if (!assemblyData || Object.keys(assemblyData).length === 0) {
                 try {
-                    console.log('🔁 Trying client-side matching for assemblyId:', assemblyId);
+
                     const allUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`;
                     const allResp = await fetch(allUrl);
                     if (allResp.ok) {
@@ -1771,15 +1769,14 @@ function HierarchicalMap({ onRegionClick }) {
 
                         if (found) {
                             assemblyData = found;
-                            console.log('✅ Client-side matched assembly:', assemblyData);
+
                         } else {
-                            console.warn('⚠️ Client-side matching did not find an assembly for:', assemblyId);
                         }
                     } else {
-                        console.warn('⚠️ Failed to fetch all assemblies for client-side matching:', allResp.status);
+
                     }
                 } catch (err) {
-                    console.error('❌ Error during client-side assembly matching fallback:', err);
+
                 }
             }
 
@@ -1800,7 +1797,7 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-                    console.log('✅ Assembly gender data aggregated:', genderData);
+
                 }
             }
 
@@ -1819,7 +1816,7 @@ function HierarchicalMap({ onRegionClick }) {
                     winningData = {
                         current_mla: currentMLA
                     };
-                    console.log('✅ Assembly winning data processed:', winningData);
+
                 }
             }
 
@@ -1830,7 +1827,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-                    console.log('✅ Assembly total booths:', totalBooths);
+
                 }
             }
 
@@ -1854,8 +1851,6 @@ function HierarchicalMap({ onRegionClick }) {
                     keysToSet.add(`assembly_${String(acCandidate)}`);
                 }
 
-                console.log('💾 Storing assembly hover data under keys:', Array.from(keysToSet));
-
                 setHoverData(prev => {
                     const next = { ...prev };
                     keysToSet.forEach(k => {
@@ -1870,7 +1865,7 @@ function HierarchicalMap({ onRegionClick }) {
                     return next;
                 });
             } catch (err) {
-                console.error('❌ Error while writing assembly hover cache keys:', err);
+
                 // fallback single-key write
                 setHoverData(prev => ({
                     ...prev,
@@ -1884,14 +1879,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }));
             }
         } catch (error) {
-            console.error('❌ Error fetching assembly data:', error);
+
         }
     };
 
     // Function to fetch comprehensive block data
     const fetchBlockDataDetailed = async (blockId) => {
         try {
-            console.log('🏢 Fetching block data for:', blockId);
+
             
             // Fetch block basic info
             let blockResponse;
@@ -1907,7 +1902,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await blockResponse.json();
                 if (result.success) {
                     blockData = Array.isArray(result.data) ? result.data[0] : result.data;
-                    console.log('✅ Block data fetched:', blockData);
+
                 }
             }
 
@@ -1919,7 +1914,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-                    console.log('✅ Block total booths:', totalBooths);
+
                 }
             }
 
@@ -1932,14 +1927,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching block data:', error);
+
         }
     };
 
     // Function to fetch comprehensive booth data
     const fetchBoothDataDetailed = async (boothId) => {
         try {
-            console.log('🗳️ Fetching booth data for:', boothId);
+
             
             // Fetch booth basic info by booth number
             const boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothId)}`);
@@ -1952,7 +1947,7 @@ function HierarchicalMap({ onRegionClick }) {
                         booth.booth_number == boothId || 
                         booth.booth_number === boothId.toString()
                     ) || result.data[0];
-                    console.log('✅ Booth data fetched:', boothData);
+
                 }
             }
 
@@ -1965,9 +1960,8 @@ function HierarchicalMap({ onRegionClick }) {
                     others: boothData.others_Count || 0,
                     total: boothData.Total || 0
                 };
-                console.log('✅ Booth gender data extracted:', genderData);
-            }
 
+            }
             setHoverData(prev => ({
                 ...prev,
                 [`booth_${boothId}`]: {
@@ -1977,7 +1971,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching booth data:', error);
+
         }
     };
 
@@ -1998,7 +1992,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
         } catch (error) {
-            console.error('Error fetching gender data:', error);
+
         }
     };
 
@@ -2019,7 +2013,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
         } catch (error) {
-            console.error('Error fetching winning candidate data:', error);
+
         }
     };
 
@@ -2049,7 +2043,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
         } catch (error) {
-            console.error('Error fetching assembly hover data:', error);
+
         }
     };
 
@@ -2073,10 +2067,10 @@ function HierarchicalMap({ onRegionClick }) {
                     }));
                 }
             } else {
-                console.error('Failed to fetch parliament candidate data. Status:', response.status);
+
             }
         } catch (error) {
-            console.error('Error fetching parliament candidate data:', error);
+
         }
     };
 
@@ -2085,17 +2079,14 @@ function HierarchicalMap({ onRegionClick }) {
         try {
             const encodedId = encodeURIComponent(blockId);
             const url = `${import.meta.env.VITE_APP_API_URL}/genders/stats/block/${encodedId}`;
-            console.log('🔍 Fetching block gender data for:', blockId, 'URL:', url);
+
             const response = await fetch(url);
-            
-            console.log('📡 Block gender response status:', response.status);
-            
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Block gender data received:', data);
+
                 if (data.success) {
                     const cacheKey = `block_${blockId}`;
-                    console.log('💾 Storing block gender data with key:', cacheKey, 'Data:', data.data);
+
                     setHoverData(prev => ({
                         ...prev,
                         [cacheKey]: {
@@ -2104,7 +2095,7 @@ function HierarchicalMap({ onRegionClick }) {
                         }
                     }));
                 } else {
-                    console.warn('⚠️ Block gender API returned success: false', data);
+
                 }
             } else {
                 let errorText;
@@ -2114,15 +2105,15 @@ function HierarchicalMap({ onRegionClick }) {
                 } catch (e) {
                     errorText = await response.text();
                 }
-                console.error('❌ Failed to fetch block gender data. Status:', response.status, 'Error:', errorText);
+
                 
                 // If 404, likely means route not found or no matching block found
                 if (response.status === 404) {
-                    console.warn('🔍 Block API returned 404. Check if route exists and backend logs for details.');
+
                 }
             }
         } catch (error) {
-            console.error('💥 Error fetching block gender data:', error);
+
         }
     };
 
@@ -2150,27 +2141,14 @@ function HierarchicalMap({ onRegionClick }) {
             // First try to get booth data by booth number
             const encodedId = encodeURIComponent(boothId);
             const url = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodedId}`;
-            console.log('🔍 DEBUG: Fetching booth data for booth number:', boothId);
-            console.log('🔍 DEBUG: API URL:', url);
+
+
             
             const response = await fetch(url);
-            
-            console.log('📡 DEBUG: Booth API response status:', response.status);
-            
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 DEBUG: Booth API returned', data.total, 'total booths, showing', data.count, 'results');
-                
+
                 if (data.success && data.data && data.data.length > 0) {
-                    console.log('🔍 DEBUG: Searching for booth with number:', boothId, 'Type:', typeof boothId);
-                    console.log('🔍 DEBUG: Available booth numbers:', data.data.map(b => ({
-                        booth_number: b.booth_number,
-                        type: typeof b.booth_number,
-                        matches_exact: b.booth_number === boothId,
-                        matches_string: b.booth_number == boothId,
-                        matches_toString: b.booth_number === boothId.toString(),
-                        name: b.name
-                    })));
                     
                     // Find the booth that matches our booth number
                     const matchingBooth = data.data.find(booth => 
@@ -2178,7 +2156,7 @@ function HierarchicalMap({ onRegionClick }) {
                         booth.booth_number === boothId.toString()
                     );
                     
-                    console.log('🎯 DEBUG: Matching booth found:', matchingBooth);
+
                     
                     if (matchingBooth) {
                         const cacheKey = `booth_${boothId}`;
@@ -2203,36 +2181,25 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         }));
                     } else {
-                        console.warn('⚠️ DEBUG: No booth found with booth number:', boothId);
-                        console.log('📋 DEBUG: Available booths in result:', data.data.map(b => ({
-                            booth_number: b.booth_number,
-                            name: b.name
-                        })));
-                        
+                        // No matching booth found
                         // Try fetching all booths to see what's available
-                        console.log('🔍 DEBUG: Trying to fetch all booths to check database...');
                         const allBoothsUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10`;
                         const allBoothsResponse = await fetch(allBoothsUrl);
                         if (allBoothsResponse.ok) {
                             const allBoothsData = await allBoothsResponse.json();
-                            console.log('📋 DEBUG: Sample booths from database:', allBoothsData.data?.slice(0, 5).map(b => ({
-                                booth_number: b.booth_number,
-                                name: b.name,
-                                type_of_booth_number: typeof b.booth_number
-                            })));
                         }
                     }
                 } else if (data.success && data.total === 0) {
-                    console.warn('⚠️ DEBUG: Search returned 0 results for booth number:', boothId);
+
                     // Fetch a larger set (or all) booths and try client-side matching to handle mismatched search behavior
                     try {
                         const allUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`;
-                        console.log('🔍 DEBUG: Fetching all booths for client-side matching:', allUrl);
+
                         const allResp = await fetch(allUrl);
                         if (allResp.ok) {
                             const allData = await allResp.json();
                             const candidates = Array.isArray(allData.data) ? allData.data : [];
-                            console.log('📋 DEBUG: Retrieved', candidates.length, 'booths for matching');
+
 
                             // Normalize boothId for matching
                             const boothIdStr = String(boothId).trim();
@@ -2251,7 +2218,7 @@ function HierarchicalMap({ onRegionClick }) {
 
                             if (matchingBooth) {
                                 const cacheKey = `booth_${boothId}`;
-                                console.log('🎯 DEBUG: Client-side matched booth:', matchingBooth.booth_number, matchingBooth.name);
+
                                 const genderData = {
                                     male: matchingBooth.Male_Count || 0,
                                     female: matchingBooth.Female_Count || 0,
@@ -2267,38 +2234,36 @@ function HierarchicalMap({ onRegionClick }) {
                                     }
                                 }));
                             } else {
-                                console.warn('⚠️ DEBUG: No client-side match found for boothId:', boothId);
+
                             }
                         }
                     } catch (err) {
-                        console.error('💥 DEBUG: Error fetching all booths for client-side matching:', err);
+
                     }
                 } else {
-                    console.warn('⚠️ DEBUG: Booth API returned unexpected structure:', data);
+
                 }
             } else {
                 let errorText;
                 try {
                     const errorJson = await response.json();
                     errorText = JSON.stringify(errorJson);
-                    console.log('❌ DEBUG: Error response JSON:', errorJson);
+
                 } catch (e) {
                     errorText = await response.text();
-                    console.log('❌ DEBUG: Error response text:', errorText);
+
                 }
-                console.error('❌ DEBUG: Failed to fetch booth data. Status:', response.status, 'Error:', errorText);
             }
         } catch (error) {
-            console.error('� DEBUG: Error fetching booth data:', error);
-            console.error('💥 DEBUG: Error stack:', error.stack);
+
+
         }
     };
 
     // Handle single click - show dynamic data in panel only
     const handleSingleClick = async (feature, level) => {
-        console.log(`👆 Single click detected - showing data for ${level}: ${feature.properties.name || feature.properties.Name}`);
-        setSelectedFeature(feature);
 
+        setSelectedFeature(feature);
         // Call the onRegionClick prop with region data
         if (onRegionClick) {
             onRegionClick({
@@ -2332,38 +2297,14 @@ function HierarchicalMap({ onRegionClick }) {
             cacheKey = `${level}_${featureId}`;
         }
 
-        console.log(`🔍 Panel cache lookup: ${level}`, {
-            cacheKey,
-            hasData: !!hoverData[cacheKey],
-            availableKeys: Object.keys(hoverData),
-            polygonProperties: properties
-        });
-
         // For assembly level, log the polygon properties to debug
         if (level === 'assembly') {
-            console.log('🏛️ Assembly polygon properties:', {
-                AC_NO: properties.AC_NO,
-                acNo: properties.acNo,
-                assembly_no: properties.assembly_no,
-                assemblyNo: properties.assemblyNo,
-                id: properties.id,
-                name: properties.name || properties.Name,
-                allProperties: properties
-            });
+            
         }
-
         // For parliamentary level, log the polygon properties to debug
         if (level === 'parliamentary') {
-            console.log('🏛️ Parliamentary polygon properties:', {
-                pcNo: properties.pcNo,
-                parliamentId: properties.parliamentId,
-                parliament_no: properties.parliament_no,
-                id: properties.id,
-                name: properties.name || properties.Name,
-                allProperties: properties
-            });
+            
         }
-
         // Open panel immediately with loading state
         setIsPanelLoading(true);
         setPanelData({
@@ -2377,63 +2318,61 @@ function HierarchicalMap({ onRegionClick }) {
         // Check if we already have data in hoverData cache
         const existingData = hoverData[cacheKey];
         if (existingData && Object.keys(existingData).length > 0) {
-            console.log('✅ Using cached hover data for panel:', existingData);
+
             setIsPanelLoading(false);
             return;
         }
 
         // If no cached data, fetch it using the same logic as hover
-        console.log(`� Fetching data for ${level}:`, feature.properties);
         try {
             if (level === 'state') {
                 const stateId = feature.properties.id || feature.properties.Name || feature.properties._id;
+                console.log('🔍 Fetching state data for panel. StateId:', stateId, 'CacheKey:', cacheKey);
                 if (stateId) {
-                    console.log('🏛️ Triggering state data fetch for panel:', stateId);
+
                     await fetchStateData(stateId);
                 }
             } else if (level === 'division') {
                 const divisionId = feature.properties.id || feature.properties.DIVISION_CODE || feature.properties.name || feature.properties._id;
                 if (divisionId) {
-                    console.log('🗺️ Triggering division data fetch for panel:', divisionId);
+
                     await fetchDivisionData(divisionId);
                 }
             } else if (level === 'parliamentary') {
                 const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
                 if (parliamentId) {
-                    console.log('🏛️ Triggering parliament data fetch for panel:', parliamentId);
+
                     await fetchParliamentData(parliamentId);
                 }
             } else if (level === 'assembly') {
                 const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
                 if (assemblyId) {
-                    console.log('🏛️ Triggering assembly data fetch for panel:', assemblyId);
+
                     await fetchAssemblyDataDetailed(assemblyId);
                 }
             } else if (level === 'block') {
                 const blockId = feature.properties.BlockNumber || feature.properties.blockNumber || feature.properties.name || feature.properties.id;
                 if (blockId) {
-                    console.log('🏗️ Triggering block data fetch for panel:', blockId);
+
                     await fetchBlockDataDetailed(blockId);
                 }
             } else if (level === 'booth') {
                 const boothId = feature.properties.BoothNumber || feature.properties.boothNumber || feature.properties.BoothNo || feature.properties.id;
                 if (boothId) {
-                    console.log('🏪 Triggering booth data fetch for panel:', boothId);
+
                     await fetchBoothDataDetailed(boothId);
                 }
             }
 
             // Data will be automatically updated via useEffect when hoverData changes
-
         } catch (error) {
-            console.error(`❌ Error fetching data for ${level}:`, error);
             setIsPanelLoading(false);
         }
     };
 
     // Handle double click - navigate to next hierarchy level
     const handleDoubleClick = (feature, level) => {
-        console.log(`🔄 Double click detected - navigating from ${level} to next level: ${feature.properties.name || feature.properties.Name}`);
+
         
         switch (level) {
             case 'state':
@@ -2449,7 +2388,7 @@ function HierarchicalMap({ onRegionClick }) {
                     loadParliamentaryData(parliament);
                     setCurrentLevel('parliamentary');
                 } else {
-                    console.warn('No Parliament found for division:', feature.properties.name);
+
                     alert('No parliamentary data available for this division. Staying at division level.');
                 }
                 break;
@@ -2467,12 +2406,12 @@ function HierarchicalMap({ onRegionClick }) {
                     loadBoothData(BlockNumber);
                     setCurrentLevel('booth');
                 } else {
-                    console.warn('No Block number found in feature properties:', feature.properties);
+
                     alert('No booth data available for this block. Staying at block level.');
                 }
                 break;
             default:
-                console.log('Already at the deepest level or unknown level');
+
                 break;
         }
 
@@ -2495,13 +2434,31 @@ function HierarchicalMap({ onRegionClick }) {
                 const stateGenderData = safeData.genderData || {};
                 const stateWinningData = safeData.winningData || {};
                 
+                console.log('🏛️ Generating panel for state with data:', {
+                    stateData,
+                    hasDescription: !!stateData.description,
+                    description: stateData.description
+                });
+                
                 sections = [
                     {
                         title: 'Basic Information',
                         items: [
                             { label: 'State Name', value: stateData.name || properties.Name || 'Madhya Pradesh' }
                         ]
-                    },
+                    }
+                ];
+
+                // Add description section if available
+                if (stateData.description) {
+                    console.log('✅ Adding description section to panel');
+                    sections.push({
+                        title: 'Description',
+                        html: stateData.description
+                    });
+                }
+
+                sections.push(
                     {
                         title: 'Voter Statistics',
                         items: [
@@ -2518,7 +2475,7 @@ function HierarchicalMap({ onRegionClick }) {
                             { label: 'Winning Party 2013', value: stateWinningData.winner_2013 || 'BJP' }
                         ]
                     }
-                ];
+                );
                 break;
 
             case 'division':
@@ -2719,6 +2676,21 @@ function HierarchicalMap({ onRegionClick }) {
                                 </div>
                             )}
                             
+                            {section.html && (
+                                <div 
+                                    className="section-html-content"
+                                    style={{
+                                        padding: '10px',
+                                        backgroundColor: '#f9f9f9',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        lineHeight: '1.6',
+                                        color: '#444'
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: section.html }}
+                                />
+                            )}
+                            
                             {section.list && (
                                 <div className="section-list">
                                     <ul>
@@ -2791,17 +2763,8 @@ function HierarchicalMap({ onRegionClick }) {
 
 
         const data = hoverData[cacheKey] || {};
-        
         // Debug logging to check cache key matching
-        if (level === 'booth' || level === 'block') {
-            console.log(`🔍 Popup cache lookup: ${level}`, {
-                cacheKey,
-                hasData: !!data.genderData,
-                availableKeys: Object.keys(hoverData),
-                dataFound: data
-            });
-        }
-
+        
         // Build structured popup content using hover classes
         let content = `<div class="hover-popup-root">`;
         // Header
@@ -2919,16 +2882,6 @@ function HierarchicalMap({ onRegionClick }) {
             case 'booth':
                 const boothGenderData = data.genderData || {};
                 const boothData = data.boothData || {}; // Additional booth data from API
-                
-                console.log('🎨 DEBUG: Generating booth popup content:', {
-                    cacheKey,
-                    hasGenderData: !!boothGenderData.male || !!boothGenderData.female,
-                    genderData: boothGenderData,
-                    hasBoothData: Object.keys(boothData).length > 0,
-                    boothData: boothData,
-                    properties: properties,
-                    fullDataObject: data
-                });
                 
                 // Use booth data from API if available, otherwise fall back to polygon properties
                 const boothName = boothData.name || properties.BoothName || properties.boothName || '—';
