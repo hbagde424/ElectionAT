@@ -43,6 +43,9 @@ export default function WorkStatusListPage() {
     const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [booths, setBooths] = useState([]);
+    const [panchayats, setPanchayats] = useState([]);
+    const [villages, setVillages] = useState([]);
+    const [falliyas, setFalliyas] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -282,6 +285,10 @@ export default function WorkStatusListPage() {
         setTempFilters({ ...tempFilters, village: event.target.value });
     };
 
+    const handleFalliyaChange = (event) => {
+        setTempFilters({ ...tempFilters, falliya: event.target.value });
+    };
+
     const handleAnnouncedByChange = (event) => {
         setTempFilters({ ...tempFilters, announced_by: event.target.value });
     };
@@ -421,6 +428,7 @@ export default function WorkStatusListPage() {
             if (currentFilters.booth_id) queryParams.push(`booth=${encodeURIComponent(currentFilters.booth_id)}`);
             if (currentFilters.panchayat) queryParams.push(`panchayat=${encodeURIComponent(currentFilters.panchayat)}`);
             if (currentFilters.village) queryParams.push(`village=${encodeURIComponent(currentFilters.village)}`);
+            if (currentFilters.falliya) queryParams.push(`falliya=${encodeURIComponent(currentFilters.falliya)}`);
             if (currentFilters.announced_by) queryParams.push(`announced_by=${encodeURIComponent(currentFilters.announced_by)}`);
             if (currentFilters.workType) queryParams.push(`workType=${encodeURIComponent(currentFilters.workType)}`);
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
@@ -1514,6 +1522,15 @@ export default function WorkStatusListPage() {
                                 size="small"
                                 value={tempFilters.village || ''}
                                 onChange={handleVillageChange}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField
+                                label="Falliya"
+                                size="small"
+                                value={tempFilters.falliya || ''}
+                                onChange={handleFalliyaChange}
                                 fullWidth
                             />
                         </Grid>

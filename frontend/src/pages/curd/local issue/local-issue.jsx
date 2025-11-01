@@ -44,6 +44,9 @@ export default function LocalIssueListPage() {
     const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [booths, setBooths] = useState([]);
+    const [panchayats, setPanchayats] = useState([]);
+    const [villages, setVillages] = useState([]);
+    const [falliyas, setFalliyas] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -56,6 +59,9 @@ export default function LocalIssueListPage() {
     const [selectedAssembly, setSelectedAssembly] = useState('');
     const [selectedBlock, setSelectedBlock] = useState('');
     const [selectedBooth, setSelectedBooth] = useState('');
+    const [selectedPanchayat, setSelectedPanchayat] = useState('');
+    const [selectedVillage, setSelectedVillage] = useState('');
+    const [selectedFalliya, setSelectedFalliya] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedPriority, setSelectedPriority] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -69,6 +75,9 @@ export default function LocalIssueListPage() {
         assembly: '',
         block: '',
         booth: '',
+        panchayat: '',
+        village: '',
+        falliya: '',
         status: '',
         priority: '',
         department: '',
@@ -95,6 +104,9 @@ export default function LocalIssueListPage() {
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
     const [filteredBooths, setFilteredBooths] = useState([]);
+    const [filteredPanchayats, setFilteredPanchayats] = useState([]);
+    const [filteredVillages, setFilteredVillages] = useState([]);
+    const [filteredFalliyas, setFilteredFalliyas] = useState([]);
 
     // Map state
     const [blockNumberInput, setBlockNumberInput] = useState('ALL');
@@ -212,29 +224,75 @@ export default function LocalIssueListPage() {
             setFilteredAssemblies(assemblies || []);
             setFilteredBlocks(blocks || []);
             setFilteredBooths(booths || []);
+            setFilteredPanchayats(panchayats || []);
         }
-    }, [tempFilters.state, divisions, parliaments, assemblies, blocks, booths]);
+    }, [tempFilters.state, divisions, parliaments, assemblies, blocks, booths, panchayats]);
+
+    // Filter panchayats by block
+    useEffect(() => {
+        if (tempFilters.block) {
+            const filteredPanch = panchayats?.filter(panchayat =>
+                panchayat.block_id?._id === tempFilters.block ||
+                panchayat.block_id === tempFilters.block
+            ) || [];
+            setFilteredPanchayats(filteredPanch);
+        } else {
+            setFilteredPanchayats(panchayats || []);
+        }
+    }, [tempFilters.block, panchayats]);
+
+    // Filter villages by panchayat
+    useEffect(() => {
+        if (tempFilters.panchayat) {
+            const filteredVills = villages?.filter(village =>
+                village.panchayat_id?._id === tempFilters.panchayat ||
+                village.panchayat_id === tempFilters.panchayat
+            ) || [];
+            setFilteredVillages(filteredVills);
+        } else {
+            setFilteredVillages(villages || []);
+        }
+    }, [tempFilters.panchayat, villages]);
+
+    // Filter falliyas by village
+    useEffect(() => {
+        if (tempFilters.village) {
+            const filteredFalls = falliyas?.filter(falliya =>
+                falliya.village_id?._id === tempFilters.village ||
+                falliya.village_id === tempFilters.village
+            ) || [];
+            setFilteredFalliyas(filteredFalls);
+        } else {
+            setFilteredFalliyas(falliyas || []);
+        }
+    }, [tempFilters.village, falliyas]);
 
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.serviceToken;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/villages`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas`, { headers })
             ]);
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
+            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, panchayatsData, villagesData, falliyasData] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
                 blocksRes.json(),
-                boothsRes.json()
+                boothsRes.json(),
+                panchayatsRes.json(),
+                villagesRes.json(),
+                falliyasRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);
@@ -243,6 +301,9 @@ export default function LocalIssueListPage() {
             if (assembliesData.success) setAssemblies(assembliesData.data);
             if (blocksData.success) setBlocks(blocksData.data);
             if (boothsData.success) setBooths(boothsData.data);
+            if (panchayatsData.success) setPanchayats(panchayatsData.data);
+            if (villagesData.success) setVillages(villagesData.data);
+            if (falliyasData.success) setFalliyas(falliyasData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -509,6 +570,9 @@ export default function LocalIssueListPage() {
             if (selectedAssembly) query += `&assembly=${selectedAssembly}`;
             if (selectedBlock) query += `&block=${selectedBlock}`;
             if (selectedBooth) query += `&booth=${selectedBooth}`;
+            if (selectedPanchayat) query += `&panchayat_id=${selectedPanchayat}`;
+            if (selectedVillage) query += `&village_id=${selectedVillage}`;
+            if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
             if (selectedStatus) query += `&status=${encodeURIComponent(selectedStatus)}`;
             if (selectedPriority) query += `&priority=${encodeURIComponent(selectedPriority)}`;
             if (selectedDepartment) query += `&department=${encodeURIComponent(selectedDepartment)}`;
@@ -588,6 +652,9 @@ export default function LocalIssueListPage() {
         selectedAssembly,
         selectedBlock,
         selectedBooth,
+        selectedPanchayat,
+        selectedVillage,
+        selectedFalliya,
         selectedStatus,
         selectedPriority,
         selectedDepartment,
@@ -1363,6 +1430,51 @@ export default function LocalIssueListPage() {
 
                     <TextField
                         select
+                        label="Panchayat"
+                        size="small"
+                        value={tempFilters.panchayat}
+                        onChange={(e) => setTempFilters(prev => ({ ...prev, panchayat: e.target.value, village: '', falliya: '' }))}
+                        sx={{ width: 200, mb: 2 }}
+                        disabled={!tempFilters.block}
+                    >
+                        <MenuItem value="">Select Panchayat</MenuItem>
+                        {filteredPanchayats.map(panchayat => (
+                            <MenuItem key={panchayat._id} value={panchayat._id}>{panchayat.name}</MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField
+                        select
+                        label="Village"
+                        size="small"
+                        value={tempFilters.village}
+                        onChange={(e) => setTempFilters(prev => ({ ...prev, village: e.target.value, falliya: '' }))}
+                        sx={{ width: 200, mb: 2 }}
+                        disabled={!tempFilters.panchayat}
+                    >
+                        <MenuItem value="">Select Village</MenuItem>
+                        {filteredVillages.map(village => (
+                            <MenuItem key={village._id} value={village._id}>{village.name}</MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField
+                        select
+                        label="Falliya"
+                        size="small"
+                        value={tempFilters.falliya}
+                        onChange={(e) => setTempFilters(prev => ({ ...prev, falliya: e.target.value }))}
+                        sx={{ width: 200, mb: 2 }}
+                        disabled={!tempFilters.village}
+                    >
+                        <MenuItem value="">Select Falliya</MenuItem>
+                        {filteredFalliyas.map(falliya => (
+                            <MenuItem key={falliya._id} value={falliya._id}>{falliya.name}</MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField
+                        select
                         label="Status"
                         size="small"
                         value={tempFilters.status}
@@ -1428,6 +1540,9 @@ export default function LocalIssueListPage() {
                             setSelectedAssembly(tempFilters.assembly);
                             setSelectedBlock(tempFilters.block);
                             setSelectedBooth(tempFilters.booth);
+                            setSelectedPanchayat(tempFilters.panchayat);
+                            setSelectedVillage(tempFilters.village);
+                            setSelectedFalliya(tempFilters.falliya);
                             setSelectedStatus(tempFilters.status);
                             setSelectedPriority(tempFilters.priority);
                             setSelectedDepartment(tempFilters.department);
@@ -1453,6 +1568,9 @@ export default function LocalIssueListPage() {
                                 assembly: '',
                                 block: '',
                                 booth: '',
+                                panchayat: '',
+                                village: '',
+                                falliya: '',
                                 status: '',
                                 priority: '',
                                 department: '',
@@ -1464,6 +1582,9 @@ export default function LocalIssueListPage() {
                             setSelectedAssembly('');
                             setSelectedBlock('');
                             setSelectedBooth('');
+                            setSelectedPanchayat('');
+                            setSelectedVillage('');
+                            setSelectedFalliya('');
                             setSelectedStatus('');
                             setSelectedPriority('');
                             setSelectedDepartment('');

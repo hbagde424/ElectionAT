@@ -4,6 +4,39 @@ import 'leaflet/dist/leaflet.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faExpand, faCompress, faArrowLeft, faTimes } from '@fortawesome/free-solid-svg-icons';
 import MainCard from 'components/MainCard';
+import { useNavigate } from 'react-router-dom';
+import { 
+    Drawer, 
+    Box, 
+    Typography, 
+    Stack, 
+    Divider, 
+    Paper, 
+    Accordion, 
+    AccordionSummary, 
+    AccordionDetails, 
+    List, 
+    ListItem, 
+    ListItemAvatar, 
+    ListItemText, 
+    Avatar, 
+    Chip, 
+    Button, 
+    Skeleton,
+    useTheme
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EventIcon from '@mui/icons-material/Event';
+import FlagIcon from '@mui/icons-material/Flag';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import GroupIcon from '@mui/icons-material/Group';
+import ConstructionIcon from '@mui/icons-material/Construction';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
 
 // Add custom styles for permanent labels and sliding panel
 const customStyles = `
@@ -272,6 +305,8 @@ function HierarchicalMap({ onRegionClick }) {
     const currentLayerRef = useRef(null);
     const boothLookupRef = useRef({}); // in-memory lookup: booth_number -> booth data
     const prefetchingBlocksRef = useRef(new Set());
+    const navigate = useNavigate();
+    const theme = useTheme();
     const [currentLevel, setCurrentLevel] = useState('state');
     const [selectedFeature, setSelectedFeature] = useState(null);
     const [navigationHistory, setNavigationHistory] = useState([]);
@@ -282,7 +317,162 @@ function HierarchicalMap({ onRegionClick }) {
     const [panelData, setPanelData] = useState({});
     const [panelLevel, setPanelLevel] = useState('');
     const [isPanelLoading, setIsPanelLoading] = useState(false);
+    const [boothAggregates, setBoothAggregates] = useState(null);
+    const [boothAggregatesLoading, setBoothAggregatesLoading] = useState(false);
+    const [selectedBoothDetails, setSelectedBoothDetails] = useState(null);
     const closeTimersRef = useRef({}); // store close timers by layer id to delay popup close
+
+    // Helper to add Authorization header when token exists
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken;
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
+
+    // Helper to extract entity ID from various shapes
+    const getEntityId = (it) => {
+        if (!it) return null;
+        
+        // Direct ID fields
+        if (it._id && typeof it._id === 'string') return it._id;
+        if (it.id && typeof it.id === 'string') return it.id;
+        
+        // Check for *_id fields that might be strings or objects
+        const idKeys = Object.keys(it).filter(k => k.endsWith('_id') || k.endsWith('Id'));
+        for (const k of idKeys) {
+            const val = it[k];
+            if (typeof val === 'string' && val) return val;
+            if (val && typeof val === 'object' && val._id && typeof val._id === 'string') return val._id;
+            if (val && typeof val === 'object' && val.id && typeof val.id === 'string') return val.id;
+        }
+        
+        // Nested data/document
+        if (it.data && typeof it.data === 'object') return getEntityId(it.data);
+        if (it.document && typeof it.document === 'object') return getEntityId(it.document);
+        
+        console.warn('⚠️ Could not extract entity ID from:', it);
+        return null;
+    };
+
+    // Fetch aggregated per-booth datasets in parallel
+    const fetchBoothAggregates = async (boothId, boothNumber) => {
+        if (!boothId) return;
+        const base = import.meta.env.VITE_APP_API_URL;
+        const headers = getAuthHeaders();
+        setBoothAggregatesLoading(true);
+        setBoothAggregates(null);
+        
+        console.log('🚀 fetchBoothAggregates called with:', { boothId, boothNumber });
+        console.log('🌐 API Base URL:', base);
+        
+        try {
+            const boothIdEnc = encodeURIComponent(boothId);
+            console.log('📡 Making API calls with booth_id:', boothIdEnc);
+            
+            const results = await Promise.allSettled([
+                fetch(`${base}/events?booth=${boothIdEnc}&all=true`, { headers }).then(r => {
+                    console.log('📅 Events API response status:', r.status, 'URL:', `${base}/events?booth=${boothIdEnc}&all=true`);
+                    return r.ok ? r.json() : {};
+                }),
+                fetch(`${base}/party-activities?booth=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/visits?booth=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/influencers?booth=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                // Volunteers: try multiple endpoints (matching BoothMap)
+                Promise.race([
+                    fetch(`${base}/booth-volunteers?booth_id=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                    fetch(`${base}/booth-volunteers?booth=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                    fetch(`${base}/booth-volunteers/booth/${boothIdEnc}`, { headers }).then(r => r.ok ? r.json() : {})
+                ]),
+                fetch(`${base}/genders/booth/${boothIdEnc}`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/governments?booth=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/local-issues?booth=${boothIdEnc}&all=true`, { headers }).then(r => {
+                    console.log('⚠️ Local Issues API response status:', r.status, 'URL:', `${base}/local-issues?booth=${boothIdEnc}&all=true`);
+                    return r.ok ? r.json() : {};
+                }),
+                fetch(`${base}/samitis?booth_id=${boothIdEnc}&limit=100`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/work-status/booth/${boothIdEnc}`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/winning-parties?booth=${boothIdEnc}&all=true`, { headers }).then(r => r.ok ? r.json() : {}),
+                fetch(`${base}/booth-votes/booth/${boothIdEnc}`, { headers }).then(r => {
+                    console.log('🗳️ Booth Votes API response status:', r.status, 'URL:', `${base}/booth-votes/booth/${boothIdEnc}`);
+                    return r.ok ? r.json() : {};
+                })
+            ]);
+
+            const normalize = (res) => {
+                if (res.status === 'rejected') return [];
+                const v = res.value;
+                if (Array.isArray(v)) return v;
+                if (v?.data && Array.isArray(v.data)) return v.data;
+                if (v?.features && Array.isArray(v.features)) return v.features;
+                return [];
+            };
+
+            const events = normalize(results[0]);
+            const partyActivities = normalize(results[1]);
+            const visits = normalize(results[2]);
+            const influencers = normalize(results[3]);
+            const volunteers = normalize(results[4]);
+            const genderArr = normalize(results[5]);
+            const governments = normalize(results[6]);
+            const localIssues = normalize(results[7]);
+            const samitis = normalize(results[8]);
+            const workStatuses = normalize(results[9]);
+            const winningParties = normalize(results[10]);
+            const boothVotes = normalize(results[11]);
+            
+            console.log('📊 Aggregates fetched:', {
+                events: events.length,
+                partyActivities: partyActivities.length,
+                visits: visits.length,
+                influencers: influencers.length,
+                volunteers: volunteers.length,
+                governments: governments.length,
+                localIssues: localIssues.length,
+                samitis: samitis.length,
+                workStatuses: workStatuses.length,
+                winningParties: winningParties.length,
+                boothVotes: boothVotes.length
+            });
+
+            const genderData = genderArr[0] || {};
+            const gender = {
+                male: genderData.Male_Count || genderData.male || 0,
+                female: genderData.Female_Count || genderData.female || 0,
+                others: genderData.others_Count || genderData.others || 0,
+                total: genderData.Total || genderData.total || 0
+            };
+
+            const workSummary = {
+                total: workStatuses.length,
+                completed: workStatuses.filter(w => (w.status || '').toLowerCase().includes('complete')).length,
+                inProgress: workStatuses.filter(w => (w.status || '').toLowerCase().includes('progress')).length,
+                pending: workStatuses.filter(w => (w.status || '').toLowerCase().includes('pending')).length
+            };
+
+            setBoothAggregates({
+                events,
+                partyActivities,
+                visits,
+                influencers,
+                volunteers,
+                gender,
+                governments,
+                localIssues,
+                samitis,
+                workStatuses,
+                workSummary,
+                winningParties,
+                boothVotes
+            });
+        } catch (err) {
+            console.error('Fetch booth aggregates error:', err);
+        } finally {
+            setBoothAggregatesLoading(false);
+        }
+    };
 
     // Function to handle fullscreen toggle
     const toggleFullscreen = () => {
@@ -316,7 +506,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     // Update popup content when hover data changes
     useEffect(() => {
-        // console.log('🔄 Hover data updated:', hoverData); // Commented out to reduce noise
+        
         if (currentLayerRef.current) {
             currentLayerRef.current.eachLayer((layer) => {
                 if (layer._popup && layer.feature) {
@@ -366,12 +556,13 @@ function HierarchicalMap({ onRegionClick }) {
 
             const updatedData = hoverData[cacheKey];
             if (updatedData && Object.keys(updatedData).length > 0) {
-                console.log('🔄 Updating panel with new hover data:', cacheKey, updatedData);
+                console.log('📦 Panel data updating with cache key:', cacheKey, 'Data:', updatedData);
                 setPanelData({
                     feature: panelData.feature,
                     level: panelLevel,
                     data: updatedData
                 });
+                // Stop loading when data arrives
                 setIsPanelLoading(false);
             }
         }
@@ -402,7 +593,7 @@ function HierarchicalMap({ onRegionClick }) {
                     }).addTo(mapInstanceRef.current);
                 })
                 .catch(err => {
-                    console.error('Could not load India GeoJSON:', err);
+
                 });
             // --- End India GeoJSON block ---
 
@@ -507,7 +698,6 @@ function HierarchicalMap({ onRegionClick }) {
     };
 
     // State data will be fetched from API
-
     // Parliamentary constituency data by division
     const parliamentaryData = {
         bhopal: [
@@ -568,7 +758,7 @@ function HierarchicalMap({ onRegionClick }) {
                 alert('No state data available');
             }
         } catch (error) {
-            console.error('Error loading state data:', error);
+
         }
     };
 
@@ -633,15 +823,14 @@ function HierarchicalMap({ onRegionClick }) {
 
                 showBoundaries(transformedData, 'division');
             } else {
-                console.warn('No division data available');
+
             }
         } catch (error) {
-            console.error('Error loading division data:', error);
+
         }
     };
 
     // Parliamentary data will be fetched from API
-
     const loadParliamentaryData = async (divisionName) => {
         try {
             const parliamentName = divisionName;
@@ -680,7 +869,7 @@ function HierarchicalMap({ onRegionClick }) {
                 alert('No parliamentary data available');
             }
         } catch (error) {
-            console.error('Error loading parliamentary data:', error);
+
         }
     };
 
@@ -853,12 +1042,11 @@ function HierarchicalMap({ onRegionClick }) {
                 setCurrentLevel('assembly');
             }
         } catch (error) {
-            console.error('Error loading assembly data:', error);
+
         }
     };
 
     // Block data will be fetched from API
-
     const loadBlockData = async (assemblyId) => {
         try {
             const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
@@ -898,7 +1086,6 @@ function HierarchicalMap({ onRegionClick }) {
                         })).filter(b => b.id && b.name);
 
                         if (blocks.length === 0) return;
-
                         // For each block, try to fetch booths by searching with block name (API supports search)
                         await Promise.all(blocks.map(async (blk) => {
                             const blockCacheKey = `block_${blk.id}`;
@@ -974,18 +1161,18 @@ function HierarchicalMap({ onRegionClick }) {
                                     };
                                 });
                             } catch (err) {
-                                console.warn('Block prefetch failed for', blk, err);
+
                             }
                         }));
                     } catch (err) {
-                        console.warn('Block-level prefetch failed:', err);
+
                     }
                 })();
             } else {
                 alert('No block data available for this assembly constituency');
             }
         } catch (error) {
-            console.error('Error loading block data:', error);
+
         }
     };
 
@@ -998,7 +1185,6 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             const responseData = await response.json();
-
             // Validate API response structure
             if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
                 throw new Error('Invalid API response structure');
@@ -1015,7 +1201,7 @@ function HierarchicalMap({ onRegionClick }) {
                 features: responseData.features.map((feature, index) => {
                     // Validate geometry
                     if (!feature.geometry || !feature.geometry.coordinates) {
-                        console.warn(`Feature ${index} missing geometry`, feature);
+
                         return null;
                     }
 
@@ -1069,9 +1255,8 @@ function HierarchicalMap({ onRegionClick }) {
                     }
                 });
             } catch (err) {
-                console.warn('Could not populate booth lookup cache:', err);
-            }
 
+            }
             // Prefetch booth counts from backend for this block to avoid hover latency
             (async () => {
                 try {
@@ -1136,7 +1321,7 @@ function HierarchicalMap({ onRegionClick }) {
                         });
                     }
                 } catch (err) {
-                    console.warn('Prefetch booth counts failed:', err);
+
                 }
             })();
 
@@ -1149,9 +1334,7 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
         } catch (error) {
-            console.error('Error in loadBoothData:', error);
             alert(`Failed to load booth data: ${error.message}`);
-
             // Fallback: Show the block boundaries again
             if (selectedFeature && selectedFeature.properties) {
                 loadBlockData(selectedFeature.properties.blockCode || selectedFeature.properties.id);
@@ -1170,7 +1353,6 @@ function HierarchicalMap({ onRegionClick }) {
             let fillOpacity = 0.2;
 
             if (level === 'state') {
-
                 weight = 3;
                 fillOpacity = 0.15;
                 // Add specific styling for MP state
@@ -1182,9 +1364,7 @@ function HierarchicalMap({ onRegionClick }) {
 
 
                 weight = 4;
-
             }
-
             return {
                 color: color,
                 weight: weight,
@@ -1281,38 +1461,39 @@ function HierarchicalMap({ onRegionClick }) {
                         if (level === 'state') {
                             const stateId = feature.properties.id || feature.properties.Name || feature.properties._id;
                             if (stateId && !hoverData[cacheKey]?.stateData) {
-                                console.log('🏛️ Triggering state data fetch for:', stateId);
+
                                 fetchStateData(stateId);
                             }
                         } else if (level === 'division') {
                             const divisionId = feature.properties.id || feature.properties.DIVISION_CODE || feature.properties.name || feature.properties._id;
                             if (divisionId && !hoverData[cacheKey]?.divisionData) {
-                                console.log('🗺️ Triggering division data fetch for:', divisionId);
+
                                 fetchDivisionData(divisionId);
                             }
                         } else if (level === 'parliamentary') {
                             const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                            const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
                             if (parliamentId && !hoverData[cacheKey]?.parliamentData) {
-                                console.log('🏛️ Triggering parliament data fetch for:', parliamentId);
-                                fetchParliamentData(parliamentId);
+                                console.log('🔍 Hover: Fetching parliament data - ID:', parliamentId, 'Name:', parliamentName);
+                                fetchParliamentData(parliamentId, parliamentName);
                             }
                         } else if (level === 'assembly') {
                             const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
                             if (assemblyId && !hoverData[cacheKey]?.assemblyData) {
-                                console.log('🏛️ Triggering assembly data fetch for:', assemblyId);
+
                                 fetchAssemblyDataDetailed(assemblyId);
                             }
                         } else if (level === 'block') {
                             const blockId = feature.properties.id || feature.properties.blockName || feature.properties.BlockName || 
                                           feature.properties.name || feature.properties._id;
                             if (blockId && !hoverData[cacheKey]?.blockData) {
-                                console.log('🏢 Triggering block data fetch for:', blockId);
+
                                 fetchBlockDataDetailed(blockId);
                             }
                             
                             // Also fetch gender data specifically for blocks using existing method
                             if (blockId && !hoverData[cacheKey]?.genderData) {
-                                console.log('🚀 Triggering block gender fetch for:', blockId);
+
                                 fetchBlockGenderData(blockId);
                             }
                         } else if (level === 'booth') {
@@ -1322,13 +1503,12 @@ function HierarchicalMap({ onRegionClick }) {
                             const boothCacheKey = `booth_${boothId}`;
                             
                             if (boothId && !hoverData[boothCacheKey]?.boothData) {
-                                console.log('🗳️ Triggering booth data fetch for:', boothId);
                                 fetchBoothDataDetailed(boothId);
                             }
                             
                             // Also fetch booth gender data specifically using existing method
                             if (boothId && !hoverData[boothCacheKey]?.genderData) {
-                                console.log('🚀 Triggering booth gender fetch for:', boothId);
+
                                 fetchBoothGenderData(boothId);
                             }
                         }
@@ -1463,17 +1643,31 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch comprehensive state data
     const fetchStateData = async (stateId) => {
         try {
-            console.log('🏛️ Fetching state data for:', stateId);
+            console.log('🔍 Attempting to fetch state data for:', stateId);
             
-            // Fetch state basic info
-            const stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/${stateId}`);
+            // Try direct ID fetch first
+            let stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/${stateId}`);
             let stateData = {};
+            
+            // If direct fetch fails or returns nothing, try search by name
+            if (!stateResponse.ok || stateResponse.status === 404) {
+                console.log('⚠️ Direct ID fetch failed, trying search by name...');
+                // Convert slug to proper name (e.g., "madhya-pradesh" -> "Madhya Pradesh")
+                const stateName = stateId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?search=${encodeURIComponent(stateName)}`);
+            }
+            
             if (stateResponse.ok) {
                 const result = await stateResponse.json();
                 if (result.success) {
-                    stateData = result.data;
-                    console.log('✅ State data fetched:', stateData);
+                    // Handle both single object and array response
+                    stateData = Array.isArray(result.data) ? result.data[0] : result.data;
+                    console.log('✅ State data fetched with description:', stateData?.description ? 'YES' : 'NO', stateData);
+                } else {
+                    console.log('⚠️ API returned success=false:', result);
                 }
+            } else {
+                console.log('❌ State API call failed with status:', stateResponse.status);
             }
 
             // Fetch aggregated gender stats for state using existing API
@@ -1492,7 +1686,7 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-                    console.log('✅ State gender data aggregated:', genderData);
+
                 }
             }
 
@@ -1514,7 +1708,7 @@ function HierarchicalMap({ onRegionClick }) {
                         winner_2018: partyByYear['2018'] || 'INC', 
                         winner_2013: partyByYear['2013'] || 'BJP'
                     };
-                    console.log('✅ State winning data processed:', winningData);
+
                 }
             }
 
@@ -1528,14 +1722,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching state data:', error);
+
         }
     };
 
     // Function to fetch comprehensive division data
     const fetchDivisionData = async (divisionId) => {
         try {
-            console.log('🗺️ Fetching division data for:', divisionId);
+
             
             // Try to find division by ID or name
             let divisionResponse;
@@ -1551,7 +1745,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await divisionResponse.json();
                 if (result.success) {
                     divisionData = Array.isArray(result.data) ? result.data[0] : result.data;
-                    console.log('✅ Division data fetched:', divisionData);
+
                 }
             }
 
@@ -1563,7 +1757,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await parliamentsResponse.json();
                 if (result.success) {
                     parliamentsData = result.data || [];
-                    console.log('✅ Parliaments data fetched:', parliamentsData.length, 'constituencies');
+
                 }
             }
 
@@ -1576,14 +1770,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching division data:', error);
+
         }
     };
 
     // Function to fetch comprehensive parliament data
-    const fetchParliamentData = async (parliamentId) => {
+    const fetchParliamentData = async (parliamentId, parliamentName = null) => {
         try {
-            console.log('🏛️ Fetching parliament data for:', parliamentId);
+            console.log('🔍 fetchParliamentData called with:', { parliamentId, parliamentName });
             
             // Fetch parliament basic info
             let parliamentResponse;
@@ -1598,8 +1792,45 @@ function HierarchicalMap({ onRegionClick }) {
             if (parliamentResponse.ok) {
                 const result = await parliamentResponse.json();
                 if (result.success) {
-                    parliamentData = Array.isArray(result.data) ? result.data[0] : result.data;
-                    console.log('✅ Parliament data fetched:', parliamentData);
+                    // If API returns array, try to find exact match by parliament number and name
+                    if (Array.isArray(result.data)) {
+                        const needle = String(parliamentId).trim();
+                        
+                        // First try exact match by PC number and name (if name provided)
+                        let exact = null;
+                        if (parliamentName) {
+                            exact = result.data.find(p => {
+                                if (!p) return false;
+                                const pcNo = String(p.parliament_no || p.PC_NO || p.pc_no || '').trim();
+                                const pcName = String(p.name || p.PC_NAME || p.pc_name || '').trim().toLowerCase();
+                                const searchName = String(parliamentName).trim().toLowerCase();
+                                return pcNo === needle && pcName === searchName;
+                            });
+                        }
+                        
+                        // If not found by name, try exact match by PC number only
+                        if (!exact) {
+                            exact = result.data.find(p => {
+                                if (!p) return false;
+                                const pcNo = String(p.parliament_no || p.PC_NO || p.pc_no || '').trim();
+                                return pcNo === needle;
+                            });
+                        }
+                        
+                        if (exact) {
+                            parliamentData = exact;
+                            console.log('✅ Found exact parliament match:', parliamentData.name || parliamentData.PC_NAME);
+                        } else if (result.data.length === 1) {
+                            parliamentData = result.data[0];
+                            console.log('⚠️ Using single result:', parliamentData.name || parliamentData.PC_NAME);
+                        } else {
+                            console.warn('⚠️ Multiple results found, no exact match. Using first:', result.data[0]);
+                            parliamentData = result.data[0];
+                        }
+                    } else {
+                        parliamentData = result.data;
+                    }
+
                 }
             }
 
@@ -1620,7 +1851,7 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-                    console.log('✅ Parliament gender data aggregated:', genderData);
+
                 }
             }
 
@@ -1647,7 +1878,7 @@ function HierarchicalMap({ onRegionClick }) {
                         winner_2014: partyByYear['2014'] || 'BJP',
                         current_mp: currentMP
                     };
-                    console.log('✅ Parliament winning data processed:', winningData);
+
                 }
             }
 
@@ -1658,7 +1889,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await assembliesResponse.json();
                 if (result.success) {
                     assembliesData = result.data || [];
-                    console.log('✅ Assemblies data fetched:', assembliesData.length, 'assemblies');
+
                 }
             }
 
@@ -1669,7 +1900,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-                    console.log('✅ Parliament total booths:', totalBooths);
+
                 }
             }
 
@@ -1686,22 +1917,34 @@ function HierarchicalMap({ onRegionClick }) {
             }));
         } catch (error) {
             console.error('❌ Error fetching parliament data:', error);
+            // Set empty data to prevent infinite loading
+            setHoverData(prev => ({
+                ...prev,
+                [`parliamentary_${parliamentId}`]: {
+                    parliamentData: {},
+                    genderData: {},
+                    winningData: {},
+                    assembliesData: [],
+                    totalBooths: 0,
+                    error: true
+                }
+            }));
         }
     };
 
     // Function to fetch comprehensive assembly data
     const fetchAssemblyDataDetailed = async (assemblyId) => {
         try {
-            console.log('🏛️ Fetching assembly data for:', assemblyId, 'Type:', typeof assemblyId);
+
             
             // Fetch assembly basic info
             let assemblyResponse;
             if (assemblyId.length === 24) { // ObjectId format
-                console.log('📡 Using ObjectId route for assembly:', assemblyId);
+
                 assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`);
             } else {
                 // Search by AC_NO
-                console.log('📡 Using search route for assembly AC_NO:', assemblyId);
+
                 assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?search=${encodeURIComponent(assemblyId)}`);
             }
             
@@ -1722,32 +1965,28 @@ function HierarchicalMap({ onRegionClick }) {
 
                         if (exact) {
                             assemblyData = exact;
-                            console.log('✅ Assembly data exact-match found in API array:', assemblyData);
+
                         } else if (result.data.length === 1) {
                             assemblyData = result.data[0];
-                            console.log('⚠️ Assembly API returned single element, using it:', assemblyData);
+
                         } else {
                             // Unexpected: multiple results and none match exactly
-                            console.warn('⚠️ Assembly API returned multiple candidates but none matched exactly. Search:', assemblyId, 'Candidates count:', result.data.length);
-                            // Log a trimmed version of candidates to avoid flooding
-                            console.log('🔎 Candidate sample:', result.data.slice(0,5).map(c => ({ _id: c._id, AC_NO: c.AC_NO, name: c.name })));
                             // We'll try client-side matching later, so leave assemblyData empty for now
                         }
                     } else {
                         assemblyData = result.data;
-                        console.log('✅ Assembly data fetched (single object):', assemblyData);
                     }
                 } else {
-                    console.warn('⚠️ Assembly API returned no success (search). Will try client-side matching. Result:', result);
+                    // Assembly API returned no success
                 }
             } else {
-                console.error('❌ Assembly API call failed (search):', assemblyResponse.status);
+                // Assembly API call failed
             }
 
             // Fallback: if API search didn't return usable assemblyData, fetch a larger set and try client-side matching
             if (!assemblyData || Object.keys(assemblyData).length === 0) {
                 try {
-                    console.log('🔁 Trying client-side matching for assemblyId:', assemblyId);
+
                     const allUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`;
                     const allResp = await fetch(allUrl);
                     if (allResp.ok) {
@@ -1771,15 +2010,14 @@ function HierarchicalMap({ onRegionClick }) {
 
                         if (found) {
                             assemblyData = found;
-                            console.log('✅ Client-side matched assembly:', assemblyData);
+
                         } else {
-                            console.warn('⚠️ Client-side matching did not find an assembly for:', assemblyId);
                         }
                     } else {
-                        console.warn('⚠️ Failed to fetch all assemblies for client-side matching:', allResp.status);
+
                     }
                 } catch (err) {
-                    console.error('❌ Error during client-side assembly matching fallback:', err);
+
                 }
             }
 
@@ -1800,7 +2038,7 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-                    console.log('✅ Assembly gender data aggregated:', genderData);
+
                 }
             }
 
@@ -1819,7 +2057,7 @@ function HierarchicalMap({ onRegionClick }) {
                     winningData = {
                         current_mla: currentMLA
                     };
-                    console.log('✅ Assembly winning data processed:', winningData);
+
                 }
             }
 
@@ -1830,7 +2068,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-                    console.log('✅ Assembly total booths:', totalBooths);
+
                 }
             }
 
@@ -1854,8 +2092,6 @@ function HierarchicalMap({ onRegionClick }) {
                     keysToSet.add(`assembly_${String(acCandidate)}`);
                 }
 
-                console.log('💾 Storing assembly hover data under keys:', Array.from(keysToSet));
-
                 setHoverData(prev => {
                     const next = { ...prev };
                     keysToSet.forEach(k => {
@@ -1870,7 +2106,7 @@ function HierarchicalMap({ onRegionClick }) {
                     return next;
                 });
             } catch (err) {
-                console.error('❌ Error while writing assembly hover cache keys:', err);
+
                 // fallback single-key write
                 setHoverData(prev => ({
                     ...prev,
@@ -1884,14 +2120,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }));
             }
         } catch (error) {
-            console.error('❌ Error fetching assembly data:', error);
+
         }
     };
 
     // Function to fetch comprehensive block data
     const fetchBlockDataDetailed = async (blockId) => {
         try {
-            console.log('🏢 Fetching block data for:', blockId);
+
             
             // Fetch block basic info
             let blockResponse;
@@ -1907,7 +2143,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await blockResponse.json();
                 if (result.success) {
                     blockData = Array.isArray(result.data) ? result.data[0] : result.data;
-                    console.log('✅ Block data fetched:', blockData);
+
                 }
             }
 
@@ -1919,7 +2155,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-                    console.log('✅ Block total booths:', totalBooths);
+
                 }
             }
 
@@ -1932,14 +2168,14 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }));
         } catch (error) {
-            console.error('❌ Error fetching block data:', error);
+
         }
     };
 
     // Function to fetch comprehensive booth data
     const fetchBoothDataDetailed = async (boothId) => {
         try {
-            console.log('🗳️ Fetching booth data for:', boothId);
+
             
             // Fetch booth basic info by booth number
             const boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothId)}`);
@@ -1952,7 +2188,7 @@ function HierarchicalMap({ onRegionClick }) {
                         booth.booth_number == boothId || 
                         booth.booth_number === boothId.toString()
                     ) || result.data[0];
-                    console.log('✅ Booth data fetched:', boothData);
+
                 }
             }
 
@@ -1965,9 +2201,8 @@ function HierarchicalMap({ onRegionClick }) {
                     others: boothData.others_Count || 0,
                     total: boothData.Total || 0
                 };
-                console.log('✅ Booth gender data extracted:', genderData);
-            }
 
+            }
             setHoverData(prev => ({
                 ...prev,
                 [`booth_${boothId}`]: {
@@ -1976,8 +2211,11 @@ function HierarchicalMap({ onRegionClick }) {
                     genderData
                 }
             }));
+            
+            // Return booth data for immediate use
+            return boothData;
         } catch (error) {
-            console.error('❌ Error fetching booth data:', error);
+            return {};
         }
     };
 
@@ -1998,7 +2236,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
         } catch (error) {
-            console.error('Error fetching gender data:', error);
+
         }
     };
 
@@ -2019,7 +2257,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
         } catch (error) {
-            console.error('Error fetching winning candidate data:', error);
+
         }
     };
 
@@ -2049,7 +2287,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
         } catch (error) {
-            console.error('Error fetching assembly hover data:', error);
+
         }
     };
 
@@ -2073,10 +2311,10 @@ function HierarchicalMap({ onRegionClick }) {
                     }));
                 }
             } else {
-                console.error('Failed to fetch parliament candidate data. Status:', response.status);
+
             }
         } catch (error) {
-            console.error('Error fetching parliament candidate data:', error);
+
         }
     };
 
@@ -2085,17 +2323,14 @@ function HierarchicalMap({ onRegionClick }) {
         try {
             const encodedId = encodeURIComponent(blockId);
             const url = `${import.meta.env.VITE_APP_API_URL}/genders/stats/block/${encodedId}`;
-            console.log('🔍 Fetching block gender data for:', blockId, 'URL:', url);
+
             const response = await fetch(url);
-            
-            console.log('📡 Block gender response status:', response.status);
-            
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Block gender data received:', data);
+
                 if (data.success) {
                     const cacheKey = `block_${blockId}`;
-                    console.log('💾 Storing block gender data with key:', cacheKey, 'Data:', data.data);
+
                     setHoverData(prev => ({
                         ...prev,
                         [cacheKey]: {
@@ -2104,7 +2339,7 @@ function HierarchicalMap({ onRegionClick }) {
                         }
                     }));
                 } else {
-                    console.warn('⚠️ Block gender API returned success: false', data);
+
                 }
             } else {
                 let errorText;
@@ -2114,15 +2349,15 @@ function HierarchicalMap({ onRegionClick }) {
                 } catch (e) {
                     errorText = await response.text();
                 }
-                console.error('❌ Failed to fetch block gender data. Status:', response.status, 'Error:', errorText);
+
                 
                 // If 404, likely means route not found or no matching block found
                 if (response.status === 404) {
-                    console.warn('🔍 Block API returned 404. Check if route exists and backend logs for details.');
+
                 }
             }
         } catch (error) {
-            console.error('💥 Error fetching block gender data:', error);
+
         }
     };
 
@@ -2150,27 +2385,14 @@ function HierarchicalMap({ onRegionClick }) {
             // First try to get booth data by booth number
             const encodedId = encodeURIComponent(boothId);
             const url = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodedId}`;
-            console.log('🔍 DEBUG: Fetching booth data for booth number:', boothId);
-            console.log('🔍 DEBUG: API URL:', url);
+
+
             
             const response = await fetch(url);
-            
-            console.log('📡 DEBUG: Booth API response status:', response.status);
-            
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 DEBUG: Booth API returned', data.total, 'total booths, showing', data.count, 'results');
-                
+
                 if (data.success && data.data && data.data.length > 0) {
-                    console.log('🔍 DEBUG: Searching for booth with number:', boothId, 'Type:', typeof boothId);
-                    console.log('🔍 DEBUG: Available booth numbers:', data.data.map(b => ({
-                        booth_number: b.booth_number,
-                        type: typeof b.booth_number,
-                        matches_exact: b.booth_number === boothId,
-                        matches_string: b.booth_number == boothId,
-                        matches_toString: b.booth_number === boothId.toString(),
-                        name: b.name
-                    })));
                     
                     // Find the booth that matches our booth number
                     const matchingBooth = data.data.find(booth => 
@@ -2178,7 +2400,7 @@ function HierarchicalMap({ onRegionClick }) {
                         booth.booth_number === boothId.toString()
                     );
                     
-                    console.log('🎯 DEBUG: Matching booth found:', matchingBooth);
+
                     
                     if (matchingBooth) {
                         const cacheKey = `booth_${boothId}`;
@@ -2203,36 +2425,25 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         }));
                     } else {
-                        console.warn('⚠️ DEBUG: No booth found with booth number:', boothId);
-                        console.log('📋 DEBUG: Available booths in result:', data.data.map(b => ({
-                            booth_number: b.booth_number,
-                            name: b.name
-                        })));
-                        
+                        // No matching booth found
                         // Try fetching all booths to see what's available
-                        console.log('🔍 DEBUG: Trying to fetch all booths to check database...');
                         const allBoothsUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10`;
                         const allBoothsResponse = await fetch(allBoothsUrl);
                         if (allBoothsResponse.ok) {
                             const allBoothsData = await allBoothsResponse.json();
-                            console.log('📋 DEBUG: Sample booths from database:', allBoothsData.data?.slice(0, 5).map(b => ({
-                                booth_number: b.booth_number,
-                                name: b.name,
-                                type_of_booth_number: typeof b.booth_number
-                            })));
                         }
                     }
                 } else if (data.success && data.total === 0) {
-                    console.warn('⚠️ DEBUG: Search returned 0 results for booth number:', boothId);
+
                     // Fetch a larger set (or all) booths and try client-side matching to handle mismatched search behavior
                     try {
                         const allUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`;
-                        console.log('🔍 DEBUG: Fetching all booths for client-side matching:', allUrl);
+
                         const allResp = await fetch(allUrl);
                         if (allResp.ok) {
                             const allData = await allResp.json();
                             const candidates = Array.isArray(allData.data) ? allData.data : [];
-                            console.log('📋 DEBUG: Retrieved', candidates.length, 'booths for matching');
+
 
                             // Normalize boothId for matching
                             const boothIdStr = String(boothId).trim();
@@ -2251,7 +2462,7 @@ function HierarchicalMap({ onRegionClick }) {
 
                             if (matchingBooth) {
                                 const cacheKey = `booth_${boothId}`;
-                                console.log('🎯 DEBUG: Client-side matched booth:', matchingBooth.booth_number, matchingBooth.name);
+
                                 const genderData = {
                                     male: matchingBooth.Male_Count || 0,
                                     female: matchingBooth.Female_Count || 0,
@@ -2267,38 +2478,36 @@ function HierarchicalMap({ onRegionClick }) {
                                     }
                                 }));
                             } else {
-                                console.warn('⚠️ DEBUG: No client-side match found for boothId:', boothId);
+
                             }
                         }
                     } catch (err) {
-                        console.error('💥 DEBUG: Error fetching all booths for client-side matching:', err);
+
                     }
                 } else {
-                    console.warn('⚠️ DEBUG: Booth API returned unexpected structure:', data);
+
                 }
             } else {
                 let errorText;
                 try {
                     const errorJson = await response.json();
                     errorText = JSON.stringify(errorJson);
-                    console.log('❌ DEBUG: Error response JSON:', errorJson);
+
                 } catch (e) {
                     errorText = await response.text();
-                    console.log('❌ DEBUG: Error response text:', errorText);
+
                 }
-                console.error('❌ DEBUG: Failed to fetch booth data. Status:', response.status, 'Error:', errorText);
             }
         } catch (error) {
-            console.error('� DEBUG: Error fetching booth data:', error);
-            console.error('💥 DEBUG: Error stack:', error.stack);
+
+
         }
     };
 
     // Handle single click - show dynamic data in panel only
     const handleSingleClick = async (feature, level) => {
-        console.log(`👆 Single click detected - showing data for ${level}: ${feature.properties.name || feature.properties.Name}`);
-        setSelectedFeature(feature);
 
+        setSelectedFeature(feature);
         // Call the onRegionClick prop with region data
         if (onRegionClick) {
             onRegionClick({
@@ -2332,38 +2541,14 @@ function HierarchicalMap({ onRegionClick }) {
             cacheKey = `${level}_${featureId}`;
         }
 
-        console.log(`🔍 Panel cache lookup: ${level}`, {
-            cacheKey,
-            hasData: !!hoverData[cacheKey],
-            availableKeys: Object.keys(hoverData),
-            polygonProperties: properties
-        });
-
         // For assembly level, log the polygon properties to debug
         if (level === 'assembly') {
-            console.log('🏛️ Assembly polygon properties:', {
-                AC_NO: properties.AC_NO,
-                acNo: properties.acNo,
-                assembly_no: properties.assembly_no,
-                assemblyNo: properties.assemblyNo,
-                id: properties.id,
-                name: properties.name || properties.Name,
-                allProperties: properties
-            });
+            
         }
-
         // For parliamentary level, log the polygon properties to debug
         if (level === 'parliamentary') {
-            console.log('🏛️ Parliamentary polygon properties:', {
-                pcNo: properties.pcNo,
-                parliamentId: properties.parliamentId,
-                parliament_no: properties.parliament_no,
-                id: properties.id,
-                name: properties.name || properties.Name,
-                allProperties: properties
-            });
+            
         }
-
         // Open panel immediately with loading state
         setIsPanelLoading(true);
         setPanelData({
@@ -2374,66 +2559,109 @@ function HierarchicalMap({ onRegionClick }) {
         setPanelLevel(level);
         setIsPanelOpen(true);
 
+        // Set timeout to stop loading after 10 seconds
+        const loadingTimeout = setTimeout(() => {
+            console.warn('⏱️ Loading timeout reached for', level, cacheKey);
+            setIsPanelLoading(false);
+        }, 10000);
+
         // Check if we already have data in hoverData cache
         const existingData = hoverData[cacheKey];
         if (existingData && Object.keys(existingData).length > 0) {
-            console.log('✅ Using cached hover data for panel:', existingData);
+            clearTimeout(loadingTimeout);
             setIsPanelLoading(false);
             return;
         }
 
         // If no cached data, fetch it using the same logic as hover
-        console.log(`� Fetching data for ${level}:`, feature.properties);
         try {
             if (level === 'state') {
                 const stateId = feature.properties.id || feature.properties.Name || feature.properties._id;
+                console.log('🔍 Fetching state data for panel. StateId:', stateId, 'CacheKey:', cacheKey);
                 if (stateId) {
-                    console.log('🏛️ Triggering state data fetch for panel:', stateId);
+
                     await fetchStateData(stateId);
                 }
             } else if (level === 'division') {
                 const divisionId = feature.properties.id || feature.properties.DIVISION_CODE || feature.properties.name || feature.properties._id;
                 if (divisionId) {
-                    console.log('🗺️ Triggering division data fetch for panel:', divisionId);
+
                     await fetchDivisionData(divisionId);
                 }
             } else if (level === 'parliamentary') {
                 const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
                 if (parliamentId) {
-                    console.log('🏛️ Triggering parliament data fetch for panel:', parliamentId);
-                    await fetchParliamentData(parliamentId);
+                    console.log('🔍 Fetching parliament data - ID:', parliamentId, 'Name:', parliamentName);
+                    await fetchParliamentData(parliamentId, parliamentName);
                 }
             } else if (level === 'assembly') {
                 const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
                 if (assemblyId) {
-                    console.log('🏛️ Triggering assembly data fetch for panel:', assemblyId);
+
                     await fetchAssemblyDataDetailed(assemblyId);
                 }
             } else if (level === 'block') {
                 const blockId = feature.properties.BlockNumber || feature.properties.blockNumber || feature.properties.name || feature.properties.id;
                 if (blockId) {
-                    console.log('🏗️ Triggering block data fetch for panel:', blockId);
+
                     await fetchBlockDataDetailed(blockId);
                 }
             } else if (level === 'booth') {
-                const boothId = feature.properties.BoothNumber || feature.properties.boothNumber || feature.properties.BoothNo || feature.properties.id;
-                if (boothId) {
-                    console.log('🏪 Triggering booth data fetch for panel:', boothId);
-                    await fetchBoothDataDetailed(boothId);
+                const boothNo = feature.properties.BoothNo || feature.properties.boothNo || feature.properties.booth_number;
+                const boothIdFromProps = feature.properties.BoothNumber || feature.properties.boothNumber || feature.properties.id || feature.properties._id;
+                
+                if (boothNo) {
+                    // First fetch booth detailed info to get the actual MongoDB _id
+                    const boothData = await fetchBoothDataDetailed(boothNo);
+                    const actualBoothId = boothData._id || boothIdFromProps;
+                    
+                    console.log('🔍 Booth clicked - BoothNo:', boothNo, 'Actual _id:', actualBoothId, 'BoothData:', boothData);
+                    
+                    // Set selectedBoothDetails from fetched boothData or feature properties
+                    setSelectedBoothDetails({
+                        _id: actualBoothId,
+                        booth_number: boothNo || boothData.booth_number || feature.properties.BoothNo,
+                        booth_name: boothData.name || feature.properties.BoothName || feature.properties.boothName,
+                        full_address: boothData.full_address || feature.properties.Location,
+                        state_name: boothData.state_id?.name || 'Madhya Pradesh',
+                        division_name: boothData.division_id?.name || feature.properties.divisionName || 'N/A',
+                        district_name: boothData.district_id?.name || 'N/A',
+                        block_name: boothData.block_id?.name || feature.properties.BlockName,
+                        assembly_name: boothData.assembly_id?.name || feature.properties.AC_NAME,
+                        parliament_name: boothData.parliament_id?.name || feature.properties.pcName,
+                        election_year: boothData.election_year || '2023',
+                        total_voters: boothData.Total || boothData.total_voters || feature.properties.totalVoters || 0,
+                        male_voters: boothData.Male_Count || boothData.male_voters || 0,
+                        female_voters: boothData.Female_Count || boothData.female_voters || 0,
+                        other_voters: boothData.others_Count || boothData.other_voters || 0,
+                        latitude: feature.properties.latitude,
+                        longitude: feature.properties.longitude,
+                        created_at: boothData.created_at,
+                        updated_at: boothData.updated_at
+                    });
+                    
+                    // Fetch aggregates using the actual MongoDB _id
+                    if (actualBoothId) {
+                        console.log('📊 Fetching aggregates for booth _id:', actualBoothId);
+                        await fetchBoothAggregates(actualBoothId, boothNo);
+                    } else {
+                        console.warn('⚠️ No valid booth _id found, cannot fetch aggregates');
+                    }
                 }
             }
 
             // Data will be automatically updated via useEffect when hoverData changes
-
         } catch (error) {
-            console.error(`❌ Error fetching data for ${level}:`, error);
+            console.error('❌ Error in handleSingleClick:', error);
+            clearTimeout(loadingTimeout);
             setIsPanelLoading(false);
         }
     };
 
     // Handle double click - navigate to next hierarchy level
     const handleDoubleClick = (feature, level) => {
-        console.log(`🔄 Double click detected - navigating from ${level} to next level: ${feature.properties.name || feature.properties.Name}`);
+
         
         switch (level) {
             case 'state':
@@ -2449,7 +2677,7 @@ function HierarchicalMap({ onRegionClick }) {
                     loadParliamentaryData(parliament);
                     setCurrentLevel('parliamentary');
                 } else {
-                    console.warn('No Parliament found for division:', feature.properties.name);
+
                     alert('No parliamentary data available for this division. Staying at division level.');
                 }
                 break;
@@ -2467,12 +2695,12 @@ function HierarchicalMap({ onRegionClick }) {
                     loadBoothData(BlockNumber);
                     setCurrentLevel('booth');
                 } else {
-                    console.warn('No Block number found in feature properties:', feature.properties);
+
                     alert('No booth data available for this block. Staying at block level.');
                 }
                 break;
             default:
-                console.log('Already at the deepest level or unknown level');
+
                 break;
         }
 
@@ -2495,13 +2723,31 @@ function HierarchicalMap({ onRegionClick }) {
                 const stateGenderData = safeData.genderData || {};
                 const stateWinningData = safeData.winningData || {};
                 
+                console.log('🏛️ Generating panel for state with data:', {
+                    stateData,
+                    hasDescription: !!stateData.description,
+                    description: stateData.description
+                });
+                
                 sections = [
                     {
                         title: 'Basic Information',
                         items: [
                             { label: 'State Name', value: stateData.name || properties.Name || 'Madhya Pradesh' }
                         ]
-                    },
+                    }
+                ];
+
+                // Add description section if available
+                if (stateData.description) {
+                    console.log('✅ Adding description section to panel');
+                    sections.push({
+                        title: 'Description',
+                        html: stateData.description
+                    });
+                }
+
+                sections.push(
                     {
                         title: 'Voter Statistics',
                         items: [
@@ -2518,7 +2764,7 @@ function HierarchicalMap({ onRegionClick }) {
                             { label: 'Winning Party 2013', value: stateWinningData.winner_2013 || 'BJP' }
                         ]
                     }
-                ];
+                );
                 break;
 
             case 'division':
@@ -2697,6 +2943,204 @@ function HierarchicalMap({ onRegionClick }) {
                         ]
                     });
                 }
+
+                // Add booth aggregates sections with navigation
+                if (boothAggregates) {
+                    // Gender Distribution
+                    if (boothAggregates.gender) {
+                        sections.push({
+                            title: '👥 Gender Distribution',
+                            items: [
+                                { label: 'Male', value: boothAggregates.gender.male },
+                                { label: 'Female', value: boothAggregates.gender.female },
+                                { label: 'Others', value: boothAggregates.gender.others },
+                                { label: 'Total', value: boothAggregates.gender.total }
+                            ]
+                        });
+                    }
+
+                    // Events
+                    if (boothAggregates.events && boothAggregates.events.length > 0) {
+                        sections.push({
+                            title: `📅 Events (${boothAggregates.events.length})`,
+                            list: boothAggregates.events.slice(0, 5).map(ev => 
+                                `${ev.title || ev.event_name || 'Event'} ${ev.date ? '- ' + new Date(ev.date).toLocaleDateString('en-IN') : ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.events.length,
+                                items: boothAggregates.events,
+                                listPath: '/Events',
+                                detailPath: '/Events'
+                            }
+                        });
+                    }
+
+                    // Party Activities
+                    if (boothAggregates.partyActivities && boothAggregates.partyActivities.length > 0) {
+                        sections.push({
+                            title: `🚩 Party Activities (${boothAggregates.partyActivities.length})`,
+                            list: boothAggregates.partyActivities.slice(0, 5).map(a => 
+                                `${a.activity_name || a.title || 'Activity'} ${a.date ? '- ' + new Date(a.date).toLocaleDateString('en-IN') : ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.partyActivities.length,
+                                items: boothAggregates.partyActivities,
+                                listPath: '/party-activities',
+                                detailPath: '/party-activities'
+                            }
+                        });
+                    }
+
+                    // Visits
+                    if (boothAggregates.visits && boothAggregates.visits.length > 0) {
+                        sections.push({
+                            title: `👁️ Visits (${boothAggregates.visits.length})`,
+                            list: boothAggregates.visits.slice(0, 5).map(v => 
+                                `${v.candidate_id?.name || v.person_name || 'Visit'} ${v.date ? '- ' + new Date(v.date).toLocaleDateString('en-IN') : ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.visits.length,
+                                items: boothAggregates.visits,
+                                listPath: '/visits',
+                                detailPath: '/visits'
+                            }
+                        });
+                    }
+
+                    // Influencers
+                    if (boothAggregates.influencers && boothAggregates.influencers.length > 0) {
+                        sections.push({
+                            title: `👤 Influencers (${boothAggregates.influencers.length})`,
+                            list: boothAggregates.influencers.slice(0, 5).map(p => 
+                                `${p.name || p.person_name || 'Influencer'} - ${p.designation || p.phone || ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.influencers.length,
+                                items: boothAggregates.influencers,
+                                listPath: '/Influancer',
+                                detailPath: '/Influancer'
+                            }
+                        });
+                    }
+
+                    // Volunteers
+                    if (boothAggregates.volunteers && boothAggregates.volunteers.length > 0) {
+                        sections.push({
+                            title: `🤝 Volunteers (${boothAggregates.volunteers.length})`,
+                            list: boothAggregates.volunteers.slice(0, 5).map(p => 
+                                `${p.name || p.username || p.phone || 'Volunteer'} - ${p.party?.name || p.role || ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.volunteers.length,
+                                items: boothAggregates.volunteers,
+                                listPath: '/booth-volunteer',
+                                detailPath: '/booth-volunteer'
+                            }
+                        });
+                    }
+
+                    // Government Schemes
+                    if (boothAggregates.governments && boothAggregates.governments.length > 0) {
+                        sections.push({
+                            title: `🏥 Government Schemes (${boothAggregates.governments.length})`,
+                            list: boothAggregates.governments.slice(0, 5).map(s => 
+                                `${s.name || 'Scheme'} ${s.amount ? '- ₹' + Number(s.amount).toLocaleString() : ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.governments.length,
+                                items: boothAggregates.governments,
+                                listPath: '/Government-Schema',
+                                detailPath: '/Government-Schema'
+                            }
+                        });
+                    }
+
+                    // Local Issues
+                    if (boothAggregates.localIssues && boothAggregates.localIssues.length > 0) {
+                        sections.push({
+                            title: `⚠️ Local Issues (${boothAggregates.localIssues.length})`,
+                            list: boothAggregates.localIssues.slice(0, 5).map(it => 
+                                `${it.issue_name || 'Issue'} - ${it.status || it.priority || ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.localIssues.length,
+                                items: boothAggregates.localIssues,
+                                listPath: '/Local-Issue',
+                                detailPath: '/Local-Issue'
+                            }
+                        });
+                    }
+
+                    // Samiti
+                    if (boothAggregates.samitis && boothAggregates.samitis.length > 0) {
+                        sections.push({
+                            title: `👥 Samiti (${boothAggregates.samitis.length})`,
+                            list: boothAggregates.samitis.slice(0, 5).map(s => 
+                                `${s.samiti_name || 'Samiti'} - ${s.leader || ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.samitis.length,
+                                items: boothAggregates.samitis,
+                                listPath: '/samitis',
+                                detailPath: '/samitis'
+                            }
+                        });
+                    }
+
+                    // Work Status
+                    if (boothAggregates.workStatuses && boothAggregates.workStatuses.length > 0) {
+                        sections.push({
+                            title: `🔨 Work Status (${boothAggregates.workSummary?.total || 0})`,
+                            items: boothAggregates.workSummary ? [
+                                { label: 'Total', value: boothAggregates.workSummary.total },
+                                { label: 'Completed', value: boothAggregates.workSummary.completed },
+                                { label: 'In Progress', value: boothAggregates.workSummary.inProgress },
+                                { label: 'Pending', value: boothAggregates.workSummary.pending }
+                            ] : [],
+                            list: boothAggregates.workStatuses.slice(0, 3).map(w => 
+                                `${w.work_name || 'Work'} - ${w.status || w.progress || ''}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.workStatuses.length,
+                                items: boothAggregates.workStatuses,
+                                listPath: '/Work-Status',
+                                detailPath: '/Work-Status'
+                            }
+                        });
+                    }
+
+                    // Winning Assembly
+                    if (boothAggregates.winningParties && boothAggregates.winningParties.length > 0) {
+                        sections.push({
+                            title: `🏆 Winning Assembly (${boothAggregates.winningParties.length})`,
+                            list: boothAggregates.winningParties.slice(0, 5).map(wp => 
+                                `${wp.candidate_id?.name || wp.candidate_name || 'Candidate'} - ${wp.party_id?.name || wp.party_name || ''} (${wp.election_year?.year || wp.election_year || ''})`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.winningParties.length,
+                                items: boothAggregates.winningParties,
+                                listPath: '/WinningPartiesList',
+                                detailPath: '/WinningPartiesList'
+                            }
+                        });
+                    }
+
+                    // Booth Votes
+                    if (boothAggregates.boothVotes && boothAggregates.boothVotes.length > 0) {
+                        sections.push({
+                            title: `🗳️ Booth Votes (${boothAggregates.boothVotes.length})`,
+                            list: boothAggregates.boothVotes.slice(0, 5).map(v => 
+                                `${typeof v.candidate_name === 'string' ? v.candidate_name : (v.candidate_name?.name || v.party_name || 'Candidate')} - Votes: ${v.votes ?? v.vote_count ?? 'N/A'}`
+                            ),
+                            viewMore: {
+                                count: boothAggregates.boothVotes.length,
+                                items: boothAggregates.boothVotes,
+                                listPath: '/Booth-Votes',
+                                detailPath: '/Booth-Votes'
+                            }
+                        });
+                    }
+                }
                 break;
         }
 
@@ -2719,13 +3163,87 @@ function HierarchicalMap({ onRegionClick }) {
                                 </div>
                             )}
                             
+                            {section.html && (
+                                <div 
+                                    className="section-html-content"
+                                    style={{
+                                        padding: '10px',
+                                        backgroundColor: '#f9f9f9',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        lineHeight: '1.6',
+                                        color: '#444'
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: section.html }}
+                                />
+                            )}
+                            
                             {section.list && (
                                 <div className="section-list">
                                     <ul>
-                                        {section.list.map((listItem, listIndex) => (
-                                            <li key={listIndex}>{listItem}</li>
-                                        ))}
+                                        {section.list.map((listItem, listIndex) => {
+                                            // Make list items clickable if viewMore exists
+                                            if (section.viewMore && section.viewMore.items && section.viewMore.items[listIndex]) {
+                                                const item = section.viewMore.items[listIndex];
+                                                const entityId = getEntityId(item);
+                                                const detailPath = section.viewMore.detailPath;
+                                                
+                                                return (
+                                                    <li 
+                                                        key={listIndex}
+                                                        style={{ cursor: 'pointer', color: '#007bff' }}
+                                                        onClick={() => {
+                                                            if (entityId && detailPath) {
+                                                                console.debug('🔗 Navigating to:', `${detailPath}/${entityId}`, 'from item:', item);
+                                                                navigate(`/election${detailPath}/${entityId}`);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {listItem}
+                                                    </li>
+                                                );
+                                            }
+                                            return <li key={listIndex}>{listItem}</li>;
+                                        })}
                                     </ul>
+                                </div>
+                            )}
+
+                            {section.viewMore && section.viewMore.count > 0 && (
+                                <div style={{ marginTop: '10px', textAlign: 'right' }}>
+                                    <button
+                                        style={{
+                                            padding: '6px 12px',
+                                            backgroundColor: '#007bff',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '13px'
+                                        }}
+                                        onClick={() => {
+                                            const firstItem = section.viewMore.items && section.viewMore.items[0];
+                                            const entityId = getEntityId(firstItem);
+                                            const detailPath = section.viewMore.detailPath;
+                                            const listPath = section.viewMore.listPath;
+                                            
+                                            if (entityId && detailPath) {
+                                                console.debug('🔗 View more navigating to detail:', `${detailPath}/${entityId}`);
+                                                navigate(`/election${detailPath}/${entityId}`);
+                                            } else if (listPath) {
+                                                console.debug('🔗 View more navigating to list:', listPath, 'with booth filter');
+                                                navigate(`/election${listPath}`, {
+                                                    state: {
+                                                        boothId: properties.id || properties._id,
+                                                        boothNumber: properties.BoothNo || properties.boothNo || properties.booth_number,
+                                                        boothName: properties.BoothName || properties.boothName || properties.name
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        View more ({section.viewMore.count})
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -2758,6 +3276,8 @@ function HierarchicalMap({ onRegionClick }) {
         setIsPanelOpen(false);
         setPanelData({});
         setPanelLevel('');
+        setBoothAggregates(null);
+        setSelectedBoothDetails(null);
     };
 
     const generatePopupContent = (feature, level) => {
@@ -2791,17 +3311,8 @@ function HierarchicalMap({ onRegionClick }) {
 
 
         const data = hoverData[cacheKey] || {};
-        
         // Debug logging to check cache key matching
-        if (level === 'booth' || level === 'block') {
-            console.log(`🔍 Popup cache lookup: ${level}`, {
-                cacheKey,
-                hasData: !!data.genderData,
-                availableKeys: Object.keys(hoverData),
-                dataFound: data
-            });
-        }
-
+        
         // Build structured popup content using hover classes
         let content = `<div class="hover-popup-root">`;
         // Header
@@ -2919,16 +3430,6 @@ function HierarchicalMap({ onRegionClick }) {
             case 'booth':
                 const boothGenderData = data.genderData || {};
                 const boothData = data.boothData || {}; // Additional booth data from API
-                
-                console.log('🎨 DEBUG: Generating booth popup content:', {
-                    cacheKey,
-                    hasGenderData: !!boothGenderData.male || !!boothGenderData.female,
-                    genderData: boothGenderData,
-                    hasBoothData: Object.keys(boothData).length > 0,
-                    boothData: boothData,
-                    properties: properties,
-                    fullDataObject: data
-                });
                 
                 // Use booth data from API if available, otherwise fall back to polygon properties
                 const boothName = boothData.name || properties.BoothName || properties.boothName || '—';
@@ -3220,8 +3721,457 @@ function HierarchicalMap({ onRegionClick }) {
                     </div>
                 </div>
 
-                {/* Sliding Panel */}
-                {isPanelOpen && panelData && (
+                {/* MUI Drawer for Booth Level - Matching BoothMap Style */}
+                {panelLevel === 'booth' && selectedBoothDetails && (
+                    <Drawer
+                        anchor="right"
+                        open={isPanelOpen}
+                        onClose={() => setIsPanelOpen(false)}
+                        sx={{
+                            '& .MuiDrawer-paper': {
+                                width: 450,
+                                boxSizing: 'border-box',
+                                p: 3
+                            }
+                        }}
+                    >
+                        <Stack spacing={2}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="h5" fontWeight={700}>
+                                    Booth Details
+                                </Typography>
+                                <Typography variant="caption" color="primary" fontWeight={600}>
+                                    ID: {selectedBoothDetails._id}
+                                </Typography>
+                            </Box>
+                            <Divider />
+                            
+                            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter }}>
+                                <Stack spacing={2}>
+                                    <Typography variant="h6" fontWeight={700} color="primary">
+                                        Basic Information
+                                    </Typography>
+                                    
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Booth Number
+                                        </Typography>
+                                        <Typography variant="h6" fontWeight={700} color="primary">
+                                            {selectedBoothDetails.booth_number || 'N/A'}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Booth Name
+                                        </Typography>
+                                        <Typography variant="body1" fontWeight={600}>
+                                            {selectedBoothDetails.booth_name || 'N/A'}
+                                        </Typography>
+                                    </Box>
+
+                                    {selectedBoothDetails.full_address && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                Full Address
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                {selectedBoothDetails.full_address}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Stack>
+                            </Paper>
+
+                            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter }}>
+                                <Stack spacing={2}>
+                                    <Typography variant="h6" fontWeight={700} color="success.dark">
+                                        Location Hierarchy
+                                    </Typography>
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            State
+                                        </Typography>
+                                        <Typography variant="body1">
+                                            {selectedBoothDetails.state_name}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Division
+                                        </Typography>
+                                        <Typography variant="body1">
+                                            {selectedBoothDetails.division_name}
+                                        </Typography>
+                                    </Box>
+
+                                    {selectedBoothDetails.district_name && selectedBoothDetails.district_name !== 'N/A' && (
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                District
+                                            </Typography>
+                                            <Typography variant="body1">
+                                                {selectedBoothDetails.district_name}
+                                            </Typography>
+                                        </Box>
+                                    )}
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Block
+                                        </Typography>
+                                        <Typography variant="body1">
+                                            {selectedBoothDetails.block_name}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Assembly Constituency
+                                        </Typography>
+                                        <Typography variant="body1">
+                                            {selectedBoothDetails.assembly_name}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Parliament Constituency
+                                        </Typography>
+                                        <Typography variant="body1">
+                                            {selectedBoothDetails.parliament_name}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                            Election Year
+                                        </Typography>
+                                        <Typography variant="body1" fontWeight={600}>
+                                            {selectedBoothDetails.election_year}
+                                        </Typography>
+                                    </Box>
+                                </Stack>
+                            </Paper>
+
+                            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter }}>
+                                <Stack spacing={2}>
+                                    <Typography variant="h6" fontWeight={700} color="info.dark">
+                                        Voter Statistics
+                                    </Typography>
+
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                Total Voters
+                                            </Typography>
+                                            <Typography variant="h5" fontWeight={700} color="primary">
+                                                {selectedBoothDetails.total_voters}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                Male Voters
+                                            </Typography>
+                                            <Typography variant="h6" fontWeight={700} color="info.main">
+                                                {selectedBoothDetails.male_voters}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                Female Voters
+                                            </Typography>
+                                            <Typography variant="h6" fontWeight={700} color="secondary.main">
+                                                {selectedBoothDetails.female_voters}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                Other Voters
+                                            </Typography>
+                                            <Typography variant="h6" fontWeight={700} color="warning.main">
+                                                {selectedBoothDetails.other_voters}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+
+                                    {selectedBoothDetails.total_voters > 0 && (
+                                        <Box sx={{ mt: 1 }}>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 1, display: 'block' }}>
+                                                Gender Distribution
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                                <Box sx={{ flex: 1 }}>
+                                                    <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                        Male: {((selectedBoothDetails.male_voters / selectedBoothDetails.total_voters) * 100).toFixed(1)}%
+                                                    </Typography>
+                                                    <Box sx={{ 
+                                                        height: 8, 
+                                                        backgroundColor: theme.palette.info.main, 
+                                                        borderRadius: 1,
+                                                        width: `${(selectedBoothDetails.male_voters / selectedBoothDetails.total_voters) * 100}%`
+                                                    }} />
+                                                </Box>
+                                                <Box sx={{ flex: 1 }}>
+                                                    <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                        Female: {((selectedBoothDetails.female_voters / selectedBoothDetails.total_voters) * 100).toFixed(1)}%
+                                                    </Typography>
+                                                    <Box sx={{ 
+                                                        height: 8, 
+                                                        backgroundColor: theme.palette.secondary.main, 
+                                                        borderRadius: 1,
+                                                        width: `${(selectedBoothDetails.female_voters / selectedBoothDetails.total_voters) * 100}%`
+                                                    }} />
+                                                </Box>
+                                            </Box>
+                                        </Box>
+                                    )}
+                                </Stack>
+                            </Paper>
+
+                            {/* Aggregated Sections - MUI Style */}
+                            {(() => {
+                                const S = ({ title, items = [], IconComp, renderPrimary, renderSecondary, listPath, detailPath }) => (
+                                    <Accordion key={title} sx={{ boxShadow: 'none', mb: 1 }}>
+                                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                                                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 36, height: 36 }}>
+                                                    <IconComp style={{ color: '#fff' }} fontSize="small" />
+                                                </Avatar>
+                                                <Typography variant="subtitle2">{title}</Typography>
+                                                <Chip label={items?.length || 0} size="small" sx={{ ml: 'auto' }} />
+                                            </Stack>
+                                        </AccordionSummary>
+                                        <AccordionDetails>
+                                            {boothAggregatesLoading && !boothAggregates ? (
+                                                <Skeleton variant="rectangular" height={80} />
+                                            ) : (items && items.length > 0) ? (
+                                                <List dense>
+                                                    {items.slice(0, 5).map((it, idx) => {
+                                                        const entityId = getEntityId(it);
+                                                        return (
+                                                            <ListItem
+                                                                key={idx}
+                                                                sx={{
+                                                                    cursor: entityId && detailPath ? 'pointer' : 'default',
+                                                                    '&:hover': entityId && detailPath ? { bgcolor: 'action.hover' } : {}
+                                                                }}
+                                                                onClick={() => {
+                                                                    if (entityId && detailPath) {
+                                                                        console.debug('🔗 List Item Click - Navigating to:', `${detailPath}/${entityId}`);
+                                                                        console.debug('📦 Item data:', it);
+                                                                        console.debug('🆔 Extracted ID:', entityId);
+                                                                        navigate(`${detailPath}/${entityId}`);
+                                                                    } else {
+                                                                        console.warn('⚠️ Cannot navigate - entityId:', entityId, 'detailPath:', detailPath, 'item:', it);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <ListItemAvatar>
+                                                                    <Avatar sx={{ bgcolor: theme.palette.success.lighter, color: theme.palette.success.dark }}>
+                                                                        <IconComp fontSize="small" />
+                                                                    </Avatar>
+                                                                </ListItemAvatar>
+                                                                <ListItemText
+                                                                    primary={renderPrimary(it)}
+                                                                    secondary={renderSecondary(it)}
+                                                                />
+                                                            </ListItem>
+                                                        );
+                                                    })}
+                                                </List>
+                                            ) : (
+                                                <Typography variant="body2">No records found.</Typography>
+                                            )}
+
+                                            {listPath && items && items.length > 0 && selectedBoothDetails && (
+                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                                                    <Button 
+                                                        size="small" 
+                                                        variant="contained"
+                                                        onClick={() => {
+                                                            const firstItem = items[0];
+                                                            const entityId = getEntityId(firstItem);
+                                                            console.debug('🔘 View More Click');
+                                                            console.debug('📦 First item:', firstItem);
+                                                            console.debug('🆔 Extracted ID:', entityId);
+                                                            console.debug('🎯 Detail path:', detailPath);
+                                                            console.debug('📋 List path:', listPath);
+                                                            
+                                                            if (entityId && detailPath) {
+                                                                console.debug('✅ Navigating to detail page:', `${detailPath}/${entityId}`);
+                                                                navigate(`${detailPath}/${entityId}`);
+                                                            } else if (listPath) {
+                                                                console.debug('✅ Navigating to list page with booth filter:', listPath);
+                                                                navigate(listPath, {
+                                                                    state: {
+                                                                        boothId: selectedBoothDetails._id,
+                                                                        boothNumber: selectedBoothDetails.booth_number,
+                                                                        boothName: selectedBoothDetails.booth_name
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                console.error('❌ Cannot navigate - no entityId or listPath available');
+                                                            }
+                                                        }}
+                                                    >
+                                                        View more
+                                                    </Button>
+                                                </Box>
+                                            )}
+                                        </AccordionDetails>
+                                    </Accordion>
+                                );
+
+                                return (
+                                    <Box>
+                                        {/* Gender Summary Paper */}
+                                        <Paper elevation={0} sx={{ p: 1, mb: 1 }}>
+                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>
+                                                    <GroupIcon style={{ color: '#fff' }} />
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="subtitle2">Gender</Typography>
+                                                    {boothAggregates?.gender ? (
+                                                        <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                                                            <Chip label={`M ${boothAggregates.gender.male}`} color="info" size="small" />
+                                                            <Chip label={`F ${boothAggregates.gender.female}`} color="secondary" size="small" />
+                                                            <Chip label={`O ${boothAggregates.gender.others}`} size="small" />
+                                                            <Chip label={`T ${boothAggregates.gender.total}`} variant="outlined" size="small" />
+                                                        </Stack>
+                                                    ) : boothAggregatesLoading ? (
+                                                        <Skeleton variant="text" width={120} />
+                                                    ) : (
+                                                        <Typography variant="caption">No gender data</Typography>
+                                                    )}
+                                                </Box>
+                                            </Stack>
+                                        </Paper>
+
+                                        {S({
+                                            title: `Events (${boothAggregates?.events?.length || 0})`,
+                                            items: boothAggregates?.events || [],
+                                            IconComp: EventIcon,
+                                            renderPrimary: (ev) => ev.title || ev.event_name || 'Event',
+                                            renderSecondary: (ev) => ev.date ? new Date(ev.date).toLocaleDateString('en-IN') : ev.location || '',
+                                            listPath: '/Events',
+                                            detailPath: '/Events'
+                                        })}
+
+                                        {S({
+                                            title: `Party Activities (${boothAggregates?.partyActivities?.length || 0})`,
+                                            items: boothAggregates?.partyActivities || [],
+                                            IconComp: FlagIcon,
+                                            renderPrimary: (a) => a.activity_name || a.title || 'Activity',
+                                            renderSecondary: (a) => a.date ? new Date(a.date).toLocaleDateString('en-IN') : a.description || '',
+                                            listPath: '/party-activities',
+                                            detailPath: '/party-activities'
+                                        })}
+
+                                        {S({
+                                            title: `Visits (${boothAggregates?.visits?.length || 0})`,
+                                            items: boothAggregates?.visits || [],
+                                            IconComp: VisibilityIcon,
+                                            renderPrimary: (v) => `${v.candidate_id?.name || v.person_name || 'Visit'}`,
+                                            renderSecondary: (v) => v.date ? new Date(v.date).toLocaleDateString('en-IN') : v.locationName || '',
+                                            listPath: '/visits',
+                                            detailPath: '/visits'
+                                        })}
+
+                                        {S({
+                                            title: `Influencers (${boothAggregates?.influencers?.length || 0})`,
+                                            items: boothAggregates?.influencers || [],
+                                            IconComp: AccountCircleIcon,
+                                            renderPrimary: (p) => p.name || p.person_name || p.phone || 'Influencer',
+                                            renderSecondary: (p) => p.designation || p.address || '',
+                                            listPath: '/Influancer',
+                                            detailPath: '/Influancer'
+                                        })}
+
+                                        {S({
+                                            title: `Volunteers (${boothAggregates?.volunteers?.length || 0})`,
+                                            items: boothAggregates?.volunteers || [],
+                                            IconComp: VolunteerActivismIcon,
+                                            renderPrimary: (p) => p.name || p.username || p.phone || 'Volunteer',
+                                            renderSecondary: (p) => p.party?.name || p.role || '',
+                                            listPath: '/booth-volunteer',
+                                            detailPath: '/booth-volunteer'
+                                        })}
+
+                                        {S({
+                                            title: `Government Schemes (${boothAggregates?.governments?.length || 0})`,
+                                            items: boothAggregates?.governments || [],
+                                            IconComp: LocalHospitalIcon,
+                                            renderPrimary: (s) => s.name || 'Scheme',
+                                            renderSecondary: (s) => s.amount ? `₹${Number(s.amount).toLocaleString()}` : s.type || '',
+                                            listPath: '/Government-Schema',
+                                            detailPath: '/Government-Schema'
+                                        })}
+
+                                        {S({
+                                            title: `Local Issues (${boothAggregates?.localIssues?.length || 0})`,
+                                            items: boothAggregates?.localIssues || [],
+                                            IconComp: ReportProblemIcon,
+                                            renderPrimary: (it) => it.issue_name || 'Issue',
+                                            renderSecondary: (it) => it.status || it.priority || '',
+                                            listPath: '/Local-Issue',
+                                            detailPath: '/Local-Issue'
+                                        })}
+
+                                        {S({
+                                            title: `Samiti (${boothAggregates?.samitis?.length || 0})`,
+                                            items: boothAggregates?.samitis || [],
+                                            IconComp: GroupIcon,
+                                            renderPrimary: (s) => s.samiti_name || 'Samiti',
+                                            renderSecondary: (s) => s.leader || '',
+                                            listPath: '/samitis',
+                                            detailPath: '/samitis'
+                                        })}
+
+                                        {S({
+                                            title: `Work Status (${boothAggregates?.workSummary?.total || 0})`,
+                                            items: boothAggregates?.workStatuses || [],
+                                            IconComp: ConstructionIcon,
+                                            renderPrimary: (w) => w.work_name || 'Work',
+                                            renderSecondary: (w) => w.status || w.progress || '',
+                                            listPath: '/Work-Status',
+                                            detailPath: '/Work-Status'
+                                        })}
+
+                                        {S({
+                                            title: `Winning Assembly (${boothAggregates?.winningParties?.length || 0})`,
+                                            items: boothAggregates?.winningParties || [],
+                                            IconComp: EmojiEventsIcon,
+                                            renderPrimary: (wp) => wp.candidate_id?.name || wp.candidate_name || 'Candidate',
+                                            renderSecondary: (wp) => `${wp.party_id?.name || wp.party_name || ''} • ${wp.election_year?.year || wp.election_year || ''}`,
+                                            listPath: '/WinningPartiesList',
+                                            detailPath: '/WinningPartiesList'
+                                        })}
+
+                                        {S({
+                                            title: `Booth Votes (${boothAggregates?.boothVotes?.length || 0})`,
+                                            items: boothAggregates?.boothVotes || [],
+                                            IconComp: HowToVoteIcon,
+                                            renderPrimary: (v) => (typeof v.candidate_name === 'string' ? v.candidate_name : (v.candidate_name?.name || v.party_name || 'Candidate')),
+                                            renderSecondary: (v) => `Votes: ${v.votes ?? v.vote_count ?? 'N/A'}`,
+                                            listPath: '/Booth-Votes',
+                                            detailPath: '/Booth-Votes'
+                                        })}
+                                    </Box>
+                                );
+                            })()}
+                        </Stack>
+                    </Drawer>
+                )}
+
+                {/* Sliding Panel for other levels (state, division, parliament, assembly, block) */}
+                {panelLevel !== 'booth' && isPanelOpen && panelData && (
                     <>
                         {/* Overlay */}
                         <div 

@@ -44,6 +44,9 @@ export default function CodingListPage() {
     const [assemblies, setAssemblies] = useState([]);
     const [blocks, setBlocks] = useState([]);
     const [booths, setBooths] = useState([]);
+    const [panchayats, setPanchayats] = useState([]);
+    const [villages, setVillages] = useState([]);
+    const [falliyas, setFalliyas] = useState([]);
     // Map state
     const [blockNumberInput, setBlockNumberInput] = useState('ALL');
     const [yearFilter, setYearFilter] = useState('');
@@ -62,6 +65,9 @@ export default function CodingListPage() {
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
+    const [filteredPanchayats, setFilteredPanchayats] = useState([]);
+    const [filteredVillages, setFilteredVillages] = useState([]);
+    const [filteredFalliyas, setFilteredFalliyas] = useState([]);
 
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -72,7 +78,10 @@ export default function CodingListPage() {
         division: '',
         parliament: '',
         assembly: '',
-        block: ''
+        block: '',
+        panchayat: '',
+        village: '',
+        falliya: ''
     });
 
     const handleFilterChange = (field, value) => {
@@ -81,7 +90,7 @@ export default function CodingListPage() {
 
         // Clear child selections when parent changes
         if (field === 'state') {
-            newFilters = { ...newFilters, division: '', parliament: '', assembly: '', block: '' };
+            newFilters = { ...newFilters, division: '', parliament: '', assembly: '', block: '', panchayat: '', village: '', falliya: '' };
             // Update filtered divisions based on selected state
             if (value && divisions.length > 0) {
 
@@ -96,8 +105,11 @@ export default function CodingListPage() {
             setFilteredParliaments([]);
             setFilteredAssemblies([]);
             setFilteredBlocks([]);
+            setFilteredPanchayats([]);
+            setFilteredVillages([]);
+            setFilteredFalliyas([]);
         } else if (field === 'division') {
-            newFilters = { ...newFilters, parliament: '', assembly: '', block: '' };
+            newFilters = { ...newFilters, parliament: '', assembly: '', block: '', panchayat: '', village: '', falliya: '' };
             // Update filtered parliaments based on selected division
             if (value && parliaments.length > 0) {
 
@@ -111,8 +123,11 @@ export default function CodingListPage() {
             }
             setFilteredAssemblies([]);
             setFilteredBlocks([]);
+            setFilteredPanchayats([]);
+            setFilteredVillages([]);
+            setFilteredFalliyas([]);
         } else if (field === 'parliament') {
-            newFilters = { ...newFilters, assembly: '', block: '' };
+            newFilters = { ...newFilters, assembly: '', block: '', panchayat: '', village: '', falliya: '' };
             // Update filtered assemblies based on selected parliament
             if (value && assemblies.length > 0) {
 
@@ -125,8 +140,11 @@ export default function CodingListPage() {
                 setFilteredAssemblies([]);
             }
             setFilteredBlocks([]);
+            setFilteredPanchayats([]);
+            setFilteredVillages([]);
+            setFilteredFalliyas([]);
         } else if (field === 'assembly') {
-            newFilters = { ...newFilters, block: '' };
+            newFilters = { ...newFilters, block: '', panchayat: '', village: '', falliya: '' };
             // Update filtered blocks based on selected assembly
             if (value && blocks.length > 0) {
 
@@ -137,6 +155,45 @@ export default function CodingListPage() {
                 setFilteredBlocks(assemblyBlocks);
             } else {
                 setFilteredBlocks([]);
+            }
+            setFilteredPanchayats([]);
+            setFilteredVillages([]);
+            setFilteredFalliyas([]);
+        } else if (field === 'block') {
+            newFilters = { ...newFilters, panchayat: '', village: '', falliya: '' };
+            // Update filtered panchayats based on selected block
+            if (value && panchayats.length > 0) {
+                const blockPanchayats = panchayats.filter(panchayat =>
+                    panchayat.block_id === value || panchayat.block_id?._id === value
+                );
+                setFilteredPanchayats(blockPanchayats);
+            } else {
+                setFilteredPanchayats([]);
+            }
+            setFilteredVillages([]);
+            setFilteredFalliyas([]);
+        } else if (field === 'panchayat') {
+            newFilters = { ...newFilters, village: '', falliya: '' };
+            // Update filtered villages based on selected panchayat
+            if (value && villages.length > 0) {
+                const panchayatVillages = villages.filter(village =>
+                    village.panchayat_id === value || village.panchayat_id?._id === value
+                );
+                setFilteredVillages(panchayatVillages);
+            } else {
+                setFilteredVillages([]);
+            }
+            setFilteredFalliyas([]);
+        } else if (field === 'village') {
+            newFilters = { ...newFilters, falliya: '' };
+            // Update filtered falliyas based on selected village
+            if (value && falliyas.length > 0) {
+                const villageFalliyas = falliyas.filter(falliya =>
+                    falliya.village_id === value || falliya.village_id?._id === value
+                );
+                setFilteredFalliyas(villageFalliyas);
+            } else {
+                setFilteredFalliyas([]);
             }
         }
 
@@ -159,7 +216,10 @@ export default function CodingListPage() {
             division: '',
             parliament: '',
             assembly: '',
-            block: ''
+            block: '',
+            panchayat: '',
+            village: '',
+            falliya: ''
         });
         setColumnFilters([]);
 
@@ -168,6 +228,9 @@ export default function CodingListPage() {
         setFilteredParliaments([]);
         setFilteredAssemblies([]);
         setFilteredBlocks([]);
+        setFilteredPanchayats([]);
+        setFilteredVillages([]);
+        setFilteredFalliyas([]);
     };
 
     const [columnFilters, setColumnFilters] = useState([]);
@@ -211,22 +274,28 @@ export default function CodingListPage() {
                 const token = localStorage.serviceToken;
                 return token ? { Authorization: `Bearer ${token}` } : {};
             };
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes] = await Promise.all([
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/villages`, { headers: getAuthHeaders() }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas`, { headers: getAuthHeaders() })
             ]);
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData] = await Promise.all([
+            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, panchayatsData, villagesData, falliyasData] = await Promise.all([
                 statesRes.json(),
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json(),
                 blocksRes.json(),
-                boothsRes.json()
+                boothsRes.json(),
+                panchayatsRes.json(),
+                villagesRes.json(),
+                falliyasRes.json()
             ]);
 
             if (statesData.success) {
@@ -248,6 +317,9 @@ export default function CodingListPage() {
                 setBlocks(blocksData.data);
             }
             if (boothsData.success) setBooths(boothsData.data);
+            if (panchayatsData.success) setPanchayats(panchayatsData.data);
+            if (villagesData.success) setVillages(villagesData.data);
+            if (falliyasData.success) setFalliyas(falliyasData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -1305,6 +1377,57 @@ export default function CodingListPage() {
                             {filteredBlocks.map((block) => (
                                 <MenuItem key={block._id} value={block._id}>
                                     {block.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Panchayat"
+                            value={filters.panchayat}
+                            onChange={(e) => handleFilterChange("panchayat", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                            disabled={!filters.block}
+                        >
+                            <MenuItem value="">All Panchayats</MenuItem>
+                            {filteredPanchayats.map((panchayat) => (
+                                <MenuItem key={panchayat._id} value={panchayat._id}>
+                                    {panchayat.panchayat_name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Village"
+                            value={filters.village}
+                            onChange={(e) => handleFilterChange("village", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                            disabled={!filters.panchayat}
+                        >
+                            <MenuItem value="">All Villages</MenuItem>
+                            {filteredVillages.map((village) => (
+                                <MenuItem key={village._id} value={village._id}>
+                                    {village.village_name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            label="Falliya"
+                            value={filters.falliya}
+                            onChange={(e) => handleFilterChange("falliya", e.target.value)}
+                            sx={{ minWidth: 200 }}
+                            size="small"
+                            disabled={!filters.village}
+                        >
+                            <MenuItem value="">All Falliyas</MenuItem>
+                            {filteredFalliyas.map((falliya) => (
+                                <MenuItem key={falliya._id} value={falliya._id}>
+                                    {falliya.falliya_name}
                                 </MenuItem>
                             ))}
                         </TextField>
