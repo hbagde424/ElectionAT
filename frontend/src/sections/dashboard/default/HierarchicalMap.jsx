@@ -1279,29 +1279,48 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
-    const loadBoothData = async (BlockNumber) => {
+    const loadBoothData = async (BlockNumber, AC_NO = null) => {
         try {
-
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${BlockNumber}`);
+            console.log('🔍 Loading booth data for BlockNumber:', BlockNumber, 'AC_NO:', AC_NO);
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${BlockNumber}`;
+            console.log('🌐 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl);
+            console.log('📡 Response status:', response.status, response.statusText);
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const responseData = await response.json();
+            console.log('📦 Booth API Response:', responseData);
+            console.log('📊 Features count:', responseData.features?.length || 0);
+            
             // Validate API response structure
             if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
                 throw new Error('Invalid API response structure');
             }
 
-            if (responseData.features.length === 0) {
-                alert(`No booths found for block ${BlockNumber}`);
+            // Filter by AC_NO if provided (since API returns all BlockNumber=1 across all assemblies)
+            let filteredFeatures = responseData.features;
+            if (AC_NO !== null && AC_NO !== undefined) {
+                const originalCount = filteredFeatures.length;
+                filteredFeatures = filteredFeatures.filter(feature => {
+                    const featureAcNo = feature.properties?.AC_NO || feature.properties?.acNo;
+                    return featureAcNo == AC_NO;
+                });
+                console.log(`🔍 Filtered booths by AC_NO ${AC_NO}: ${originalCount} → ${filteredFeatures.length}`);
+            }
+
+            if (filteredFeatures.length === 0) {
+                alert(`No booths found for BlockNumber: ${BlockNumber}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nThis block may not have booth data in the database.`);
                 return;
             }
 
             // Transform features with proper validation
             const transformedData = {
                 type: 'FeatureCollection',
-                features: responseData.features.map((feature, index) => {
+                features: filteredFeatures.map((feature, index) => {
                     // Validate geometry
                     if (!feature.geometry || !feature.geometry.coordinates) {
 
@@ -1344,6 +1363,8 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             });
 
+            console.log(`✅ Successfully loaded ${transformedData.features.length} booths for BlockNumber: ${BlockNumber}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}`);
+            
             // Show only the selected block's booths
             showBoundaries(transformedData, 'booth');
             setCurrentLevel('booth');
@@ -1437,10 +1458,14 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
         } catch (error) {
-            alert(`Failed to load booth data: ${error.message}`);
+            console.error('❌ Error loading booth data:', error);
+            alert(`Failed to load booth data for BlockNumber: ${BlockNumber}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nError: ${error.message}\n\nPlease check:\n1. Booth polygon data exists in database\n2. Backend API is running\n3. Network connection`);
             // Fallback: Show the block boundaries again
             if (selectedFeature && selectedFeature.properties) {
-                loadBlockData(selectedFeature.properties.blockCode || selectedFeature.properties.id);
+                const fallbackAcNo = selectedFeature.properties.AC_NO || selectedFeature.properties.acNo;
+                if (fallbackAcNo) {
+                    loadBlockData(fallbackAcNo);
+                }
             }
         }
     };
@@ -2797,12 +2822,13 @@ function HierarchicalMap({ onRegionClick }) {
                 break;
             case 'block':
                 const BlockNumber = feature.properties.BlockNumber || feature.properties.blockNumber;
+                const blockAcNo = feature.properties.AC_NO || feature.properties.acNo;
                 console.log('🖱️ Double-click on block:', feature.properties.name);
                 console.log('📋 Block properties:', feature.properties);
-                console.log('🔢 Using BlockNumber:', BlockNumber);
+                console.log('🔢 Using BlockNumber:', BlockNumber, 'AC_NO:', blockAcNo);
                 
                 if (BlockNumber) {
-                    loadBoothData(BlockNumber);
+                    loadBoothData(BlockNumber, blockAcNo);
                     setCurrentLevel('booth');
                 } else {
                     console.warn('⚠️ No BlockNumber found in properties');
