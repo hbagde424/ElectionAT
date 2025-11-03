@@ -171,4 +171,31 @@ router.get('/district/:district', parliamentpolygenController.getParliamentpolyg
  */
 router.get('/vs-code/:vsCode', parliamentpolygenController.getParliamentpolygensByVS_Code);
 
+/**
+ * @swagger
+ * /api/parliament-polygons/division-code/{divisionCode}:
+ *   get:
+ *     summary: Get parliament polygons by Division Code
+ *     tags: [Parliament Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: divisionCode
+ *         schema:
+ *           type: number
+ *         required: true
+ *         example: 4
+ *     responses:
+ *       200:
+ *         description: List of parliament polygons with matching Division Code
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Parliamentpolygen'
+ *       500:
+ *         description: Server error
+ */
+router.get('/division-code/:divisionCode', parliamentpolygenController.getParliamentpolygensByDivisionCode);
+
 module.exports = router;

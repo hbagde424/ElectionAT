@@ -124,6 +124,8 @@ exports.getParliamentpolygensByName = async (req, res) => {
     if (!divisionName) {
       return res.status(400).json({ error: 'Division name is required' });
     }
+    
+    // Case-insensitive matching using regex
     const polygons = await Parliamentpolygen.aggregate([
       {
         $project: {
@@ -131,7 +133,12 @@ exports.getParliamentpolygensByName = async (req, res) => {
             $filter: {
               input: "$features",
               as: "feature",
-              cond: { $eq: ["$$feature.properties.DIVISION_NAME", divisionName] }
+              cond: { 
+                $regexMatch: { 
+                  input: "$$feature.properties.DIVISION_NAME", 
+                  regex: new RegExp(`^${divisionName}$`, 'i')
+                }
+              }
             }
           },
           type: 1,
@@ -166,6 +173,48 @@ exports.getParliamentpolygensByVS_Code = async (req, res) => {
     const polygons = await Parliamentpolygen.find({
       'features.properties.VS_Code': req.params.vsCode
     });
+    res.json(polygons);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getParliamentpolygensByDivisionCode = async (req, res) => {
+  try {
+    const divisionCodeParam = req.params.divisionCode;
+    
+    if (!divisionCodeParam) {
+      return res.status(400).json({ error: 'Division code is required' });
+    }
+    
+    // Handle both number and string types for DIVISION_CODE
+    // Some divisions have numeric codes, some have string codes (e.g., INDORE)
+    const divisionCodeNum = parseInt(divisionCodeParam);
+    const divisionCodeStr = divisionCodeParam.toString();
+    
+    const polygons = await Parliamentpolygen.aggregate([
+      {
+        $project: {
+          features: {
+            $filter: {
+              input: "$features",
+              as: "feature",
+              cond: { 
+                $or: [
+                  { $eq: ["$$feature.properties.DIVISION_CODE", divisionCodeNum] },
+                  { $eq: ["$$feature.properties.DIVISION_CODE", divisionCodeStr] }
+                ]
+              }
+            }
+          },
+          type: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      },
+      { $match: { "features.0": { $exists: true } } }
+    ]);
+
     res.json(polygons);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -833,15 +833,29 @@ function HierarchicalMap({ onRegionClick }) {
     // Parliamentary data will be fetched from API
     const loadParliamentaryData = async (divisionName) => {
         try {
-            const parliamentName = divisionName;
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons/name/${parliamentName}`);
+            console.log('🔍 Loading parliamentary data for division:', divisionName);
+            
+            // Handle special case: "Indore" in division polygons but "INDORE" in parliament polygons
+            // Database has inconsistent casing - only "INDORE" is all caps, rest are proper case
+            const normalizedDivisionName = divisionName === 'Indore' ? 'INDORE' : divisionName;
+            
+            console.log(`� Normalized division name: "${normalizedDivisionName}"`);
+            
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliament-polygons/name/${encodeURIComponent(normalizedDivisionName)}`;
+            console.log('🌐 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl);
             if (!response.ok) {
-                throw new Error('Failed to fetch parliamentary data');
+                console.error('❌ API Response not OK:', response.status, response.statusText);
+                throw new Error(`Failed to fetch parliamentary data: ${response.status} ${response.statusText}`);
             }
             const responseData = await response.json();
+            console.log('📦 API Response:', responseData);
 
-            if (responseData && responseData.length > 0 && responseData[0].features) {
+            if (responseData && responseData.length > 0 && responseData[0].features && responseData[0].features.length > 0) {
                 const parliamentData = responseData[0];
+                console.log(`✅ Found ${parliamentData.features.length} parliamentary constituencies`);
+                
                 const transformedData = {
                     type: 'FeatureCollection',
                     features: parliamentData.features.map(feature => ({
@@ -860,16 +874,16 @@ function HierarchicalMap({ onRegionClick }) {
                     }))
                 };
 
-                if (transformedData.features.length > 0) {
-                    showBoundaries(transformedData, 'parliamentary');
-                } else {
-                    alert('No parliamentary constituencies found for division: ' + divisionName);
-                }
+                showBoundaries(transformedData, 'parliamentary');
+                setCurrentLevel('parliamentary');
             } else {
-                alert('No parliamentary data available');
+                console.error('❌ No parliamentary constituencies found for division:', normalizedDivisionName);
+                console.warn('💡 Database has these exact division names: Bhopal, Chambal, Gwalior, INDORE, Jabalpur, Narmadapuram, Rewa, Sagar, Shahdol, Ujjain');
+                alert(`No parliamentary constituencies found for division: ${divisionName}\n\nNote: Only "INDORE" is in all caps in database, rest are proper case.\n\nPlease check if parliament polygon data exists for this division.`);
             }
         } catch (error) {
-
+            console.error('❌ Error loading parliamentary data:', error);
+            alert(`Error loading parliamentary data for ${divisionName}: ${error.message}`);
         }
     };
 
@@ -1010,13 +1024,22 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadAssemblyData = async (vsCode) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons/parliament/${vsCode}`);
+            console.log('🔍 Loading assembly data for parliament code:', vsCode);
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/assembly-polygons/parliament/${vsCode}`;
+            console.log('🌐 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl);
             if (!response.ok) {
-                throw new Error('Failed to fetch assembly data');
+                console.error('❌ API Response not OK:', response.status, response.statusText);
+                throw new Error(`Failed to fetch assembly data: ${response.status} ${response.statusText}`);
             }
 
             const assemblies = await response.json();
-            if (assemblies && assemblies.data[0].type === "FeatureCollection" && assemblies.data[0].features && assemblies.data[0].features.length > 0) {
+            console.log('📦 API Response:', assemblies);
+            
+            if (assemblies && assemblies.data && assemblies.data[0] && assemblies.data[0].type === "FeatureCollection" && assemblies.data[0].features && assemblies.data[0].features.length > 0) {
+                console.log(`✅ Found ${assemblies.data[0].features.length} assembly constituencies`);
+                
                 const transformedData = {
                     type: 'FeatureCollection',
                     features: assemblies.data[0].features.map(feature => ({
@@ -1037,12 +1060,14 @@ function HierarchicalMap({ onRegionClick }) {
                 };
 
                 showBoundaries(transformedData, 'assembly');
-            } else {
-                alert('No assembly data available');
                 setCurrentLevel('assembly');
+            } else {
+                console.warn('⚠️ No assembly constituencies found for parliament code:', vsCode);
+                alert(`No assembly constituencies found for parliament code: ${vsCode}\n\nPlease check if assembly polygon data exists in the database.`);
             }
         } catch (error) {
-
+            console.error('❌ Error loading assembly data:', error);
+            alert(`Error loading assembly data: ${error.message}`);
         }
     };
 
