@@ -574,6 +574,12 @@ function HierarchicalMap({ onRegionClick }) {
         styleElement.textContent = customStyles;
         document.head.appendChild(styleElement);
 
+        // Log API configuration
+        console.log('🌐 HierarchicalMap API Configuration:');
+        console.log('  API URL:', import.meta.env.VITE_APP_API_URL);
+        console.log('  Mode:', import.meta.env.MODE);
+        console.log('  Base Name:', import.meta.env.VITE_APP_BASE_NAME);
+
         // Initialize map
         if (!mapInstanceRef.current && mapRef.current) {
             mapInstanceRef.current = L.map(mapRef.current).setView([23.4707, 77.9455], 6); // Centered on MP
@@ -1042,21 +1048,26 @@ function HierarchicalMap({ onRegionClick }) {
                 
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: assemblies.data[0].features.map(feature => ({
-                        type: 'Feature',
-                        properties: {
-                            id: feature.properties.AC_NO.toString(), // Use AC_NO instead of PC_ID for assembly ID
-                            name: feature.properties.AC_NAME,
-                            displayName: `${feature.properties.AC_NO}-${feature.properties.AC_NAME} `,
-                            acNo: feature.properties.AC_NO.toString(),
-                            pcName: feature.properties.PC_NAME,
-                            district: feature.properties.ST_NAME,
-                            division: feature.properties.DIVISION_NAME,
-                            category: 'GEN',
-                            lastElectionYear: '2023'
-                        },
-                        geometry: feature.geometry
-                    }))
+                    features: assemblies.data[0].features.map(feature => {
+                        const acNoValue = feature.properties.AC_NO;
+                        console.log(`🔄 Transforming assembly: ${feature.properties.AC_NAME}, AC_NO:`, acNoValue, typeof acNoValue);
+                        
+                        return {
+                            type: 'Feature',
+                            properties: {
+                                id: feature.properties.AC_NO.toString(), // Use AC_NO instead of PC_ID for assembly ID
+                                name: feature.properties.AC_NAME,
+                                displayName: `${feature.properties.AC_NO}-${feature.properties.AC_NAME} `,
+                                acNo: feature.properties.AC_NO.toString(),
+                                pcName: feature.properties.PC_NAME,
+                                district: feature.properties.ST_NAME,
+                                division: feature.properties.DIVISION_NAME,
+                                category: 'GEN',
+                                lastElectionYear: '2023'
+                            },
+                            geometry: feature.geometry
+                        };
+                    })
                 };
 
                 showBoundaries(transformedData, 'assembly');
@@ -1074,66 +1085,112 @@ function HierarchicalMap({ onRegionClick }) {
     // Block data will be fetched from API
     const loadBlockData = async (assemblyId) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
+            console.log('🔍 Loading block data for assembly AC_NO:', assemblyId);
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`;
+            console.log('🌐 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl);
+            console.log('📡 Response status:', response.status, response.statusText);
+            
             if (!response.ok) {
+                console.error('❌ API Response not OK:', response.status, response.statusText);
                 throw new Error('Failed to fetch block data');
             }
             const responseData = await response.json();
+            console.log('📦 Block API Response:', responseData);
+            console.log('📊 Features count:', responseData.data?.[0]?.features?.length || 0);
+            
             if (responseData.success && responseData.data && responseData.data.length > 0) {
+                console.log('✅ Block data found, transforming...');
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: responseData.data[0].features.map(feature => ({
-                        type: 'Feature',
-                        properties: {
-                            ...feature.properties,
-                            id: feature.properties.BlockName.toLowerCase().replace(/\s+/g, '-'),
-                            name: feature.properties.BlockName,
-                            blockCode: feature.properties.BlockName,
-                            acName: feature.properties.AC_NAME,
-                            mainTown: feature.properties.DIST_NAME,
-                            population: null,
-                            totalVoters: null,
-                            totalBooths: 1,
-                            ruralBooths: feature.properties.BoothName ? 1 : 0,
-                            urbanBooths: 0
-                        },
-                        geometry: feature.geometry
-                    }))
+                    features: responseData.data[0].features.map((feature, index) => {
+                        // Generate proper block name and ID
+                        const blockNumber = feature.properties.BlockNumber || (index + 1);
+                        const acName = feature.properties.AC_NAME || 'Unknown';
+                        const blockName = feature.properties.BlockName || `Block ${blockNumber} - ${acName}`;
+                        const blockId = feature.properties.uuid || 
+                                       `block-${feature.properties.AC_NO}-${blockNumber}`;
+                        
+                        console.log(`📦 Processing block: ${blockName}, ID: ${blockId}, BlockNumber: ${blockNumber}`);
+                        
+                        return {
+                            type: 'Feature',
+                            properties: {
+                                ...feature.properties,
+                                id: blockId,
+                                name: blockName,
+                                blockCode: String(blockNumber),
+                                BlockNumber: blockNumber, // Keep original for navigation
+                                acName: acName,
+                                mainTown: feature.properties.DIST_NAME || feature.properties.ST_NAME,
+                                population: null,
+                                totalVoters: null,
+                                totalBooths: 1,
+                                ruralBooths: feature.properties.BoothName ? 1 : 0,
+                                urbanBooths: 0
+                            },
+                            geometry: feature.geometry
+                        };
+                    })
                 };
                 showBoundaries(transformedData, 'block');
+                console.log(`✅ Successfully loaded ${transformedData.features.length} blocks for AC_NO: ${assemblyId}`);
+                
                 // Prefetch aggregated booth demographic counts for each block and cache under block_<id>
                 (async () => {
                     try {
-                        // Build a set of block names / identifiers to query
+                        // Build a set of block identifiers to query
                         const blocks = transformedData.features.map(f => ({
                             id: f.properties.id,
-                            name: f.properties.BlockName || f.properties.blockName || f.properties.name || f.properties.name || ''
-                        })).filter(b => b.id && b.name);
+                            name: f.properties.name || `Block ${f.properties.BlockNumber}`,
+                            blockNumber: f.properties.BlockNumber,
+                            acNo: f.properties.AC_NO
+                        })).filter(b => b.id);
+
+                        console.log(`🔍 Prefetching booth data for ${blocks.length} blocks...`);
 
                         if (blocks.length === 0) return;
-                        // For each block, try to fetch booths by searching with block name (API supports search)
+                        
+                        // For each block, try to fetch booths by AC_NO and BlockNumber
                         await Promise.all(blocks.map(async (blk) => {
                             const blockCacheKey = `block_${blk.id}`;
                             try {
-                                const searchUrl = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(blk.name)}`;
+                                // Try to find booths by assembly_no and block_number
+                                const searchUrl = `${import.meta.env.VITE_APP_API_URL}/booths?assembly_no=${blk.acNo}&limit=1000`;
+                                console.log(`🌐 Fetching booths for block ${blk.name}:`, searchUrl);
+                                
                                 const resp = await fetch(searchUrl);
                                 let booths = [];
                                 if (resp.ok) {
                                     const body = await resp.json();
                                     booths = Array.isArray(body.data) ? body.data : [];
+                                    
+                                    // Filter by BlockNumber if we have it
+                                    if (blk.blockNumber && booths.length > 0) {
+                                        booths = booths.filter(b => {
+                                            const boothBlockNum = b.block_number || b.BlockNumber || b.blockNumber;
+                                            return boothBlockNum == blk.blockNumber;
+                                        });
+                                    }
+                                    
+                                    console.log(`✅ Found ${booths.length} booths for block ${blk.name}`);
                                 }
 
-                                // Fallback: if search returned nothing, fetch all and match by blockName/BlockName/BlockNumber
-                                if (booths.length === 0) {
+                                // Fallback: if no booths found, try matching by block number
+                                if (booths.length === 0 && blk.blockNumber) {
+                                    console.log(`⚠️ No booths found for block ${blk.name}, trying fallback...`);
                                     const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`);
                                     if (allResp.ok) {
                                         const allBody = await allResp.json();
                                         const candidates = Array.isArray(allBody.data) ? allBody.data : [];
-                                        // match by block fields present in booth records
+                                        // Match by AC_NO and block number
                                         booths = candidates.filter(c => {
-                                            const bn = (c.blockName || c.BlockName || c.block || c.Block || '').toString().toLowerCase();
-                                            return bn && blk.name.toLowerCase().includes(bn) || bn.includes(blk.name.toLowerCase());
+                                            const boothAcNo = c.assembly_no || c.AC_NO || c.acNo;
+                                            const boothBlockNum = c.block_number || c.BlockNumber || c.blockNumber;
+                                            return boothAcNo == blk.acNo && boothBlockNum == blk.blockNumber;
                                         });
+                                        console.log(`📊 Fallback found ${booths.length} booths`);
                                     }
                                 }
 
@@ -1194,10 +1251,31 @@ function HierarchicalMap({ onRegionClick }) {
                     }
                 })();
             } else {
-                alert('No block data available for this assembly constituency');
+                console.warn('⚠️ No block data found for assembly:', assemblyId);
+                console.log('Response data:', responseData);
+                
+                // Try to diagnose the issue
+                const diagnosisMsg = [];
+                diagnosisMsg.push(`Assembly AC_NO: ${assemblyId}`);
+                diagnosisMsg.push(`API URL: ${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
+                diagnosisMsg.push(`\nResponse status: ${response.status}`);
+                diagnosisMsg.push(`Success: ${responseData.success}`);
+                diagnosisMsg.push(`Data count: ${responseData.data ? responseData.data.length : 0}`);
+                
+                if (responseData.data && responseData.data.length > 0) {
+                    diagnosisMsg.push(`Features in first doc: ${responseData.data[0].features ? responseData.data[0].features.length : 0}`);
+                }
+                
+                diagnosisMsg.push(`\n⚠️ Possible reasons:`);
+                diagnosisMsg.push(`1. No block polygon data exists for AC_NO ${assemblyId} in the database`);
+                diagnosisMsg.push(`2. API endpoint might be different in production`);
+                diagnosisMsg.push(`3. Check if you're connected to the correct backend (local vs production)`);
+                
+                alert(`No block data available for assembly constituency\n\n${diagnosisMsg.join('\n')}`);
             }
         } catch (error) {
-
+            console.error('❌ Error loading block data:', error);
+            alert(`Error loading block data: ${error.message}`);
         }
     };
 
@@ -2711,17 +2789,24 @@ function HierarchicalMap({ onRegionClick }) {
                 setCurrentLevel('assembly');
                 break;
             case 'assembly':
+                console.log('🖱️ Double-click on assembly:', feature.properties.name);
+                console.log('📋 Assembly properties:', feature.properties);
+                console.log('🔢 Using AC_NO:', feature.properties.acNo);
                 loadBlockData(feature.properties.acNo);
                 setCurrentLevel('block');
                 break;
             case 'block':
                 const BlockNumber = feature.properties.BlockNumber || feature.properties.blockNumber;
+                console.log('🖱️ Double-click on block:', feature.properties.name);
+                console.log('📋 Block properties:', feature.properties);
+                console.log('🔢 Using BlockNumber:', BlockNumber);
+                
                 if (BlockNumber) {
                     loadBoothData(BlockNumber);
                     setCurrentLevel('booth');
                 } else {
-
-                    alert('No booth data available for this block. Staying at block level.');
+                    console.warn('⚠️ No BlockNumber found in properties');
+                    alert(`Block information incomplete.\n\nBlockNumber: ${BlockNumber}\n\nCannot navigate to booths without BlockNumber.`);
                 }
                 break;
             default:
