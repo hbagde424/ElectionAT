@@ -27,7 +27,7 @@ const Technologies = [
     image: featureChat,
     title: 'Chat',
     href: 'chat',
-    description: 'Power your web apps with the conceptual chat app of Able Pro Dashboard Template.'
+    description: 'Power your web apps with the conceptual chat app of ElectionAtlas. Dashboard Template.'
   },
   {
     image: featureEcommerce,

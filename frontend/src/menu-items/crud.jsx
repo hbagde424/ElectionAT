@@ -416,6 +416,15 @@ const CRUDMenu = {
       icon: icons.MessageQuestion,
       permissions: ['FAQ']
     }
+    ,
+    {
+      id: 'Activity-Logs',
+      title: <FormattedMessage id="Activity Logs" defaultMessage="Activity Logs" />,
+      type: 'item',
+      url: '/admin/activity-logs',
+      icon: icons.ClipboardText,
+      permissions: ['Activity-Logs']
+    }
   ]
 };
 

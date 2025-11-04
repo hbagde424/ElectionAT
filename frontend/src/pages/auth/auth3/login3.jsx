@@ -106,7 +106,7 @@ export default function Login3() {
                     <Grid item xs={12} sx={{ textAlign: 'center' }}>
                       <Grid container spacing={1}>
                         <Grid item xs={12}>
-                          <Typography variant="h3">Welcome to the Able Pro</Typography>
+                          <Typography variant="h3">Welcome to the ElectionAtlas.</Typography>
                         </Grid>
                         <Grid item xs={12}>
                           <Typography>Sign up or login with your work email.</Typography>
@@ -143,7 +143,7 @@ export default function Login3() {
                   <Grid container spacing={3}>
                     <Grid item xs={12} sx={{ textAlign: 'center' }}>
                       <Stack spacing={1}>
-                        <Typography variant="h3">Welcome to the Able Pro</Typography>
+                        <Typography variant="h3">Welcome to the ElectionAtlas.</Typography>
                         <Typography>Sign up or login with your work email.</Typography>
                       </Stack>
                     </Grid>
@@ -352,7 +352,7 @@ export default function Login3() {
         <Grid item xs={12}>
           <Stack direction="row" justifyContent="center" alignItems="baseline" sx={{ mb: { xs: -0.5, sm: 0.5 } }}>
             <Typography align="center">
-              By signing up, you confirm to have read Able pro
+              By signing up, you confirm to have read ElectionAtlas.
               <Typography component={Link} to={'#'} sx={{ textDecoration: 'none', px: 0.5 }} color="primary">
                 Privacy Policy
               </Typography>

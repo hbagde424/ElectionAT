@@ -137,7 +137,7 @@ router.get('/:id', getUserPermissionsAndHierarchy, getParliament);
  *       401:
  *         description: Not authorized
  */
-router.post('/', protect, authorize('superAdmin'), createParliament);
+router.post('/', protect, authorize('superAdmin', "Parliament"), createParliament);
 
 /**
  * @swagger

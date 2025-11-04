@@ -83,7 +83,7 @@ export default function TestimonialPage() {
     },
     {
       image: Avatar6,
-      text: '“I love the looks of Able Pro 7.0. I really like the colors you guys have chosen for this theme. It looks really nice.. 💎“',
+      text: '“I love the looks of ElectionAtlas. 7.0. I really like the colors you guys have chosen for this theme. It looks really nice.. 💎“',
       name: 'ritelogic',
       designation: 'Other'
     },
@@ -121,7 +121,7 @@ export default function TestimonialPage() {
                   <Typography variant="h2" component="span" sx={{ color: theme.palette.primary.main }}>
                     love
                   </Typography>{' '}
-                  Able Pro, Now your turn 😍
+                  ElectionAtlas., Now your turn 😍
                 </Typography>
               </motion.div>
             </Grid>

@@ -23,7 +23,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'Tailwind',
     description:
-      "Able Pro with Tailwind CSS lets developers create sleek, professional interfaces quickly. Tailwind's utility classes ensure consistent styling across all devices",
+      "ElectionAtlas. with Tailwind CSS lets developers create sleek, professional interfaces quickly. Tailwind's utility classes ensure consistent styling across all devices",
     free: null
   },
   {
@@ -33,7 +33,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'Bootstrap',
     description:
-      ' Able Pro Bootstrap 5 - the top choice for responsive, mobile-first design, you can achieve both professional functionality and visual appeal.',
+      ' ElectionAtlas. Bootstrap 5 - the top choice for responsive, mobile-first design, you can achieve both professional functionality and visual appeal.',
     free: 'https://github.com/phoenixcoded/able-pro-free-admin-dashboard-template'
   },
   {
@@ -43,7 +43,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'React MUI',
     description:
-      'Able Pro React dashboard template is a powerful tool that utilizes the Material-UI component library to create stunning and intuitive user interfaces.',
+      'ElectionAtlas. React dashboard template is a powerful tool that utilizes the Material-UI component library to create stunning and intuitive user interfaces.',
     free: 'https://github.com/phoenixcoded/able-pro-free-admin-dashboard-template'
   },
   {
@@ -53,7 +53,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'Angular',
     description:
-      'Able Pro Angular dashboard template is a powerful tool that utilizes the Google Material component library to create stunning and intuitive user interfaces.',
+      'ElectionAtlas. Angular dashboard template is a powerful tool that utilizes the Google Material component library to create stunning and intuitive user interfaces.',
     free: 'https://github.com/phoenixcoded/able-pro-free-admin-dashboard-template'
   },
   {
@@ -63,7 +63,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'CodeIgniter',
     description:
-      'Able Pro CodeIgniter version is a powerful dashboard template built specifically for developers who use the CodeIgniter PHP framework with Bootstrap.',
+      'ElectionAtlas. CodeIgniter version is a powerful dashboard template built specifically for developers who use the CodeIgniter PHP framework with Bootstrap.',
     free: null
   },
   {
@@ -73,7 +73,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'ASP.net',
     description:
-      'Able Pro .NET version is a robust dashboard template designed specifically for .NET developers. Its comes with a wide range of pre-built components.',
+      'ElectionAtlas. .NET version is a robust dashboard template designed specifically for .NET developers. Its comes with a wide range of pre-built components.',
     free: null
   },
   {
@@ -83,7 +83,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'Next js',
     description:
-      'Able Pro Next Js dashboard template is a powerful tool that utilizes the Material-UI component library to create stunning and intuitive user interfaces.',
+      'ElectionAtlas. Next Js dashboard template is a powerful tool that utilizes the Material-UI component library to create stunning and intuitive user interfaces.',
     free: null
   },
   {
@@ -93,7 +93,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'Vue',
     description:
-      'Able Pro Vue stands out as a versatile and powerful - Vue with Vuetify dashboard combines modern design principles with robust functionality.',
+      'ElectionAtlas. Vue stands out as a versatile and powerful - Vue with Vuetify dashboard combines modern design principles with robust functionality.',
     free: 'https://github.com/phoenixcoded/able-pro-free-admin-dashboard-template'
   },
   {
@@ -103,7 +103,7 @@ export const techData = [
     target: '_blank',
     tooltipTitle: 'Vuetify Laravel',
     description:
-      'Able Pro Vue stands out as a versatile and powerful - Vue with Vuetify dashboard combines modern design principles with robust functionality.',
+      'ElectionAtlas. Vue stands out as a versatile and powerful - Vue with Vuetify dashboard combines modern design principles with robust functionality.',
     free: null
   },
   {
@@ -113,7 +113,7 @@ export const techData = [
     target: '_self',
     tooltipTitle: 'Live Preview Not Available',
     description:
-      'Able Pro Laravel with Bootstrap provides a powerful set of tools and components, crafted specifically for Laravel, to simplify and accelerate your development process.',
+      'ElectionAtlas. Laravel with Bootstrap provides a powerful set of tools and components, crafted specifically for Laravel, to simplify and accelerate your development process.',
     free: null
   },
   {
@@ -123,7 +123,7 @@ export const techData = [
     target: '_self',
     tooltipTitle: 'Live Preview Not Available',
     description:
-      'Able Pro Django is a powerful dashboard template designed for developers. it offers an extensive collection of pre-built components for seamless web development.',
+      'ElectionAtlas. Django is a powerful dashboard template designed for developers. it offers an extensive collection of pre-built components for seamless web development.',
     free: null
   },
   {
@@ -133,7 +133,7 @@ export const techData = [
     target: '_self',
     tooltipTitle: 'Live Preview Not Available',
     description:
-      'Able Pro Node.js combines flexibility and functionality with a variety of pre-built components tailored for Node.js, which make it easier to develop.',
+      'ElectionAtlas. Node.js combines flexibility and functionality with a variety of pre-built components tailored for Node.js, which make it easier to develop.',
     free: null
   },
   {
@@ -143,7 +143,7 @@ export const techData = [
     target: '_self',
     tooltipTitle: 'Live Preview Not Available',
     description:
-      'Able Pro Flask is a versatile dashboard solution that offers a rich set of pre-built components to simplify web development.',
+      'ElectionAtlas. Flask is a versatile dashboard solution that offers a rich set of pre-built components to simplify web development.',
     free: null
   },
   {
@@ -153,7 +153,7 @@ export const techData = [
     target: '_self',
     tooltipTitle: 'Live Preview Not Available',
     description:
-      'Able Pro Svelte provides an extensive toolkit and components, allowing you to build dynamic and responsive interfaces with ease and efficiency.',
+      'ElectionAtlas. Svelte provides an extensive toolkit and components, allowing you to build dynamic and responsive interfaces with ease and efficiency.',
     free: null
   }
   // {
@@ -163,7 +163,7 @@ export const techData = [
   //   target: '_blank',
   //   tooltipTitle: 'Figma',
   //   description:
-  //     'Able Pro comes with a Figma design file that allows you to customize and fine-tune your dashboard to meet your specific needs.',
+  //     'ElectionAtlas. comes with a Figma design file that allows you to customize and fine-tune your dashboard to meet your specific needs.',
   //   free: null
   // }
 ];

@@ -239,6 +239,8 @@ const PricingPage = Loadable(lazy(() => import('pages/extra-pages/price/price1')
 const PricingPage2 = Loadable(lazy(() => import('pages/extra-pages/price/price2')));
 const HelpCenter = Loadable(lazy(() => import('pages/curd/help center/helpcenter')));
 const FAQ = Loadable(lazy(() => import('pages/curd/faq/faq')));
+const ActivityLogs = Loadable(lazy(() => import('pages/admin/ActivityLogs')));
+const ActivityLogDetail = Loadable(lazy(() => import('pages/admin/ActivityLogDetail')));
 
 
 // ==============================|| MAIN ROUTES ||============================== //
@@ -927,6 +929,20 @@ const MainRoutes = {
             {
               path: 'price2',
               element: <PricingPage2 />
+            }
+          ]
+        }
+        ,
+        {
+          path: 'admin',
+          children: [
+            {
+              path: 'activity-logs',
+              element: <ActivityLogs />
+            },
+            {
+              path: 'activity-logs/:id',
+              element: <ActivityLogDetail />
             }
           ]
         }

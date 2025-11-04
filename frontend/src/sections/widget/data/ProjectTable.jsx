@@ -39,7 +39,7 @@ const rows = [
   createData(Avatar2, 'Jenifer Vintage', 'Web Designer', 'Mashable', 'March, 31', 'Lower', 'error'),
   createData(Avatar3, 'William Jem', 'Developer', 'Flatable', 'Aug, 02', 'Medium', 'primary'),
   createData(Avatar4, 'David Jones', 'Developer', 'Guruable', 'Sep, 22', 'High', 'info'),
-  createData(Avatar6, 'Stebin Ben', 'Leader', 'Able Pro', 'Sep, 22', 'Higher', 'success')
+  createData(Avatar6, 'Stebin Ben', 'Leader', 'ElectionAtlas.', 'Sep, 22', 'Higher', 'success')
 ];
 
 // ===========================|| DATA WIDGET - PROJECT TABLE ||=========================== //
