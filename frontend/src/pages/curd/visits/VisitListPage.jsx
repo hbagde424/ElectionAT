@@ -95,6 +95,7 @@ const VisitListPage = () => {
         assembly: '',
         block: '',
         booth: '',
+        year: '',
         startDate: '',
         endDate: ''
     });
@@ -107,6 +108,7 @@ const VisitListPage = () => {
         assembly: '',
         block: '',
         booth: '',
+        year: '',
         startDate: '',
         endDate: ''
     });
@@ -212,6 +214,9 @@ const VisitListPage = () => {
             if (appliedFilters.booth) {
                 queryParams.push(`booth=${appliedFilters.booth}`);
             }
+            if (appliedFilters.year) {
+                queryParams.push(`year=${appliedFilters.year}`);
+            }
             if (appliedFilters.startDate) {
                 // Convert YYYY-MM-DD to ISO string for proper backend comparison
                 const startDate = new Date(appliedFilters.startDate + 'T00:00:00.000Z').toISOString();
@@ -268,6 +273,9 @@ const VisitListPage = () => {
             }
             if (appliedFilters.booth) {
                 queryParams.push(`booth=${appliedFilters.booth}`);
+            }
+            if (appliedFilters.year) {
+                queryParams.push(`year=${appliedFilters.year}`);
             }
             if (appliedFilters.startDate) {
                 const startDate = new Date(appliedFilters.startDate + 'T00:00:00.000Z').toISOString();
@@ -459,6 +467,7 @@ const VisitListPage = () => {
             assembly: '',
             block: '',
             booth: '',
+            year: '',
             startDate: '',
             endDate: ''
         };
@@ -564,6 +573,16 @@ const VisitListPage = () => {
             setGlobalFilter(text);
             setSearchInput(text);
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            return;
+        }
+
+        // Year selection from map's dropdown
+        if (selection.type === 'year') {
+            const y = selection.year || '';
+            setFilterValues(prev => ({ ...prev, year: y }));
+            setAppliedFilters(prev => ({ ...prev, year: y }));
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            return;
         }
     };
 

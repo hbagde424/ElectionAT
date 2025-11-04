@@ -353,6 +353,55 @@ exports.getVisits = async (req, res, next) => {
       filter.work_status = statusValue;
     }
 
+    // Filter by election year (supports multiple shapes)
+    // - year=2023 (numeric year)
+    // - electionYear=<ObjectId>
+    // - election_year_id=<ObjectId or numeric year>
+    if (req.query.electionYear || req.query.election_year_id || req.query.year) {
+      try {
+        const yearParam = req.query.year;
+        const eyParam = req.query.electionYear || req.query.election_year_id;
+
+        const orConditions = [];
+
+        // If explicit election year id is provided
+        if (eyParam) {
+          if (/^[0-9a-fA-F]{24}$/.test(String(eyParam))) {
+            orConditions.push({ election_year_id: eyParam });
+          } else if (/^\d{4}$/.test(String(eyParam))) {
+            // Treat as plain year, resolve to ElectionYear id
+            const y = parseInt(eyParam, 10);
+            const ey = await ElectionYear.findOne({ year: y }).select('_id');
+            if (ey) orConditions.push({ election_year_id: ey._id });
+            // Also match raw year field if present on Visit
+            orConditions.push({ year: y });
+          }
+        }
+
+        // If simple year is provided
+        if (yearParam && /^\d{4}$/.test(String(yearParam))) {
+          const y = parseInt(yearParam, 10);
+          // Match Visit.year
+          orConditions.push({ year: y });
+          // Try election_year_id by resolving year -> id
+          const ey = await ElectionYear.findOne({ year: y }).select('_id');
+          if (ey) orConditions.push({ election_year_id: ey._id });
+        }
+
+        if (orConditions.length > 0) {
+          query = query.where({ $or: orConditions });
+          // For counting, merge with existing filter using $and
+          if (Object.keys(filter).length > 0) {
+            filter = { $and: [filter, { $or: orConditions }] };
+          } else {
+            filter = { $or: orConditions };
+          }
+        }
+      } catch (e) {
+        console.warn('Year filter processing failed:', e.message);
+      }
+    }
+
     // Filter by candidate
     if (req.query.candidate) {
       query = query.where('candidate_id').equals(req.query.candidate);

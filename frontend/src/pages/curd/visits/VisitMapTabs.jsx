@@ -725,8 +725,17 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
                                 <select
                                     value={yearFilter}
                                     onChange={(e) => {
-                                        setYearFilter(e.target.value);
+                                        const val = e.target.value;
+                                        setYearFilter(val);
+                                        // Update map immediately
                                         setTimeout(() => fetchMapVisits(), 0);
+                                        // Inform parent (table) to filter by year as well
+                                        try {
+                                            if (typeof onFilterFromMap === 'function') {
+                                                // Empty string means clear year filter
+                                                onFilterFromMap(val ? { type: 'year', year: val } : { type: 'year', year: '' });
+                                            }
+                                        } catch (_) { /* noop */ }
                                     }}
                                     style={{
                                         padding: '8px',
