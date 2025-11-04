@@ -181,6 +181,14 @@ const CRUDMenu = {
       permissions: ['booth']
     },
     {
+      id: 'blo',
+      title: <FormattedMessage id="BLO Officers" defaultMessage="BLO Officers" />,
+      type: 'item',
+      url: '/blo',
+      icon: icons.UserOctagon,
+      permissions: ['blo']
+    },
+    {
       id: 'panchayat',
       title: <FormattedMessage id="Panchayat" />,
       type: 'item',
