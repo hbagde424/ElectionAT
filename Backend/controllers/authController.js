@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const { generateToken } = require('../utils/jwt');
 const AssemblyMap = require('../models/AssemblyMap');
+const { logActivity } = require('../utils/logActivity');
 
 // Toggle user active status
 exports.toggleUserStatus = async (req, res) => {
@@ -122,6 +123,22 @@ exports.login = async (req, res, next) => {
       }
     }
 
+    // Log successful login
+    try {
+      // Temporarily attach user to req for logging context
+      req.user = user;
+      await logActivity(req, {
+        action: 'LOGIN',
+        entity: 'User',
+        entityId: user._id,
+        success: true,
+        message: 'User logged in',
+        meta: { email: user.email, role: user.role }
+      });
+    } catch (e) {
+      // non-blocking
+    }
+
     res.status(200).json({
       success: true,
       token,
@@ -142,6 +159,18 @@ exports.login = async (req, res, next) => {
       assemblyMap: assemblyMap || undefined
     });
   } catch (err) {
+    // Log failed login attempt (best-effort)
+    try {
+      const { email } = req.body || {};
+      await logActivity(req, {
+        action: 'LOGIN',
+        entity: 'User',
+        entityId: null,
+        success: false,
+        message: 'Login failed',
+        meta: { email }
+      });
+    } catch (_) {}
     next(err);
   }
 };

@@ -1,6 +1,7 @@
 const ActiveParty = require('../models/ActiveParty');
 const Booth = require('../models/booth');
 const Party = require('../models/party');
+const { logActivity, diffObjects } = require('../utils/logActivity');
 
 // @desc    Get all active party records
 // @route   GET /api/active-parties
@@ -110,7 +111,18 @@ exports.createActiveParty = async (req, res, next) => {
       });
     }
 
-    const activeParty = await ActiveParty.create(req.body);
+  const activeParty = await ActiveParty.create(req.body);
+
+    // Log CREATE
+    if (req.user) {
+      await logActivity(req, {
+        action: 'CREATE',
+        entity: 'ActiveParty',
+        entityId: activeParty._id,
+        success: true,
+        meta: { booth_id: String(activeParty.booth_id), party_id: String(activeParty.party_id), created: activeParty }
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -126,7 +138,7 @@ exports.createActiveParty = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateActiveParty = async (req, res, next) => {
   try {
-    let activeParty = await ActiveParty.findById(req.params.id);
+  let activeParty = await ActiveParty.findById(req.params.id);
 
     if (!activeParty) {
       return res.status(404).json({
@@ -151,11 +163,26 @@ exports.updateActiveParty = async (req, res, next) => {
     }
     req.body.updated_at = new Date();
 
+    const before = activeParty.toObject();
     activeParty = await ActiveParty.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     }).populate('booth_id', 'booth_number name')
       .populate('party_id', 'name abbreviation');
+
+    // Log UPDATE with field-level changes
+    if (req.user) {
+      const after = activeParty.toObject();
+      const changes = diffObjects(before, after);
+      await logActivity(req, {
+        action: 'UPDATE',
+        entity: 'ActiveParty',
+        entityId: activeParty._id,
+        success: true,
+        changes,
+        meta: { booth_id: String(activeParty.booth_id?._id || activeParty.booth_id), party_id: String(activeParty.party_id?._id || activeParty.party_id) }
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -180,7 +207,19 @@ exports.deleteActiveParty = async (req, res, next) => {
       });
     }
 
+    const beforeDelete = activeParty.toObject();
     await activeParty.deleteOne();
+
+    // Log DELETE
+    if (req.user) {
+      await logActivity(req, {
+        action: 'DELETE',
+        entity: 'ActiveParty',
+        entityId: beforeDelete._id,
+        success: true,
+        meta: { booth_id: String(beforeDelete.booth_id), party_id: String(beforeDelete.party_id), deleted: beforeDelete }
+      });
+    }
 
     res.status(200).json({
       success: true,

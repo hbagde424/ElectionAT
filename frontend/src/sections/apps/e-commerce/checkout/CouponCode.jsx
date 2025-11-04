@@ -174,7 +174,7 @@ export default function CouponCode({ open, handleClose, setCoupon }) {
               <Grid item xs={12} sm={8}>
                 <Stack spacing={0.25}>
                   <Typography variant="subtitle1">Get $150 off on your subscription</Typography>
-                  <Typography variant="caption">When you subscribe to the unlimited consultation plan on able pro material.</Typography>
+                  <Typography variant="caption">When you subscribe to the unlimited consultation plan on ElectionAtlas. material.</Typography>
                 </Stack>
               </Grid>
               <Grid item xs={12} sm={2} sx={{ display: { xs: 'none', sm: 'block' } }}>

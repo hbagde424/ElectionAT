@@ -56,7 +56,7 @@ export default function TechnologiesPage() {
                   delay: 0.4
                 }}
               >
-                <Typography>Explore the Demos of Able Pro in multiple technologies.</Typography>
+                <Typography>Explore the Demos of ElectionAtlas. in multiple technologies.</Typography>
               </motion.div>
             </Grid>
           </Grid>

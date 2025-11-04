@@ -120,7 +120,7 @@ export default function MegaMenuSection() {
                             Explore Components
                           </Typography>
                           <Typography variant="h6">
-                            Try Able Pro&apos;s component pages to check how it feels and suits as per your need.
+                            Try ElectionAtlas.&apos;s component pages to check how it feels and suits as per your need.
                           </Typography>
                           <Stack direction="row" justifyContent="space-between" alignItems="flex-end" sx={{ mt: -1 }}>
                             <AnimateButton>

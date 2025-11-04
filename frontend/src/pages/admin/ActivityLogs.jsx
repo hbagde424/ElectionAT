@@ -1,0 +1,166 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Chip, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Pagination } from '@mui/material';
+import { getLogs, getLogMeta } from '../../api/logs';
+
+const pageSizeDefault = 20;
+
+export default function ActivityLogs() {
+  const [meta, setMeta] = useState({ actions: [], entities: [], roles: [], emails: [] });
+  const [filters, setFilters] = useState({ page: 1, limit: pageSizeDefault, email: '', role: '', action: '', entity: '', success: '', from: '', to: '' });
+  const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const metaRes = await getLogMeta();
+        if (metaRes.success) {
+          setMeta({ actions: metaRes.actions || [], entities: metaRes.entities || [], roles: metaRes.roles || [], emails: metaRes.emails || [] });
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const fetchData = async (page = filters.page) => {
+    setLoading(true);
+    try {
+      const params = { ...filters, page };
+      if (params.success === '') delete params.success;
+      const res = await getLogs(params);
+      if (res.success) {
+        setRows(res.data || []);
+        setTotal(res.total || 0);
+        setPages(res.pages || 1);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.email, filters.role, filters.action, filters.entity, filters.success, filters.from, filters.to]);
+
+  const onPageChange = (_, page) => {
+    setFilters((f) => ({ ...f, page }));
+    fetchData(page);
+  };
+
+  const changeFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
+
+  return (
+    <Stack spacing={2}>
+      <Typography variant="h4">Activity Logs</Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6} md={3}>
+          <TextField label="User Email" fullWidth value={filters.email} onChange={(e) => changeFilter('email', e.target.value)} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth>
+            <InputLabel>Role</InputLabel>
+            <Select label="Role" value={filters.role} onChange={(e) => changeFilter('role', e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {meta.roles.map((r) => (
+                <MenuItem key={r} value={r}>{r}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth>
+            <InputLabel>Action</InputLabel>
+            <Select label="Action" value={filters.action} onChange={(e) => changeFilter('action', e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {meta.actions.map((a) => (
+                <MenuItem key={a} value={a}>{a}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth>
+            <InputLabel>Entity</InputLabel>
+            <Select label="Entity" value={filters.entity} onChange={(e) => changeFilter('entity', e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {meta.entities.map((e) => (
+                <MenuItem key={e} value={e}>{e}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={1.5}>
+          <FormControl fullWidth>
+            <InputLabel>Success</InputLabel>
+            <Select label="Success" value={filters.success} onChange={(e) => changeFilter('success', e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value={'true'}>Success</MenuItem>
+              <MenuItem value={'false'}>Failed</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={1.5}>
+          <TextField type="date" fullWidth label="From" InputLabelProps={{ shrink: true }} value={filters.from} onChange={(e) => changeFilter('from', e.target.value)} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={1.5}>
+          <TextField type="date" fullWidth label="To" InputLabelProps={{ shrink: true }} value={filters.to} onChange={(e) => changeFilter('to', e.target.value)} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={1}>
+          <Button fullWidth variant="outlined" onClick={() => { setFilters({ page: 1, limit: pageSizeDefault, email: '', role: '', action: '', entity: '', success: '', from: '', to: '' }); }}>Reset</Button>
+        </Grid>
+      </Grid>
+
+      <Box sx={{ overflow: 'auto' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Time</TableCell>
+              <TableCell>User</TableCell>
+              <TableCell>Role</TableCell>
+              <TableCell>Action</TableCell>
+              <TableCell>Entity</TableCell>
+              <TableCell>Entity ID</TableCell>
+              <TableCell>Endpoint</TableCell>
+              <TableCell>Success</TableCell>
+              <TableCell>Remark</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((r) => (
+              <TableRow key={r._id} hover>
+                <TableCell>{r.timestamp ? new Date(r.timestamp).toLocaleString() : ''}</TableCell>
+                <TableCell>{r.userName || r.userEmail || r.userId || '-'}</TableCell>
+                <TableCell>{r.role || '-'}</TableCell>
+                <TableCell>{r.action}</TableCell>
+                <TableCell>{r.entity || '-'}</TableCell>
+                <TableCell>{r.entityId || '-'}</TableCell>
+                <TableCell>{r.method} {r.endpoint}</TableCell>
+                <TableCell>{r.success ? <Chip size="small" color="success" label="OK" /> : <Chip size="small" color="error" label="FAIL" />}</TableCell>
+                <TableCell sx={{ maxWidth: 480, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.remark || r.message ? (
+                    <a href={`/admin/activity-logs/${r._id}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                      {r.remark || r.message}
+                    </a>
+                  ) : '-'}
+                </TableCell>
+              </TableRow>
+            ))}
+            {!rows.length && (
+              <TableRow>
+                <TableCell colSpan={8} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Box>
+
+      {pages > 1 && (
+        <Stack direction="row" justifyContent="center">
+          <Pagination page={filters.page} onChange={onPageChange} count={pages} color="primary" />
+        </Stack>
+      )}
+    </Stack>
+  );
+}

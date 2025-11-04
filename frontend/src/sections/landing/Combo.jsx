@@ -28,13 +28,13 @@ const Technologies = [
   // {
   //   icon: featureFigma,
   //   title: 'Figma Design System',
-  //   description: 'Check the live preview of Able Pro Figma design file. Figma file included in all licenses.',
+  //   description: 'Check the live preview of ElectionAtlas. Figma design file. Figma file included in all licenses.',
   //   preview: 'https://www.figma.com/file/6XqmRhRmkr33w0EFD49acY/Able-Pro--v9.0-Figma-Preview?type=design&mode=design&t=4FS2Lw6WxsmJ3RLm-0'
   // },
   {
     icon: featureComponents,
     title: 'Explore Components',
-    description: 'Access all components of Able Pro in one place to make your development work easier.',
+    description: 'Access all components of ElectionAtlas. in one place to make your development work easier.',
     preview: '/components-overview/buttons'
   },
   {
@@ -81,7 +81,7 @@ export default function ComboPage() {
                 }}
               >
                 <Typography>
-                  Able Pro caters to the needs of both developers and designers, whether they are beginners or experts.
+                  ElectionAtlas. caters to the needs of both developers and designers, whether they are beginners or experts.
                 </Typography>
               </motion.div>
             </Grid>

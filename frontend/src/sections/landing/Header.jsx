@@ -154,7 +154,7 @@ export default function HeroPage() {
                         lineHeight: { xs: 1.4, md: 1.4 }
                       }}
                     >
-                      Able Pro is the one of the Featured admin dashboard template in Envato Marketplace and used by over 2.5K+ Customers
+                      ElectionAtlas. is the one of the Featured admin dashboard template in Envato Marketplace and used by over 2.5K+ Customers
                       wordwide.
                     </Typography>
                   </motion.div>
