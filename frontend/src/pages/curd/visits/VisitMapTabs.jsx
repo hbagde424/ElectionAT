@@ -25,7 +25,8 @@ const MAPBOX_THEMES = {
     satelliteStreets: 'mapbox://styles/mapbox/satellite-streets-v11'
 };
 
-const VisitMapTabs = () => {
+// Add optional onFilterFromMap callback so parent can sync table filters with map selections
+const VisitMapTabs = ({ onFilterFromMap }) => {
     const theme = useTheme();
     const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [activeTab, setActiveTab] = useState(0);
@@ -375,6 +376,18 @@ const VisitMapTabs = () => {
                 }
             });
             setDrawerOpen(true);
+            // Notify parent to filter table by this booth id if available
+            try {
+                if (typeof onFilterFromMap === 'function') {
+                    if (booth && booth._id) {
+                        onFilterFromMap({ type: 'booth', boothId: String(booth._id), booth });
+                    } else if (boothNo) {
+                        onFilterFromMap({ type: 'booth-number', boothNumber: String(boothNo) });
+                    }
+                }
+            } catch (err) {
+                // ignore
+            }
         } catch (e) {
             console.error('Failed to load booth details by polygon:', e);
             setDrawerType('booth');
@@ -418,6 +431,15 @@ const VisitMapTabs = () => {
             visits: visitsAtLocation.length ? visitsAtLocation : [visit]
         });
         setDrawerOpen(true);
+        // Inform parent to filter table to this location (best-effort via global search text)
+        try {
+            if (typeof onFilterFromMap === 'function') {
+                const searchText = visit.locationName || `${visit.latitude || ''},${visit.longitude || ''}`;
+                onFilterFromMap({ type: 'location', locationName: searchText, latitude: visit.latitude, longitude: visit.longitude });
+            }
+        } catch (err) {
+            // ignore
+        }
     };
 
     const handleThemeChange = (theme) => {
@@ -483,7 +505,7 @@ const VisitMapTabs = () => {
                                 }}
                                 mapStyle={MAPBOX_THEMES[selectedTheme]}
                                 mapboxAccessToken={mapConfiguration.mapboxAccessToken}
-                                interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
+                                interactiveLayerIds={boothGeoJSON ? ['booth-fill', 'booth-visit-markers'] : []}
                                 onClick={(e) => {
                                     if (!boothGeoJSON) return;
                                     try {
@@ -492,11 +514,12 @@ const VisitMapTabs = () => {
                                         if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
                                             const point = e.point || { x: e.x, y: e.y };
                                             if (point) {
-                                                features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                                features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill', 'booth-visit-markers'] }) || [];
                                             }
                                         }
 
-                                        const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
+                                        // Support clicks on polygon fill and circle markers
+                                        const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-visit-markers')) || features[0];
                                         if (boothFeature && boothFeature.properties) {
                                             const props = boothFeature.properties;
                                             const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
@@ -797,7 +820,7 @@ const VisitMapTabs = () => {
                         mapboxAccessToken={mapConfiguration.mapboxAccessToken}
                         initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
                         mapStyle="mapbox://styles/mapbox/streets-v12"
-                        interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
+                        interactiveLayerIds={boothGeoJSON ? ['booth-fill', 'booth-work-status-markers'] : []}
                         onClick={(e) => {
                             if (!boothGeoJSON) return;
                             try {
@@ -806,10 +829,10 @@ const VisitMapTabs = () => {
                                 if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
                                     const point = e.point || { x: e.x, y: e.y };
                                     if (point) {
-                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
+                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill', 'booth-work-status-markers'] }) || [];
                                     }
                                 }
-                                const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
+                                const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-work-status-markers')) || features[0];
                                 if (boothFeature && boothFeature.properties) {
                                     const props = boothFeature.properties;
                                     const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;

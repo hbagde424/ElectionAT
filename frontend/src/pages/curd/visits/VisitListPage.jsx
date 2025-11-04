@@ -526,6 +526,47 @@ const VisitListPage = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
+    // Receive filter signals from map selections (marker, polygon, etc.)
+    const handleMapSelection = (selection) => {
+        if (!selection) return;
+        // If a booth was selected via polygon click, prefer filtering by booth id
+        if (selection.type === 'booth' && selection.boothId) {
+            const booth = selection.booth || {};
+            const updates = {
+                state: booth.state_id?._id || booth.state_id || '',
+                division: booth.division_id?._id || booth.division_id || '',
+                parliament: booth.parliament_id?._id || booth.parliament_id || '',
+                assembly: booth.assembly_id?._id || booth.assembly_id || '',
+                block: booth.block_id?._id || booth.block_id || '',
+                booth: String(selection.boothId)
+            };
+            setFilterValues(prev => ({ ...prev, ...updates }));
+            setAppliedFilters(prev => ({ ...prev, ...updates }));
+            // Clear any free-text search when applying hard filters
+            setGlobalFilter('');
+            setSearchInput('');
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            return;
+        }
+
+        // Fallback: booth number only
+        if (selection.type === 'booth-number' && selection.boothNumber) {
+            const text = String(selection.boothNumber);
+            setGlobalFilter(text);
+            setSearchInput(text);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            return;
+        }
+
+        // Location selection from marker clusters -> use global search with location name
+        if (selection.type === 'location' && selection.locationName) {
+            const text = selection.locationName;
+            setGlobalFilter(text);
+            setSearchInput(text);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: '#',
@@ -808,7 +849,7 @@ const VisitListPage = () => {
 
 
                 <Grid item xs={12}>
-                    <VisitMapTabs />
+                    <VisitMapTabs onFilterFromMap={handleMapSelection} />
                 </Grid>
 
                 <Grid item xs={12}>
