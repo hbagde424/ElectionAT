@@ -604,7 +604,11 @@ const VisitListPage = () => {
         {
             header: '#',
             accessorKey: '_id',
-            cell: ({ row }) => <Typography>{row.index + 1}</Typography>
+            cell: ({ row }) => (
+                <Typography>
+                    { (pagination.pageIndex || 0) * (pagination.pageSize || 10) + (row.index || 0) + 1 }
+                </Typography>
+            )
         },
         {
             header: 'Candidate',
@@ -858,7 +862,7 @@ const VisitListPage = () => {
                 );
             }
         }
-    ], [theme]);
+    ], [theme, pagination.pageIndex, pagination.pageSize]);
 
     const table = useReactTable({
         data: visits,
