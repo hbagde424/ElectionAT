@@ -35,7 +35,8 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
     const [popupInfo, setPopupInfo] = useState(null);
     const [selectedTheme, setSelectedTheme] = useState('streets');
     const [routeData, setRouteData] = useState(null);
-    const [yearFilter, setYearFilter] = useState('');
+    const [yearFilter, setYearFilter] = useState(''); // stores the numeric year used for map queries
+    const [selectedElectionYearId, setSelectedElectionYearId] = useState(''); // stores the _id of the selected election-year
     const [electionYears, setElectionYears] = useState([]);
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
@@ -82,11 +83,19 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
     const accessScope = getUserAccessScope();
 
     // Fetch visit data for map
-    const fetchMapVisits = async () => {
+    // fetchMapVisits accepts optional overrides so callers can force a fetch with specific year/electionYearId
+    const fetchMapVisits = async (overrides = {}) => {
         if (mapFetchLockRef.current) {
             return;
         }
         mapFetchLockRef.current = true;
+
+        // Determine effective values (prefer overrides when provided)
+        const effectiveYear = overrides.hasOwnProperty('yearOverride') ? overrides.yearOverride : yearFilter;
+        const effectiveElectionYearId = overrides.hasOwnProperty('electionYearIdOverride') ? overrides.electionYearIdOverride : selectedElectionYearId;
+
+        // MAP DEBUG: fetch start (show effective filters)
+        console.log('[MAP DEBUG] fetchMapVisits START', { yearFilter: effectiveYear, selectedElectionYearId: effectiveElectionYearId });
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -120,15 +129,24 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
             }
 
             // Add year filter if selected
-            if (yearFilter) {
-                query += `&year=${yearFilter}`;
+            if (effectiveYear) {
+                query += `&year=${effectiveYear}`;
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/visits?${query}`, { headers });
+            // Include election_year_id when we have it (server supports filtering by this canonical id)
+            if (effectiveElectionYearId) {
+                query += `&election_year_id=${encodeURIComponent(effectiveElectionYearId)}`;
+            }
+
+            const url = `${import.meta.env.VITE_APP_API_URL}/visits?${query}`;
+            // MAP DEBUG: URL used for map fetch
+            console.log('[MAP DEBUG] fetchMapVisits -> URL:', url);
+            const res = await fetch(url, { headers });
             const json = await res.json();
 
             if (json && json.success) {
                 const rawVisits = Array.isArray(json.data) ? json.data : [];
+                console.log('[MAP DEBUG] fetchMapVisits -> rawVisits.length:', rawVisits.length);
                 if (rawVisits.length === 0) {
                     setMapVisits([]);
                     setRouteData(null);
@@ -144,6 +162,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                     .filter(v => !isNaN(v.latitude) && !isNaN(v.longitude));
 
                 setMapVisits(visitsWithCoords);
+                console.log('[MAP DEBUG] fetchMapVisits -> visitsWithCoords.length:', visitsWithCoords.length);
 
                 // Track booths (by booth number) that have visits
                 const boothNumbersWithVisits = new Set();
@@ -321,7 +340,11 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                 blocksRes.json()
             ]);
 
-            if (electionYearsData.success) setElectionYears(electionYearsData.data);
+            if (electionYearsData.success) {
+                setElectionYears(electionYearsData.data);
+                // MAP DEBUG: election years loaded for map selector
+                console.log('[MAP DEBUG] electionYears loaded:', Array.isArray(electionYearsData.data) ? electionYearsData.data.length : 0);
+            }
             if (blocksData.success) setBlocks(blocksData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
@@ -420,6 +443,8 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
             const sameCoords = latKey !== null && lngKey !== null && rounded(v.latitude) === latKey && rounded(v.longitude) === lngKey;
             return sameName || sameCoords;
         });
+
+        
 
         // Ask parent to open drawer for this location
         try {
@@ -719,17 +744,34 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                                 </select>
 
                                 <select
-                                    value={yearFilter}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setYearFilter(val);
-                                        // Update map immediately
-                                        setTimeout(() => fetchMapVisits(), 0);
-                                        // Inform parent (table) to filter by year as well
+                                    value={selectedElectionYearId}
+                                        onChange={(e) => {
+                                        const selectedId = e.target.value;
+                                        setSelectedElectionYearId(selectedId);
+
+                                        // Resolve the selected election-year object so we send canonical fields
+                                        const ey = Array.isArray(electionYears) ? electionYears.find(x => String(x._id) === String(selectedId)) : null;
+                                        const yearVal = ey ? (ey.year || '') : '';
+                                        setYearFilter(yearVal);
+
+                                        // MAP DEBUG: show selection and resolved year before fetching map data
+                                        console.log('[MAP DEBUG] year select ->', { selectedId, ey: ey ? { _id: ey._id, year: ey.year } : null, yearVal });
+
+                                        // Immediately fetch map data with explicit overrides to avoid setState race
+                                        try {
+                                            fetchMapVisits({ yearOverride: yearVal || '', electionYearIdOverride: selectedId || '' });
+                                        } catch (e) {
+                                            // still safe to ignore—fetchMapVisits handles errors
+                                        }
+
+                                        // Inform parent (table) to filter by year as well. Send both year and electionYearId when available.
                                         try {
                                             if (typeof onFilterFromMap === 'function') {
-                                                // Empty string means clear year filter
-                                                onFilterFromMap(val ? { type: 'year', year: val } : { type: 'year', year: '' });
+                                                if (ey) {
+                                                    onFilterFromMap({ type: 'year', year: ey.year, electionYearId: ey._id });
+                                                } else {
+                                                    onFilterFromMap({ type: 'year', year: '' });
+                                                }
                                             }
                                         } catch (_) { /* noop */ }
                                     }}
@@ -743,7 +785,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                                 >
                                     <option value="">All Years</option>
                                     {Array.isArray(electionYears) && electionYears.map((ey) => (
-                                        <option key={ey._id || ey.year} value={ey.year}>{ey.year}{ey.election_type ? ` (${ey.election_type})` : ''}</option>
+                                        <option key={ey._id || ey.year} value={ey._id}>{ey.year}{ey.election_type ? ` (${ey.election_type})` : ''}</option>
                                     ))}
                                 </select>
                             </Box>

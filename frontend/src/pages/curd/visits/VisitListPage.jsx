@@ -183,7 +183,8 @@ const VisitListPage = () => {
     // CSV functionality
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef(); const fetchVisits = async (pageIndex, pageSize, globalFilter = '') => {
+    const csvLinkRef = useRef();
+    const fetchVisits = async (pageIndex, pageSize, globalFilter = '', filtersOverride = null) => {
         setLoading(true);
         try {
             let queryParams = [
@@ -191,36 +192,43 @@ const VisitListPage = () => {
                 `limit=${pageSize}`
             ];
 
+            // Use override filters when provided (helps avoid race between setState and fetch)
+            const filters = filtersOverride || appliedFilters;
+
             if (globalFilter) {
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             }
 
-            if (appliedFilters.candidate) {
-                queryParams.push(`candidate=${appliedFilters.candidate}`);
+            if (filters.candidate) {
+                queryParams.push(`candidate=${filters.candidate}`);
             }
-            if (appliedFilters.status) {
-                queryParams.push(`status=${appliedFilters.status}`);
+            if (filters.status) {
+                queryParams.push(`status=${filters.status}`);
             }
-            if (appliedFilters.state) {
-                queryParams.push(`state=${appliedFilters.state}`);
+            if (filters.state) {
+                queryParams.push(`state=${filters.state}`);
             }
-            if (appliedFilters.division) {
-                queryParams.push(`division=${appliedFilters.division}`);
+            if (filters.division) {
+                queryParams.push(`division=${filters.division}`);
             }
-            if (appliedFilters.parliament) {
-                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            if (filters.parliament) {
+                queryParams.push(`parliament=${filters.parliament}`);
             }
-            if (appliedFilters.assembly) {
-                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            if (filters.assembly) {
+                queryParams.push(`assembly=${filters.assembly}`);
             }
-            if (appliedFilters.block) {
-                queryParams.push(`block=${appliedFilters.block}`);
+            if (filters.block) {
+                queryParams.push(`block=${filters.block}`);
             }
-            if (appliedFilters.booth) {
-                queryParams.push(`booth=${appliedFilters.booth}`);
+            if (filters.booth) {
+                queryParams.push(`booth=${filters.booth}`);
             }
-            if (appliedFilters.year) {
-                queryParams.push(`year=${appliedFilters.year}`);
+            if (filters.year) {
+                queryParams.push(`year=${filters.year}`);
+            }
+            // Support server-side filtering by election_year_id when provided
+            if (filters.election_year_id) {
+                queryParams.push(`election_year_id=${filters.election_year_id}`);
             }
             if (appliedFilters.startDate) {
                 // Convert YYYY-MM-DD to ISO string for proper backend comparison
@@ -449,9 +457,11 @@ const VisitListPage = () => {
 
 
     const handleApplyFilters = () => {
-        setAppliedFilters(filterValues);
+        const newFilters = { ...filterValues };
+        setAppliedFilters(newFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
-        fetchVisits(0, 10, globalFilter);
+        // Immediately fetch using the new filters to avoid waiting for state to settle
+        fetchVisits(0, 10, globalFilter, newFilters);
     };
 
     const handleClearFilters = () => {
@@ -471,7 +481,8 @@ const VisitListPage = () => {
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
-        fetchVisits(0, 10, globalFilter);
+        // Immediately fetch with cleared filters
+        fetchVisits(0, 10, globalFilter, emptyFilters);
     };
 
     // Handle cascading filter changes
@@ -575,9 +586,16 @@ const VisitListPage = () => {
         // Year selection from map's dropdown
         if (selection.type === 'year') {
             const y = selection.year || '';
+            const eyId = selection.electionYearId || selection.election_year_id || '';
+            // Clear any free-text/global search so year filter shows correct results alone
+            setGlobalFilter('');
+            setSearchInput('');
+            const newFilters = { ...appliedFilters, year: y, election_year_id: eyId || appliedFilters.election_year_id || '' };
             setFilterValues(prev => ({ ...prev, year: y }));
-            setAppliedFilters(prev => ({ ...prev, year: y }));
+            setAppliedFilters(newFilters);
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            // Immediately fetch using newFilters to avoid race issues
+            fetchVisits(0, 10, '', newFilters);
             return;
         }
     };
