@@ -421,6 +421,12 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
     useEffect(() => {
         fetchMapVisits();
         fetchReferenceData();
+        // Load all booth polygons by default so the 'Visit Booth Map' shows polygons without manual action
+        try {
+            loadBoothPolygonsByBlockNumber('ALL');
+        } catch (e) {
+            console.warn('Automatic loading of all booth polygons failed:', e);
+        }
     }, []);
 
     // Drawer is managed by parent via onOpenDrawer to survive parent fetches/re-renders
@@ -578,99 +584,8 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                                     />
                                 </Source>
 
-                                {/* Booth Polygons */}
-                                {boothGeoJSON && (
-                                    <Source id="booth-polygons" type="geojson" data={boothGeoJSON}>
-                                        <Layer
-                                            id="booth-fill"
-                                            type="fill"
-                                            paint={{ 'fill-color': '#1E90FF', 'fill-opacity': 0.25 }}
-                                        />
-                                        <Layer id="booth-outline" type="line" paint={{ 'line-color': '#1E90FF', 'line-width': 2 }} />
-                                        <Layer
-                                            id="booth-label"
-                                            type="symbol"
-                                            layout={{
-                                                'text-field': ['format', ['coalesce', ['get', 'BoothNo'], ['get', 'BoothNumber'], ['get', 'boothNo'], ['get', 'booth_number'], ['get', 'Booth_Name'], ['get', 'BoothName'], ['get', 'name'], ['literal', '']], { 'font-scale': 1 }, '\n', { 'font-scale': 0.85 }, ['coalesce', ['get', 'BoothName'], ['get', 'Booth_Name'], ['get', 'name'], ['literal', '']]],
-                                                'text-size': 12,
-                                                'text-offset': [0, 0.6],
-                                                'text-anchor': 'top',
-                                                'text-allow-overlap': true,
-                                                'text-ignore-placement': true
-                                            }}
-                                            paint={{
-                                                'text-color': '#000000',
-                                                'text-halo-color': '#ffffff',
-                                                'text-halo-width': 1
-                                            }}
-                                        />
-                                    </Source>
-                                )}
-
-                                {/* Visit Markers Layer */}
-                                {boothGeoJSON && (
-                                    <Source
-                                        id="booth-markers"
-                                        type="geojson"
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.map(feature => {
-                                                const props = feature.properties || {};
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-
-                                                let coordinates = [0, 0];
-                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0][0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                }
-
-                                                const hasVisits = boothsWithVisits.has(String(boothNo));
-
-                                                return {
-                                                    type: 'Feature',
-                                                    geometry: {
-                                                        type: 'Point',
-                                                        coordinates: coordinates
-                                                    },
-                                                    properties: {
-                                                        ...props,
-                                                        hasVisits: hasVisits
-                                                    }
-                                                };
-                                            })
-                                        }}
-                                    >
-                                        <Layer
-                                            id="booth-visit-markers"
-                                            type="circle"
-                                            paint={{
-                                                'circle-radius': 6,
-                                                'circle-color': [
-                                                    'case',
-                                                    ['get', 'hasVisits'],
-                                                    '#22c55e', // Green for booths with visits
-                                                    '#ef4444'  // Red for booths without visits
-                                                ],
-                                                'circle-stroke-width': 2,
-                                                'circle-stroke-color': '#ffffff',
-                                                'circle-opacity': 0.9
-                                            }}
-                                        />
-                                    </Source>
-                                )}
+                                {/* Booth polygons and booth-marker layers were intentionally removed from the Visit Locations Map
+                                    to avoid visual clutter. Booth polygons remain available in the "Visit Booth Map" tab only. */}
 
                                 {/* Route line */}
                                 {routeData && (

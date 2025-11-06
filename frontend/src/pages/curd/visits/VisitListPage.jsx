@@ -1197,15 +1197,16 @@ const VisitListPage = () => {
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 ModalProps={{ keepMounted: true }}
-                PaperProps={{ sx: { zIndex: 2000 } }}
+                PaperProps={{ sx: { zIndex: 2000, width: 360 } }}
             >
-                <Box sx={{ width: 420, p: 2 }}>
+                {/* Restored compact/legacy side-panel styling: narrower width and tighter paddings */}
+                <Box sx={{ width: 360, p: 1.5 }}>
                     {drawerType === 'booth' && drawerData && (
                         <>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
-                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
-                                    <CloseIcon />
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                                <Typography variant="subtitle1" fontWeight="700">Visit Data</Typography>
+                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto', minWidth: 36, padding: 0.5 }}>
+                                    <CloseIcon fontSize="small" />
                                 </Button>
                             </Stack>
                             {drawerData.loading ? (
@@ -1215,49 +1216,43 @@ const VisitListPage = () => {
                             ) : (
                                 <>
                                     {drawerData.details?.booth ? (
-                                        <Box sx={{ mb: 3 }}>
-                                            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>Booth Information</Typography>
-                                            <Stack spacing={1.5}>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                        <Box sx={{ mb: 2 }}>
+                                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Booth Information</Typography>
+                                            <Stack spacing={1}>
+                                                <Box sx={{ p: 1, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
                                                     <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth.name || 'N/A'}</Typography>
                                                 </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                <Box sx={{ p: 1, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
                                                     <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth.booth_number || 'N/A'}</Typography>
                                                 </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                <Box sx={{ p: 1, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
                                                     <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth.block_id?.name || 'N/A'}</Typography>
-                                                </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth.assembly_id?.name || 'N/A'}</Typography>
-                                                </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth.parliament_id?.name || 'N/A'}</Typography>
                                                 </Box>
                                             </Stack>
                                         </Box>
                                     ) : (
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                             No booth found for Booth No: {drawerData.boothNo}
                                         </Typography>
                                     )}
                                     <Box>
-                                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
                                             Visit Data ({drawerData.details?.visits?.length || 0})
                                         </Typography>
                                         {drawerData.details?.visits && drawerData.details.visits.length > 0 ? (
-                                            <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
-                                                <Stack spacing={1.5}>
+                                            <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
+                                                <Stack spacing={1}>
                                                     {drawerData.details.visits.map((visit, index) => (
-                                                        <Box key={index} sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                                                <Box sx={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
+                                                        <Box key={index} sx={{ p: 1, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
+                                                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
                                                                     <img src={visit.candidate_id?.photo} alt={visit.candidate_id?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                 </Box>
-                                                                <Typography variant="body2" fontWeight="bold">{visit.candidate_id?.name || 'Unknown'}</Typography>
+                                                                <Typography variant="body2" fontWeight={700}>{visit.candidate_id?.name || 'Unknown'}</Typography>
                                                             </Stack>
                                                             <Typography variant="body2"><strong>📅</strong> {formatDate(visit.date)}</Typography>
                                                             <Typography variant="body2"><strong>📍</strong> {visit.locationName || 'N/A'}</Typography>
-                                                            <Typography variant="body2"><strong>🔄 Status:</strong> <span style={{ color: visit.work_status === 'complete' ? 'green' : visit.work_status === 'in progress' ? 'orange' : 'inherit', fontWeight: 'bold' }}>{visit.work_status?.toUpperCase() || 'N/A'}</span></Typography>
+                                                            <Typography variant="body2"><strong>🔄 Status:</strong> <span style={{ color: visit.work_status === 'complete' ? 'green' : visit.work_status === 'in progress' ? 'orange' : 'inherit', fontWeight: 700 }}>{visit.work_status?.toUpperCase() || 'N/A'}</span></Typography>
                                                             {visit.visitAgenda && (<Typography variant="body2"><strong>🗒️</strong> {visit.visitAgenda}</Typography>)}
                                                         </Box>
                                                     ))}
