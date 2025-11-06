@@ -1,8 +1,9 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Grid,
-    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert
+    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert, Drawer
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import axiosServices from 'utils/axios';
@@ -18,9 +19,9 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
-import VisitModal from './VisitModal';
 import AlertVisitDelete from './AlertVisitDelete';
 import VisitMapTabs from './VisitMapTabs';
+import VisitModal from './VisitModal';
 
 const VisitListPage = () => {
     const theme = useTheme();
@@ -46,13 +47,18 @@ const VisitListPage = () => {
     const [electionYears, setElectionYears] = useState([]);
     const [users, setUsers] = useState([]);
     const [yearFilter, setYearFilter] = useState('');
+    // Drawer state managed here to avoid child unmounting closing it
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerType, setDrawerType] = useState(null);
+    const [drawerData, setDrawerData] = useState(null);
+
+    const handleOpenDrawer = ({ open, type, data }) => {
+        setDrawerOpen(!!open);
+        setDrawerType(type || null);
+        setDrawerData(data || null);
+    };
 
     // Keep local input in sync when globalFilter changes from outside (clear, pagination, etc.)
-    useEffect(() => {
-        console.log('🔍 globalFilter changed to:', globalFilter);
-        setSearchInput(globalFilter || '');
-    }, [globalFilter]);
-
     // Get user's access scope information
     const getUserAccessScope = () => {
         if (!userHierarchy) {
@@ -187,7 +193,6 @@ const VisitListPage = () => {
 
             if (globalFilter) {
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
-                console.log('🔍 Sending search parameter:', globalFilter);
             }
 
             if (appliedFilters.candidate) {
@@ -229,9 +234,7 @@ const VisitListPage = () => {
             }
 
             const url = `/visits?${queryParams.join('&')}`;
-            console.log('🔍 API URL:', url);
             const { data: json } = await axiosServices.get(url);
-            console.log('🔍 API Response:', json);
             if (json.success) {
                 setVisits(json.data);
                 setPageCount(json.pages);
@@ -426,12 +429,6 @@ const VisitListPage = () => {
     };
 
     useEffect(() => {
-        console.log('🔍 useEffect triggered with:', {
-            pageIndex: pagination.pageIndex,
-            pageSize: pagination.pageSize,
-            globalFilter: globalFilter,
-            appliedFilters: appliedFilters
-        });
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
@@ -529,7 +526,6 @@ const VisitListPage = () => {
     };
 
     const handleSearch = () => {
-        console.log('🔍 Search triggered with term:', searchInput);
         const searchTerm = searchInput.trim();
         setGlobalFilter(searchTerm);
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -860,15 +856,15 @@ const VisitListPage = () => {
         getPaginationRowModel: getPaginationRowModel()
     });
 
-    if (loading) return <EmptyReactTable />;
-
+    // Render full page even while table data is loading so child components (map/drawers)
+    // don't get unmounted during fetch cycles. Table shows its own inline loader row.
     return (
         <>
             <Grid container spacing={3}>
 
 
                 <Grid item xs={12}>
-                    <VisitMapTabs onFilterFromMap={handleMapSelection} />
+                    <VisitMapTabs onFilterFromMap={handleMapSelection} onOpenDrawer={handleOpenDrawer} />
                 </Grid>
 
                 <Grid item xs={12}>
@@ -890,9 +886,7 @@ const VisitListPage = () => {
                                         }
                                     }}
                                     onKeyDown={(e) => {
-                                        console.log('🔍 Key pressed:', e.key);
                                         if (e.key === 'Enter') {
-                                            console.log('🔍 Enter key detected, triggering search');
                                             handleSearch();
                                         }
                                     }}
@@ -1175,6 +1169,151 @@ const VisitListPage = () => {
                     fetchVisits(pagination.pageIndex, pagination.pageSize);
                 }}
             />
+            {/* Drawer moved to parent so it stays mounted across fetches */}
+            <Drawer
+                anchor="right"
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                ModalProps={{ keepMounted: true }}
+                PaperProps={{ sx: { zIndex: 2000 } }}
+            >
+                <Box sx={{ width: 420, p: 2 }}>
+                    {drawerType === 'booth' && drawerData && (
+                        <>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
+                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
+                                    <CloseIcon />
+                                </Button>
+                            </Stack>
+                            {drawerData.loading ? (
+                                <Typography variant="body2" color="text.secondary">Loading booth details...</Typography>
+                            ) : drawerData.error ? (
+                                <Typography variant="body2" color="error">Error: {drawerData.error}</Typography>
+                            ) : (
+                                <>
+                                    {drawerData.details?.booth ? (
+                                        <Box sx={{ mb: 3 }}>
+                                            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>Booth Information</Typography>
+                                            <Stack spacing={1.5}>
+                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth.name || 'N/A'}</Typography>
+                                                </Box>
+                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                    <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth.booth_number || 'N/A'}</Typography>
+                                                </Box>
+                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth.block_id?.name || 'N/A'}</Typography>
+                                                </Box>
+                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth.assembly_id?.name || 'N/A'}</Typography>
+                                                </Box>
+                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth.parliament_id?.name || 'N/A'}</Typography>
+                                                </Box>
+                                            </Stack>
+                                        </Box>
+                                    ) : (
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                            No booth found for Booth No: {drawerData.boothNo}
+                                        </Typography>
+                                    )}
+                                    <Box>
+                                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
+                                            Visit Data ({drawerData.details?.visits?.length || 0})
+                                        </Typography>
+                                        {drawerData.details?.visits && drawerData.details.visits.length > 0 ? (
+                                            <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
+                                                <Stack spacing={1.5}>
+                                                    {drawerData.details.visits.map((visit, index) => (
+                                                        <Box key={index} sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                                <Box sx={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
+                                                                    <img src={visit.candidate_id?.photo} alt={visit.candidate_id?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                </Box>
+                                                                <Typography variant="body2" fontWeight="bold">{visit.candidate_id?.name || 'Unknown'}</Typography>
+                                                            </Stack>
+                                                            <Typography variant="body2"><strong>📅</strong> {formatDate(visit.date)}</Typography>
+                                                            <Typography variant="body2"><strong>📍</strong> {visit.locationName || 'N/A'}</Typography>
+                                                            <Typography variant="body2"><strong>🔄 Status:</strong> <span style={{ color: visit.work_status === 'complete' ? 'green' : visit.work_status === 'in progress' ? 'orange' : 'inherit', fontWeight: 'bold' }}>{visit.work_status?.toUpperCase() || 'N/A'}</span></Typography>
+                                                            {visit.visitAgenda && (<Typography variant="body2"><strong>🗒️</strong> {visit.visitAgenda}</Typography>)}
+                                                        </Box>
+                                                    ))}
+                                                </Stack>
+                                            </Box>
+                                        ) : (
+                                            <Typography variant="body2" color="text.secondary">No visits found for this booth.</Typography>
+                                        )}
+                                    </Box>
+                                </>
+                            )}
+                        </>
+                    )}
+
+                    {drawerType === 'visit' && drawerData && (
+                        <>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
+                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
+                                    <CloseIcon />
+                                </Button>
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <Box sx={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
+                                    <img src={drawerData.candidate?.photo} alt={drawerData.candidate?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </Box>
+                                <Typography fontWeight="bold">{drawerData.candidate?.name}</Typography>
+                            </Stack>
+                            <Typography variant="body2"><strong>📅</strong> {formatDate(drawerData.visit?.date)}</Typography>
+                            <Typography variant="body2"><strong>📍</strong> {drawerData.visit?.locationName || 'N/A'}</Typography>
+                            <Typography variant="body2"><strong>📌 Booth:</strong> {drawerData.visit?.booth_id?.name || 'N/A'}</Typography>
+                            <Typography variant="body2"><strong>🔄 Status:</strong> {drawerData.visit?.work_status?.toUpperCase() || 'N/A'}</Typography>
+                            {drawerData.visit?.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {drawerData.visit.visitAgenda}</Typography>)}
+                            {drawerData.visit?.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {drawerData.visit.remark}</Typography>)}
+                        </>
+                    )}
+
+                    {drawerType === 'location' && drawerData && (
+                        <>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
+                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
+                                    <CloseIcon />
+                                </Button>
+                            </Stack>
+                            {drawerData.locationName && (
+                                <Typography variant="body2" sx={{ mb: 1 }}><strong>📍</strong> {drawerData.locationName}</Typography>
+                            )}
+                            {(drawerData.latitude !== undefined && drawerData.longitude !== undefined) && (
+                                <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>
+                                    <strong>🌐</strong> {Number(drawerData.latitude).toFixed(4)}, {Number(drawerData.longitude).toFixed(4)}
+                                </Typography>
+                            )}
+                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                Visits at this location ({(drawerData.visits || []).length})
+                            </Typography>
+                            <Box sx={{ maxHeight: 420, overflowY: 'auto' }}>
+                                <Stack spacing={1.5}>
+                                    {(drawerData.visits || []).map((visit, idx) => (
+                                        <Box key={idx} sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
+                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                <Box sx={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
+                                                    <img src={visit.candidate_id?.photo} alt={visit.candidate_id?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                </Box>
+                                                <Typography variant="body2" fontWeight="bold">{visit.candidate_id?.name || 'Unknown'}</Typography>
+                                            </Stack>
+                                            <Typography variant="body2"><strong>📅</strong> {formatDate(visit.date)}</Typography>
+                                            <Typography variant="body2"><strong>🔄 Status:</strong> <span style={{ color: visit.work_status === 'complete' ? 'green' : visit.work_status === 'in progress' ? 'orange' : 'inherit', fontWeight: 'bold' }}>{visit.work_status?.toUpperCase() || 'N/A'}</span></Typography>
+                                            {visit.visitAgenda && (<Typography variant="body2"><strong>🗒️</strong> {visit.visitAgenda}</Typography>)}
+                                            {visit.remark && (<Typography variant="body2"><strong>📝</strong> {visit.remark}</Typography>)}
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </Box>
+                        </>
+                    )}
+                </Box>
+            </Drawer>
         </>
     );
 };

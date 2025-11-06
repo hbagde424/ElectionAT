@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    Box, Tabs, Tab, Typography, Alert, Stack, FormControl, InputLabel, Select, MenuItem, Button, Paper, Drawer
+    Box, Tabs, Tab, Typography, Alert, Stack, FormControl, InputLabel, Select, MenuItem, Button, Paper
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
@@ -9,7 +9,6 @@ import Map, { Marker, Popup, Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 import axiosServices from 'utils/axios';
 import { usePermissions } from 'contexts/PermissionContext';
-import CloseIcon from '@mui/icons-material/Close';
 
 const mapConfiguration = {
     mapboxAccessToken: import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN,
@@ -26,7 +25,7 @@ const MAPBOX_THEMES = {
 };
 
 // Add optional onFilterFromMap callback so parent can sync table filters with map selections
-const VisitMapTabs = ({ onFilterFromMap }) => {
+const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
     const theme = useTheme();
     const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [activeTab, setActiveTab] = useState(0);
@@ -40,11 +39,9 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
     const [electionYears, setElectionYears] = useState([]);
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [drawerData, setDrawerData] = useState(null);
-    const [drawerType, setDrawerType] = useState(null);
     const [boothsWithVisits, setBoothsWithVisits] = useState(new Set());
     const visitMapRef = useRef(null);
+    const mapFetchLockRef = useRef(false);
 
     // Visit Booth Map States
     const [blockNumberInput, setBlockNumberInput] = useState('ALL');
@@ -86,6 +83,10 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
 
     // Fetch visit data for map
     const fetchMapVisits = async () => {
+        if (mapFetchLockRef.current) {
+            return;
+        }
+        mapFetchLockRef.current = true;
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -176,6 +177,8 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
             console.error('Error loading visit data:', error);
             setMapVisits([]);
             setRouteData(null);
+        } finally {
+            mapFetchLockRef.current = false;
         }
     };
 
@@ -226,7 +229,6 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
                     }
                 });
                 setBoothsWithWorkStatus(boothIds);
-                console.log('✅ Booths with Visit Booth updated:', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with Visit Booth:', err);
@@ -366,16 +368,11 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
                 }
             }
 
-            setDrawerType('booth');
-            setDrawerData({
-                loading: false,
-                boothNo,
-                details: {
-                    booth,
-                    visits
+            try {
+                if (typeof onOpenDrawer === 'function') {
+                    onOpenDrawer({ open: true, type: 'booth', data: { loading: false, boothNo, details: { booth, visits } } });
                 }
-            });
-            setDrawerOpen(true);
+            } catch (_) { /* noop */ }
             // Notify parent to filter table by this booth id if available
             try {
                 if (typeof onFilterFromMap === 'function') {
@@ -390,9 +387,11 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
             }
         } catch (e) {
             console.error('Failed to load booth details by polygon:', e);
-            setDrawerType('booth');
-            setDrawerData({ loading: false, boothNo, details: { booth: null, visits: [] }, error: e.message });
-            setDrawerOpen(true);
+            try {
+                if (typeof onOpenDrawer === 'function') {
+                    onOpenDrawer({ open: true, type: 'booth', data: { loading: false, boothNo, details: { booth: null, visits: [] }, error: e.message } });
+                }
+            } catch (_) { /* noop */ }
         }
     };
 
@@ -401,17 +400,16 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
         fetchReferenceData();
     }, []);
 
+    // Drawer is managed by parent via onOpenDrawer to survive parent fetches/re-renders
+
     const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
     };
 
     const handleMarkerClick = (visit) => {
+        // Marker clicked — group visits at location, open parent drawer and notify parent filters
         // Group all visits at the same location as the clicked marker
-        const normalize = (v) => {
-            if (v && typeof v === 'string') return v.trim().toLowerCase();
-            return '';
-        };
-
+        const normalize = (v) => (v && typeof v === 'string' ? v.trim().toLowerCase() : '');
         const locationKey = normalize(visit.locationName);
         const rounded = (n) => (typeof n === 'number' && !isNaN(n) ? Number(n.toFixed(4)) : null);
         const latKey = rounded(visit.latitude);
@@ -423,22 +421,17 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
             return sameName || sameCoords;
         });
 
-        setDrawerType('location');
-        setDrawerData({
-            locationName: visit.locationName,
-            latitude: visit.latitude,
-            longitude: visit.longitude,
-            visits: visitsAtLocation.length ? visitsAtLocation : [visit]
-        });
-        setDrawerOpen(true);
-        // Inform parent to filter table to this location (best-effort via global search text)
+        // Ask parent to open drawer for this location
         try {
-            if (typeof onFilterFromMap === 'function') {
-                const searchText = visit.locationName || `${visit.latitude || ''},${visit.longitude || ''}`;
-                onFilterFromMap({ type: 'location', locationName: searchText, latitude: visit.latitude, longitude: visit.longitude });
+            if (typeof onOpenDrawer === 'function') {
+                onOpenDrawer({ open: true, type: 'location', data: { locationName: visit.locationName, latitude: visit.latitude, longitude: visit.longitude, visits: visitsAtLocation.length ? visitsAtLocation : [visit] } });
             }
-        } catch (err) {
-            // ignore
+        } catch (err) { /* ignore */ }
+
+        // Then, inform parent to filter the table
+        if (typeof onFilterFromMap === 'function') {
+            const searchText = visit.locationName || `${visit.latitude || ''},${visit.longitude || ''}`;
+            onFilterFromMap({ type: 'location', locationName: searchText, latitude: visit.latitude, longitude: visit.longitude });
         }
     };
 
@@ -520,16 +513,19 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
 
                                         // Support clicks on polygon fill and circle markers
                                         const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-visit-markers')) || features[0];
-                                        if (boothFeature && boothFeature.properties) {
-                                            const props = boothFeature.properties;
-                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                            if (boothNo) {
-                                                setDrawerType('booth');
-                                                setDrawerData({ loading: true, boothNo, details: { booth: null, visits: [] } });
-                                                setDrawerOpen(true);
-                                                fetchBoothDetailsByPolygon(boothNo);
-                                            }
-                                        }
+                                                                    if (boothFeature && boothFeature.properties) {
+                                                                        const props = boothFeature.properties;
+                                                                        const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                                                        if (boothNo) {
+                                                                            // Ask parent to open a loading drawer while we fetch details
+                                                                            try {
+                                                                                if (typeof onOpenDrawer === 'function') {
+                                                                                    onOpenDrawer({ open: true, type: 'booth', data: { loading: true, boothNo, details: { booth: null, visits: [] } } });
+                                                                                }
+                                                                            } catch (_) { /* noop */ }
+                                                                            fetchBoothDetailsByPolygon(boothNo);
+                                                                        }
+                                                                    }
                                     } catch (err) {
                                         console.warn('Error handling map click:', err);
                                     }
@@ -846,9 +842,11 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
                                     const props = boothFeature.properties;
                                     const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
                                     if (boothNo) {
-                                        setDrawerType('booth');
-                                        setDrawerData({ loading: true, boothNo, details: { booth: null, visits: [] } });
-                                        setDrawerOpen(true);
+                                        try {
+                                            if (typeof onOpenDrawer === 'function') {
+                                                onOpenDrawer({ open: true, type: 'booth', data: { loading: true, boothNo, details: { booth: null, visits: [] } } });
+                                            }
+                                        } catch (_) { /* noop */ }
                                         fetchBoothDetailsByPolygon(boothNo);
                                     }
                                 }
@@ -988,145 +986,7 @@ const VisitMapTabs = ({ onFilterFromMap }) => {
                 </Paper>
             </TabPanel>
 
-            {/* Details Drawer Modal (global) */}
-            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-                <Box sx={{ width: 420, p: 2 }}>
-                    {drawerType === 'booth' && drawerData && (
-                        <>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
-                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
-                                    <CloseIcon />
-                                </Button>
-                            </Stack>
-                            {drawerData.loading ? (
-                                <Typography variant="body2" color="text.secondary">Loading booth details...</Typography>
-                            ) : drawerData.error ? (
-                                <Typography variant="body2" color="error">Error: {drawerData.error}</Typography>
-                            ) : (
-                                <>
-                                    {drawerData.details?.booth ? (
-                                        <Box sx={{ mb: 3 }}>
-                                            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>Booth Information</Typography>
-                                            <Stack spacing={1.5}>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth.name || 'N/A'}</Typography>
-                                                </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth.booth_number || 'N/A'}</Typography>
-                                                </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth.block_id?.name || 'N/A'}</Typography>
-                                                </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth.assembly_id?.name || 'N/A'}</Typography>
-                                                </Box>
-                                                <Box sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth.parliament_id?.name || 'N/A'}</Typography>
-                                                </Box>
-                                            </Stack>
-                                        </Box>
-                                    ) : (
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                            No booth found for Booth No: {drawerData.boothNo}
-                                        </Typography>
-                                    )}
-                                    <Box>
-                                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
-                                            Visit Data ({drawerData.details?.visits?.length || 0})
-                                        </Typography>
-                                        {drawerData.details?.visits && drawerData.details.visits.length > 0 ? (
-                                            <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
-                                                <Stack spacing={1.5}>
-                                                    {drawerData.details.visits.map((visit, index) => (
-                                                        <Box key={index} sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                                                <Box sx={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
-                                                                    <img src={visit.candidate_id?.photo} alt={visit.candidate_id?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                </Box>
-                                                                <Typography variant="body2" fontWeight="bold">{visit.candidate_id?.name || 'Unknown'}</Typography>
-                                                            </Stack>
-                                                            <Typography variant="body2"><strong>📅</strong> {formatDate(visit.date)}</Typography>
-                                                            <Typography variant="body2"><strong>📍</strong> {visit.locationName || 'N/A'}</Typography>
-                                                            <Typography variant="body2"><strong>🔄 Status:</strong> <span style={{ color: visit.work_status === 'complete' ? 'green' : visit.work_status === 'in progress' ? 'orange' : 'inherit', fontWeight: 'bold' }}>{visit.work_status?.toUpperCase() || 'N/A'}</span></Typography>
-                                                            {visit.visitAgenda && (<Typography variant="body2"><strong>🗒️</strong> {visit.visitAgenda}</Typography>)}
-                                                        </Box>
-                                                    ))}
-                                                </Stack>
-                                            </Box>
-                                        ) : (
-                                            <Typography variant="body2" color="text.secondary">No visits found for this booth.</Typography>
-                                        )}
-                                    </Box>
-                                </>
-                            )}
-                        </>
-                    )}
-
-                    {drawerType === 'visit' && drawerData && (
-                        <>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
-                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
-                                    <CloseIcon />
-                                </Button>
-                            </Stack>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                                <Box sx={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
-                                    <img src={drawerData.candidate?.photo} alt={drawerData.candidate?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                </Box>
-                                <Typography fontWeight="bold">{drawerData.candidate?.name}</Typography>
-                            </Stack>
-                            <Typography variant="body2"><strong>📅</strong> {formatDate(drawerData.visit?.date)}</Typography>
-                            <Typography variant="body2"><strong>📍</strong> {drawerData.visit?.locationName || 'N/A'}</Typography>
-                            <Typography variant="body2"><strong>📌 Booth:</strong> {drawerData.visit?.booth_id?.name || 'N/A'}</Typography>
-                            <Typography variant="body2"><strong>🔄 Status:</strong> {drawerData.visit?.work_status?.toUpperCase() || 'N/A'}</Typography>
-                            {drawerData.visit?.visitAgenda && (<Typography variant="body2"><strong>🗒️ Agenda:</strong> {drawerData.visit.visitAgenda}</Typography>)}
-                            {drawerData.visit?.remark && (<Typography variant="body2"><strong>📝 Remark:</strong> {drawerData.visit.remark}</Typography>)}
-                        </>
-                    )}
-
-                    {drawerType === 'location' && drawerData && (
-                        <>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">Visit Data</Typography>
-                                <Button size="small" onClick={() => setDrawerOpen(false)} sx={{ ml: 'auto' }}>
-                                    <CloseIcon />
-                                </Button>
-                            </Stack>
-                            {drawerData.locationName && (
-                                <Typography variant="body2" sx={{ mb: 1 }}><strong>📍</strong> {drawerData.locationName}</Typography>
-                            )}
-                            {(drawerData.latitude !== undefined && drawerData.longitude !== undefined) && (
-                                <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>
-                                    <strong>🌐</strong> {Number(drawerData.latitude).toFixed(4)}, {Number(drawerData.longitude).toFixed(4)}
-                                </Typography>
-                            )}
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>
-                                Visits at this location ({(drawerData.visits || []).length})
-                            </Typography>
-                            <Box sx={{ maxHeight: 420, overflowY: 'auto' }}>
-                                <Stack spacing={1.5}>
-                                    {(drawerData.visits || []).map((visit, idx) => (
-                                        <Box key={idx} sx={{ p: 1.5, backgroundColor: theme.palette.grey[50], borderRadius: 1 }}>
-                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                                <Box sx={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${theme.palette.primary.main}` }}>
-                                                    <img src={visit.candidate_id?.photo} alt={visit.candidate_id?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                </Box>
-                                                <Typography variant="body2" fontWeight="bold">{visit.candidate_id?.name || 'Unknown'}</Typography>
-                                            </Stack>
-                                            <Typography variant="body2"><strong>📅</strong> {formatDate(visit.date)}</Typography>
-                                            <Typography variant="body2"><strong>🔄 Status:</strong> <span style={{ color: visit.work_status === 'complete' ? 'green' : visit.work_status === 'in progress' ? 'orange' : 'inherit', fontWeight: 'bold' }}>{visit.work_status?.toUpperCase() || 'N/A'}</span></Typography>
-                                            {visit.visitAgenda && (<Typography variant="body2"><strong>🗒️</strong> {visit.visitAgenda}</Typography>)}
-                                            {visit.remark && (<Typography variant="body2"><strong>📝</strong> {visit.remark}</Typography>)}
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            </Box>
-                        </>
-                    )}
-                </Box>
-            </Drawer>
+                {/* Drawer is handled by parent VisitListPage */}
         </MainCard>
     );
 };

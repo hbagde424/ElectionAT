@@ -43,17 +43,13 @@ const VisitDetailPage = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        console.log('VisitDetailPage mounted with ID:', id);
-        console.log('Current URL:', window.location.href);
         fetchVisitDetails();
     }, [id]);
 
     const fetchVisitDetails = async () => {
         try {
             setLoading(true);
-            console.log('Fetching visit with ID:', id);
             const response = await axiosServices.get(`/visits/${id}`);
-            console.log('Visit response:', response.data);
             if (response.data.success) {
                 setVisit(response.data.data);
             } else {
