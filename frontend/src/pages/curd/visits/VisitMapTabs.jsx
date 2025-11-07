@@ -25,7 +25,7 @@ const MAPBOX_THEMES = {
 };
 
 // Add optional onFilterFromMap callback so parent can sync table filters with map selections
-const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
+const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
     const theme = useTheme();
     const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [activeTab, setActiveTab] = useState(0);
@@ -41,12 +41,50 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [boothsWithVisits, setBoothsWithVisits] = useState(new Set());
+    // Store original (canonical) booth numbers (before variant normalization) for deeper debug/matching analysis
+    const [originalBoothNumbers, setOriginalBoothNumbers] = useState(new Set());
     const visitMapRef = useRef(null);
     const mapFetchLockRef = useRef(false);
 
+    // If parent provides visitsFromTable (authoritative table data), derive boothsWithVisits from it
+    useEffect(() => {
+        if (!visitsFromTable || !Array.isArray(visitsFromTable) || visitsFromTable.length === 0) return;
+        try {
+            console.log('[DEBUG] visitsFromTable provided, length:', visitsFromTable.length);
+            const boothNumbers = new Set();
+            const originalNumbers = new Set();
+            visitsFromTable.forEach((visit) => {
+                const boothId = visit?.booth_id;
+                if (boothId) {
+                    if (typeof boothId === 'object') {
+                        const bn = boothId.booth_number || boothId.BoothNo || boothId.BoothNumber || boothId.name;
+                        if (bn !== undefined && bn !== null && String(bn).trim() !== '') {
+                            originalNumbers.add(String(bn).trim());
+                            boothNumbers.add(String(bn).trim());
+                            boothNumbers.add(String(bn).trim().toLowerCase());
+                            boothNumbers.add(String(parseInt(bn)).trim());
+                        }
+                    } else if (typeof boothId === 'string' || typeof boothId === 'number') {
+                        // If table only provides booth id string, still add as-is to help matching
+                        boothNumbers.add(String(boothId).trim());
+                    }
+                }
+            });
+            if (boothNumbers.size > 0) {
+                setBoothsWithVisits(boothNumbers);
+                setOriginalBoothNumbers(originalNumbers);
+                console.log('[DEBUG] boothsWithVisits populated from visitsFromTable ->', boothNumbers.size, Array.from(boothNumbers).slice(0, 20));
+                console.log('[DEBUG] originalBoothNumbers (from table)->', Array.from(originalNumbers));
+            }
+        } catch (e) {
+            // no-op on parse errors
+            console.warn('[DEBUG] Error parsing visitsFromTable', e);
+        }
+    }, [visitsFromTable]);
+
     // Visit Booth Map States
     const [blockNumberInput, setBlockNumberInput] = useState('ALL');
-    const [boothsWithWorkStatus, setBoothsWithWorkStatus] = useState(new Set());
+    // Use `boothsWithVisits` (populated from visits API) for marker matching
     const [blocks, setBlocks] = useState([]);
     const workStatusMapRef = useRef(null);
 
@@ -94,8 +132,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
         const effectiveYear = overrides.hasOwnProperty('yearOverride') ? overrides.yearOverride : yearFilter;
         const effectiveElectionYearId = overrides.hasOwnProperty('electionYearIdOverride') ? overrides.electionYearIdOverride : selectedElectionYearId;
 
-        // MAP DEBUG: fetch start (show effective filters)
-        console.log('[MAP DEBUG] fetchMapVisits START', { yearFilter: effectiveYear, selectedElectionYearId: effectiveElectionYearId });
+    // fetchMapVisits start (filters available in state)
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -139,14 +176,13 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
             }
 
             const url = `${import.meta.env.VITE_APP_API_URL}/visits?${query}`;
-            // MAP DEBUG: URL used for map fetch
-            console.log('[MAP DEBUG] fetchMapVisits -> URL:', url);
+            // URL used for map fetch
             const res = await fetch(url, { headers });
             const json = await res.json();
 
             if (json && json.success) {
                 const rawVisits = Array.isArray(json.data) ? json.data : [];
-                console.log('[MAP DEBUG] fetchMapVisits -> rawVisits.length:', rawVisits.length);
+                // raw visits count
                 if (rawVisits.length === 0) {
                     setMapVisits([]);
                     setRouteData(null);
@@ -162,7 +198,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                     .filter(v => !isNaN(v.latitude) && !isNaN(v.longitude));
 
                 setMapVisits(visitsWithCoords);
-                console.log('[MAP DEBUG] fetchMapVisits -> visitsWithCoords.length:', visitsWithCoords.length);
+                // visits with coords count
 
                 // Track booths (by booth number) that have visits
                 const boothNumbersWithVisits = new Set();
@@ -201,6 +237,69 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
         }
     };
 
+    // Helper function to auto-zoom map to fit booth polygons
+    const autoZoomToBooths = (geojson, mapRef) => {
+        if (!geojson || !geojson.features || geojson.features.length === 0) return;
+        if (!mapRef || !mapRef.current) return;
+
+        try {
+            const map = typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current;
+            if (!map) return;
+
+            // Function to perform the actual zoom
+            const performZoom = () => {
+                try {
+                    // Calculate bounding box for all features
+                    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+
+                    geojson.features.forEach(feature => {
+                        const processCoords = (coords) => {
+                            coords.forEach(coord => {
+                                if (Array.isArray(coord[0])) {
+                                    processCoords(coord);
+                                } else {
+                                    const [lng, lat] = coord;
+                                    if (typeof lng === 'number' && typeof lat === 'number' && !isNaN(lng) && !isNaN(lat)) {
+                                        if (lng < minLng) minLng = lng;
+                                        if (lng > maxLng) maxLng = lng;
+                                        if (lat < minLat) minLat = lat;
+                                        if (lat > maxLat) maxLat = lat;
+                                    }
+                                }
+                            });
+                        };
+
+                        if (feature.geometry && feature.geometry.coordinates) {
+                            processCoords(feature.geometry.coordinates);
+                        }
+                    });
+
+                    if (minLng !== Infinity && maxLng !== -Infinity && minLat !== Infinity && maxLat !== -Infinity) {
+                        map.fitBounds(
+                            [[minLng, minLat], [maxLng, maxLat]],
+                            { padding: 80, duration: 1500, maxZoom: 15 }
+                        );
+                    }
+                } catch (e) {
+                    console.warn('[AUTO-ZOOM] Error in performZoom:', e);
+                }
+            };
+
+            // Check if map is loaded, if not wait for it
+            if (map.loaded && map.loaded()) {
+                performZoom();
+            } else {
+                map.once('load', () => {
+                    performZoom();
+                });
+                // Fallback: also try after a delay in case 'load' event already fired
+                setTimeout(performZoom, 1000);
+            }
+        } catch (e) {
+            console.warn('[AUTO-ZOOM] Failed to auto-zoom to booths:', e);
+        }
+    };
+
     // Load booth polygons for visit map
     const loadBoothPolygonsForVisits = async () => {
         try {
@@ -232,25 +331,111 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
         }
     };
 
-    // Fetch booths with Visit Booth
-    const fetchBoothsWithWorkStatus = async () => {
+    // Fetch booths that have visits (for Visit Booth Map green/red markers)
+    const fetchBoothsWithVisits = async () => {
+        // If parent passed visitsFromTable (authoritative), avoid fetching from API here
+        if (visitsFromTable && Array.isArray(visitsFromTable) && visitsFromTable.length > 0) return;
+
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
-            const workStatusJson = await workStatusRes.json();
-            if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
+            
+            const visitsUrl = `${import.meta.env.VITE_APP_API_URL}/visits?all=true&limit=50000`;
+            const visitsRes = await fetch(visitsUrl, { headers });
+            const visitsJson = await visitsRes.json();
+
+            // DEBUG: show what the visits endpoint returned (counts and a small sample)
+            try {
+                console.log('[DEBUG] fetchBoothsWithVisits -> URL:', visitsUrl);
+                console.log('[DEBUG] fetchBoothsWithVisits -> response success:', !!(visitsJson && visitsJson.success));
+                if (visitsJson && Array.isArray(visitsJson.data)) {
+                    console.log('[DEBUG] fetchBoothsWithVisits -> raw visits count:', visitsJson.data.length);
+                    console.log('[DEBUG] fetchBoothsWithVisits -> sample visits (first 10):', visitsJson.data.slice(0, 10).map(v => ({ id: v._id || v.id, booth_id_raw: v.booth_id && (typeof v.booth_id === 'object' ? { id: v.booth_id._id || v.booth_id.id, booth_number: v.booth_id.booth_number || v.booth_id.BoothNo || v.booth_id.BoothNumber || null } : v.booth_id) }))); 
+                } else {
+                    console.log('[DEBUG] fetchBoothsWithVisits -> no array data in response:', visitsJson);
+                }
+            } catch (dbgErr) {
+                console.warn('[DEBUG] fetchBoothsWithVisits -> debug logging failed:', dbgErr);
+            }
+            
+            
+            if (visitsJson.success && Array.isArray(visitsJson.data)) {
                 const boothIds = new Set();
-                workStatusJson.data.forEach(workStatus => {
-                    if (workStatus.booth_id) {
-                        const boothId = workStatus.booth_id._id || workStatus.booth_id;
+                const boothNumbers = new Set();
+                const originalNumbers = new Set();
+                const boothNames = new Set();
+                const unresolvedBoothIds = new Set();
+
+                visitsJson.data.forEach((visit, index) => {
+                    if (visit.booth_id) {
+                        // Store booth ID (could be object or string)
+                        const boothId = (visit.booth_id && typeof visit.booth_id === 'object') ? (visit.booth_id._id || visit.booth_id.id) : visit.booth_id;
                         boothIds.add(String(boothId));
+
+                        // Try to extract booth number from nested object if present
+                        const bn = (visit.booth_id && typeof visit.booth_id === 'object') ? (visit.booth_id.booth_number || visit.booth_id.BoothNo || visit.booth_id.BoothNumber) : null;
+                        if (bn !== undefined && bn !== null && bn !== '') {
+                            originalNumbers.add(String(bn).trim());
+                            boothNumbers.add(String(bn).trim());
+                            boothNumbers.add(String(bn).trim().toLowerCase());
+                            boothNumbers.add(String(parseInt(bn)).trim());
+                        } else if (boothId && typeof boothId === 'string') {
+                            // mark for resolution later (visit carries only booth id)
+                            unresolvedBoothIds.add(String(boothId));
+                        }
+
+                        // Store booth name for additional matching
+                        if (visit.booth_id && typeof visit.booth_id === 'object' && visit.booth_id.name) {
+                            boothNames.add(String(visit.booth_id.name).trim());
+                        }
+
+                        // Debug first 5 visits
+                        if (index < 5) {
+                            // removed debug logging for visit details
+                        }
                     }
                 });
-                setBoothsWithWorkStatus(boothIds);
+
+                // Resolve unresolved booth IDs to booth_number by fetching booths list (fallback)
+                if (unresolvedBoothIds.size > 0) {
+                    try {
+                        // resolving booth IDs to numbers
+                        const boothsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=50000`, { headers });
+                        const boothsJson = await boothsRes.json();
+                        if (boothsJson && boothsJson.success && Array.isArray(boothsJson.data)) {
+                            const idToNumber = new Map();
+                            boothsJson.data.forEach(b => {
+                                if (b && (b._id || b.id)) {
+                                    const id = String(b._id || b.id);
+                                    const num = b.booth_number || b.BoothNo || b.BoothNumber || b.name;
+                                    if (num !== undefined && num !== null) {
+                                        originalNumbers.add(String(num).trim());
+                                        idToNumber.set(id, String(num).trim());
+                                    }
+                                }
+                            });
+
+                            unresolvedBoothIds.forEach(id => {
+                                const resolved = idToNumber.get(String(id));
+                                    if (resolved) {
+                                        originalNumbers.add(String(resolved).trim());
+                                    boothNumbers.add(resolved);
+                                    boothNumbers.add(resolved.toLowerCase());
+                                    boothNumbers.add(String(parseInt(resolved)).trim());
+                                    // resolved id -> number
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Failed to resolve booth IDs to numbers:', e);
+                    }
+                }
+                console.log('[DEBUG] fetchBoothsWithVisits -> boothIds:', boothIds.size, 'unresolvedIds:', unresolvedBoothIds.size, 'boothNumbers(variants):', boothNumbers.size, 'originalNumbers:', Array.from(originalNumbers));
+                setBoothsWithVisits(boothNumbers); // Using booth numbers for matching
+                setOriginalBoothNumbers(originalNumbers);
             }
         } catch (err) {
-            console.warn('Failed to fetch booths with Visit Booth:', err);
+            console.error('Failed to fetch booths with visits:', err);
         }
     };
 
@@ -265,7 +450,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            fetchBoothsWithWorkStatus();
+            fetchBoothsWithVisits(); // ensure visits set is populated
 
             if (blockNumberVal === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
@@ -284,6 +469,9 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                 }
                 const fc = { type: 'FeatureCollection', features };
                 setBoothGeoJSON(fc);
+                
+                // Auto-zoom to fit all booth polygons (increased delay for map initialization)
+                setTimeout(() => autoZoomToBooths(fc, workStatusMapRef), 1000);
                 return;
             }
 
@@ -317,6 +505,9 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
 
             const fc = { type: 'FeatureCollection', features: json.features };
             setBoothGeoJSON(fc);
+            
+            // Auto-zoom to fit selected block's booth polygons (increased delay)
+            setTimeout(() => autoZoomToBooths(fc, workStatusMapRef), 1000);
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
@@ -342,8 +533,6 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
 
             if (electionYearsData.success) {
                 setElectionYears(electionYearsData.data);
-                // MAP DEBUG: election years loaded for map selector
-                console.log('[MAP DEBUG] electionYears loaded:', Array.isArray(electionYearsData.data) ? electionYearsData.data.length : 0);
             }
             if (blocksData.success) setBlocks(blocksData.data);
         } catch (error) {
@@ -428,6 +617,58 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
             console.warn('Automatic loading of all booth polygons failed:', e);
         }
     }, []);
+
+    // Auto-zoom when booth polygons are loaded and we're on the Visit Booth Map tab
+    useEffect(() => {
+        if (boothGeoJSON && activeTab === 1 && workStatusMapRef.current) {
+            // Increased delay to ensure map is fully rendered
+            setTimeout(() => autoZoomToBooths(boothGeoJSON, workStatusMapRef), 1200);
+        }
+    }, [boothGeoJSON, activeTab]);
+
+    // Debug: log how many markers will be green according to current boothsWithVisits
+    useEffect(() => {
+        if (!boothGeoJSON) return;
+        try {
+            const total = boothGeoJSON.features.length;
+            let green = 0;
+            const matchedNumbers = new Set();
+            const digit = (v) => String(v || '').replace(/[^0-9]/g, '');
+            const originalDigitSet = new Set(Array.from(originalBoothNumbers).map(digit));
+            boothGeoJSON.features.forEach(feature => {
+                const props = feature.properties || {};
+                const rawCandidates = [props.BoothNo, props.BoothNumber, props.boothNo, props.booth_number, props.id, props.booth, props.Booth_Name, props.BoothName, props.name];
+                const boothNo = rawCandidates.find(v => v !== undefined && v !== null && String(v).trim() !== '');
+                const boothNoStr = boothNo !== undefined ? String(boothNo).trim() : '';
+                const boothNoLower = boothNoStr.toLowerCase();
+                const boothNoInt = boothNoStr ? String(parseInt(boothNoStr)).trim() : '';
+                let has = false;
+                if (boothsWithVisits.has(boothNoStr) || boothsWithVisits.has(boothNoLower) || (boothNoInt && boothsWithVisits.has(boothNoInt))) {
+                    has = true;
+                    matchedNumbers.add(boothNoStr);
+                } else {
+                    // Fallback: numeric digit comparison on any candidate and original numbers
+                    const featureDigits = new Set(rawCandidates.filter(Boolean).map(v => digit(v)).filter(d => d));
+                    for (const fd of featureDigits) {
+                        if (originalDigitSet.has(fd)) {
+                            has = true;
+                            matchedNumbers.add(fd);
+                            break;
+                        }
+                    }
+                }
+                if (has) green++;
+            });
+            // Compute which original numbers did not match
+            const unmatched = Array.from(originalBoothNumbers).filter(o => {
+                const od = digit(o);
+                return !Array.from(matchedNumbers).some(m => m === o || m === od);
+            });
+            console.log('[DEBUG MATCH SUMMARY] polygons:', total, 'green:', green, 'originalBoothNumbers:', Array.from(originalBoothNumbers), 'unmatchedOriginal:', unmatched);
+        } catch (e) {
+            console.warn('[DEBUG] error computing green markers:', e);
+        }
+    }, [boothGeoJSON, boothsWithVisits, originalBoothNumbers]);
 
     // Drawer is managed by parent via onOpenDrawer to survive parent fetches/re-renders
 
@@ -669,8 +910,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                                         const yearVal = ey ? (ey.year || '') : '';
                                         setYearFilter(yearVal);
 
-                                        // MAP DEBUG: show selection and resolved year before fetching map data
-                                        console.log('[MAP DEBUG] year select ->', { selectedId, ey: ey ? { _id: ey._id, year: ey.year } : null, yearVal });
+                                        // year selection changed
 
                                         // Immediately fetch map data with explicit overrides to avoid setState race
                                         try {
@@ -783,6 +1023,13 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                         initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
                         mapStyle="mapbox://styles/mapbox/streets-v12"
                         interactiveLayerIds={boothGeoJSON ? ['booth-fill', 'booth-work-status-markers'] : []}
+                        onLoad={() => {
+                            // Visit Booth Map loaded
+                            // Auto-zoom on map load if booth data is already available
+                            if (boothGeoJSON) {
+                                setTimeout(() => autoZoomToBooths(boothGeoJSON, workStatusMapRef), 500);
+                            }
+                        }}
                         onClick={(e) => {
                             if (!boothGeoJSON) return;
                             try {
@@ -847,7 +1094,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                                 type="geojson"
                                 data={{
                                     type: 'FeatureCollection',
-                                    features: boothGeoJSON.features.map(feature => {
+                                    features: boothGeoJSON.features.map((feature, idx) => {
                                         const props = feature.properties || {};
                                         const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
 
@@ -870,13 +1117,29 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer }) => {
                                             ];
                                         }
 
-                                        const hasWorkStatus = Array.from(boothsWithWorkStatus).some(workStatusBoothId => {
-                                            const booth = blocks.find(b => String(b._id) === workStatusBoothId);
-                                            if (booth) {
-                                                return String(booth.booth_number) === String(boothNo);
+                                        // Check if this booth has visits by matching booth number (try multiple variations)
+                                        const boothNoStr = String(boothNo).trim();
+                                        const boothNoLower = boothNoStr.toLowerCase();
+                                        const boothNoInt = String(parseInt(boothNo) || boothNo).trim();
+                                        
+                                        let hasWorkStatus = boothsWithVisits.has(boothNoStr) || 
+                                                            boothsWithVisits.has(boothNoLower) ||
+                                                            boothsWithVisits.has(boothNoInt);
+                                        if (!hasWorkStatus) {
+                                            // Fallback: compare digits with originalBoothNumbers
+                                            const digits = (v) => String(v || '').replace(/[^0-9]/g, '');
+                                            const boothDigits = digits(boothNoStr);
+                                            if (boothDigits && Array.from(originalBoothNumbers).some(o => digits(o) === boothDigits)) {
+                                                hasWorkStatus = true;
+                                            } else if (!boothDigits && props.name) {
+                                                const nameDigits = digits(props.name);
+                                                if (nameDigits && Array.from(originalBoothNumbers).some(o => digits(o) === nameDigits)) {
+                                                    hasWorkStatus = true;
+                                                }
                                             }
-                                            return false;
-                                        });
+                                        }
+
+                                        // no debug logs
 
                                         return {
                                             type: 'Feature',
