@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Grid, CardContent, Stack, Button, IconButton, LinearProgress, Alert, Breadcrumbs, Link } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { Box, Container, Typography, Grid, CardContent, Stack, Button, IconButton, LinearProgress, Alert, Breadcrumbs, Link, Chip, Divider, Paper } from '@mui/material';
+import { ArrowBack, Edit, Delete } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import { usePermissions } from 'contexts/PermissionContext';
 import axiosServices from 'utils/axios';
-import DetailRenderer from 'components/DetailRenderer';
 
 export default function LocalIssueDetailPage() {
     const theme = useTheme();
@@ -29,9 +28,39 @@ export default function LocalIssueDetailPage() {
         } catch (err) { console.error(err); setError('Error loading local issue details.'); } finally { setLoading(false); }
     };
 
-    const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; return new Date(dateString).toLocaleString(); };
+    const formatDateTime = (dateString) => { 
+        if (!dateString) return 'N/A'; 
+        return new Date(dateString).toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getPriorityColor = (priority) => {
+        switch (priority) {
+            case 'Critical': return 'error';
+            case 'High': return 'warning';
+            case 'Medium': return 'info';
+            case 'Low': return 'success';
+            default: return 'default';
+        }
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Resolved': return 'success';
+            case 'In Progress': return 'warning';
+            case 'Reported': return 'info';
+            case 'Rejected': return 'error';
+            default: return 'default';
+        }
+    };
 
     const handleBack = () => navigate('/Local-Issue');
+    const handleEdit = () => navigate(`/Local-Issue/edit/${id}`);
 
 
     if (loading) return (
@@ -61,7 +90,7 @@ export default function LocalIssueDetailPage() {
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
                     <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}><ArrowBack /></IconButton>
                     <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>Local Issue Details</Typography>
-
+                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
@@ -85,7 +114,208 @@ export default function LocalIssueDetailPage() {
 
             <MainCard>
                 <CardContent>
-                    <DetailRenderer data={item} />
+                    {/* Issue Overview */}
+                    <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>Issue Overview</Typography>
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Issue Name</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>{item.issue_name || 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={12} md={3}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Status</Typography>
+                                <Chip
+                                    label={item.status || 'N/A'}
+                                    color={getStatusColor(item.status)}
+                                    size="small"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Priority</Typography>
+                                <Chip
+                                    label={item.priority || 'N/A'}
+                                    color={getPriorityColor(item.priority)}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Department</Typography>
+                                <Typography variant="body1">{item.department || 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Category</Typography>
+                                <Typography variant="body1">{item.category || 'N/A'}</Typography>
+                            </Grid>
+                            {item.year && (
+                                <Grid item xs={12} md={6}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Year</Typography>
+                                    <Typography variant="body1">{item.year}</Typography>
+                                </Grid>
+                            )}
+                            <Grid item xs={12}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
+                                {item.description ? (
+                                    <Paper 
+                                        variant="outlined" 
+                                        sx={{ p: 2, mt: 1, bgcolor: 'background.default' }}
+                                        dangerouslySetInnerHTML={{ __html: item.description }}
+                                    />
+                                ) : (
+                                    <Typography variant="body1" color="text.secondary">No description provided</Typography>
+                                )}
+                            </Grid>
+                        </Grid>
+                    </Box>
+
+                    {/* Location Details */}
+                    <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>Location Details</Typography>
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
+                                <Chip
+                                    label={item.state_id?.name || 'N/A'}
+                                    color="primary"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
+                                <Chip
+                                    label={item.division_id?.name || 'N/A'}
+                                    color="warning"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Parliament</Typography>
+                                <Chip
+                                    label={item.parliament_id?.name || 'N/A'}
+                                    color="secondary"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
+                                <Chip
+                                    label={item.assembly_id?.name || 'N/A'}
+                                    color="info"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Block</Typography>
+                                <Chip
+                                    label={item.block_id?.name || 'N/A'}
+                                    color="success"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Booth</Typography>
+                                <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                                    <Chip
+                                        label={item.booth_id?.name || 'N/A'}
+                                        color="error"
+                                        size="small"
+                                        variant="outlined"
+                                    />
+                                    {item.booth_id?.booth_number && (
+                                        <Chip
+                                            label={`#${item.booth_id.booth_number}`}
+                                            color="error"
+                                            size="small"
+                                        />
+                                    )}
+                                </Stack>
+                            </Grid>
+                            {item.panchayat_id && (
+                                <Grid item xs={12} md={4}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Panchayat</Typography>
+                                    <Chip
+                                        label={item.panchayat_id?.panchayat_name || 'N/A'}
+                                        color="info"
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ mt: 0.5 }}
+                                    />
+                                </Grid>
+                            )}
+                            {item.village_id && (
+                                <Grid item xs={12} md={4}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Village</Typography>
+                                    <Chip
+                                        label={item.village_id?.village_name || 'N/A'}
+                                        color="success"
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ mt: 0.5 }}
+                                    />
+                                </Grid>
+                            )}
+                            {item.falliya_id && (
+                                <Grid item xs={12} md={4}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Falliya</Typography>
+                                    <Chip
+                                        label={item.falliya_id?.falliya_name || 'N/A'}
+                                        color="warning"
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ mt: 0.5 }}
+                                    />
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
+
+                    {/* Metadata */}
+                    <Box>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>Record Information</Typography>
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Created By</Typography>
+                                <Typography variant="body1">{item.created_by?.username || 'N/A'}</Typography>
+                                {item.created_by?.email && (
+                                    <Typography variant="body2" color="text.secondary">{item.created_by.email}</Typography>
+                                )}
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Created At</Typography>
+                                <Typography variant="body1">{formatDateTime(item.created_at)}</Typography>
+                            </Grid>
+                            {item.updated_by && (
+                                <>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Updated By</Typography>
+                                        <Typography variant="body1">{item.updated_by?.username || 'N/A'}</Typography>
+                                        {item.updated_by?.email && (
+                                            <Typography variant="body2" color="text.secondary">{item.updated_by.email}</Typography>
+                                        )}
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Updated At</Typography>
+                                        <Typography variant="body1">{formatDateTime(item.updated_at)}</Typography>
+                                    </Grid>
+                                </>
+                            )}
+                        </Grid>
+                    </Box>
                 </CardContent>
             </MainCard>
         </Container>
