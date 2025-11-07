@@ -49,7 +49,18 @@ const renderValue = (value) => {
         );
     }
     if (typeof value === 'object') {
-        // common pattern: populated refs have name or username
+        // Prefer common explicit display fields for populated refs
+        // e.g. election_year -> { year: 2024 }, booths -> { booth_number }, panchayat/village/falliya
+        if (value.year !== undefined && value.year !== null) {
+            return String(value.year);
+        }
+        if (value.booth_number !== undefined && value.booth_number !== null) {
+            return String(value.booth_number);
+        }
+        if (value.panchayat_name || value.village_name || value.falliya_name) {
+            return value.panchayat_name || value.village_name || value.falliya_name;
+        }
+        // common fallback: populated refs often have name or username
         if (value.name || value.username || value._id) {
             const display = value.name || value.username || value._id;
             return display;
