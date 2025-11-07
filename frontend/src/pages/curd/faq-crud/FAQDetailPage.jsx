@@ -49,6 +49,8 @@ export default function FAQDetailPage() {
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleString(); } catch (e) { return 'N/A'; } };
 
     const handleBack = () => navigate('/faq-crud');
+    // Navigate to the edit page for this FAQ. Adjust the route if your app uses a different edit path.
+    const handleEdit = () => navigate(`/faq-crud/edit/${id}`);
 
 
     if (loading) return (
