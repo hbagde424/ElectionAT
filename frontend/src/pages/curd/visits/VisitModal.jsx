@@ -289,19 +289,15 @@ export default function VisitModal({
     useEffect(() => {
         const API_URL = import.meta.env.VITE_APP_API_URL;
         if (open) {
-                Promise.all([
-                    fetch(`${API_URL}/panchayats?limit=10000`).then(r => r.json()),
-                    fetch(`${API_URL}/villages?limit=10000`).then(r => r.json()),
-                    fetch(`${API_URL}/falliyas?limit=10000`).then(r => r.json())
-                ]).then(([pData, vData, fData]) => {
-                    // Ensure we always store arrays in state (API may return { data: [...] } or [...] or an object)
-                    const pList = Array.isArray(pData?.data) ? pData.data : (Array.isArray(pData) ? pData : []);
-                    const vList = Array.isArray(vData?.data) ? vData.data : (Array.isArray(vData) ? vData : []);
-                    const fList = Array.isArray(fData?.data) ? fData.data : (Array.isArray(fData) ? fData : []);
-                    setPanchayats(pList);
-                    setVillages(vList);
-                    setFalliyas(fList);
-                }).catch(err => console.error('Error fetching dropdowns:', err));
+            Promise.all([
+                fetch(`${API_URL}/panchayats?limit=10000`).then(r => r.json()),
+                fetch(`${API_URL}/villages?limit=10000`).then(r => r.json()),
+                fetch(`${API_URL}/falliyas?limit=10000`).then(r => r.json())
+            ]).then(([pData, vData, fData]) => {
+                setPanchayats(pData.data || pData || []);
+                setVillages(vData.data || vData || []);
+                setFalliyas(fData.data || fData || []);
+            }).catch(err => console.error('Error fetching dropdowns:', err));
         }
     }, [open]);
 
@@ -729,7 +725,7 @@ export default function VisitModal({
                         <Stack spacing={1}><InputLabel>Panchayat</InputLabel>
                             <FormControl fullWidth><Select name="panchayat_id" value={formData.panchayat_id} onChange={handleChange}>
                                 <MenuItem value=""><em>None</em></MenuItem>
-                                {(Array.isArray(panchayats) ? panchayats : []).map(p => <MenuItem key={p._id} value={p._id}>{p.panchayat_name}</MenuItem>)}
+                                {panchayats.map(p => <MenuItem key={p._id} value={p._id}>{p.panchayat_name}</MenuItem>)}
                             </Select></FormControl>
                         </Stack>
                     </Grid>
