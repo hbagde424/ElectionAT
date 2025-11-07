@@ -886,7 +886,7 @@ const VisitListPage = () => {
 
 
                 <Grid item xs={12}>
-                    <VisitMapTabs onFilterFromMap={handleMapSelection} onOpenDrawer={handleOpenDrawer} />
+                    <VisitMapTabs visitsFromParent={visits} onFilterFromMap={handleMapSelection} onOpenDrawer={handleOpenDrawer} />
                 </Grid>
 
                 <Grid item xs={12}>
