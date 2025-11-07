@@ -294,9 +294,17 @@ export default function VisitModal({
                 fetch(`${API_URL}/villages?limit=10000`).then(r => r.json()),
                 fetch(`${API_URL}/falliyas?limit=10000`).then(r => r.json())
             ]).then(([pData, vData, fData]) => {
-                setPanchayats(pData.data || pData || []);
-                setVillages(vData.data || vData || []);
-                setFalliyas(fData.data || fData || []);
+                // Normalize responses: prefer data array, then raw array, else empty array
+                const normalize = (resp) => {
+                    if (!resp) return [];
+                    if (Array.isArray(resp.data)) return resp.data;
+                    if (Array.isArray(resp)) return resp;
+                    return [];
+                };
+
+                setPanchayats(normalize(pData));
+                setVillages(normalize(vData));
+                setFalliyas(normalize(fData));
             }).catch(err => console.error('Error fetching dropdowns:', err));
         }
     }, [open]);
