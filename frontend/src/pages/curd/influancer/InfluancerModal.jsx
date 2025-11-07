@@ -98,6 +98,20 @@ export default function InfluencerModal({
     const [filteredVillages, setFilteredVillages] = useState([]);
     const [filteredFalliyas, setFilteredFalliyas] = useState([]);
 
+    // Debugging aid: log key arrays and form state to help trace dropdown issues
+    // Will print whenever component renders (helpful while debugging in browser)
+    // Remove or comment out in production if noisy
+    // eslint-disable-next-line no-console
+    console.debug('InfluencerModal render', {
+        open,
+        formDataPreview: { panchayat_id: formData.panchayat_id, village_id: formData.village_id, falliya_id: formData.falliya_id, year: formData.year },
+        panchayatsCount: (panchayats || []).length,
+        villagesCount: (villages || []).length,
+        falliyasCount: (falliyas || []).length,
+        filteredVillagesCount: (filteredVillages || []).length,
+        filteredFalliyasCount: (filteredFalliyas || []).length
+    });
+
     // Filtered data based on user hierarchy permissions
     const [hierarchyFilteredStates, setHierarchyFilteredStates] = useState([]);
     const [hierarchyFilteredDivisions, setHierarchyFilteredDivisions] = useState([]);
@@ -109,10 +123,14 @@ export default function InfluencerModal({
     // Fetch parties
     const fetchParties = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/parties?all=true`, { headers });
             const data = await response.json();
-            if (data.success) {
+            if (data && data.success) {
                 setParties(data.data);
+            } else {
+                console.warn('Failed to fetch parties:', data);
             }
         } catch (error) {
             console.error('Error fetching parties:', error);
@@ -127,15 +145,31 @@ export default function InfluencerModal({
     // Fetch panchayats, villages, and falliyas on modal open
     useEffect(() => {
         if (open) {
-            Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats?limit=10000`).then(r => r.json()),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/villages?limit=10000`).then(r => r.json()),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas?limit=10000`).then(r => r.json())
-            ]).then(([panchayatsRes, villagesRes, falliyasRes]) => {
-                if (panchayatsRes.success) setPanchayats(panchayatsRes.data);
-                if (villagesRes.success) setVillages(villagesRes.data);
-                if (falliyasRes.success) setFalliyas(falliyasRes.data);
-            }).catch(err => console.error('Error fetching location data:', err));
+            (async () => {
+                try {
+                    const token = localStorage.getItem('serviceToken');
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                    const [pRes, vRes, fRes] = await Promise.all([
+                        fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats?limit=10000`, { headers }),
+                        fetch(`${import.meta.env.VITE_APP_API_URL}/villages?limit=10000`, { headers }),
+                        fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas?limit=10000`, { headers })
+                    ]);
+
+                    const [panchayatsRes, villagesRes, falliyasRes] = await Promise.all([pRes.json(), vRes.json(), fRes.json()]);
+
+                    if (panchayatsRes && panchayatsRes.success) setPanchayats(panchayatsRes.data);
+                    else console.warn('Failed to load panchayats:', panchayatsRes);
+
+                    if (villagesRes && villagesRes.success) setVillages(villagesRes.data);
+                    else console.warn('Failed to load villages:', villagesRes);
+
+                    if (falliyasRes && falliyasRes.success) setFalliyas(falliyasRes.data);
+                    else console.warn('Failed to load falliyas:', falliyasRes);
+                } catch (err) {
+                    console.error('Error fetching location data:', err);
+                }
+            })();
         }
     }, [open]);
 
@@ -697,7 +731,11 @@ export default function InfluencerModal({
                             <InputLabel>Panchayat</InputLabel>
                             <Select name="panchayat_id" value={formData.panchayat_id} label="Panchayat" onChange={handleChange}>
                                 <MenuItem value=""><em>None</em></MenuItem>
-                                {panchayats.map(p => <MenuItem key={p._id} value={p._id}>{p.panchayat_name}</MenuItem>)}
+                                    {(panchayats || []).map(p => (
+                                        <MenuItem key={p._id} value={p._id}>
+                                            {p.panchayat_name || p.name || p._id}
+                                        </MenuItem>
+                                    ))}
                             </Select>
                         </FormControl>
                     </Grid>
@@ -706,7 +744,11 @@ export default function InfluencerModal({
                             <InputLabel>Village</InputLabel>
                             <Select name="village_id" value={formData.village_id} label="Village" onChange={handleChange} disabled={!formData.panchayat_id}>
                                 <MenuItem value=""><em>None</em></MenuItem>
-                                {filteredVillages.map(v => <MenuItem key={v._id} value={v._id}>{v.village_name}</MenuItem>)}
+                                {(filteredVillages || []).map(v => (
+                                    <MenuItem key={v._id} value={v._id}>
+                                        {v.village_name || v.name || v._id}
+                                    </MenuItem>
+                                ))}
                             </Select>
                         </FormControl>
                     </Grid>
@@ -715,7 +757,11 @@ export default function InfluencerModal({
                             <InputLabel>Falliya</InputLabel>
                             <Select name="falliya_id" value={formData.falliya_id} label="Falliya" onChange={handleChange} disabled={!formData.village_id}>
                                 <MenuItem value=""><em>None</em></MenuItem>
-                                {filteredFalliyas.map(f => <MenuItem key={f._id} value={f._id}>{f.falliya_name}</MenuItem>)}
+                                {(filteredFalliyas || []).map(f => (
+                                    <MenuItem key={f._id} value={f._id}>
+                                        {f.falliya_name || f.name || f._id}
+                                    </MenuItem>
+                                ))}
                             </Select>
                         </FormControl>
                     </Grid>
