@@ -61,7 +61,8 @@ export default function BoothsListPage() {
     });
 
     // Map state
-    const [blockNumberInput, setBlockNumberInput] = useState('');
+    // Default to ALL blocks so all booth polygons are shown immediately
+    const [blockNumberInput, setBlockNumberInput] = useState('ALL');
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapTheme, setMapTheme] = useState('streets');
     const [mapError, setMapError] = useState('');
@@ -69,6 +70,56 @@ export default function BoothsListPage() {
     const [drawerData, setDrawerData] = useState(null);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+    // Helper: fit map to GeoJSON feature collection bounds with retries
+    const fitGeoJSONBounds = (fc, attempt = 0) => {
+        try {
+            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+            if (!map) {
+                if (attempt < 6) {
+                    // wait a bit and retry
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                }
+                return;
+            }
+
+            if (!fc || !Array.isArray(fc.features) || fc.features.length === 0) return;
+
+            const coords = [];
+            fc.features.forEach(f => {
+                const geom = f.geometry;
+                if (!geom) return;
+                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                if (geom.type === 'Polygon') collect(geom.coordinates);
+                if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+            });
+
+            if (!coords.length) return;
+
+            const lons = coords.map(c => c[0]);
+            const lats = coords.map(c => c[1]);
+            const bounds = [
+                [Math.min(...lons), Math.min(...lats)],
+                [Math.max(...lons), Math.max(...lats)]
+            ];
+
+            try {
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+            } catch (err) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                } else {
+                    console.warn('fitBounds failed after retries:', err);
+                }
+            }
+        } catch (err) {
+            if (attempt < 6) {
+                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+            } else {
+                console.warn('fitGeoJSONBounds unexpected error:', err);
+            }
+        }
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -186,30 +237,8 @@ export default function BoothsListPage() {
                 }
                 const fc = { type: 'FeatureCollection', features };
                 setBoothGeoJSON(fc);
-                // auto-fit handled below
-                setTimeout(() => {
-                    try {
-                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                        if (!map || !fc.features?.length) return;
-                        const coords = [];
-                        fc.features.forEach(f => {
-                            const geom = f.geometry;
-                            if (!geom) return;
-                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                            if (geom.type === 'Polygon') collect(geom.coordinates);
-                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                        });
-                        if (coords.length) {
-                            const lons = coords.map(c => c[0]);
-                            const lats = coords.map(c => c[1]);
-                            const bounds = [
-                                [Math.min(...lons), Math.min(...lats)],
-                                [Math.max(...lons), Math.max(...lats)]
-                            ];
-                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                        }
-                    } catch { }
-                }, 0);
+                // Use resilient fit with retries
+                fitGeoJSONBounds(fc);
                 return;
             }
 
@@ -251,30 +280,8 @@ export default function BoothsListPage() {
             // Normalize to a valid FeatureCollection
             const fc = { type: 'FeatureCollection', features: json.features };
             setBoothGeoJSON(fc);
-            // Auto-fit on first render
-            setTimeout(() => {
-                try {
-                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                    if (!map || !fc.features?.length) return;
-                    const coords = [];
-                    fc.features.forEach(f => {
-                        const geom = f.geometry;
-                        if (!geom) return;
-                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                        if (geom.type === 'Polygon') collect(geom.coordinates);
-                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                    });
-                    if (coords.length) {
-                        const lons = coords.map(c => c[0]);
-                        const lats = coords.map(c => c[1]);
-                        const bounds = [
-                            [Math.min(...lons), Math.min(...lats)],
-                            [Math.max(...lons), Math.max(...lats)]
-                        ];
-                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                    }
-                } catch { }
-            }, 0);
+            // Use resilient fit with retries
+            fitGeoJSONBounds(fc);
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
@@ -616,9 +623,14 @@ export default function BoothsListPage() {
 
     // Fetch reference data only once on component mount
     useEffect(() => {
-        fetchReferenceData();
-        // Initial fetch of booths
-        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        // Wrap in async IIFE so we can await reference data before loading polygons
+        (async () => {
+            await fetchReferenceData();
+            // Load all booth polygons by default
+            await loadBoothPolygons('ALL');
+            // Initial fetch of booths table data
+            fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        })();
     }, []);
 
     // Handle pagination changes (only when not searching/filtering)
