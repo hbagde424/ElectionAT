@@ -101,6 +101,91 @@ function DistrictMap({ onRegionClick }) {
         };
     }, []);
 
+    // Helper: convert ArcGIS/ESRI polygon "rings" to GeoJSON MultiPolygon
+    // Some features (coming from ArcGIS sources) may not have `coordinates` but have `rings`.
+    // Convert them into a GeoJSON-friendly structure so Leaflet can render them.
+    const convertEsriToGeoJSON = (geometry) => {
+        if (!geometry) return geometry;
+
+        // If GeoJSON already, return as-is
+        if (geometry.coordinates) return geometry;
+
+        // ESRI Polygon uses `rings` (array of linear rings). Convert to MultiPolygon.
+        if (geometry.rings && Array.isArray(geometry.rings)) {
+            try {
+                // Each ring is an array of [x, y] coords. We'll treat each ring as a separate polygon
+                // by wrapping each ring in an extra array (MultiPolygon -> [ [ ring ] , ... ]).
+                // This is a safe conversion when ESRI data doesn't explicitly separate polygons vs holes.
+                const mpCoords = geometry.rings.map((ring) => {
+                    // Ensure coordinates are plain arrays of [lng, lat]
+                    const cleanRing = ring.map((pt) => [pt[0], pt[1]]);
+                    return [cleanRing];
+                });
+                return { type: 'MultiPolygon', coordinates: mpCoords };
+            } catch (err) {
+                console.warn('Failed to convert ESRI rings to GeoJSON:', err);
+                return geometry;
+            }
+        }
+
+        // Point-like esri objects
+        if (typeof geometry.x === 'number' && typeof geometry.y === 'number') {
+            return { type: 'Point', coordinates: [geometry.x, geometry.y] };
+        }
+
+        return geometry;
+    };
+
+    // Try multiple fallbacks to normalize a feature's geometry into GeoJSON coordinates
+    const normalizeFeatureGeometry = (feature) => {
+        if (!feature) return null;
+        let geom = feature.geometry || null;
+
+        // If geom already has coordinates, return
+        if (geom && geom.coordinates) return geom;
+
+        // Check common places where ESRI may store rings/paths
+        const tryFields = [
+            feature.geometry?.rings,
+            feature.geometry?.paths,
+            feature.rings,
+            feature.paths,
+            feature.coordinates,
+            feature.geojson,
+            feature.geometry?.geometries,
+            feature.geometries
+        ];
+
+        // If any of these exist, try conversion
+        for (const candidate of tryFields) {
+            if (!candidate) continue;
+            // If candidate is array of rings/paths
+            if (Array.isArray(candidate)) {
+                try {
+                    // If it's an array of geometries (geometries), try to merge
+                    if (candidate.length > 0 && Array.isArray(candidate[0]) && Array.isArray(candidate[0][0])) {
+                        // Treat as rings -> MultiPolygon
+                        const mpCoords = candidate.map((ring) => [ring.map((pt) => [pt[0], pt[1]])]);
+                        return { type: 'MultiPolygon', coordinates: mpCoords };
+                    }
+                } catch (err) {
+                    // continue
+                }
+            }
+
+            // If candidate looks like a geometry object
+            if (candidate && typeof candidate === 'object') {
+                if (candidate.type && candidate.coordinates) return candidate;
+                if (candidate.rings && Array.isArray(candidate.rings)) {
+                    return convertEsriToGeoJSON(candidate);
+                }
+            }
+        }
+
+        // As a last resort, if geometry exists but lacks coordinates, return it (it will likely fail validation)
+        return geom;
+    };
+
     useEffect(() => {
         // Add custom styles to document
         const styleElement = document.createElement('style');
@@ -183,7 +268,7 @@ function DistrictMap({ onRegionClick }) {
                 // Handle the case where we have multiple FeatureCollection documents
                 const allDistrictFeatures = [];
                 
-                districtData.polygons.forEach((districtPolygon, polygonIndex) => {
+                for (const [polygonIndex, districtPolygon] of districtData.polygons.entries()) {
                     console.log(`Processing district polygon ${polygonIndex}:`, districtPolygon);
                     console.log(`Original features count: ${districtPolygon.features ? districtPolygon.features.length : 0}`);
                     
@@ -205,42 +290,170 @@ function DistrictMap({ onRegionClick }) {
                                             return false;
                                         };
 
-                                        const transformedFeatures = districtPolygon.features
-                                            .filter((feature) => {
-                                                // Debug log for Betul
-                                                if ((feature.properties?.dtname || '').toLowerCase().includes('betul')) {
-                                                    console.log('Betul feature geometry:', feature.geometry);
-                                                }
-                                                return isValidGeo(feature.geometry);
-                                            })
+                                        const processedFeatures = districtPolygon.features
                                             .map((feature, featureIndex) => {
+                                                // Normalize geometry from several possible ESRI/GeoJSON shapes
+                                                let geom = normalizeFeatureGeometry(feature) || feature.geometry || null;
+
+                                                // Extra diagnostic for Betul: log original keys and normalized geometry
+                                                if ((feature.properties?.dtname || '').toLowerCase().includes('betul')) {
+                                                    console.log('Betul original feature keys:', Object.keys(feature));
+                                                    console.log('Betul original geometry keys:', feature.geometry ? Object.keys(feature.geometry) : null);
+                                                    console.log('Betul normalized geometry:', geom);
+                                                }
+
                                                 const props = feature.properties || {};
+
+                                                // If we have coordinates, do a quick sanity check for projected coords
+                                                try {
+                                                    const coordsSample = geom && geom.coordinates && geom.coordinates[0] ? geom.coordinates[0] : null;
+                                                    const sampleVal = coordsSample && Array.isArray(coordsSample[0]) ? coordsSample[0][0] : null;
+                                                    if (sampleVal && typeof sampleVal === 'number' && Math.abs(sampleVal) > 1000) {
+                                                        if ((props?.dtname || '').toLowerCase().includes('betul')) {
+                                                            console.warn('Betul coordinates look projected (large numbers). They may need reprojection to lon/lat. Sample value:', sampleVal);
+                                                        }
+                                                    }
+                                                } catch (err) {
+                                                    // ignore
+                                                }
                                                 return {
-                                                    type: 'Feature',
-                                                    properties: {
-                                                        id: props.dtname?.toLowerCase().replace(/\s+/g, '-') || `district-${polygonIndex}-${featureIndex}`,
-                                                        name: props.dtname || `District-${featureIndex}`,
-                                                        displayName: props.dtname || `District-${featureIndex}`,
-                                                        district: props.dtname || '',
-                                                        state: props.stname || 'Madhya Pradesh',
-                                                        stateCode: props.stcode11 || '23',
-                                                        districtCode: props.dtcode11 || '',
-                                                        year: props.year_stat || '2011',
-                                                        districtLGD: props.Dist_LGD || '',
-                                                        stateLGD: props.State_LGD || '',
-                                                        objectId: props.OBJECTID || '',
-                                                        shapeLength: props.Shape_Length || '',
-                                                        shapeArea: props.Shape_Area || '',
-                                                        isValidGeometry: true
-                                                    },
-                                                    geometry: feature.geometry
+                                                    originalFeature: feature,
+                                                    geometry: geom,
+                                                    properties: props,
+                                                    featureIndex
                                                 };
-                                            });
-                                        console.log(`Processing all ${transformedFeatures.length} features (all with valid geometry)`);
-                                        allDistrictFeatures.push(...transformedFeatures);
-                                        console.log(`Added ${transformedFeatures.length} features from polygon ${polygonIndex}`);
+                                            })
+                                            .map((f) => f); // keep processed objects for now
+
+                                        // Partition into valid and invalid geometries
+                                        const validProcessed = processedFeatures.filter((f) => isValidGeo(f.geometry));
+                                        const invalidProcessed = processedFeatures.filter((f) => !isValidGeo(f.geometry));
+
+                                        // Helper to convert processed objects to GeoJSON feature
+                                        const toGeoJSONFeature = (fObj) => {
+                                            const props = fObj.properties || {};
+                                            const featureIndex = fObj.featureIndex;
+                                            return {
+                                                type: 'Feature',
+                                                properties: {
+                                                    id: props.dtname?.toLowerCase().replace(/\s+/g, '-') || `district-${polygonIndex}-${featureIndex}`,
+                                                    name: props.dtname || `District-${featureIndex}`,
+                                                    displayName: props.dtname || `District-${featureIndex}`,
+                                                    district: props.dtname || '',
+                                                    state: props.stname || 'Madhya Pradesh',
+                                                    stateCode: props.stcode11 || '23',
+                                                    districtCode: props.dtcode11 || '',
+                                                    year: props.year_stat || '2011',
+                                                    districtLGD: props.Dist_LGD || '',
+                                                    stateLGD: props.State_LGD || '',
+                                                    objectId: props.OBJECTID || '',
+                                                    shapeLength: props.Shape_Length || '',
+                                                    shapeArea: props.Shape_Area || '',
+                                                    isValidGeometry: true
+                                                },
+                                                geometry: fObj.geometry
+                                            };
+                                        };
+
+                                        // Add all currently valid features
+                                        const validFeatures = validProcessed.map(toGeoJSONFeature);
+                                        allDistrictFeatures.push(...validFeatures);
+                                        console.log(`Added ${validFeatures.length} valid features from polygon ${polygonIndex}`);
+                                        if (invalidProcessed.length) {
+                                            console.warn(`Attempting recovery for ${invalidProcessed.length} feature(s) with missing geometry in polygon ${polygonIndex}`);
+                                        }
+
+                                        // Try to fetch missing geometries for invalidProcessed features
+                                        if (invalidProcessed.length > 0) {
+                                            const base = import.meta.env.VITE_APP_API_URL;
+                                            const headers = getAuthHeaders();
+                                            for (const miss of invalidProcessed) {
+                                                try {
+                                                    const fid = miss.originalFeature && (miss.originalFeature._id || miss.originalFeature.id);
+                                                    const name = miss.properties?.dtname || miss.properties?.district || miss.properties?.name || '';
+                                                    let fetched = null;
+
+                                                    const tryEndpoints = [];
+                                                    if (fid) {
+                                                        tryEndpoints.push(`${base}/district-polygons/${fid}`);
+                                                        tryEndpoints.push(`${base}/polygons/${fid}`);
+                                                        tryEndpoints.push(`${base}/features/${fid}`);
+                                                        tryEndpoints.push(`${base}/geojson/${fid}`);
+                                                    }
+                                                    if (name) {
+                                                        // Try domain-specific endpoints that can contain the geometry inside `features`
+                                                        tryEndpoints.push(`${base}/district-polygons/district/${encodeURIComponent(name)}`);
+                                                        tryEndpoints.push(`${base}/district-polygons/name/${encodeURIComponent(name)}`);
+                                                        // As a fallback, search districts (non-geometry) in case they embed a shape
+                                                        tryEndpoints.push(`${base}/districts?search=${encodeURIComponent(name)}&limit=1`);
+                                                    }
+
+                                                    for (const ep of tryEndpoints) {
+                                                        try {
+                                                            const r = await fetch(ep, { headers });
+                                                            if (!r.ok) continue;
+                                                            const body = await r.json();
+                                                            // Heuristics: body may be GeoJSON, or a wrapper with polygons/feature
+                                                            if (body && body.type && body.coordinates) {
+                                                                fetched = body;
+                                                            } else if (body && body.geometry) {
+                                                                fetched = body.geometry;
+                                                            } else if (body && body.polygons && Array.isArray(body.polygons) && body.polygons.length > 0) {
+                                                                // take first polygon feature
+                                                                const p = body.polygons[0];
+                                                                if (p.features && p.features.length > 0) fetched = p.features[0].geometry;
+                                                            } else if (Array.isArray(body)) {
+                                                                // district-polygons/district|name returns an array of FeatureCollections
+                                                                // Find the target feature for this district and extract its geometry
+                                                                const lc = (s) => String(s || '').trim().toLowerCase();
+                                                                const target = lc(name);
+                                                                for (const doc of body) {
+                                                                    if (doc && doc.features && Array.isArray(doc.features)) {
+                                                                        const f = doc.features.find(ft => {
+                                                                            const props = ft.properties || {};
+                                                                            return lc(props.dtname || props.District || props.Name) === target;
+                                                                        });
+                                                                        if (f && f.geometry) {
+                                                                            fetched = f.geometry;
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            } else if (body && Array.isArray(body.data) && body.data.length > 0) {
+                                                                // maybe district doc
+                                                                const doc = body.data[0];
+                                                                if (doc.geometry) fetched = doc.geometry;
+                                                                else if (doc.polygon) fetched = doc.polygon;
+                                                                else if (doc.geojson) fetched = doc.geojson;
+                                                            }
+
+                                                            if (fetched) break;
+                                                        } catch (err) {
+                                                            // ignore and try next
+                                                        }
+                                                    }
+
+                                                    if (fetched) {
+                                                        // Normalize if ESRI rings
+                                                        let newGeom = fetched;
+                                                        if (newGeom && newGeom.rings) newGeom = convertEsriToGeoJSON(newGeom);
+                                                        // Final validate
+                                                        if (isValidGeo(newGeom)) {
+                                                            miss.geometry = newGeom;
+                                                            allDistrictFeatures.push(toGeoJSONFeature(miss));
+                                                            console.log(`Recovered geometry for ${name || fid} from fallback`);
+                                                            continue;
+                                                        }
+                                                    }
+
+                                                    console.warn('Could not recover geometry for feature:', miss.properties?.dtname || miss.originalFeature && (miss.originalFeature._id || miss.originalFeature.id));
+                                                } catch (err) {
+                                                    console.error('Error while attempting to fetch missing geometry:', err);
+                                                }
+                                            }
+                                        }
                     }
-                });
+                }
 
                 console.log(`Total district features loaded: ${allDistrictFeatures.length}`);
 
