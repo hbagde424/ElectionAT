@@ -322,6 +322,11 @@ function HierarchicalMap({ onRegionClick }) {
     const [selectedBoothDetails, setSelectedBoothDetails] = useState(null);
     const closeTimersRef = useRef({}); // store close timers by layer id to delay popup close
 
+    // Helper to capitalize first letter for UI display (keeps internal state values lowercase)
+    const capitalize = (s) => {
+        if (!s || typeof s !== 'string') return s;
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    };
     // Helper to add Authorization header when token exists
     const getAuthHeaders = () => {
         try {
@@ -3707,8 +3712,8 @@ function HierarchicalMap({ onRegionClick }) {
                             <div style={{ marginBottom: '8px' }}>
                                 <span style={{ fontWeight: '500' }}>
                                     {selectedFeature ?
-                                        `Current: ${selectedFeature.properties.name} (${currentLevel})` :
-                                        `Level: ${currentLevel}`
+                                        `Current: ${selectedFeature.properties.name} (${capitalize(currentLevel)})` :
+                                        `Level: ${capitalize(currentLevel)}`
                                     }
                                 </span>
                             </div>

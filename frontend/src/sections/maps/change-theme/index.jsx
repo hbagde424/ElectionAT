@@ -21,6 +21,12 @@ function ChangeTheme({ themes, ...other }) {
   const [popupInfo, setPopupInfo] = useState(null);
   const mapRef = useRef(null);
 
+  // Helper to capitalize first letter for UI display
+  const capitalize = (s) => {
+    if (!s || typeof s !== 'string') return s;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
   // Load initial state data
   useEffect(() => {
     loadStateData();
@@ -399,7 +405,7 @@ function ChangeTheme({ themes, ...other }) {
             borderRadius: '4px',
             marginLeft: '10px'
           }}>
-            Current: {selectedFeature.properties.name} ({currentLevel})
+            Current: {selectedFeature.properties.name} ({capitalize(currentLevel)})
           </div>
         )}
       </div>
