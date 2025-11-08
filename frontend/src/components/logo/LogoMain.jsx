@@ -1,6 +1,6 @@
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import logo from './logo.png';
+import logo from './LogoRemovebg.png';
 
 /**
  * if you want to use image instead of <svg> uncomment following.
