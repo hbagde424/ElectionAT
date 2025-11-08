@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Chip, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Pagination } from '@mui/material';
+import { Box, Button, Chip, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Pagination, TableContainer } from '@mui/material';
 import { getLogs, getLogMeta } from '../../api/logs';
+import MainCard from 'components/MainCard';
+import ScrollX from 'components/ScrollX';
 
 const pageSizeDefault = 20;
 
 export default function ActivityLogs() {
   const [meta, setMeta] = useState({ actions: [], entities: [], roles: [], emails: [] });
-  const [filters, setFilters] = useState({ page: 1, limit: pageSizeDefault, email: '', role: '', action: '', entity: '', success: '', from: '', to: '' });
+  const [filters, setFilters] = useState({ page: 1, limit: pageSizeDefault, email: '', action: '', entity: '', success: '', from: '', to: '' });
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -42,7 +44,7 @@ export default function ActivityLogs() {
   useEffect(() => {
     fetchData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.email, filters.role, filters.action, filters.entity, filters.success, filters.from, filters.to]);
+  }, [filters.email, filters.action, filters.entity, filters.success, filters.from, filters.to]);
 
   const onPageChange = (_, page) => {
     setFilters((f) => ({ ...f, page }));
@@ -52,23 +54,14 @@ export default function ActivityLogs() {
   const changeFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h4">Activity Logs</Typography>
-      <Grid container spacing={2}>
+    <MainCard content={false}>
+      <Stack spacing={2} sx={{ p: 2 }}>
+        <Typography variant="h4">Activity Logs</Typography>
+        <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={3}>
           <TextField label="User Email" fullWidth value={filters.email} onChange={(e) => changeFilter('email', e.target.value)} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Role</InputLabel>
-            <Select label="Role" value={filters.role} onChange={(e) => changeFilter('role', e.target.value)}>
-              <MenuItem value="">All</MenuItem>
-              {meta.roles.map((r) => (
-                <MenuItem key={r} value={r}>{r}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+        {/* Role filter removed as requested */}
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth>
             <InputLabel>Action</InputLabel>
@@ -108,59 +101,62 @@ export default function ActivityLogs() {
           <TextField type="date" fullWidth label="To" InputLabelProps={{ shrink: true }} value={filters.to} onChange={(e) => changeFilter('to', e.target.value)} />
         </Grid>
         <Grid item xs={12} sm={6} md={1}>
-          <Button fullWidth variant="outlined" onClick={() => { setFilters({ page: 1, limit: pageSizeDefault, email: '', role: '', action: '', entity: '', success: '', from: '', to: '' }); }}>Reset</Button>
+          <Button fullWidth variant="outlined" onClick={() => { setFilters({ page: 1, limit: pageSizeDefault, email: '', action: '', entity: '', success: '', from: '', to: '' }); }}>Reset</Button>
         </Grid>
       </Grid>
 
-      <Box sx={{ overflow: 'auto' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Time</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Action</TableCell>
-              <TableCell>Entity</TableCell>
-              <TableCell>Entity ID</TableCell>
-              <TableCell>Endpoint</TableCell>
-              <TableCell>Success</TableCell>
-              <TableCell>Remark</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r._id} hover>
-                <TableCell>{r.timestamp ? new Date(r.timestamp).toLocaleString() : ''}</TableCell>
-                <TableCell>{r.userName || r.userEmail || r.userId || '-'}</TableCell>
-                <TableCell>{r.role || '-'}</TableCell>
-                <TableCell>{r.action}</TableCell>
-                <TableCell>{r.entity || '-'}</TableCell>
-                <TableCell>{r.entityId || '-'}</TableCell>
-                <TableCell>{r.method} {r.endpoint}</TableCell>
-                <TableCell>{r.success ? <Chip size="small" color="success" label="OK" /> : <Chip size="small" color="error" label="FAIL" />}</TableCell>
-                <TableCell sx={{ maxWidth: 480, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {r.remark || r.message ? (
-                    <a href={`/admin/activity-logs/${r._id}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                      {r.remark || r.message}
-                    </a>
-                  ) : '-'}
-                </TableCell>
-              </TableRow>
-            ))}
-            {!rows.length && (
-              <TableRow>
-                <TableCell colSpan={8} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Box>
+        <Box sx={{ overflow: 'auto' }}>
+          <ScrollX>
+            <TableContainer>
+              <Table size="small">
+                <TableHead sx={{ backgroundColor: 'primary.main' }}>
+                    <TableRow>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Time</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>User</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Action</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Entity</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Entity ID</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Endpoint</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Success</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Remark</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((r) => (
+                      <TableRow key={r._id} hover>
+                        <TableCell>{r.timestamp ? new Date(r.timestamp).toLocaleString() : ''}</TableCell>
+                        <TableCell>{r.userName || r.userEmail || r.userId || '-'}</TableCell>
+                        <TableCell>{r.action}</TableCell>
+                        <TableCell>{r.entity || '-'}</TableCell>
+                        <TableCell>{r.entityId || '-'}</TableCell>
+                        <TableCell>{r.method} {r.endpoint}</TableCell>
+                        <TableCell>{r.success ? <Chip size="small" color="success" label="OK" /> : <Chip size="small" color="error" label="FAIL" />}</TableCell>
+                        <TableCell sx={{ maxWidth: 480, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {r.remark || r.message ? (
+                            <a href={`/admin/activity-logs/${r._id}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                              {r.remark || r.message}
+                            </a>
+                          ) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!rows.length && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+              </Table>
+            </TableContainer>
+          </ScrollX>
+        </Box>
 
-      {pages > 1 && (
-        <Stack direction="row" justifyContent="center">
-          <Pagination page={filters.page} onChange={onPageChange} count={pages} color="primary" />
-        </Stack>
-      )}
-    </Stack>
+        {pages > 1 && (
+          <Stack direction="row" justifyContent="center">
+            <Pagination page={filters.page} onChange={onPageChange} count={pages} color="primary" />
+          </Stack>
+        )}
+      </Stack>
+    </MainCard>
   );
 }
