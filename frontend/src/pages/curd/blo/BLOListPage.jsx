@@ -54,6 +54,55 @@ const BLOListPage = () => {
     const [mapError, setMapError] = useState('');
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+    
+    // Helper: fit map to GeoJSON feature collection bounds with retries (same logic as booths page)
+    const fitGeoJSONBounds = (fc, attempt = 0) => {
+        try {
+            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+            if (!map) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                }
+                return;
+            }
+
+            if (!fc || !Array.isArray(fc.features) || fc.features.length === 0) return;
+
+            const coords = [];
+            fc.features.forEach(f => {
+                const geom = f.geometry;
+                if (!geom) return;
+                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                if (geom.type === 'Polygon') collect(geom.coordinates);
+                if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+            });
+
+            if (!coords.length) return;
+
+            const lons = coords.map(c => c[0]);
+            const lats = coords.map(c => c[1]);
+            const bounds = [
+                [Math.min(...lons), Math.min(...lats)],
+                [Math.max(...lons), Math.max(...lats)]
+            ];
+
+            try {
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+            } catch (err) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                } else {
+                    console.warn('fitBounds failed after retries:', err);
+                }
+            }
+        } catch (err) {
+            if (attempt < 6) {
+                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+            } else {
+                console.warn('fitGeoJSONBounds unexpected error:', err);
+            }
+        }
+    };
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const [boothsWithBLO, setBoothsWithBLO] = useState(new Set());
@@ -329,6 +378,8 @@ const BLOListPage = () => {
                 }
                 const fc = { type: 'FeatureCollection', features };
                 setBoothGeoJSON(fc);
+                // Auto-fit map to polygons
+                fitGeoJSONBounds(fc);
                 return;
             }
 
@@ -351,6 +402,8 @@ const BLOListPage = () => {
             }
             const fc = { type: 'FeatureCollection', features: json.features || json.data || [] };
             setBoothGeoJSON(fc);
+            // Auto-fit map to polygons
+            fitGeoJSONBounds(fc);
         } catch (e) {
             setMapError(`Failed to load booth polygons: ${e.message}`);
             setBoothGeoJSON(null);
