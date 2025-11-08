@@ -544,7 +544,12 @@ export default function ParliamentListPage() {
                                         id="parliament-label"
                                         type="symbol"
                                         layout={{ 'text-field': ['concat', ['coalesce', ['get', 'PC_NO'], ['get', 'AC_NO'], ''], '\n', ['coalesce', ['get', 'PC_NAME'], ['get', 'AC_NAME'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
-                                        paint={{ 'text-color': '#333', 'text-halo-color': '#fff', 'text-halo-width': 1 }}
+                                        paint={{
+                                            'text-color': '#000',
+                                            'text-halo-color': '#ffffff',
+                                            'text-halo-width': 2,
+                                            'text-halo-blur': 1
+                                        }}
                                     />
                                 </Source>
                             )}
