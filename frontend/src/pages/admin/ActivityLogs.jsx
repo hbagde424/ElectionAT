@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Chip, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Pagination, TableContainer } from '@mui/material';
+import { Box, Button, Chip, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Pagination, TableContainer, IconButton, Tooltip } from '@mui/material';
 import { getLogs, getLogMeta } from '../../api/logs';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
+import { useNavigate } from 'react-router-dom';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const pageSizeDefault = 20;
 
 export default function ActivityLogs() {
+  const navigate = useNavigate();
   const [meta, setMeta] = useState({ actions: [], entities: [], roles: [], emails: [] });
   const [filters, setFilters] = useState({ page: 1, limit: pageSizeDefault, email: '', action: '', entity: '', success: '', from: '', to: '' });
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState([]); 
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -111,38 +114,89 @@ export default function ActivityLogs() {
               <Table size="small">
                 <TableHead sx={{ backgroundColor: 'primary.main' }}>
                     <TableRow>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Time</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>User</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Action</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Entity</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Entity ID</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Endpoint</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Success</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Remark</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>Time</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>User</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 100 }}>Role</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 120 }}>Action</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 100 }}>Entity</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>Entity ID</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>Endpoint</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 120 }}>IP Address</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>User Agent</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 80 }}>Success</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>Remark</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 100 }}>Changes</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 80 }}>Details</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {rows.map((r) => (
-                      <TableRow key={r._id} hover>
+                      <TableRow key={r._id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/admin/activity-logs/${r._id}`)}>
                         <TableCell>{r.timestamp ? new Date(r.timestamp).toLocaleString() : ''}</TableCell>
-                        <TableCell>{r.userName || r.userEmail || r.userId || '-'}</TableCell>
-                        <TableCell>{r.action}</TableCell>
+                        <TableCell>
+                          <Tooltip title={r.userEmail || r.userId || ''}>
+                            <span>{r.userName || r.userEmail || r.userId || '-'}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>{r.role || '-'}</TableCell>
+                        <TableCell>
+                          <Chip size="small" label={r.action} color="primary" variant="outlined" />
+                        </TableCell>
                         <TableCell>{r.entity || '-'}</TableCell>
-                        <TableCell>{r.entityId || '-'}</TableCell>
-                        <TableCell>{r.method} {r.endpoint}</TableCell>
-                        <TableCell>{r.success ? <Chip size="small" color="success" label="OK" /> : <Chip size="small" color="error" label="FAIL" />}</TableCell>
-                        <TableCell sx={{ maxWidth: 480, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {r.remark || r.message ? (
-                            <a href={`/admin/activity-logs/${r._id}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                              {r.remark || r.message}
-                            </a>
+                        <TableCell>
+                          <Tooltip title={r.entityId || ''}>
+                            <span style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                              {r.entityId || '-'}
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={`${r.method || ''} ${r.endpoint || ''}`}>
+                            <span>
+                              <Chip size="small" label={r.method || 'GET'} sx={{ mr: 0.5, minWidth: 45 }} />
+                              <span style={{ fontSize: '0.875rem' }}>{r.endpoint || '-'}</span>
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={r.ip || 'No IP'}>
+                            <span>{r.ip || '-'}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={r.userAgent || 'No User Agent'}>
+                            <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
+                              {r.userAgent ? (r.userAgent.includes('Chrome') ? '🌐 Chrome' : r.userAgent.includes('Firefox') ? '🦊 Firefox' : r.userAgent.includes('Safari') ? '🧭 Safari' : r.userAgent.includes('Edge') ? '⚡ Edge' : '🖥️ Browser') : '-'}
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          {r.success ? <Chip size="small" color="success" label="✓ OK" /> : <Chip size="small" color="error" label="✗ FAIL" />}
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={r.remark || r.message || 'No remark'}>
+                            <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
+                              {r.remark || r.message || '-'}
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          {Array.isArray(r.changes) && r.changes.length > 0 ? (
+                            <Chip size="small" color="info" label={`${r.changes.length} changes`} />
+                          ) : r.meta ? (
+                            <Chip size="small" color="secondary" label="Has Meta" variant="outlined" />
                           ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); navigate(`/admin/activity-logs/${r._id}`); }}>
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
                     {!rows.length && (
                       <TableRow>
-                        <TableCell colSpan={8} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
+                        <TableCell colSpan={13} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
