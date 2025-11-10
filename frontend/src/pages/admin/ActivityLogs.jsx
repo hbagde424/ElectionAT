@@ -116,7 +116,6 @@ export default function ActivityLogs() {
                     <TableRow>
                       <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>Time</TableCell>
                       <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>User</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 100 }}>Role</TableCell>
                       <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 120 }}>Action</TableCell>
                       <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 100 }}>Entity</TableCell>
                       <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>Entity ID</TableCell>
@@ -138,7 +137,6 @@ export default function ActivityLogs() {
                             <span>{r.userName || r.userEmail || r.userId || '-'}</span>
                           </Tooltip>
                         </TableCell>
-                        <TableCell>{r.role || '-'}</TableCell>
                         <TableCell>
                           <Chip size="small" label={r.action} color="primary" variant="outlined" />
                         </TableCell>
@@ -196,7 +194,7 @@ export default function ActivityLogs() {
                     ))}
                     {!rows.length && (
                       <TableRow>
-                        <TableCell colSpan={13} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
+                        <TableCell colSpan={12} align="center">{loading ? 'Loading…' : 'No logs found'}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
