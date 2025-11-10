@@ -412,11 +412,13 @@ export default function InfluencersListPage() {
     };
 
     // Fetch booths with influencers
-    const fetchBoothsWithInfluencers = async () => {
+    const fetchBoothsWithInfluencers = async (selectedYear = yearFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const influencersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`, { headers });
+            let url = `${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`;
+            if (selectedYear) url += `&year=${selectedYear}`;
+            const influencersRes = await fetch(url, { headers });
             const influencersJson = await influencersRes.json();
             if (influencersJson.success && Array.isArray(influencersJson.data)) {
                 const boothIds = new Set();
@@ -427,7 +429,7 @@ export default function InfluencersListPage() {
                     }
                 });
                 setBoothsWithInfluencers(boothIds);
-                console.log('✅ Booths with influencers updated:', boothIds.size);
+                console.log('✅ Booths with influencers updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with influencers:', err);
@@ -445,7 +447,7 @@ export default function InfluencersListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            fetchBoothsWithInfluencers();
+            fetchBoothsWithInfluencers(yearFilter);
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -564,6 +566,14 @@ export default function InfluencersListPage() {
         }
     }, [blocks, mapboxToken]);
 
+    // Refresh influencer markers when year filter changes
+    useEffect(() => {
+        if (boothGeoJSON && yearFilter !== undefined) {
+            fetchBoothsWithInfluencers(yearFilter);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    }, [yearFilter]);
+
     // Fetch booth details and influencers when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -594,7 +604,9 @@ export default function InfluencersListPage() {
             let influencers = [];
             if (booth && booth._id) {
                 try {
-                    const influencersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?booth=${encodeURIComponent(booth._id)}&all=true`, { headers });
+                    let influencersUrl = `${import.meta.env.VITE_APP_API_URL}/influencers?booth=${encodeURIComponent(booth._id)}&all=true`;
+                    if (yearFilter) influencersUrl += `&year=${yearFilter}`;
+                    const influencersRes = await fetch(influencersUrl, { headers });
                     const influencersJson = await influencersRes.json();
                     if (influencersJson.success && Array.isArray(influencersJson.data)) {
                         influencers = influencersJson.data;
@@ -647,6 +659,7 @@ export default function InfluencersListPage() {
             if (selectedPanchayat) query += `&panchayat_id=${selectedPanchayat}`;
             if (selectedVillage) query += `&village_id=${selectedVillage}`;
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
+            if (yearFilter) query += `&year=${yearFilter}`;
 
             // Add hierarchy-based filtering
             if (userHierarchy) {
@@ -727,7 +740,8 @@ export default function InfluencersListPage() {
         selectedBooth,
         selectedPanchayat,
         selectedVillage,
-        selectedFalliya
+        selectedFalliya,
+        yearFilter
     ]);
 
     const handleDeleteOpen = (id) => {
@@ -1293,7 +1307,9 @@ export default function InfluencersListPage() {
                         
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
+                            </Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{ 
@@ -1757,7 +1773,7 @@ export default function InfluencersListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchInfluencers(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithInfluencers();
+                    fetchBoothsWithInfluencers(yearFilter);
                 }}
             />
 
@@ -1767,7 +1783,7 @@ export default function InfluencersListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchInfluencers(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithInfluencers();
+                    fetchBoothsWithInfluencers(yearFilter);
                 }}
             />
         </>

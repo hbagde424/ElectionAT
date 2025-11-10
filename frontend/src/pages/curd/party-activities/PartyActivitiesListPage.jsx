@@ -206,11 +206,13 @@ export default function PartyActivitiesListPage() {
     };
 
     // Fetch booths with activities to mark them on the map
-    const fetchBoothsWithActivities = async () => {
+    const fetchBoothsWithActivities = async (selectedYear = yearFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const activitiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?all=true&limit=50000`, { headers });
+            let url = `${import.meta.env.VITE_APP_API_URL}/party-activities?all=true&limit=50000`;
+            if (selectedYear) url += `&year=${selectedYear}`;
+            const activitiesRes = await fetch(url, { headers });
             const activitiesJson = await activitiesRes.json();
             if (activitiesJson.success && Array.isArray(activitiesJson.data)) {
                 const boothIds = new Set();
@@ -221,7 +223,7 @@ export default function PartyActivitiesListPage() {
                     }
                 });
                 setBoothsWithActivities(boothIds);
-                console.log('✅ Booths with activities updated:', boothIds.size);
+                console.log('✅ Booths with activities updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with activities:', err);
@@ -240,7 +242,7 @@ export default function PartyActivitiesListPage() {
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
             // Fetch booths with activities in parallel
-            fetchBoothsWithActivities();
+            fetchBoothsWithActivities(yearFilter);
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -359,6 +361,14 @@ export default function PartyActivitiesListPage() {
         }
     }, [blocks, mapboxToken]);
 
+    // Refresh activity markers when year filter changes
+    useEffect(() => {
+        if (boothGeoJSON && yearFilter !== undefined) {
+            fetchBoothsWithActivities(yearFilter);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    }, [yearFilter]);
+
     // Fetch booth details and party activities when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -389,7 +399,9 @@ export default function PartyActivitiesListPage() {
             let partyActivities = [];
             if (booth && booth._id) {
                 try {
-                    const activitiesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?booth=${encodeURIComponent(booth._id)}&all=true`, { headers });
+                    let activitiesUrl = `${import.meta.env.VITE_APP_API_URL}/party-activities?booth=${encodeURIComponent(booth._id)}&all=true`;
+                    if (yearFilter) activitiesUrl += `&year=${yearFilter}`;
+                    const activitiesRes = await fetch(activitiesUrl, { headers });
                     const activitiesJson = await activitiesRes.json();
                     if (activitiesJson.success && Array.isArray(activitiesJson.data)) {
                         partyActivities = activitiesJson.data;
@@ -451,7 +463,8 @@ export default function PartyActivitiesListPage() {
                 ...(appliedFilters.block_id && { block_id: appliedFilters.block_id }),
                 ...(appliedFilters.booth_id && { booth_id: appliedFilters.booth_id }),
                 ...(appliedFilters.activity_type && { activity_type: appliedFilters.activity_type }),
-                ...(appliedFilters.status && { status: appliedFilters.status })
+                ...(appliedFilters.status && { status: appliedFilters.status }),
+                ...(yearFilter && { year: yearFilter })
             });
 
             // hierarchy-based filtering
@@ -510,7 +523,7 @@ export default function PartyActivitiesListPage() {
     useEffect(() => {
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters, yearFilter]);
 
     const handleDeleteOpen = (id) => {
         setPartyActivityDeleteId(id);
@@ -1084,7 +1097,9 @@ export default function PartyActivitiesListPage() {
                         
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
+                            </Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{ 
@@ -1499,7 +1514,7 @@ export default function PartyActivitiesListPage() {
                 users={users}
                 refresh={() => {
                     fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithActivities();
+                    fetchBoothsWithActivities(yearFilter);
                 }}
             />
 
@@ -1509,7 +1524,7 @@ export default function PartyActivitiesListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchPartyActivities(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithActivities();
+                    fetchBoothsWithActivities(yearFilter);
                 }}
             />
         </>

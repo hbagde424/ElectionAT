@@ -1,7 +1,7 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Grid,
-    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert
+    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert, Drawer
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -20,6 +20,9 @@ import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import PanchayatModal from './PanchayatModal';
 import AlertPanchayatDelete from './AlertPanchayatDelete';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 
 const PanchayatListPage = () => {
     const theme = useTheme();
@@ -66,6 +69,17 @@ const PanchayatListPage = () => {
     const csvLinkRef = useRef(null);
     const [csvData, setCsvData] = useState([]);
     const [exportLoading, setExportLoading] = useState(false);
+
+    // Map state
+    const [blockNumberInput, setBlockNumberInput] = useState('ALL');
+    const [yearFilter, setYearFilter] = useState('');
+    const [boothGeoJSON, setBoothGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const [boothsWithPanchayat, setBoothsWithPanchayat] = useState(new Set());
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     const columns = useMemo(() => [
         {
@@ -217,7 +231,7 @@ const PanchayatListPage = () => {
     // Fetch panchayats data
     useEffect(() => {
         fetchPanchayats();
-    }, [pagination, sorting, globalFilter, filters]);
+    }, [pagination, sorting, globalFilter, filters, yearFilter]);
 
     const fetchPanchayats = async () => {
         setLoading(true);
@@ -228,6 +242,10 @@ const PanchayatListPage = () => {
                 ...(globalFilter && { search: globalFilter }),
                 ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
             });
+
+            if (yearFilter) {
+                params.append('year', yearFilter);
+            }
 
             if (sorting.length > 0) {
                 params.append('sort', `${sorting[0].desc ? '-' : ''}${sorting[0].id}`);
@@ -288,6 +306,10 @@ const PanchayatListPage = () => {
                 ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
             });
 
+            if (yearFilter) {
+                params.append('year', yearFilter);
+            }
+
             const response = await axiosServices.get(`/panchayats?${params}`);
             const exportData = response.data.data.map(panchayat => ({
                 'Panchayat Name': panchayat.panchayat_name,
@@ -315,6 +337,276 @@ const PanchayatListPage = () => {
         }
         setExportLoading(false);
     };
+
+    // Map Functions
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('serviceToken');
+        return { Authorization: `Bearer ${token}` };
+    };
+
+    const panchayatBoothNumberSet = useMemo(() => {
+        const set = new Set();
+        try {
+            Array.from(boothsWithPanchayat || []).forEach((id) => {
+                const booth = booths?.find((b) => String(b._id) === String(id));
+                const num = booth && String(booth.booth_number).trim().toLowerCase();
+                if (num) set.add(num);
+            });
+        } catch { }
+        return set;
+    }, [boothsWithPanchayat, booths]);
+
+    const boothMarkersGeoJSON = useMemo(() => {
+        if (!boothGeoJSON?.features) return null;
+        const seen = new Set();
+        const features = [];
+
+        const centroidFromGeom = (geometry) => {
+            try {
+                if (geometry?.type === 'Polygon' && geometry.coordinates?.[0]) {
+                    const coords = geometry.coordinates[0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+                if (geometry?.type === 'MultiPolygon' && geometry.coordinates?.[0]?.[0]) {
+                    const coords = geometry.coordinates[0][0];
+                    const lngs = coords.map((c) => c[0]);
+                    const lats = coords.map((c) => c[1]);
+                    return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
+                }
+            } catch { }
+            return [0, 0];
+        };
+
+        for (const feature of boothGeoJSON.features) {
+            const props = feature.properties || {};
+            const boothNoRaw = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+            const coordinates = centroidFromGeom(feature.geometry);
+            const coordKey = `coord:${coordinates[0].toFixed(5)},${coordinates[1].toFixed(5)}`;
+            const boothKeyNorm = boothNoRaw !== undefined && boothNoRaw !== null ? `booth:${String(boothNoRaw).trim().toLowerCase()}` : '';
+
+            const key = boothKeyNorm || coordKey;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            const boothNumNorm = boothNoRaw !== undefined && boothNoRaw !== null ? String(boothNoRaw).trim().toLowerCase() : '';
+            const hasPanchayat = boothNumNorm && panchayatBoothNumberSet.has(boothNumNorm);
+
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates },
+                properties: { ...props, hasPanchayat, boothNumber: boothNoRaw }
+            });
+        }
+
+        return { type: 'FeatureCollection', features };
+    }, [boothGeoJSON, panchayatBoothNumberSet]);
+
+    const fetchBoothsWithPanchayat = async (selectedYear = yearFilter) => {
+        try {
+            console.log('Fetching booths with panchayats (Year: ' + (selectedYear || 'All') + ')');
+            const headers = getAuthHeaders();
+            let url = `${import.meta.env.VITE_APP_API_URL}/panchayats?all=true`;
+            if (selectedYear) url += `&year=${selectedYear}`;
+
+            const resp = await fetch(url, { headers });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            const panchayatItems = data.data || [];
+
+            const boothIdSet = new Set();
+            panchayatItems.forEach((p) => {
+                if (p.booth_id && p.booth_id._id) boothIdSet.add(String(p.booth_id._id));
+                else if (p.booth_id) boothIdSet.add(String(p.booth_id));
+            });
+
+            setBoothsWithPanchayat(boothIdSet);
+            console.log('Booths with panchayats:', boothIdSet.size);
+        } catch (error) {
+            console.error('Error fetching booths with panchayats:', error);
+            setBoothsWithPanchayat(new Set());
+        }
+    };
+
+    const loadBoothPolygonsByBlockNumber = async (blockNumberVal) => {
+        if (!blockNumberVal) {
+            setMapError('Please enter Block Number');
+            return;
+        }
+        setMapError('');
+        try {
+            const headers = getAuthHeaders();
+            fetchBoothsWithPanchayat(yearFilter);
+
+            if (blockNumberVal === 'ALL') {
+                const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+                const resp = await fetch(url, { headers });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const j = await resp.json();
+                let features = j.features || j.data || [];
+                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
+                    features = features[0].features;
+                }
+                if (!features || !Array.isArray(features) || features.length === 0) {
+                    setMapError('No booth polygons found');
+                    setBoothGeoJSON(null);
+                    return;
+                }
+                const geoJSON = {
+                    type: 'FeatureCollection',
+                    features: features.map((f) => ({
+                        type: 'Feature',
+                        geometry: f.geometry || f,
+                        properties: f.properties || {}
+                    }))
+                };
+                setBoothGeoJSON(geoJSON);
+
+                if (mapRef.current && geoJSON.features.length > 0) {
+                    try {
+                        const bounds = geoJSON.features.reduce(
+                            (acc, f) => {
+                                const coords = f.geometry.type === 'Polygon'
+                                    ? f.geometry.coordinates[0]
+                                    : f.geometry.coordinates[0][0];
+                                coords.forEach(([lng, lat]) => {
+                                    acc[0] = Math.min(acc[0], lng);
+                                    acc[1] = Math.min(acc[1], lat);
+                                    acc[2] = Math.max(acc[2], lng);
+                                    acc[3] = Math.max(acc[3], lat);
+                                });
+                                return acc;
+                            },
+                            [Infinity, Infinity, -Infinity, -Infinity]
+                        );
+                        mapRef.current.fitBounds(bounds, { padding: 50, duration: 1000 });
+                    } catch (error) {
+                        console.error('Error fitting bounds:', error);
+                    }
+                }
+                return;
+            }
+
+            const blockNum = blockNumberVal.trim();
+            if (!blockNum) {
+                setMapError('Block number is empty');
+                setBoothGeoJSON(null);
+                return;
+            }
+
+            const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+            const url = `${apiUrl}/booth-polygons/block/${encodeURIComponent(blockNum)}`;
+            const resp = await fetch(url, { headers });
+
+            if (!resp.ok) {
+                if (resp.status === 404) {
+                    setMapError(`No polygons found for block: ${blockNum}`);
+                } else {
+                    setMapError(`HTTP Error ${resp.status}`);
+                }
+                setBoothGeoJSON(null);
+                return;
+            }
+
+            const data = await resp.json();
+            let features = [];
+            if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
+                features = data.features;
+            } else if (Array.isArray(data.booths)) {
+                features = data.booths;
+            } else if (Array.isArray(data)) {
+                features = data;
+            }
+
+            if (features.length === 0) {
+                setMapError(`No booth polygons found for block: ${blockNum}`);
+                setBoothGeoJSON(null);
+                return;
+            }
+
+            const geoJSON = {
+                type: 'FeatureCollection',
+                features: features.map((f) => ({
+                    type: 'Feature',
+                    geometry: f.geometry || f,
+                    properties: f.properties || {}
+                }))
+            };
+
+            setBoothGeoJSON(geoJSON);
+            setMapError('');
+
+            if (mapRef.current) {
+                try {
+                    const bounds = geoJSON.features.reduce(
+                        (acc, f) => {
+                            const coords = f.geometry.type === 'Polygon'
+                                ? f.geometry.coordinates[0]
+                                : f.geometry.coordinates[0][0];
+                            coords.forEach(([lng, lat]) => {
+                                acc[0] = Math.min(acc[0], lng);
+                                acc[1] = Math.min(acc[1], lat);
+                                acc[2] = Math.max(acc[2], lng);
+                                acc[3] = Math.max(acc[3], lat);
+                            });
+                            return acc;
+                        },
+                        [Infinity, Infinity, -Infinity, -Infinity]
+                    );
+                    mapRef.current.fitBounds(bounds, { padding: 50, duration: 1000 });
+                } catch (error) {
+                    console.error('Error fitting bounds:', error);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading booth polygons:', error);
+            setMapError(error.message || 'Error loading polygons');
+            setBoothGeoJSON(null);
+        }
+    };
+
+    const fetchBoothDetailsByPolygon = async (booth) => {
+        try {
+            const headers = getAuthHeaders();
+            if (booth && booth._id) {
+                let panchayatUrl = `${import.meta.env.VITE_APP_API_URL}/panchayats?booth_id=${encodeURIComponent(booth._id)}`;
+                if (yearFilter) panchayatUrl += `&year=${yearFilter}`;
+
+                const panchayatResp = await fetch(panchayatUrl, { headers });
+                if (!panchayatResp.ok) throw new Error(`HTTP ${panchayatResp.status}`);
+                const panchayatData = await panchayatResp.json();
+
+                setDrawerData({
+                    booth,
+                    panchayats: panchayatData.data || []
+                });
+                setDrawerOpen(true);
+            }
+        } catch (error) {
+            console.error('Error fetching booth details:', error);
+            setDrawerData({ booth, panchayats: [] });
+            setDrawerOpen(true);
+        }
+    };
+
+    useEffect(() => {
+        if (mapboxToken) {
+            try {
+                loadBoothPolygonsByBlockNumber('ALL');
+            } catch (e) {
+                console.error('Error auto-loading polygons:', e);
+            }
+        }
+    }, [mapboxToken]);
+
+    useEffect(() => {
+        if (boothGeoJSON && yearFilter !== undefined) {
+            fetchBoothsWithPanchayat(yearFilter);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    }, [yearFilter]);
 
     return (
         <MainCard content={false}>
@@ -479,6 +771,138 @@ const PanchayatListPage = () => {
 
                 <Divider />
 
+                {/* Map Section */}
+                <Box sx={{ mb: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                        <TextField
+                            label="Block Number"
+                            value={blockNumberInput}
+                            onChange={(e) => setBlockNumberInput(e.target.value)}
+                            size="small"
+                            sx={{ width: 200 }}
+                        />
+                        <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlockNumber(blockNumberInput)}>
+                            Load Map
+                        </Button>
+                        <TextField
+                            label="Filter by Year"
+                            value={yearFilter}
+                            onChange={(e) => setYearFilter(e.target.value)}
+                            size="small"
+                            placeholder="e.g., 2024"
+                            sx={{ width: 150 }}
+                        />
+                    </Stack>
+
+                    {mapError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {mapError}
+                        </Alert>
+                    )}
+
+                    {mapboxToken ? (
+                        <MapContainerStyled>
+                            <Map
+                                ref={mapRef}
+                                initialViewState={{ longitude: 78.9629, latitude: 20.5937, zoom: 5 }}
+                                style={{ width: '100%', height: '500px' }}
+                                mapStyle="mapbox://styles/mapbox/streets-v11"
+                                mapboxAccessToken={mapboxToken}
+                                onClick={(e) => {
+                                    if (e.features && e.features.length > 0) {
+                                        const feature = e.features[0];
+                                        if (feature.layer.id === 'booth-polygons-layer') {
+                                            const props = feature.properties;
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
+                                            const booth = booths?.find((b) => String(b.booth_number) === String(boothNo));
+                                            if (booth) {
+                                                fetchBoothDetailsByPolygon(booth);
+                                            }
+                                        }
+                                    }
+                                }}
+                                interactiveLayerIds={['booth-polygons-layer']}
+                            >
+                                <MapControl />
+                                {boothGeoJSON && (
+                                    <Source id="booth-polygons-source" type="geojson" data={boothGeoJSON}>
+                                        <Layer
+                                            id="booth-polygons-layer"
+                                            type="fill"
+                                            paint={{
+                                                'fill-color': '#3b82f6',
+                                                'fill-opacity': 0.3
+                                            }}
+                                        />
+                                        <Layer
+                                            id="booth-polygons-outline"
+                                            type="line"
+                                            paint={{
+                                                'line-color': '#1e40af',
+                                                'line-width': 1
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                                {boothMarkersGeoJSON && (
+                                    <Source id="booth-markers-source" type="geojson" data={boothMarkersGeoJSON}>
+                                        <Layer
+                                            id="booth-markers-layer"
+                                            type="circle"
+                                            paint={{
+                                                'circle-radius': 6,
+                                                'circle-color': [
+                                                    'case',
+                                                    ['get', 'hasPanchayat'],
+                                                    '#22c55e',
+                                                    '#ef4444'
+                                                ],
+                                                'circle-stroke-width': 2,
+                                                'circle-stroke-color': '#ffffff'
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                            </Map>
+                        </MapContainerStyled>
+                    ) : (
+                        <Alert severity="warning">Mapbox token not configured</Alert>
+                    )}
+
+                    {/* Map Legend */}
+                    <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                            Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
+                        </Typography>
+                        <Stack direction="row" spacing={3}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Box sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#22c55e',
+                                    border: '2px solid #ffffff',
+                                    boxShadow: 1
+                                }} />
+                                <Typography variant="caption">Has Panchayat</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Box sx={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#ef4444',
+                                    border: '2px solid #ffffff',
+                                    boxShadow: 1
+                                }} />
+                                <Typography variant="caption">No Panchayat</Typography>
+                            </Stack>
+                        </Stack>
+                    </Paper>
+                </Box>
+
+                <Divider />
+
                 {/* Table */}
                 <ScrollX>
                     <TableContainer component={Paper}>
@@ -551,7 +975,10 @@ const PanchayatListPage = () => {
                 assemblies={assemblies}
                 blocks={blocks}
                 booths={booths}
-                refresh={fetchPanchayats}
+                refresh={() => {
+                    fetchPanchayats();
+                    fetchBoothsWithPanchayat(yearFilter);
+                }}
             />
 
             <AlertPanchayatDelete
@@ -559,8 +986,128 @@ const PanchayatListPage = () => {
                 title={selectedPanchayat?.panchayat_name}
                 open={deleteAlert.open}
                 handleClose={() => setDeleteAlert({ open: false, id: null })}
-                refresh={fetchPanchayats}
+                refresh={() => {
+                    fetchPanchayats();
+                    fetchBoothsWithPanchayat(yearFilter);
+                }}
             />
+
+            {/* Booth Details Drawer */}
+            <Drawer
+                anchor="right"
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                PaperProps={{ sx: { width: { xs: '100%', sm: 500 } } }}
+            >
+                {drawerData && (
+                    <Box sx={{ p: 3 }}>
+                        <Typography variant="h5" sx={{ mb: 2 }}>
+                            Booth Details
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+
+                        <Stack spacing={2}>
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Booth Name
+                                </Typography>
+                                <Typography variant="body1">
+                                    {drawerData.booth?.name || 'N/A'}
+                                </Typography>
+                            </Box>
+
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary">
+                                    Booth Number
+                                </Typography>
+                                <Typography variant="body1">
+                                    {drawerData.booth?.booth_number || 'N/A'}
+                                </Typography>
+                            </Box>
+
+                            <Divider />
+
+                            <Box>
+                                <Typography variant="h6" sx={{ mb: 1 }}>
+                                    Panchayats ({drawerData.panchayats?.length || 0})
+                                </Typography>
+                                {drawerData.panchayats && drawerData.panchayats.length > 0 ? (
+                                    <Stack spacing={1.5}>
+                                        {drawerData.panchayats.map((panchayat, idx) => (
+                                            <Paper key={idx} elevation={1} sx={{ p: 2 }}>
+                                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                                    {panchayat.panchayat_name}
+                                                </Typography>
+                                                <Grid container spacing={1}>
+                                                    <Grid item xs={6}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            State
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            {panchayat.state_id?.name || 'N/A'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Division
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            {panchayat.division_id?.name || 'N/A'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Parliament
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            {panchayat.parliament_id?.name || 'N/A'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Assembly
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            {panchayat.assembly_id?.name || 'N/A'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Location
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            {panchayat.location || 'N/A'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12}>
+                                                        <Stack direction="row" spacing={1}>
+                                                            <Chip label={`Total: ${panchayat.total_count || 0}`} size="small" color="primary" />
+                                                            <Chip label={`M: ${panchayat.male_count || 0}`} size="small" color="info" />
+                                                            <Chip label={`F: ${panchayat.female_count || 0}`} size="small" color="secondary" />
+                                                            <Chip label={`O: ${panchayat.others_count || 0}`} size="small" color="warning" />
+                                                        </Stack>
+                                                    </Grid>
+                                                </Grid>
+                                            </Paper>
+                                        ))}
+                                    </Stack>
+                                ) : (
+                                    <Alert severity="info">No panchayats found for this booth</Alert>
+                                )}
+                            </Box>
+                        </Stack>
+
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            sx={{ mt: 3 }}
+                            onClick={() => setDrawerOpen(false)}
+                        >
+                            Close
+                        </Button>
+                    </Box>
+                )}
+            </Drawer>
         </MainCard>
     );
 };

@@ -227,6 +227,7 @@ const SamitiListPage = () => {
             if (appliedFilters.booth) queryParams.push(`booth_id=${appliedFilters.booth}`);
             if (appliedFilters.village) queryParams.push(`village=${encodeURIComponent(appliedFilters.village)}`);
             if (appliedFilters.falia) queryParams.push(`falia=${encodeURIComponent(appliedFilters.falia)}`);
+            if (yearFilter) queryParams.push(`year=${yearFilter}`);
 
             const { data: json } = await axiosServices.get(`/samitis?${queryParams.join('&')}`);
             if (json.success) {
@@ -268,15 +269,17 @@ const SamitiListPage = () => {
     useEffect(() => {
         fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters, yearFilter]);
 
     // Fetch booths that have samiti data
-    const fetchBoothsWithSamiti = async () => {
+    const fetchBoothsWithSamiti = async (selectedYear = yearFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-            const response = await fetch(`${apiUrl}/samitis`, { headers });
+            let url = `${apiUrl}/samitis`;
+            if (selectedYear) url += `?year=${selectedYear}`;
+            const response = await fetch(url, { headers });
             if (response.ok) {
                 const data = await response.json();
                 const samitis = data.data || data;
@@ -289,7 +292,7 @@ const SamitiListPage = () => {
                     }
                 });
                 setBoothsWithSamiti(boothIds);
-                console.log('✅ Booths with samiti updated:', boothIds.size);
+                console.log('✅ Booths with samiti updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
             }
         } catch (error) {
             console.error('Error fetching booths with samiti:', error);
@@ -307,7 +310,7 @@ const SamitiListPage = () => {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            await fetchBoothsWithSamiti();
+            await fetchBoothsWithSamiti(yearFilter);
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -413,6 +416,14 @@ const SamitiListPage = () => {
         }
     }, [blocks, mapboxToken]);
 
+    // Refresh samiti markers when year filter changes
+    useEffect(() => {
+        if (boothGeoJSON && yearFilter !== undefined) {
+            fetchBoothsWithSamiti(yearFilter);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    }, [yearFilter]);
+
     // Fetch booth + samitis when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -442,7 +453,8 @@ const SamitiListPage = () => {
             let samitisForBooth = [];
             if (booth && booth._id) {
                 try {
-                    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/samitis?booth_id=${encodeURIComponent(booth._id)}&limit=100`;
+                    let apiUrl = `${import.meta.env.VITE_APP_API_URL}/samitis?booth_id=${encodeURIComponent(booth._id)}&limit=100`;
+                    if (yearFilter) apiUrl += `&year=${yearFilter}`;
                     console.log('[Samiti Map] Fetching from:', apiUrl);
                     
                     const sRes = await fetch(apiUrl, { headers });
