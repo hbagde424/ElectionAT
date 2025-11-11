@@ -10,6 +10,7 @@ import { usePermissions } from 'contexts/PermissionContext';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
+import mapboxgl from 'mapbox-gl';
 
 // third-party
 import {
@@ -85,6 +86,21 @@ export default function BoothVolunteerListPage() {
   const mapRef = useRef(null);
   const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+  const lastAutoZoomRef = useRef(0);
+  const userHasZoomedRef = useRef(false);
+  const globalFitBoundsTimeoutRef = useRef(null);
+
+  // Debug mount/unmount
+  useEffect(() => {
+    console.log('BoothVolunteerListPage mounted');
+    return () => {
+      console.log('BoothVolunteerListPage unmounted');
+      // Clear any pending timeouts on unmount
+      if (globalFitBoundsTimeoutRef.current) {
+        clearTimeout(globalFitBoundsTimeoutRef.current);
+      }
+    };
+  }, []);
   // Year filter state
   const [yearFilter, setYearFilter] = useState('');
 
@@ -349,11 +365,13 @@ export default function BoothVolunteerListPage() {
   // Fetch booths with volunteer data
   const fetchBoothsWithVolunteers = async (selectedYear = yearFilter) => {
     try {
+      console.log('fetchBoothsWithVolunteers start, year=', selectedYear);
       const headers = getAuthHeaders();
       let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true&limit=50000`;
       if (selectedYear) {
         url += `&year=${encodeURIComponent(selectedYear)}`;
       }
+      console.log('fetchBoothsWithVolunteers url=', url);
       const volunteerRes = await fetch(url, { headers });
       const volunteerJson = await volunteerRes.json();
       if (volunteerJson.success && Array.isArray(volunteerJson.data)) {
@@ -374,6 +392,7 @@ export default function BoothVolunteerListPage() {
 
   const fetchVolunteers = async (pageIndex, pageSize, globalFilter = '', override = {}) => {
     setLoading(true);
+    console.log('fetchVolunteers start', { pageIndex, pageSize, globalFilter, override });
     try {
       const effState = override.state_id ?? selectedState;
       const effDivision = override.division_id ?? selectedDivision;
@@ -389,9 +408,10 @@ export default function BoothVolunteerListPage() {
         // same population logic as the paginated list (returns populated refs
         // like state/division/assembly/block). Do NOT add userHierarchy or
         // other higher-level filters when using booth filter.
-        let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth=${encodeURIComponent(effBooth)}&all=true`;
+    let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth=${encodeURIComponent(effBooth)}&all=true`;
         // include page/limit for consistent behavior (all=true usually returns all)
         url += `&page=${pageIndex + 1}&limit=${pageSize}`;
+    console.log('fetchVolunteers booth-branch url=', url);
   const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
   const json = await res.json();
         if (json.success) {
@@ -403,7 +423,8 @@ export default function BoothVolunteerListPage() {
           setPageCount(0);
         }
       } else {
-        let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`;
+  let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`;
+  console.log('fetchVolunteers list-branch initial url=', url);
         if (globalFilter) url += `&search=${encodeURIComponent(globalFilter)}`;
         if (effState) url += `&state_id=${effState}`;
         if (effDivision) url += `&division_id=${effDivision}`;
@@ -439,7 +460,8 @@ export default function BoothVolunteerListPage() {
           }
         }
 
-        const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+  console.log('fetchVolunteers final url=', url);
+  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
         const json = await res.json();
         if (json.success) {
           setVolunteers(json.data);
@@ -455,6 +477,7 @@ export default function BoothVolunteerListPage() {
 
   // Map: Load booth polygons by block (similar to Gender component)
   const loadBoothPolygonsByBlock = async (blockVal) => {
+    console.log('loadBoothPolygonsByBlock called with', blockVal);
     if (!blockVal) {
       setMapError('Please select Block');
       return;
@@ -466,8 +489,9 @@ export default function BoothVolunteerListPage() {
       fetchBoothsWithVolunteers();
 
       if (blockVal === 'ALL') {
-        const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-        const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+          const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+          const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+          console.log('Loading ALL booth polygons from', url);
         const resp = await fetch(url, { headers });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const j = await resp.json();
@@ -480,9 +504,16 @@ export default function BoothVolunteerListPage() {
           setBoothGeoJSON(null);
           return;
         }
-        const fc = { type: 'FeatureCollection', features };
-        setBoothGeoJSON(fc);
-        setTimeout(() => {
+  const fc = { type: 'FeatureCollection', features };
+  console.log('Loaded features count (ALL):', features.length);
+  setBoothGeoJSON(fc);
+        
+        // Clear any existing timeout
+        if (globalFitBoundsTimeoutRef.current) {
+          clearTimeout(globalFitBoundsTimeoutRef.current);
+        }
+        
+        globalFitBoundsTimeoutRef.current = setTimeout(() => {
           try {
             const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
             if (!map || !fc.features?.length) return;
@@ -495,16 +526,27 @@ export default function BoothVolunteerListPage() {
               if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
             });
             if (coords.length) {
+              try {
+                if (Date.now() - (lastAutoZoomRef.current || 0) < 2000) {
+                  console.log('Skipping global fitBounds because of recent user auto-zoom');
+                  return;
+                }
+                if (userHasZoomedRef.current) {
+                  console.log('Skipping global fitBounds because user has manually zoomed');
+                  return;
+                }
+              } catch {}
               const lons = coords.map(c => c[0]);
               const lats = coords.map(c => c[1]);
               const bounds = [
                 [Math.min(...lons), Math.min(...lats)],
                 [Math.max(...lons), Math.max(...lats)]
               ];
+              console.log('Executing global fitBounds for ALL polygons');
               map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
             }
           } catch { }
-        }, 0);
+        }, 100);
         return;
       }
 
@@ -517,6 +559,7 @@ export default function BoothVolunteerListPage() {
       let json = null;
       for (const url of candidates) {
         try {
+          console.log('Trying polygon candidate URL:', url);
           const resp = await fetch(url, { headers });
           if (!resp.ok) {
             continue;
@@ -524,6 +567,7 @@ export default function BoothVolunteerListPage() {
           const j = await resp.json();
           const features = j.features || (Array.isArray(j) ? j : (j.data || null));
           if (features && Array.isArray(features) && features.length > 0) {
+            console.log('Found polygon features at:', url, 'count=', features.length);
             json = { type: 'FeatureCollection', features };
             break;
           }
@@ -537,8 +581,15 @@ export default function BoothVolunteerListPage() {
       }
 
       const fc = { type: 'FeatureCollection', features: json.features };
+  console.log('Setting boothGeoJSON features count:', fc.features.length);
       setBoothGeoJSON(fc);
-      setTimeout(() => {
+      
+      // Clear any existing timeout
+      if (globalFitBoundsTimeoutRef.current) {
+        clearTimeout(globalFitBoundsTimeoutRef.current);
+      }
+      
+      globalFitBoundsTimeoutRef.current = setTimeout(() => {
         try {
           const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
           if (!map || !fc.features?.length) return;
@@ -550,17 +601,28 @@ export default function BoothVolunteerListPage() {
             if (geom.type === 'Polygon') collect(geom.coordinates);
             if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
           });
-          if (coords.length) {
-            const lons = coords.map(c => c[0]);
-            const lats = coords.map(c => c[1]);
-            const bounds = [
-              [Math.min(...lons), Math.min(...lats)],
-              [Math.max(...lons), Math.max(...lats)]
-            ];
-            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-          }
+            if (coords.length) {
+              try {
+                if (Date.now() - (lastAutoZoomRef.current || 0) < 2000) {
+                  console.log('Skipping global fitBounds because of recent user auto-zoom');
+                  return;
+                }
+                if (userHasZoomedRef.current) {
+                  console.log('Skipping global fitBounds because user has manually zoomed');
+                  return;
+                }
+              } catch {}
+              const lons = coords.map(c => c[0]);
+              const lats = coords.map(c => c[1]);
+              const bounds = [
+                [Math.min(...lons), Math.min(...lats)],
+                [Math.max(...lons), Math.max(...lats)]
+              ];
+              console.log('Executing global fitBounds for block polygons');
+              map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+            }
         } catch { }
-      }, 0);
+      }, 100);
     } catch (e) {
       console.error('Failed to load booth polygons:', e);
       setMapError(`Failed to load booth polygons: ${e.message}`);
@@ -570,6 +632,8 @@ export default function BoothVolunteerListPage() {
 
   // Auto-load ALL blocks map on component mount (only once)
   const mapLoadedRef = useRef(false);
+  const boothGeoJSONRef = useRef(null);
+  
   useEffect(() => {
     if (mapboxToken && blocks && blocks.length > 0 && !mapLoadedRef.current) {
       loadBoothPolygonsByBlock('ALL');
@@ -577,151 +641,83 @@ export default function BoothVolunteerListPage() {
     }
   }, [blocks, mapboxToken]);
 
-  // TEMP: capture-phase document click listener to block and log navigation-causing clicks inside the map
-  // This helps find & prevent the element triggering the full-page refresh. Remove after debugging.
+  // Track boothGeoJSON changes and prevent unwanted fitBounds
   useEffect(() => {
-    const docClickCapture = (e) => {
-      try {
-        const tgt = e.target || e.srcElement;
-        if (!tgt) return;
+    boothGeoJSONRef.current = boothGeoJSON;
+  }, [boothGeoJSON]);
 
-        // Try to locate the actual map container DOM node (Mapbox uses different refs)
-        let mapNode = null;
-        if (mapRef.current) {
-          try {
-            // react-map-gl exposes getMap() which has getContainer()
-            const maybeMap = typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current;
-            mapNode = maybeMap && (maybeMap.getContainer ? maybeMap.getContainer() : maybeMap._container || maybeMap.getCanvasContainer && maybeMap.getCanvasContainer());
-          } catch {}
-          // fallback: if mapRef is a DOM node
-          if (!mapNode && mapRef.current instanceof Element) mapNode = mapRef.current;
-        }
-
-        if (!mapNode) return;
-
-        if (mapNode.contains(tgt)) {
-          const anchor = tgt.closest && tgt.closest('a');
-          const form = tgt.closest && tgt.closest('form');
-          if (anchor || form) {
-            try { e.preventDefault && e.preventDefault(); } catch {}
-            try { e.stopPropagation && e.stopPropagation(); } catch {}
-            // Log helpful debug info about the offending element
-            const info = {
-              tag: tgt.tagName,
-              id: tgt.id || null,
-              class: tgt.className || null,
-              href: anchor && anchor.getAttribute ? anchor.getAttribute('href') : null,
-              outer: (tgt.outerHTML || '').slice(0, 800)
-            };
-            console.error('Blocked navigation click inside map (capture):', info);
+  // Prevent navigation from map links (Mapbox attribution, etc.)
+  useEffect(() => {
+    const preventMapNavigation = (e) => {
+      const target = e.target;
+      if (target && target.closest) {
+        const mapContainer = target.closest('.mapboxgl-map, .maplibregl-map, .mapboxgl-canvas-container');
+        if (mapContainer) {
+          const anchor = target.closest('a');
+          if (anchor) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('🚫 Prevented map link navigation');
+            return false;
           }
         }
-      } catch (err) {
-        // ignore
       }
     };
 
-    document.addEventListener('click', docClickCapture, true);
-    return () => document.removeEventListener('click', docClickCapture, true);
-  }, []);
-
-  // TEMP: intercept pointerdown early (capture) to preempt navigation triggered
-  // by anchors or forms inside the map. This runs before click and should stop
-  // navigation-causing default behavior at the earliest phase.
-  useEffect(() => {
-    const onPointerDownCapture = (e) => {
-      try {
-        const tgt = e.target || e.srcElement;
-        if (!tgt) return;
-
-        let mapNode = null;
-        if (mapRef.current) {
-          try {
-            const maybeMap = typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current;
-            mapNode = maybeMap && (maybeMap.getContainer ? maybeMap.getContainer() : maybeMap._container || maybeMap.getCanvasContainer && maybeMap.getCanvasContainer());
-          } catch {}
-          if (!mapNode && mapRef.current instanceof Element) mapNode = mapRef.current;
-        }
-
-        if (!mapNode) return;
-
-        if (mapNode.contains(tgt)) {
-          const anchor = tgt.closest && tgt.closest('a');
-          const form = tgt.closest && tgt.closest('form');
-          if (anchor || form) {
-            try { e.preventDefault && e.preventDefault(); } catch {}
-            try { e.stopPropagation && e.stopPropagation(); } catch {}
-            // Minimal logging so we can later remove this block
-            console.error('pointerdown blocked inside map for anchor/form', { tag: tgt.tagName, href: anchor && anchor.getAttribute ? anchor.getAttribute('href') : null });
-          }
-        }
-      } catch (err) {}
-    };
-
-    document.addEventListener('pointerdown', onPointerDownCapture, true);
-    return () => document.removeEventListener('pointerdown', onPointerDownCapture, true);
-  }, []);
-
-  // TEMP: record last click details (capture) and log them if the page visibility/unload changes
-  useEffect(() => {
-    const lastClick = { current: null };
-    const clickRecorder = (e) => {
-      try {
-        const tgt = e.target || e.srcElement;
-        if (!tgt) return;
-        const path = e.composedPath ? e.composedPath() : (e.path || []);
-        const stack = (new Error()).stack;
-        const info = {
-          time: new Date().toISOString(),
-          tag: tgt.tagName,
-          id: tgt.id || null,
-          class: tgt.className || null,
-          href: (tgt.closest && tgt.closest('a') && tgt.closest('a').getAttribute) ? tgt.closest('a').getAttribute('href') : null,
-          outerHTML: (tgt.outerHTML || '').slice(0, 1000),
-          path: Array.isArray(path) ? path.map(p => (p && p.tagName) ? `${p.tagName}${p.id ? `#${p.id}` : (p.className ? `.${p.className}` : '')}` : String(p)).slice(0, 12) : [],
-          stack
-        };
-        lastClick.current = info;
-        try { window.__lastClickDebug = info; } catch {}
-      } catch (err) {}
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        try { console.error('visibilitychange:hidden — last click info:', lastClick.current); } catch {}
-      }
-    };
-
-    const onBeforeUnload = (e) => {
-      try { console.error('beforeunload — last click info:', lastClick.current); } catch {}
-      // don't block unload here; we only log
-    };
-
-    const onHashChange = () => {
-      try { console.error('hashchange — last click info:', lastClick.current); } catch {}
-    };
-
-    document.addEventListener('click', clickRecorder, true);
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('beforeunload', onBeforeUnload);
-    window.addEventListener('hashchange', onHashChange);
-
+    // Add listeners to capture all navigation attempts
+    document.addEventListener('click', preventMapNavigation, true);
+    document.addEventListener('mousedown', preventMapNavigation, true);
+    document.addEventListener('touchstart', preventMapNavigation, true);
+    
     return () => {
-      document.removeEventListener('click', clickRecorder, true);
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('beforeunload', onBeforeUnload);
-      window.removeEventListener('hashchange', onHashChange);
+      document.removeEventListener('click', preventMapNavigation, true);
+      document.removeEventListener('mousedown', preventMapNavigation, true);
+      document.removeEventListener('touchstart', preventMapNavigation, true);
     };
   }, []);
+
+  // Monitor for any hash changes or navigation attempts
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      console.log('⚠️ Page unload detected');
+    };
+    
+    const handleHashChange = (e) => {
+      console.log('⚠️ Hash change detected');
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('hashchange', handleHashChange);
+    // additional navigation/history events
+    const handlePopState = (e) => console.log('⚠️ popstate event', e);
+    const handleVisibility = () => console.log('⚠️ visibilityState', document.visibilityState);
+    const handleUnload = (e) => console.log('⚠️ unload event');
+    window.addEventListener('popstate', handlePopState);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('unload', handleUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, []);
+
+
 
   // On polygon click, fetch Volunteer details for that booth
   const fetchBoothVolunteerDetails = async (boothNo) => {
     try {
+      console.log('fetchBoothVolunteerDetails called for boothNo=', boothNo);
       const headers = getAuthHeaders();
       const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
       const json = await res.json();      let booth = null;
       if (json.success && Array.isArray(json.data)) {
   const boothNoStr = String(boothNo).trim();
+        console.log('Total booths fetched for lookup:', json.data.length);
         
         // Try exact match first
         booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr);
@@ -735,6 +731,7 @@ export default function BoothVolunteerListPage() {
         if (!booth) {
           booth = json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
         }
+        console.log('Booth match found:', !!booth, booth && (booth._id || booth.booth_number));
         
         
       }
@@ -742,6 +739,7 @@ export default function BoothVolunteerListPage() {
       let volunteersList = [];
       if (booth && booth._id) {
         try {
+          console.log('Fetching volunteers for booth id', booth._id);
           const yearParam = yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : '';
           
           // Try multiple API parameter variations
@@ -765,6 +763,7 @@ export default function BoothVolunteerListPage() {
                 }
                 
                 if (volunteersList.length > 0) {
+                  console.log('Volunteers found for booth:', volunteersList.length);
                   break; // Exit loop if we found volunteers
                 }
               }
@@ -1311,7 +1310,10 @@ export default function BoothVolunteerListPage() {
                 <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
               ))}
             </TextField>
-            <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlock(blockNumberInput)}>Load Polygons</Button>
+            <Button variant="contained" size="small" onClick={() => {
+              userHasZoomedRef.current = false;
+              loadBoothPolygonsByBlock(blockNumberInput);
+            }}>Load Polygons</Button>
             <TextField
               select
               size="small"
@@ -1331,110 +1333,115 @@ export default function BoothVolunteerListPage() {
             </TextField>
             {mapError && <Alert severity="warning" sx={{ ml: 2 }}>{mapError}</Alert>}
           </Stack>
-          <MapContainerStyled
-            onClickCapture={(e) => {
-              try {
-                const tgt = e.target || (e.nativeEvent && e.nativeEvent.target);
-                if (tgt && typeof tgt.closest === 'function') {
-                  const anchor = tgt.closest('a');
-                  if (anchor && anchor.getAttribute && anchor.getAttribute('href')) {
-                    // Prevent navigation caused by anchors under the map
-                    try { e.preventDefault && e.preventDefault(); } catch {}
-                    try { e.stopPropagation && e.stopPropagation(); } catch {}
-                  }
-                  const form = tgt.closest('form');
-                  if (form) {
-                    try { e.preventDefault && e.preventDefault(); } catch {}
-                    try { e.stopPropagation && e.stopPropagation(); } catch {}
-                  }
-                }
-              } catch (ee) {}
-            }}
-            // Prevent default behavior earlier in the event chain so anchors/forms
-            // inside the map cannot start navigation on pointerdown/mousedown/touchstart.
-            onMouseDownCapture={(e) => {
-              try {
-                const tgt = e.target || (e.nativeEvent && e.nativeEvent.target);
-                if (tgt && typeof tgt.closest === 'function') {
-                  const anchor = tgt.closest('a');
-                  if (anchor && anchor.getAttribute && anchor.getAttribute('href')) {
-                    try { e.preventDefault && e.preventDefault(); } catch {}
-                    try { e.stopPropagation && e.stopPropagation(); } catch {}
-                  }
-                  const form = tgt.closest('form');
-                  if (form) {
-                    try { e.preventDefault && e.preventDefault(); } catch {}
-                    try { e.stopPropagation && e.stopPropagation(); } catch {}
-                  }
-                }
-              } catch (ee) {}
-            }}
-            onTouchStartCapture={(e) => {
-              try {
-                const tgt = e.target || (e.nativeEvent && e.nativeEvent.target);
-                if (tgt && typeof tgt.closest === 'function') {
-                  const anchor = tgt.closest('a');
-                  if (anchor && anchor.getAttribute && anchor.getAttribute('href')) {
-                    try { e.preventDefault && e.preventDefault(); } catch {}
-                    try { e.stopPropagation && e.stopPropagation(); } catch {}
-                  }
-                  const form = tgt.closest('form');
-                  if (form) {
-                    try { e.preventDefault && e.preventDefault(); } catch {}
-                    try { e.stopPropagation && e.stopPropagation(); } catch {}
-                  }
-                }
-              } catch (ee) {}
-            }}
-          >
+          <MapContainerStyled>
             <Map
               ref={mapRef}
               mapboxAccessToken={mapboxToken}
               initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
               mapStyle="mapbox://styles/mapbox/streets-v12"
               interactiveLayerIds={boothGeoJSON ? ['booth-fill'] : []}
-              onClick={(e) => {
-                // Defensive: prevent default browser navigation if this originated from a DOM event
-                try { e.originalEvent && e.originalEvent.preventDefault && e.originalEvent.preventDefault(); } catch {}
-                try { e.originalEvent && e.originalEvent.stopPropagation && e.originalEvent.stopPropagation(); } catch {}
-                // If click landed on an anchor or inside a form, proactively block it
+              attributionControl={false}
+              onLoad={(e) => {
+                // Disable all links inside the map once loaded
                 try {
-                  const oe = e.originalEvent;
-                  const tgt = oe && (oe.target || oe.srcElement);
-                  if (tgt && typeof tgt.closest === 'function') {
-                    const anchor = tgt.closest('a');
-                    if (anchor && anchor.getAttribute && anchor.getAttribute('href')) {
-                      try { anchor.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); }); } catch {}
-                      try { oe.preventDefault && oe.preventDefault(); } catch {}
-                      try { oe.stopPropagation && oe.stopPropagation(); } catch {}
-                    }
-                    const form = tgt.closest('form');
-                    if (form) {
-                      try { oe.preventDefault && oe.preventDefault(); } catch {}
-                      try { oe.stopPropagation && oe.stopPropagation(); } catch {}
-                    }
+                  const map = e.target;
+                  const container = map.getContainer();
+                  if (container) {
+                    const anchors = container.querySelectorAll('a');
+                    anchors.forEach(anchor => {
+                      anchor.onclick = (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        return false;
+                      };
+                      anchor.style.pointerEvents = 'none';
+                    });
                   }
-                } catch (inner) { /* ignore debug helpers */ }
+                } catch (err) {
+                  console.warn('Error disabling map links:', err);
+                }
+              }}
+              onClick={(e) => {
+                console.log('map onClick event', e);
+                // Prevent all default behaviors that could cause page refresh
+                if (e.originalEvent) {
+                  e.originalEvent.preventDefault();
+                  e.originalEvent.stopPropagation();
+                  e.originalEvent.stopImmediatePropagation();
+                }
                 
                 if (!boothGeoJSON) return;
+                
                 try {
                   const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
                   let features = e.features || [];
+                  
                   if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
                     const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY } || { x: e.x, y: e.y };
                     if (point) {
                       features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
                     }
                   }
+                  console.log('map click features length:', features && features.length);
+                  
                   const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-source')) || features[0];
+                  console.log('boothFeature:', boothFeature && (boothFeature.properties || boothFeature));
+                  
                   if (boothFeature) {
                     const props = boothFeature.properties || {};
                     const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number)) || '';
+                    
+                    // Cancel any pending global fitBounds
+                    if (globalFitBoundsTimeoutRef.current) {
+                      clearTimeout(globalFitBoundsTimeoutRef.current);
+                      globalFitBoundsTimeoutRef.current = null;
+                      console.log('🚫 Cancelled pending global fitBounds');
+                    }
+                    
+                    // Auto zoom to the clicked booth polygon
+                    if (map && boothFeature.geometry) {
+                      try {
+                        const geometry = boothFeature.geometry;
+                        let bounds = new mapboxgl.LngLatBounds();
+                        
+                        const addCoordinatesToBounds = (coords) => {
+                          if (Array.isArray(coords[0])) {
+                            coords.forEach(coord => addCoordinatesToBounds(coord));
+                          } else {
+                            bounds.extend(coords);
+                          }
+                        };
+                        
+                        if (geometry.type === 'Polygon') {
+                          addCoordinatesToBounds(geometry.coordinates[0]);
+                        } else if (geometry.type === 'MultiPolygon') {
+                          geometry.coordinates.forEach(polygon => {
+                            addCoordinatesToBounds(polygon[0]);
+                          });
+                        }
+                        
+                        map.fitBounds(bounds, {
+                          padding: { top: 100, bottom: 100, left: 100, right: 100 },
+                          maxZoom: 16,
+                          duration: 1000
+                        });
+                        try { 
+                          lastAutoZoomRef.current = Date.now();
+                          userHasZoomedRef.current = true;
+                          console.log('✅ User zoom activated - global fitBounds will now be suppressed');
+                        } catch {}
+                      } catch (zoomErr) {
+                        console.warn('Auto zoom error:', zoomErr);
+                      }
+                    }
+                    
                     setDrawerData({ loading: true, boothNo, details: null });
                     setDrawerOpen(true);
                     fetchBoothVolunteerDetails(boothNo);
                   }
-                } catch (err) { console.error('Map click handler error:', err); }
+                } catch (err) {
+                  console.error('Map click handler error:', err);
+                }
               }}
             >
               <MapControl />

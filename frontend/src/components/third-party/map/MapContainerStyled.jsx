@@ -12,6 +12,16 @@ const MapContainerStyled = styled(Box)({
   borderRadius: 4,
   '& .mapboxgl-ctrl-logo, .mapboxgl-ctrl-bottom-right': {
     display: 'none'
+  },
+  '& .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib': {
+    display: 'none !important'
+  },
+  '& a': {
+    pointerEvents: 'none !important',
+    cursor: 'default !important'
+  },
+  '& .mapboxgl-map a, & .maplibregl-map a': {
+    pointerEvents: 'none !important'
   }
 });
 
