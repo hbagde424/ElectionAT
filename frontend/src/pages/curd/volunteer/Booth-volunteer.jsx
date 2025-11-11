@@ -75,7 +75,6 @@ export default function BoothVolunteerListPage() {
 
   // Map state (similar to Gender component)
   const [blockNumberInput, setBlockNumberInput] = useState('ALL');
-  const [yearFilter, setYearFilter] = useState('');
   const [boothGeoJSON, setBoothGeoJSON] = useState(null);
   const [mapError, setMapError] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -83,6 +82,9 @@ export default function BoothVolunteerListPage() {
   const [boothsWithVolunteers, setBoothsWithVolunteers] = useState(new Set());
   const mapRef = useRef(null);
   const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+  // Year filter state
+  const [yearFilter, setYearFilter] = useState('');
 
   // Temporary filter states
   const [tempFilters, setTempFilters] = useState({
@@ -343,10 +345,14 @@ export default function BoothVolunteerListPage() {
   const accessScope = getUserAccessScope();
 
   // Fetch booths with volunteer data
-  const fetchBoothsWithVolunteers = async () => {
+  const fetchBoothsWithVolunteers = async (selectedYear = yearFilter) => {
     try {
       const headers = getAuthHeaders();
-      const volunteerRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true&limit=50000`, { headers });
+      let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true&limit=50000`;
+      if (selectedYear) {
+        url += `&year=${encodeURIComponent(selectedYear)}`;
+      }
+      const volunteerRes = await fetch(url, { headers });
       const volunteerJson = await volunteerRes.json();
       if (volunteerJson.success && Array.isArray(volunteerJson.data)) {
         const boothIds = new Set();
@@ -402,6 +408,7 @@ export default function BoothVolunteerListPage() {
         if (effParliament) url += `&parliament_id=${effParliament}`;
         if (effAssembly) url += `&assembly_id=${effAssembly}`;
         if (effBlock) url += `&block_id=${effBlock}`;
+        if (yearFilter) url += `&year=${encodeURIComponent(yearFilter)}`;
 
         // Add hierarchy-based filtering
         if (userHierarchy) {
@@ -710,9 +717,7 @@ export default function BoothVolunteerListPage() {
     try {
       const headers = getAuthHeaders();
       const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
-  const json = await res.json();
-      
-      let booth = null;
+      const json = await res.json();      let booth = null;
       if (json.success && Array.isArray(json.data)) {
   const boothNoStr = String(boothNo).trim();
         
@@ -735,12 +740,13 @@ export default function BoothVolunteerListPage() {
       let volunteersList = [];
       if (booth && booth._id) {
         try {
+          const yearParam = yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : '';
           
           // Try multiple API parameter variations
           const apiUrls = [
-            `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth_id=${encodeURIComponent(booth._id)}&all=true`,
-            `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth=${encodeURIComponent(booth._id)}&all=true`,
-            `${import.meta.env.VITE_APP_API_URL}/booth-volunteers/booth/${encodeURIComponent(booth._id)}`
+            `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth_id=${encodeURIComponent(booth._id)}&all=true${yearParam}`,
+            `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth=${encodeURIComponent(booth._id)}&all=true${yearParam}`,
+            `${import.meta.env.VITE_APP_API_URL}/booth-volunteers/booth/${encodeURIComponent(booth._id)}${yearParam ? `?${yearParam.substring(1)}` : ''}`
           ];
 
           for (const apiUrl of apiUrls) {
@@ -866,8 +872,17 @@ export default function BoothVolunteerListPage() {
     selectedParliament,
     selectedAssembly,
     selectedBlock,
-    selectedBooth
+    selectedBooth,
+    yearFilter
   ]);
+
+  // Refresh map markers when year filter changes
+  useEffect(() => {
+    if (boothGeoJSON && yearFilter !== undefined) {
+      fetchBoothsWithVolunteers(yearFilter);
+      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    }
+  }, [yearFilter]);
 
   // Fetch reference data only once when component mounts
   useEffect(() => {
@@ -1189,7 +1204,11 @@ export default function BoothVolunteerListPage() {
   const fetchAllVolunteersForCsv = async () => {
     try {
       const token = localStorage.getItem('serviceToken');
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+      let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?all=true`;
+      if (yearFilter) {
+        url += `&year=${encodeURIComponent(yearFilter)}`;
+      }
+      const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const json = await res.json();
       if (json.success) {
         return json.data;
@@ -1254,7 +1273,7 @@ export default function BoothVolunteerListPage() {
         {/* Map section above the table */}
         <Box sx={{ p: 2, pb: 0 }}>
           <Typography variant="h6" sx={{ mb: 1 }}>Booth Map</Typography>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1, flexWrap: 'wrap' }}>
             <TextField
               select
               size="small"
@@ -1273,10 +1292,11 @@ export default function BoothVolunteerListPage() {
                 <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
               ))}
             </TextField>
+            <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlock(blockNumberInput)}>Load Polygons</Button>
             <TextField
               select
               size="small"
-              label="Year"
+              label="Filter by Year"
               value={yearFilter}
               onChange={(e) => {
                 try { e.preventDefault && e.preventDefault(); } catch {};
@@ -1290,7 +1310,6 @@ export default function BoothVolunteerListPage() {
                 <MenuItem key={year} value={year}>{year}</MenuItem>
               ))}
             </TextField>
-            <Button variant="contained" size="small" onClick={() => loadBoothPolygonsByBlock(blockNumberInput)}>Load Polygons</Button>
             {mapError && <Alert severity="warning" sx={{ ml: 2 }}>{mapError}</Alert>}
           </Stack>
           <MapContainerStyled
@@ -1445,7 +1464,9 @@ export default function BoothVolunteerListPage() {
           
           {/* Map Legend */}
           <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
+            </Typography>
             <Stack direction="row" spacing={3}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Box sx={{ 
