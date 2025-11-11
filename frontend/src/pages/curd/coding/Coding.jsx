@@ -326,13 +326,12 @@ export default function CodingListPage() {
         }
     };
 
-    // Fetch booths with coding to mark them on the map (respects selected year)
-    const fetchBoothsWithCoding = async (selectedYear = '') => {
+    // Fetch booths with coding to mark them on the map
+    const fetchBoothsWithCoding = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const yearQuery = selectedYear ? `&year=${encodeURIComponent(selectedYear)}` : '';
-            const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000${yearQuery}`, { headers });
+            const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`, { headers });
             const codingJson = await codingRes.json();
             if (codingJson.success && Array.isArray(codingJson.data)) {
                 const boothIds = new Set();
@@ -343,7 +342,7 @@ export default function CodingListPage() {
                     }
                 });
                 setBoothsWithCoding(boothIds);
-                console.log('✅ Booths with coding updated (year:', selectedYear || 'ALL', '):', boothIds.size);
+                console.log('✅ Booths with coding updated:', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with coding:', err);
@@ -361,8 +360,8 @@ export default function CodingListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            // Fetch booths with coding in parallel (respect selected year)
-            fetchBoothsWithCoding(yearFilter);
+            // Fetch booths with coding in parallel
+            fetchBoothsWithCoding();
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -469,15 +468,6 @@ export default function CodingListPage() {
         }
     }, [blocks, mapboxToken]);
 
-    // Refresh booth coding markers when year changes (without forcing polygon reload)
-    useEffect(() => {
-        if (boothGeoJSON) {
-            fetchBoothsWithCoding(yearFilter);
-        }
-        // Reset to first page in table to avoid empty pages on filter change
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-    }, [yearFilter]);
-
     // Fetch booth and coding entries by clicked polygon's booth number
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -503,11 +493,11 @@ export default function CodingListPage() {
                 console.log('[Coding Map] Matched booth:', booth ? { id: booth._id, name: booth.name, booth_number: booth.booth_number } : 'NOT FOUND');
             }
 
-            // Fetch coding entries for the booth (respect selected year)
+            // Fetch coding entries for the booth
             let codingsForBooth = [];
             if (booth && booth._id) {
                 try {
-                    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/codings?booth_id=${encodeURIComponent(booth._id)}&limit=100${yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : ''}`;
+                    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/codings?booth_id=${encodeURIComponent(booth._id)}&limit=100`;
                     console.log('[Coding Map] Fetching from:', apiUrl);
 
                     const cRes = await fetch(apiUrl, { headers });
@@ -544,9 +534,6 @@ export default function CodingListPage() {
             }
 
             let query = globalFilter && globalFilter.trim() !== '' ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            if (yearFilter) {
-                query += `&year=${encodeURIComponent(yearFilter)}`;
-            }
 
             // Add column filters to the query
             columnFilters.forEach(filter => {
@@ -584,7 +571,7 @@ export default function CodingListPage() {
     useEffect(() => {
         fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters, yearFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters]);
 
     // Reset to first page when filters change
     useEffect(() => {
@@ -937,8 +924,7 @@ export default function CodingListPage() {
     const fetchAllCodingsForCsv = async () => {
         try {
             const token = localStorage.serviceToken;
-            const url = `${import.meta.env.VITE_APP_API_URL}/codings?all=true${yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : ''}`;
-            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 return json.data;
@@ -1182,7 +1168,7 @@ export default function CodingListPage() {
 
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{
@@ -1540,7 +1526,7 @@ export default function CodingListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchCodingList(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithCoding(yearFilter);
+                    fetchBoothsWithCoding();
                 }}
             />
 
@@ -1550,7 +1536,7 @@ export default function CodingListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchCodingList(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithCoding(yearFilter);
+                    fetchBoothsWithCoding();
                 }}
             />
         </>

@@ -178,14 +178,6 @@ export default function WorkStatusListPage() {
         }
     }, [mapboxToken]);
 
-    // Refresh markers when year filter changes
-    useEffect(() => {
-        if (boothGeoJSON && yearFilter !== undefined) {
-            fetchBoothsWithWorkStatus(yearFilter);
-            setPagination(prev => ({ ...prev, pageIndex: 0 }));
-        }
-    }, [yearFilter]);
-
     // Filter states
     const [filters, setFilters] = useState({
         state_id: '',
@@ -440,7 +432,6 @@ export default function WorkStatusListPage() {
             if (currentFilters.announced_by) queryParams.push(`announced_by=${encodeURIComponent(currentFilters.announced_by)}`);
             if (currentFilters.workType) queryParams.push(`workType=${encodeURIComponent(currentFilters.workType)}`);
             if (currentFilters.status) queryParams.push(`status=${encodeURIComponent(currentFilters.status)}`);
-            if (yearFilter) queryParams.push(`year=${yearFilter}`);
 
             // Hierarchy-based filtering is handled automatically by the backend
             // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
@@ -460,12 +451,10 @@ export default function WorkStatusListPage() {
     };
 
     // Fetch booths with work status to mark them on the map
-    const fetchBoothsWithWorkStatus = async (selectedYear = yearFilter) => {
+    const fetchBoothsWithWorkStatus = async () => {
         try {
             const headers = getAuthHeaders();
-            let url = `${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`;
-            if (selectedYear) url += `&year=${selectedYear}`;
-            const workStatusRes = await fetch(url, { headers });
+            const workStatusRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`, { headers });
             const workStatusJson = await workStatusRes.json();
             if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
                 const boothIds = new Set();
@@ -476,7 +465,7 @@ export default function WorkStatusListPage() {
                     }
                 });
                 setBoothsWithWorkStatus(boothIds);
-                console.log('✅ Booths with work status updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+                console.log('✅ Booths with work status updated:', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with work status:', err);
@@ -517,7 +506,7 @@ export default function WorkStatusListPage() {
             const headers = getAuthHeaders();
 
             // Fetch booths with work status in parallel
-            fetchBoothsWithWorkStatus(yearFilter);
+            fetchBoothsWithWorkStatus();
 
             // Support fetching ALL polygons (could be large)
             if (blockNumberVal === 'ALL') {
@@ -663,8 +652,6 @@ export default function WorkStatusListPage() {
             let gender = null;
 
             if (booth && booth._id) {
-                let wsUrl = `${import.meta.env.VITE_APP_API_URL}/work-status/booth/${encodeURIComponent(booth._id)}`;
-                if (yearFilter) wsUrl += `?year=${yearFilter}`;
                 const fetchPromises = [
                     fetch(`${import.meta.env.VITE_APP_API_URL}/visits?booth=${encodeURIComponent(booth._id)}&all=true`, { headers }),
                     fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers/booth/${encodeURIComponent(booth._id)}`, { headers }),
@@ -675,7 +662,7 @@ export default function WorkStatusListPage() {
                     fetch(`${import.meta.env.VITE_APP_API_URL}/genders/booth/${encodeURIComponent(booth._id)}`, { headers }),
                     fetch(`${import.meta.env.VITE_APP_API_URL}/booth-votes/booth/${encodeURIComponent(booth._id)}`, { headers }),
                     fetch(`${import.meta.env.VITE_APP_API_URL}/booth-stats/booth/${encodeURIComponent(booth._id)}`, { headers }),
-                    fetch(wsUrl, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/work-status/booth/${encodeURIComponent(booth._id)}`, { headers }),
                     fetch(`${import.meta.env.VITE_APP_API_URL}/samitis?booth_id=${encodeURIComponent(booth._id)}&limit=100`, { headers })
                 ];
 
@@ -785,7 +772,7 @@ export default function WorkStatusListPage() {
     useEffect(() => {
         fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, yearFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     const handleDeleteOpen = (id) => {
         setWorkStatusDeleteId(id);
@@ -1368,9 +1355,7 @@ export default function WorkStatusListPage() {
 
                     {/* Map Legend */}
                     <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                            Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
-                        </Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                         <Stack direction="row" spacing={3}>
                             <Stack direction="row" spacing={1} alignItems="center">
                                 <Box sx={{
@@ -1931,7 +1916,7 @@ export default function WorkStatusListPage() {
                 districts={districts}
                 refresh={() => {
                     fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
-                    fetchBoothsWithWorkStatus(yearFilter);
+                    fetchBoothsWithWorkStatus();
                 }}
             />
 
@@ -1941,7 +1926,7 @@ export default function WorkStatusListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
-                    fetchBoothsWithWorkStatus(yearFilter);
+                    fetchBoothsWithWorkStatus();
                 }}
             />
         </>

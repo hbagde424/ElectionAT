@@ -395,7 +395,6 @@ export default function GenderListPage() {
             if (selectedPanchayat) query += `&panchayat_id=${selectedPanchayat}`;
             if (selectedVillage) query += `&village_id=${selectedVillage}`;
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
-            if (yearFilter) query += `&year=${yearFilter}`;
 
             // Hierarchy-based filtering is handled automatically by the backend
             // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
@@ -415,12 +414,10 @@ export default function GenderListPage() {
     };
 
     // Fetch booths with gender data
-    const fetchBoothsWithGender = async (selectedYear = yearFilter) => {
+    const fetchBoothsWithGender = async () => {
         try {
             const headers = getAuthHeaders();
-            let url = `${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`;
-            if (selectedYear) url += `&year=${selectedYear}`;
-            const genderRes = await fetch(url, { headers });
+            const genderRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`, { headers });
             const genderJson = await genderRes.json();
             if (genderJson.success && Array.isArray(genderJson.data)) {
                 const boothIds = new Set();
@@ -431,7 +428,7 @@ export default function GenderListPage() {
                     }
                 });
                 setBoothsWithGender(boothIds);
-                console.log('✅ Booths with gender data updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+                console.log('✅ Booths with gender data updated:', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with gender:', err);
@@ -448,7 +445,7 @@ export default function GenderListPage() {
         try {
             const headers = getAuthHeaders();
 
-            fetchBoothsWithGender(yearFilter);
+            fetchBoothsWithGender();
 
             if (blockVal === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -560,14 +557,6 @@ export default function GenderListPage() {
         }
     }, [blocks, mapboxToken]);
 
-    // Refresh gender markers when year filter changes
-    useEffect(() => {
-        if (boothGeoJSON && yearFilter !== undefined) {
-            fetchBoothsWithGender(yearFilter);
-            setPagination(prev => ({ ...prev, pageIndex: 0 }));
-        }
-    }, [yearFilter]);
-
     // On polygon click, fetch Gender details for that booth
     const fetchBoothGenderDetails = async (boothNo) => {
         try {
@@ -585,9 +574,7 @@ export default function GenderListPage() {
             let gender = null;
             if (booth && booth._id) {
                 try {
-                    let gUrl = `${import.meta.env.VITE_APP_API_URL}/genders/booth/${encodeURIComponent(booth._id)}`;
-                    if (yearFilter) gUrl += `?year=${yearFilter}`;
-                    const gRes = await fetch(gUrl, { headers });
+                    const gRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders/booth/${encodeURIComponent(booth._id)}`, { headers });
                     const gJson = await gRes.json();
                     if (gJson?.success) {
                         if (Array.isArray(gJson.data) && gJson.data.length > 0) {
@@ -647,8 +634,7 @@ export default function GenderListPage() {
         selectedBooth,
         selectedPanchayat,
         selectedVillage,
-        selectedFalliya,
-        yearFilter
+        selectedFalliya
     ]);
 
     // Fetch reference data only once when component mounts
@@ -1117,9 +1103,7 @@ export default function GenderListPage() {
 
                     {/* Map Legend */}
                     <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                            Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
-                        </Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                         <Stack direction="row" spacing={3}>
                             <Stack direction="row" spacing={1} alignItems="center">
                                 <Box sx={{
@@ -1582,7 +1566,7 @@ export default function GenderListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchGenderList(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithGender(yearFilter);
+                    fetchBoothsWithGender();
                 }}
             />
 
@@ -1592,7 +1576,7 @@ export default function GenderListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchGenderList(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithGender(yearFilter);
+                    fetchBoothsWithGender();
                 }}
             />
         </>

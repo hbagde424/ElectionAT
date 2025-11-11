@@ -376,13 +376,11 @@ export default function GovernmentsListPage() {
     };
 
     // Fetch booths with government schemes
-    const fetchBoothsWithGovernmentScheme = async (selectedYear = yearFilter) => {
+    const fetchBoothsWithGovernmentScheme = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            let url = `${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`;
-            if (selectedYear) url += `&year=${selectedYear}`;
-            const schemesRes = await fetch(url, { headers });
+            const schemesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`, { headers });
             const schemesJson = await schemesRes.json();
             if (schemesJson.success && Array.isArray(schemesJson.data)) {
                 const boothIds = new Set();
@@ -393,7 +391,7 @@ export default function GovernmentsListPage() {
                     }
                 });
                 setBoothsWithGovernmentScheme(boothIds);
-                console.log('✅ Booths with government schemes updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+                console.log('✅ Booths with government schemes updated:', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with schemes:', err);
@@ -411,7 +409,7 @@ export default function GovernmentsListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            fetchBoothsWithGovernmentScheme(yearFilter);
+            fetchBoothsWithGovernmentScheme();
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -530,14 +528,6 @@ export default function GovernmentsListPage() {
         }
     }, [blocks, mapboxToken]);
 
-    // Refresh scheme markers when year filter changes
-    useEffect(() => {
-        if (boothGeoJSON && yearFilter !== undefined) {
-            fetchBoothsWithGovernmentScheme(yearFilter);
-            setPagination(prev => ({ ...prev, pageIndex: 0 }));
-        }
-    }, [yearFilter]);
-
     // Fetch booth details and government schemes when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -568,9 +558,7 @@ export default function GovernmentsListPage() {
             let governmentSchemes = [];
             if (booth && booth._id) {
                 try {
-                    let schemesUrl = `${import.meta.env.VITE_APP_API_URL}/governments?booth=${encodeURIComponent(booth._id)}&all=true`;
-                    if (yearFilter) schemesUrl += `&year=${yearFilter}`;
-                    const schemesRes = await fetch(schemesUrl, { headers });
+                    const schemesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?booth=${encodeURIComponent(booth._id)}&all=true`, { headers });
                     const schemesJson = await schemesRes.json();
                     if (schemesJson.success && Array.isArray(schemesJson.data)) {
                         governmentSchemes = schemesJson.data;
@@ -652,7 +640,6 @@ export default function GovernmentsListPage() {
             if (selectedVillage) query += `&village_id=${selectedVillage}`;
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
             if (selectedType) query += `&type=${selectedType}`;
-            if (yearFilter) query += `&year=${yearFilter}`;
 
             // Hierarchy-based filtering is handled automatically by the backend
             // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
@@ -694,8 +681,7 @@ export default function GovernmentsListPage() {
         selectedPanchayat,
         selectedVillage,
         selectedFalliya,
-        selectedType,
-        yearFilter
+        selectedType
     ]);
 
     const handleDeleteOpen = (id) => {
@@ -1164,9 +1150,7 @@ export default function GovernmentsListPage() {
 
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                                Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
-                            </Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{
@@ -1629,7 +1613,7 @@ export default function GovernmentsListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchGovernments(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithGovernmentScheme(yearFilter);
+                    fetchBoothsWithGovernmentScheme();
                 }}
             />
 
@@ -1639,7 +1623,7 @@ export default function GovernmentsListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchGovernments(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithGovernmentScheme(yearFilter);
+                    fetchBoothsWithGovernmentScheme();
                 }}
             />
         </>
