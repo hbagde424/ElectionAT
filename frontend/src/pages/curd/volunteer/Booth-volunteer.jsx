@@ -24,6 +24,8 @@ import ScrollX from 'components/ScrollX';
 import { HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
+import { useCsvOtp } from 'hooks/useCsvOtp';
+import OtpDialog from 'components/OtpDialog';
 
 // custom views and modals
 import BoothVolunteerModal from 'pages/curd/volunteer/VolunteerModal';
@@ -1223,36 +1225,53 @@ export default function BoothVolunteerListPage() {
   const [csvLoading, setCsvLoading] = useState(false);
   const csvLinkRef = useRef();
 
+  // OTP for CSV download
+  const {
+    otpDialogOpen,
+    otpCode,
+    setOtpCode,
+    loading: otpLoading,
+    maskedDest,
+    error: otpError,
+    requestOtp,
+    verifyOtp,
+    closeDialog
+  } = useCsvOtp();
+
   const handleDownloadCsv = async () => {
-    setCsvLoading(true);
-    const allData = await fetchAllVolunteersForCsv();
-    setCsvData(allData.map(item => ({
-      Name: item.name,
-      Phone: item.phone,
-      Email: item.email || '',
-      Role: item.role || '',
-      'Area Responsibility': item.area_responsibility || '',
-      Post: item.post || '',
-      'Activity Level': item.activity_level,
-      State: item.state?.name || '',
-      Division: item.division?.name || '',
-      Parliament: item.parliament?.name || '',
-      Assembly: item.assembly?.name || '',
-      Block: item.block?.name || '',
-      Booth: item.booth ? `${item.booth.name} (${item.booth.booth_number})` : '',
-      Party: item.party?.name || '',
-      Remarks: item.remarks || '',
-      'Created By': item.created_by?.username || '',
-      'Updated By': item.updated_by?.username || '',
-      'Created At': item.created_at,
-      'Updated At': item.updated_at
-    })));
-    setCsvLoading(false);
-    setTimeout(() => {
-      if (csvLinkRef.current) {
-        csvLinkRef.current.link.click();
-      }
-    }, 100);
+    // Request OTP first
+    requestOtp(async () => {
+      // This callback runs after OTP is verified
+      setCsvLoading(true);
+      const allData = await fetchAllVolunteersForCsv();
+      setCsvData(allData.map(item => ({
+        Name: item.name,
+        Phone: item.phone,
+        Email: item.email || '',
+        Role: item.role || '',
+        'Area Responsibility': item.area_responsibility || '',
+        Post: item.post || '',
+        'Activity Level': item.activity_level,
+        State: item.state?.name || '',
+        Division: item.division?.name || '',
+        Parliament: item.parliament?.name || '',
+        Assembly: item.assembly?.name || '',
+        Block: item.block?.name || '',
+        Booth: item.booth ? `${item.booth.name} (${item.booth.booth_number})` : '',
+        Party: item.party?.name || '',
+        Remarks: item.remarks || '',
+        'Created By': item.created_by?.username || '',
+        'Updated By': item.updated_by?.username || '',
+        'Created At': item.created_at,
+        'Updated At': item.updated_at
+      })));
+      setCsvLoading(false);
+      setTimeout(() => {
+        if (csvLinkRef.current) {
+          csvLinkRef.current.link.click();
+        }
+      }, 100);
+    });
   };
 
   if (loading) return <EmptyReactTable />;
@@ -1882,6 +1901,18 @@ export default function BoothVolunteerListPage() {
           fetchVolunteers(pagination.pageIndex, pagination.pageSize);
           fetchBoothsWithVolunteers();
         }}
+      />
+
+      {/* OTP Dialog for CSV Download */}
+      <OtpDialog
+        open={otpDialogOpen}
+        loading={otpLoading}
+        maskedDest={maskedDest}
+        otpCode={otpCode}
+        error={otpError}
+        onOtpChange={setOtpCode}
+        onVerify={verifyOtp}
+        onClose={closeDialog}
       />
     </>
   );

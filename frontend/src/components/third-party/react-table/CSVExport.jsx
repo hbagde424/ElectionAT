@@ -33,6 +33,13 @@ export default function CSVExport({ data, filename, headers }) {
       if (res.success) {
         setRequestId(res.requestId);
         setMaskedDest(res.to);
+        
+        // Development mode: Auto-fill OTP if provided in response
+        if (res.devOtp) {
+          setOtpCode(res.devOtp);
+          console.log('🔐 Development OTP:', res.devOtp);
+        }
+        
         setOtpDialogOpen(true);
       } else {
         setError(res.message || 'Failed to request OTP');
@@ -70,26 +77,30 @@ export default function CSVExport({ data, filename, headers }) {
 
   return (
     <>
-      {/* Hidden / gated CSV link - only works once verified */}
-      <CSVLink
-        id={`csv-link-${requestId || 'pending'}`}
-        data={verified ? data : []}
-        filename={filename}
-        headers={headers}
-        onClick={(e) => {
-          if (!verified) {
+      {/* Hidden CSVLink - only used after OTP verification */}
+      {verified && (
+        <CSVLink
+          id={`csv-link-${requestId}`}
+          data={data}
+          filename={filename}
+          headers={headers}
+          style={{ display: 'none' }}
+        />
+      )}
+
+      {/* Visible icon that triggers OTP flow */}
+      <Tooltip title="CSV Export (OTP Required)">
+        <DocumentDownload
+          size={28}
+          variant="Outline"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             startOtpFlow(e);
-          }
-        }}
-      >
-        <Tooltip title={verified ? 'Download CSV' : 'CSV Export (OTP Required)'}>
-          <DocumentDownload
-            size={28}
-            variant="Outline"
-            style={{ color: theme.palette.text.secondary, marginTop: 4, marginRight: 4, marginLeft: 4, cursor: 'pointer' }}
-          />
-        </Tooltip>
-      </CSVLink>
+          }}
+          style={{ color: theme.palette.text.secondary, marginTop: 4, marginRight: 4, marginLeft: 4, cursor: 'pointer' }}
+        />
+      </Tooltip>
 
       <Dialog open={otpDialogOpen} onClose={() => !loading && setOtpDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Enter OTP to Download CSV</DialogTitle>
@@ -105,6 +116,11 @@ export default function CSVExport({ data, filename, headers }) {
             onChange={(e) => setOtpCode(e.target.value)}
             disabled={loading}
             inputProps={{ maxLength: 6 }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && otpCode.trim()) {
+                verifyAndDownload();
+              }
+            }}
             sx={{ mt: 1 }}
           />
           {error && (

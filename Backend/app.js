@@ -6,6 +6,7 @@ const errorHandler = require('./middlewares/errorHandler');
 const connectDB = require('./config/db');
 const { specs, swaggerUi } = require('./config/swagger');
 const utilsRoutes = require("./routes/utilsRoutes");
+const csvExportRoutes = require('./routes/csvExportRoutes');
 // Route files
 const authRoutes = require('./routes/authRoutes');
 const roleRoutes = require('./routes/roleRoutes');
@@ -69,7 +70,6 @@ const governmentRoutes = require('./routes/governmentRoutes');
 const influencerRoutes = require('./routes/influencerRoutes');
 const logRoutes = require('./routes/logRoutes');
 const bloRoutes = require('./routes/bloRoutes');
-const csvExportRoutes = require('./routes/csvExportRoutes');
 // const statePolygonRoutes = require('./routes/statePolygonRoutes');
 const codingRoutes = require('./routes/codingRoutes');
 const boothPolygonRoutes = require('./routes/boothPolygonsRoutes');
@@ -219,6 +219,7 @@ apiRouter.use('/samitis', samitiRoutes);
 apiRouter.use('/panchayats', panchayatRoutes);
 apiRouter.use('/villages', villageRoutes);
 apiRouter.use('/falliyas', falliyaRoutes);
+apiRouter.use('/csv-export', csvExportRoutes);
 
 // Mount the API router on both /api and /backend/api paths
 app.use('/api', apiRouter);

@@ -14,20 +14,26 @@ function generateOtp(length = 6) {
 
 exports.requestCsvOtp = async (req, res) => {
   try {
-    // Find an active super admin to send OTP to
-    const superAdmin = await User.findOne({ role: 'superAdmin', isActive: true }).sort({ created_at: 1 });
-    if (!superAdmin) {
-      return res.status(400).json({ success: false, message: 'No active Super Admin found to receive OTP' });
+    let otpMobile = process.env.CSV_OTP_MOBILE_NUMBER;
+    
+    // If specific mobile not set in env, find super admin
+    if (!otpMobile) {
+      const superAdmin = await User.findOne({ role: 'superAdmin', isActive: true }).sort({ created_at: 1 });
+      if (!superAdmin) {
+        return res.status(400).json({ success: false, message: 'No active Super Admin found to receive OTP' });
+      }
+      otpMobile = superAdmin.mobile;
     }
 
     const otp = generateOtp(OTP_LENGTH);
+    console.log('Generated OTP:', otp); // Debug log
     const codeHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
     const token = await OtpToken.create({
       purpose: 'csv_export',
       codeHash,
-      sentTo: superAdmin.mobile,
+      sentTo: otpMobile,
       createdBy: req.user._id,
       expiresAt,
       meta: {
@@ -37,15 +43,41 @@ exports.requestCsvOtp = async (req, res) => {
       }
     });
 
-    const appName = process.env.APP_NAME || 'ElectionAT';
-    const msg = `Your ${appName} CSV download OTP is ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`;
+    console.log('OTP Token created with ID:', token._id); // Debug log
 
-    await sendSms(superAdmin.mobile, msg);
+    const msg = `Your ElectionAtlas CSV download OTP is ${otp}. Valid for ${OTP_TTL_MINUTES} minutes. Do not share with anyone.`;
+
+    // Development mode: Log OTP to console for testing
+    if (process.env.NODE_ENV === 'development') {
+      console.log('='.repeat(60));
+      console.log('🔐 CSV EXPORT OTP (Development Mode)');
+      console.log('='.repeat(60));
+      console.log(`OTP: ${otp}`);
+      console.log(`Mobile: ${otpMobile}`);
+      console.log(`Expires in: ${OTP_TTL_MINUTES} minutes`);
+      console.log('='.repeat(60));
+    }
+
+    await sendSms(otpMobile, msg);
 
     // Mask the mobile for frontend display
-    const masked = superAdmin.mobile?.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2') || '**********';
+    const masked = otpMobile?.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2') || '**********';
 
-    return res.json({ success: true, requestId: token._id, to: masked, expiresInMinutes: OTP_TTL_MINUTES });
+    const response = { 
+      success: true, 
+      requestId: token._id, 
+      to: masked, 
+      expiresInMinutes: OTP_TTL_MINUTES 
+    };
+
+    // In development mode, include OTP in response for testing
+    if (process.env.NODE_ENV === 'development') {
+      response.devOtp = otp; // Only for development testing
+    }
+
+    console.log('Sending response:', response); // Debug log
+
+    return res.json(response);
   } catch (err) {
     console.error('requestCsvOtp error:', err);
     return res.status(500).json({ success: false, message: 'Failed to generate OTP' });
