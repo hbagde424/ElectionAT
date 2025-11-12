@@ -59,6 +59,7 @@ export default function CodingListPage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const [boothsWithCoding, setBoothsWithCoding] = useState(new Set());
+    const [selectedBoothForFilter, setSelectedBoothForFilter] = useState(null);
 
     // Filtered dropdown data
     const [filteredDivisions, setFilteredDivisions] = useState([]);
@@ -326,12 +327,13 @@ export default function CodingListPage() {
         }
     };
 
-    // Fetch booths with coding to mark them on the map
-    const fetchBoothsWithCoding = async () => {
+    // Fetch booths with coding to mark them on the map (respects selected year)
+    const fetchBoothsWithCoding = async (selectedYear = '') => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`, { headers });
+            const yearQuery = selectedYear ? `&year=${encodeURIComponent(selectedYear)}` : '';
+            const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000${yearQuery}`, { headers });
             const codingJson = await codingRes.json();
             if (codingJson.success && Array.isArray(codingJson.data)) {
                 const boothIds = new Set();
@@ -342,7 +344,7 @@ export default function CodingListPage() {
                     }
                 });
                 setBoothsWithCoding(boothIds);
-                console.log('✅ Booths with coding updated:', boothIds.size);
+                console.log('✅ Booths with coding updated (year:', selectedYear || 'ALL', '):', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with coding:', err);
@@ -360,8 +362,8 @@ export default function CodingListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            // Fetch booths with coding in parallel
-            fetchBoothsWithCoding();
+            // Fetch booths with coding in parallel (respect selected year)
+            fetchBoothsWithCoding(yearFilter);
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -468,6 +470,15 @@ export default function CodingListPage() {
         }
     }, [blocks, mapboxToken]);
 
+    // Refresh booth coding markers when year changes (without forcing polygon reload)
+    useEffect(() => {
+        if (boothGeoJSON) {
+            fetchBoothsWithCoding(yearFilter);
+        }
+        // Reset to first page in table to avoid empty pages on filter change
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    }, [yearFilter]);
+
     // Fetch booth and coding entries by clicked polygon's booth number
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -493,11 +504,11 @@ export default function CodingListPage() {
                 console.log('[Coding Map] Matched booth:', booth ? { id: booth._id, name: booth.name, booth_number: booth.booth_number } : 'NOT FOUND');
             }
 
-            // Fetch coding entries for the booth
+            // Fetch coding entries for the booth (respect selected year)
             let codingsForBooth = [];
             if (booth && booth._id) {
                 try {
-                    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/codings?booth_id=${encodeURIComponent(booth._id)}&limit=100`;
+                    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/codings?booth_id=${encodeURIComponent(booth._id)}&limit=100${yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : ''}`;
                     console.log('[Coding Map] Fetching from:', apiUrl);
 
                     const cRes = await fetch(apiUrl, { headers });
@@ -515,6 +526,15 @@ export default function CodingListPage() {
             }
 
             setDrawerData({ loading: false, boothNo, details: { booth, codings: codingsForBooth } });
+            
+            // Filter table by selected booth
+            if (booth && booth._id) {
+                setSelectedBoothForFilter(booth);
+                // Apply booth filter to the table
+                const newColumnFilters = columnFilters.filter(f => f.id !== 'booth');
+                newColumnFilters.push({ id: 'booth', value: booth._id });
+                setColumnFilters(newColumnFilters);
+            }
         } catch (e) {
             console.error('[Coding Map] Error in fetchBoothDetailsByPolygon:', e);
             setDrawerData({ loading: false, boothNo, details: { booth: null, codings: [] }, error: e.message });
@@ -534,6 +554,9 @@ export default function CodingListPage() {
             }
 
             let query = globalFilter && globalFilter.trim() !== '' ? `&search=${encodeURIComponent(globalFilter)}` : '';
+            if (yearFilter) {
+                query += `&year=${encodeURIComponent(yearFilter)}`;
+            }
 
             // Add column filters to the query
             columnFilters.forEach(filter => {
@@ -571,7 +594,7 @@ export default function CodingListPage() {
     useEffect(() => {
         fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters, yearFilter]);
 
     // Reset to first page when filters change
     useEffect(() => {
@@ -924,7 +947,8 @@ export default function CodingListPage() {
     const fetchAllCodingsForCsv = async () => {
         try {
             const token = localStorage.serviceToken;
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            const url = `${import.meta.env.VITE_APP_API_URL}/codings?all=true${yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : ''}`;
+            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
             if (json.success) {
                 return json.data;
@@ -967,11 +991,6 @@ export default function CodingListPage() {
             }
         }, 100);
     };
-
-    if (loading) {
-        return <EmptyReactTable />;
-    }
-
 
     return (
         <>
@@ -1168,7 +1187,7 @@ export default function CodingListPage() {
 
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{
@@ -1223,7 +1242,27 @@ export default function CodingListPage() {
                                             </Paper>
 
                                             <Paper elevation={0} sx={{ p: 1 }}>
-                                                <Typography variant="subtitle2">Coding Entries ({drawerData.details.codings?.length || 0})</Typography>
+                                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                                                    <Typography variant="subtitle2">Coding Entries ({drawerData.details.codings?.length || 0})</Typography>
+                                                    {selectedBoothForFilter && (
+                                                        <Button 
+                                                            size="small" 
+                                                            variant="outlined" 
+                                                            onClick={() => {
+                                                                setSelectedBoothForFilter(null);
+                                                                const newColumnFilters = columnFilters.filter(f => f.id !== 'booth');
+                                                                setColumnFilters(newColumnFilters);
+                                                            }}
+                                                        >
+                                                            Clear Table Filter
+                                                        </Button>
+                                                    )}
+                                                </Stack>
+                                                {selectedBoothForFilter && (
+                                                    <Alert severity="info" sx={{ mb: 1 }}>
+                                                        Table below is filtered to show only this booth's coding entries.
+                                                    </Alert>
+                                                )}
                                                 {drawerData.details.codings?.length ? drawerData.details.codings.slice(0, 20).map(cd => (
                                                     <Box key={cd._id} sx={{ mb: 1, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                                                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{cd.name || 'N/A'} {Array.isArray(cd.coding_types) && cd.coding_types.length ? `• ${cd.coding_types.join(', ')}` : ''}</Typography>
@@ -1241,6 +1280,32 @@ export default function CodingListPage() {
                             </Box>
                         </Drawer>
                     </Box>
+
+                    {/* Booth Filter Alert */}
+                    {selectedBoothForFilter && (
+                        <Alert 
+                            severity="success" 
+                            sx={{ m: 2 }}
+                            action={
+                                <Button 
+                                    color="inherit" 
+                                    size="small"
+                                    onClick={() => {
+                                        setSelectedBoothForFilter(null);
+                                        const newColumnFilters = columnFilters.filter(f => f.id !== 'booth');
+                                        setColumnFilters(newColumnFilters);
+                                    }}
+                                >
+                                    Clear Filter
+                                </Button>
+                            }
+                        >
+                            <Typography variant="body2">
+                                <strong>Filtered by Booth:</strong> {selectedBoothForFilter.name} (Booth #{selectedBoothForFilter.booth_number})
+                            </Typography>
+                        </Alert>
+                    )}
+
                     {/* Top Actions */}
                     <Stack
                         direction={{ xs: "column", sm: "row" }}
@@ -1448,59 +1513,63 @@ export default function CodingListPage() {
 
                 <ScrollX>
                     <TableContainer>
-                        <Table>
-                            <TableHead sx={{ backgroundColor: 'primary.main' }}>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableCell
-                                                key={header.id}
-                                                onClick={header.column.getToggleSortingHandler()}
-                                                sx={{
-                                                    cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                                                    color: 'white',
-                                                    fontWeight: 'bold',
-                                                    backgroundColor: 'primary.main'
-                                                }}
-                                            >
-                                                <Stack direction="row" spacing={1} alignItems="center">
-                                                    <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
-                                                    {header.column.getCanSort() && <HeaderSort column={header.column} />}
-                                                </Stack>
+                        {loading ? (
+                            <EmptyReactTable />
+                        ) : (
+                            <Table>
+                                <TableHead sx={{ backgroundColor: 'primary.main' }}>
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <TableRow key={headerGroup.id}>
+                                            {headerGroup.headers.map((header) => (
+                                                <TableCell
+                                                    key={header.id}
+                                                    onClick={header.column.getToggleSortingHandler()}
+                                                    sx={{
+                                                        cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                                                        color: 'white',
+                                                        fontWeight: 'bold',
+                                                        backgroundColor: 'primary.main'
+                                                    }}
+                                                >
+                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                        <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
+                                                        {header.column.getCanSort() && <HeaderSort column={header.column} />}
+                                                    </Stack>
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableHead>
+                                <TableBody>
+                                    {table.getRowModel().rows.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} align="center">
+                                                <Typography>No data available</Typography>
                                             </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableHead>
-                            <TableBody>
-                                {table.getRowModel().rows.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} align="center">
-                                            <Typography>No data available</Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    table.getRowModel().rows.map((row) => (
-                                        <Fragment key={row.id}>
-                                            <TableRow>
-                                                {row.getVisibleCells().map((cell) => (
-                                                    <TableCell key={cell.id}>
-                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                            {row.getIsExpanded() && (
+                                        </TableRow>
+                                    ) : (
+                                        table.getRowModel().rows.map((row) => (
+                                            <Fragment key={row.id}>
                                                 <TableRow>
-                                                    <TableCell colSpan={row.getVisibleCells().length}>
-                                                        <CodingView data={row.original} />
-                                                    </TableCell>
+                                                    {row.getVisibleCells().map((cell) => (
+                                                        <TableCell key={cell.id}>
+                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                        </TableCell>
+                                                    ))}
                                                 </TableRow>
-                                            )}
-                                        </Fragment>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                                {row.getIsExpanded() && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={row.getVisibleCells().length}>
+                                                            <CodingView data={row.original} />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </Fragment>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
                     </TableContainer>
                     <Divider />
                     <Box sx={{ p: 2 }}>
@@ -1526,7 +1595,7 @@ export default function CodingListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchCodingList(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithCoding();
+                    fetchBoothsWithCoding(yearFilter);
                 }}
             />
 
@@ -1536,7 +1605,7 @@ export default function CodingListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchCodingList(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithCoding();
+                    fetchBoothsWithCoding(yearFilter);
                 }}
             />
         </>
