@@ -75,6 +75,7 @@ export default function PartyActivitiesModal({
     const [falliyas, setFalliyas] = useState([]);
     const [filteredVillages, setFilteredVillages] = useState([]);
     const [filteredFalliyas, setFilteredFalliyas] = useState([]);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     // Apply hierarchy constraints to base sets
     const getHierarchyConstrained = () => {
@@ -145,16 +146,83 @@ export default function PartyActivitiesModal({
 
     useEffect(() => {
         if (partyActivity && Array.isArray(states) && states.length > 0) {
+            setIsInitialLoad(true);
             const state_id = partyActivity.state_id?._id?.toString() || partyActivity.state_id?.toString() || '';
             const division_id = partyActivity.division_id?._id?.toString() || partyActivity.division_id?.toString() || '';
+            const parliament_id = partyActivity.parliament_id?._id?.toString() || partyActivity.parliament_id?.toString() || '';
+            const assembly_id = partyActivity.assembly_id?._id?.toString() || partyActivity.assembly_id?.toString() || '';
+            const block_id = partyActivity.block_id?._id?.toString() || partyActivity.block_id?.toString() || '';
+            const booth_id = partyActivity.booth_id?._id?.toString() || partyActivity.booth_id?.toString() || '';
+            
+            // Pre-populate filtered arrays based on existing data
+            if (state_id && divisions) {
+                const filteredDivs = divisions.filter(d => {
+                    const divStateId = d.state_id?._id || d.state_id;
+                    return divStateId?.toString() === state_id;
+                });
+                setFilteredDivisions(filteredDivs);
+            }
+            
+            if (division_id && parliaments) {
+                const filteredParls = parliaments.filter(p => {
+                    const parlDivId = p.division_id?._id || p.division_id;
+                    return parlDivId?.toString() === division_id;
+                });
+                setFilteredParliaments(filteredParls);
+            }
+            
+            if (parliament_id && assemblies) {
+                const filteredAssems = assemblies.filter(a => {
+                    const assemParlId = a.parliament_id?._id || a.parliament_id;
+                    return assemParlId?.toString() === parliament_id;
+                });
+                setFilteredAssemblies(filteredAssems);
+            }
+            
+            if (assembly_id && blocks) {
+                const filteredBlks = blocks.filter(b => {
+                    const blkAssemId = b.assembly_id?._id || b.assembly_id;
+                    return blkAssemId?.toString() === assembly_id;
+                });
+                setFilteredBlocks(filteredBlks);
+            }
+            
+            if (block_id && booths) {
+                const filteredBts = booths.filter(b => {
+                    const btBlkId = b.block_id?._id || b.block_id;
+                    return btBlkId?.toString() === block_id;
+                });
+                setFilteredBooths(filteredBts);
+            }
+            
+            // Pre-populate panchayat-village-falliya cascading filters
+            const panchayat_id = partyActivity.panchayat_id?._id?.toString() || partyActivity.panchayat_id?.toString() || '';
+            const village_id = partyActivity.village_id?._id?.toString() || partyActivity.village_id?.toString() || '';
+            
+            if (panchayat_id && villages) {
+                const filteredVills = villages.filter(v => {
+                    const villPanchId = v.panchayat_id?._id || v.panchayat_id;
+                    return villPanchId?.toString() === panchayat_id;
+                });
+                setFilteredVillages(filteredVills);
+            }
+            
+            if (village_id && falliyas) {
+                const filteredFalls = falliyas.filter(f => {
+                    const fallVillId = f.village_id?._id || f.village_id;
+                    return fallVillId?.toString() === village_id;
+                });
+                setFilteredFalliyas(filteredFalls);
+            }
+            
             setFormData({
                 party_id: partyActivity.party_id?._id?.toString() || partyActivity.party_id?.toString() || '',
                 state_id,
                 division_id,
-                parliament_id: partyActivity.parliament_id?._id?.toString() || partyActivity.parliament_id?.toString() || '',
-                assembly_id: partyActivity.assembly_id?._id?.toString() || partyActivity.assembly_id?.toString() || '',
-                block_id: partyActivity.block_id?._id?.toString() || partyActivity.block_id?.toString() || '',
-                booth_id: partyActivity.booth_id?._id?.toString() || partyActivity.booth_id?.toString() || '',
+                parliament_id,
+                assembly_id,
+                block_id,
+                booth_id,
                 panchayat_id: partyActivity.panchayat_id?._id?.toString() || partyActivity.panchayat_id?.toString() || '',
                 village_id: partyActivity.village_id?._id?.toString() || partyActivity.village_id?.toString() || '',
                 falliya_id: partyActivity.falliya_id?._id?.toString() || partyActivity.falliya_id?.toString() || '',
@@ -172,7 +240,9 @@ export default function PartyActivitiesModal({
                 media: partyActivity.media || []
                 // Note: created_by and updated_by are handled separately in handleSubmit
             });
+            setTimeout(() => setIsInitialLoad(false), 200);
         } else if (!partyActivity) {
+            setIsInitialLoad(false);
             setFormData({
                 party_id: '',
                 state_id: '',
@@ -199,7 +269,7 @@ export default function PartyActivitiesModal({
                 // Note: created_by and updated_by are handled separately in handleSubmit
             });
         }
-    }, [partyActivity, states]);
+    }, [partyActivity, states, divisions, parliaments, assemblies, blocks, booths, villages, falliyas]);
 
     // Fetch panchayats, villages, falliyas on modal open
     useEffect(() => {
@@ -225,12 +295,14 @@ export default function PartyActivitiesModal({
             });
             setFilteredVillages(filtered);
             
-            if (formData.village_id && !filtered.find(v => v._id?.toString() === formData.village_id.toString())) {
+            if (!isInitialLoad && formData.village_id && !filtered.find(v => v._id?.toString() === formData.village_id.toString())) {
                 setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
             }
         } else {
             setFilteredVillages([]);
-            setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({ ...prev, village_id: '', falliya_id: '' }));
+            }
         }
     }, [formData.panchayat_id, villages]);
 
@@ -243,12 +315,14 @@ export default function PartyActivitiesModal({
             });
             setFilteredFalliyas(filtered);
             
-            if (formData.falliya_id && !filtered.find(f => f._id?.toString() === formData.falliya_id.toString())) {
+            if (!isInitialLoad && formData.falliya_id && !filtered.find(f => f._id?.toString() === formData.falliya_id.toString())) {
                 setFormData(prev => ({ ...prev, falliya_id: '' }));
             }
         } else {
             setFilteredFalliyas([]);
-            setFormData(prev => ({ ...prev, falliya_id: '' }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({ ...prev, falliya_id: '' }));
+            }
         }
     }, [formData.village_id, falliyas]);
 
@@ -265,8 +339,8 @@ export default function PartyActivitiesModal({
 
             setFilteredDivisions(filtered);
 
-            // Only reset dependent fields if current selection is not valid
-            if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
+            // Only reset dependent fields if current selection is not valid AND not initial load
+            if (!isInitialLoad && formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
                 setFormData(prev => ({
                     ...prev,
                     division_id: '',
@@ -278,14 +352,16 @@ export default function PartyActivitiesModal({
             }
         } else {
             setFilteredDivisions([]);
-            setFormData(prev => ({
-                ...prev,
-                division_id: '',
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({
+                    ...prev,
+                    division_id: '',
+                    parliament_id: '',
+                    assembly_id: '',
+                    block_id: '',
+                    booth_id: ''
+                }));
+            }
         }
     }, [formData.state_id, divisions, userHierarchy]);
 
@@ -302,7 +378,7 @@ export default function PartyActivitiesModal({
 
             setFilteredParliaments(filtered);
 
-            if (formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
+            if (!isInitialLoad && formData.parliament_id && !filtered.find(p => p._id === formData.parliament_id)) {
                 setFormData(prev => ({
                     ...prev,
                     parliament_id: '',
@@ -313,13 +389,15 @@ export default function PartyActivitiesModal({
             }
         } else {
             setFilteredParliaments([]);
-            setFormData(prev => ({
-                ...prev,
-                parliament_id: '',
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({
+                    ...prev,
+                    parliament_id: '',
+                    assembly_id: '',
+                    block_id: '',
+                    booth_id: ''
+                }));
+            }
         }
     }, [formData.division_id, parliaments, userHierarchy]);
 
@@ -336,7 +414,7 @@ export default function PartyActivitiesModal({
 
             setFilteredAssemblies(filtered);
 
-            if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
+            if (!isInitialLoad && formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
                 setFormData(prev => ({
                     ...prev,
                     assembly_id: '',
@@ -346,12 +424,14 @@ export default function PartyActivitiesModal({
             }
         } else {
             setFilteredAssemblies([]);
-            setFormData(prev => ({
-                ...prev,
-                assembly_id: '',
-                block_id: '',
-                booth_id: ''
-            }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({
+                    ...prev,
+                    assembly_id: '',
+                    block_id: '',
+                    booth_id: ''
+                }));
+            }
         }
     }, [formData.parliament_id, assemblies, userHierarchy]);
 
@@ -368,7 +448,7 @@ export default function PartyActivitiesModal({
 
             setFilteredBlocks(filtered);
 
-            if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
+            if (!isInitialLoad && formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
                 setFormData(prev => ({
                     ...prev,
                     block_id: '',
@@ -377,11 +457,13 @@ export default function PartyActivitiesModal({
             }
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({
-                ...prev,
-                block_id: '',
-                booth_id: ''
-            }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({
+                    ...prev,
+                    block_id: '',
+                    booth_id: ''
+                }));
+            }
         }
     }, [formData.assembly_id, blocks, userHierarchy]);
 
@@ -398,12 +480,14 @@ export default function PartyActivitiesModal({
 
             setFilteredBooths(filtered);
 
-            if (formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
+            if (!isInitialLoad && formData.booth_id && !filtered.find(b => b._id === formData.booth_id)) {
                 setFormData(prev => ({ ...prev, booth_id: '' }));
             }
         } else {
             setFilteredBooths([]);
-            setFormData(prev => ({ ...prev, booth_id: '' }));
+            if (!isInitialLoad) {
+                setFormData(prev => ({ ...prev, booth_id: '' }));
+            }
         }
     }, [formData.block_id, booths, userHierarchy]);
 

@@ -55,15 +55,30 @@ const renderValue = (value) => {
             return String(value.year);
         }
         if (value.booth_number !== undefined && value.booth_number !== null) {
-            return String(value.booth_number);
+            // Show booth name and number together
+            if (value.name) {
+                return `${value.name} (Booth #${value.booth_number})`;
+            }
+            return `Booth #${value.booth_number}`;
         }
-        if (value.panchayat_name || value.village_name || value.falliya_name) {
-            return value.panchayat_name || value.village_name || value.falliya_name;
+        if (value.panchayat_name) {
+            return value.panchayat_name;
+        }
+        if (value.village_name) {
+            return value.village_name;
+        }
+        if (value.falliya_name) {
+            return value.falliya_name;
         }
         // common fallback: populated refs often have name or username
-        if (value.name || value.username || value._id) {
-            const display = value.name || value.username || value._id;
-            return display;
+        if (value.name) {
+            return value.name;
+        }
+        if (value.username) {
+            return value.username;
+        }
+        if (value._id) {
+            return value._id;
         }
         // otherwise show compact JSON
         return <Box sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{JSON.stringify(value, null, 2)}</Box>;
@@ -75,15 +90,30 @@ const DetailRenderer = ({ data }) => {
     if (!data) return <Typography>No data</Typography>;
 
     // hide common internal/id fields and post details
+    // BUT show populated reference fields (they will be objects with name/username)
     const HIDDEN_KEYS = new Set([
-        'id', '_id', '__v', 'post', 'post_details', 'postDetails', 'postdetails',
-        // hide all ID fields
-        'candidate_id', 'candidateId', 'state_id', 'stateId', 'division_id', 'divisionId',
-        'parliament_id', 'parliamentId', 'assembly_id', 'assemblyId', 'block_id', 'blockId',
-        'booth_id', 'boothId', 'election_year_id', 'electionYearId', 'party_id', 'partyId',
-        'user_id', 'userId', 'volunteer_id', 'volunteerId', 'constituency_id', 'constituencyId'
+        'id', '_id', '__v', 'post', 'post_details', 'postDetails', 'postdetails'
     ]);
-    const allKeys = Object.keys(data).filter((k) => !HIDDEN_KEYS.has(k));
+    
+    const allKeys = Object.keys(data).filter((k) => {
+        if (HIDDEN_KEYS.has(k)) return false;
+        
+        // Hide *_id fields only if they are primitive (string/ObjectId), not populated objects
+        if (k.endsWith('_id') || k.endsWith('Id')) {
+            const value = data[k];
+            // If it's a string or null/undefined, hide it
+            if (typeof value === 'string' || value === null || value === undefined) {
+                return false;
+            }
+            // If it's an object (populated), show it
+            if (typeof value === 'object') {
+                return true;
+            }
+            return false;
+        }
+        
+        return true;
+    });
     
     // move metadata fields to the end in specific order
     const METADATA_KEYS = new Set(['created_by', 'updated_by', 'created_at', 'updated_at']);

@@ -13,7 +13,7 @@ const Booth = require('../models/booth');
 exports.getPartyActivities = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit);
+    const limit = req.query.all === 'true' ? 100000 : parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     let query = PartyActivity.find()
@@ -146,6 +146,14 @@ exports.getPartyActivities = async (req, res, next) => {
     // Status
     if (req.query.status) {
       query = query.where('status').equals(req.query.status);
+    }
+
+    // Year filter
+    if (req.query.year) {
+      const year = parseInt(req.query.year);
+      if (!isNaN(year)) {
+        query = query.where('year').equals(year);
+      }
     }
 
     // Date range
