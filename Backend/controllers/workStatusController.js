@@ -193,6 +193,29 @@ exports.getWorkStatuses = async (req, res, next) => {
       }
     }
 
+    // Year filter (supports numeric year e.g. 2024)
+    if (req.query.year) {
+      const y = parseInt(req.query.year, 10);
+      if (!Number.isNaN(y)) {
+        query = query.where('year').equals(y);
+      } else {
+        query = query.where('year').equals(req.query.year);
+      }
+    }
+
+    // If caller requested all results (no pagination), return full set
+    if (req.query.all && String(req.query.all) === 'true') {
+      const allWorkStatuses = await query.exec();
+      return res.status(200).json({
+        success: true,
+        count: allWorkStatuses.length,
+        total: allWorkStatuses.length,
+        page: 1,
+        pages: 1,
+        data: allWorkStatuses
+      });
+    }
+
     // Date range filters
     if (req.query.start_date_from) {
       query = query.where('start_date').gte(new Date(req.query.start_date_from));
