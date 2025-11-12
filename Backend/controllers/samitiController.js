@@ -49,8 +49,23 @@ exports.getSamitis = async (req, res, next) => {
 
     // Filter by local administrative refs
     if (req.query.panchayat_id) filter.panchayat_id = req.query.panchayat_id;
+    // Frontend may send either village_id (object id) or village (string). Support both.
     if (req.query.village_id) filter.village_id = req.query.village_id;
+    if (req.query.village) filter.village = req.query.village;
+    // Frontend may send either falliya_id (object id) or falia/falliya (string). Support both.
     if (req.query.falliya_id) filter.falliya_id = req.query.falliya_id;
+    if (req.query.falia) filter.falia = req.query.falia;
+    if (req.query.falliya) filter.falliya = req.query.falliya;
+
+    // Year filter (supports numeric year e.g. 2024)
+    if (req.query.year) {
+      const y = parseInt(req.query.year, 10);
+      if (!Number.isNaN(y)) {
+        filter.year = y;
+      } else {
+        filter.year = req.query.year;
+      }
+    }
 
     // Apply user hierarchy restrictions if exists
     if (req.userHierarchy) {
@@ -83,8 +98,21 @@ exports.getSamitis = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ created_at: -1 });
 
+    // If caller requested all results (no pagination), return full set
+    if (req.query.all && String(req.query.all) === 'true') {
+      const allSamitis = await query.exec();
+      return res.status(200).json({
+        success: true,
+        count: allSamitis.length,
+        total: allSamitis.length,
+        page: 1,
+        pages: 1,
+        data: allSamitis
+      });
+    }
+
     const samitis = await query.skip(skip).limit(limit).exec();
-    const total = await Samiti.countDocuments(filter);
+    const total = await Samiti.countDocuments(query.getFilter());
 
     res.status(200).json({
       success: true,
