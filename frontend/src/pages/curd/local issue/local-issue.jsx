@@ -172,8 +172,56 @@ export default function LocalIssueListPage() {
             });
         }
 
+        // Debug: log markers info
+        try {
+            const countHas = features.filter(f => f.properties && f.properties.hasLocalIssues).length;
+            console.log('[LocalIssues] boothMarkersGeoJSON features:', features.length, 'with hasLocalIssues:', countHas);
+            if (features.length && countHas > 0) {
+                console.log('[LocalIssues] sample marker props:', features.find(f => f.properties && f.properties.hasLocalIssues).properties);
+            }
+        } catch (e) { /* safe */ }
+
         return { type: 'FeatureCollection', features };
     }, [boothGeoJSON, boothsWithLocalIssues, booths]);
+
+    // Ensure Mapbox Source receives a fresh object reference when markers change
+    const boothMarkersForSource = useMemo(() => {
+        try {
+            const clone = JSON.parse(JSON.stringify(boothMarkersGeoJSON));
+            console.log('[LocalIssues] boothMarkersForSource refreshed, features:', (clone.features || []).length);
+            return clone;
+        } catch (e) {
+            return boothMarkersGeoJSON;
+        }
+    }, [boothMarkersGeoJSON]);
+
+    // Force Mapbox source update when markers change (works around mapbox caching in some setups)
+    useEffect(() => {
+        try {
+            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+            if (map && typeof map.getSource === 'function') {
+                const src = map.getSource('booth-markers');
+                if (src && typeof src.setData === 'function') {
+                    src.setData(boothMarkersForSource);
+                    console.log('[LocalIssues] map source booth-markers setData called (force refresh)');
+                    // Also force paint evaluation by touching the layer paint property
+                    try {
+                        if (map.setPaintProperty) {
+                            map.setPaintProperty('booth-local-issue-markers', 'circle-opacity', 0.9);
+                            // toggle opacity quickly to force re-evaluation
+                            map.setPaintProperty('booth-local-issue-markers', 'circle-opacity', 0.91);
+                            map.setPaintProperty('booth-local-issue-markers', 'circle-opacity', 0.9);
+                            console.log('[LocalIssues] map.setPaintProperty called to force paint re-eval');
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+    }, [boothMarkersForSource]);
 
     // State -> Enable all dropdowns and filter by state
     useEffect(() => {
@@ -311,14 +359,21 @@ export default function LocalIssueListPage() {
     };
 
     // Fetch booths that have local issues
-    const fetchBoothsWithLocalIssues = async () => {
+    const fetchBoothsWithLocalIssues = async (selectedYear = yearFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
-            const response = await fetch(`${apiUrl}/local-issues`, { headers });
+            // Request all matching local-issues (no pagination) and include year if provided
+            const params = new URLSearchParams();
+            params.set('all', 'true');
+            if (selectedYear) params.set('year', String(selectedYear));
+            const url = `${apiUrl}/local-issues?${params.toString()}`;
+            console.log('[LocalIssues] fetchBoothsWithLocalIssues URL:', url);
+            const response = await fetch(url, { headers });
             if (response.ok) {
                 const data = await response.json();
+                console.log('[LocalIssues] fetchBoothsWithLocalIssues response length:', Array.isArray(data.data) ? data.data.length : (Array.isArray(data) ? data.length : 0));
                 const issues = data.data || data;
                 const boothIds = new Set();
                 issues.forEach(issue => {
@@ -329,7 +384,7 @@ export default function LocalIssueListPage() {
                     }
                 });
                 setBoothsWithLocalIssues(boothIds);
-                console.log('✅ Booths with local issues updated:', boothIds.size);
+                console.log('✅ Booths with local issues updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
             }
         } catch (error) {
             console.error('Error fetching booths with local issues:', error);
@@ -347,7 +402,7 @@ export default function LocalIssueListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            await fetchBoothsWithLocalIssues();
+            await fetchBoothsWithLocalIssues(yearFilter);
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -474,6 +529,14 @@ export default function LocalIssueListPage() {
         }
     }, [blocks, mapboxToken]);
 
+    // Refresh local issue markers and table when year filter changes
+    useEffect(() => {
+        // Always refresh booths-with-issues (markers) when year changes
+        fetchBoothsWithLocalIssues(yearFilter);
+        // Also reset table to first page so user doesn't land on empty pages
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    }, [yearFilter]);
+
     // Fetch booth details and recent visits when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -512,7 +575,9 @@ export default function LocalIssueListPage() {
             let localIssues = [];
             if (booth && booth._id) {
                 try {
-                    const issuesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?booth=${encodeURIComponent(booth._id)}&all=true`, { headers });
+                    let issuesUrl = `${import.meta.env.VITE_APP_API_URL}/local-issues?booth=${encodeURIComponent(booth._id)}&all=true`;
+                    if (yearFilter) issuesUrl += `&year=${yearFilter}`;
+                    const issuesRes = await fetch(issuesUrl, { headers });
                     const issuesJson = await issuesRes.json();
                     if (issuesJson.success && Array.isArray(issuesJson.data)) {
                         localIssues = issuesJson.data;
@@ -581,6 +646,10 @@ export default function LocalIssueListPage() {
             if (selectedPriority) query += `&priority=${encodeURIComponent(selectedPriority)}`;
             if (selectedDepartment) query += `&department=${encodeURIComponent(selectedDepartment)}`;
             if (selectedCategory) query += `&category=${encodeURIComponent(selectedCategory)}`;
+            if (yearFilter) query += `&year=${yearFilter}`;
+
+            // Debug: log final query and URL
+            console.log('[LocalIssues] fetchLocalIssues query:', query);
 
             // hierarchy-based filtering
             if (userHierarchy) {
@@ -621,8 +690,11 @@ export default function LocalIssueListPage() {
 
             const token = localStorage.serviceToken;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?page=${currentPage}&limit=${currentLimit}${query}`, { headers });
+            const fullUrl = `${import.meta.env.VITE_APP_API_URL}/local-issues?page=${currentPage}&limit=${currentLimit}${query}`;
+            console.log('[LocalIssues] fetching URL ->', fullUrl);
+            const res = await fetch(fullUrl, { headers });
             const json = await res.json();
+            console.log('[LocalIssues] fetchLocalIssues response:', json && typeof json === 'object' ? (json.success ? `success, items=${(json.data||[]).length}` : JSON.stringify(json).slice(0,200)) : json);
 
             if (json.success) {
                 setLocalIssues(json.data);
@@ -662,7 +734,8 @@ export default function LocalIssueListPage() {
         selectedStatus,
         selectedPriority,
         selectedDepartment,
-        selectedCategory
+        selectedCategory,
+        yearFilter
     ]);
 
     useEffect(() => {
@@ -1248,15 +1321,16 @@ export default function LocalIssueListPage() {
                                 )}
                                 {/* Local Issue Markers Layer (deduped) */}
                                 {boothGeoJSON && (
-                                    <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
+                                    <Source id="booth-markers" type="geojson" data={boothMarkersForSource}>
                                         <Layer
                                             id="booth-local-issue-markers"
                                             type="circle"
                                             paint={{
                                                 'circle-radius': 6,
+                                                // Explicitly compare property to boolean true to avoid type/coercion issues
                                                 'circle-color': [
                                                     'case',
-                                                    ['get', 'hasLocalIssues'],
+                                                    ['==', ['get', 'hasLocalIssues'], true],
                                                     '#22c55e',
                                                     '#ef4444'
                                                 ],
@@ -1272,7 +1346,9 @@ export default function LocalIssueListPage() {
                         
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
+                            </Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{ 
@@ -1771,7 +1847,7 @@ export default function LocalIssueListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchLocalIssues(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithLocalIssues();
+                    fetchBoothsWithLocalIssues(yearFilter);
                 }}
             />
 
@@ -1781,7 +1857,7 @@ export default function LocalIssueListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchLocalIssues(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithLocalIssues();
+                    fetchBoothsWithLocalIssues(yearFilter);
                 }}
             />
         </>

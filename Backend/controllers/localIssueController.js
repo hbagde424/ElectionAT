@@ -160,6 +160,30 @@ exports.getLocalIssues = async (req, res, next) => {
       }
     }
 
+    // Year filter (supports numeric year e.g. 2024)
+    if (req.query.year) {
+      const y = parseInt(req.query.year, 10);
+      if (!Number.isNaN(y)) {
+        query = query.where('year').equals(y);
+      } else {
+        // fallback to string match if non-numeric
+        query = query.where('year').equals(req.query.year);
+      }
+    }
+
+    // If caller requested all results (no pagination), return full set
+    if (req.query.all && String(req.query.all) === 'true') {
+      const allLocalIssues = await query.exec();
+      return res.status(200).json({
+        success: true,
+        count: allLocalIssues.length,
+        total: allLocalIssues.length,
+        page: 1,
+        pages: 1,
+        data: allLocalIssues
+      });
+    }
+
     const localIssues = await query.skip(skip).limit(limit).exec();
     const total = await LocalIssue.countDocuments(query.getFilter());
 
