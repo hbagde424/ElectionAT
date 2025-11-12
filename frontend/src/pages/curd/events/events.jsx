@@ -462,11 +462,13 @@ export default function EventListPage() {
     };
 
     // Fetch booths with events to mark them on the map
-    const fetchBoothsWithEvents = async () => {
+    const fetchBoothsWithEvents = async (selectedYear = yearFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const eventsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/events?all=true&limit=50000`, { headers });
+            let url = `${import.meta.env.VITE_APP_API_URL}/events?all=true&limit=50000`;
+            if (selectedYear) url += `&year=${selectedYear}`;
+            const eventsRes = await fetch(url, { headers });
             const eventsJson = await eventsRes.json();
             if (eventsJson.success && Array.isArray(eventsJson.data)) {
                 const boothIds = new Set();
@@ -477,7 +479,7 @@ export default function EventListPage() {
                     }
                 });
                 setBoothsWithEvents(boothIds);
-                console.log('✅ Booths with events updated:', boothIds.size);
+                console.log('✅ Booths with events updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
             }
         } catch (err) {
             console.warn('Failed to fetch booths with events:', err);
@@ -496,7 +498,7 @@ export default function EventListPage() {
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
             // Fetch booths with events in parallel
-            fetchBoothsWithEvents();
+            fetchBoothsWithEvents(yearFilter);
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -615,6 +617,14 @@ export default function EventListPage() {
         }
     }, [blocks, mapboxToken]);
 
+    // Refresh event markers when year filter changes
+    useEffect(() => {
+        if (boothGeoJSON && yearFilter !== undefined) {
+            fetchBoothsWithEvents(yearFilter);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    }, [yearFilter]);
+
     // Fetch booth details and events when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
@@ -645,7 +655,9 @@ export default function EventListPage() {
             let events = [];
             if (booth && booth._id) {
                 try {
-                    const eventsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/events?booth=${encodeURIComponent(booth._id)}&all=true`, { headers });
+                    let eventsUrl = `${import.meta.env.VITE_APP_API_URL}/events?booth=${encodeURIComponent(booth._id)}&all=true`;
+                    if (yearFilter) eventsUrl += `&year=${yearFilter}`;
+                    const eventsRes = await fetch(eventsUrl, { headers });
                     const eventsJson = await eventsRes.json();
                     if (eventsJson.success && Array.isArray(eventsJson.data)) {
                         events = eventsJson.data;
@@ -700,6 +712,7 @@ export default function EventListPage() {
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
             if (selectedStatus) query += `&status=${selectedStatus}`;
             if (selectedType) query += `&type=${selectedType}`;
+            if (yearFilter) query += `&year=${yearFilter}`;
 
             // Hierarchy-based filtering is handled automatically by the backend
             // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
@@ -754,7 +767,8 @@ export default function EventListPage() {
         selectedVillage,
         selectedFalliya,
         selectedStatus,
-        selectedType
+        selectedType,
+        yearFilter
     ]);
 
     // Debug useEffect to track when selectedDivision changes
@@ -1353,7 +1367,9 @@ export default function EventListPage() {
 
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}
+                            </Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Box sx={{
@@ -1848,7 +1864,7 @@ export default function EventListPage() {
                 booths={booths}
                 refresh={() => {
                     fetchEvents(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithEvents();
+                    fetchBoothsWithEvents(yearFilter);
                 }}
             />
 
@@ -1858,7 +1874,7 @@ export default function EventListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => {
                     fetchEvents(pagination.pageIndex, pagination.pageSize);
-                    fetchBoothsWithEvents();
+                    fetchBoothsWithEvents(yearFilter);
                 }}
             />
         </>
