@@ -86,7 +86,8 @@ const SamitiListPage = () => {
     // Drawer state for map click
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
-    const [boothsWithSamiti, setBoothsWithSamiti] = useState(new Set());
+    // Track booths that have samiti data both by booth _id and by booth_number
+    const [boothsWithSamiti, setBoothsWithSamiti] = useState({ ids: new Set(), numbers: new Set() });
     
     // Filters
     const [filterValues, setFilterValues] = useState({
@@ -298,15 +299,39 @@ const SamitiListPage = () => {
                 const data = await response.json();
                 const samitis = data.data || data;
                 const boothIds = new Set();
+                const boothNumbers = new Set();
+
                 samitis.forEach(samiti => {
-                    if (samiti.booth_id?._id) {
+                    // collect booth id
+                    if (samiti.booth_id && typeof samiti.booth_id === 'object' && samiti.booth_id._id) {
                         boothIds.add(String(samiti.booth_id._id));
+                        // if booth object contains booth_number, capture it too
+                        if (samiti.booth_id.booth_number !== undefined && samiti.booth_id.booth_number !== null) {
+                            boothNumbers.add(String(samiti.booth_id.booth_number).trim().toLowerCase());
+                        } else {
+                            // try to resolve booth_number from local reference data if population didn't include it
+                            const resolved = booths.find(b => String(b._id) === String(samiti.booth_id._id));
+                            if (resolved && resolved.booth_number !== undefined && resolved.booth_number !== null) {
+                                boothNumbers.add(String(resolved.booth_number).trim().toLowerCase());
+                            }
+                        }
                     } else if (samiti.booth_id) {
                         boothIds.add(String(samiti.booth_id));
+                        // try to resolve booth number from local reference data if available
+                        const resolved = booths.find(b => String(b._id) === String(samiti.booth_id));
+                        if (resolved && resolved.booth_number !== undefined && resolved.booth_number !== null) {
+                            boothNumbers.add(String(resolved.booth_number).trim().toLowerCase());
+                        }
+                    }
+
+                    // Also check if samiti document itself carries a booth number field (legacy)
+                    if (samiti.booth_number) {
+                        boothNumbers.add(String(samiti.booth_number).trim().toLowerCase());
                     }
                 });
-                setBoothsWithSamiti(boothIds);
-                console.log('✅ Booths with samiti updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+
+                setBoothsWithSamiti({ ids: boothIds, numbers: boothNumbers });
+                console.log('✅ Booths with samiti updated (Year: ' + (selectedYear || 'All') + '): ids=' + boothIds.size + ', numbers=' + boothNumbers.size);
             }
         } catch (error) {
             console.error('Error fetching booths with samiti:', error);
@@ -973,13 +998,30 @@ const SamitiListPage = () => {
                                                             ];
                                                         }
                                                         
-                                                        const hasSamiti = Array.from(boothsWithSamiti).some(samitiBoothId => {
-                                                            const booth = booths.find(b => String(b._id) === samitiBoothId);
-                                                            if (booth) {
-                                                                return String(booth.booth_number) === String(boothNo);
+                                                        // Determine if this feature's booth has samiti by checking:
+                                                        // 1) If feature contains a booth id that exists in samiti ids set
+                                                        // 2) Or if the booth number (from polygon props) exists in the samiti booth numbers set
+                                                        const featureId = props.id || props.booth || props.BoothId || props._id || null;
+                                                        const boothNoNormalized = String(boothNo || '').trim().toLowerCase();
+                                                        let hasSamiti = false;
+                                                        try {
+                                                            if (featureId && boothsWithSamiti.ids && boothsWithSamiti.ids.has(String(featureId))) {
+                                                                hasSamiti = true;
                                                             }
-                                                            return false;
-                                                        });
+                                                            if (!hasSamiti && boothsWithSamiti.numbers && boothsWithSamiti.numbers.has(boothNoNormalized)) {
+                                                                hasSamiti = true;
+                                                            }
+                                                            // As a last resort, attempt to match by resolving id -> booth and comparing booth_number
+                                                            if (!hasSamiti && featureId && booths && booths.length) {
+                                                                const resolvedBooth = booths.find(b => String(b._id) === String(featureId));
+                                                                if (resolvedBooth && String(resolvedBooth.booth_number).trim().toLowerCase() === boothNoNormalized) {
+                                                                    hasSamiti = true;
+                                                                }
+                                                            }
+                                                        } catch (e) {
+                                                            // fall back to no samiti
+                                                            hasSamiti = false;
+                                                        }
                                                         
                                                         return {
                                                             type: 'Feature',
