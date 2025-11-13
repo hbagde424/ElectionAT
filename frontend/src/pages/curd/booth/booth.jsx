@@ -72,11 +72,15 @@ export default function BoothsListPage() {
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     // Helper: fit map to GeoJSON feature collection bounds with retries
+    // - collects coordinates from many geometry types (Point, LineString, Polygon, Multi*)
+    // - waits until map instance and style are ready (isStyleLoaded) before calling fitBounds
+    // - calls map.resize() to ensure correct container size
     const fitGeoJSONBounds = (fc, attempt = 0) => {
+        const MAX_ATTEMPTS = 12;
         try {
             const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
             if (!map) {
-                if (attempt < 6) {
+                if (attempt < MAX_ATTEMPTS) {
                     // wait a bit and retry
                     setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
                 }
@@ -86,35 +90,89 @@ export default function BoothsListPage() {
             if (!fc || !Array.isArray(fc.features) || fc.features.length === 0) return;
 
             const coords = [];
+
+            const pushCoord = (pt) => {
+                if (!pt) return;
+                // Expect [lon, lat]
+                if (typeof pt[0] === 'number' && typeof pt[1] === 'number') {
+                    coords.push([pt[0], pt[1]]);
+                }
+            };
+
+            const collect = (arr) => {
+                if (!Array.isArray(arr)) return;
+                // If this is a single coordinate [lon, lat]
+                if (arr.length >= 2 && typeof arr[0] === 'number' && typeof arr[1] === 'number') {
+                    pushCoord(arr);
+                    return;
+                }
+                // Otherwise recursively traverse
+                arr.forEach(a => collect(a));
+            };
+
             fc.features.forEach(f => {
-                const geom = f.geometry;
+                const geom = f && (f.geometry || f);
                 if (!geom) return;
-                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                if (geom.type === 'Polygon') collect(geom.coordinates);
-                if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                const type = geom.type;
+                if (!type) return;
+                switch (type) {
+                    case 'Point':
+                        pushCoord(geom.coordinates);
+                        break;
+                    case 'MultiPoint':
+                    case 'LineString':
+                    case 'MultiLineString':
+                    case 'Polygon':
+                        collect(geom.coordinates);
+                        break;
+                    case 'MultiPolygon':
+                        collect(geom.coordinates);
+                        break;
+                    default:
+                        // Try a generic coordinates field if present
+                        if (geom.coordinates) collect(geom.coordinates);
+                        break;
+                }
             });
 
             if (!coords.length) return;
 
             const lons = coords.map(c => c[0]);
             const lats = coords.map(c => c[1]);
-            const bounds = [
-                [Math.min(...lons), Math.min(...lats)],
-                [Math.max(...lons), Math.max(...lats)]
-            ];
+            const sw = [Math.min(...lons), Math.min(...lats)];
+            const ne = [Math.max(...lons), Math.max(...lats)];
+            const bounds = [sw, ne];
+
+            // If map style isn't loaded yet, wait and retry
+            if (typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded()) {
+                if (attempt < MAX_ATTEMPTS) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 350);
+                } else {
+                    console.warn('Map style did not load in time for fitGeoJSONBounds');
+                }
+                return;
+            }
+
+            // Ensure map knows its current size
+            try {
+                if (typeof map.resize === 'function') map.resize();
+            } catch (e) {
+                // not fatal
+            }
 
             try {
-                map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                // Use a smooth animation and limit max zoom
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 800 });
             } catch (err) {
-                if (attempt < 6) {
-                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                if (attempt < MAX_ATTEMPTS) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 350);
                 } else {
                     console.warn('fitBounds failed after retries:', err);
                 }
             }
         } catch (err) {
-            if (attempt < 6) {
-                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+            if (attempt < MAX_ATTEMPTS) {
+                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 350);
             } else {
                 console.warn('fitGeoJSONBounds unexpected error:', err);
             }
