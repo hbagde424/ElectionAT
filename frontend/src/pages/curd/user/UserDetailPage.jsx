@@ -96,10 +96,6 @@ const UserDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/users/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/Users');
     };
@@ -161,7 +157,6 @@ const UserDetailPage = () => {
                         <Typography variant="h4" component="h1">User Details</Typography>
                         <Typography variant="body2" color="text.secondary">{formatDateTime(user.created_at)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit} sx={{ ml: 'auto' }}>Edit User</Button>
                 </Stack>
 
                 <Breadcrumbs aria-label="breadcrumb">

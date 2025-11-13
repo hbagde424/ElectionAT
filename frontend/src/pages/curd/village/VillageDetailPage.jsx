@@ -31,7 +31,6 @@ const VillageDetailPage = () => {
     const [village, setVillage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [openEditModal, setOpenEditModal] = useState(false);
     
     // Hierarchy data for edit modal
     const [states, setStates] = useState([]);
@@ -157,13 +156,6 @@ const VillageDetailPage = () => {
                             Village Details: {village.village_name}
                         </Typography>
                     </Stack>
-                    <Button
-                        startIcon={<Edit />}
-                        variant="contained"
-                        onClick={() => setOpenEditModal(true)}
-                    >
-                        Edit Village
-                    </Button>
                 </Stack>
 
                 <Divider />
@@ -324,21 +316,6 @@ const VillageDetailPage = () => {
                     )}
                 </Grid>
             </Stack>
-
-            {/* Edit Modal */}
-            <VillageModal
-                open={openEditModal}
-                modalToggler={() => setOpenEditModal(false)}
-                village={village}
-                states={states}
-                divisions={divisions}
-                parliaments={parliaments}
-                assemblies={assemblies}
-                blocks={blocks}
-                booths={booths}
-                panchayats={panchayats}
-                refresh={fetchVillage}
-            />
         </MainCard>
     );
 };

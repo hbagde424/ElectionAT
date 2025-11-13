@@ -97,10 +97,6 @@ const SamitiDetailPage = () => {
         }
     }, [id]);
 
-    const handleEdit = () => {
-        setOpenModal(true);
-    };
-
     const handleDelete = () => {
         setDeleteAlert({ open: true, id: samiti._id });
     };
@@ -204,11 +200,6 @@ const SamitiDetailPage = () => {
                                     </Box>
                                 </Stack>
                                 <Stack direction="row" spacing={1}>
-                                    <Tooltip title="Edit Samiti">
-                                        <IconButton color="primary" onClick={handleEdit}>
-                                            <Edit />
-                                        </IconButton>
-                                    </Tooltip>
                                     <Tooltip title="Delete Samiti">
                                         <IconButton color="error" onClick={handleDelete}>
                                             <Trash />

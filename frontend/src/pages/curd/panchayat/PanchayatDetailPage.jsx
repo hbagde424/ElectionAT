@@ -31,7 +31,6 @@ const PanchayatDetailPage = () => {
     const [panchayat, setPanchayat] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [openEditModal, setOpenEditModal] = useState(false);
     
     // Hierarchy data for edit modal
     const [states, setStates] = useState([]);
@@ -154,13 +153,6 @@ const PanchayatDetailPage = () => {
                             Panchayat Details: {panchayat.panchayat_name}
                         </Typography>
                     </Stack>
-                    <Button
-                        startIcon={<Edit />}
-                        variant="contained"
-                        onClick={() => setOpenEditModal(true)}
-                    >
-                        Edit Panchayat
-                    </Button>
                 </Stack>
 
                 <Divider />
@@ -317,20 +309,6 @@ const PanchayatDetailPage = () => {
                     )}
                 </Grid>
             </Stack>
-
-            {/* Edit Modal */}
-            <PanchayatModal
-                open={openEditModal}
-                modalToggler={() => setOpenEditModal(false)}
-                panchayat={panchayat}
-                states={states}
-                divisions={divisions}
-                parliaments={parliaments}
-                assemblies={assemblies}
-                blocks={blocks}
-                booths={booths}
-                refresh={fetchPanchayat}
-            />
         </MainCard>
     );
 };

@@ -49,8 +49,6 @@ export default function FAQDetailPage() {
     const formatDateTime = (dateString) => { if (!dateString) return 'N/A'; try { return new Date(dateString).toLocaleString(); } catch (e) { return 'N/A'; } };
 
     const handleBack = () => navigate('/faq-crud');
-    // Navigate to the edit page for this FAQ. Adjust the route if your app uses a different edit path.
-    const handleEdit = () => navigate(`/faq-crud/edit/${id}`);
 
 
     if (loading) return (
@@ -83,7 +81,6 @@ export default function FAQDetailPage() {
                         <Typography variant="h4" component="h1">FAQ Details</Typography>
                         <Typography variant="body2" color="text.secondary">{faq.question?.slice(0, 120)}</Typography>
                     </Box>
-                    <Button variant="contained" startIcon={<Edit />} onClick={handleEdit}>Edit</Button>
                 </Stack>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>

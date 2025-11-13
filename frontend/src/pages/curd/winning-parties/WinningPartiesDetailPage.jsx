@@ -69,7 +69,6 @@ export default function WinningPartiesDetailPage() {
     };
 
     const handleBack = () => navigate('/WinningPartiesList');
-    const handleEdit = () => navigate(`/WinningPartiesList/edit/${id}`);
 
     if (loading) {
         return (

@@ -96,10 +96,6 @@ const BlockDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/block/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/block');
     };
@@ -157,14 +153,6 @@ const BlockDetailPage = () => {
                             {formatDateTime(block.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Block
-                    </Button>
                 </Stack>
 
                 {/* Breadcrumbs */}

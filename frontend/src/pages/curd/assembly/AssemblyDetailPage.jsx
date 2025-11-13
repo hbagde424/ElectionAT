@@ -87,10 +87,6 @@ const AssemblyDetailPage = () => {
         });
     };
 
-    const handleEdit = () => {
-        navigate(`/assembly/edit/${id}`);
-    };
-
     const handleBack = () => {
         navigate('/assembly');
     };
@@ -148,14 +144,6 @@ const AssemblyDetailPage = () => {
                             {formatDateTime(assembly.created_at)}
                         </Typography>
                     </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Edit />}
-                        onClick={handleEdit}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Edit Assembly
-                    </Button>
                 </Stack>
 
                 {/* Breadcrumbs */}
