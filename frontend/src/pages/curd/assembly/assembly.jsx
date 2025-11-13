@@ -390,6 +390,12 @@ export default function AssemblyListPage() {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    const [parlCsvData, setParlCsvData] = useState([]);
+    const [parlCsvLoading, setParlCsvLoading] = useState(false);
+    const parlCsvLinkRef = useRef();
+    const importInputRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
@@ -413,6 +419,73 @@ export default function AssemblyListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    // Download reference CSV for Parliaments (parliament_no, name, state, division, division_code)
+    const handleDownloadParliamentReference = async () => {
+        setParlCsvLoading(true);
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?page=1&limit=10000`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+            const json = await res.json();
+            if (json?.success && Array.isArray(json.data)) {
+                const divisionCodeMap = new Map(divisions.map(d => [String(d._id), d.division_code]));
+                const rows = json.data.map(p => ({
+                    parliament_no: p.parliament_no,
+                    parliament_name: p.name,
+                    state: p.state_id?.name || '',
+                    division: p.division_id?.name || '',
+                    division_code: divisionCodeMap.get(String(p.division_id?._id)) || ''
+                }));
+                setParlCsvData(rows);
+                setTimeout(() => {
+                    if (parlCsvLinkRef.current) {
+                        parlCsvLinkRef.current.link.click();
+                    }
+                }, 50);
+            }
+        } catch (e) {
+            console.error('Failed to prepare parliaments reference CSV:', e);
+        } finally {
+            setParlCsvLoading(false);
+        }
+    };
+
+    // Download empty Excel template with only headers matching the modal fields
+    // Load xlsx dynamically to avoid breaking the dev server when dependency is absent
+    const handleDownloadExcelTemplate = async () => {
+        // Use numeric/code fields instead of database IDs
+        const headers = ['name', 'AC_NO', 'description', 'type', 'category', 'division_code', 'parliament_no'];
+        // Try dynamic import of xlsx
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            // writeFile triggers browser download when built for web
+            XLSX.writeFile(wb, 'assembly_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        // Fallback: generate CSV template
+        try {
+            const csvContent = headers.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'assembly_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
     };
 
     if (loading) return <EmptyReactTable />;
@@ -583,6 +656,61 @@ export default function AssemblyListPage() {
         }
     };
 
+    // Handle file import
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            // Normalize keys and pick required columns
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    name: obj.name ?? '',
+                    AC_NO: obj.ac_no ?? obj.acno ?? obj['ac no'] ?? obj['assembly no'] ?? '',
+                    description: obj.description ?? '',
+                    type: obj.type ?? '',
+                    category: obj.category ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? ''
+                };
+            });
+
+            // Filter out completely empty rows (no name and no AC_NO)
+            const filtered = rows.filter(r => String(r.name).trim() || String(r.AC_NO).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                // Refresh list after import
+                fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            // reset input to allow re-select same file
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     return (
         <>
             <MainCard content={false}>
@@ -590,6 +718,20 @@ export default function AssemblyListPage() {
                 <Box sx={{ p: 2, pb: 0 }}>
                     <Typography variant="h6" sx={{ mb: 1 }}>Assembly Map</Typography>
                     {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
+                    {importResult && (
+                        <Alert severity={importResult.success ? 'success' : 'error'} sx={{ mb: 1 }}>
+                            {importResult.success ? (
+                                <span>
+                                    Imported: {importResult.created || 0} / {importResult.total || 0}
+                                    {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                        <> | Errors: {importResult.errors.length}</>
+                                    )}
+                                </span>
+                            ) : (
+                                <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                            )}
+                        </Alert>
+                    )}
                     <MapContainerStyled>
                         <Map
                             ref={mapRef}
@@ -669,6 +811,35 @@ export default function AssemblyListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        <CSVLink
+                            data={parlCsvData}
+                            filename="parliaments_reference.csv"
+                            style={{ display: 'none' }}
+                            ref={parlCsvLinkRef}
+                        />
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadExcelTemplate}
+                            size="small"
+                        >
+                            Download Excel Template
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadParliamentReference}
+                            size="small"
+                        >
+                            {parlCsvLoading ? 'Preparing Parliaments...' : 'Download Parliament Reference CSV'}
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => {
+                                if (importInputRef.current) importInputRef.current.click();
+                            }}
+                            size="small"
+                        >
+                            Import Excel
+                        </Button>
                         <Button
                             variant="outlined"
                             onClick={handleDownloadCsv}
@@ -863,6 +1034,14 @@ export default function AssemblyListPage() {
                     </Box>
                 </ScrollX>
             </MainCard >
+            {/* Hidden file input for import */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             {/* Right-side Drawer for clicked assembly info */}
             <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

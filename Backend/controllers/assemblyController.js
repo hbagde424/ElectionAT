@@ -497,3 +497,151 @@ exports.getAssembliesByDivision = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import assemblies (client sends parsed rows)
+// @route   POST /api/assemblies/import
+// @access  Private (Admin only)
+exports.importAssemblies = async (req, res, next) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Normalize headers and collect lookup keys
+    const toKey = (s) => String(s || '').trim();
+    const toUpper = (s) => String(s || '').trim().toUpperCase();
+    const toTitle = (s) => {
+      const x = String(s || '').trim().toLowerCase();
+      if (x === 'urban' || x === 'rural' || x === 'mixed') return x.charAt(0).toUpperCase() + x.slice(1);
+      if (x === 'general' || x === 'reserved' || x === 'special') return x.charAt(0).toUpperCase() + x.slice(1);
+      return s;
+    };
+
+    const divisionCodes = new Set();
+    const parliamentNos = new Set();
+    for (const r of rows) {
+      const dc = toUpper(r.division_code || r.Division_Code || r.DIVISION_CODE || r.division || r.Division);
+      if (dc) divisionCodes.add(dc);
+      const pnRaw = r.parliament_no ?? r.Parliament_No ?? r.PARLIAMENT_NO ?? r.parliament ?? r.Parliament;
+      if (pnRaw !== undefined && pnRaw !== null && pnRaw !== '') {
+        const pn = Number(String(pnRaw).trim());
+        if (!Number.isNaN(pn)) parliamentNos.add(pn);
+      }
+    }
+
+    // Preload lookups
+    const [divisions, parliaments] = await Promise.all([
+      divisionCodes.size ? Division.find({ division_code: { $in: Array.from(divisionCodes) } }) : [],
+      parliamentNos.size ? Parliament.find({ parliament_no: { $in: Array.from(parliamentNos) } }) : []
+    ]);
+    const divisionByCode = new Map(divisions.map(d => [toUpper(d.division_code), d]));
+    const parliamentByNo = new Map(parliaments.map(p => [Number(p.parliament_no), p]));
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = toKey(r.name ?? r.Name);
+        const AC_NO = toKey(r.AC_NO ?? r.ac_no ?? r.Ac_No);
+        const description = String(r.description ?? r.Description ?? '').trim();
+        const type = toTitle(r.type ?? r.Type);
+        const category = toTitle(r.category ?? r.Category);
+        const division_code = toUpper(r.division_code ?? r.Division_Code ?? r.DIVISION_CODE ?? r.division ?? r.Division);
+        const pnRaw = r.parliament_no ?? r.Parliament_No ?? r.PARLIAMENT_NO ?? r.parliament ?? r.Parliament;
+        const parliament_no = pnRaw !== undefined && pnRaw !== null && pnRaw !== '' ? Number(String(pnRaw).trim()) : NaN;
+
+        if (!name || !AC_NO) {
+          throw new Error('name and AC_NO are required');
+        }
+        if (!type || !['Urban', 'Rural', 'Mixed'].includes(type)) {
+          throw new Error('type must be one of Urban, Rural, Mixed');
+        }
+        if (!category || !['General', 'Reserved', 'Special'].includes(category)) {
+          throw new Error('category must be one of General, Reserved, Special');
+        }
+        if (Number.isNaN(parliament_no)) {
+          throw new Error('parliament_no is required and must be a number');
+        }
+
+        // Resolve division: prefer code match, fallback to name match
+        let division = division_code ? divisionByCode.get(division_code) : null;
+        if (!division && division_code) {
+          // try matching division by name when code lookup fails
+          const divName = division_code;
+          const divDoc = await Division.findOne({ name: { $regex: `^${divName}$`, $options: 'i' } });
+          if (divDoc) division = divDoc;
+        }
+
+        // Resolve parliament: prefer numeric match, fallback to name match
+        let parliament = parliamentByNo.get(parliament_no);
+        if (!parliament) {
+          const pNameCandidate = toKey(r.parliament ?? r.Parliament ?? r.parliament_name ?? r.Parliament_Name);
+          if (pNameCandidate) {
+            const pDoc = await Parliament.findOne({ name: { $regex: `^${pNameCandidate}$`, $options: 'i' } });
+            if (pDoc) parliament = pDoc;
+          }
+        }
+
+        if (!parliament) {
+          // If division is known, try a smart fallback: if exactly one parliament exists in that division, use it
+          if (division) {
+            const ps = await Parliament.find({ division_id: division._id }).select('_id name parliament_no division_id');
+            if (Array.isArray(ps) && ps.length === 1) {
+              parliament = ps[0];
+            } else {
+              const nums = (ps || []).map(p => p.parliament_no).filter(v => v !== undefined && v !== null);
+              throw new Error(`Parliament not found for parliament_no=${parliament_no}. In division ${division_code || division.name}, available parliament_no: ${nums.join(', ') || 'none'}`);
+            }
+          } else {
+            throw new Error(`Parliament not found for parliament_no=${parliament_no}. Provide a valid parliament_no or a parliament name in column 'parliament'.`);
+          }
+        }
+
+        // If division provided, ensure it matches parliament's division
+        if (division && String(parliament.division_id) !== String(division._id)) {
+          throw new Error(`Parliament(${parliament.parliament_no || parliament_no}) does not belong to Division(${division_code})`);
+        }
+
+        // Check duplicates on name or AC_NO
+        const existing = await Assembly.findOne({ $or: [{ name }, { AC_NO }] });
+        if (existing) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Duplicate assembly (name or AC_NO): ${name} / ${AC_NO}` });
+          continue;
+        }
+
+        const assemblyData = {
+          name,
+          description,
+          AC_NO,
+          type,
+          category,
+          state_id: division ? division.state_id : parliament.state_id,
+          district_id: undefined,
+          division_id: division ? division._id : parliament.division_id,
+          parliament_id: parliament._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const createdOne = await Assembly.create(assemblyData);
+        created.push(createdOne._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

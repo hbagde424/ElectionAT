@@ -6,7 +6,8 @@ const {
   updateAssembly,
   deleteAssembly,
   getAssembliesByParliament,
-  getAssembliesByDivision
+  getAssembliesByDivision,
+  importAssemblies
 } = require('../controllers/assemblyController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -272,6 +273,40 @@ router.get('/parliament/:parliamentId', getUserPermissionsAndHierarchy, getAssem
  */
 // Public: optional authentication
 router.get('/division/:divisionId', getUserPermissionsAndHierarchy, getAssembliesByDivision);
+
+/**
+ * @swagger
+ * /api/assemblies/import:
+ *   post:
+ *     summary: Bulk import assemblies from parsed rows
+ *     tags: [Assemblies]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 description: Array of assembly rows parsed from XLSX/CSV on client
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name: { type: string }
+ *                     AC_NO: { type: string }
+ *                     description: { type: string }
+ *                     type: { type: string, enum: [Urban, Rural, Mixed, urban, rural, mixed] }
+ *                     category: { type: string, enum: [General, Reserved, Special, general, reserved, special] }
+ *                     division_code: { type: string, description: "Division code (e.g., numeric/code)" }
+ *                     parliament_no: { type: number, description: "Parliament number" }
+ *     responses:
+ *       200:
+ *         description: Import summary
+ */
+router.post('/import', protect, authorize('superAdmin'), importAssemblies);
 
 /**
  * @swagger
