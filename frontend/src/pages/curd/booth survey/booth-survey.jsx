@@ -68,12 +68,12 @@ export default function BoothSurveyListPage() {
   // Get user's access scope information
   const getUserAccessScope = () => {
     if (!userHierarchy) {
-      return { level: 'All', description: 'You have access to all booth survey data' };
+      return { level: 'All', description: 'आपको सभी बूथ सर्वेक्षण डेटा तक पहुँच है' };
     }
 
     const highestLevel = getUserHighestLevel();
     if (!highestLevel) {
-      return { level: 'All', description: 'You have access to all booth survey data' };
+      return { level: 'All', description: 'आपको सभी बूथ सर्वेक्षण डेटा तक पहुँच है' };
     }
 
     const levelNames = {
@@ -91,7 +91,7 @@ export default function BoothSurveyListPage() {
     return {
       level: levelName,
       entity: entityName,
-      description: `You have access to booth survey data for ${entityName} ${levelName} and all areas within it`
+      description: `${entityName} ${levelName} और उसके अंतर्गत सभी क्षेत्रों के बूथ सर्वेक्षण डेटा तक आपको पहुँच है`
     };
   };
 
@@ -846,7 +846,7 @@ export default function BoothSurveyListPage() {
           sx={{ m: 2 }}
         >
           <Typography variant="body2">
-            <strong>Data Access:</strong> {accessScope.description}
+            <strong>डेटा पहुँच:</strong> {accessScope.description}
           </Typography>
         </Alert>
 
@@ -1050,7 +1050,7 @@ export default function BoothSurveyListPage() {
             onClick={() => fetchSurveys(pagination.pageIndex, pagination.pageSize, filters)}
             size="small"
           >
-            Apply
+            लागू करें
           </Button>
           <Button
             variant="outlined"
@@ -1074,7 +1074,7 @@ export default function BoothSurveyListPage() {
             }}
             size="small"
           >
-            Clear
+            साफ़ करें
           </Button>
         </Stack>
 
