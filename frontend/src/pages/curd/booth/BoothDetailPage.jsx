@@ -31,6 +31,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { removePTags } from 'utils/cleanHtml';
 
 const BoothDetailPage = () => {
     const theme = useTheme();
@@ -288,7 +289,7 @@ const BoothDetailPage = () => {
                                 <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                                 <Box sx={{ mt: 1 }}>
                                     {booth.description ? (
-                                        <Typography variant="body1"><div dangerouslySetInnerHTML={{ __html: booth.description }} /></Typography>
+                                        <Typography variant="body1"><div dangerouslySetInnerHTML={{ __html: removePTags(booth.description) }} /></Typography>
                                     ) : (
                                         <Typography variant="body1" color="text.secondary">No description provided.</Typography>
                                     )}

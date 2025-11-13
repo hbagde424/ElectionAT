@@ -1,5 +1,6 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
 import { CalendarTick, User, DocumentText1 } from 'iconsax-react';
+import { removePTags } from 'utils/cleanHtml';
 
 export default function WorkStatusView({ data }) {
     if (!data) return null;
@@ -60,9 +61,17 @@ export default function WorkStatusView({ data }) {
                             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                 Description
                             </Typography>
-                            <Typography variant="body1" paragraph>
-                                {data.description || 'No description provided'}
-                            </Typography>
+                            <Box
+                                sx={{
+                                    border: '1px solid #eee',
+                                    borderRadius: 1,
+                                    p: 1,
+                                    bgcolor: 'background.default',
+                                    maxHeight: 180,
+                                    overflow: 'auto',
+                                }}
+                                dangerouslySetInnerHTML={{ __html: removePTags(data.description || '') }}
+                            />
                         </Box>
 
                         <Box>

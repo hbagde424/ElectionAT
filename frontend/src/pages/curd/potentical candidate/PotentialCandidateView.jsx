@@ -1,5 +1,6 @@
 import { Stack, Typography, Divider, Chip, Box, Avatar, Grid } from '@mui/material';
 import { CalendarTick, People, User, Award } from 'iconsax-react';
+import { removePTags } from 'utils/cleanHtml';
 
 export default function PotentialCandidateView({ data }) {
     if (!data) return null;
@@ -193,7 +194,7 @@ export default function PotentialCandidateView({ data }) {
                             maxHeight: 180,
                             overflow: 'auto',
                         }}
-                        dangerouslySetInnerHTML={{ __html: data.description }}
+                        dangerouslySetInnerHTML={{ __html: removePTags(data.description) }}
                     />
                 </Box>
             )}

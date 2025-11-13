@@ -1,5 +1,6 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
 import { CalendarTick, User, Mobile, Location, MessageText1 } from 'iconsax-react';
+import { removePTags } from 'utils/cleanHtml';
 
 export default function InfluencerView({ data }) {
     if (!data) return null;
@@ -85,7 +86,7 @@ export default function InfluencerView({ data }) {
                             maxHeight: 180,
                             overflow: 'auto',
                         }}
-                        dangerouslySetInnerHTML={{ __html: data.description }}
+                        dangerouslySetInnerHTML={{ __html: removePTags(data.description) }}
                     />
                 </Box>
             )}

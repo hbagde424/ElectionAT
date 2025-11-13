@@ -5,6 +5,7 @@ import { ArrowBack, Edit, CalendarToday, Description, Person, Business } from '@
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { removePTags } from 'utils/cleanHtml';
 
 export default function YearDetailPage() {
     const theme = useTheme();
@@ -142,7 +143,7 @@ export default function YearDetailPage() {
                                 }}
                             >
                                 {year.description ? (
-                                    <div dangerouslySetInnerHTML={{ __html: year.description }} />
+                                    <div dangerouslySetInnerHTML={{ __html: removePTags(year.description) }} />
                                 ) : 'No description provided'}
                             </Typography>
                         </Grid>

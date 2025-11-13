@@ -5,6 +5,7 @@ import { ArrowBack, Edit, EmojiEvents, Person, Business, TrendingUp } from '@mui
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { removePTags } from 'utils/cleanHtml';
 import { usePermissions } from 'contexts/PermissionContext';
 
 export default function WinningCandidatesDetailPage() {
@@ -216,7 +217,7 @@ export default function WinningCandidatesDetailPage() {
                         <Box sx={{ mt: 3 }}>
                             <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                             <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: winningCandidate.description }} />
+                                <div dangerouslySetInnerHTML={{ __html: removePTags(winningCandidate.description) }} />
                             </Typography>
                         </Box>
                     )}

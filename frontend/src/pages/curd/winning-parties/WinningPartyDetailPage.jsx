@@ -18,6 +18,7 @@ import {
 import { ArrowBack } from '@mui/icons-material';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { removePTags } from 'utils/cleanHtml';
 
 export default function WinningPartyDetailPage() {
     const { id } = useParams();
@@ -259,7 +260,7 @@ export default function WinningPartyDetailPage() {
                         <Box sx={{ mt: 3 }}>
                             <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                             <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: winningParty.description }} />
+                                <div dangerouslySetInnerHTML={{ __html: removePTags(winningParty.description) }} />
                             </Typography>
                         </Box>
                     )}

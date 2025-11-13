@@ -33,6 +33,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { removePTags } from 'utils/cleanHtml';
 
 const VisitDetailPage = () => {
     const theme = useTheme();
@@ -279,7 +280,7 @@ const VisitDetailPage = () => {
                         <Box sx={{ mt: 3 }}>
                             <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                             <Typography variant="body1" sx={{ mt: 1 }}>
-                                <div dangerouslySetInnerHTML={{ __html: visit.description }} />
+                                <div dangerouslySetInnerHTML={{ __html: removePTags(visit.description) }} />
                             </Typography>
                         </Box>
                     )}

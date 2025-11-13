@@ -19,6 +19,7 @@ import { ArrowBack, Phone, Room } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import { removePTags, stripAllTags } from 'utils/cleanHtml';
 import DetailRenderer from 'components/DetailRenderer';
 import { usePermissions } from 'contexts/PermissionContext';
 
@@ -353,7 +354,7 @@ const BoothSurveyDetailPage = () => {
                                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>टिप्पणी</Typography>
                                 <Box sx={{ mt: 1 }}>
                                     {survey.remark || survey.note || survey.description ? (
-                                        <Typography variant="body1">{survey.remark || survey.note || survey.description}</Typography>
+                                        <Typography variant="body1">{stripAllTags(removePTags(survey.remark || survey.note || survey.description))}</Typography>
                                     ) : (
                                         <Typography variant="body1" color="text.secondary">कोई टिप्पणी नहीं दी गई।</Typography>
                                     )}

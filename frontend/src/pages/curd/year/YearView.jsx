@@ -1,5 +1,6 @@
 
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
+import { removePTags } from 'utils/cleanHtml';
 import { CalendarTick, User } from 'iconsax-react';
 
 export default function ElectionYearView({ data }) {
@@ -41,7 +42,7 @@ export default function ElectionYearView({ data }) {
                             maxHeight: 180,
                             overflow: 'auto',
                         }}
-                        dangerouslySetInnerHTML={{ __html: data.description }}
+                        dangerouslySetInnerHTML={{ __html: removePTags(data.description) }}
                     />
                 </Box>
             )}
