@@ -34,25 +34,28 @@ exports.getInfluencers = async (req, res, next) => {
       .sort({ name: 1 });
 
     // Apply optional user hierarchy filtering if middleware provided and user is not superAdmin
-    try {
-      if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-        const h = req.userHierarchy;
-        if (h.booth_id) {
-          query = query.where('booth_id').equals(h.booth_id);
-        } else if (h.block_id) {
-          query = query.where('block_id').equals(h.block_id);
-        } else if (h.assembly_id) {
-          query = query.where('assembly_id').equals(h.assembly_id);
-        } else if (h.parliament_id) {
-          query = query.where('parliament_id').equals(h.parliament_id);
-        } else if (h.division_id) {
-          query = query.where('division_id').equals(h.division_id);
-        } else if (h.state_id) {
-          query = query.where('state_id').equals(h.state_id);
-        }
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const uh = req.userHierarchy;
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      if (boothIds.length > 0) {
+        query = query.where('booth_id').in(boothIds);
+      } else if (blockIds.length > 0) {
+        query = query.where('block_id').in(blockIds);
+      } else if (assemblyIds.length > 0) {
+        query = query.where('assembly_id').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament_id').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division_id').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state_id').in(stateIds);
       }
-    } catch (e) {
-      // ignore malformed hierarchy
     }
 
     // Search functionality

@@ -106,18 +106,25 @@ exports.getWinningCandidates = async (req, res, next) => {
     // Apply user hierarchy scoping when available (booth->block->assembly->parliament->division->state)
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
       const uh = req.userHierarchy;
-      if (uh.booth && uh.booth._id) {
-        query = query.where('booth_id').equals(uh.booth._id);
-      } else if (uh.block && uh.block._id) {
-        query = query.where('block_id').equals(uh.block._id);
-      } else if (uh.assembly && uh.assembly._id) {
-        query = query.where('assembly_id').equals(uh.assembly._id);
-      } else if (uh.parliament && uh.parliament._id) {
-        query = query.where('parliament_id').equals(uh.parliament._id);
-      } else if (uh.division && uh.division._id) {
-        query = query.where('division_id').equals(uh.division._id);
-      } else if (uh.state && uh.state._id) {
-        query = query.where('state_id').equals(uh.state._id);
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      if (boothIds.length > 0) {
+        query = query.where('booth_id').in(boothIds);
+      } else if (blockIds.length > 0) {
+        query = query.where('block_id').in(blockIds);
+      } else if (assemblyIds.length > 0) {
+        query = query.where('assembly_id').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament_id').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division_id').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state_id').in(stateIds);
       }
     }
 
@@ -501,22 +508,30 @@ exports.getWinningCandidate = async (req, res, next) => {
     // Enforce scope for single resource if userHierarchy present
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
       const uh = req.userHierarchy;
-      if (uh.booth && uh.booth._id && winningCandidate.booth_id && String(uh.booth._id) !== String(winningCandidate.booth_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.block && uh.block._id && winningCandidate.block_id && String(uh.block._id) !== String(winningCandidate.block_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.assembly && uh.assembly._id && winningCandidate.assembly_id && String(uh.assembly._id) !== String(winningCandidate.assembly_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.parliament && uh.parliament._id && winningCandidate.parliament_id && String(uh.parliament._id) !== String(winningCandidate.parliament_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.division && uh.division._id && winningCandidate.division_id && String(uh.division._id) !== String(winningCandidate.division_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.state && uh.state._id && winningCandidate.state_id && String(uh.state._id) !== String(winningCandidate.state_id)) {
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      const boothId = winningCandidate.booth_id ? String(winningCandidate.booth_id) : null;
+      const blockId = winningCandidate.block_id ? String(winningCandidate.block_id) : null;
+      const assemblyId = winningCandidate.assembly_id ? String(winningCandidate.assembly_id) : null;
+      const parliamentId = winningCandidate.parliament_id ? String(winningCandidate.parliament_id) : null;
+      const divisionId = winningCandidate.division_id ? String(winningCandidate.division_id) : null;
+      const stateId = winningCandidate.state_id ? String(winningCandidate.state_id) : null;
+
+      const outside = (
+        (boothIds.length > 0 && boothId && !boothIds.some(id => String(id) === boothId)) ||
+        (blockIds.length > 0 && blockId && !blockIds.some(id => String(id) === blockId)) ||
+        (assemblyIds.length > 0 && assemblyId && !assemblyIds.some(id => String(id) === assemblyId)) ||
+        (parliamentIds.length > 0 && parliamentId && !parliamentIds.some(id => String(id) === parliamentId)) ||
+        (divisionIds.length > 0 && divisionId && !divisionIds.some(id => String(id) === divisionId)) ||
+        (stateIds.length > 0 && stateId && !stateIds.some(id => String(id) === stateId))
+      );
+
+      if (outside) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
     }

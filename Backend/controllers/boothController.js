@@ -206,26 +206,26 @@ exports.getBooths = async (req, res, next) => {
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      // Use array-based IDs from User model
+      const boothIds = h.booth_ids || [];
+      const blockIds = h.block_ids || [];
+      const assemblyIds = h.assembly_ids || [];
+      const parliamentIds = h.parliament_ids || [];
+      const divisionIds = h.division_ids || [];
+      const stateIds = h.state_ids || [];
 
-      if (boothId) {
-        aggregationPipeline.push({ $match: { _id: new mongoose.Types.ObjectId(boothId) } });
-      } else if (blockId) {
-        aggregationPipeline.push({ $match: { block_id: new mongoose.Types.ObjectId(blockId) } });
-      } else if (assemblyId) {
-        aggregationPipeline.push({ $match: { assembly_id: new mongoose.Types.ObjectId(assemblyId) } });
-      } else if (parliamentId) {
-        aggregationPipeline.push({ $match: { parliament_id: new mongoose.Types.ObjectId(parliamentId) } });
-      } else if (divisionId) {
-        aggregationPipeline.push({ $match: { division_id: new mongoose.Types.ObjectId(divisionId) } });
-      } else if (stateId) {
-        aggregationPipeline.push({ $match: { state_id: new mongoose.Types.ObjectId(stateId) } });
+      if (boothIds.length > 0) {
+        aggregationPipeline.push({ $match: { _id: { $in: boothIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (blockIds.length > 0) {
+        aggregationPipeline.push({ $match: { block_id: { $in: blockIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (assemblyIds.length > 0) {
+        aggregationPipeline.push({ $match: { assembly_id: { $in: assemblyIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (parliamentIds.length > 0) {
+        aggregationPipeline.push({ $match: { parliament_id: { $in: parliamentIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (divisionIds.length > 0) {
+        aggregationPipeline.push({ $match: { division_id: { $in: divisionIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (stateIds.length > 0) {
+        aggregationPipeline.push({ $match: { state_id: { $in: stateIds.map(id => new mongoose.Types.ObjectId(id)) } } });
       }
     }
 
@@ -261,26 +261,26 @@ exports.getBooths = async (req, res, next) => {
     // Apply user hierarchy restriction for count pipeline as well
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      // Use array-based IDs from User model
+      const boothIds = h.booth_ids || [];
+      const blockIds = h.block_ids || [];
+      const assemblyIds = h.assembly_ids || [];
+      const parliamentIds = h.parliament_ids || [];
+      const divisionIds = h.division_ids || [];
+      const stateIds = h.state_ids || [];
 
-      if (boothId) {
-        countPipeline.push({ $match: { _id: new mongoose.Types.ObjectId(boothId) } });
-      } else if (blockId) {
-        countPipeline.push({ $match: { block_id: new mongoose.Types.ObjectId(blockId) } });
-      } else if (assemblyId) {
-        countPipeline.push({ $match: { assembly_id: new mongoose.Types.ObjectId(assemblyId) } });
-      } else if (parliamentId) {
-        countPipeline.push({ $match: { parliament_id: new mongoose.Types.ObjectId(parliamentId) } });
-      } else if (divisionId) {
-        countPipeline.push({ $match: { division_id: new mongoose.Types.ObjectId(divisionId) } });
-      } else if (stateId) {
-        countPipeline.push({ $match: { state_id: new mongoose.Types.ObjectId(stateId) } });
+      if (boothIds.length > 0) {
+        countPipeline.push({ $match: { _id: { $in: boothIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (blockIds.length > 0) {
+        countPipeline.push({ $match: { block_id: { $in: blockIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (assemblyIds.length > 0) {
+        countPipeline.push({ $match: { assembly_id: { $in: assemblyIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (parliamentIds.length > 0) {
+        countPipeline.push({ $match: { parliament_id: { $in: parliamentIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (divisionIds.length > 0) {
+        countPipeline.push({ $match: { division_id: { $in: divisionIds.map(id => new mongoose.Types.ObjectId(id)) } } });
+      } else if (stateIds.length > 0) {
+        countPipeline.push({ $match: { state_id: { $in: stateIds.map(id => new mongoose.Types.ObjectId(id)) } } });
       }
     }
 
@@ -336,20 +336,27 @@ exports.getBooth = async (req, res, next) => {
     // Enforce user hierarchy: only allow access if booth is within user's scope
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      // Use array-based IDs from User model
+      const boothIds = h.booth_ids || [];
+      const blockIds = h.block_ids || [];
+      const assemblyIds = h.assembly_ids || [];
+      const parliamentIds = h.parliament_ids || [];
+      const divisionIds = h.division_ids || [];
+      const stateIds = h.state_ids || [];
 
-      const outOfScope = (boothId && booth._id.toString() !== boothId.toString()) ||
-        (blockId && booth.block_id && booth.block_id.toString() !== blockId.toString()) ||
-        (assemblyId && booth.assembly_id && booth.assembly_id.toString() !== assemblyId.toString()) ||
-        (parliamentId && booth.parliament_id && booth.parliament_id.toString() !== parliamentId.toString()) ||
-        (divisionId && booth.division_id && booth.division_id.toString() !== divisionId.toString()) ||
-        (stateId && booth.state_id && booth.state_id.toString() !== stateId.toString());
+      const boothIdStr = booth._id.toString();
+      const blockIdStr = booth.block_id ? booth.block_id.toString() : null;
+      const assemblyIdStr = booth.assembly_id ? booth.assembly_id.toString() : null;
+      const parliamentIdStr = booth.parliament_id ? booth.parliament_id.toString() : null;
+      const divisionIdStr = booth.division_id ? booth.division_id.toString() : null;
+      const stateIdStr = booth.state_id ? booth.state_id.toString() : null;
+
+      const outOfScope = (boothIds.length > 0 && !boothIds.some(id => id.toString() === boothIdStr)) ||
+        (blockIds.length > 0 && blockIdStr && !blockIds.some(id => id.toString() === blockIdStr)) ||
+        (assemblyIds.length > 0 && assemblyIdStr && !assemblyIds.some(id => id.toString() === assemblyIdStr)) ||
+        (parliamentIds.length > 0 && parliamentIdStr && !parliamentIds.some(id => id.toString() === parliamentIdStr)) ||
+        (divisionIds.length > 0 && divisionIdStr && !divisionIds.some(id => id.toString() === divisionIdStr)) ||
+        (stateIds.length > 0 && stateIdStr && !stateIds.some(id => id.toString() === stateIdStr));
 
       if (outOfScope) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
@@ -578,29 +585,21 @@ exports.getBoothsByAssembly = async (req, res, next) => {
     // Enforce user hierarchy for assembly-scoped listing
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      // Use array-based IDs from User model
+      const assemblyIds = h.assembly_ids || [];
+      const parliamentIds = h.parliament_ids || [];
+      const divisionIds = h.division_ids || [];
+      const stateIds = h.state_ids || [];
 
-      // If user's scope is narrower than the requested assembly and doesn't match, forbid
-      if (assemblyId && assemblyId.toString() !== req.params.assemblyId) {
+      // Check if requested assembly is within user's scope
+      const requestedAssemblyId = req.params.assemblyId;
+      const hasAccess = (assemblyIds.length === 0 || assemblyIds.some(id => id.toString() === requestedAssemblyId)) &&
+                       (parliamentIds.length === 0 || assembly.parliament_id && parliamentIds.some(id => id.toString() === assembly.parliament_id.toString())) &&
+                       (divisionIds.length === 0 || assembly.division_id && divisionIds.some(id => id.toString() === assembly.division_id.toString())) &&
+                       (stateIds.length === 0 || assembly.state_id && stateIds.some(id => id.toString() === assembly.state_id.toString()));
+
+      if (!hasAccess) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
-      }
-      // If user has booth or block level access, ensure the assembly matches
-      if (boothId || blockId) {
-        const testBooth = await Booth.findOne({ assembly_id: req.params.assemblyId });
-        if (testBooth) {
-          if (boothId && testBooth._id.toString() !== boothId.toString()) {
-            return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
-          }
-          if (blockId && testBooth.block_id.toString() !== blockId.toString()) {
-            return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
-          }
-        }
       }
     }
 

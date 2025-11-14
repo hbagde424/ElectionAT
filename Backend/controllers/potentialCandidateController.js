@@ -28,21 +28,20 @@ exports.getPotentialCandidates = async (req, res, next) => {
     // Apply user hierarchy scoping when available (booth->block->assembly->parliament->division->state)
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
       const uh = req.userHierarchy;
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
       // PotentialCandidate is tied to an assembly/constituency via constituency_id
-      if (uh.booth && uh.booth._id) {
-        // If user is limited to a booth, filter by that booth's assembly via booth->assembly relation is not stored here
-        // Conservatively filter by assembly if available on the hierarchy
-        if (uh.booth.assembly_id) query = query.where('constituency_id').equals(uh.booth.assembly_id);
-      } else if (uh.block && uh.block._id) {
-        if (uh.block.assembly_id) query = query.where('constituency_id').equals(uh.block.assembly_id);
-      } else if (uh.assembly && uh.assembly._id) {
-        query = query.where('constituency_id').equals(uh.assembly._id);
-      } else if (uh.parliament && uh.parliament._id) {
-        query = query.where('parliament_id').equals(uh.parliament._id);
-      } else if (uh.division && uh.division._id) {
-        query = query.where('division_id').equals(uh.division._id);
-      } else if (uh.state && uh.state._id) {
-        query = query.where('state_id').equals(uh.state._id);
+      if (assemblyIds.length > 0) {
+        query = query.where('constituency_id').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament_id').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division_id').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state_id').in(stateIds);
       }
     }
 
@@ -121,18 +120,25 @@ exports.getPotentialCandidate = async (req, res, next) => {
     // If userHierarchy present and user is not superAdmin, ensure requested candidate is within scope
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
       const uh = req.userHierarchy;
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
       // Candidate has constituency_id -> assembly; check assembly/parliament/division/state
-      const cid = candidate.constituency_id ? (candidate.constituency_id._id || candidate.constituency_id) : null;
-      if (uh.assembly && uh.assembly._id && cid && String(uh.assembly._id) !== String(cid)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.parliament && uh.parliament._id && candidate.parliament_id && String(uh.parliament._id) !== String(candidate.parliament_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.division && uh.division._id && candidate.division_id && String(uh.division._id) !== String(candidate.division_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (uh.state && uh.state._id && candidate.state_id && String(uh.state._id) !== String(candidate.state_id)) {
+      const cid = candidate.constituency_id ? (candidate.constituency_id._id || candidate.constituency_id).toString() : null;
+      const parliamentId = candidate.parliament_id ? candidate.parliament_id.toString() : null;
+      const divisionId = candidate.division_id ? candidate.division_id.toString() : null;
+      const stateId = candidate.state_id ? candidate.state_id.toString() : null;
+
+      const outside = (
+        (assemblyIds.length > 0 && cid && !assemblyIds.some(id => id.toString() === cid)) ||
+        (parliamentIds.length > 0 && parliamentId && !parliamentIds.some(id => id.toString() === parliamentId)) ||
+        (divisionIds.length > 0 && divisionId && !divisionIds.some(id => id.toString() === divisionId)) ||
+        (stateIds.length > 0 && stateId && !stateIds.some(id => id.toString() === stateId))
+      );
+
+      if (outside) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
     }

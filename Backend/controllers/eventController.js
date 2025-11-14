@@ -153,21 +153,20 @@ exports.getEvents = async (req, res, next) => {
     // Apply user hierarchy restriction when an authenticated user is present
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-      const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      const uh = req.userHierarchy;
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
 
-      if (boothId) query = query.where('booth_id').equals(boothId);
-      else if (blockId) query = query.where('block_id').equals(blockId);
-      else if (assemblyId) query = query.where('assembly_id').equals(assemblyId);
-      else if (parliamentId) query = query.where('parliament_id').equals(parliamentId);
-      else if (divisionId) query = query.where('division_id').equals(divisionId);
-      else if (stateId) query = query.where('state_id').equals(stateId);
+      if (boothIds.length > 0) query = query.where('booth_id').in(boothIds);
+      else if (blockIds.length > 0) query = query.where('block_id').in(blockIds);
+      else if (assemblyIds.length > 0) query = query.where('assembly_id').in(assemblyIds);
+      else if (parliamentIds.length > 0) query = query.where('parliament_id').in(parliamentIds);
+      else if (divisionIds.length > 0) query = query.where('division_id').in(divisionIds);
+      else if (stateIds.length > 0) query = query.where('state_id').in(stateIds);
     }
 
     // Filter by date range

@@ -25,12 +25,19 @@ const getPanchayats = async (req, res, next) => {
 
     // Apply hierarchy restrictions based on user permissions
     if (req.userHierarchy) {
-        if (req.userHierarchy.state) filter.state_id = req.userHierarchy.state;
-        if (req.userHierarchy.division) filter.division_id = req.userHierarchy.division;
-        if (req.userHierarchy.parliament) filter.parliament_id = req.userHierarchy.parliament;
-        if (req.userHierarchy.assembly) filter.assembly_id = req.userHierarchy.assembly;
-        if (req.userHierarchy.block) filter.block_id = req.userHierarchy.block;
-        if (req.userHierarchy.booth) filter.booth_id = req.userHierarchy.booth;
+        const stateIds = req.userHierarchy.state_ids || [];
+        const divisionIds = req.userHierarchy.division_ids || [];
+        const parliamentIds = req.userHierarchy.parliament_ids || [];
+        const assemblyIds = req.userHierarchy.assembly_ids || [];
+        const blockIds = req.userHierarchy.block_ids || [];
+        const boothIds = req.userHierarchy.booth_ids || [];
+
+        if (stateIds.length > 0) filter.state_id = { $in: stateIds };
+        if (divisionIds.length > 0) filter.division_id = { $in: divisionIds };
+        if (parliamentIds.length > 0) filter.parliament_id = { $in: parliamentIds };
+        if (assemblyIds.length > 0) filter.assembly_id = { $in: assemblyIds };
+        if (blockIds.length > 0) filter.block_id = { $in: blockIds };
+        if (boothIds.length > 0) filter.booth_id = { $in: boothIds };
     }
 
     // Apply additional filters from query parameters
@@ -114,13 +121,20 @@ const getPanchayat = async (req, res, next) => {
 
         // Check if user has access to this panchayat based on hierarchy
         if (req.userHierarchy) {
+            const stateIds = req.userHierarchy.state_ids || [];
+            const divisionIds = req.userHierarchy.division_ids || [];
+            const parliamentIds = req.userHierarchy.parliament_ids || [];
+            const assemblyIds = req.userHierarchy.assembly_ids || [];
+            const blockIds = req.userHierarchy.block_ids || [];
+            const boothIds = req.userHierarchy.booth_ids || [];
+
             const hasAccess = (
-                (!req.userHierarchy.state || panchayat.state_id._id.toString() === req.userHierarchy.state.toString()) &&
-                (!req.userHierarchy.division || panchayat.division_id._id.toString() === req.userHierarchy.division.toString()) &&
-                (!req.userHierarchy.parliament || panchayat.parliament_id._id.toString() === req.userHierarchy.parliament.toString()) &&
-                (!req.userHierarchy.assembly || panchayat.assembly_id._id.toString() === req.userHierarchy.assembly.toString()) &&
-                (!req.userHierarchy.block || panchayat.block_id._id.toString() === req.userHierarchy.block.toString()) &&
-                (!req.userHierarchy.booth || panchayat.booth_id._id.toString() === req.userHierarchy.booth.toString())
+                (stateIds.length === 0 || stateIds.some(id => id.toString() === panchayat.state_id._id.toString())) &&
+                (divisionIds.length === 0 || divisionIds.some(id => id.toString() === panchayat.division_id._id.toString())) &&
+                (parliamentIds.length === 0 || parliamentIds.some(id => id.toString() === panchayat.parliament_id._id.toString())) &&
+                (assemblyIds.length === 0 || assemblyIds.some(id => id.toString() === panchayat.assembly_id._id.toString())) &&
+                (blockIds.length === 0 || blockIds.some(id => id.toString() === panchayat.block_id._id.toString())) &&
+                (boothIds.length === 0 || boothIds.some(id => id.toString() === panchayat.booth_id._id.toString()))
             );
 
             if (!hasAccess) {

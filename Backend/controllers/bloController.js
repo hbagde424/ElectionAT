@@ -26,12 +26,19 @@ const getBLOs = async (req, res, next) => {
 
     // Apply hierarchy restrictions based on user permissions
     if (req.userHierarchy) {
-        if (req.userHierarchy.state) filter.state_id = req.userHierarchy.state;
-        if (req.userHierarchy.division) filter.division_id = req.userHierarchy.division;
-        if (req.userHierarchy.parliament) filter.parliament_id = req.userHierarchy.parliament;
-        if (req.userHierarchy.assembly) filter.assembly_id = req.userHierarchy.assembly;
-        if (req.userHierarchy.block) filter.block_id = req.userHierarchy.block;
-        if (req.userHierarchy.booth) filter.booth_id = req.userHierarchy.booth;
+        const stateIds = req.userHierarchy.state_ids || [];
+        const divisionIds = req.userHierarchy.division_ids || [];
+        const parliamentIds = req.userHierarchy.parliament_ids || [];
+        const assemblyIds = req.userHierarchy.assembly_ids || [];
+        const blockIds = req.userHierarchy.block_ids || [];
+        const boothIds = req.userHierarchy.booth_ids || [];
+
+        if (stateIds.length > 0) filter.state_id = { $in: stateIds };
+        if (divisionIds.length > 0) filter.division_id = { $in: divisionIds };
+        if (parliamentIds.length > 0) filter.parliament_id = { $in: parliamentIds };
+        if (assemblyIds.length > 0) filter.assembly_id = { $in: assemblyIds };
+        if (blockIds.length > 0) filter.block_id = { $in: blockIds };
+        if (boothIds.length > 0) filter.booth_id = { $in: boothIds };
     }
 
     // Apply additional filters from query parameters
@@ -116,13 +123,20 @@ const getBLO = async (req, res, next) => {
 
         // Check if user has access to this BLO based on hierarchy
         if (req.userHierarchy) {
+            const stateIds = req.userHierarchy.state_ids || [];
+            const divisionIds = req.userHierarchy.division_ids || [];
+            const parliamentIds = req.userHierarchy.parliament_ids || [];
+            const assemblyIds = req.userHierarchy.assembly_ids || [];
+            const blockIds = req.userHierarchy.block_ids || [];
+            const boothIds = req.userHierarchy.booth_ids || [];
+
             const hasAccess = (
-                (!req.userHierarchy.state || !blo.state_id || blo.state_id._id.toString() === req.userHierarchy.state.toString()) &&
-                (!req.userHierarchy.division || !blo.division_id || blo.division_id._id.toString() === req.userHierarchy.division.toString()) &&
-                (!req.userHierarchy.parliament || !blo.parliament_id || blo.parliament_id._id.toString() === req.userHierarchy.parliament.toString()) &&
-                (!req.userHierarchy.assembly || !blo.assembly_id || blo.assembly_id._id.toString() === req.userHierarchy.assembly.toString()) &&
-                (!req.userHierarchy.block || !blo.block_id || blo.block_id._id.toString() === req.userHierarchy.block.toString()) &&
-                (!req.userHierarchy.booth || !blo.booth_id || blo.booth_id._id.toString() === req.userHierarchy.booth.toString())
+                (stateIds.length === 0 || !blo.state_id || stateIds.some(id => id.toString() === blo.state_id._id.toString())) &&
+                (divisionIds.length === 0 || !blo.division_id || divisionIds.some(id => id.toString() === blo.division_id._id.toString())) &&
+                (parliamentIds.length === 0 || !blo.parliament_id || parliamentIds.some(id => id.toString() === blo.parliament_id._id.toString())) &&
+                (assemblyIds.length === 0 || !blo.assembly_id || assemblyIds.some(id => id.toString() === blo.assembly_id._id.toString())) &&
+                (blockIds.length === 0 || !blo.block_id || blockIds.some(id => id.toString() === blo.block_id._id.toString())) &&
+                (boothIds.length === 0 || !blo.booth_id || boothIds.some(id => id.toString() === blo.booth_id._id.toString()))
             );
 
             if (!hasAccess) {

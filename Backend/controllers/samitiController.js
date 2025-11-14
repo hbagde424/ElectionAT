@@ -69,18 +69,25 @@ exports.getSamitis = async (req, res, next) => {
 
     // Apply user hierarchy restrictions if exists
     if (req.userHierarchy) {
-      if (req.userHierarchy.booth) {
-        filter.booth_id = req.userHierarchy.booth._id;
-      } else if (req.userHierarchy.block) {
-        filter.block_id = req.userHierarchy.block._id;
-      } else if (req.userHierarchy.assembly) {
-        filter.assembly_id = req.userHierarchy.assembly._id;
-      } else if (req.userHierarchy.parliament) {
-        filter.parliament_id = req.userHierarchy.parliament._id;
-      } else if (req.userHierarchy.division) {
-        filter.division_id = req.userHierarchy.division._id;
-      } else if (req.userHierarchy.state) {
-        filter.state_id = req.userHierarchy.state._id;
+      const stateIds = req.userHierarchy.state_ids || [];
+      const divisionIds = req.userHierarchy.division_ids || [];
+      const parliamentIds = req.userHierarchy.parliament_ids || [];
+      const assemblyIds = req.userHierarchy.assembly_ids || [];
+      const blockIds = req.userHierarchy.block_ids || [];
+      const boothIds = req.userHierarchy.booth_ids || [];
+
+      if (boothIds.length > 0) {
+        filter.booth_id = { $in: boothIds };
+      } else if (blockIds.length > 0) {
+        filter.block_id = { $in: blockIds };
+      } else if (assemblyIds.length > 0) {
+        filter.assembly_id = { $in: assemblyIds };
+      } else if (parliamentIds.length > 0) {
+        filter.parliament_id = { $in: parliamentIds };
+      } else if (divisionIds.length > 0) {
+        filter.division_id = { $in: divisionIds };
+      } else if (stateIds.length > 0) {
+        filter.state_id = { $in: stateIds };
       }
     }
 

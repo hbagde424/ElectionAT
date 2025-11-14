@@ -32,6 +32,31 @@ exports.getCodings = async (req, res, next) => {
       .populate('updated_by', 'username')
       .sort({ name: 1 });
 
+    // Apply user hierarchy filtering if not superAdmin
+    if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
+      const uh = req.userHierarchy;
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      if (boothIds.length > 0) {
+        query = query.where('booth').in(boothIds);
+      } else if (blockIds.length > 0) {
+        query = query.where('block').in(blockIds);
+      } else if (assemblyIds.length > 0) {
+        query = query.where('assembly').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state').in(stateIds);
+      }
+    }
+
     // Search functionality
     if (req.query.search) {
       query = query.find({

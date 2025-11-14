@@ -78,14 +78,14 @@ exports.getAssemblies = async (req, res, next) => {
 
     // If userHierarchy exists, restrict by user's scope (most specific first)
     if (req.userHierarchy) {
-      if (req.userHierarchy.assembly) {
-        filter._id = req.userHierarchy.assembly._id;
-      } else if (req.userHierarchy.parliament) {
-        filter.parliament_id = req.userHierarchy.parliament._id;
-      } else if (req.userHierarchy.division) {
-        filter.division_id = req.userHierarchy.division._id;
-      } else if (req.userHierarchy.state) {
-        filter.state_id = req.userHierarchy.state._id;
+      if (req.userHierarchy.assembly_ids && req.userHierarchy.assembly_ids.length > 0) {
+        filter._id = { $in: req.userHierarchy.assembly_ids };
+      } else if (req.userHierarchy.parliament_ids && req.userHierarchy.parliament_ids.length > 0) {
+        filter.parliament_id = { $in: req.userHierarchy.parliament_ids };
+      } else if (req.userHierarchy.division_ids && req.userHierarchy.division_ids.length > 0) {
+        filter.division_id = { $in: req.userHierarchy.division_ids };
+      } else if (req.userHierarchy.state_ids && req.userHierarchy.state_ids.length > 0) {
+        filter.state_id = { $in: req.userHierarchy.state_ids };
       }
     }
 
@@ -131,24 +131,27 @@ exports.getAssembly = async (req, res, next) => {
   try {
     // If userHierarchy exists, ensure user can access this assembly
     if (req.userHierarchy) {
-      if (req.userHierarchy.assembly && req.userHierarchy.assembly._id.toString() !== req.params.id) {
-        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-      }
-      if (req.userHierarchy.parliament) {
-        const a = await Assembly.findById(req.params.id).select('parliament_id');
-        if (!a || a.parliament_id.toString() !== req.userHierarchy.parliament._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      const assemblyIds = req.userHierarchy.assembly_ids || [];
+      const parliamentIds = req.userHierarchy.parliament_ids || [];
+      const divisionIds = req.userHierarchy.division_ids || [];
+      const stateIds = req.userHierarchy.state_ids || [];
+
+      // Check if any restriction is in place
+      const hasRestrictions = assemblyIds.length > 0 || parliamentIds.length > 0 || 
+                             divisionIds.length > 0 || stateIds.length > 0;
+
+      if (hasRestrictions) {
+        const a = await Assembly.findById(req.params.id).select('parliament_id division_id state_id');
+        if (!a) {
+          return res.status(404).json({ success: false, message: 'Assembly not found' });
         }
-      }
-      if (req.userHierarchy.division) {
-        const a = await Assembly.findById(req.params.id).select('division_id');
-        if (!a || a.division_id.toString() !== req.userHierarchy.division._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.state) {
-        const a = await Assembly.findById(req.params.id).select('state_id');
-        if (!a || a.state_id.toString() !== req.userHierarchy.state._id.toString()) {
+
+        const hasAccess = (assemblyIds.length === 0 || assemblyIds.some(id => id.toString() === req.params.id)) &&
+                         (parliamentIds.length === 0 || parliamentIds.some(id => id.toString() === a.parliament_id.toString())) &&
+                         (divisionIds.length === 0 || divisionIds.some(id => id.toString() === a.division_id.toString())) &&
+                         (stateIds.length === 0 || stateIds.some(id => id.toString() === a.state_id.toString()));
+
+        if (!hasAccess) {
           return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
         }
       }
@@ -404,23 +407,20 @@ exports.getAssembliesByParliament = async (req, res, next) => {
 
     // If userHierarchy exists, restrict by user's scope
     if (req.userHierarchy) {
-      if (req.userHierarchy.assembly) {
-        const a = await Assembly.findById(req.userHierarchy.assembly._id);
-        if (!a || a.parliament_id.toString() !== req.params.parliamentId) {
+      const parliamentIds = req.userHierarchy.parliament_ids || [];
+      const divisionIds = req.userHierarchy.division_ids || [];
+      const stateIds = req.userHierarchy.state_ids || [];
+
+      const hasRestrictions = parliamentIds.length > 0 || divisionIds.length > 0 || stateIds.length > 0;
+
+      if (hasRestrictions) {
+        const hasAccess = (parliamentIds.length === 0 || parliamentIds.some(id => id.toString() === req.params.parliamentId)) &&
+                         (divisionIds.length === 0 || parliament.division_id && divisionIds.some(id => id.toString() === parliament.division_id.toString())) &&
+                         (stateIds.length === 0 || parliament.state_id && stateIds.some(id => id.toString() === parliament.state_id.toString()));
+
+        if (!hasAccess) {
           return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
         }
-      }
-      if (req.userHierarchy.parliament) {
-        if (req.userHierarchy.parliament._id.toString() !== req.params.parliamentId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.division) {
-        // ensure division belongs to the specified parliament (optional DB check)
-        // We'll allow since assemblies under division are okay if division belongs to same state
-      }
-      if (req.userHierarchy.state) {
-        // ensure state is same as requested parliament's state if necessary
       }
     }
 
@@ -458,23 +458,16 @@ exports.getAssembliesByDivision = async (req, res, next) => {
 
     // If userHierarchy exists, restrict by user's scope
     if (req.userHierarchy) {
-      if (req.userHierarchy.assembly) {
-        const a = await Assembly.findById(req.userHierarchy.assembly._id);
-        if (!a || a.division_id.toString() !== req.params.divisionId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.parliament) {
-        const a = await Assembly.findById(req.userHierarchy.assembly?._id || req.params.divisionId).select('parliament_id');
-        // best-effort check skipped here
-      }
-      if (req.userHierarchy.division) {
-        if (req.userHierarchy.division._id.toString() !== req.params.divisionId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.state) {
-        if (division.state && division.state.toString() !== req.userHierarchy.state._id.toString()) {
+      const divisionIds = req.userHierarchy.division_ids || [];
+      const stateIds = req.userHierarchy.state_ids || [];
+
+      const hasRestrictions = divisionIds.length > 0 || stateIds.length > 0;
+
+      if (hasRestrictions) {
+        const hasAccess = (divisionIds.length === 0 || divisionIds.some(id => id.toString() === req.params.divisionId)) &&
+                         (stateIds.length === 0 || division.state && stateIds.some(id => id.toString() === division.state.toString()));
+
+        if (!hasAccess) {
           return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
         }
       }

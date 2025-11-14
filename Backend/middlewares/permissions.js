@@ -200,9 +200,15 @@ const getUserPermissionsAndHierarchy = async (req, res, next) => {
 
         const userPermissions = rolePermissions.map(rp => rp.permission.name);
 
-        // Get user hierarchy
-        const userHierarchy = await UserHierarchy.findOne({ user: req.user._id })
-            .populate(['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        // Build hierarchy from User model's direct IDs (not UserHierarchy)
+        const userHierarchy = {
+            state_ids: req.user.state_ids || [],
+            division_ids: req.user.division_ids || [],
+            parliament_ids: req.user.parliament_ids || [],
+            assembly_ids: req.user.assembly_ids || [],
+            block_ids: req.user.block_ids || [],
+            booth_ids: req.user.booth_ids || []
+        };
 
         // Attach to request object
         req.userPermissions = userPermissions;

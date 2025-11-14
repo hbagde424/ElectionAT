@@ -93,12 +93,17 @@ exports.getBlocks = async (req, res, next) => {
     // If userHierarchy exists, restrict by user's scope (most specific first) unless superAdmin
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
-      if (uh.booth) query = query.where('booth_id').equals(uh.booth._id);
-      else if (uh.block) query = query.where('_id').equals(uh.block._id);
-      else if (uh.assembly) query = query.where('assembly_id').equals(uh.assembly._id);
-      else if (uh.parliament) query = query.where('parliament_id').equals(uh.parliament._id);
-      else if (uh.division) query = query.where('division_id').equals(uh.division._id);
-      else if (uh.state) query = query.where('state_id').equals(uh.state._id);
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      if (blockIds.length > 0) query = query.where('_id').in(blockIds);
+      else if (assemblyIds.length > 0) query = query.where('assembly_id').in(assemblyIds);
+      else if (parliamentIds.length > 0) query = query.where('parliament_id').in(parliamentIds);
+      else if (divisionIds.length > 0) query = query.where('division_id').in(divisionIds);
+      else if (stateIds.length > 0) query = query.where('state_id').in(stateIds);
     }
 
     // Filter by active status
@@ -160,12 +165,24 @@ exports.getBlock = async (req, res, next) => {
     // Enforce user hierarchy for single block resource
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      const blockIdStr = block._id.toString();
+      const assemblyIdStr = block.assembly_id?.toString();
+      const parliamentIdStr = block.parliament_id?.toString();
+      const divisionIdStr = block.division_id?.toString();
+      const stateIdStr = block.state_id?.toString();
+
       const outside = (
-        (uh.block && block._id.toString() !== uh.block._id.toString()) ||
-        (uh.assembly && block.assembly_id?.toString() !== uh.assembly._id.toString()) ||
-        (uh.parliament && block.parliament_id?.toString() !== uh.parliament._id.toString()) ||
-        (uh.division && block.division_id?.toString() !== uh.division._id.toString()) ||
-        (uh.state && block.state_id?.toString() !== uh.state._id.toString())
+        (blockIds.length > 0 && !blockIds.some(id => id.toString() === blockIdStr)) ||
+        (assemblyIds.length > 0 && assemblyIdStr && !assemblyIds.some(id => id.toString() === assemblyIdStr)) ||
+        (parliamentIds.length > 0 && parliamentIdStr && !parliamentIds.some(id => id.toString() === parliamentIdStr)) ||
+        (divisionIds.length > 0 && divisionIdStr && !divisionIds.some(id => id.toString() === divisionIdStr)) ||
+        (stateIds.length > 0 && stateIdStr && !stateIds.some(id => id.toString() === stateIdStr))
       );
       if (outside) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });

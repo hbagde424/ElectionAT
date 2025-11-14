@@ -189,13 +189,27 @@ exports.getBoothSurvey = async (req, res, next) => {
     // Enforce user hierarchy: ensure requested survey is within user's scope
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      const boothIdStr = survey.booth_id.toString();
+      const blockIdStr = survey.block_id.toString();
+      const assemblyIdStr = survey.assembly_id.toString();
+      const parliamentIdStr = survey.parliament_id.toString();
+      const divisionIdStr = survey.division_id.toString();
+      const stateIdStr = survey.state_id.toString();
+
       const outside = (
-        (uh.booth && survey.booth_id.toString() !== uh.booth._id.toString()) ||
-        (uh.block && survey.block_id.toString() !== uh.block._id.toString()) ||
-        (uh.assembly && survey.assembly_id.toString() !== uh.assembly._id.toString()) ||
-        (uh.parliament && survey.parliament_id.toString() !== uh.parliament._id.toString()) ||
-        (uh.division && survey.division_id.toString() !== uh.division._id.toString()) ||
-        (uh.state && survey.state_id.toString() !== uh.state._id.toString())
+        (boothIds.length > 0 && !boothIds.some(id => id.toString() === boothIdStr)) ||
+        (blockIds.length > 0 && !blockIds.some(id => id.toString() === blockIdStr)) ||
+        (assemblyIds.length > 0 && !assemblyIds.some(id => id.toString() === assemblyIdStr)) ||
+        (parliamentIds.length > 0 && !parliamentIds.some(id => id.toString() === parliamentIdStr)) ||
+        (divisionIds.length > 0 && !divisionIds.some(id => id.toString() === divisionIdStr)) ||
+        (stateIds.length > 0 && !stateIds.some(id => id.toString() === stateIdStr))
       );
       if (outside) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });

@@ -127,18 +127,25 @@ exports.getCasteLists = async (req, res, next) => {
     // Merge userHierarchy into filters if present (most-specific precedence)
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
-      if (uh.booth) {
-        query = query.where('booth_id').equals(uh.booth._id);
-      } else if (uh.block) {
-        query = query.where('block_id').equals(uh.block._id);
-      } else if (uh.assembly) {
-        query = query.where('assembly_id').equals(uh.assembly._id);
-      } else if (uh.parliament) {
-        query = query.where('parliament_id').equals(uh.parliament._id);
-      } else if (uh.division) {
-        query = query.where('division_id').equals(uh.division._id);
-      } else if (uh.state) {
-        query = query.where('state_id').equals(uh.state._id);
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      if (boothIds.length > 0) {
+        query = query.where('booth_id').in(boothIds);
+      } else if (blockIds.length > 0) {
+        query = query.where('block_id').in(blockIds);
+      } else if (assemblyIds.length > 0) {
+        query = query.where('assembly_id').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament_id').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division_id').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state_id').in(stateIds);
       }
     }
 
@@ -183,13 +190,27 @@ exports.getCasteList = async (req, res, next) => {
     // Enforce hierarchy for single casteList
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      const boothIdStr = casteList.booth_id?.toString();
+      const blockIdStr = casteList.block_id?.toString();
+      const assemblyIdStr = casteList.assembly_id?.toString();
+      const parliamentIdStr = casteList.parliament_id?.toString();
+      const divisionIdStr = casteList.division_id?.toString();
+      const stateIdStr = casteList.state_id?.toString();
+
       const outside = (
-        (uh.booth && casteList.booth_id?.toString() !== uh.booth._id.toString()) ||
-        (uh.block && casteList.block_id?.toString() !== uh.block._id.toString()) ||
-        (uh.assembly && casteList.assembly_id?.toString() !== uh.assembly._id.toString()) ||
-        (uh.parliament && casteList.parliament_id?.toString() !== uh.parliament._id.toString()) ||
-        (uh.division && casteList.division_id?.toString() !== uh.division._id.toString()) ||
-        (uh.state && casteList.state_id?.toString() !== uh.state._id.toString())
+        (boothIds.length > 0 && boothIdStr && !boothIds.some(id => id.toString() === boothIdStr)) ||
+        (blockIds.length > 0 && blockIdStr && !blockIds.some(id => id.toString() === blockIdStr)) ||
+        (assemblyIds.length > 0 && assemblyIdStr && !assemblyIds.some(id => id.toString() === assemblyIdStr)) ||
+        (parliamentIds.length > 0 && parliamentIdStr && !parliamentIds.some(id => id.toString() === parliamentIdStr)) ||
+        (divisionIds.length > 0 && divisionIdStr && !divisionIds.some(id => id.toString() === divisionIdStr)) ||
+        (stateIds.length > 0 && stateIdStr && !stateIds.some(id => id.toString() === stateIdStr))
       );
       if (outside) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
@@ -386,13 +407,21 @@ exports.getCasteListsByBooth = async (req, res, next) => {
     // Enforce userHierarchy for booth-level endpoint
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
-      if (uh.booth && uh.booth._id.toString() !== req.params.boothId) {
-        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-      }
-      if (uh.block && uh.block._id.toString() !== booth.block_id?.toString()) {
-        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-      }
-      if (uh.assembly && uh.assembly._id.toString() !== booth.assembly_id?.toString()) {
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+
+      const requestedBoothId = req.params.boothId;
+      const blockId = booth.block_id?.toString();
+      const assemblyId = booth.assembly_id?.toString();
+
+      const outside = (
+        (boothIds.length > 0 && !boothIds.some(id => id.toString() === requestedBoothId)) ||
+        (blockIds.length > 0 && blockId && !blockIds.some(id => id.toString() === blockId)) ||
+        (assemblyIds.length > 0 && assemblyId && !assemblyIds.some(id => id.toString() === assemblyId))
+      );
+
+      if (outside) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
       }
     }
@@ -429,7 +458,9 @@ exports.getCasteListsByState = async (req, res, next) => {
     // Enforce userHierarchy for state-level endpoint
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
-      if (uh.state && uh.state._id.toString() !== req.params.stateId) {
+      const stateIds = uh.state_ids || [];
+
+      if (stateIds.length > 0 && !stateIds.some(id => id.toString() === req.params.stateId)) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
       }
     }

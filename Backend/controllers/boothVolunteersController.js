@@ -250,13 +250,27 @@ exports.getBoothVolunteer = async (req, res, next) => {
     // Enforce user hierarchy for single resource
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
+      const boothIds = uh.booth_ids || [];
+      const blockIds = uh.block_ids || [];
+      const assemblyIds = uh.assembly_ids || [];
+      const parliamentIds = uh.parliament_ids || [];
+      const divisionIds = uh.division_ids || [];
+      const stateIds = uh.state_ids || [];
+
+      const boothIdStr = volunteer.booth_id.toString();
+      const blockIdStr = volunteer.block_id.toString();
+      const assemblyIdStr = volunteer.assembly_id.toString();
+      const parliamentIdStr = volunteer.parliament_id.toString();
+      const divisionIdStr = volunteer.division_id.toString();
+      const stateIdStr = volunteer.state_id.toString();
+
       const outside = (
-        (uh.booth && volunteer.booth_id.toString() !== uh.booth._id.toString()) ||
-        (uh.block && volunteer.block_id.toString() !== uh.block._id.toString()) ||
-        (uh.assembly && volunteer.assembly_id.toString() !== uh.assembly._id.toString()) ||
-        (uh.parliament && volunteer.parliament_id.toString() !== uh.parliament._id.toString()) ||
-        (uh.division && volunteer.division_id.toString() !== uh.division._id.toString()) ||
-        (uh.state && volunteer.state_id.toString() !== uh.state._id.toString())
+        (boothIds.length > 0 && !boothIds.some(id => id.toString() === boothIdStr)) ||
+        (blockIds.length > 0 && !blockIds.some(id => id.toString() === blockIdStr)) ||
+        (assemblyIds.length > 0 && !assemblyIds.some(id => id.toString() === assemblyIdStr)) ||
+        (parliamentIds.length > 0 && !parliamentIds.some(id => id.toString() === parliamentIdStr)) ||
+        (divisionIds.length > 0 && !divisionIds.some(id => id.toString() === divisionIdStr)) ||
+        (stateIds.length > 0 && !stateIds.some(id => id.toString() === stateIdStr))
       );
       if (outside) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
