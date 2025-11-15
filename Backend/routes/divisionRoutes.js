@@ -5,7 +5,8 @@ const {
   createDivision,
   updateDivision,
   deleteDivision,
-  getDivisionsByState
+  getDivisionsByState,
+  importDivisions
 } = require('../controllers/divisionController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -207,6 +208,33 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteDivision);
  *         description: State not found
  */
 router.get('/state/:stateId', getDivisionsByState);
+
+/**
+ * @swagger
+ * /api/divisions/import:
+ *   post:
+ *     summary: Import divisions from Excel
+ *     tags: [Divisions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importDivisions);
 
 /**
  * @swagger

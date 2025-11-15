@@ -443,3 +443,68 @@ exports.getParliamentsByDivision = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import parliaments from Excel
+// @route   POST /api/parliaments/import
+// @access  Private/SuperAdmin
+exports.importParliaments = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [], ids: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        if (!row.name || !row.parliament_no) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Missing name or parliament_no' });
+          continue;
+        }
+
+        const geo = await resolveGeographicHierarchy(row);
+        const missingFields = validateHierarchy(geo, ['state', 'division']);
+        if (missingFields.length > 0) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Missing: ${missingFields.join(', ')}` });
+          continue;
+        }
+
+        // Check for duplicates
+        const existing = await Parliament.findOne({ parliament_no: row.parliament_no });
+        if (existing) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Parliament number ${row.parliament_no} already exists` });
+          continue;
+        }
+
+        const parliamentData = {
+          name: row.name,
+          parliament_no: row.parliament_no,
+          description: row.description || '',
+          category: row.category || 'General',
+          division_id: geo.division._id,
+          state_id: geo.state._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const parliament = await Parliament.create(parliamentData);
+        created.push(parliament._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

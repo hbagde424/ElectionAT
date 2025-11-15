@@ -324,3 +324,66 @@ exports.debugDivision = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import divisions from Excel
+// @route   POST /api/divisions/import
+// @access  Private/SuperAdmin
+exports.importDivisions = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [], ids: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        if (!row.name || !row.division_code) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Missing name or division_code' });
+          continue;
+        }
+
+        const geo = await resolveGeographicHierarchy(row);
+        const missingFields = validateHierarchy(geo, ['state']);
+        if (missingFields.length > 0) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Missing: ${missingFields.join(', ')}` });
+          continue;
+        }
+
+        // Check for duplicates
+        const existing = await Division.findOne({ division_code: row.division_code });
+        if (existing) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Division code ${row.division_code} already exists` });
+          continue;
+        }
+
+        const divisionData = {
+          name: row.name,
+          division_code: row.division_code,
+          description: row.description || '',
+          state_id: geo.state._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const division = await Division.create(divisionData);
+        created.push(division._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

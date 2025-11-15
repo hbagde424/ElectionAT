@@ -59,6 +59,11 @@ export default function ParliamentListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Import functionality states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Use lowercase for modal compatibility
     const categoryOptions = ['general', 'reserved', 'special'];
     const regionalTypeOptions = ['urban', 'rural', 'mixed'];
@@ -422,6 +427,87 @@ export default function ParliamentListPage() {
         }, 100);
     };
 
+    const handleDownloadExcelTemplate = async () => {
+        const headers = ['name', 'parliament_no', 'description', 'category', 'state', 'division_code'];
+        const exampleRow = ['5th Parliament District', '25', 'Sample parliament description', 'General', 'Maharashtra', '1'];
+        
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'parliaments_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        try {
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'parliaments_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    name: obj.name ?? '',
+                    parliament_no: obj.parliament_no ?? obj['parliament no'] ?? '',
+                    description: obj.description ?? '',
+                    category: obj.category ?? '',
+                    state: obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? ''
+                };
+            });
+
+            const filtered = rows.filter(r => String(r.name).trim() && String(r.parliament_no).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     if (loading) return <EmptyReactTable />;
 
     const handleFilterApply = () => {
@@ -586,6 +672,23 @@ export default function ParliamentListPage() {
                         />
                         <Button
                             variant="outlined"
+                            onClick={handleDownloadExcelTemplate}
+                            size="small"
+                        >
+                            Download Excel Template
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => {
+                                if (importInputRef.current) importInputRef.current.click();
+                            }}
+                            size="small"
+                            disabled={importing}
+                        >
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
+                        <Button
+                            variant="outlined"
                             onClick={handleDownloadCsv}
                             disabled={csvLoading}
                         >
@@ -603,6 +706,22 @@ export default function ParliamentListPage() {
                         </Button>
                     </Stack>
                 </Stack>
+
+                {/* Import Result */}
+                {importResult && (
+                    <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
+                        {importResult.success ? (
+                            <span>
+                                Imported: {importResult.created || 0} / {importResult.total || 0}
+                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                    <> | Errors: {importResult.errors.length}</>
+                                )}
+                            </span>
+                        ) : (
+                            <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                        )}
+                    </Alert>
+                )}
 
                 <Stack
                     direction="row"
@@ -894,6 +1013,14 @@ export default function ParliamentListPage() {
                     </Box>
                 </Box>
             </Drawer>
+
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             {/* Modals */}
             < ParliamentModal

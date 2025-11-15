@@ -54,6 +54,11 @@ export default function WorkStatusListPage() {
     const [searchInput, setSearchInput] = useState('');
     const searchDebounceRef = useRef(null);
 
+    // Import functionality states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Map state
     const [blockNumberInput, setBlockNumberInput] = useState('ALL');
     const [yearFilter, setYearFilter] = useState('');
@@ -1236,6 +1241,97 @@ export default function WorkStatusListPage() {
         }, 100);
     };
 
+    const handleDownloadExcelTemplate = async () => {
+        const headers = ['work_name', 'department', 'status', 'work_type', 'approved_fund_from', 'total_budget', 'spent_amount', 'description', 'start_date', 'expected_end_date', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
+        const exampleRow = ['Road Construction', 'PWD', 'in progress', 'infrastructure', 'vidhayak nidhi', '5000000', '2000000', 'Sample work description', '2024-01-01', '2024-12-31', 'Maharashtra', '1', '5', '150', 'Block A', '1'];
+        
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'work_status_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        try {
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'work_status_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    work_name: obj.work_name ?? '',
+                    department: obj.department ?? '',
+                    status: obj.status ?? '',
+                    work_type: obj.work_type ?? '',
+                    approved_fund_from: obj.approved_fund_from ?? '',
+                    total_budget: obj.total_budget ?? '',
+                    spent_amount: obj.spent_amount ?? '',
+                    description: obj.description ?? '',
+                    start_date: obj.start_date ?? '',
+                    expected_end_date: obj.expected_end_date ?? '',
+                    state: obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    assembly_no: obj.assembly_no ?? obj.assembly ?? '',
+                    block: obj.block ?? '',
+                    booth_number: obj.booth_number ?? obj.booth ?? ''
+                };
+            });
+
+            const filtered = rows.filter(r => String(r.work_name).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                fetchWorkStatuses();
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     // Page-level loading removed; show inline loader row in table instead
 
     return (
@@ -1427,11 +1523,28 @@ export default function WorkStatusListPage() {
                     };
                     const accessScope = getUserAccessScope();
                     return (
-                        <Alert severity="info" sx={{ m: 2 }}>
-                            <Typography variant="body2">
-                                <strong>Data Access:</strong> {accessScope.description}
-                            </Typography>
-                        </Alert>
+                        <>
+                            {/* Import Result */}
+                            {importResult && (
+                                <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
+                                    {importResult.success ? (
+                                        <span>
+                                            Imported: {importResult.created || 0} / {importResult.total || 0}
+                                            {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                                <> | Errors: {importResult.errors.length}</>
+                                            )}
+                                        </span>
+                                    ) : (
+                                        <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                                    )}
+                                </Alert>
+                            )}
+                            <Alert severity="info" sx={{ m: 2 }}>
+                                <Typography variant="body2">
+                                    <strong>Data Access:</strong> {accessScope.description}
+                                </Typography>
+                            </Alert>
+                        </>
                     );
                 })()}
                 <Stack spacing={2} sx={{ padding: 3 }}>
@@ -1456,6 +1569,23 @@ export default function WorkStatusListPage() {
                                 style={{ display: 'none' }}
                                 ref={csvLinkRef}
                             />
+                            <Button
+                                variant="outlined"
+                                onClick={handleDownloadExcelTemplate}
+                                size="small"
+                            >
+                                Download Excel Template
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    if (importInputRef.current) importInputRef.current.click();
+                                }}
+                                size="small"
+                                disabled={importing}
+                            >
+                                {importing ? 'Importing...' : 'Import Excel'}
+                            </Button>
                             <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                                 {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                             </Button>
@@ -1917,6 +2047,14 @@ export default function WorkStatusListPage() {
                     </Box>
                 </Box>
             </Drawer>
+
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             <WorkStatusModal
                 open={openModal}

@@ -7,7 +7,8 @@ const {
   deleteBooth,
   getBoothsByAssembly,
   getBoothsByBlock,
-  getBoothsByYear
+  getBoothsByYear,
+  importBooths
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -301,6 +302,33 @@ router.get('/block/:blockId', getUserPermissionsAndHierarchy, getBoothsByBlock);
  *         description: Election year not found
  */
 router.get('/year/:yearId', getUserPermissionsAndHierarchy, getBoothsByYear);
+
+/**
+ * @swagger
+ * /api/booths/import:
+ *   post:
+ *     summary: Import booths from Excel
+ *     tags: [Booths]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importBooths);
 
 /**
  * @swagger

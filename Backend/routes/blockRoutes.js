@@ -7,7 +7,8 @@ const {
   deleteBlock,
   getBlocksByAssembly,
   getBlocksByParliament,
-  toggleBlockActive
+  toggleBlockActive,
+  importBlocks
 } = require('../controllers/blockController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -299,6 +300,33 @@ router.get('/parliament/:parliamentId', getUserPermissionsAndHierarchy, getBlock
  *         description: Block not found
  */
 router.patch('/:id/toggle-active', protect, authorize('superAdmin'), toggleBlockActive);
+
+/**
+ * @swagger
+ * /api/blocks/import:
+ *   post:
+ *     summary: Import blocks from Excel
+ *     tags: [Blocks]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importBlocks);
 
 /**
  * @swagger

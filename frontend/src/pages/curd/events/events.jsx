@@ -53,6 +53,11 @@ export default function EventListPage() {
     const [searchInput, setSearchInput] = useState('');
     const searchDebounceRef = useRef(null);
 
+    // Import functionality states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Filter states
     const [selectedState, setSelectedState] = useState('');
     const [selectedDivision, setSelectedDivision] = useState('');
@@ -1201,6 +1206,94 @@ export default function EventListPage() {
         }, 100);
     };
 
+    const handleDownloadExcelTemplate = async () => {
+        const headers = ['name', 'type', 'status', 'description', 'location', 'start_date', 'end_date', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
+        const exampleRow = ['Community Meeting', 'event', 'done', 'Sample event description', 'Central Hall', '2024-01-15', '2024-01-15', 'Maharashtra', '1', '5', '150', 'Block A', '1'];
+        
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'events_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        try {
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'events_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    name: obj.name ?? '',
+                    type: obj.type ?? '',
+                    status: obj.status ?? '',
+                    description: obj.description ?? '',
+                    location: obj.location ?? '',
+                    start_date: obj.start_date ?? '',
+                    end_date: obj.end_date ?? '',
+                    state: obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    assembly_no: obj.assembly_no ?? obj.assembly ?? '',
+                    block: obj.block ?? '',
+                    booth_number: obj.booth_number ?? obj.booth ?? ''
+                };
+            });
+
+            const filtered = rows.filter(r => String(r.name).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/events/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                fetchEvents();
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     // Do not block the entire page during table fetches; we'll show a loader inside the table instead
 
     return (
@@ -1419,6 +1512,23 @@ export default function EventListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadExcelTemplate}
+                            size="small"
+                        >
+                            Download Excel Template
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => {
+                                if (importInputRef.current) importInputRef.current.click();
+                            }}
+                            size="small"
+                            disabled={importing}
+                        >
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
@@ -1427,6 +1537,22 @@ export default function EventListPage() {
                         </Button>
                     </Stack>
                 </Stack>
+
+                {/* Import Result */}
+                {importResult && (
+                    <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
+                        {importResult.success ? (
+                            <span>
+                                Imported: {importResult.created || 0} / {importResult.total || 0}
+                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                    <> | Errors: {importResult.errors.length}</>
+                                )}
+                            </span>
+                        ) : (
+                            <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                        )}
+                    </Alert>
+                )}
 
                 {/* Access Scope Information */}
                 <Alert
@@ -1851,6 +1977,14 @@ export default function EventListPage() {
                     </Box>
                 </Box>
             </Drawer>
+
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             <EventModal
                 open={openModal}

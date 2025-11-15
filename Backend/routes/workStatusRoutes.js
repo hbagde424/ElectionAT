@@ -8,7 +8,8 @@ const {
   getWorkStatusesByBooth,
   getWorkStatusesByBlock,
   getWorkStatusesByAssembly,
-  getWorkStatusStatistics
+  getWorkStatusStatistics,
+  importWorkStatuses
 } = require('../controllers/workStatusController');
 const { protect, authorize } = require('../middlewares/auth');
 const validateObjectIdParams = require('../middlewares/validateObjectIdParams');
@@ -381,6 +382,33 @@ router.get('/block/:blockId', validateObjectIdParams, getUserPermissionsAndHiera
  *         description: Assembly not found
  */
 router.get('/assembly/:assemblyId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByAssembly);
+
+/**
+ * @swagger
+ * /api/work-status/import:
+ *   post:
+ *     summary: Import work status from Excel
+ *     tags: [Work Status]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importWorkStatuses);
 
 /**
  * @swagger

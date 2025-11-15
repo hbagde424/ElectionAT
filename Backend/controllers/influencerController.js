@@ -492,3 +492,90 @@ exports.getInfluencersByAssembly = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import influencers (client sends parsed rows)
+// @route   POST /api/influencers/import
+// @access  Private (Admin only)
+exports.importInfluencers = async (req, res, next) => {
+  const { resolveGeographicHierarchy, validateHierarchy, toKey } = require('./importHelpers');
+  
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = toKey(r.name);
+        const contact_number = toKey(r.contact_number);
+        const email = toKey(r.email || '');
+        const full_address = toKey(r.full_address);
+        const category = r.category || 'Other';
+        const caste = r.caste || 'Not Specified';
+        const status = r.status || 'Active';
+
+        if (!name || !contact_number || !full_address) {
+          throw new Error('name, contact_number, full_address are required');
+        }
+
+        const validCategories = ['Political Leader', 'Community Leader', 'Religious Leader', 'Business Leader', 'Social Activist', 'Media Person', 'Celebrity', 'Youth Leader', 'Women Leader', 'Other'];
+        if (!validCategories.includes(category)) {
+          throw new Error('Invalid category');
+        }
+
+        const validCastes = ['General', 'OBC', 'SC', 'ST', 'Minority', 'Other', 'Not Specified'];
+        if (!validCastes.includes(caste)) {
+          throw new Error('Invalid caste');
+        }
+
+        if (!['Active', 'Inactive'].includes(status)) {
+          throw new Error('status must be Active or Inactive');
+        }
+
+        const geo = await resolveGeographicHierarchy(r);
+        const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (errors.length > 0) {
+          throw new Error(errors.join(', '));
+        }
+
+        const influencerData = {
+          name,
+          contact_number,
+          email,
+          full_address,
+          category,
+          caste,
+          status,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const influencer = await Influencer.create(influencerData);
+        created.push(influencer._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

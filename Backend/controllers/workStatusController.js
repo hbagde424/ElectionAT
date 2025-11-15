@@ -637,3 +637,97 @@ exports.getWorkStatusStatistics = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import work statuses (client sends parsed rows)
+// @route   POST /api/work-status/import
+// @access  Private (Admin only)
+exports.importWorkStatuses = async (req, res, next) => {
+  const { resolveGeographicHierarchy, validateHierarchy, toKey, toLower } = require('./importHelpers');
+  
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const work_name = toKey(r.work_name);
+        const department = toKey(r.department);
+        const status = toLower(r.status) || 'in progress';
+        const work_type = toLower(r.work_type);
+        const approved_fund_from = toLower(r.approved_fund_from);
+        const total_budget = Number(r.total_budget);
+        const spent_amount = Number(r.spent_amount || 0);
+        const description = toKey(r.description || '');
+        const start_date = r.start_date ? new Date(r.start_date) : null;
+        const expected_end_date = r.expected_end_date ? new Date(r.expected_end_date) : null;
+
+        if (!work_name || !department || !work_type || !approved_fund_from) {
+          throw new Error('work_name, department, work_type, approved_fund_from are required');
+        }
+        if (!['in progress', 'completed', 'in complete', 'announced'].includes(status)) {
+          throw new Error('status must be: in progress, completed, in complete, or announced');
+        }
+        if (!['infrastructure', 'social', 'education', 'health', 'other'].includes(work_type)) {
+          throw new Error('work_type must be: infrastructure, social, education, health, or other');
+        }
+        if (!['vidhayak nidhi', 'swechcha nidhi'].includes(approved_fund_from)) {
+          throw new Error('approved_fund_from must be: vidhayak nidhi or swechcha nidhi');
+        }
+        if (isNaN(total_budget) || total_budget < 0) {
+          throw new Error('total_budget must be a positive number');
+        }
+        if (!start_date || !expected_end_date) {
+          throw new Error('start_date and expected_end_date are required');
+        }
+
+        const geo = await resolveGeographicHierarchy(r);
+        const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (errors.length > 0) {
+          throw new Error(errors.join(', '));
+        }
+
+        const workStatusData = {
+          work_name,
+          department,
+          status,
+          work_type,
+          approved_fund_from,
+          total_budget,
+          spent_amount,
+          description,
+          start_date,
+          expected_end_date,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const workStatus = await WorkStatus.create(workStatusData);
+        created.push(workStatus._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

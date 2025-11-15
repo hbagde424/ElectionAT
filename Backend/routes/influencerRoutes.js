@@ -6,7 +6,8 @@ const {
   updateInfluencer,
   deleteInfluencer,
   getInfluencersByBooth,
-  getInfluencersByAssembly
+  getInfluencersByAssembly,
+  importInfluencers
 } = require('../controllers/influencerController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -266,6 +267,33 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getInfluencersByBo
  *         description: Assembly not found
  */
 router.get('/assembly/:assemblyId', getInfluencersByAssembly);
+
+/**
+ * @swagger
+ * /api/influencers/import:
+ *   post:
+ *     summary: Import influencers from Excel
+ *     tags: [Influencers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importInfluencers);
 
 /**
  * @swagger

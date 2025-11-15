@@ -6,7 +6,8 @@ const {
   updateParliament,
   deleteParliament,
   getParliamentsByState,
-  getParliamentsByDivision
+  getParliamentsByDivision,
+  importParliaments
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -262,6 +263,33 @@ router.get('/state/:stateId', getUserPermissionsAndHierarchy, getParliamentsBySt
  */
 // Public: optional authentication
 router.get('/division/:divisionId', getUserPermissionsAndHierarchy, getParliamentsByDivision);
+
+/**
+ * @swagger
+ * /api/parliaments/import:
+ *   post:
+ *     summary: Import parliaments from Excel
+ *     tags: [Parliaments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importParliaments);
 
 /**
  * @swagger

@@ -71,6 +71,12 @@ export default function BoothsListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Import states
+    const csvLinkRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Helper: fit map to GeoJSON feature collection bounds with retries
     // - collects coordinates from many geometry types (Point, LineString, Polygon, Multi*)
     // - waits until map instance and style are ready (isStyleLoaded) before calling fitBounds
@@ -1084,6 +1090,83 @@ export default function BoothsListPage() {
         }, 100);
     };
 
+    const handleDownloadExcelTemplate = async () => {
+        const XLSX = await import('xlsx');
+        const headers = ['name', 'booth_number', 'full_address', 'latitude', 'longitude', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block'];
+        const exampleData = [
+            ['Main Polling Booth', '1', '123 Main St, City', '19.0760', '72.8777', 'Maharashtra', '1', '5', '150', 'Block A']
+        ];
+        const worksheetData = [headers, ...exampleData];
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Booths Template');
+        XLSX.writeFile(workbook, 'booths_template.xlsx');
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map((row) => {
+                const normalized = {};
+                Object.keys(row).forEach((key) => {
+                    const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const filteredRows = normalizedData.filter((r) => r.name && r.booth_number);
+
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
+                body: JSON.stringify({ rows: filteredRows })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setImportResult({
+                    success: true,
+                    imported: result.imported || 0,
+                    total: result.total || 0,
+                    errors: result.errors || []
+                });
+                fetchBooths(pagination.pageIndex, pagination.pageSize);
+            } else {
+                setImportResult({
+                    success: false,
+                    message: result.message || 'Import failed'
+                });
+            }
+        } catch (error) {
+            setImportResult({
+                success: false,
+                message: error.message || 'Import failed'
+            });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) {
+                importInputRef.current.value = '';
+            }
+        }
+    };
+
 
 
     const handleFilterApply = () => {
@@ -1281,6 +1364,21 @@ export default function BoothsListPage() {
                         />
                         <Button
                             variant="outlined"
+                            onClick={handleDownloadExcelTemplate}
+                            size="small"
+                        >
+                            Download Excel Template
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => importInputRef.current?.click()}
+                            disabled={importing}
+                            size="small"
+                        >
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
+                        <Button
+                            variant="outlined"
                             onClick={handleDownloadCsv}
                             disabled={csvLoading}
                             size="small"
@@ -1299,6 +1397,17 @@ export default function BoothsListPage() {
                             Add Booth
                         </Button>
                     </Stack>
+                    {importResult && (
+                        <Alert
+                            severity={importResult.success ? 'success' : 'error'}
+                            onClose={() => setImportResult(null)}
+                            sx={{ mt: 1 }}
+                        >
+                            {importResult.success
+                                ? `Imported: ${importResult.imported} / ${importResult.total} | Errors: ${importResult.errors?.length || 0}`
+                                : `Import failed: ${importResult.message}`}
+                        </Alert>
+                    )}
                 </Stack>
 
                 {/* Filters */}
@@ -1659,6 +1768,15 @@ export default function BoothsListPage() {
                     </Box>
                 </Box>
             </Drawer>
+
+            {/* Hidden Import Input */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             <BoothModal
                 open={openModal}

@@ -573,3 +573,82 @@ exports.getEventsByType = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import events (client sends parsed rows)
+// @route   POST /api/events/import
+// @access  Private (Admin only)
+exports.importEvents = async (req, res, next) => {
+  const { resolveGeographicHierarchy, validateHierarchy, toKey, toLower } = require('./importHelpers');
+  
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = toKey(r.name);
+        const type = toLower(r.type);
+        const status = toLower(r.status) || 'incomplete';
+        const description = toKey(r.description || '');
+        const location = toKey(r.location);
+        const start_date = r.start_date ? new Date(r.start_date) : null;
+        const end_date = r.end_date ? new Date(r.end_date) : null;
+
+        if (!name || !type || !location || !start_date || !end_date) {
+          throw new Error('name, type, location, start_date, end_date are required');
+        }
+        if (!['event', 'campaign', 'activity'].includes(type)) {
+          throw new Error('type must be event, campaign, or activity');
+        }
+        if (!['done', 'incomplete', 'cancelled', 'postponed'].includes(status)) {
+          throw new Error('status must be done, incomplete, cancelled, or postponed');
+        }
+
+        const geo = await resolveGeographicHierarchy(r);
+        const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (errors.length > 0) {
+          throw new Error(errors.join(', '));
+        }
+
+        const eventData = {
+          name,
+          type,
+          status,
+          description,
+          start_date,
+          end_date,
+          location,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const event = await Event.create(eventData);
+        created.push(event._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

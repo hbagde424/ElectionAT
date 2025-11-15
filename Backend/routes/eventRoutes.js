@@ -6,7 +6,8 @@ const {
   updateEvent,
   deleteEvent,
   getEventsByBooth,
-  getEventsByType
+  getEventsByType,
+  importEvents
 } = require('../controllers/eventController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -293,6 +294,33 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getEventsByBooth);
  *         description: Invalid event type
  */
 router.get('/type/:type', getUserPermissionsAndHierarchy, getEventsByType);
+
+/**
+ * @swagger
+ * /api/events/import:
+ *   post:
+ *     summary: Import events from Excel
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importEvents);
 
 /**
  * @swagger
