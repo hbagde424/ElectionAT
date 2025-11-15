@@ -423,3 +423,80 @@ exports.getSurveysByState = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import booth surveys from Excel
+// @route   POST /api/booth-surveys/import
+// @access  Private/Admin
+exports.importBoothSurveys = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided. Expected array of rows.'
+      });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Validate required hierarchy fields - booth survey requires booth
+        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (!hierarchyCheck.valid) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: hierarchyCheck.errors.join(', ')
+          });
+          continue;
+        }
+
+        // Create booth survey entry
+        const surveyData = {
+          booth_id: geo.booth._id,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          survey_date: row.survey_date ? new Date(row.survey_date) : new Date(),
+          total_voters: parseInt(row.total_voters) || 0,
+          surveyed_count: parseInt(row.surveyed_count) || 0,
+          favorable_count: parseInt(row.favorable_count) || 0,
+          unfavorable_count: parseInt(row.unfavorable_count) || 0,
+          neutral_count: parseInt(row.neutral_count) || 0,
+          remark: row.remark || '',
+          created_by: req.user._id
+        };
+
+        await BoothSurvey.create(surveyData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: err.message || 'Failed to import booth survey'
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      imported: results.imported,
+      total: results.total,
+      errors: results.errors
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

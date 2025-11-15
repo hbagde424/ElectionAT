@@ -485,3 +485,89 @@ exports.getLocalIssuesByStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import local issues from Excel
+// @route   POST /api/local-issues/import
+// @access  Private/Admin
+exports.importLocalIssues = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided. Expected array of rows.'
+      });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Validate required hierarchy fields
+        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly']);
+        if (!hierarchyCheck.valid) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: hierarchyCheck.errors.join(', ')
+          });
+          continue;
+        }
+
+        // Check for required fields
+        if (!row.issue_name) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'issue_name is required'
+          });
+          continue;
+        }
+
+        // Create local issue entry
+        const issueData = {
+          issue_name: row.issue_name,
+          description: row.description || '',
+          priority: row.priority || 'medium',
+          status: row.status || 'open',
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          created_by: req.user._id
+        };
+
+        // Optional fields
+        if (geo.block) issueData.block_id = geo.block._id;
+        if (geo.booth) issueData.booth_id = geo.booth._id;
+
+        await LocalIssue.create(issueData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: err.message || 'Failed to import local issue'
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      imported: results.imported,
+      total: results.total,
+      errors: results.errors
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

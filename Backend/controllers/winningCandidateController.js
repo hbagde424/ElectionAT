@@ -1254,3 +1254,131 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import winning candidates from Excel
+// @route   POST /api/winning-candidates/import
+// @access  Private/Admin
+exports.importWinningCandidates = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided. Expected array of rows.'
+      });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Validate required hierarchy fields
+        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly']);
+        if (!hierarchyCheck.valid) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: hierarchyCheck.errors.join(', ')
+          });
+          continue;
+        }
+
+        // Check for required fields
+        if (!row.candidate_name) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'candidate_name is required'
+          });
+          continue;
+        }
+
+        // Resolve party
+        let partyId = null;
+        if (row.party) {
+          const party = await Party.findOne({ name: { $regex: new RegExp(`^${row.party}$`, 'i') } });
+          if (!party) {
+            results.errors.push({
+              row: i + 1,
+              data: row,
+              error: `Party not found: ${row.party}`
+            });
+            continue;
+          }
+          partyId = party._id;
+        }
+
+        // Resolve year
+        let yearId = null;
+        if (row.year) {
+          const yearDoc = await Year.findOne({ year: parseInt(row.year) });
+          if (!yearDoc) {
+            results.errors.push({
+              row: i + 1,
+              data: row,
+              error: `Election year not found: ${row.year}`
+            });
+            continue;
+          }
+          yearId = yearDoc._id;
+        }
+
+        // Resolve candidate if provided
+        let candidateId = null;
+        if (row.candidate_id) {
+          const candidate = await Candidate.findById(row.candidate_id);
+          if (candidate) {
+            candidateId = candidate._id;
+          }
+        }
+
+        // Create winning candidate entry
+        const winningData = {
+          candidate_name: row.candidate_name,
+          candidate_id: candidateId,
+          party_id: partyId,
+          year_id: yearId,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          total_votes: parseInt(row.total_votes) || 0,
+          vote_percentage: parseFloat(row.vote_percentage) || 0,
+          margin: parseInt(row.margin) || 0,
+          runner_up: row.runner_up || '',
+          electors: parseInt(row.electors) || 0,
+          male_electors: parseInt(row.male_electors) || 0,
+          female_electors: parseInt(row.female_electors) || 0,
+          created_by: req.user._id
+        };
+
+        await WinningCandidate.create(winningData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: err.message || 'Failed to import winning candidate'
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      imported: results.imported,
+      total: results.total,
+      errors: results.errors
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

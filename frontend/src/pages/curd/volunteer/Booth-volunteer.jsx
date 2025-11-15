@@ -51,6 +51,12 @@ export default function BoothVolunteerListPage() {
   const [blocks, setBlocks] = useState([]);
   const [booths, setBooths] = useState([]);
   const [parties, setParties] = useState([]);
+
+  // Import states
+  const csvLinkRef = useRef();
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const importInputRef = useRef();
   const [users, setUsers] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -1273,6 +1279,58 @@ export default function BoothVolunteerListPage() {
     });
   };
 
+  const handleDownloadExcelTemplate = async () => {
+    const XLSX = await import('xlsx');
+    const headers = ['name', 'contact', 'email', 'role', 'party', 'address', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
+    const exampleData = [['John Doe', '9876543210', 'john@example.com', 'Coordinator', 'INC', '123 Street Name', 'Maharashtra', 'DIV001', 'PC01', 'AC001', 'Block A', 'B001']];
+    const worksheetData = [headers, ...exampleData];
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Booth Volunteers');
+    XLSX.writeFile(workbook, 'booth_volunteers_template.xlsx');
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const XLSX = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const normalizedData = jsonData.map((row) => {
+        const normalized = {};
+        Object.keys(row).forEach((key) => {
+          const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+          normalized[normalizedKey] = row[key];
+        });
+        return normalized;
+      });
+      const filteredRows = normalizedData.filter((r) => r.name);
+      const token = localStorage.getItem('serviceToken');
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/booth-volunteers/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+        body: JSON.stringify({ rows: filteredRows })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setImportResult({ success: true, imported: result.imported || 0, total: result.total || 0, errors: result.errors || [] });
+        fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+      } else {
+        setImportResult({ success: false, message: result.message || 'Import failed' });
+      }
+    } catch (error) {
+      setImportResult({ success: false, message: error.message || 'Import failed' });
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  };
+
   if (loading) return <EmptyReactTable />;
 
   const handleSearch = () => {
@@ -1560,6 +1618,21 @@ export default function BoothVolunteerListPage() {
               style={{ display: 'none' }}
               ref={csvLinkRef}
             />
+            <Button
+              variant="outlined"
+              onClick={handleDownloadExcelTemplate}
+              size="small"
+            >
+              Download Excel Template
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              size="small"
+            >
+              {importing ? 'Importing...' : 'Import Excel'}
+            </Button>
             <Button
               variant="outlined"
               onClick={handleDownloadCsv}
@@ -1881,6 +1954,45 @@ export default function BoothVolunteerListPage() {
           </Box>
         </Box>
       </Drawer>
+
+      <input
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        ref={importInputRef}
+        style={{ display: 'none' }}
+        onChange={handleImportFile}
+      />
+
+      {importResult && (
+        <Alert
+          severity={importResult.success ? 'success' : 'error'}
+          onClose={() => setImportResult(null)}
+          sx={{ m: 2 }}
+        >
+          {importResult.success ? (
+            <>
+              Successfully imported {importResult.imported} out of {importResult.total} records.
+              {importResult.errors && importResult.errors.length > 0 && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2" fontWeight="bold">Errors:</Typography>
+                  {importResult.errors.slice(0, 5).map((err, idx) => (
+                    <Typography key={idx} variant="caption" display="block">
+                      Row {err.row}: {err.error}
+                    </Typography>
+                  ))}
+                  {importResult.errors.length > 5 && (
+                    <Typography variant="caption" display="block">
+                      ... and {importResult.errors.length - 5} more errors
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </>
+          ) : (
+            importResult.message
+          )}
+        </Alert>
+      )}
 
       <BoothVolunteerModal
         open={openModal}

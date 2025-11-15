@@ -801,3 +801,100 @@ exports.getGenderStatsForMap = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import genders from Excel
+// @route   POST /api/genders/import
+// @access  Private/Admin
+exports.importGenders = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided. Expected array of rows.'
+      });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Validate required hierarchy fields - Gender typically requires booth
+        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (!hierarchyCheck.valid) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: hierarchyCheck.errors.join(', ')
+          });
+          continue;
+        }
+
+        // Check for required fields
+        if (!row.male && !row.female && !row.others) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'At least one gender count (male, female, or others) is required'
+          });
+          continue;
+        }
+
+        // Check for duplicate (based on booth_id)
+        const existing = await Gender.findOne({
+          booth_id: geo.booth._id
+        });
+
+        if (existing) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Gender data already exists for booth: ${geo.booth.name || geo.booth.booth_number}`
+          });
+          continue;
+        }
+
+        // Create gender entry
+        const genderData = {
+          male: parseInt(row.male) || 0,
+          female: parseInt(row.female) || 0,
+          others: parseInt(row.others) || 0,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          created_by: req.user._id
+        };
+
+        await Gender.create(genderData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: err.message || 'Failed to import gender'
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      imported: results.imported,
+      total: results.total,
+      errors: results.errors
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

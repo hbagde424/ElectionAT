@@ -6,7 +6,8 @@ const {
   updateLocalIssue,
   deleteLocalIssue,
   getLocalIssuesByBooth,
-  getLocalIssuesByStatus
+  getLocalIssuesByStatus,
+  importLocalIssues
 } = require('../controllers/localIssueController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -142,6 +143,33 @@ router.get('/', getUserPermissionsAndHierarchy, getLocalIssues);
  *         description: Local issue not found
  */
 router.get('/:id', getUserPermissionsAndHierarchy, getLocalIssue);
+
+/**
+ * @swagger
+ * /api/local-issues/import:
+ *   post:
+ *     summary: Import local issues from Excel
+ *     tags: [Local Issues]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importLocalIssues);
 
 /**
  * @swagger

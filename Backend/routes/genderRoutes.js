@@ -7,7 +7,8 @@ const {
   deleteGender,
   getGendersByBooth,
   getGendersByState,
-  getGenderStatsForMap
+  getGenderStatsForMap,
+  importGenders
 } = require('../controllers/genderController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -167,6 +168,35 @@ router.get('/stats/:type/:id', getUserPermissionsAndHierarchy, getGenderStatsFor
  *         description: Gender entry not found
  */
 router.get('/:id', getUserPermissionsAndHierarchy, getGender);
+
+/**
+ * @swagger
+ * /api/genders/import:
+ *   post:
+ *     summary: Import genders from Excel
+ *     tags: [Genders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importGenders);
 
 /**
  * @swagger

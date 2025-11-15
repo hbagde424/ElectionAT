@@ -102,6 +102,12 @@ export default function GovernmentsListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Import states
+    const csvLinkRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Build booth-number set for coloring markers
     const schemeBoothNumberSet = useMemo(() => {
         const set = new Set();
@@ -1013,6 +1019,83 @@ export default function GovernmentsListPage() {
         }, 100);
     };
 
+    const handleDownloadExcelTemplate = async () => {
+        const XLSX = await import('xlsx');
+        const headers = ['name', 'description', 'scheme_type', 'budget', 'beneficiaries', 'state', 'division_code', 'parliament_no', 'assembly_no'];
+        const exampleData = [
+            ['PM Awas Yojana', 'Housing scheme for rural areas', 'social welfare', '50000', '100', 'Maharashtra', '1', '5', '150']
+        ];
+        const worksheetData = [headers, ...exampleData];
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Governments Template');
+        XLSX.writeFile(workbook, 'governments_template.xlsx');
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map((row) => {
+                const normalized = {};
+                Object.keys(row).forEach((key) => {
+                    const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const filteredRows = normalizedData.filter((r) => r.name);
+
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
+                body: JSON.stringify({ rows: filteredRows })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setImportResult({
+                    success: true,
+                    imported: result.imported || 0,
+                    total: result.total || 0,
+                    errors: result.errors || []
+                });
+                fetchGovernments(pagination.pageIndex, pagination.pageSize);
+            } else {
+                setImportResult({
+                    success: false,
+                    message: result.message || 'Import failed'
+                });
+            }
+        } catch (error) {
+            setImportResult({
+                success: false,
+                message: error.message || 'Import failed'
+            });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) {
+                importInputRef.current.value = '';
+            }
+        }
+    };
+
     // Render inline loader in table instead of replacing whole page
 
     return (
@@ -1208,6 +1291,12 @@ export default function GovernmentsListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                            Download Excel Template
+                        </Button>
+                        <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
@@ -1215,6 +1304,17 @@ export default function GovernmentsListPage() {
                             Add Government
                         </Button>
                     </Stack>
+                    {importResult && (
+                        <Alert
+                            severity={importResult.success ? 'success' : 'error'}
+                            onClose={() => setImportResult(null)}
+                            sx={{ mt: 1 }}
+                        >
+                            {importResult.success
+                                ? `Imported: ${importResult.imported} / ${importResult.total} | Errors: ${importResult.errors?.length || 0}`
+                                : `Import failed: ${importResult.message}`}
+                        </Alert>
+                    )}
                 </Stack>
 
                 {/* Access Scope Information */}
@@ -1616,6 +1716,15 @@ export default function GovernmentsListPage() {
                     </Box>
                 </Box>
             </Drawer>
+
+            {/* Hidden Import Input */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             <GovernmentModal
                 open={openModal}

@@ -8,7 +8,8 @@ const {
   deleteVolunteerDocument,
   getVolunteersByBooth,
   getVolunteersByParty,
-  getVolunteersByState
+  getVolunteersByState,
+  importBoothVolunteers
 } = require('../controllers/boothVolunteersController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -196,6 +197,34 @@ router.get('/:id', getUserPermissionsAndHierarchy, getBoothVolunteer);
  *       401:
  *         description: Not authorized
  */
+
+/**
+ * @swagger
+ * /api/booth-volunteers/import:
+ *   post:
+ *     summary: Import booth volunteers from Excel
+ *     tags: [Booth Volunteers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importBoothVolunteers);
+
 router.post('/', protect, authorize('superAdmin', 'coordinator'), volunteerUpload.array('documents', 10), createBoothVolunteer);
 
 /**

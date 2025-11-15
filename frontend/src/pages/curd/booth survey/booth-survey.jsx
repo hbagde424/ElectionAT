@@ -40,6 +40,12 @@ export default function BoothSurveyListPage() {
   const [booths, setBooths] = useState([]);
   const [users, setUsers] = useState([]);
   const [states, setStates] = useState([]);
+
+  // Import states
+  const csvLinkRef = useRef();
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const importInputRef = useRef();
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
@@ -194,6 +200,58 @@ export default function BoothSurveyListPage() {
   };
 
   const handleDeleteClose = () => setOpenDelete(false);
+
+  const handleDownloadExcelTemplate = async () => {
+    const XLSX = await import('xlsx');
+    const headers = ['survey_date', 'total_voters', 'surveyed_count', 'favorable_count', 'unfavorable_count', 'neutral_count', 'remark', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
+    const exampleData = [['2024-01-15', '1000', '500', '250', '150', '100', 'Good response', 'Maharashtra', 'DIV001', 'PC01', 'AC001', 'Block A', 'B001']];
+    const worksheetData = [headers, ...exampleData];
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Booth Survey');
+    XLSX.writeFile(workbook, 'booth_survey_template.xlsx');
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const XLSX = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const normalizedData = jsonData.map((row) => {
+        const normalized = {};
+        Object.keys(row).forEach((key) => {
+          const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+          normalized[normalizedKey] = row[key];
+        });
+        return normalized;
+      });
+      const filteredRows = normalizedData.filter((r) => r.survey_date);
+      const token = localStorage.getItem('serviceToken');
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/booth-surveys/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+        body: JSON.stringify({ rows: filteredRows })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setImportResult({ success: true, imported: result.imported || 0, total: result.total || 0, errors: result.errors || [] });
+        fetchSurveys(pagination.pageIndex, pagination.pageSize);
+      } else {
+        setImportResult({ success: false, message: result.message || 'Import failed' });
+      }
+    } catch (error) {
+      setImportResult({ success: false, message: error.message || 'Import failed' });
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  };
 
   const handleCSVDownload = () => {
     if (surveys.length === 0) return;
@@ -880,6 +938,12 @@ export default function BoothSurveyListPage() {
               सभी सर्वेक्षण CSV डाउनलोड करें
 
             </Button>
+            <Button variant="outlined" onClick={handleDownloadExcelTemplate} size="small">
+              Excel Template डाउनलोड करें
+            </Button>
+            <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing} size="small">
+              {importing ? 'Import हो रहा है...' : 'Excel Import करें'}
+            </Button>
             <Button variant="contained"
               startIcon={<Add />}
               onClick={() => { setSelectedSurvey(null); setOpenModal(true); }}
@@ -1137,6 +1201,45 @@ export default function BoothSurveyListPage() {
           </Box>
         </ScrollX>
       </MainCard>
+
+      <input
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        ref={importInputRef}
+        style={{ display: 'none' }}
+        onChange={handleImportFile}
+      />
+
+      {importResult && (
+        <Alert
+          severity={importResult.success ? 'success' : 'error'}
+          onClose={() => setImportResult(null)}
+          sx={{ m: 2 }}
+        >
+          {importResult.success ? (
+            <>
+              Successfully imported {importResult.imported} out of {importResult.total} records.
+              {importResult.errors && importResult.errors.length > 0 && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2" fontWeight="bold">Errors:</Typography>
+                  {importResult.errors.slice(0, 5).map((err, idx) => (
+                    <Typography key={idx} variant="caption" display="block">
+                      Row {err.row}: {err.error}
+                    </Typography>
+                  ))}
+                  {importResult.errors.length > 5 && (
+                    <Typography variant="caption" display="block">
+                      ... and {importResult.errors.length - 5} more errors
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </>
+          ) : (
+            importResult.message
+          )}
+        </Alert>
+      )}
 
       <BoothSurveyModal
         open={openModal}

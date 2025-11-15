@@ -416,3 +416,90 @@ exports.getGovernmentsByAssembly = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import governments from Excel
+// @route   POST /api/governments/import
+// @access  Private/Admin
+exports.importGovernments = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided. Expected array of rows.'
+      });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Validate required hierarchy fields
+        const hierarchyCheck = validateHierarchy(geo, ['state']);
+        if (!hierarchyCheck.valid) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: hierarchyCheck.errors.join(', ')
+          });
+          continue;
+        }
+
+        // Check for required fields
+        if (!row.name) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'name is required'
+          });
+          continue;
+        }
+
+        // Create government schema entry
+        const governmentData = {
+          name: row.name,
+          description: row.description || '',
+          scheme_type: row.scheme_type || 'social welfare',
+          budget: parseFloat(row.budget) || 0,
+          beneficiaries: parseInt(row.beneficiaries) || 0,
+          state_id: geo.state._id,
+          created_by: req.user._id
+        };
+
+        // Optional geographic fields
+        if (geo.division) governmentData.division_id = geo.division._id;
+        if (geo.parliament) governmentData.parliament_id = geo.parliament._id;
+        if (geo.assembly) governmentData.assembly_id = geo.assembly._id;
+        if (geo.block) governmentData.block_id = geo.block._id;
+        if (geo.booth) governmentData.booth_id = geo.booth._id;
+
+        await Government.create(governmentData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: err.message || 'Failed to import government schema'
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      imported: results.imported,
+      total: results.total,
+      errors: results.errors
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

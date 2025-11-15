@@ -937,6 +937,11 @@ export default function WinningCandidateListPage() {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
+    // Import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
         try {
@@ -989,6 +994,58 @@ export default function WinningCandidateListPage() {
             console.error('Error preparing CSV data:', error);
         } finally {
             setCsvLoading(false);
+        }
+    };
+
+    const handleDownloadExcelTemplate = async () => {
+        const XLSX = await import('xlsx');
+        const headers = ['candidate_name', 'party', 'year', 'total_votes', 'vote_percentage', 'margin', 'state', 'division_code', 'parliament_no', 'assembly_no'];
+        const exampleData = [['Rahul Gandhi', 'INC', '2024', '500000', '52.5', '50000', 'Maharashtra', 'DIV001', 'PC01', 'AC001']];
+        const worksheetData = [headers, ...exampleData];
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Winning Candidates');
+        XLSX.writeFile(workbook, 'winning_candidates_template.xlsx');
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const normalizedData = jsonData.map((row) => {
+                const normalized = {};
+                Object.keys(row).forEach((key) => {
+                    const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+            const filteredRows = normalizedData.filter((r) => r.candidate_name);
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/winning-candidates/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+                body: JSON.stringify({ rows: filteredRows })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setImportResult({ success: true, imported: result.imported || 0, total: result.total || 0, errors: result.errors || [] });
+                fetchCandidates();
+            } else {
+                setImportResult({ success: false, message: result.message || 'Import failed' });
+            }
+        } catch (error) {
+            setImportResult({ success: false, message: error.message || 'Import failed' });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
         }
     };
 
@@ -1061,6 +1118,21 @@ export default function WinningCandidateListPage() {
                                 style={{ display: 'none' }}
                                 ref={csvLinkRef}
                             />
+                            <Button
+                                variant="outlined"
+                                onClick={handleDownloadExcelTemplate}
+                                size="small"
+                            >
+                                Download Excel Template
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={() => importInputRef.current?.click()}
+                                disabled={importing}
+                                size="small"
+                            >
+                                {importing ? 'Importing...' : 'Import Excel'}
+                            </Button>
                             <Button
                                 variant="outlined"
                                 onClick={handleDownloadCsv}
@@ -1247,6 +1319,45 @@ export default function WinningCandidateListPage() {
                     </Box>
                 </ScrollX>
             </MainCard>
+
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
+
+            {importResult && (
+                <Alert
+                    severity={importResult.success ? 'success' : 'error'}
+                    onClose={() => setImportResult(null)}
+                    sx={{ m: 2 }}
+                >
+                    {importResult.success ? (
+                        <>
+                            Successfully imported {importResult.imported} out of {importResult.total} records.
+                            {importResult.errors && importResult.errors.length > 0 && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="body2" fontWeight="bold">Errors:</Typography>
+                                    {importResult.errors.slice(0, 5).map((err, idx) => (
+                                        <Typography key={idx} variant="caption" display="block">
+                                            Row {err.row}: {err.error}
+                                        </Typography>
+                                    ))}
+                                    {importResult.errors.length > 5 && (
+                                        <Typography variant="caption" display="block">
+                                            ... and {importResult.errors.length - 5} more errors
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )}
+                        </>
+                    ) : (
+                        importResult.message
+                    )}
+                </Alert>
+            )}
 
             <WinningCandidateModal
                 open={openModal}

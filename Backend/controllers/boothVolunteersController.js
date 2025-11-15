@@ -608,3 +608,99 @@ exports.getVolunteersByState = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import booth volunteers from Excel
+// @route   POST /api/booth-volunteers/import
+// @access  Private/Admin
+exports.importBoothVolunteers = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided. Expected array of rows.'
+      });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Validate required hierarchy fields
+        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (!hierarchyCheck.valid) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: hierarchyCheck.errors.join(', ')
+          });
+          continue;
+        }
+
+        // Check for required fields
+        if (!row.name || !row.contact) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'name and contact are required'
+          });
+          continue;
+        }
+
+        // Resolve party if provided
+        let partyId = null;
+        if (row.party) {
+          const party = await Party.findOne({ name: { $regex: new RegExp(`^${row.party}$`, 'i') } });
+          if (party) {
+            partyId = party._id;
+          }
+        }
+
+        // Create booth volunteer entry
+        const volunteerData = {
+          name: row.name,
+          contact: row.contact,
+          booth: geo.booth._id,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          role: row.role || 'volunteer',
+          created_by: req.user._id
+        };
+
+        if (partyId) volunteerData.party = partyId;
+        if (row.email) volunteerData.email = row.email;
+        if (row.address) volunteerData.address = row.address;
+
+        await BoothVolunteers.create(volunteerData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: err.message || 'Failed to import booth volunteer'
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      imported: results.imported,
+      total: results.total,
+      errors: results.errors
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

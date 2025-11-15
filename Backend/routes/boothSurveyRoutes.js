@@ -7,7 +7,8 @@ const {
   deleteBoothSurvey,
   getSurveysByBooth,
   getSurveysBySurveyor,
-  getSurveysByState
+  getSurveysByState,
+  importBoothSurveys
 } = require('../controllers/boothSurveyController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -144,6 +145,33 @@ router.get('/', getUserPermissionsAndHierarchy, getBoothSurveys);
  *         description: Booth survey not found
  */
 router.get('/:id', getUserPermissionsAndHierarchy, getBoothSurvey);
+
+/**
+ * @swagger
+ * /api/booth-surveys/import:
+ *   post:
+ *     summary: Import booth surveys from Excel
+ *     tags: [Booth Surveys]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importBoothSurveys);
 
 /**
  * @swagger

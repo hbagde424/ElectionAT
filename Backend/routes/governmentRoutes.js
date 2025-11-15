@@ -6,7 +6,8 @@ const {
   updateGovernment,
   deleteGovernment,
   getGovernmentsByState,
-  getGovernmentsByAssembly
+  getGovernmentsByAssembly,
+  importGovernments
 } = require('../controllers/governmentController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -116,6 +117,33 @@ router.get('/', getUserPermissionsAndHierarchy, getGovernments);
  *         description: Government project not found
  */
 router.get('/:id', getUserPermissionsAndHierarchy, getGovernment);
+
+/**
+ * @swagger
+ * /api/governments/import:
+ *   post:
+ *     summary: Import governments from Excel
+ *     tags: [Governments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       401:
+         description: Not authorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importGovernments);
 
 /**
  * @swagger

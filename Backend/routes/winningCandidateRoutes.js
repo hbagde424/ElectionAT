@@ -12,7 +12,8 @@ const {
   getCandidatesByAssemblyAndYear,
   getPartyAssemblyCountByYear,
   predictWinningPartyForNextYear,
-  getWinningCandidateStatsForMap
+  getWinningCandidateStatsForMap,
+  importWinningCandidates
 } = require('../controllers/winningCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -328,6 +329,34 @@ router.get('/:id', getWinningCandidate);
  *       401:
  *         description: Unauthorized
  */
+
+/**
+ * @swagger
+ * /api/winning-candidates/import:
+ *   post:
+ *     summary: Import winning candidates from Excel
+ *     tags: [Winning Candidates]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importWinningCandidates);
+
 router.post('/', protect, authorize('superAdmin'), createWinningCandidate);
 
 /**
