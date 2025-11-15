@@ -6,7 +6,8 @@ const {
   updateInfluencer,
   deleteInfluencer,
   getInfluencersByBooth,
-  getInfluencersByAssembly
+  getInfluencersByAssembly,
+  importInfluencers
 } = require('../controllers/influencerController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -350,5 +351,30 @@ router.get('/assembly/:assemblyId', getInfluencersByAssembly);
  *           format: date-time
  *           description: Last update timestamp
  */
+
+/**
+ * @swagger
+ * /api/influencers/import:
+ *   post:
+ *     summary: Bulk import influencers from parsed rows
+ *     tags: [Influencers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ */
+router.post('/import', protect, authorize('superAdmin'), importInfluencers);
 
 module.exports = router;

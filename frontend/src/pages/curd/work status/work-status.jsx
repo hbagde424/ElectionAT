@@ -53,6 +53,9 @@ export default function WorkStatusListPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const searchDebounceRef = useRef(null);
+    const importInputRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     // Map state
     const [blockNumberInput, setBlockNumberInput] = useState('ALL');
@@ -1236,6 +1239,140 @@ export default function WorkStatusListPage() {
         }, 100);
     };
 
+    // Download empty Excel template with only headers matching the work status fields
+    const handleDownloadExcelTemplate = async () => {
+        const headers = ['work_name', 'department', 'status', 'work_type', 'approved_fund_from', 'total_budget', 'spent_amount', 'description', 'start_date', 'expected_end_date', 'state', 'division_code', 'parliament_no', 'AC_NO', 'block_no', 'booth_no'];
+        // Try dynamic import of xlsx
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            // writeFile triggers browser download when built for web
+            XLSX.writeFile(wb, 'work_status_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        // Fallback: generate CSV template
+        try {
+            const exampleRow = [
+                'Sample Road Construction',
+                'PWD',
+                'in progress',
+                'infrastructure',
+                'vidhayak nidhi',
+                '5000000',
+                '2000000',
+                'Construction of new road connecting villages',
+                '2024-01-01',
+                '2024-12-31',
+                'Gujarat',
+                '1',
+                '1',
+                '1',
+                '1',
+                '1'
+            ];
+            const notesRow = [
+                '',
+                '',
+                'Options: in progress, completed, in complete, announced',
+                'Options: infrastructure, social, education, health, other',
+                'Options: vidhayak nidhi, swechcha nidhi',
+                'Amount in numbers',
+                'Amount in numbers',
+                '',
+                'Format: YYYY-MM-DD',
+                'Format: YYYY-MM-DD',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ];
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n' + notesRow.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'work_status_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
+    };
+
+    // Handle Excel/CSV file import
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            // Normalize keys and pick required columns
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    work_name: obj.work_name ?? '',
+                    department: obj.department ?? '',
+                    status: obj.status ?? '',
+                    work_type: obj.work_type ?? '',
+                    approved_fund_from: obj.approved_fund_from ?? '',
+                    total_budget: obj.total_budget ?? '',
+                    spent_amount: obj.spent_amount ?? '',
+                    description: obj.description ?? '',
+                    start_date: obj.start_date ?? '',
+                    expected_end_date: obj.expected_end_date ?? '',
+                    state: obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    ac_no: obj.ac_no ?? obj.AC_NO ?? obj['ac no'] ?? '',
+                    block_no: obj.block_no ?? obj.block ?? '',
+                    booth_no: obj.booth_no ?? obj.booth ?? ''
+                };
+            });
+
+            // Filter out completely empty rows (no work_name)
+            const filtered = rows.filter(r => String(r.work_name).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/work-status/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                // Refresh list after import
+                fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+                fetchBoothsWithWorkStatus(yearFilter);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            // reset input to allow re-select same file
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     // Page-level loading removed; show inline loader row in table instead
 
     return (
@@ -1244,6 +1381,20 @@ export default function WorkStatusListPage() {
                 {/* Map section above the table */}
                 <Box sx={{ p: 2, pb: 0 }}>
                     <Typography variant="h6" sx={{ mb: 1 }}>Booth Map</Typography>
+                    {importResult && (
+                        <Alert severity={importResult.success ? 'success' : 'error'} sx={{ mb: 1 }}>
+                            {importResult.success ? (
+                                <span>
+                                    Imported: {importResult.created || 0} / {importResult.total || 0}
+                                    {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                        <> | Errors: {importResult.errors.length}</>
+                                    )}
+                                </span>
+                            ) : (
+                                <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                            )}
+                        </Alert>
+                    )}
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                         <FormControl size="small" sx={{ minWidth: 260 }}>
                             <InputLabel id="workstatus-block-select">Block</InputLabel>
@@ -1458,6 +1609,12 @@ export default function WorkStatusListPage() {
                             />
                             <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                                 {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                            </Button>
+                            <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                                Download Excel Template
+                            </Button>
+                            <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                                {importing ? 'Importing...' : 'Import Excel'}
                             </Button>
                             <Button
                                 variant="contained"
@@ -1751,6 +1908,14 @@ export default function WorkStatusListPage() {
                     </Box>
                 </ScrollX>
             </MainCard>
+            {/* Hidden file input for import */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             {/* Right-side Drawer for clicked booth info */}
             <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

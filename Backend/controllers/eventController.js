@@ -572,3 +572,70 @@ exports.getEventsByType = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import events
+// @route   POST /api/events/import
+// @access  Private (Admin only)
+exports.importEvents = async (req, res, next) => {
+  try {
+    const { resolveHierarchy, toKey, toTitle } = require('../utils/importHelpers');
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = toKey(r.name ?? r.Name);
+        const type = toKey(r.type ?? r.Type);
+        const status = toKey(r.status ?? r.Status ?? 'incomplete');
+        const description = String(r.description ?? r.Description ?? '').trim();
+        const location = toKey(r.location ?? r.Location);
+        const start_date = r.start_date ?? r.Start_Date ?? r['start date'];
+        const end_date = r.end_date ?? r.End_Date ?? r['end date'];
+
+        if (!name || !type || !location || !start_date || !end_date) {
+          throw new Error('name, type, location, start_date, and end_date are required');
+        }
+
+        const hierarchy = await resolveHierarchy(r);
+
+        const eventData = {
+          name,
+          type,
+          status,
+          description,
+          location,
+          start_date: new Date(start_date),
+          end_date: new Date(end_date),
+          state_id: hierarchy.state._id,
+          division_id: hierarchy.division._id,
+          parliament_id: hierarchy.parliament._id,
+          assembly_id: hierarchy.assembly._id,
+          block_id: hierarchy.block._id,
+          booth_id: hierarchy.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const event = await Event.create(eventData);
+        created.push(event._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

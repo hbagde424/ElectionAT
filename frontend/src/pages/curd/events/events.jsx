@@ -1169,6 +1169,9 @@ export default function EventListPage() {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    const importInputRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
@@ -1199,6 +1202,130 @@ export default function EventListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    // Download empty Excel template with only headers matching the modal fields
+    const handleDownloadExcelTemplate = async () => {
+        const headers = ['name', 'type', 'status', 'description', 'location', 'start_date', 'end_date', 'state', 'division_code', 'parliament_no', 'AC_NO', 'block_no', 'booth_no'];
+        // Try dynamic import of xlsx
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'events_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        // Fallback: generate CSV template
+        try {
+            const exampleRow = [
+                'Sample Event Name',
+                'event',
+                'incomplete',
+                'This is a sample description',
+                'Sample Location',
+                '2024-01-15',
+                '2024-01-20',
+                'Gujarat',
+                '1',
+                '1',
+                '1',
+                '1',
+                '1'
+            ];
+            const notesRow = [
+                '',
+                'Options: event, campaign, activity',
+                'Options: done, incomplete, cancelled, postponed',
+                '',
+                '',
+                'Format: YYYY-MM-DD',
+                'Format: YYYY-MM-DD',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ];
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n' + notesRow.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'events_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
+    };
+
+    // Import Excel/CSV file with events data
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            // Normalize keys and pick required columns
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    name: obj.name ?? '',
+                    type: obj.type ?? '',
+                    status: obj.status ?? '',
+                    description: obj.description ?? '',
+                    location: obj.location ?? '',
+                    start_date: obj.start_date ?? '',
+                    end_date: obj.end_date ?? '',
+                    state: obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    AC_NO: obj.ac_no ?? obj.acno ?? obj['ac no'] ?? obj['ac_no'] ?? '',
+                    block_no: obj.block_no ?? obj.block ?? '',
+                    booth_no: obj.booth_no ?? obj.booth ?? ''
+                };
+            });
+
+            // Filter out completely empty rows (no name)
+            const filtered = rows.filter(r => String(r.name).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/events/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                // Refresh list after import
+                fetchEvents(pagination.pageIndex, pagination.pageSize, globalFilter);
+                fetchBoothsWithEvents(yearFilter);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            // reset input to allow re-select same file
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
     };
 
     // Do not block the entire page during table fetches; we'll show a loader inside the table instead
@@ -1422,6 +1549,12 @@ export default function EventListPage() {
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                            Download Excel Template
+                        </Button>
+                        <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
                         <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedEvent(null); setOpenModal(true); }}>
                             Add Event
                         </Button>
@@ -1437,6 +1570,22 @@ export default function EventListPage() {
                         <strong>Data Access:</strong> {accessScope.description}
                     </Typography>
                 </Alert>
+
+                {/* Import Result Alert */}
+                {importResult && (
+                    <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
+                        {importResult.success ? (
+                            <span>
+                                Imported: {importResult.created || 0} / {importResult.total || 0}
+                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                    <> | Errors: {importResult.errors.length}</>
+                                )}
+                            </span>
+                        ) : (
+                            <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                        )}
+                    </Alert>
+                )}
 
                 <Stack
                     direction="row"
@@ -1777,6 +1926,15 @@ export default function EventListPage() {
                     </Box>
                 </ScrollX>
             </MainCard>
+            
+            {/* Hidden file input for import */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             {/* Right-side Drawer for clicked booth info */}
             <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

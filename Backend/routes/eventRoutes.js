@@ -6,7 +6,8 @@ const {
   updateEvent,
   deleteEvent,
   getEventsByBooth,
-  getEventsByType
+  getEventsByType,
+  importEvents
 } = require('../controllers/eventController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -389,5 +390,30 @@ router.get('/type/:type', getUserPermissionsAndHierarchy, getEventsByType);
  *       scheme: bearer
  *       bearerFormat: JWT
  */
+
+/**
+ * @swagger
+ * /api/events/import:
+ *   post:
+ *     summary: Bulk import events from parsed rows
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ */
+router.post('/import', protect, authorize('superAdmin'), importEvents);
 
 module.exports = router;

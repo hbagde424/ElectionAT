@@ -1125,6 +1125,9 @@ export default function InfluencersListPage() {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    const importInputRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
@@ -1156,6 +1159,137 @@ export default function InfluencersListPage() {
         }, 100);
     };
 
+    // Download empty Excel template with headers for influencer import
+    const handleDownloadExcelTemplate = async () => {
+        const headers = ['name', 'contact_number', 'alternate_number', 'email', 'full_address', 'category', 'caste', 'status', 'description', 'state', 'division_code', 'parliament_no', 'AC_NO', 'block_no', 'booth_no'];
+        // Try dynamic import of xlsx
+        try {
+            const XLSX = await import('xlsx');
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            // writeFile triggers browser download when built for web
+            XLSX.writeFile(wb, 'influencers_import_template.xlsx');
+            return;
+        } catch (e) {
+            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+        }
+
+        // Fallback: generate CSV template
+        try {
+            const exampleRow = [
+                'John Doe',
+                '9876543210',
+                '9876543211',
+                'john@example.com',
+                '123 Main Street, City',
+                'Political Leader',
+                'General',
+                'Active',
+                'Sample influencer description',
+                'Gujarat',
+                '1',
+                '1',
+                '1',
+                '1',
+                '1'
+            ];
+            const notesRow = [
+                '',
+                '10 digits',
+                '10 digits (optional)',
+                'Optional',
+                '',
+                'Options: Political Leader, Community Leader, Religious Leader, Business Leader, Social Activist, Media Person, Celebrity, Youth Leader, Women Leader, Other',
+                'Options: General, OBC, SC, ST, Minority, Other, Not Specified',
+                'Options: Active, Inactive',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ];
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n' + notesRow.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'influencers_import_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to generate fallback CSV template:', err);
+        }
+    };
+
+    // Handle file import
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            // Normalize keys and pick required columns
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                return {
+                    name: obj.name ?? '',
+                    contact_number: obj.contact_number ?? obj['contact number'] ?? '',
+                    alternate_number: obj.alternate_number ?? obj['alternate number'] ?? '',
+                    email: obj.email ?? '',
+                    full_address: obj.full_address ?? obj['full address'] ?? '',
+                    category: obj.category ?? '',
+                    caste: obj.caste ?? '',
+                    status: obj.status ?? '',
+                    description: obj.description ?? '',
+                    state: obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    AC_NO: obj.ac_no ?? obj.acno ?? obj['ac no'] ?? obj['ac_no'] ?? '',
+                    block_no: obj.block_no ?? obj.block ?? '',
+                    booth_no: obj.booth_no ?? obj.booth ?? ''
+                };
+            });
+
+            // Filter out completely empty rows
+            const filtered = rows.filter(r => String(r.name).trim() || String(r.contact_number).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                // Refresh list after import
+                fetchInfluencers(pagination.pageIndex, pagination.pageSize, globalFilter);
+                fetchBoothsWithInfluencers(yearFilter);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            // reset input to allow re-select same file
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     // Avoid replacing the full page on loading; show a loader inside the table body instead
 
     return (
@@ -1170,6 +1304,20 @@ export default function InfluencersListPage() {
                         )}
                         {mapError && (
                             <Alert severity="error" sx={{ mb: 1 }}>{mapError}</Alert>
+                        )}
+                        {importResult && (
+                            <Alert severity={importResult.success ? 'success' : 'error'} sx={{ mb: 1 }}>
+                                {importResult.success ? (
+                                    <span>
+                                        Imported: {importResult.created || 0} / {importResult.total || 0}
+                                        {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                            <> | Errors: {importResult.errors.length}</>
+                                        )}
+                                    </span>
+                                ) : (
+                                    <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                                )}
+                            </Alert>
                         )}
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
                             <TextField
@@ -1351,6 +1499,18 @@ export default function InfluencersListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate} size="small">
+                            Download Excel Template
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => {
+                                if (importInputRef.current) importInputRef.current.click();
+                            }}
+                            size="small"
+                        >
+                            Import Excel
+                        </Button>
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
@@ -1687,6 +1847,14 @@ export default function InfluencersListPage() {
                     </Box>
                 </ScrollX>
             </MainCard>
+            {/* Hidden file input for import */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
             {/* Right-side Drawer for clicked booth info */}
             <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

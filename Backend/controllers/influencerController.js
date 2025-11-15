@@ -495,3 +495,74 @@ exports.getInfluencersByAssembly = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import influencers
+// @route   POST /api/influencers/import
+// @access  Private (Admin only)
+exports.importInfluencers = async (req, res, next) => {
+  try {
+    const { resolveHierarchy, toKey, toTitle } = require('../utils/importHelpers');
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = toKey(r.name ?? r.Name);
+        const contact_number = toKey(r.contact_number ?? r.Contact_Number ?? r['contact number']);
+        const alternate_number = toKey(r.alternate_number ?? r.Alternate_Number ?? r['alternate number'] ?? '');
+        const email = toKey(r.email ?? r.Email ?? '');
+        const full_address = toKey(r.full_address ?? r.Full_Address ?? r['full address']);
+        const category = toKey(r.category ?? r.Category ?? 'Other');
+        const caste = toKey(r.caste ?? r.Caste ?? 'Not Specified');
+        const status = toKey(r.status ?? r.Status ?? 'Active');
+        const description = String(r.description ?? r.Description ?? '').trim();
+
+        if (!name || !contact_number || !full_address) {
+          throw new Error('name, contact_number, and full_address are required');
+        }
+
+        const hierarchy = await resolveHierarchy(r);
+
+        const influencerData = {
+          name,
+          contact_number,
+          alternate_number,
+          email,
+          full_address,
+          category,
+          caste,
+          status,
+          description,
+          state_id: hierarchy.state._id,
+          division_id: hierarchy.division._id,
+          parliament_id: hierarchy.parliament._id,
+          assembly_id: hierarchy.assembly._id,
+          block_id: hierarchy.block._id,
+          booth_id: hierarchy.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const influencer = await Influencer.create(influencerData);
+        created.push(influencer._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -8,7 +8,8 @@ const {
   getWorkStatusesByBooth,
   getWorkStatusesByBlock,
   getWorkStatusesByAssembly,
-  getWorkStatusStatistics
+  getWorkStatusStatistics,
+  importWorkStatuses
 } = require('../controllers/workStatusController');
 const { protect, authorize } = require('../middlewares/auth');
 const validateObjectIdParams = require('../middlewares/validateObjectIdParams');
@@ -519,5 +520,30 @@ router.get('/assembly/:assemblyId', validateObjectIdParams, getUserPermissionsAn
  *       scheme: bearer
  *       bearerFormat: JWT
  */
+
+/**
+ * @swagger
+ * /api/work-status/import:
+ *   post:
+ *     summary: Bulk import work statuses from parsed rows
+ *     tags: [Work Status]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ */
+router.post('/import', protect, authorize('superAdmin'), importWorkStatuses);
 
 module.exports = router;

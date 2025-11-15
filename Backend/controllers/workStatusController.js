@@ -637,3 +637,76 @@ exports.getWorkStatusStatistics = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import work statuses
+// @route   POST /api/work-status/import
+// @access  Private (Admin only)
+exports.importWorkStatuses = async (req, res, next) => {
+  try {
+    const { resolveHierarchy, toKey, toTitle } = require('../utils/importHelpers');
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    }
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const created = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const work_name = toKey(r.work_name ?? r.Work_Name ?? r['work name']);
+        const department = toKey(r.department ?? r.Department);
+        const status = toKey(r.status ?? r.Status ?? 'in progress');
+        const work_type = toKey(r.work_type ?? r.Work_Type ?? r['work type']);
+        const approved_fund_from = toKey(r.approved_fund_from ?? r.Approved_Fund_From ?? r['approved fund from']);
+        const total_budget = Number(r.total_budget ?? r.Total_Budget ?? r['total budget'] ?? 0);
+        const spent_amount = Number(r.spent_amount ?? r.Spent_Amount ?? r['spent amount'] ?? 0);
+        const description = String(r.description ?? r.Description ?? '').trim();
+        const start_date = r.start_date ?? r.Start_Date ?? r['start date'];
+        const expected_end_date = r.expected_end_date ?? r.Expected_End_Date ?? r['expected end date'];
+
+        if (!work_name || !department || !work_type || !approved_fund_from || !start_date || !expected_end_date) {
+          throw new Error('work_name, department, work_type, approved_fund_from, start_date, and expected_end_date are required');
+        }
+
+        const hierarchy = await resolveHierarchy(r);
+
+        const workStatusData = {
+          work_name,
+          department,
+          status,
+          work_type,
+          approved_fund_from,
+          total_budget,
+          spent_amount,
+          description,
+          start_date: new Date(start_date),
+          expected_end_date: new Date(expected_end_date),
+          state_id: hierarchy.state._id,
+          division_id: hierarchy.division._id,
+          parliament_id: hierarchy.parliament._id,
+          assembly_id: hierarchy.assembly._id,
+          block_id: hierarchy.block._id,
+          booth_id: hierarchy.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const workStatus = await WorkStatus.create(workStatusData);
+        created.push(workStatus._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};
