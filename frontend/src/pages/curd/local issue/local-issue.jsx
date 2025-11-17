@@ -17,7 +17,6 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
-import { Alert } from '@mui/material';
 import { usePermissions } from 'contexts/PermissionContext';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
@@ -700,7 +699,7 @@ export default function LocalIssueListPage() {
             console.log('[LocalIssues] fetching URL ->', fullUrl);
             const res = await fetch(fullUrl, { headers });
             const json = await res.json();
-            console.log('[LocalIssues] fetchLocalIssues response:', json && typeof json === 'object' ? (json.success ? `success, items=${(json.data||[]).length}` : JSON.stringify(json).slice(0,200)) : json);
+            console.log('[LocalIssues] fetchLocalIssues response:', json && typeof json === 'object' ? (json.success ? `success, items=${(json.data || []).length}` : JSON.stringify(json).slice(0, 200)) : json);
 
             if (json.success) {
                 setLocalIssues(json.data);
@@ -1401,7 +1400,7 @@ export default function LocalIssueListPage() {
                                 )}
                             </Map>
                         </MapContainerStyled>
-                        
+
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -1409,10 +1408,10 @@ export default function LocalIssueListPage() {
                             </Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#22c55e',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1
@@ -1420,10 +1419,10 @@ export default function LocalIssueListPage() {
                                     <Typography variant="caption">Has Local Issues</Typography>
                                 </Stack>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        borderRadius: '50%', 
+                                    <Box sx={{
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
                                         backgroundColor: '#ef4444',
                                         border: '2px solid #ffffff',
                                         boxShadow: 1
