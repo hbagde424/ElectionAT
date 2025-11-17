@@ -119,6 +119,12 @@ export default function LocalIssueListPage() {
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
+    // Import states
+    const csvLinkRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Memo: Build a deduplicated markers FeatureCollection (1 point per unique booth number)
     const boothMarkersGeoJSON = useMemo(() => {
         if (!boothGeoJSON?.features) return { type: 'FeatureCollection', features: [] };
@@ -135,12 +141,6 @@ export default function LocalIssueListPage() {
                 }
             });
         }
-
-        // Import states
-        const csvLinkRef = useRef();
-        const [importing, setImporting] = useState(false);
-        const [importResult, setImportResult] = useState(null);
-        const importInputRef = useRef();
 
         const seen = new Set();
         const features = [];
@@ -1162,7 +1162,6 @@ export default function LocalIssueListPage() {
 
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
