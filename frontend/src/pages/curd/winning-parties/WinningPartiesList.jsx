@@ -4,6 +4,7 @@ import {
     FormControl, InputLabel, Select, MenuItem, Grid, TextField, Alert
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import { useTheme } from '@mui/material/styles';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
@@ -26,6 +27,7 @@ const WinningPartyListPage = () => {
     const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel } = usePermissions();
     const [winningParties, setWinningParties] = useState([]);
+    const [allWinningParties, setAllWinningParties] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -77,68 +79,99 @@ const WinningPartyListPage = () => {
 
     useEffect(() => setSearchInput(globalFilter || ''), [globalFilter]);
 
+    // Fetch all winning parties for filters
+    const fetchAllWinningPartiesForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state_id = userHierarchy.state._id;
+            if (userHierarchy?.division) hierarchyFilters.division_id = userHierarchy.division._id;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+            if (userHierarchy?.block) hierarchyFilters.block_id = userHierarchy.block._id;
+            if (userHierarchy?.booth) hierarchyFilters.booth_id = userHierarchy.booth._id;
+            
+            const data = await fetchAllDataForFilters('/winning-parties', hierarchyFilters);
+            setAllWinningParties(data);
+        } catch (error) {
+            console.error('Error fetching all winning parties for filters:', error);
+        }
+    };
+
+    // Extract filter options from allWinningParties
+    const filterOptionsData = useFilterOptionsFromData(allWinningParties, {
+        parties: { field: 'party_id', nameField: 'name' },
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        electionYears: { field: 'election_year_id', nameField: 'year' },
+        candidatesData: { field: 'candidate_id', nameField: 'name' }
+    });
+
     // Filtered data for cascading dropdowns
     const filteredDivisions = filterValues.state
-        ? divisions.filter(division => {
+        ? filterOptionsData.divisions?.filter(division => {
             // Handle both populated and non-populated state_id
             const stateId = division.state_id?._id || division.state_id;
             return stateId === filterValues.state;
-        })
-        : divisions;
+        }) || []
+        : filterOptionsData.divisions || [];
 
     const filteredParliaments = filterValues.division
-        ? parliaments.filter(parliament => {
+        ? filterOptionsData.parliaments?.filter(parliament => {
             const divisionId = parliament.division_id?._id || parliament.division_id;
             return divisionId === filterValues.division;
-        })
+        }) || []
         : filterValues.state
-            ? parliaments.filter(parliament => {
+            ? filterOptionsData.parliaments?.filter(parliament => {
                 const stateId = parliament.state_id?._id || parliament.state_id;
                 return stateId === filterValues.state;
-            })
-            : parliaments;
+            }) || []
+            : filterOptionsData.parliaments || [];
 
     const filteredAssemblies = filterValues.parliament
-        ? assemblies.filter(assembly => {
+        ? filterOptionsData.assemblies?.filter(assembly => {
             const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
             return parliamentId === filterValues.parliament;
-        })
+        }) || []
         : filterValues.division
-            ? assemblies.filter(assembly => {
+            ? filterOptionsData.assemblies?.filter(assembly => {
                 const divisionId = assembly.division_id?._id || assembly.division_id;
                 return divisionId === filterValues.division;
-            })
+            }) || []
             : filterValues.state
-                ? assemblies.filter(assembly => {
+                ? filterOptionsData.assemblies?.filter(assembly => {
                     const stateId = assembly.state_id?._id || assembly.state_id;
                     return stateId === filterValues.state;
-                })
-                : assemblies;
+                }) || []
+                : filterOptionsData.assemblies || [];
 
     const filteredBlocks = filterValues.assembly
-        ? blocks.filter(block => {
+        ? filterOptionsData.blocks?.filter(block => {
             const assemblyId = block.assembly_id?._id || block.assembly_id;
             return assemblyId === filterValues.assembly;
-        })
+        }) || []
         : filterValues.division
-            ? blocks.filter(block => {
+            ? filterOptionsData.blocks?.filter(block => {
                 const divisionId = block.division_id?._id || block.division_id;
                 return divisionId === filterValues.division;
-            })
+            }) || []
             : filterValues.state
-                ? blocks.filter(block => {
+                ? filterOptionsData.blocks?.filter(block => {
                     const stateId = block.state_id?._id || block.state_id;
                     return stateId === filterValues.state;
-                })
-                : blocks;
+                }) || []
+                : filterOptionsData.blocks || [];
 
     const filteredBooths = filterValues.block
-        ? booths.filter(booth => {
+        ? filterOptionsData.booths?.filter(booth => {
             const blockId = booth.block_id?._id || booth.block_id;
             return blockId === filterValues.block;
-        })
+        }) || []
         : filterValues.assembly
-            ? booths.filter(booth => {
+            ? filterOptionsData.booths?.filter(booth => {
                 const assemblyId = booth.assembly_id?._id || booth.assembly_id;
                 return assemblyId === filterValues.assembly;
             })
@@ -352,6 +385,7 @@ const WinningPartyListPage = () => {
 
     useEffect(() => {
         fetchReferenceData();
+        fetchAllWinningPartiesForFilters();
     }, []);
 
     const formatNumber = (number) => {
@@ -737,7 +771,7 @@ const WinningPartyListPage = () => {
                                 label="Party"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {parties.map((party) => (
+                                {filterOptionsData.parties?.map((party) => (
                                     <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
                                 ))}
                             </Select>
@@ -752,7 +786,7 @@ const WinningPartyListPage = () => {
                                 label="State"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {states.map((state) => (
+                                {filterOptionsData.states?.map((state) => (
                                     <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                 ))}
                             </Select>
@@ -847,7 +881,7 @@ const WinningPartyListPage = () => {
                                 label="Election Year"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {electionYears.map((year) => (
+                                {filterOptionsData.electionYears?.map((year) => (
                                     <MenuItem key={year._id} value={year._id}>{year.year}</MenuItem>
                                 ))}
                             </Select>
@@ -862,7 +896,7 @@ const WinningPartyListPage = () => {
                                 label="Candidate"
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {candidates.map((candidate) => (
+                                {filterOptionsData.candidatesData?.map((candidate) => (
                                     <MenuItem key={candidate._id} value={candidate._id}>{candidate.name}</MenuItem>
                                 ))}
                             </Select>

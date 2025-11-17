@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -39,6 +40,7 @@ export default function PartyActivitiesListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [partyActivityDeleteId, setPartyActivityDeleteId] = useState('');
     const [partyActivities, setPartyActivities] = useState([]);
+    const [allPartyActivities, setAllPartyActivities] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -205,6 +207,34 @@ export default function PartyActivitiesListPage() {
             console.error('Failed to fetch reference data:', error);
         }
     };
+
+    // Fetch all party activities for filters
+    const fetchAllPartyActivitiesForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state_id = userHierarchy.state._id;
+            if (userHierarchy?.division) hierarchyFilters.division_id = userHierarchy.division._id;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+            if (userHierarchy?.block) hierarchyFilters.block_id = userHierarchy.block._id;
+            if (userHierarchy?.booth) hierarchyFilters.booth_id = userHierarchy.booth._id;
+            
+            const data = await fetchAllDataForFilters('/party-activities', hierarchyFilters);
+            setAllPartyActivities(data);
+        } catch (error) {
+            console.error('Error fetching all party activities for filters:', error);
+        }
+    };
+
+    // Extract filter options from allPartyActivities
+    const filterOptions = useFilterOptionsFromData(allPartyActivities, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' }
+    });
 
     // Fetch booths with activities to mark them on the map
     const fetchBoothsWithActivities = async (selectedYear = yearFilter) => {
@@ -500,6 +530,7 @@ export default function PartyActivitiesListPage() {
     useEffect(() => {
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllPartyActivitiesForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters, yearFilter]);
 
     const handleDeleteOpen = (id) => {
@@ -1223,7 +1254,7 @@ export default function PartyActivitiesListPage() {
                             size="small"
                         >
                             <MenuItem value="">All States</MenuItem>
-                            {states?.map((state) => (
+                            {filterOptions.states?.map((state) => (
                                 <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                             ))}
                         </Select>
@@ -1240,7 +1271,7 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.state_id}
                         >
                             <MenuItem value="">All Divisions</MenuItem>
-                            {divisions?.filter(d => {
+                            {filterOptions.divisions?.filter(d => {
                                 const stateId = d.state_id?._id || d.state_id;
                                 return stateId === filters?.state_id;
                             }).map((division) => (
@@ -1260,7 +1291,7 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.division_id}
                         >
                             <MenuItem value="">All Parliaments</MenuItem>
-                            {parliaments?.filter(p => {
+                            {filterOptions.parliaments?.filter(p => {
                                 const divisionId = p.division_id?._id || p.division_id;
                                 return divisionId === filters?.division_id;
                             }).map((parliament) => (
@@ -1280,7 +1311,7 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.parliament_id}
                         >
                             <MenuItem value="">All Assemblies</MenuItem>
-                            {assemblies?.filter(a => {
+                            {filterOptions.assemblies?.filter(a => {
                                 const parliamentId = a.parliament_id?._id || a.parliament_id;
                                 return parliamentId === filters?.parliament_id;
                             }).map((assembly) => (
@@ -1300,7 +1331,7 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.assembly_id}
                         >
                             <MenuItem value="">All Blocks</MenuItem>
-                            {blocks?.filter(b => {
+                            {filterOptions.blocks?.filter(b => {
                                 const assemblyId = b.assembly_id?._id || b.assembly_id;
                                 return assemblyId === filters?.assembly_id;
                             }).map((block) => (
@@ -1320,7 +1351,7 @@ export default function PartyActivitiesListPage() {
                             disabled={!filters?.block_id}
                         >
                             <MenuItem value="">All Booths</MenuItem>
-                            {booths?.filter(b => {
+                            {filterOptions.booths?.filter(b => {
                                 const blockId = b.block_id?._id || b.block_id;
                                 return blockId === filters?.block_id;
                             }).map((booth) => (

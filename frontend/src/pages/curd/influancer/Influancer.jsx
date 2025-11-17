@@ -22,6 +22,7 @@ import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 import CloseIcon from '@mui/icons-material/Close';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import InfluencerModal from './InfluancerModal';
 import AlertInfluencerDelete from './AlertInfluancerDelete';
@@ -37,6 +38,7 @@ export default function InfluencersListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [influencerDeleteId, setInfluencerDeleteId] = useState('');
     const [influencers, setInfluencers] = useState([]);
+    const [allInfluencers, setAllInfluencers] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -108,6 +110,41 @@ export default function InfluencersListPage() {
     const [boothsWithInfluencers, setBoothsWithInfluencers] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+    // Fetch all influencers for filters
+    const fetchAllInfluencersForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id;
+            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id;
+            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id;
+            if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id;
+            if (userHierarchy?.panchayat) hierarchyFilters.panchayat_id = userHierarchy.panchayat._id;
+            if (userHierarchy?.village) hierarchyFilters.village_id = userHierarchy.village._id;
+            if (userHierarchy?.falliya) hierarchyFilters.falliya_id = userHierarchy.falliya._id;
+            
+            const data = await fetchAllDataForFilters('/influencers', hierarchyFilters);
+            setAllInfluencers(data);
+        } catch (error) {
+            console.error('Error fetching all influencers for filters:', error);
+        }
+    };
+
+    // Extract filter options from allInfluencers
+    const filterOptions = useFilterOptionsFromData(allInfluencers, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        districts: { field: 'district_id', nameField: 'name', parentField: 'assembly_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        panchayats: { field: 'panchayat_id', nameField: 'panchayat_name', parentField: 'block_id' },
+        villages: { field: 'village_id', nameField: 'village_name', parentField: 'panchayat_id' },
+        falliyas: { field: 'falliya_id', nameField: 'falliya_name', parentField: 'village_id' }
+    });
 
     // Build booth-number set of influencers for marker color
     const influencerBoothNumberSet = useMemo(() => {
@@ -197,13 +234,12 @@ export default function InfluencersListPage() {
     // State -> Division
     useEffect(() => {
         if (tempFilters.state) {
-            const filtered = divisions?.filter(division =>
-                division.state_id?._id === tempFilters.state ||
-                division.state_id === tempFilters.state
+            const filtered = filterOptions.divisions?.filter(division =>
+                (division.state_id?._id || division.state_id) === tempFilters.state
             ) || [];
             setFilteredDivisions(filtered);
         } else {
-            setFilteredDivisions(divisions || []);
+            setFilteredDivisions(filterOptions.divisions || []);
         }
         // Clear dependent fields when state changes
         if (tempFilters.division) {
@@ -217,18 +253,17 @@ export default function InfluencersListPage() {
                 booth: ''
             }));
         }
-    }, [tempFilters.state, divisions]);
+    }, [tempFilters.state, filterOptions.divisions]);
 
     // Division -> Parliament
     useEffect(() => {
         if (tempFilters.division) {
-            const filtered = parliaments?.filter(parliament =>
-                parliament.division_id?._id === tempFilters.division ||
-                parliament.division_id === tempFilters.division
+            const filtered = filterOptions.parliaments?.filter(parliament =>
+                (parliament.division_id?._id || parliament.division_id) === tempFilters.division
             ) || [];
             setFilteredParliaments(filtered);
         } else {
-            setFilteredParliaments(parliaments || []);
+            setFilteredParliaments(filterOptions.parliaments || []);
         }
         // Clear dependent fields when division changes
         if (tempFilters.parliament) {
@@ -241,22 +276,21 @@ export default function InfluencersListPage() {
                 booth: ''
             }));
         }
-    }, [tempFilters.division, parliaments]);
+    }, [tempFilters.division, filterOptions.parliaments]);
 
     // Parliament -> Assembly (District filtering removed as influencer model doesn't have district_id)
     useEffect(() => {
         if (tempFilters.parliament) {
-            const filteredAssembliesList = assemblies?.filter(assembly =>
-                assembly.parliament_id?._id === tempFilters.parliament ||
-                assembly.parliament_id === tempFilters.parliament
+            const filteredAssembliesList = filterOptions.assemblies?.filter(assembly =>
+                (assembly.parliament_id?._id || assembly.parliament_id) === tempFilters.parliament
             ) || [];
             setFilteredAssemblies(filteredAssembliesList);
 
             // For influencers, districts are not directly linked, so show all districts for reference
-            setFilteredDistricts(districts || []);
+            setFilteredDistricts(filterOptions.districts || []);
         } else {
-            setFilteredAssemblies(assemblies || []);
-            setFilteredDistricts(districts || []);
+            setFilteredAssemblies(filterOptions.assemblies || []);
+            setFilteredDistricts(filterOptions.districts || []);
         }
         // Clear dependent fields when parliament changes
         if (tempFilters.assembly || tempFilters.district) {
@@ -268,18 +302,17 @@ export default function InfluencersListPage() {
                 booth: ''
             }));
         }
-    }, [tempFilters.parliament, assemblies, districts]);
+    }, [tempFilters.parliament, filterOptions.assemblies, filterOptions.districts]);
 
     // Assembly -> Block (district filtering is just for display, doesn't affect API)
     useEffect(() => {
         if (tempFilters.assembly) {
-            const filtered = blocks?.filter(block =>
-                block.assembly_id?._id === tempFilters.assembly ||
-                block.assembly_id === tempFilters.assembly
+            const filtered = filterOptions.blocks?.filter(block =>
+                (block.assembly_id?._id || block.assembly_id) === tempFilters.assembly
             ) || [];
             setFilteredBlocks(filtered);
         } else {
-            setFilteredBlocks(blocks || []);
+            setFilteredBlocks(filterOptions.blocks || []);
         }
         // Clear dependent fields when assembly changes
         if (tempFilters.block) {
@@ -289,25 +322,23 @@ export default function InfluencersListPage() {
                 booth: ''
             }));
         }
-    }, [tempFilters.assembly, blocks]);
+    }, [tempFilters.assembly, filterOptions.blocks]);
 
     // Block -> Booth
     useEffect(() => {
         if (tempFilters.block) {
-            const filtered = booths?.filter(booth =>
-                booth.block_id?._id === tempFilters.block ||
-                booth.block_id === tempFilters.block
+            const filtered = filterOptions.booths?.filter(booth =>
+                (booth.block_id?._id || booth.block_id) === tempFilters.block
             ) || [];
             setFilteredBooths(filtered);
 
             // Filter panchayats based on selected block
-            const filteredPanchs = panchayats?.filter(panchayat =>
-                panchayat.block_id?._id === tempFilters.block ||
-                panchayat.block_id === tempFilters.block
+            const filteredPanchs = filterOptions.panchayats?.filter(panchayat =>
+                (panchayat.block_id?._id || panchayat.block_id) === tempFilters.block
             ) || [];
             setFilteredPanchayats(filteredPanchs);
         } else {
-            setFilteredBooths(booths || []);
+            setFilteredBooths(filterOptions.booths || []);
             setFilteredPanchayats([]);
         }
         // Clear booth when block changes
@@ -320,33 +351,31 @@ export default function InfluencersListPage() {
                 falliya: ''
             }));
         }
-    }, [tempFilters.block, booths, panchayats]);
+    }, [tempFilters.block, filterOptions.booths, filterOptions.panchayats]);
 
     // Panchayat -> Village
     useEffect(() => {
         if (tempFilters.panchayat) {
-            const filtered = villages?.filter(village =>
-                village.panchayat_id?._id === tempFilters.panchayat ||
-                village.panchayat_id === tempFilters.panchayat
+            const filtered = filterOptions.villages?.filter(village =>
+                (village.panchayat_id?._id || village.panchayat_id) === tempFilters.panchayat
             ) || [];
             setFilteredVillages(filtered);
         } else {
             setFilteredVillages([]);
         }
-    }, [tempFilters.panchayat, villages]);
+    }, [tempFilters.panchayat, filterOptions.villages]);
 
     // Village -> Falliya
     useEffect(() => {
         if (tempFilters.village) {
-            const filtered = falliyas?.filter(falliya =>
-                falliya.village_id?._id === tempFilters.village ||
-                falliya.village_id === tempFilters.village
+            const filtered = filterOptions.falliyas?.filter(falliya =>
+                (falliya.village_id?._id || falliya.village_id) === tempFilters.village
             ) || [];
             setFilteredFalliyas(filtered);
         } else {
             setFilteredFalliyas([]);
         }
-    }, [tempFilters.village, falliyas]);
+    }, [tempFilters.village, filterOptions.falliyas]);
 
     const fetchReferenceData = async () => {
         try {
@@ -726,6 +755,7 @@ export default function InfluencersListPage() {
     useEffect(() => {
         if (!referenceDataFetched.current) {
             fetchReferenceData();
+            fetchAllInfluencersForFilters();
             referenceDataFetched.current = true;
         }
     }, []);
@@ -1514,7 +1544,7 @@ export default function InfluencersListPage() {
                         size="small"
                     >
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
+                        {filterOptions.states?.map((state) => (
                             <MenuItem key={state._id} value={state._id}>
                                 {state.name}
                             </MenuItem>

@@ -25,6 +25,7 @@ import {
     Drawer,
     Paper
 } from '@mui/material';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import { useTheme } from '@mui/material/styles';
 import {
     flexRender,
@@ -59,6 +60,7 @@ const SamitiListPage = () => {
     const { userHierarchy, getUserHighestLevel } = usePermissions();
     
     const [samitis, setSamitis] = useState([]);
+    const [allSamitis, setAllSamitis] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -161,50 +163,78 @@ const SamitiListPage = () => {
 
     const accessScope = getUserAccessScope();
 
+    // Fetch all samitis for filters
+    const fetchAllSamitisForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state_id = userHierarchy.state._id;
+            if (userHierarchy?.division) hierarchyFilters.division_id = userHierarchy.division._id;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+            if (userHierarchy?.block) hierarchyFilters.block_id = userHierarchy.block._id;
+            if (userHierarchy?.booth) hierarchyFilters.booth_id = userHierarchy.booth._id;
+            
+            const data = await fetchAllDataForFilters('/samitis', hierarchyFilters);
+            setAllSamitis(data);
+        } catch (error) {
+            console.error('Error fetching all samitis for filters:', error);
+        }
+    };
+
+    // Extract filter options from allSamitis
+    const filterOptions = useFilterOptionsFromData(allSamitis, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' }
+    });
+
     // Filtered data for cascading dropdowns
     const filteredDivisions = filterValues.state
-        ? divisions.filter(division => {
+        ? filterOptions.divisions?.filter(division => {
             const stateId = division.state_id?._id || division.state_id;
             return stateId === filterValues.state;
-        })
+        }) || []
         : [];
 
     const filteredParliaments = filterValues.division
-        ? parliaments.filter(parliament => {
+        ? filterOptions.parliaments?.filter(parliament => {
             const divisionId = parliament.division_id?._id || parliament.division_id;
             return divisionId === filterValues.division;
-        })
+        }) || []
         : filterValues.state
-            ? parliaments.filter(parliament => {
+            ? filterOptions.parliaments?.filter(parliament => {
                 const stateId = parliament.state_id?._id || parliament.state_id;
                 return stateId === filterValues.state;
-            })
+            }) || []
             : [];
 
     const filteredAssemblies = filterValues.parliament
-        ? assemblies.filter(assembly => {
+        ? filterOptions.assemblies?.filter(assembly => {
             const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
             return parliamentId === filterValues.parliament;
-        })
+        }) || []
         : filterValues.division
-            ? assemblies.filter(assembly => {
+            ? filterOptions.assemblies?.filter(assembly => {
                 const divisionId = assembly.division_id?._id || assembly.division_id;
                 return divisionId === filterValues.division;
-            })
+            }) || []
             : [];
 
     const filteredBlocks = filterValues.assembly
-        ? blocks.filter(block => {
+        ? filterOptions.blocks?.filter(block => {
             const assemblyId = block.assembly_id?._id || block.assembly_id;
             return assemblyId === filterValues.assembly;
-        })
+        }) || []
         : [];
 
     const filteredBooths = filterValues.block
-        ? booths.filter(booth => {
+        ? filterOptions.booths?.filter(booth => {
             const blockId = booth.block_id?._id || booth.block_id;
             return blockId === filterValues.block;
-        })
+        }) || []
         : [];
 
     const fetchSamitis = async (pageIndex, pageSize, globalFilter = '') => {
@@ -271,6 +301,7 @@ const SamitiListPage = () => {
     useEffect(() => {
         fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllSamitisForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters, yearFilter]);
 
     // Fetch booths that have samiti data
@@ -1177,7 +1208,7 @@ const SamitiListPage = () => {
                                             label="State"
                                         >
                                             <MenuItem value="">All States</MenuItem>
-                                            {states.map((state) => (
+                                            {filterOptions.states?.map((state) => (
                                                 <MenuItem key={state._id} value={state._id}>
                                                     {state.name}
                                                 </MenuItem>

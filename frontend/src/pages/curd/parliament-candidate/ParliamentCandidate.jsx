@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 // material-ui
 import {
@@ -62,6 +63,7 @@ export default function ParliamentCandidateListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [candidateDeleteId, setCandidateDeleteId] = useState('');
     const [candidates, setCandidates] = useState([]);
+    const [allCandidates, setAllCandidates] = useState([]);
     const [candidatesOptions, setCandidatesOptions] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -76,6 +78,24 @@ export default function ParliamentCandidateListPage() {
     const [yearOptions, setYearOptions] = useState([]);
     const [parliamentOptions, setParliamentOptions] = useState([]);
     const [partyOptions, setPartyOptions] = useState([]);
+
+    // Fetch all candidates for filters
+    const fetchAllCandidatesForFilters = async () => {
+        try {
+            const data = await fetchAllDataForFilters('/parliament-candidates', {});
+            setAllCandidates(data);
+        } catch (error) {
+            console.error('Error fetching all candidates for filters:', error);
+        }
+    };
+
+    // Extract filter options from allCandidates
+    const filterOptionsFromData = useFilterOptionsFromData(allCandidates, {
+        years: { field: 'election_year_id', nameField: 'year' },
+        parliaments: { field: 'parliament_id', nameField: 'name' },
+        candidatesData: { field: 'candidate_id', nameField: 'name' },
+        parties: { field: 'party_id', nameField: 'name' }
+    });
 
     const fetchCandidates = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
@@ -174,6 +194,7 @@ export default function ParliamentCandidateListPage() {
 
     useEffect(() => {
         fetchCandidates(pagination.pageIndex, pagination.pageSize, globalFilter);
+        fetchAllCandidatesForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, filterYear, filterCandidate, filterParliament, filterParty]);
 
     useEffect(() => {
@@ -786,7 +807,7 @@ export default function ParliamentCandidateListPage() {
                                     onChange={(e) => { setFilterYear(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
                                 >
                                     <MenuItem value="">All Years</MenuItem>
-                                    {yearOptions.map((y) => (
+                                    {filterOptionsFromData.years?.map((y) => (
                                         <MenuItem key={y._id || y.id || y.year} value={y._id || y.id || y.year}>{y.year}</MenuItem>
                                     ))}
                                 </Select>
@@ -800,7 +821,7 @@ export default function ParliamentCandidateListPage() {
                                     onChange={(e) => { setFilterParliament(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
                                 >
                                     <MenuItem value="">All Parliaments</MenuItem>
-                                    {parliamentOptions.map((p) => (
+                                    {filterOptionsFromData.parliaments?.map((p) => (
                                         <MenuItem key={p._id} value={p._id}>
                                             {p.name}{p.parliament_no || p['Parliament No'] ? ` (#${p.parliament_no || p['Parliament No']})` : ''}
                                         </MenuItem>
@@ -816,7 +837,7 @@ export default function ParliamentCandidateListPage() {
                                     onChange={(e) => { setFilterCandidate(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
                                 >
                                     <MenuItem value="">All Candidates</MenuItem>
-                                    {candidatesOptions.map((c) => (
+                                    {filterOptionsFromData.candidatesData?.map((c) => (
                                         <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -830,7 +851,7 @@ export default function ParliamentCandidateListPage() {
                                     onChange={(e) => { setFilterParty(e.target.value); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
                                 >
                                     <MenuItem value="">All Parties</MenuItem>
-                                    {partyOptions.map((p) => (
+                                    {filterOptionsFromData.parties?.map((p) => (
                                         <MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>
                                     ))}
                                 </Select>
