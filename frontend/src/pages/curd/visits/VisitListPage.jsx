@@ -1041,6 +1041,24 @@ const VisitListPage = () => {
                                     />
                                 </Grid>
 
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Election Year</InputLabel>
+                                        <Select
+                                            value={filterValues.year}
+                                            onChange={(e) => setFilterValues(prev => ({ ...prev, year: e.target.value }))}
+                                            label="Election Year"
+                                        >
+                                            <MenuItem value="">All Years</MenuItem>
+                                            {filterOptions.electionYears?.map((year) => (
+                                                <MenuItem key={year._id} value={year._id}>
+                                                    {year.year}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
                                 {/* Second Row */}
                                 <Grid item xs={12} sm={6} md={3}>
                                     <FormControl fullWidth size="small">
@@ -1086,22 +1104,61 @@ const VisitListPage = () => {
 
                                 <Grid item xs={12} sm={6} md={3}>
                                     <FormControl fullWidth size="small">
+                                        <InputLabel>Parliament</InputLabel>
+                                        <Select
+                                            value={filterValues.parliament}
+                                            onChange={(e) => handleParliamentChange(e.target.value)}
+                                            label="Parliament"
+                                            disabled={!filterValues.division}
+                                        >
+                                            <MenuItem value="">
+                                                {!filterValues.division ? "Select Division First" : "All Parliaments"}
+                                            </MenuItem>
+                                            {filteredParliaments.map((parliament) => (
+                                                <MenuItem key={parliament._id} value={parliament._id}>
+                                                    {parliament.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControl fullWidth size="small">
                                         <InputLabel>Assembly</InputLabel>
                                         <Select
                                             value={filterValues.assembly}
                                             onChange={(e) => handleAssemblyChange(e.target.value)}
                                             label="Assembly"
-                                            disabled={!filterValues.division}
+                                            disabled={!filterValues.parliament}
                                         >
                                             <MenuItem value="">
-                                                {!filterValues.division ? "Select Division First" : "All Assemblies"}
+                                                {!filterValues.parliament ? "Select Parliament First" : "All Assemblies"}
                                             </MenuItem>
-                                            {filterOptions.assemblies?.filter(assembly => {
-                                                const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
-                                                return parliamentId === filterValues.parliament;
-                                            }).map((assembly) => (
+                                            {filteredAssemblies.map((assembly) => (
                                                 <MenuItem key={assembly._id} value={assembly._id}>
                                                     {assembly.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Block</InputLabel>
+                                        <Select
+                                            value={filterValues.block}
+                                            onChange={(e) => handleBlockChange(e.target.value)}
+                                            label="Block"
+                                            disabled={!filterValues.assembly}
+                                        >
+                                            <MenuItem value="">
+                                                {!filterValues.assembly ? "Select Assembly First" : "All Blocks"}
+                                            </MenuItem>
+                                            {filteredBlocks.map((block) => (
+                                                <MenuItem key={block._id} value={block._id}>
+                                                    {block.name}
                                                 </MenuItem>
                                             ))}
                                         </Select>
@@ -1115,15 +1172,12 @@ const VisitListPage = () => {
                                             value={filterValues.booth}
                                             onChange={(e) => setFilterValues(prev => ({ ...prev, booth: e.target.value }))}
                                             label="Booth"
-                                            disabled={!filterValues.assembly}
+                                            disabled={!filterValues.block}
                                         >
                                             <MenuItem value="">
-                                                {!filterValues.assembly ? "Select Assembly First" : "All Booths"}
+                                                {!filterValues.block ? "Select Block First" : "All Booths"}
                                             </MenuItem>
-                                            {filterOptions.booths?.filter(booth => {
-                                                const assemblyId = booth.assembly_id?._id || booth.assembly_id;
-                                                return assemblyId === filterValues.assembly;
-                                            }).map((booth) => (
+                                            {filteredBooths.map((booth) => (
                                                 <MenuItem key={booth._id} value={booth._id}>
                                                     {booth.name}
                                                 </MenuItem>

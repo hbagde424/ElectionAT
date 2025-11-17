@@ -30,6 +30,7 @@ import AlertPotentialCandidateDelete from 'pages/curd/potentical candidate/Alert
 import PotentialCandidateView from 'pages/curd/potentical candidate/PotentialCandidateView';
 import { Tooltip } from '@mui/material';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 export default function PotentialCandidateListPage() {
   const theme = useTheme();
@@ -42,6 +43,7 @@ export default function PotentialCandidateListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [deleteId, setDeleteId] = useState('');
   const [candidates, setCandidates] = useState([]);
+  const [allCandidates, setAllCandidates] = useState([]);
   const [parties, setParties] = useState([]);
   const [assemblies, setAssemblies] = useState([]);
   const [electionYears, setElectionYears] = useState([]);
@@ -144,9 +146,28 @@ export default function PotentialCandidateListPage() {
     }
   };
 
+  const fetchAllCandidatesForFilters = async () => {
+    const hierarchyFilters = {};
+    if (userHierarchy?.state?._id) hierarchyFilters.state_id = userHierarchy.state._id;
+    if (userHierarchy?.division?._id) hierarchyFilters.division_id = userHierarchy.division._id;
+    if (userHierarchy?.parliament?._id) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+    if (userHierarchy?.assembly?._id) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+    if (userHierarchy?.block?._id) hierarchyFilters.block_id = userHierarchy.block._id;
+    if (userHierarchy?.booth?._id) hierarchyFilters.booth_id = userHierarchy.booth._id;
+    const data = await fetchAllDataForFilters('/potential-candidates', hierarchyFilters);
+    setAllCandidates(data);
+  };
+
+  const filterOptions = useFilterOptionsFromData(allCandidates, {
+    parties: { field: 'party_id', nameField: 'name' },
+    assemblies: { field: 'constituency_id', nameField: 'name' },
+    electionYears: { field: 'election_year_id', nameField: 'year' }
+  });
+
   useEffect(() => {
     // Only fetch reference data once when component mounts
     fetchReferenceData();
+    fetchAllCandidatesForFilters();
   }, []); // Empty dependency array for one-time fetch
 
   useEffect(() => {
@@ -613,7 +634,7 @@ export default function PotentialCandidateListPage() {
                 displayEmpty
               >
                 <MenuItem value="">All Parties</MenuItem>
-                {parties.map((party) => (
+                {filterOptions.parties?.map((party) => (
                   <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
                 ))}
               </Select>
@@ -627,7 +648,7 @@ export default function PotentialCandidateListPage() {
                 displayEmpty
               >
                 <MenuItem value="">All Constituencies</MenuItem>
-                {assemblies.map((assembly) => (
+                {filterOptions.assemblies?.map((assembly) => (
                   <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                 ))}
               </Select>
@@ -641,7 +662,7 @@ export default function PotentialCandidateListPage() {
                 displayEmpty
               >
                 <MenuItem value="">All Years</MenuItem>
-                {electionYears.map((year) => (
+                {filterOptions.electionYears?.map((year) => (
                   <MenuItem key={year._id} value={year._id}>{year.year}</MenuItem>
                 ))}
               </Select>

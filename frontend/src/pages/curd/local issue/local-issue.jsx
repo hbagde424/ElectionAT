@@ -18,6 +18,7 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
@@ -37,6 +38,7 @@ export default function LocalIssueListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [issueDeleteId, setIssueDeleteId] = useState('');
     const [localIssues, setLocalIssues] = useState([]);
+    const [allLocalIssues, setAllLocalIssues] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -319,6 +321,30 @@ export default function LocalIssueListPage() {
             setFilteredFalliyas(falliyas || []);
         }
     }, [tempFilters.village, falliyas]);
+
+    const fetchAllLocalIssuesForFilters = async () => {
+        const hierarchyFilters = {};
+        if (userHierarchy?.state?._id) hierarchyFilters.state_id = userHierarchy.state._id;
+        if (userHierarchy?.division?._id) hierarchyFilters.division_id = userHierarchy.division._id;
+        if (userHierarchy?.parliament?._id) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+        if (userHierarchy?.assembly?._id) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+        if (userHierarchy?.block?._id) hierarchyFilters.block_id = userHierarchy.block._id;
+        if (userHierarchy?.booth?._id) hierarchyFilters.booth_id = userHierarchy.booth._id;
+        const data = await fetchAllDataForFilters('/local-issues', hierarchyFilters);
+        setAllLocalIssues(data);
+    };
+
+    const filterOptions = useFilterOptionsFromData(allLocalIssues, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        panchayats: { field: 'panchayat_id', nameField: 'panchayat_name', parentField: 'block_id' },
+        villages: { field: 'village_id', nameField: 'village_name', parentField: 'panchayat_id' },
+        falliyas: { field: 'falliya_id', nameField: 'falliya_name', parentField: 'village_id' }
+    });
 
     const fetchReferenceData = async () => {
         try {
@@ -745,6 +771,7 @@ export default function LocalIssueListPage() {
 
     useEffect(() => {
         fetchReferenceData();
+        fetchAllLocalIssuesForFilters();
     }, []);
 
     const handleDeleteOpen = (id) => {
@@ -1490,7 +1517,7 @@ export default function LocalIssueListPage() {
                         sx={{ width: 200, mb: 2 }}
                     >
                         <MenuItem value="">Select State</MenuItem>
-                        {states.map(state => (
+                        {filterOptions.states?.map(state => (
                             <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                         ))}
                     </TextField>
@@ -1505,7 +1532,10 @@ export default function LocalIssueListPage() {
                         disabled={!tempFilters.state}
                     >
                         <MenuItem value="">Select Division</MenuItem>
-                        {filteredDivisions.map(division => (
+                        {filterOptions.divisions?.filter(division => {
+                            const stateId = division.state_id?._id || division.state_id;
+                            return stateId === tempFilters.state;
+                        }).map(division => (
                             <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                         ))}
                     </TextField>
@@ -1517,10 +1547,13 @@ export default function LocalIssueListPage() {
                         value={tempFilters.parliament}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, parliament: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.state}
+                        disabled={!tempFilters.division}
                     >
                         <MenuItem value="">Select Parliament</MenuItem>
-                        {filteredParliaments.map(parliament => (
+                        {filterOptions.parliaments?.filter(parliament => {
+                            const divisionId = parliament.division_id?._id || parliament.division_id;
+                            return divisionId === tempFilters.division;
+                        }).map(parliament => (
                             <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                         ))}
                     </TextField>
@@ -1532,10 +1565,13 @@ export default function LocalIssueListPage() {
                         value={tempFilters.assembly}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, assembly: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.state}
+                        disabled={!tempFilters.parliament}
                     >
                         <MenuItem value="">Select Assembly</MenuItem>
-                        {filteredAssemblies.map(assembly => (
+                        {filterOptions.assemblies?.filter(assembly => {
+                            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                            return parliamentId === tempFilters.parliament;
+                        }).map(assembly => (
                             <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                         ))}
                     </TextField>
@@ -1547,10 +1583,13 @@ export default function LocalIssueListPage() {
                         value={tempFilters.block}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, block: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.state}
+                        disabled={!tempFilters.assembly}
                     >
                         <MenuItem value="">Select Block</MenuItem>
-                        {filteredBlocks.map(block => (
+                        {filterOptions.blocks?.filter(block => {
+                            const assemblyId = block.assembly_id?._id || block.assembly_id;
+                            return assemblyId === tempFilters.assembly;
+                        }).map(block => (
                             <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                         ))}
                     </TextField>
@@ -1562,10 +1601,13 @@ export default function LocalIssueListPage() {
                         value={tempFilters.booth}
                         onChange={(e) => setTempFilters(prev => ({ ...prev, booth: e.target.value }))}
                         sx={{ width: 200, mb: 2 }}
-                        disabled={!tempFilters.state}
+                        disabled={!tempFilters.block}
                     >
                         <MenuItem value="">Select Booth</MenuItem>
-                        {filteredBooths.map(booth => (
+                        {filterOptions.booths?.filter(booth => {
+                            const blockId = booth.block_id?._id || booth.block_id;
+                            return blockId === tempFilters.block;
+                        }).map(booth => (
                             <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                         ))}
                     </TextField>
@@ -1580,8 +1622,11 @@ export default function LocalIssueListPage() {
                         disabled={!tempFilters.block}
                     >
                         <MenuItem value="">Select Panchayat</MenuItem>
-                        {filteredPanchayats.map(panchayat => (
-                            <MenuItem key={panchayat._id} value={panchayat._id}>{panchayat.name}</MenuItem>
+                        {filterOptions.panchayats?.filter(panchayat => {
+                            const blockId = panchayat.block_id?._id || panchayat.block_id;
+                            return blockId === tempFilters.block;
+                        }).map(panchayat => (
+                            <MenuItem key={panchayat._id} value={panchayat._id}>{panchayat.panchayat_name}</MenuItem>
                         ))}
                     </TextField>
 
@@ -1595,8 +1640,11 @@ export default function LocalIssueListPage() {
                         disabled={!tempFilters.panchayat}
                     >
                         <MenuItem value="">Select Village</MenuItem>
-                        {filteredVillages.map(village => (
-                            <MenuItem key={village._id} value={village._id}>{village.name}</MenuItem>
+                        {filterOptions.villages?.filter(village => {
+                            const panchayatId = village.panchayat_id?._id || village.panchayat_id;
+                            return panchayatId === tempFilters.panchayat;
+                        }).map(village => (
+                            <MenuItem key={village._id} value={village._id}>{village.village_name}</MenuItem>
                         ))}
                     </TextField>
 
@@ -1610,8 +1658,11 @@ export default function LocalIssueListPage() {
                         disabled={!tempFilters.village}
                     >
                         <MenuItem value="">Select Falliya</MenuItem>
-                        {filteredFalliyas.map(falliya => (
-                            <MenuItem key={falliya._id} value={falliya._id}>{falliya.name}</MenuItem>
+                        {filterOptions.falliyas?.filter(falliya => {
+                            const villageId = falliya.village_id?._id || falliya.village_id;
+                            return villageId === tempFilters.village;
+                        }).map(falliya => (
+                            <MenuItem key={falliya._id} value={falliya._id}>{falliya.falliya_name}</MenuItem>
                         ))}
                     </TextField>
 
