@@ -23,6 +23,7 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import WinningCandidateModal from './WinningCandidatesModal';
 import AlertWinningCandidateDelete from './AlertWinningCandidatesDelete';
@@ -127,6 +128,7 @@ export default function WinningCandidateListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [candidateDeleteId, setCandidateDeleteId] = useState('');
     const [candidateList, setCandidateList] = useState([]);
+    const [allCandidateList, setAllCandidateList] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -268,6 +270,26 @@ export default function WinningCandidateListPage() {
     const [entityDetails, setEntityDetails] = useState(null);
     const [openEntityModal, setOpenEntityModal] = useState(false);
     const [entityTitle, setEntityTitle] = useState('');
+
+    const fetchAllCandidateListForFilters = async () => {
+        const hierarchyFilters = {};
+        if (userHierarchy?.state?._id) hierarchyFilters.state_id = userHierarchy.state._id;
+        if (userHierarchy?.division?._id) hierarchyFilters.division_id = userHierarchy.division._id;
+        if (userHierarchy?.parliament?._id) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+        if (userHierarchy?.assembly?._id) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+        const data = await fetchAllDataForFilters('/winning-candidates', hierarchyFilters);
+        setAllCandidateList(data);
+    };
+
+    const filterOptions = useFilterOptionsFromData(allCandidateList, {
+        parties: { field: 'party_id', nameField: 'name' },
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        candidatesData: { field: 'candidate_id', nameField: 'name' },
+        electionYears: { field: 'election_year_id', nameField: 'year' }
+    });
 
     const fetchReferenceData = async () => {
         try {
@@ -447,6 +469,7 @@ export default function WinningCandidateListPage() {
 
     useEffect(() => {
         fetchReferenceData();
+        fetchAllCandidateListForFilters();
     }, []);
 
     const handleDeleteOpen = (id) => {
@@ -1157,7 +1180,7 @@ export default function WinningCandidateListPage() {
                                     label="Party"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(parties) && parties.map((party) => (
+                                    {filterOptions.parties?.map((party) => (
                                         <MenuItem key={party._id} value={party._id}>{party.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1172,7 +1195,7 @@ export default function WinningCandidateListPage() {
                                     label="State"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(states) && states.map((state) => (
+                                    {filterOptions.states?.map((state) => (
                                         <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1188,7 +1211,10 @@ export default function WinningCandidateListPage() {
                                     disabled={!filterValues.state}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(filteredDivisions) && filteredDivisions.map((division) => (
+                                    {filterOptions.divisions?.filter(division => {
+                                        const stateId = division.state_id?._id || division.state_id;
+                                        return stateId === filterValues.state;
+                                    }).map((division) => (
                                         <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1201,10 +1227,13 @@ export default function WinningCandidateListPage() {
                                     value={filterValues.parliament}
                                     onChange={(e) => handleParliamentChange(e.target.value)}
                                     label="Parliament"
-                                    disabled={!filterValues.state}
+                                    disabled={!filterValues.division}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(filteredParliaments) && filteredParliaments.map((parliament) => (
+                                    {filterOptions.parliaments?.filter(parliament => {
+                                        const divisionId = parliament.division_id?._id || parliament.division_id;
+                                        return divisionId === filterValues.division;
+                                    }).map((parliament) => (
                                         <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1217,10 +1246,13 @@ export default function WinningCandidateListPage() {
                                     value={filterValues.assembly}
                                     onChange={(e) => setFilterValues({ ...filterValues, assembly: e.target.value })}
                                     label="Assembly"
-                                    disabled={!filterValues.state}
+                                    disabled={!filterValues.parliament}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(filteredAssemblies) && filteredAssemblies.map((assembly) => (
+                                    {filterOptions.assemblies?.filter(assembly => {
+                                        const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                                        return parliamentId === filterValues.parliament;
+                                    }).map((assembly) => (
                                         <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1235,7 +1267,7 @@ export default function WinningCandidateListPage() {
                                     label="Candidate"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(candidates) && candidates.map((candidate) => (
+                                    {filterOptions.candidatesData?.map((candidate) => (
                                         <MenuItem key={candidate._id} value={candidate._id}>{candidate.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1250,7 +1282,7 @@ export default function WinningCandidateListPage() {
                                     label="Election Year"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {Array.isArray(years) && years.map((year) => (
+                                    {filterOptions.electionYears?.map((year) => (
                                         <MenuItem key={year._id} value={year._id}>{year.year}</MenuItem>
                                     ))}
                                 </Select>
