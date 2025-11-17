@@ -7,7 +7,7 @@ import { Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 
 // assets
-import Logo from 'assets/images/LogoRemovebg.png';
+import Logo from 'assets/images/logo.png';
 
 const textPrimary = '#262626';
 const textSecondary = '#8c8c8c';

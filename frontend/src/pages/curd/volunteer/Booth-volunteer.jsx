@@ -62,7 +62,7 @@ export default function BoothVolunteerListPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [globalFilter, setGlobalFilter] = useState('');
-  
+
   // Individual filter states (like Events)
   const [selectedState, setSelectedState] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('');
@@ -70,7 +70,7 @@ export default function BoothVolunteerListPage() {
   const [selectedAssembly, setSelectedAssembly] = useState('');
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedBooth, setSelectedBooth] = useState('');
-  
+
   const [filters, setFilters] = useState({
     state_id: '',
     division_id: '',
@@ -148,7 +148,7 @@ export default function BoothVolunteerListPage() {
         const num = booth && String(booth.booth_number).trim().toLowerCase();
         if (num) set.add(num);
       });
-    } catch {}
+    } catch { }
     return set;
   }, [boothsWithVolunteers, booths]);
 
@@ -172,7 +172,7 @@ export default function BoothVolunteerListPage() {
           const lats = coords.map((c) => c[1]);
           return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length];
         }
-      } catch {}
+      } catch { }
       return [0, 0];
     };
 
@@ -414,12 +414,12 @@ export default function BoothVolunteerListPage() {
         // same population logic as the paginated list (returns populated refs
         // like state/division/assembly/block). Do NOT add userHierarchy or
         // other higher-level filters when using booth filter.
-    let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth=${encodeURIComponent(effBooth)}&all=true`;
+        let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth=${encodeURIComponent(effBooth)}&all=true`;
         // include page/limit for consistent behavior (all=true usually returns all)
         url += `&page=${pageIndex + 1}&limit=${pageSize}`;
-    console.log('fetchVolunteers booth-branch url=', url);
-  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
-  const json = await res.json();
+        console.log('fetchVolunteers booth-branch url=', url);
+        const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+        const json = await res.json();
         if (json.success) {
           setVolunteers(json.data || []);
           setPageCount(json.pages || 1);
@@ -429,8 +429,8 @@ export default function BoothVolunteerListPage() {
           setPageCount(0);
         }
       } else {
-  let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`;
-  console.log('fetchVolunteers list-branch initial url=', url);
+        let url = `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?page=${pageIndex + 1}&limit=${pageSize}`;
+        console.log('fetchVolunteers list-branch initial url=', url);
         if (globalFilter) url += `&search=${encodeURIComponent(globalFilter)}`;
         if (effState) url += `&state_id=${effState}`;
         if (effDivision) url += `&division_id=${effDivision}`;
@@ -466,8 +466,8 @@ export default function BoothVolunteerListPage() {
           }
         }
 
-  console.log('fetchVolunteers final url=', url);
-  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+        console.log('fetchVolunteers final url=', url);
+        const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
         const json = await res.json();
         if (json.success) {
           setVolunteers(json.data);
@@ -495,9 +495,9 @@ export default function BoothVolunteerListPage() {
       fetchBoothsWithVolunteers();
 
       if (blockVal === 'ALL') {
-          const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-          const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-          console.log('Loading ALL booth polygons from', url);
+        const apiUrl = import.meta.env.VITE_APP_API_URL || '';
+        const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+        console.log('Loading ALL booth polygons from', url);
         const resp = await fetch(url, { headers });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const j = await resp.json();
@@ -510,15 +510,15 @@ export default function BoothVolunteerListPage() {
           setBoothGeoJSON(null);
           return;
         }
-  const fc = { type: 'FeatureCollection', features };
-  console.log('Loaded features count (ALL):', features.length);
-  setBoothGeoJSON(fc);
-        
+        const fc = { type: 'FeatureCollection', features };
+        console.log('Loaded features count (ALL):', features.length);
+        setBoothGeoJSON(fc);
+
         // Clear any existing timeout
         if (globalFitBoundsTimeoutRef.current) {
           clearTimeout(globalFitBoundsTimeoutRef.current);
         }
-        
+
         globalFitBoundsTimeoutRef.current = setTimeout(() => {
           try {
             const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
@@ -541,7 +541,7 @@ export default function BoothVolunteerListPage() {
                   console.log('Skipping global fitBounds because user has manually zoomed');
                   return;
                 }
-              } catch {}
+              } catch { }
               const lons = coords.map(c => c[0]);
               const lats = coords.map(c => c[1]);
               const bounds = [
@@ -577,7 +577,7 @@ export default function BoothVolunteerListPage() {
             json = { type: 'FeatureCollection', features };
             break;
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (!json) {
@@ -587,14 +587,14 @@ export default function BoothVolunteerListPage() {
       }
 
       const fc = { type: 'FeatureCollection', features: json.features };
-  console.log('Setting boothGeoJSON features count:', fc.features.length);
+      console.log('Setting boothGeoJSON features count:', fc.features.length);
       setBoothGeoJSON(fc);
-      
+
       // Clear any existing timeout
       if (globalFitBoundsTimeoutRef.current) {
         clearTimeout(globalFitBoundsTimeoutRef.current);
       }
-      
+
       globalFitBoundsTimeoutRef.current = setTimeout(() => {
         try {
           const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
@@ -607,26 +607,26 @@ export default function BoothVolunteerListPage() {
             if (geom.type === 'Polygon') collect(geom.coordinates);
             if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
           });
-            if (coords.length) {
-              try {
-                if (Date.now() - (lastAutoZoomRef.current || 0) < 2000) {
-                  console.log('Skipping global fitBounds because of recent user auto-zoom');
-                  return;
-                }
-                if (userHasZoomedRef.current) {
-                  console.log('Skipping global fitBounds because user has manually zoomed');
-                  return;
-                }
-              } catch {}
-              const lons = coords.map(c => c[0]);
-              const lats = coords.map(c => c[1]);
-              const bounds = [
-                [Math.min(...lons), Math.min(...lats)],
-                [Math.max(...lons), Math.max(...lats)]
-              ];
-              console.log('Executing global fitBounds for block polygons');
-              map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-            }
+          if (coords.length) {
+            try {
+              if (Date.now() - (lastAutoZoomRef.current || 0) < 2000) {
+                console.log('Skipping global fitBounds because of recent user auto-zoom');
+                return;
+              }
+              if (userHasZoomedRef.current) {
+                console.log('Skipping global fitBounds because user has manually zoomed');
+                return;
+              }
+            } catch { }
+            const lons = coords.map(c => c[0]);
+            const lats = coords.map(c => c[1]);
+            const bounds = [
+              [Math.min(...lons), Math.min(...lats)],
+              [Math.max(...lons), Math.max(...lats)]
+            ];
+            console.log('Executing global fitBounds for block polygons');
+            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+          }
         } catch { }
       }, 100);
     } catch (e) {
@@ -639,7 +639,7 @@ export default function BoothVolunteerListPage() {
   // Auto-load ALL blocks map on component mount (only once)
   const mapLoadedRef = useRef(false);
   const boothGeoJSONRef = useRef(null);
-  
+
   useEffect(() => {
     if (mapboxToken && blocks && blocks.length > 0 && !mapLoadedRef.current) {
       loadBoothPolygonsByBlock('ALL');
@@ -675,7 +675,7 @@ export default function BoothVolunteerListPage() {
     document.addEventListener('click', preventMapNavigation, true);
     document.addEventListener('mousedown', preventMapNavigation, true);
     document.addEventListener('touchstart', preventMapNavigation, true);
-    
+
     return () => {
       document.removeEventListener('click', preventMapNavigation, true);
       document.removeEventListener('mousedown', preventMapNavigation, true);
@@ -688,11 +688,11 @@ export default function BoothVolunteerListPage() {
     const handleBeforeUnload = (e) => {
       console.log('⚠️ Page unload detected');
     };
-    
+
     const handleHashChange = (e) => {
       console.log('⚠️ Hash change detected');
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('hashchange', handleHashChange);
     // additional navigation/history events
@@ -702,7 +702,7 @@ export default function BoothVolunteerListPage() {
     window.addEventListener('popstate', handlePopState);
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('unload', handleUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('hashchange', handleHashChange);
@@ -720,26 +720,26 @@ export default function BoothVolunteerListPage() {
       console.log('fetchBoothVolunteerDetails called for boothNo=', boothNo);
       const headers = getAuthHeaders();
       const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
-      const json = await res.json();      let booth = null;
+      const json = await res.json(); let booth = null;
       if (json.success && Array.isArray(json.data)) {
-  const boothNoStr = String(boothNo).trim();
+        const boothNoStr = String(boothNo).trim();
         console.log('Total booths fetched for lookup:', json.data.length);
-        
+
         // Try exact match first
         booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr);
-        
+
         // Try case-insensitive match
         if (!booth) {
           booth = json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase());
         }
-        
+
         // Try partial match
         if (!booth) {
           booth = json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
         }
         console.log('Booth match found:', !!booth, booth && (booth._id || booth.booth_number));
-        
-        
+
+
       }
 
       let volunteersList = [];
@@ -747,7 +747,7 @@ export default function BoothVolunteerListPage() {
         try {
           console.log('Fetching volunteers for booth id', booth._id);
           const yearParam = yearFilter ? `&year=${encodeURIComponent(yearFilter)}` : '';
-          
+
           // Try multiple API parameter variations
           const apiUrls = [
             `${import.meta.env.VITE_APP_API_URL}/booth-volunteers?booth_id=${encodeURIComponent(booth._id)}&all=true${yearParam}`,
@@ -759,7 +759,7 @@ export default function BoothVolunteerListPage() {
             try {
               const vRes = await fetch(apiUrl, { headers });
               const vJson = await vRes.json();
-              
+
               if (vJson?.success && vJson.data) {
                 if (Array.isArray(vJson.data)) {
                   volunteersList = vJson.data;
@@ -767,7 +767,7 @@ export default function BoothVolunteerListPage() {
                   // If single object returned, wrap in array
                   volunteersList = [vJson.data];
                 }
-                
+
                 if (volunteersList.length > 0) {
                   console.log('Volunteers found for booth:', volunteersList.length);
                   break; // Exit loop if we found volunteers
@@ -777,7 +777,7 @@ export default function BoothVolunteerListPage() {
               console.error('API URL failed:', apiUrl, e && e.message);
             }
           }
-          
+
         } catch (e) {
           console.error('Error fetching volunteers:', e);
         }
@@ -801,7 +801,7 @@ export default function BoothVolunteerListPage() {
         setSelectedAssembly(assemblyId);
         setSelectedBlock(blockId);
         setSelectedBooth(boothId);
-        
+
         setTempFilters({
           state: stateId,
           division: divisionId,
@@ -810,7 +810,7 @@ export default function BoothVolunteerListPage() {
           block: blockId,
           booth: boothId
         });
-        
+
         // Reset to first page so user sees results immediately
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
       }
@@ -871,8 +871,8 @@ export default function BoothVolunteerListPage() {
   useEffect(() => {
     fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter);
   }, [
-    pagination.pageIndex, 
-    pagination.pageSize, 
+    pagination.pageIndex,
+    pagination.pageSize,
     globalFilter,
     selectedState,
     selectedDivision,
@@ -1355,8 +1355,8 @@ export default function BoothVolunteerListPage() {
               label="Block"
               value={blockNumberInput}
               onChange={(e) => {
-                try { e.preventDefault && e.preventDefault(); } catch {};
-                try { e.stopPropagation && e.stopPropagation(); } catch {};
+                try { e.preventDefault && e.preventDefault(); } catch { };
+                try { e.stopPropagation && e.stopPropagation(); } catch { };
                 setBlockNumberInput(e.target.value);
               }}
               sx={{ minWidth: 260 }}
@@ -1377,8 +1377,8 @@ export default function BoothVolunteerListPage() {
               label="Filter by Year"
               value={yearFilter}
               onChange={(e) => {
-                try { e.preventDefault && e.preventDefault(); } catch {};
-                try { e.stopPropagation && e.stopPropagation(); } catch {};
+                try { e.preventDefault && e.preventDefault(); } catch { };
+                try { e.stopPropagation && e.stopPropagation(); } catch { };
                 setYearFilter(e.target.value);
               }}
               sx={{ minWidth: 150 }}
@@ -1426,13 +1426,13 @@ export default function BoothVolunteerListPage() {
                   e.originalEvent.stopPropagation();
                   e.originalEvent.stopImmediatePropagation();
                 }
-                
+
                 if (!boothGeoJSON) return;
-                
+
                 try {
                   const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
                   let features = e.features || [];
-                  
+
                   if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
                     const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY } || { x: e.x, y: e.y };
                     if (point) {
@@ -1440,27 +1440,27 @@ export default function BoothVolunteerListPage() {
                     }
                   }
                   console.log('map click features length:', features && features.length);
-                  
+
                   const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-source')) || features[0];
                   console.log('boothFeature:', boothFeature && (boothFeature.properties || boothFeature));
-                  
+
                   if (boothFeature) {
                     const props = boothFeature.properties || {};
                     const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number)) || '';
-                    
+
                     // Cancel any pending global fitBounds
                     if (globalFitBoundsTimeoutRef.current) {
                       clearTimeout(globalFitBoundsTimeoutRef.current);
                       globalFitBoundsTimeoutRef.current = null;
                       console.log('🚫 Cancelled pending global fitBounds');
                     }
-                    
+
                     // Auto zoom to the clicked booth polygon
                     if (map && boothFeature.geometry) {
                       try {
                         const geometry = boothFeature.geometry;
                         let bounds = new mapboxgl.LngLatBounds();
-                        
+
                         const addCoordinatesToBounds = (coords) => {
                           if (Array.isArray(coords[0])) {
                             coords.forEach(coord => addCoordinatesToBounds(coord));
@@ -1468,7 +1468,7 @@ export default function BoothVolunteerListPage() {
                             bounds.extend(coords);
                           }
                         };
-                        
+
                         if (geometry.type === 'Polygon') {
                           addCoordinatesToBounds(geometry.coordinates[0]);
                         } else if (geometry.type === 'MultiPolygon') {
@@ -1476,22 +1476,22 @@ export default function BoothVolunteerListPage() {
                             addCoordinatesToBounds(polygon[0]);
                           });
                         }
-                        
+
                         map.fitBounds(bounds, {
                           padding: { top: 100, bottom: 100, left: 100, right: 100 },
                           maxZoom: 16,
                           duration: 1000
                         });
-                        try { 
+                        try {
                           lastAutoZoomRef.current = Date.now();
                           userHasZoomedRef.current = true;
                           console.log('✅ User zoom activated - global fitBounds will now be suppressed');
-                        } catch {}
+                        } catch { }
                       } catch (zoomErr) {
                         console.warn('Auto zoom error:', zoomErr);
                       }
                     }
-                    
+
                     setDrawerData({ loading: true, boothNo, details: null });
                     setDrawerOpen(true);
                     fetchBoothVolunteerDetails(boothNo);
@@ -1544,7 +1544,7 @@ export default function BoothVolunteerListPage() {
               )}
             </Map>
           </MapContainerStyled>
-          
+
           {/* Map Legend */}
           <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -1552,10 +1552,10 @@ export default function BoothVolunteerListPage() {
             </Typography>
             <Stack direction="row" spacing={3}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Box sx={{ 
-                  width: 16, 
-                  height: 16, 
-                  borderRadius: '50%', 
+                <Box sx={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
                   backgroundColor: '#22c55e',
                   border: '2px solid #ffffff',
                   boxShadow: 1
@@ -1563,10 +1563,10 @@ export default function BoothVolunteerListPage() {
                 <Typography variant="caption">Has Volunteer Data</Typography>
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Box sx={{ 
-                  width: 16, 
-                  height: 16, 
-                  borderRadius: '50%', 
+                <Box sx={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
                   backgroundColor: '#ef4444',
                   border: '2px solid #ffffff',
                   boxShadow: 1
@@ -1676,8 +1676,8 @@ export default function BoothVolunteerListPage() {
             label="State"
             value={tempFilters.state}
             onChange={(e) => {
-              try { e.preventDefault && e.preventDefault(); } catch {};
-              try { e.stopPropagation && e.stopPropagation(); } catch {};
+              try { e.preventDefault && e.preventDefault(); } catch { };
+              try { e.stopPropagation && e.stopPropagation(); } catch { };
               setTempFilters((prev) => ({ ...prev, state: e.target.value }));
             }}
             sx={{ minWidth: 180 }}
@@ -1697,8 +1697,8 @@ export default function BoothVolunteerListPage() {
             label="Division"
             value={tempFilters.division}
             onChange={(e) => {
-              try { e.preventDefault && e.preventDefault(); } catch {};
-              try { e.stopPropagation && e.stopPropagation(); } catch {};
+              try { e.preventDefault && e.preventDefault(); } catch { };
+              try { e.stopPropagation && e.stopPropagation(); } catch { };
               setTempFilters((prev) => ({ ...prev, division: e.target.value }));
             }}
             sx={{ minWidth: 180 }}
@@ -1719,8 +1719,8 @@ export default function BoothVolunteerListPage() {
             label="Parliament"
             value={tempFilters.parliament}
             onChange={(e) => {
-              try { e.preventDefault && e.preventDefault(); } catch {};
-              try { e.stopPropagation && e.stopPropagation(); } catch {};
+              try { e.preventDefault && e.preventDefault(); } catch { };
+              try { e.stopPropagation && e.stopPropagation(); } catch { };
               setTempFilters((prev) => ({ ...prev, parliament: e.target.value }));
             }}
             sx={{ minWidth: 180 }}
@@ -1741,8 +1741,8 @@ export default function BoothVolunteerListPage() {
             label="Assembly"
             value={tempFilters.assembly}
             onChange={(e) => {
-              try { e.preventDefault && e.preventDefault(); } catch {};
-              try { e.stopPropagation && e.stopPropagation(); } catch {};
+              try { e.preventDefault && e.preventDefault(); } catch { };
+              try { e.stopPropagation && e.stopPropagation(); } catch { };
               setTempFilters((prev) => ({ ...prev, assembly: e.target.value }));
             }}
             sx={{ minWidth: 180 }}
@@ -1763,8 +1763,8 @@ export default function BoothVolunteerListPage() {
             label="Block"
             value={tempFilters.block}
             onChange={(e) => {
-              try { e.preventDefault && e.preventDefault(); } catch {};
-              try { e.stopPropagation && e.stopPropagation(); } catch {};
+              try { e.preventDefault && e.preventDefault(); } catch { };
+              try { e.stopPropagation && e.stopPropagation(); } catch { };
               setTempFilters((prev) => ({ ...prev, block: e.target.value }));
             }}
             sx={{ minWidth: 180 }}
@@ -1785,8 +1785,8 @@ export default function BoothVolunteerListPage() {
             label="Booth"
             value={tempFilters.booth}
             onChange={(e) => {
-              try { e.preventDefault && e.preventDefault(); } catch {};
-              try { e.stopPropagation && e.stopPropagation(); } catch {};
+              try { e.preventDefault && e.preventDefault(); } catch { };
+              try { e.stopPropagation && e.stopPropagation(); } catch { };
               setTempFilters((prev) => ({ ...prev, booth: e.target.value }));
             }}
             sx={{ minWidth: 180 }}
