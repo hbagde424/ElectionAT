@@ -8,6 +8,7 @@
 // ============================================================================
 // EXAMPLE 1: Simple Usage - Booth Votes Page
 // ============================================================================
+/*
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 // In your component:
@@ -47,17 +48,19 @@ const filterOptions = useFilterOptionsFromData(allVotes, {
 });
 
 // Use in JSX:
-// <MenuItem value="">All Candidates</MenuItem>
-// {filterOptions.candidates?.map((candidate) => (
-//   <MenuItem key={candidate._id} value={candidate._id}>
-//     {candidate.name}
-//   </MenuItem>
-// ))}
+<MenuItem value="">All Candidates</MenuItem>
+{filterOptions.candidates?.map((candidate) => (
+  <MenuItem key={candidate._id} value={candidate._id}>
+    {candidate.name}
+  </MenuItem>
+))}
+*/
 
 
 // ============================================================================
 // EXAMPLE 2: With Cascading Filters - Booth Page
 // ============================================================================
+/*
 const filterOptions = useFilterOptionsFromData(booths, {
   states: { 
     field: 'state_id', 
@@ -96,11 +99,13 @@ const filterOptions = useFilterOptionsFromData(booths, {
 //       </MenuItem>
 //     ))}
 // </TextField>
+*/
 
 
 // ============================================================================
 // EXAMPLE 3: Combined Hook - Fetch + Extract in One Go
 // ============================================================================
+/*
 import { useFetchAndExtractFilters } from 'hooks/useFilterOptionsFromData';
 
 const { filterOptions, loading, error } = useFetchAndExtractFilters(
@@ -120,11 +125,13 @@ const { filterOptions, loading, error } = useFetchAndExtractFilters(
 // {loading ? <CircularProgress /> : (
 //   filterOptions.candidates?.map(...)
 // )}
+*/
 
 
 // ============================================================================
 // EXAMPLE 4: Block/District Page with Custom Fields
 // ============================================================================
+/*
 const filterOptions = useFilterOptionsFromData(blocks, {
   states: { 
     field: 'state_id', 
@@ -146,11 +153,13 @@ const filterOptions = useFilterOptionsFromData(blocks, {
     parentField: 'parliament_id'
   }
 });
+*/
 
 
 // ============================================================================
 // EXAMPLE 5: Candidates Page with Party Info
 // ============================================================================
+/*
 const filterOptions = useFilterOptionsFromData(candidates, {
   parties: { 
     field: 'party_id', 
@@ -166,11 +175,13 @@ const filterOptions = useFilterOptionsFromData(candidates, {
     nameField: 'year' 
   }
 });
+*/
 
 
 // ============================================================================
 // EXAMPLE 6: Manual Fetch with Custom Processing
 // ============================================================================
+/*
 const [filterData, setFilterData] = useState([]);
 
 useEffect(() => {
@@ -189,6 +200,7 @@ const filterOptions = useFilterOptionsFromData(filterData, {
   candidates: { field: 'candidate', nameField: 'name' },
   booths: { field: 'booth', nameField: 'name' }
 });
+*/
 
 
 // ============================================================================
@@ -198,7 +210,7 @@ const filterOptions = useFilterOptionsFromData(filterData, {
 /**
  * BEFORE (Old Approach):
  * ----------------------
- */
+
 const [candidates, setCandidates] = useState([]);
 const [booths, setBooths] = useState([]);
 
@@ -212,10 +224,12 @@ const fetchReferenceData = async () => {
   if (boothsData.success) setBooths(boothsData.data);
 };
 
+ */
+
 /**
  * AFTER (New Approach):
  * ---------------------
- */
+
 // 1. Add import
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
@@ -240,6 +254,8 @@ const filterOptions = useFilterOptionsFromData(allVotes, {
 // 5. Use in JSX - Replace old state variables with filterOptions
 // OLD: {candidates.map(...)}
 // NEW: {filterOptions.candidates?.map(...)}
+
+ */
 
 
 // ============================================================================
