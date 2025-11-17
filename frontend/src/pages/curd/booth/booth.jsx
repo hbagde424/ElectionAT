@@ -37,6 +37,7 @@ export default function BoothsListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [boothDeleteId, setBoothDeleteId] = useState('');
     const [booths, setBooths] = useState([]);
+    const [allBooths, setAllBooths] = useState([]); // Store all booths for filtering
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -190,48 +191,101 @@ export default function BoothsListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            const [
-                statesRes,
-                divisionsRes,
-                parliamentsRes,
-                assembliesRes,
-                blocksRes,
-                electionYearsRes
-            ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers })
-            ]);
-
-            const [
-                statesData,
-                divisionsData,
-                parliamentsData,
-                assembliesData,
-                blocksData,
-                electionYearsData
-            ] = await Promise.all([
-                statesRes.json(),
-                divisionsRes.json(),
-                parliamentsRes.json(),
-                assembliesRes.json(),
-                blocksRes.json(),
-                electionYearsRes.json()
-            ]);
-
-            if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
+            // Only fetch election years for modal, other filters will be populated from booth data
+            const electionYearsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers });
+            const electionYearsData = await electionYearsRes.json();
+            
             if (electionYearsData.success) setElectionYears(electionYearsData.data);
 
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
+    };
+
+    // Update filter options based on available booth data
+    const updateFilterOptions = (boothsData) => {
+        if (!boothsData || boothsData.length === 0) {
+            setStates([]);
+            setDivisions([]);
+            setParliaments([]);
+            setAssemblies([]);
+            setBlocks([]);
+            return;
+        }
+
+        // Extract unique states
+        const uniqueStates = [];
+        const stateIds = new Set();
+        boothsData.forEach(booth => {
+            if (booth.state_id && booth.state_id._id && !stateIds.has(booth.state_id._id)) {
+                stateIds.add(booth.state_id._id);
+                uniqueStates.push({
+                    _id: booth.state_id._id,
+                    name: booth.state_id.name
+                });
+            }
+        });
+        setStates(uniqueStates);
+
+        // Extract unique divisions
+        const uniqueDivisions = [];
+        const divisionIds = new Set();
+        boothsData.forEach(booth => {
+            if (booth.division_id && booth.division_id._id && !divisionIds.has(booth.division_id._id)) {
+                divisionIds.add(booth.division_id._id);
+                uniqueDivisions.push({
+                    _id: booth.division_id._id,
+                    name: booth.division_id.name,
+                    state_id: booth.state_id
+                });
+            }
+        });
+        setDivisions(uniqueDivisions);
+
+        // Extract unique parliaments
+        const uniqueParliaments = [];
+        const parliamentIds = new Set();
+        boothsData.forEach(booth => {
+            if (booth.parliament_id && booth.parliament_id._id && !parliamentIds.has(booth.parliament_id._id)) {
+                parliamentIds.add(booth.parliament_id._id);
+                uniqueParliaments.push({
+                    _id: booth.parliament_id._id,
+                    name: booth.parliament_id.name,
+                    division_id: booth.division_id
+                });
+            }
+        });
+        setParliaments(uniqueParliaments);
+
+        // Extract unique assemblies
+        const uniqueAssemblies = [];
+        const assemblyIds = new Set();
+        boothsData.forEach(booth => {
+            if (booth.assembly_id && booth.assembly_id._id && !assemblyIds.has(booth.assembly_id._id)) {
+                assemblyIds.add(booth.assembly_id._id);
+                uniqueAssemblies.push({
+                    _id: booth.assembly_id._id,
+                    name: booth.assembly_id.name,
+                    parliament_id: booth.parliament_id
+                });
+            }
+        });
+        setAssemblies(uniqueAssemblies);
+
+        // Extract unique blocks
+        const uniqueBlocks = [];
+        const blockIds = new Set();
+        boothsData.forEach(booth => {
+            if (booth.block_id && booth.block_id._id && !blockIds.has(booth.block_id._id)) {
+                blockIds.add(booth.block_id._id);
+                uniqueBlocks.push({
+                    _id: booth.block_id._id,
+                    name: booth.block_id.name,
+                    assembly_id: booth.assembly_id
+                });
+            }
+        });
+        setBlocks(uniqueBlocks);
     };
 
     // Get user's access scope information
@@ -674,11 +728,33 @@ export default function BoothsListPage() {
                     // Normal pagination or filtered pagination
                     setPageCount(json.pages || 1);
                 }
+                // Don't update filter options when filters are applied - they should remain from initial load
             }
         } catch (error) {
             console.error('Failed to fetch booths:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Fetch all available booths on initial load to populate filter options
+    const fetchAllAvailableBooths = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
+            
+            // Fetch with high limit to get all available booths for filters
+            const url = `${apiUrl}/booths?page=1&limit=10000`;
+            const res = await fetch(url, { headers });
+            const json = await res.json();
+
+            if (json.success) {
+                setAllBooths(json.data);
+                updateFilterOptions(json.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch all booths for filters:', error);
         }
     };
 
@@ -690,6 +766,8 @@ export default function BoothsListPage() {
         // Wrap in async IIFE so we can await reference data before loading polygons
         (async () => {
             await fetchReferenceData();
+            // Fetch all available booths to populate filter options
+            await fetchAllAvailableBooths();
             // Load all booth polygons by default
             await loadBoothPolygons('ALL');
             // Initial fetch of booths table data
