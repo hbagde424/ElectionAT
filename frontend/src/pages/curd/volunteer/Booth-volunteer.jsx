@@ -33,6 +33,7 @@ import BoothVolunteerModal from 'pages/curd/volunteer/VolunteerModal';
 import AlertBoothVolunteerDelete from 'pages/curd/volunteer/AlertVolunteerDelete';
 import BoothVolunteerView from 'pages/curd/volunteer/VolunteerView';
 import { Tooltip } from '@mui/material';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 export default function BoothVolunteerListPage() {
   const theme = useTheme();
@@ -44,6 +45,7 @@ export default function BoothVolunteerListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [volunteerDeleteId, setVolunteerDeleteId] = useState('');
   const [volunteers, setVolunteers] = useState([]);
+  const [allVolunteers, setAllVolunteers] = useState([]);
   const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
@@ -824,6 +826,19 @@ export default function BoothVolunteerListPage() {
     }
   };
 
+  const fetchAllVolunteersForFilters = async () => {
+    const hierarchyFilters = {};
+    if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+    if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+    if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+    if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+    if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+    if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+
+    const data = await fetchAllDataForFilters('/booth-volunteers', hierarchyFilters);
+    setAllVolunteers(data);
+  };
+
   const fetchReferenceData = async () => {
     try {
       const token = localStorage.getItem('serviceToken');
@@ -894,7 +909,19 @@ export default function BoothVolunteerListPage() {
   // Fetch reference data only once when component mounts
   useEffect(() => {
     fetchReferenceData();
+    fetchAllVolunteersForFilters();
   }, []);
+
+  // Extract filter options from actual volunteer data
+  const filterOptions = useFilterOptionsFromData(allVolunteers, {
+    states: { field: 'state_id', nameField: 'name' },
+    divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+    parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+    assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+    blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+    booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+    parties: { field: 'party_id', nameField: 'name' }
+  });
 
   const handleDeleteOpen = (id) => {
     setVolunteerDeleteId(id);
@@ -1684,7 +1711,7 @@ export default function BoothVolunteerListPage() {
             size="small"
           >
             <MenuItem value="">All States</MenuItem>
-            {states.map((state) => (
+            {filterOptions.states?.map((state) => (
               <MenuItem key={state._id} value={state._id}>
                 {state.name}
               </MenuItem>
@@ -1706,7 +1733,10 @@ export default function BoothVolunteerListPage() {
             disabled={!tempFilters.state}
           >
             <MenuItem value="">All Divisions</MenuItem>
-            {filteredDivisions.map((division) => (
+            {filterOptions.divisions?.filter(division => {
+              const stateId = division.state_id?._id || division.state_id;
+              return stateId === tempFilters.state;
+            }).map((division) => (
               <MenuItem key={division._id} value={division._id}>
                 {division.name}
               </MenuItem>
@@ -1728,7 +1758,10 @@ export default function BoothVolunteerListPage() {
             disabled={!tempFilters.division}
           >
             <MenuItem value="">All Parliaments</MenuItem>
-            {filteredParliaments.map((parliament) => (
+            {filterOptions.parliaments?.filter(parliament => {
+              const divisionId = parliament.division_id?._id || parliament.division_id;
+              return divisionId === tempFilters.division;
+            }).map((parliament) => (
               <MenuItem key={parliament._id} value={parliament._id}>
                 {parliament.name}
               </MenuItem>
@@ -1750,7 +1783,10 @@ export default function BoothVolunteerListPage() {
             disabled={!tempFilters.parliament}
           >
             <MenuItem value="">All Assemblies</MenuItem>
-            {filteredAssemblies.map((assembly) => (
+            {filterOptions.assemblies?.filter(assembly => {
+              const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+              return parliamentId === tempFilters.parliament;
+            }).map((assembly) => (
               <MenuItem key={assembly._id} value={assembly._id}>
                 {assembly.name}
               </MenuItem>
@@ -1772,7 +1808,10 @@ export default function BoothVolunteerListPage() {
             disabled={!tempFilters.assembly}
           >
             <MenuItem value="">All Blocks</MenuItem>
-            {filteredBlocks.map((block) => (
+            {filterOptions.blocks?.filter(block => {
+              const assemblyId = block.assembly_id?._id || block.assembly_id;
+              return assemblyId === tempFilters.assembly;
+            }).map((block) => (
               <MenuItem key={block._id} value={block._id}>
                 {block.name}
               </MenuItem>
@@ -1794,7 +1833,10 @@ export default function BoothVolunteerListPage() {
             disabled={!tempFilters.block}
           >
             <MenuItem value="">All Booths</MenuItem>
-            {filteredBooths.map((booth) => (
+            {filterOptions.booths?.filter(booth => {
+              const blockId = booth.block_id?._id || booth.block_id;
+              return blockId === tempFilters.block;
+            }).map((booth) => (
               <MenuItem key={booth._id} value={booth._id}>
                 {booth.name} (No: {booth.booth_number})
               </MenuItem>

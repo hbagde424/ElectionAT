@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import axiosServices from 'utils/axios';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -26,6 +27,7 @@ const FalliyaListPage = () => {
     const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
     const [falliyas, setFalliyas] = useState([]);
+    const [allFalliyas, setAllFalliyas] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -185,8 +187,32 @@ const FalliyaListPage = () => {
     });
 
     // Fetch hierarchy data
+    const fetchAllFalliyasForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+            if (userHierarchy?.panchayat) hierarchyFilters.panchayat = userHierarchy.panchayat._id || userHierarchy.panchayat;
+            if (userHierarchy?.village) hierarchyFilters.village = userHierarchy.village._id || userHierarchy.village;
+
+            const data = await fetchAllDataForFilters('/falliyas', hierarchyFilters);
+            setAllFalliyas(data);
+        } catch (error) {
+            console.error('Failed to fetch all falliyas for filters:', error);
+        }
+    };
+
+    const filterOptions = useFilterOptionsFromData(allFalliyas, {
+        panchayats: { field: 'panchayat_id', nameField: 'panchayat_name' },
+        villages: { field: 'village_id', nameField: 'village_name', parentField: 'panchayat_id' }
+    });
+
     useEffect(() => {
         fetchHierarchyData();
+        fetchAllFalliyasForFilters();
     }, []);
 
     const fetchHierarchyData = async () => {
@@ -366,7 +392,7 @@ const FalliyaListPage = () => {
                                 label="Village"
                             >
                                 <MenuItem value="">All Villages</MenuItem>
-                                {villages.map(village => (
+                                {filterOptions.villages?.map(village => (
                                     <MenuItem key={village._id} value={village._id}>
                                         {village.village_name}
                                     </MenuItem>
@@ -383,7 +409,7 @@ const FalliyaListPage = () => {
                                 label="Panchayat"
                             >
                                 <MenuItem value="">All Panchayats</MenuItem>
-                                {panchayats.map(panchayat => (
+                                {filterOptions.panchayats?.map(panchayat => (
                                     <MenuItem key={panchayat._id} value={panchayat._id}>
                                         {panchayat.panchayat_name}
                                     </MenuItem>

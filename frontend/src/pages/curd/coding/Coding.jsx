@@ -17,6 +17,7 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import CodingModal from './CodingModal';
 import AlertCodingDelete from './AlertCodingDelete';
@@ -38,6 +39,7 @@ export default function CodingListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [codingDeleteId, setCodingDeleteId] = useState('');
     const [codingList, setCodingList] = useState([]);
+    const [allCodingList, setAllCodingList] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -83,6 +85,34 @@ export default function CodingListPage() {
         panchayat: '',
         village: '',
         falliya: ''
+    });
+
+    const fetchAllCodingListForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+            if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+
+            const data = await fetchAllDataForFilters('/codings', hierarchyFilters);
+            setAllCodingList(data);
+        } catch (error) {
+            console.error('Failed to fetch all coding list for filters:', error);
+        }
+    };
+
+    const filterOptions = useFilterOptionsFromData(allCodingList, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        panchayats: { field: 'panchayat_id', nameField: 'name', parentField: 'block_id' },
+        villages: { field: 'village_id', nameField: 'name', parentField: 'panchayat_id' },
+        falliyas: { field: 'falliya_id', nameField: 'name', parentField: 'village_id' }
     });
 
     const handleFilterChange = (field, value) => {
@@ -594,6 +624,7 @@ export default function CodingListPage() {
     useEffect(() => {
         fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllCodingListForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, columnFilters, yearFilter]);
 
     // Reset to first page when filters change
@@ -1373,7 +1404,7 @@ export default function CodingListPage() {
                             size="small"
                         >
                             <MenuItem value="">All States</MenuItem>
-                            {states.map((state) => (
+                            {filterOptions.states?.map((state) => (
                                 <MenuItem key={state._id} value={state._id}>
                                     {state.name}
                                 </MenuItem>
@@ -1390,7 +1421,10 @@ export default function CodingListPage() {
                             disabled={!filters.state}
                         >
                             <MenuItem value="">All Divisions</MenuItem>
-                            {filteredDivisions.map((division) => (
+                            {filterOptions.divisions?.filter(division => {
+                                const stateId = division.state_id?._id || division.state_id;
+                                return stateId === filters.state;
+                            }).map((division) => (
                                 <MenuItem key={division._id} value={division._id}>
                                     {division.name}
                                 </MenuItem>
@@ -1407,7 +1441,10 @@ export default function CodingListPage() {
                             disabled={!filters.division}
                         >
                             <MenuItem value="">All Parliaments</MenuItem>
-                            {filteredParliaments.map((parliament) => (
+                            {filterOptions.parliaments?.filter(parliament => {
+                                const divisionId = parliament.division_id?._id || parliament.division_id;
+                                return divisionId === filters.division;
+                            }).map((parliament) => (
                                 <MenuItem key={parliament._id} value={parliament._id}>
                                     {parliament.name}
                                 </MenuItem>
@@ -1424,7 +1461,10 @@ export default function CodingListPage() {
                             disabled={!filters.parliament}
                         >
                             <MenuItem value="">All Assemblies</MenuItem>
-                            {filteredAssemblies.map((assembly) => (
+                            {filterOptions.assemblies?.filter(assembly => {
+                                const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                                return parliamentId === filters.parliament;
+                            }).map((assembly) => (
                                 <MenuItem key={assembly._id} value={assembly._id}>
                                     {assembly.name}
                                 </MenuItem>
@@ -1441,7 +1481,10 @@ export default function CodingListPage() {
                             disabled={!filters.assembly}
                         >
                             <MenuItem value="">All Blocks</MenuItem>
-                            {filteredBlocks.map((block) => (
+                            {filterOptions.blocks?.filter(block => {
+                                const assemblyId = block.assembly_id?._id || block.assembly_id;
+                                return assemblyId === filters.assembly;
+                            }).map((block) => (
                                 <MenuItem key={block._id} value={block._id}>
                                     {block.name}
                                 </MenuItem>
@@ -1458,7 +1501,10 @@ export default function CodingListPage() {
                             disabled={!filters.block}
                         >
                             <MenuItem value="">All Panchayats</MenuItem>
-                            {filteredPanchayats.map((panchayat) => (
+                            {filterOptions.panchayats?.filter(panchayat => {
+                                const blockId = panchayat.block_id?._id || panchayat.block_id;
+                                return blockId === filters.block;
+                            }).map((panchayat) => (
                                 <MenuItem key={panchayat._id} value={panchayat._id}>
                                     {panchayat.panchayat_name}
                                 </MenuItem>
@@ -1475,7 +1521,10 @@ export default function CodingListPage() {
                             disabled={!filters.panchayat}
                         >
                             <MenuItem value="">All Villages</MenuItem>
-                            {filteredVillages.map((village) => (
+                            {filterOptions.villages?.filter(village => {
+                                const panchayatId = village.panchayat_id?._id || village.panchayat_id;
+                                return panchayatId === filters.panchayat;
+                            }).map((village) => (
                                 <MenuItem key={village._id} value={village._id}>
                                     {village.village_name}
                                 </MenuItem>
@@ -1492,7 +1541,10 @@ export default function CodingListPage() {
                             disabled={!filters.village}
                         >
                             <MenuItem value="">All Falliyas</MenuItem>
-                            {filteredFalliyas.map((falliya) => (
+                            {filterOptions.falliyas?.filter(falliya => {
+                                const villageId = falliya.village_id?._id || falliya.village_id;
+                                return villageId === filters.village;
+                            }).map((falliya) => (
                                 <MenuItem key={falliya._id} value={falliya._id}>
                                     {falliya.falliya_name}
                                 </MenuItem>

@@ -21,6 +21,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import ParliamentModal from './ParliamentModal';
 import AlertParliamentDelete from './AlertParliamentDelete';
@@ -35,6 +36,7 @@ export default function ParliamentListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [parliamentDeleteId, setParliamentDeleteId] = useState('');
     const [parliaments, setParliaments] = useState([]);
+    const [allParliaments, setAllParliaments] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [assemblies, setAssemblies] = useState([]);
@@ -133,9 +135,24 @@ export default function ParliamentListPage() {
         }
     };
 
+    const fetchAllParliamentsForFilters = async () => {
+        try {
+            const data = await fetchAllDataForFilters('/parliaments', {});
+            setAllParliaments(data);
+        } catch (error) {
+            console.error('Failed to fetch all parliaments for filters:', error);
+        }
+    };
+
+    const filterOptions = useFilterOptionsFromData(allParliaments, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' }
+    });
+
     useEffect(() => {
         fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllParliamentsForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     // Load parliament polygons for map
@@ -782,7 +799,7 @@ export default function ParliamentListPage() {
                         size="small"
                     >
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
+                        {filterOptions.states?.map((state) => (
                             <MenuItem key={state._id} value={state._id}>
                                 {state.name}
                             </MenuItem>
@@ -801,17 +818,14 @@ export default function ParliamentListPage() {
                         disabled={!filters.state_id}
                     >
                         <MenuItem value="">All Divisions</MenuItem>
-                        {divisions
-                            .filter(
-                                (division) =>
-                                    !filters.state_id ||
-                                    division.state_id?._id === filters.state_id
-                            )
-                            .map((division) => (
-                                <MenuItem key={division._id} value={division._id}>
-                                    {division.name}
-                                </MenuItem>
-                            ))}
+                        {filterOptions.divisions?.filter(division => {
+                            const stateId = division.state_id?._id || division.state_id;
+                            return stateId === filters.state_id;
+                        }).map((division) => (
+                            <MenuItem key={division._id} value={division._id}>
+                                {division.name}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <Button

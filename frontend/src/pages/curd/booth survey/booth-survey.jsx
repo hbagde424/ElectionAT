@@ -8,6 +8,7 @@ import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload, MessageText1 } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 // third-party
 import {
@@ -37,6 +38,7 @@ export default function BoothSurveyListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [surveyDeleteId, setSurveyDeleteId] = useState('');
   const [surveys, setSurveys] = useState([]);
+  const [allSurveys, setAllSurveys] = useState([]); // For filter options
   const [booths, setBooths] = useState([]);
   const [users, setUsers] = useState([]);
   const [states, setStates] = useState([]);
@@ -159,39 +161,54 @@ export default function BoothSurveyListPage() {
     try {
       const token = localStorage.getItem('serviceToken');
       const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
-      const [boothsRes, usersRes, statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, fetchOpts),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, fetchOpts),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/states`, fetchOpts),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, fetchOpts),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, fetchOpts),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, fetchOpts),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, fetchOpts)
-      ]);
-
-      const boothsJson = await boothsRes.json();
+      
+      // Only fetch users for modal (filters will be populated from survey data)
+      const usersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/users`, fetchOpts);
       const usersJson = await usersRes.json();
-      const statesJson = await statesRes.json();
-      const divisionsJson = await divisionsRes.json();
-      const parliamentsJson = await parliamentsRes.json();
-      const assembliesJson = await assembliesRes.json();
-      const blocksJson = await blocksRes.json();
-
-      if (boothsJson.success) setBooths(boothsJson.data);
       if (usersJson.success) setUsers(usersJson.data);
-      if (statesJson.success) setStates(statesJson.data);
-      if (divisionsJson.success) setDivisions(divisionsJson.data);
-      if (parliamentsJson.success) setParliaments(parliamentsJson.data);
-      if (assembliesJson.success) setAssemblies(assembliesJson.data);
-      if (blocksJson.success) setBlocks(blocksJson.data);
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
+  // Fetch all surveys for filter options
+  const fetchAllSurveysForFilters = async () => {
+    try {
+      const hierarchyFilters = {};
+      if (userHierarchy) {
+        const highestLevel = getUserHighestLevel();
+        if (highestLevel) {
+          const entityId = userHierarchy[highestLevel]?._id || userHierarchy[highestLevel];
+          if (entityId) {
+            hierarchyFilters[`${highestLevel}_id`] = entityId;
+          }
+        }
+      }
+      
+      const data = await fetchAllDataForFilters('/booth-surveys', hierarchyFilters);
+      setAllSurveys(data);
+    } catch (error) {
+      console.error('Failed to fetch all surveys for filters:', error);
+    }
+  };
+
+  // Extract filter options from survey data
+  const filterOptions = useFilterOptionsFromData(allSurveys, {
+    states: { field: 'state_id', nameField: 'name' },
+    divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+    parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+    assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+    blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+    booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' }
+  });
+
+  useEffect(() => {
+    fetchReferenceData();
+    fetchAllSurveysForFilters();
+  }, []);
+
   useEffect(() => {
     fetchSurveys(pagination.pageIndex, pagination.pageSize);
-    fetchReferenceData();
   }, [pagination.pageIndex, pagination.pageSize]);
 
   const handleDeleteOpen = (id) => {
@@ -977,7 +994,7 @@ export default function BoothSurveyListPage() {
             size="small"
           >
             <MenuItem value="">All States</MenuItem>
-            {states.map((state) => (
+            {filterOptions.states?.map((state) => (
               <MenuItem key={state._id} value={state._id}>
                 {state.name}
               </MenuItem>
@@ -1003,8 +1020,8 @@ export default function BoothSurveyListPage() {
             disabled={!filters.state_id}
           >
             <MenuItem value="">All Divisions</MenuItem>
-            {divisions
-              .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
+            {filterOptions.divisions
+              ?.filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
               .map((division) => (
                 <MenuItem key={division._id} value={division._id}>
                   {division.name}
@@ -1030,8 +1047,8 @@ export default function BoothSurveyListPage() {
             disabled={!filters.division_id}
           >
             <MenuItem value="">All Parliaments</MenuItem>
-            {parliaments
-              .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
+            {filterOptions.parliaments
+              ?.filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
               .map((parliament) => (
                 <MenuItem key={parliament._id} value={parliament._id}>
                   {parliament.name}
@@ -1056,8 +1073,8 @@ export default function BoothSurveyListPage() {
             disabled={!filters.parliament_id}
           >
             <MenuItem value="">All Assemblies</MenuItem>
-            {assemblies
-              .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
+            {filterOptions.assemblies
+              ?.filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
               .map((assembly) => (
                 <MenuItem key={assembly._id} value={assembly._id}>
                   {assembly.name}
@@ -1081,8 +1098,8 @@ export default function BoothSurveyListPage() {
             disabled={!filters.assembly_id}
           >
             <MenuItem value="">All Blocks</MenuItem>
-            {blocks
-              .filter(block => !filters.assembly_id || block.assembly_id?._id === filters.assembly_id)
+            {filterOptions.blocks
+              ?.filter(block => !filters.assembly_id || block.assembly_id?._id === filters.assembly_id)
               .map((block) => (
                 <MenuItem key={block._id} value={block._id}>
                   {block.name}
@@ -1100,8 +1117,8 @@ export default function BoothSurveyListPage() {
             disabled={!filters.block_id}
           >
             <MenuItem value="">All Booths</MenuItem>
-            {booths
-              .filter(booth => !filters.block_id || booth.block_id?._id === filters.block_id)
+            {filterOptions.booths
+              ?.filter(booth => !filters.block_id || booth.block_id?._id === filters.block_id)
               .map((booth) => (
                 <MenuItem key={booth._id} value={booth._id}>
                   {booth.name}

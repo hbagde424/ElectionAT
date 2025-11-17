@@ -24,6 +24,7 @@ import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 export default function GenderListPage() {
     const theme = useTheme();
@@ -35,6 +36,7 @@ export default function GenderListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [genderDeleteId, setGenderDeleteId] = useState('');
     const [genderList, setGenderList] = useState([]);
+    const [allGenderData, setAllGenderData] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -345,6 +347,19 @@ export default function GenderListPage() {
             setFilteredFalliyas([]);
         }
     }, [tempFilters.village, falliyas]);
+
+    const fetchAllGenderDataForFilters = async () => {
+        const hierarchyFilters = {};
+        if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+        if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+        if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+        if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+        if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+        if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+
+        const data = await fetchAllDataForFilters('/gender', hierarchyFilters);
+        setAllGenderData(data);
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -660,7 +675,21 @@ export default function GenderListPage() {
     // Fetch reference data only once when component mounts
     useEffect(() => {
         fetchReferenceData();
+        fetchAllGenderDataForFilters();
     }, []);
+
+    // Extract filter options from actual gender data
+    const filterOptions = useFilterOptionsFromData(allGenderData, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        panchayats: { field: 'panchayat_id', nameField: 'panchayat_name' },
+        villages: { field: 'village_id', nameField: 'village_name', parentField: 'panchayat_id' },
+        falliyas: { field: 'falliya_id', nameField: 'falliya_name', parentField: 'village_id' }
+    });
 
     const handleDeleteOpen = (id) => {
         setGenderDeleteId(id);
@@ -1324,7 +1353,7 @@ export default function GenderListPage() {
                         size="small"
                     >
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
+                        {filterOptions.states?.map((state) => (
                             <MenuItem key={state._id} value={state._id}>
                                 {state.name}
                             </MenuItem>
@@ -1344,7 +1373,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.state}
                     >
                         <MenuItem value="">All Divisions</MenuItem>
-                        {filteredDivisions.map((division) => (
+                        {filterOptions.divisions?.filter(division => {
+                            const stateId = division.state_id?._id || division.state_id;
+                            return stateId === tempFilters.state;
+                        }).map((division) => (
                             <MenuItem key={division._id} value={division._id}>
                                 {division.name}
                             </MenuItem>
@@ -1364,7 +1396,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.division}
                     >
                         <MenuItem value="">All Parliaments</MenuItem>
-                        {filteredParliaments.map((parliament) => (
+                        {filterOptions.parliaments?.filter(parliament => {
+                            const divisionId = parliament.division_id?._id || parliament.division_id;
+                            return divisionId === tempFilters.division;
+                        }).map((parliament) => (
                             <MenuItem key={parliament._id} value={parliament._id}>
                                 {parliament.name}
                             </MenuItem>
@@ -1384,7 +1419,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.parliament}
                     >
                         <MenuItem value="">All Assemblies</MenuItem>
-                        {filteredAssemblies.map((assembly) => (
+                        {filterOptions.assemblies?.filter(assembly => {
+                            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                            return parliamentId === tempFilters.parliament;
+                        }).map((assembly) => (
                             <MenuItem key={assembly._id} value={assembly._id}>
                                 {assembly.name}
                             </MenuItem>
@@ -1404,7 +1442,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.assembly}
                     >
                         <MenuItem value="">All Blocks</MenuItem>
-                        {filteredBlocks.map((block) => (
+                        {filterOptions.blocks?.filter(block => {
+                            const assemblyId = block.assembly_id?._id || block.assembly_id;
+                            return assemblyId === tempFilters.assembly;
+                        }).map((block) => (
                             <MenuItem key={block._id} value={block._id}>
                                 {block.name}
                             </MenuItem>
@@ -1424,7 +1465,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.block}
                     >
                         <MenuItem value="">All Booths</MenuItem>
-                        {filteredBooths.map((booth) => (
+                        {filterOptions.booths?.filter(booth => {
+                            const blockId = booth.block_id?._id || booth.block_id;
+                            return blockId === tempFilters.block;
+                        }).map((booth) => (
                             <MenuItem key={booth._id} value={booth._id}>
                                 {booth.name} (No: {booth.booth_number})
                             </MenuItem>
@@ -1444,7 +1488,7 @@ export default function GenderListPage() {
                         disabled={!tempFilters.block}
                     >
                         <MenuItem value="">All Panchayats</MenuItem>
-                        {filteredPanchayats.map((panchayat) => (
+                        {filterOptions.panchayats?.map((panchayat) => (
                             <MenuItem key={panchayat._id} value={panchayat._id}>
                                 {panchayat.panchayat_name}
                             </MenuItem>
@@ -1464,7 +1508,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.panchayat}
                     >
                         <MenuItem value="">All Villages</MenuItem>
-                        {filteredVillages.map((village) => (
+                        {filterOptions.villages?.filter(village => {
+                            const panchayatId = village.panchayat_id?._id || village.panchayat_id;
+                            return panchayatId === tempFilters.panchayat;
+                        }).map((village) => (
                             <MenuItem key={village._id} value={village._id}>
                                 {village.village_name}
                             </MenuItem>
@@ -1484,7 +1531,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.village}
                     >
                         <MenuItem value="">All Falliyas</MenuItem>
-                        {filteredFalliyas.map((falliya) => (
+                        {filterOptions.falliyas?.filter(falliya => {
+                            const villageId = falliya.village_id?._id || falliya.village_id;
+                            return villageId === tempFilters.village;
+                        }).map((falliya) => (
                             <MenuItem key={falliya._id} value={falliya._id}>
                                 {falliya.falliya_name}
                             </MenuItem>

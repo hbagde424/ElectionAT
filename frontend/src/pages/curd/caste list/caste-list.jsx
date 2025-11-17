@@ -16,6 +16,7 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import CasteModal from './CasteModal';
 import AlertCasteDelete from './AlertCasteDelete';
@@ -32,6 +33,7 @@ export default function CasteListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [casteDeleteId, setCasteDeleteId] = useState('');
     const [casteList, setCasteList] = useState([]);
+    const [allCasteList, setAllCasteList] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -91,6 +93,23 @@ export default function CasteListPage() {
     };
 
     const accessScope = getUserAccessScope();
+
+    const fetchAllCasteListForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+            if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+
+            const data = await fetchAllDataForFilters('/castes', hierarchyFilters);
+            setAllCasteList(data);
+        } catch (error) {
+            console.error('Failed to fetch all caste list for filters:', error);
+        }
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -293,7 +312,17 @@ export default function CasteListPage() {
     useEffect(() => {
         fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
         fetchReferenceData();
+        fetchAllCasteListForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    const filterOptions = useFilterOptionsFromData(allCasteList, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' }
+    });
 
     const handleDeleteOpen = (id) => {
         setCasteDeleteId(id);
@@ -678,7 +707,7 @@ export default function CasteListPage() {
                                 onChange={(e) => handleStateChange(e.target.value)}
                             >
                                 <MenuItem value="">All States</MenuItem>
-                                {states.map((state) => (
+                                {filterOptions.states?.map((state) => (
                                     <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                 ))}
                             </Select>
@@ -692,7 +721,10 @@ export default function CasteListPage() {
                                 onChange={(e) => handleDivisionChange(e.target.value)}
                             >
                                 <MenuItem value="">All Divisions</MenuItem>
-                                {filteredDivisions.map((division) => (
+                                {filterOptions.divisions?.filter(division => {
+                                    const stateId = division.state_id?._id || division.state_id;
+                                    return stateId === filters.state;
+                                }).map((division) => (
                                     <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                 ))}
                             </Select>
@@ -706,7 +738,10 @@ export default function CasteListPage() {
                                 onChange={(e) => handleParliamentChange(e.target.value)}
                             >
                                 <MenuItem value="">All Parliaments</MenuItem>
-                                {filteredParliaments.map((parliament) => (
+                                {filterOptions.parliaments?.filter(parliament => {
+                                    const divisionId = parliament.division_id?._id || parliament.division_id;
+                                    return divisionId === filters.division;
+                                }).map((parliament) => (
                                     <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                 ))}
                             </Select>
@@ -720,7 +755,10 @@ export default function CasteListPage() {
                                 onChange={(e) => handleAssemblyChange(e.target.value)}
                             >
                                 <MenuItem value="">All Assemblies</MenuItem>
-                                {filteredAssemblies.map((assembly) => (
+                                {filterOptions.assemblies?.filter(assembly => {
+                                    const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                                    return parliamentId === filters.parliament;
+                                }).map((assembly) => (
                                     <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                 ))}
                             </Select>
@@ -734,7 +772,10 @@ export default function CasteListPage() {
                                 onChange={(e) => handleBlockChange(e.target.value)}
                             >
                                 <MenuItem value="">All Blocks</MenuItem>
-                                {filteredBlocks.map((block) => (
+                                {filterOptions.blocks?.filter(block => {
+                                    const assemblyId = block.assembly_id?._id || block.assembly_id;
+                                    return assemblyId === filters.assembly;
+                                }).map((block) => (
                                     <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                 ))}
                             </Select>
@@ -748,7 +789,10 @@ export default function CasteListPage() {
                                 onChange={(e) => setFilters(prev => ({ ...prev, booth: e.target.value }))}
                             >
                                 <MenuItem value="">All Booths</MenuItem>
-                                {filteredBooths.map((booth) => (
+                                {filterOptions.booths?.filter(booth => {
+                                    const blockId = booth.block_id?._id || booth.block_id;
+                                    return blockId === filters.block;
+                                }).map((booth) => (
                                     <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                                 ))}
                             </Select>

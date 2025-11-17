@@ -6,6 +6,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import axiosServices from 'utils/axios';
 import { usePermissions } from 'contexts/PermissionContext';
 import {
@@ -28,6 +29,7 @@ const VisitListPage = () => {
     const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
     const [visits, setVisits] = useState([]);
+    const [allVisits, setAllVisits] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -388,6 +390,19 @@ const VisitListPage = () => {
         }
     };
 
+    const fetchAllVisitsForFilters = async () => {
+        const hierarchyFilters = {};
+        if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+        if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+        if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+        if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+        if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+        if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+
+        const data = await fetchAllDataForFilters('/visits', hierarchyFilters);
+        setAllVisits(data);
+    };
+
     const fetchReferenceData = async () => {
         try {
             const [
@@ -439,7 +454,20 @@ const VisitListPage = () => {
     useEffect(() => {
         fetchVisits(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllVisitsForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
+
+    // Extract filter options from actual visit data
+    const filterOptions = useFilterOptionsFromData(allVisits, {
+        candidates: { field: 'candidate_id', nameField: 'name' },
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        electionYears: { field: 'election_year_id', nameField: 'year' }
+    });
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -959,7 +987,7 @@ const VisitListPage = () => {
                                             label="Candidate"
                                         >
                                             <MenuItem value="">All Candidates</MenuItem>
-                                            {candidates.map((candidate) => (
+                                            {filterOptions.candidates?.map((candidate) => (
                                                 <MenuItem key={candidate._id} value={candidate._id}>
                                                     {candidate.name}
                                                 </MenuItem>
@@ -1023,7 +1051,7 @@ const VisitListPage = () => {
                                             label="State"
                                         >
                                             <MenuItem value="">All States</MenuItem>
-                                            {states.map((state) => (
+                                            {filterOptions.states?.map((state) => (
                                                 <MenuItem key={state._id} value={state._id}>
                                                     {state.name}
                                                 </MenuItem>
@@ -1044,7 +1072,10 @@ const VisitListPage = () => {
                                             <MenuItem value="">
                                                 {!filterValues.state ? "Select State First" : "All Divisions"}
                                             </MenuItem>
-                                            {filteredDivisions.map((division) => (
+                                            {filterOptions.divisions?.filter(division => {
+                                                const stateId = division.state_id?._id || division.state_id;
+                                                return stateId === filterValues.state;
+                                            }).map((division) => (
                                                 <MenuItem key={division._id} value={division._id}>
                                                     {division.name}
                                                 </MenuItem>
@@ -1065,7 +1096,10 @@ const VisitListPage = () => {
                                             <MenuItem value="">
                                                 {!filterValues.division ? "Select Division First" : "All Assemblies"}
                                             </MenuItem>
-                                            {filteredAssemblies.map((assembly) => (
+                                            {filterOptions.assemblies?.filter(assembly => {
+                                                const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                                                return parliamentId === filterValues.parliament;
+                                            }).map((assembly) => (
                                                 <MenuItem key={assembly._id} value={assembly._id}>
                                                     {assembly.name}
                                                 </MenuItem>
@@ -1086,7 +1120,10 @@ const VisitListPage = () => {
                                             <MenuItem value="">
                                                 {!filterValues.assembly ? "Select Assembly First" : "All Booths"}
                                             </MenuItem>
-                                            {filteredBooths.map((booth) => (
+                                            {filterOptions.booths?.filter(booth => {
+                                                const assemblyId = booth.assembly_id?._id || booth.assembly_id;
+                                                return assemblyId === filterValues.assembly;
+                                            }).map((booth) => (
                                                 <MenuItem key={booth._id} value={booth._id}>
                                                     {booth.name}
                                                 </MenuItem>

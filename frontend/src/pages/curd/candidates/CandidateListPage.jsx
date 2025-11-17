@@ -13,6 +13,7 @@ import { CSVLink } from 'react-csv';
 import IconButton from 'components/@extended/IconButton';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
 import { HeaderSort, TablePagination } from 'components/third-party/react-table';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import TextField from '@mui/material/TextField';
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
@@ -25,6 +26,7 @@ const CandidateListPage = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const [candidates, setCandidates] = useState([]);
+    const [allCandidates, setAllCandidates] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -93,6 +95,11 @@ const CandidateListPage = () => {
         }
     };
 
+    const fetchAllCandidatesForFilters = async () => {
+        const data = await fetchAllDataForFilters('/candidates', {});
+        setAllCandidates(data);
+    };
+
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
@@ -134,7 +141,17 @@ const CandidateListPage = () => {
 
     useEffect(() => {
         fetchCandidates(pagination.pageIndex, pagination.pageSize, globalFilter);
+        fetchAllCandidatesForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    // Extract filter options from actual candidate data
+    const filterOptions = useFilterOptionsFromData(allCandidates, {
+        parties: { field: 'party_id', nameField: 'name' },
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' }
+    });
 
     // Handle search clear - reset pagination
     useEffect(() => {

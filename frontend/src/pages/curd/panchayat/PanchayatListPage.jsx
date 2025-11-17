@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import axiosServices from 'utils/axios';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -26,6 +27,7 @@ const PanchayatListPage = () => {
     const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
     const [panchayats, setPanchayats] = useState([]);
+    const [allPanchayats, setAllPanchayats] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -56,10 +58,10 @@ const PanchayatListPage = () => {
     });
 
     // derive filtered lists for top-level filters so dropdowns cascade
-    const filteredDivisions = divisions.filter(d => (filters.state_id ? (d.state_id?._id || d.state_id) === filters.state_id : true));
-    const filteredParliaments = parliaments.filter(p => (filters.division_id ? (p.division_id?._id || p.division_id) === filters.division_id : true));
-    const filteredAssemblies = assemblies.filter(a => (filters.parliament_id ? (a.parliament_id?._id || a.parliament_id) === filters.parliament_id : true));
-    const filteredBlocks = blocks.filter(b => (filters.assembly_id ? (b.assembly_id?._id || b.assembly_id) === filters.assembly_id : true));
+    const filteredDivisions = filterOptions.divisions?.filter(d => (filters.state_id ? (d.state_id?._id || d.state_id) === filters.state_id : true)) || [];
+    const filteredParliaments = filterOptions.parliaments?.filter(p => (filters.division_id ? (p.division_id?._id || p.division_id) === filters.division_id : true)) || [];
+    const filteredAssemblies = filterOptions.assemblies?.filter(a => (filters.parliament_id ? (a.parliament_id?._id || a.parliament_id) === filters.parliament_id : true)) || [];
+    const filteredBlocks = filterOptions.blocks?.filter(b => (filters.assembly_id ? (b.assembly_id?._id || b.assembly_id) === filters.assembly_id : true)) || [];
     const filteredBooths = booths.filter(b => (filters.block_id ? (b.block_id?._id || b.block_id) === filters.block_id : true));
 
     // CSV export
@@ -188,8 +190,33 @@ const PanchayatListPage = () => {
     });
 
     // Fetch hierarchy data
+    const fetchAllPanchayatsForFilters = async () => {
+        try {
+            const hierarchyFilters = {};
+            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+
+            const data = await fetchAllDataForFilters('/panchayats', hierarchyFilters);
+            setAllPanchayats(data);
+        } catch (error) {
+            console.error('Failed to fetch all panchayats for filters:', error);
+        }
+    };
+
+    const filterOptions = useFilterOptionsFromData(allPanchayats, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' }
+    });
+
     useEffect(() => {
         fetchHierarchyData();
+        fetchAllPanchayatsForFilters();
     }, []);
 
     const fetchHierarchyData = async () => {
@@ -361,7 +388,7 @@ const PanchayatListPage = () => {
                                 label="State"
                             >
                                 <MenuItem value="">All States</MenuItem>
-                                {states.map(state => (
+                                {filterOptions.states?.map(state => (
                                     <MenuItem key={state._id} value={state._id}>
                                         {state.name}
                                     </MenuItem>

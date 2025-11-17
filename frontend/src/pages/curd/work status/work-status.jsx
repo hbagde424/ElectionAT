@@ -26,6 +26,7 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import MapGL, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 export default function WorkStatusListPage() {
     const theme = useTheme();
@@ -37,6 +38,7 @@ export default function WorkStatusListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [workStatusDeleteId, setWorkStatusDeleteId] = useState('');
     const [workStatuses, setWorkStatuses] = useState([]);
+    const [allWorkStatuses, setAllWorkStatuses] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -351,6 +353,19 @@ export default function WorkStatusListPage() {
         setTempFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchWorkStatuses(0, 10, globalFilter, emptyFilters);
+    };
+
+    const fetchAllWorkStatusesForFilters = async () => {
+        const hierarchyFilters = {};
+        if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
+        if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
+        if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+        if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+        if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
+        if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+
+        const data = await fetchAllDataForFilters('/work-status', hierarchyFilters);
+        setAllWorkStatuses(data);
     };
 
     const fetchReferenceData = async () => {
@@ -790,7 +805,19 @@ export default function WorkStatusListPage() {
     useEffect(() => {
         fetchWorkStatuses(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllWorkStatusesForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, yearFilter]);
+
+    // Extract filter options from actual work status data
+    const filterOptions = useFilterOptionsFromData(allWorkStatuses, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        districts: { field: 'district_id', nameField: 'name' }
+    });
 
     const handleDeleteOpen = (id) => {
         setWorkStatusDeleteId(id);
@@ -1612,7 +1639,7 @@ export default function WorkStatusListPage() {
                                     label="State"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {states.map((state) => (
+                                    {filterOptions.states?.map((state) => (
                                         <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1628,7 +1655,7 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.state_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {divisions.filter(division => {
+                                    {filterOptions.divisions?.filter(division => {
                                         const stateId = division.state_id?._id || division.state_id;
                                         return stateId === tempFilters.state_id;
                                     }).map((division) => (
@@ -1646,7 +1673,7 @@ export default function WorkStatusListPage() {
                                     label="District"
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {districts.map((d) => (
+                                    {filterOptions.districts?.map((d) => (
                                         <MenuItem key={d._id} value={d._id}>{d.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -1698,7 +1725,7 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.division_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {parliaments.filter(parliament => {
+                                    {filterOptions.parliaments?.filter(parliament => {
                                         const divisionId = parliament.division_id?._id || parliament.division_id;
                                         return divisionId === tempFilters.division_id;
                                     }).map((parliament) => (
@@ -1717,7 +1744,7 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.parliament_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {assemblies.filter(assembly => {
+                                    {filterOptions.assemblies?.filter(assembly => {
                                         const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
                                         return parliamentId === tempFilters.parliament_id;
                                     }).map((assembly) => (
@@ -1736,7 +1763,7 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.assembly_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {blocks.filter(block => {
+                                    {filterOptions.blocks?.filter(block => {
                                         const assemblyId = block.assembly_id?._id || block.assembly_id;
                                         return assemblyId === tempFilters.assembly_id;
                                     }).map((block) => (
@@ -1755,7 +1782,7 @@ export default function WorkStatusListPage() {
                                     disabled={!tempFilters.block_id}
                                 >
                                     <MenuItem value="">All</MenuItem>
-                                    {booths.filter(booth => {
+                                    {filterOptions.booths?.filter(booth => {
                                         const blockId = booth.block_id?._id || booth.block_id;
                                         return blockId === tempFilters.block_id;
                                     }).map((booth) => (

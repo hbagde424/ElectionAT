@@ -17,6 +17,7 @@ import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import DistrictModal from './DistrictModal';
 import AlertDistrictDelete from './AlertDistrictDelete';
@@ -53,6 +54,7 @@ export default function DistrictListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [districtDeleteId, setDistrictDeleteId] = useState('');
     const [districts, setDistricts] = useState([]);
+    const [allDistricts, setAllDistricts] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -68,6 +70,15 @@ export default function DistrictListPage() {
         parliament_id: '',
         assembly_id: ''
     });
+
+    const fetchAllDistrictsForFilters = async () => {
+        try {
+            const data = await fetchAllDataForFilters('/districts', {});
+            setAllDistricts(data);
+        } catch (error) {
+            console.error('Failed to fetch all districts for filters:', error);
+        }
+    };
 
     const fetchReferenceData = async () => {
         try {
@@ -171,7 +182,15 @@ export default function DistrictListPage() {
     useEffect(() => {
         fetchDistricts(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
+        fetchAllDistrictsForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+
+    const filterOptions = useFilterOptionsFromData(allDistricts, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' }
+    });
 
     const handleDeleteOpen = (id) => {
         setDistrictDeleteId(id);
@@ -476,7 +495,7 @@ export default function DistrictListPage() {
                         size="small"
                     >
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
+                        {filterOptions.states?.map((state) => (
                             <MenuItem key={state._id} value={state._id}>
                                 {state.name}
                             </MenuItem>
@@ -500,13 +519,14 @@ export default function DistrictListPage() {
                         disabled={!filters.state_id}
                     >
                         <MenuItem value="">All Divisions</MenuItem>
-                        {divisions
-                            .filter(division => !filters.state_id || division.state_id?._id === filters.state_id)
-                            .map((division) => (
-                                <MenuItem key={division._id} value={division._id}>
-                                    {division.name}
-                                </MenuItem>
-                            ))}
+                        {filterOptions.divisions?.filter(division => {
+                            const stateId = division.state_id?._id || division.state_id;
+                            return stateId === filters.state_id;
+                        }).map((division) => (
+                            <MenuItem key={division._id} value={division._id}>
+                                {division.name}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <TextField
@@ -525,13 +545,14 @@ export default function DistrictListPage() {
                         disabled={!filters.division_id}
                     >
                         <MenuItem value="">All Parliaments</MenuItem>
-                        {parliaments
-                            .filter(parliament => !filters.division_id || parliament.division_id?._id === filters.division_id)
-                            .map((parliament) => (
-                                <MenuItem key={parliament._id} value={parliament._id}>
-                                    {parliament.name}
-                                </MenuItem>
-                            ))}
+                        {filterOptions.parliaments?.filter(parliament => {
+                            const divisionId = parliament.division_id?._id || parliament.division_id;
+                            return divisionId === filters.division_id;
+                        }).map((parliament) => (
+                            <MenuItem key={parliament._id} value={parliament._id}>
+                                {parliament.name}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <TextField
@@ -544,13 +565,14 @@ export default function DistrictListPage() {
                         disabled={!filters.parliament_id}
                     >
                         <MenuItem value="">All Assemblies</MenuItem>
-                        {assemblies
-                            .filter(assembly => !filters.parliament_id || assembly.parliament_id?._id === filters.parliament_id)
-                            .map((assembly) => (
-                                <MenuItem key={assembly._id} value={assembly._id}>
-                                    {assembly.name}
-                                </MenuItem>
-                            ))}
+                        {filterOptions.assemblies?.filter(assembly => {
+                            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                            return parliamentId === filters.parliament_id;
+                        }).map((assembly) => (
+                            <MenuItem key={assembly._id} value={assembly._id}>
+                                {assembly.name}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <Button

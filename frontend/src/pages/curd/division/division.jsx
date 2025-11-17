@@ -16,6 +16,7 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 import DivisionModal from './DivisionModal';
 import AlertDivisionDelete from './AlertDivisionDelete';
@@ -30,6 +31,7 @@ export default function DivisionListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [divisionDeleteId, setDivisionDeleteId] = useState('');
     const [divisions, setDivisions] = useState([]);
+    const [allDivisions, setAllDivisions] = useState([]);
     const [states, setStates] = useState([]);
     const [users, setUsers] = useState([]);
     const [pageCount, setPageCount] = useState(0);
@@ -215,9 +217,23 @@ export default function DivisionListPage() {
         }
     };
 
+    const fetchAllDivisionsForFilters = async () => {
+        try {
+            const data = await fetchAllDataForFilters('/divisions', {});
+            setAllDivisions(data);
+        } catch (error) {
+            console.error('Failed to fetch all divisions for filters:', error);
+        }
+    };
+
+    const filterOptions = useFilterOptionsFromData(allDivisions, {
+        states: { field: 'state_id', nameField: 'name' }
+    });
+
     useEffect(() => {
         fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
         fetchReferenceData();
+        fetchAllDivisionsForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
 
     // Reset to first page when searching or filtering
@@ -489,7 +505,7 @@ export default function DivisionListPage() {
                         size="small"
                     >
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
+                        {filterOptions.states?.map((state) => (
                             <MenuItem key={state._id} value={state._id}>
                                 {state.name}
                             </MenuItem>
