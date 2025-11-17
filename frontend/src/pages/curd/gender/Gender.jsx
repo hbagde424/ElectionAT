@@ -962,7 +962,6 @@ export default function GenderListPage() {
 
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);

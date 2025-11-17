@@ -1055,7 +1055,6 @@ export default function BoothsListPage() {
 
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);

@@ -350,7 +350,6 @@ export default function BlocksListPage() {
 
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
 
     const handleDownloadCsv = async () => {
         setCsvLoading(true);

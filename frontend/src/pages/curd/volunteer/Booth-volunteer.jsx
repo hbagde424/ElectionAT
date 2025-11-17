@@ -1228,7 +1228,6 @@ export default function BoothVolunteerListPage() {
 
   const [csvData, setCsvData] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
-  const csvLinkRef = useRef();
 
   // OTP for CSV download
   const {

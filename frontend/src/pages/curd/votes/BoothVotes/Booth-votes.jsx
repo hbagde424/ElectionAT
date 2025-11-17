@@ -40,6 +40,7 @@ export default function BoothVotesListPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [voteDeleteId, setVoteDeleteId] = useState('');
   const [votes, setVotes] = useState([]);
+  const [allVotes, setAllVotes] = useState([]); // Store all votes for filtering
   const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [parliaments, setParliaments] = useState([]);
@@ -157,12 +158,82 @@ export default function BoothVotesListPage() {
       if (json.success) {
         setVotes(json.data);
         setPageCount(ignorePagination ? 1 : json.pages);
+        // Don't update filter options when filters are applied - they should remain from initial load
       }
     } catch (error) {
       console.error('Failed to fetch booth votes:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Update filter options based on available votes data
+  const updateFilterOptions = (votesData) => {
+    if (!votesData || votesData.length === 0) {
+      setCandidates([]);
+      setBooths([]);
+      setAssemblies([]);
+      setParties([]);
+      return;
+    }
+
+    // Extract unique candidates
+    const uniqueCandidates = [];
+    const candidateIds = new Set();
+    votesData.forEach(vote => {
+      if (vote.candidate && vote.candidate._id && !candidateIds.has(vote.candidate._id)) {
+        candidateIds.add(vote.candidate._id);
+        uniqueCandidates.push({
+          _id: vote.candidate._id,
+          name: vote.candidate.name
+        });
+      }
+    });
+    setCandidates(uniqueCandidates);
+
+    // Extract unique booths
+    const uniqueBooths = [];
+    const boothIds = new Set();
+    votesData.forEach(vote => {
+      if (vote.booth && vote.booth._id && !boothIds.has(vote.booth._id)) {
+        boothIds.add(vote.booth._id);
+        uniqueBooths.push({
+          _id: vote.booth._id,
+          name: vote.booth.name,
+          booth_number: vote.booth.booth_number
+        });
+      }
+    });
+    setBooths(uniqueBooths);
+
+    // Extract unique assemblies
+    const uniqueAssemblies = [];
+    const assemblyIds = new Set();
+    votesData.forEach(vote => {
+      if (vote.assembly && vote.assembly._id && !assemblyIds.has(vote.assembly._id)) {
+        assemblyIds.add(vote.assembly._id);
+        uniqueAssemblies.push({
+          _id: vote.assembly._id,
+          name: vote.assembly.name
+        });
+      }
+    });
+    setAssemblies(uniqueAssemblies);
+
+    // Extract unique parties (from candidates)
+    const uniqueParties = [];
+    const partyIds = new Set();
+    votesData.forEach(vote => {
+      if (vote.candidate && vote.candidate.party_id && vote.candidate.party_id._id && !partyIds.has(vote.candidate.party_id._id)) {
+        partyIds.add(vote.candidate.party_id._id);
+        uniqueParties.push({
+          _id: vote.candidate.party_id._id,
+          name: vote.candidate.party_id.name,
+          abbreviation: vote.candidate.party_id.abbreviation
+        });
+      }
+    });
+    setParties(uniqueParties);
   };
 
   const fetchAllVotesForCsv = async () => {
@@ -224,52 +295,90 @@ export default function BoothVotesListPage() {
       const token = localStorage.getItem('serviceToken');
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
-      const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes, partiesRes] = await Promise.all([
+      
+      // Fetch reference data needed for modals
+      const [statesRes, divisionsRes, parliamentsRes, blocksRes, electionYearsRes, usersRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
         fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
         fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
         fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers }),
         fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parties`, { headers })
+        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
       ]);
 
       const statesJson = await statesRes.json();
       const divisionsJson = await divisionsRes.json();
       const parliamentsJson = await parliamentsRes.json();
-      const assembliesJson = await assembliesRes.json();
       const blocksJson = await blocksRes.json();
-      const boothsJson = await boothsRes.json();
-      const candidatesJson = await candidatesRes.json();
       const electionYearsJson = await electionYearsRes.json();
       const usersJson = await usersRes.json();
-      const partiesJson = await partiesRes.json();
-
 
       if (statesJson.success) setStates(statesJson.data);
       if (divisionsJson.success) setDivisions(divisionsJson.data);
       if (parliamentsJson.success) setParliaments(parliamentsJson.data);
-      if (assembliesJson.success) setAssemblies(assembliesJson.data);
       if (blocksJson.success) setBlocks(blocksJson.data);
-      if (boothsJson.success) setBooths(boothsJson.data);
-      if (candidatesJson.success) setCandidates(candidatesJson.data);
       if (electionYearsJson?.success) setElectionYears(electionYearsJson.data || []);
       if (usersJson.success) setUsers(usersJson.data);
-      if (partiesJson.success) setParties(partiesJson.data);
+      
+      // Filter options (candidates, booths, assemblies, parties) will be populated from votes data
     } catch (error) {
       console.error('Failed to fetch reference data:', error);
     }
   };
 
+  // Fetch all available votes on initial load to populate filter options
+  const fetchAllAvailableVotes = async () => {
+    try {
+      let url = `${import.meta.env.VITE_APP_API_URL}/booth-votes?page=1&limit=10000`;
+      
+      // Add hierarchy-based filtering
+      if (userHierarchy) {
+        const highestLevel = getUserHighestLevel();
+        if (highestLevel) {
+          switch (highestLevel.level) {
+            case 'state':
+              url += `&state_id=${highestLevel.value}`;
+              break;
+            case 'division':
+              url += `&division_id=${highestLevel.value}`;
+              break;
+            case 'parliament':
+              url += `&parliament_id=${highestLevel.value}`;
+              break;
+            case 'assembly':
+              url += `&assembly_id=${highestLevel.value}`;
+              break;
+            case 'block':
+              url += `&block_id=${highestLevel.value}`;
+              break;
+            case 'booth':
+              url += `&booth_id=${highestLevel.value}`;
+              break;
+          }
+        }
+      }
+
+      const token = localStorage.getItem('serviceToken');
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(url, { headers });
+      const json = await res.json();
+      if (json.success) {
+        setAllVotes(json.data);
+        updateFilterOptions(json.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch all votes for filters:', error);
+    }
+  };
+
   useEffect(() => {
     fetchVotes(pagination.pageIndex, pagination.pageSize);
-  }, [pagination.pageIndex, pagination.pageSize, selectedCandidate, selectedBooth, selectedAssembly, selectedParty]);
+  }, [pagination.pageIndex, pagination.pageSize, selectedCandidate, selectedBooth, selectedAssembly, selectedParty, selectedPartyName]);
 
   useEffect(() => {
     fetchReferenceData();
+    fetchAllAvailableVotes(); // Fetch all votes to populate filter options
   }, []);
 
   const handleDeleteOpen = (id) => {
@@ -592,14 +701,6 @@ export default function BoothVotesListPage() {
             sx={{ minWidth: 180 }}
             size="small"
           >
-            <TextField
-              label="Candidate Party Name"
-              value={tempFilters.party_name}
-              onChange={(e) => setTempFilters((prev) => ({ ...prev, party_name: e.target.value }))}
-              sx={{ minWidth: 180 }}
-              size="small"
-              placeholder="Enter party name"
-            />
             <MenuItem value="">All Parties</MenuItem>
             {parties.map((party) => (
               <MenuItem key={party._id} value={party._id}>
