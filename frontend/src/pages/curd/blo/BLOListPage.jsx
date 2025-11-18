@@ -131,7 +131,7 @@ const BLOListPage = () => {
             if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
             if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
 
-            const data = await fetchAllDataForFilters('/blo', hierarchyFilters);
+            const data = await fetchAllDataForFilters('/blos', hierarchyFilters);
             setAllBLOs(data);
         } catch (error) {
             console.error('Failed to fetch all BLOs for filters:', error);
@@ -793,6 +793,7 @@ const BLOListPage = () => {
                                 value={filters.division_id}
                                 onChange={(e) => handleFilterChange('division_id', e.target.value)}
                                 label="Division"
+                                disabled={!filters.state_id}
                             >
                                 <MenuItem value="">All Divisions</MenuItem>
                                 {filteredDivisions.map(division => (
@@ -818,6 +819,7 @@ const BLOListPage = () => {
                                 value={filters.parliament_id}
                                 onChange={(e) => handleFilterChange('parliament_id', e.target.value)}
                                 label="Parliament"
+                                disabled={!filters.division_id}
                             >
                                 <MenuItem value="">All Parliaments</MenuItem>
                                 {filteredParliaments.map(parliament => (
@@ -835,6 +837,7 @@ const BLOListPage = () => {
                                 value={filters.assembly_id}
                                 onChange={(e) => handleFilterChange('assembly_id', e.target.value)}
                                 label="Assembly"
+                                disabled={!filters.parliament_id}
                             >
                                 <MenuItem value="">All Assemblies</MenuItem>
                                 {filteredAssemblies.map(assembly => (
@@ -852,6 +855,7 @@ const BLOListPage = () => {
                                 value={filters.block_id}
                                 onChange={(e) => handleFilterChange('block_id', e.target.value)}
                                 label="Block"
+                                disabled={!filters.assembly_id}
                             >
                                 <MenuItem value="">All Blocks</MenuItem>
                                 {filteredBlocks.map(block => (
@@ -869,6 +873,7 @@ const BLOListPage = () => {
                                 value={filters.booth_id}
                                 onChange={(e) => handleFilterChange('booth_id', e.target.value)}
                                 label="Booth"
+                                disabled={!filters.block_id}
                             >
                                 <MenuItem value="">All Booths</MenuItem>
                                 {filteredBooths.map(booth => (

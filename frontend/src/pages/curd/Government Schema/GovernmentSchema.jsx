@@ -26,6 +26,7 @@ import GovernmentModal from './GovernmentSchemaModal';
 import AlertGovernmentDelete from './AlertGovernmentSchemaDelete';
 import GovernmentView from './GovernmentSchemaView';
 import { usePermissions } from 'contexts/PermissionContext';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 
 export default function GovernmentsListPage() {
     const theme = useTheme();
@@ -37,6 +38,7 @@ export default function GovernmentsListPage() {
     const [openDelete, setOpenDelete] = useState(false);
     const [governmentDeleteId, setGovernmentDeleteId] = useState('');
     const [governments, setGovernments] = useState([]);
+    const [allGovernments, setAllGovernments] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -316,6 +318,30 @@ export default function GovernmentsListPage() {
             setFilteredFalliyas(falliyas || []);
         }
     }, [tempFilters.village, falliyas]);
+
+    const fetchAllGovernmentsForFilters = async () => {
+        const hierarchyFilters = {};
+        if (userHierarchy?.state?._id) hierarchyFilters.state_id = userHierarchy.state._id;
+        if (userHierarchy?.division?._id) hierarchyFilters.division_id = userHierarchy.division._id;
+        if (userHierarchy?.parliament?._id) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
+        if (userHierarchy?.assembly?._id) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
+        if (userHierarchy?.block?._id) hierarchyFilters.block_id = userHierarchy.block._id;
+        if (userHierarchy?.booth?._id) hierarchyFilters.booth_id = userHierarchy.booth._id;
+        const data = await fetchAllDataForFilters('/governments', hierarchyFilters);
+        setAllGovernments(data);
+    };
+
+    const filterOptions = useFilterOptionsFromData(allGovernments, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
+        panchayats: { field: 'panchayat_id', nameField: 'panchayat_name', parentField: 'block_id' },
+        villages: { field: 'village_id', nameField: 'village_name', parentField: 'panchayat_id' },
+        falliyas: { field: 'falliya_id', nameField: 'falliya_name', parentField: 'village_id' }
+    });
 
     const fetchReferenceData = async () => {
         try {
@@ -681,6 +707,7 @@ export default function GovernmentsListPage() {
     useEffect(() => {
         if (!referenceDataFetched.current) {
             fetchReferenceData();
+            fetchAllGovernmentsForFilters();
             referenceDataFetched.current = true;
         }
     }, []);
@@ -1360,7 +1387,7 @@ export default function GovernmentsListPage() {
                         size="small"
                     >
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
+                        {filterOptions.states?.map((state) => (
                             <MenuItem key={state._id} value={state._id}>
                                 {state.name}
                             </MenuItem>
@@ -1380,7 +1407,10 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.state}
                     >
                         <MenuItem value="">All Divisions</MenuItem>
-                        {filteredDivisions.map((division) => (
+                        {filterOptions.divisions?.filter(division => {
+                            const stateId = division.state_id?._id || division.state_id;
+                            return stateId === tempFilters.state;
+                        }).map((division) => (
                             <MenuItem key={division._id} value={division._id}>
                                 {division.name}
                             </MenuItem>
@@ -1400,7 +1430,10 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.division}
                     >
                         <MenuItem value="">All Parliaments</MenuItem>
-                        {filteredParliaments.map((parliament) => (
+                        {filterOptions.parliaments?.filter(parliament => {
+                            const divisionId = parliament.division_id?._id || parliament.division_id;
+                            return divisionId === tempFilters.division;
+                        }).map((parliament) => (
                             <MenuItem key={parliament._id} value={parliament._id}>
                                 {parliament.name}
                             </MenuItem>
@@ -1420,7 +1453,10 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.parliament}
                     >
                         <MenuItem value="">All Assemblies</MenuItem>
-                        {filteredAssemblies.map((assembly) => (
+                        {filterOptions.assemblies?.filter(assembly => {
+                            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                            return parliamentId === tempFilters.parliament;
+                        }).map((assembly) => (
                             <MenuItem key={assembly._id} value={assembly._id}>
                                 {assembly.name}
                             </MenuItem>
@@ -1440,7 +1476,10 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.assembly}
                     >
                         <MenuItem value="">All Blocks</MenuItem>
-                        {filteredBlocks.map((block) => (
+                        {filterOptions.blocks?.filter(block => {
+                            const assemblyId = block.assembly_id?._id || block.assembly_id;
+                            return assemblyId === tempFilters.assembly;
+                        }).map((block) => (
                             <MenuItem key={block._id} value={block._id}>
                                 {block.name}
                             </MenuItem>
@@ -1460,7 +1499,10 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.block}
                     >
                         <MenuItem value="">All Booths</MenuItem>
-                        {filteredBooths.map((booth) => (
+                        {filterOptions.booths?.filter(booth => {
+                            const blockId = booth.block_id?._id || booth.block_id;
+                            return blockId === tempFilters.block;
+                        }).map((booth) => (
                             <MenuItem key={booth._id} value={booth._id}>
                                 {booth.name || booth.booth_number || booth._id}
                             </MenuItem>
@@ -1480,9 +1522,12 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.block}
                     >
                         <MenuItem value="">All Panchayats</MenuItem>
-                        {filteredPanchayats.map((panchayat) => (
+                        {filterOptions.panchayats?.filter(panchayat => {
+                            const blockId = panchayat.block_id?._id || panchayat.block_id;
+                            return blockId === tempFilters.block;
+                        }).map((panchayat) => (
                             <MenuItem key={panchayat._id} value={panchayat._id}>
-                                {panchayat.name || panchayat.panchayat_name}
+                                {panchayat.panchayat_name}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -1500,9 +1545,12 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.panchayat}
                     >
                         <MenuItem value="">All Villages</MenuItem>
-                        {filteredVillages.map((village) => (
+                        {filterOptions.villages?.filter(village => {
+                            const panchayatId = village.panchayat_id?._id || village.panchayat_id;
+                            return panchayatId === tempFilters.panchayat;
+                        }).map((village) => (
                             <MenuItem key={village._id} value={village._id}>
-                                {village.name || village.village_name}
+                                {village.village_name}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -1520,9 +1568,12 @@ export default function GovernmentsListPage() {
                         disabled={!tempFilters.village}
                     >
                         <MenuItem value="">All Falliyas</MenuItem>
-                        {filteredFalliyas.map((falliya) => (
+                        {filterOptions.falliyas?.filter(falliya => {
+                            const villageId = falliya.village_id?._id || falliya.village_id;
+                            return villageId === tempFilters.village;
+                        }).map((falliya) => (
                             <MenuItem key={falliya._id} value={falliya._id}>
-                                {falliya.name || falliya.falliya_name}
+                                {falliya.falliya_name}
                             </MenuItem>
                         ))}
                     </TextField>

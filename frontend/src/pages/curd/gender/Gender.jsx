@@ -357,7 +357,7 @@ export default function GenderListPage() {
         if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
         if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
 
-        const data = await fetchAllDataForFilters('/gender', hierarchyFilters);
+        const data = await fetchAllDataForFilters('/genders', hierarchyFilters);
         setAllGenderData(data);
     };
 
@@ -1488,7 +1488,10 @@ export default function GenderListPage() {
                         disabled={!tempFilters.block}
                     >
                         <MenuItem value="">All Panchayats</MenuItem>
-                        {filterOptions.panchayats?.map((panchayat) => (
+                        {filterOptions.panchayats?.filter(panchayat => {
+                            const blockId = panchayat.block_id?._id || panchayat.block_id;
+                            return blockId === tempFilters.block;
+                        }).map((panchayat) => (
                             <MenuItem key={panchayat._id} value={panchayat._id}>
                                 {panchayat.panchayat_name}
                             </MenuItem>
