@@ -96,15 +96,25 @@ export default function CasteListPage() {
 
     const fetchAllCasteListForFilters = async () => {
         try {
-            const hierarchyFilters = {};
-            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
-            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
-            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
-            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
-            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
-            if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+            const query = {};
+            // Hierarchy scoping (backend accepts plain names and converts internally)
+            if (userHierarchy?.state) query.state = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) query.division = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) query.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) query.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) query.block = userHierarchy.block._id || userHierarchy.block;
+            if (userHierarchy?.booth) query.booth = userHierarchy.booth._id || userHierarchy.booth;
+            // Current filters (backend accepts plain names)
+            if (filters?.category) query.category = filters.category;
+            if (filters?.state) query.state = filters.state;
+            if (filters?.division) query.division = filters.division;
+            if (filters?.parliament) query.parliament = filters.parliament;
+            if (filters?.assembly) query.assembly = filters.assembly;
+            if (filters?.block) query.block = filters.block;
+            if (filters?.booth) query.booth = filters.booth;
+            if (globalFilter) query.search = globalFilter;
 
-            const data = await fetchAllDataForFilters('/castes', hierarchyFilters);
+            const data = await fetchAllDataForFilters('/caste-lists', query);
             setAllCasteList(data);
         } catch (error) {
             console.error('Failed to fetch all caste list for filters:', error);
@@ -265,6 +275,7 @@ export default function CasteListPage() {
             let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
             Object.entries(currentFilters).forEach(([key, value]) => {
                 if (value) {
+                    // Backend accepts plain names (state, division, etc.)
                     query += `&${key}=${encodeURIComponent(value)}`;
                 }
             });
@@ -309,19 +320,31 @@ export default function CasteListPage() {
         }
     };
 
+    // Fetch reference data only once on mount
+    useEffect(() => {
+        fetchReferenceData();
+    }, []);
+
     useEffect(() => {
         fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
-        fetchReferenceData();
         fetchAllCasteListForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
-    const filterOptions = useFilterOptionsFromData(allCasteList, {
-        states: { field: 'state_id', nameField: 'name' },
-        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
-        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
-        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
-        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
-        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' }
+    // Refresh filter options when current filters change (globalFilter already handled above)
+    useEffect(() => {
+        fetchAllCasteListForFilters();
+    }, [JSON.stringify(filters)]);
+
+    // Build filter options strictly from the same dataset that drives the table.
+    // Fallback to the current page if the aggregated list is empty.
+    const casteFilterSource = (allCasteList && allCasteList.length > 0) ? allCasteList : casteList;
+    const filterOptions = useFilterOptionsFromData(casteFilterSource, {
+        states: { field: 'state', nameField: 'name' },
+        divisions: { field: 'division', nameField: 'name', parentField: 'state' },
+        parliaments: { field: 'parliament', nameField: 'name', parentField: 'division' },
+        assemblies: { field: 'assembly', nameField: 'name', parentField: 'parliament' },
+        blocks: { field: 'block', nameField: 'name', parentField: 'assembly' },
+        booths: { field: 'booth', nameField: 'name', parentField: 'block' }
     });
 
     const handleDeleteOpen = (id) => {
@@ -722,8 +745,8 @@ export default function CasteListPage() {
                             >
                                 <MenuItem value="">All Divisions</MenuItem>
                                 {filterOptions.divisions?.filter(division => {
-                                    const stateId = division.state_id?._id || division.state_id;
-                                    return stateId === filters.state;
+                                    const stateId = division.state?._id || division.state_id?._id || division.state || division.state_id;
+                                    return String(stateId) === String(filters.state);
                                 }).map((division) => (
                                     <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                 ))}
@@ -739,8 +762,8 @@ export default function CasteListPage() {
                             >
                                 <MenuItem value="">All Parliaments</MenuItem>
                                 {filterOptions.parliaments?.filter(parliament => {
-                                    const divisionId = parliament.division_id?._id || parliament.division_id;
-                                    return divisionId === filters.division;
+                                    const divisionId = parliament.division?._id || parliament.division_id?._id || parliament.division || parliament.division_id;
+                                    return String(divisionId) === String(filters.division);
                                 }).map((parliament) => (
                                     <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                 ))}
@@ -756,8 +779,8 @@ export default function CasteListPage() {
                             >
                                 <MenuItem value="">All Assemblies</MenuItem>
                                 {filterOptions.assemblies?.filter(assembly => {
-                                    const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
-                                    return parliamentId === filters.parliament;
+                                    const parliamentId = assembly.parliament?._id || assembly.parliament_id?._id || assembly.parliament || assembly.parliament_id;
+                                    return String(parliamentId) === String(filters.parliament);
                                 }).map((assembly) => (
                                     <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                 ))}
@@ -773,8 +796,8 @@ export default function CasteListPage() {
                             >
                                 <MenuItem value="">All Blocks</MenuItem>
                                 {filterOptions.blocks?.filter(block => {
-                                    const assemblyId = block.assembly_id?._id || block.assembly_id;
-                                    return assemblyId === filters.assembly;
+                                    const assemblyId = block.assembly?._id || block.assembly_id?._id || block.assembly || block.assembly_id;
+                                    return String(assemblyId) === String(filters.assembly);
                                 }).map((block) => (
                                     <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                 ))}
@@ -790,8 +813,8 @@ export default function CasteListPage() {
                             >
                                 <MenuItem value="">All Booths</MenuItem>
                                 {filterOptions.booths?.filter(booth => {
-                                    const blockId = booth.block_id?._id || booth.block_id;
-                                    return blockId === filters.block;
+                                    const blockId = booth.block?._id || booth.block_id?._id || booth.block || booth.block_id;
+                                    return String(blockId) === String(filters.block);
                                 }).map((booth) => (
                                     <MenuItem key={booth._id} value={booth._id}>{booth.name}</MenuItem>
                                 ))}

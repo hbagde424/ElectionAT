@@ -319,17 +319,32 @@ export default function GovernmentsListPage() {
         }
     }, [tempFilters.village, falliyas]);
 
-    const fetchAllGovernmentsForFilters = async () => {
-        const hierarchyFilters = {};
-        if (userHierarchy?.state?._id) hierarchyFilters.state_id = userHierarchy.state._id;
-        if (userHierarchy?.division?._id) hierarchyFilters.division_id = userHierarchy.division._id;
-        if (userHierarchy?.parliament?._id) hierarchyFilters.parliament_id = userHierarchy.parliament._id;
-        if (userHierarchy?.assembly?._id) hierarchyFilters.assembly_id = userHierarchy.assembly._id;
-        if (userHierarchy?.block?._id) hierarchyFilters.block_id = userHierarchy.block._id;
-        if (userHierarchy?.booth?._id) hierarchyFilters.booth_id = userHierarchy.booth._id;
-        const data = await fetchAllDataForFilters('/governments', hierarchyFilters);
-        setAllGovernments(data);
-    };
+        const fetchAllGovernmentsForFilters = async () => {
+            const query = {};
+            // Scope by user hierarchy if present
+            if (userHierarchy?.state?._id) query.state_id = userHierarchy.state._id;
+            if (userHierarchy?.division?._id) query.division_id = userHierarchy.division._id;
+            if (userHierarchy?.parliament?._id) query.parliament_id = userHierarchy.parliament._id;
+            if (userHierarchy?.assembly?._id) query.assembly_id = userHierarchy.assembly._id;
+            if (userHierarchy?.block?._id) query.block_id = userHierarchy.block._id;
+            if (userHierarchy?.booth?._id) query.booth_id = userHierarchy.booth._id;
+            // Apply current table filters so options reflect current dataset
+            if (selectedState) query.state_id = selectedState;
+            if (selectedDivision) query.division_id = selectedDivision;
+            if (selectedParliament) query.parliament_id = selectedParliament;
+            if (selectedAssembly) query.assembly_id = selectedAssembly;
+            if (selectedBlock) query.block_id = selectedBlock;
+            if (selectedBooth) query.booth_id = selectedBooth;
+            if (selectedPanchayat) query.panchayat_id = selectedPanchayat;
+            if (selectedVillage) query.village_id = selectedVillage;
+            if (selectedFalliya) query.falliya_id = selectedFalliya;
+            if (selectedType) query.type = selectedType;
+            if (yearFilter) query.year = yearFilter;
+            if (globalFilter) query.search = globalFilter;
+
+            const data = await fetchAllDataForFilters('/governments', query);
+            setAllGovernments(data);
+        };
 
     const filterOptions = useFilterOptionsFromData(allGovernments, {
         states: { field: 'state_id', nameField: 'name' },
@@ -729,6 +744,22 @@ export default function GovernmentsListPage() {
         selectedFalliya,
         selectedType,
         yearFilter
+    ]);
+
+    // Keep filter options in sync with current filters (globalFilter/yearFilter handled above)
+    useEffect(() => {
+        fetchAllGovernmentsForFilters();
+    }, [
+        selectedState,
+        selectedDivision,
+        selectedParliament,
+        selectedAssembly,
+        selectedBlock,
+        selectedBooth,
+        selectedPanchayat,
+        selectedVillage,
+        selectedFalliya,
+        selectedType
     ]);
 
     const handleDeleteOpen = (id) => {

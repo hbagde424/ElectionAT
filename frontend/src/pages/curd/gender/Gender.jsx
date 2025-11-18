@@ -348,18 +348,31 @@ export default function GenderListPage() {
         }
     }, [tempFilters.village, falliyas]);
 
-    const fetchAllGenderDataForFilters = async () => {
-        const hierarchyFilters = {};
-        if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
-        if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
-        if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
-        if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
-        if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
-        if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+        const fetchAllGenderDataForFilters = async () => {
+            const query = {};
+            // Hierarchy scoping
+            if (userHierarchy?.state) query.state_id = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) query.division_id = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) query.parliament_id = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) query.assembly_id = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) query.block_id = userHierarchy.block._id || userHierarchy.block;
+            if (userHierarchy?.booth) query.booth_id = userHierarchy.booth._id || userHierarchy.booth;
+            // Current filters
+            if (selectedState) query.state_id = selectedState;
+            if (selectedDivision) query.division_id = selectedDivision;
+            if (selectedParliament) query.parliament_id = selectedParliament;
+            if (selectedAssembly) query.assembly_id = selectedAssembly;
+            if (selectedBlock) query.block_id = selectedBlock;
+            if (selectedBooth) query.booth_id = selectedBooth;
+            if (selectedPanchayat) query.panchayat_id = selectedPanchayat;
+            if (selectedVillage) query.village_id = selectedVillage;
+            if (selectedFalliya) query.falliya_id = selectedFalliya;
+            if (yearFilter) query.year = yearFilter;
+            if (globalFilter) query.search = globalFilter;
 
-        const data = await fetchAllDataForFilters('/genders', hierarchyFilters);
-        setAllGenderData(data);
-    };
+            const data = await fetchAllDataForFilters('/genders', query);
+            setAllGenderData(data);
+        };
 
     const fetchReferenceData = async () => {
         try {
@@ -673,10 +686,26 @@ export default function GenderListPage() {
     ]);
 
     // Fetch reference data only once when component mounts
+    // Fetch reference data only once when component mounts
     useEffect(() => {
         fetchReferenceData();
         fetchAllGenderDataForFilters();
     }, []);
+
+    // Keep filter options in sync with current filters (globalFilter/yearFilter handled in main useEffect)
+    useEffect(() => {
+        fetchAllGenderDataForFilters();
+    }, [
+        selectedState,
+        selectedDivision,
+        selectedParliament,
+        selectedAssembly,
+        selectedBlock,
+        selectedBooth,
+        selectedPanchayat,
+        selectedVillage,
+        selectedFalliya
+    ]);
 
     // Extract filter options from actual gender data
     const filterOptions = useFilterOptionsFromData(allGenderData, {

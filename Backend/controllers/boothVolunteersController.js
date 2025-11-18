@@ -15,6 +15,8 @@ const path = require('path');
 // @access  Public
 exports.getBoothVolunteers = async (req, res, next) => {
   try {
+    // Log incoming query for debugging filter-related 500 errors
+    console.log('getBoothVolunteers called with query:', req.query);
     // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit);
@@ -22,47 +24,53 @@ exports.getBoothVolunteers = async (req, res, next) => {
 
     // Build search filter
     let filter = {};
-    // Validate hierarchy if IDs are provided (unchanged)
-    if (req.query.booth_id) {
-      const booth = await Booth.findById(req.query.booth_id);
-      if (!booth) {
-        return res.status(404).json({ success: false, error: 'Booth not found' });
+    // Validate hierarchy if IDs are provided (guard against invalid ObjectId strings)
+    const isValidObjectId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+    try {
+      if (req.query.booth_id && isValidObjectId(req.query.booth_id)) {
+        const booth = await Booth.findById(req.query.booth_id);
+        if (!booth) {
+          return res.status(404).json({ success: false, error: 'Booth not found' });
+        }
+        req.query.block_id = booth.block_id;
+        req.query.assembly_id = booth.assembly_id;
+        req.query.parliament_id = booth.parliament_id;
+        req.query.division_id = booth.division_id;
+        req.query.state_id = booth.state_id;
+      } else if (req.query.block_id && isValidObjectId(req.query.block_id)) {
+        const block = await Block.findById(req.query.block_id);
+        if (!block) {
+          return res.status(404).json({ success: false, error: 'Block not found' });
+        }
+        req.query.assembly_id = block.assembly_id;
+        req.query.parliament_id = block.parliament_id;
+        req.query.division_id = block.division_id;
+        req.query.state_id = block.state_id;
+      } else if (req.query.assembly_id && isValidObjectId(req.query.assembly_id)) {
+        const assembly = await Assembly.findById(req.query.assembly_id);
+        if (!assembly) {
+          return res.status(404).json({ success: false, error: 'Assembly not found' });
+        }
+        req.query.parliament_id = assembly.parliament_id;
+        req.query.division_id = assembly.division_id;
+        req.query.state_id = assembly.state_id;
+      } else if (req.query.parliament_id && isValidObjectId(req.query.parliament_id)) {
+        const parliament = await Parliament.findById(req.query.parliament_id);
+        if (!parliament) {
+          return res.status(404).json({ success: false, error: 'Parliament not found' });
+        }
+        req.query.division_id = parliament.division_id;
+        req.query.state_id = parliament.state_id;
+      } else if (req.query.division_id && isValidObjectId(req.query.division_id)) {
+        const division = await Division.findById(req.query.division_id);
+        if (!division) {
+          return res.status(404).json({ success: false, error: 'Division not found' });
+        }
+        req.query.state_id = division.state_id;
       }
-      req.query.block_id = booth.block_id;
-      req.query.assembly_id = booth.assembly_id;
-      req.query.parliament_id = booth.parliament_id;
-      req.query.division_id = booth.division_id;
-      req.query.state_id = booth.state_id;
-    } else if (req.query.block_id) {
-      const block = await Block.findById(req.query.block_id);
-      if (!block) {
-        return res.status(404).json({ success: false, error: 'Block not found' });
-      }
-      req.query.assembly_id = block.assembly_id;
-      req.query.parliament_id = block.parliament_id;
-      req.query.division_id = block.division_id;
-      req.query.state_id = block.state_id;
-    } else if (req.query.assembly_id) {
-      const assembly = await Assembly.findById(req.query.assembly_id);
-      if (!assembly) {
-        return res.status(404).json({ success: false, error: 'Assembly not found' });
-      }
-      req.query.parliament_id = assembly.parliament_id;
-      req.query.division_id = assembly.division_id;
-      req.query.state_id = assembly.state_id;
-    } else if (req.query.parliament_id) {
-      const parliament = await Parliament.findById(req.query.parliament_id);
-      if (!parliament) {
-        return res.status(404).json({ success: false, error: 'Parliament not found' });
-      }
-      req.query.division_id = parliament.division_id;
-      req.query.state_id = parliament.state_id;
-    } else if (req.query.division_id) {
-      const division = await Division.findById(req.query.division_id);
-      if (!division) {
-        return res.status(404).json({ success: false, error: 'Division not found' });
-      }
-      req.query.state_id = division.state_id;
+    } catch (e) {
+      // If any lookup throws unexpectedly, log and continue to next steps so we don't return 500
+      console.error('Hierarchy validation error (non-fatal):', e);
     }
 
     // Search functionality (robust, all string fields and referenced fields)
@@ -110,6 +118,15 @@ exports.getBoothVolunteers = async (req, res, next) => {
     const handleIdOrName = async (param, model, nameField = 'name') => {
       if (!req.query[param]) return null;
       let value = req.query[param];
+      // Coerce non-string values (ObjectId, numbers) to string to safely call replace()/regex tests
+      if (typeof value !== 'string') {
+        try {
+          value = value.toString();
+        } catch (e) {
+          // Fallback: serialize JSON
+          value = JSON.stringify(value);
+        }
+      }
       value = value.replace(/-/g, ' ');
       const isObjectId = /^[a-f\d]{24}$/i.test(value);
       if (isObjectId) {
@@ -220,6 +237,9 @@ exports.getBoothVolunteers = async (req, res, next) => {
       data: volunteers
     });
   } catch (err) {
+    // Log query + stack to make debugging easier when frontend sees 500
+    console.error('Error in getBoothVolunteers - query:', req.query);
+    console.error(err && err.stack ? err.stack : err);
     next(err);
   }
 };

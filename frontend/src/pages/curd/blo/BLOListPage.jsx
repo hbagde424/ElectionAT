@@ -123,15 +123,24 @@ const BLOListPage = () => {
 
     const fetchAllBLOsForFilters = async () => {
         try {
-            const hierarchyFilters = {};
-            if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
-            if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
-            if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
-            if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
-            if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
-            if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+            const query = {};
+            if (userHierarchy?.state) query.state_id = userHierarchy.state._id || userHierarchy.state;
+            if (userHierarchy?.division) query.division_id = userHierarchy.division._id || userHierarchy.division;
+            if (userHierarchy?.parliament) query.parliament_id = userHierarchy.parliament._id || userHierarchy.parliament;
+            if (userHierarchy?.assembly) query.assembly_id = userHierarchy.assembly._id || userHierarchy.assembly;
+            if (userHierarchy?.block) query.block_id = userHierarchy.block._id || userHierarchy.block;
+            if (userHierarchy?.booth) query.booth_id = userHierarchy.booth._id || userHierarchy.booth;
+            if (filters?.state_id) query.state_id = filters.state_id;
+            if (filters?.division_id) query.division_id = filters.division_id;
+            if (filters?.parliament_id) query.parliament_id = filters.parliament_id;
+            if (filters?.assembly_id) query.assembly_id = filters.assembly_id;
+            if (filters?.block_id) query.block_id = filters.block_id;
+            if (filters?.booth_id) query.booth_id = filters.booth_id;
+            if (filters?.blo_name) query.blo_name = filters.blo_name;
+            if (filters?.contact_number) query.contact_number = filters.contact_number;
+            if (globalFilter) query.search = globalFilter;
 
-            const data = await fetchAllDataForFilters('/blos', hierarchyFilters);
+            const data = await fetchAllDataForFilters('/blos', query);
             setAllBLOs(data);
         } catch (error) {
             console.error('Failed to fetch all BLOs for filters:', error);
@@ -269,6 +278,11 @@ const BLOListPage = () => {
         fetchHierarchyData();
         fetchAllBLOsForFilters();
     }, []);
+
+    // Keep filter options in sync with current table filters (globalFilter already fetched in main useEffect)
+    useEffect(() => {
+        fetchAllBLOsForFilters();
+    }, [JSON.stringify(filters)]);
 
     const fetchHierarchyData = async () => {
         try {

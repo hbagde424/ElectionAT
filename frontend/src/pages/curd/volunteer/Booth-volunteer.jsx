@@ -827,16 +827,55 @@ export default function BoothVolunteerListPage() {
   };
 
   const fetchAllVolunteersForFilters = async () => {
-    const hierarchyFilters = {};
-    if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
-    if (userHierarchy?.division) hierarchyFilters.division = userHierarchy.division._id || userHierarchy.division;
-    if (userHierarchy?.parliament) hierarchyFilters.parliament = userHierarchy.parliament._id || userHierarchy.parliament;
-    if (userHierarchy?.assembly) hierarchyFilters.assembly = userHierarchy.assembly._id || userHierarchy.assembly;
-    if (userHierarchy?.block) hierarchyFilters.block = userHierarchy.block._id || userHierarchy.block;
-    if (userHierarchy?.booth) hierarchyFilters.booth = userHierarchy.booth._id || userHierarchy.booth;
+    try {
+      const query = {};
+      // Helper to validate MongoDB ObjectId
+      const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
+      
+      // Scope by user hierarchy (only add valid IDs)
+      if (userHierarchy?.state) {
+        const id = userHierarchy.state._id || userHierarchy.state;
+        if (isValidObjectId(id)) query.state_id = id;
+      }
+      if (userHierarchy?.division) {
+        const id = userHierarchy.division._id || userHierarchy.division;
+        if (isValidObjectId(id)) query.division_id = id;
+      }
+      if (userHierarchy?.parliament) {
+        const id = userHierarchy.parliament._id || userHierarchy.parliament;
+        if (isValidObjectId(id)) query.parliament_id = id;
+      }
+      if (userHierarchy?.assembly) {
+        const id = userHierarchy.assembly._id || userHierarchy.assembly;
+        if (isValidObjectId(id)) query.assembly_id = id;
+      }
+      if (userHierarchy?.block) {
+        const id = userHierarchy.block._id || userHierarchy.block;
+        if (isValidObjectId(id)) query.block_id = id;
+      }
+      if (userHierarchy?.booth) {
+        const id = userHierarchy.booth._id || userHierarchy.booth;
+        if (isValidObjectId(id)) query.booth_id = id;
+      }
+      
+      // Apply current table filters (only add valid IDs)
+      if (selectedState && isValidObjectId(selectedState)) query.state_id = selectedState;
+      if (selectedDivision && isValidObjectId(selectedDivision)) query.division_id = selectedDivision;
+      if (selectedParliament && isValidObjectId(selectedParliament)) query.parliament_id = selectedParliament;
+      if (selectedAssembly && isValidObjectId(selectedAssembly)) query.assembly_id = selectedAssembly;
+      if (selectedBlock && isValidObjectId(selectedBlock)) query.block_id = selectedBlock;
+      if (selectedBooth && isValidObjectId(selectedBooth)) query.booth_id = selectedBooth;
+      if (yearFilter) query.year = yearFilter;
+      if (globalFilter) query.search = globalFilter;
 
-    const data = await fetchAllDataForFilters('/booth-volunteers', hierarchyFilters);
-    setAllVolunteers(data);
+      console.log('🔍 Fetching volunteers with validated query:', query);
+      const data = await fetchAllDataForFilters('/booth-volunteers', query);
+      console.log('✅ Received:', data?.length, 'volunteers');
+      setAllVolunteers(data);
+    } catch (error) {
+      console.error('❌ Failed to fetch all volunteers for filters:', error);
+      setAllVolunteers([]);
+    }
   };
 
   const fetchReferenceData = async () => {
@@ -883,6 +922,29 @@ export default function BoothVolunteerListPage() {
     }
   };
 
+  // Fetch reference data only once when component mounts
+  useEffect(() => {
+    fetchReferenceData();
+    // Initial fetch without filters to populate filter options
+    const fetchInitialData = async () => {
+      try {
+        const query = {};
+        // Only add search if exists
+        if (globalFilter) query.search = globalFilter;
+        
+        console.log('🎬 Initial fetch with query:', query);
+        const data = await fetchAllDataForFilters('/booth-volunteers', query);
+        console.log('✅ Initial data:', data?.length, 'records');
+        setAllVolunteers(data);
+      } catch (error) {
+        console.error('❌ Initial fetch failed:', error);
+        setAllVolunteers([]);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  // Main data fetch - depends on pagination, search, filters, year
   useEffect(() => {
     fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter);
   }, [
@@ -898,6 +960,21 @@ export default function BoothVolunteerListPage() {
     yearFilter
   ]);
 
+  // Keep filter options in sync with current selected filters (globalFilter/yearFilter already handled in main useEffect)
+  useEffect(() => {
+    fetchAllVolunteersForFilters();
+  }, [
+    selectedState,
+    selectedDivision,
+    selectedParliament,
+    selectedAssembly,
+    selectedBlock,
+    selectedBooth,
+    // Ensure filter options reflect the same dataset as the table
+    globalFilter,
+    yearFilter
+  ]);
+
   // Refresh map markers when year filter changes
   useEffect(() => {
     if (boothGeoJSON && yearFilter !== undefined) {
@@ -906,22 +983,27 @@ export default function BoothVolunteerListPage() {
     }
   }, [yearFilter]);
 
-  // Fetch reference data only once when component mounts
-  useEffect(() => {
-    fetchReferenceData();
-    fetchAllVolunteersForFilters();
-  }, []);
-
-  // Extract filter options from actual volunteer data
-  const filterOptions = useFilterOptionsFromData(allVolunteers, {
-    states: { field: 'state_id', nameField: 'name' },
-    divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
-    parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
-    assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
-    blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
-    booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' },
-    parties: { field: 'party_id', nameField: 'name' }
+  // Extract filter options strictly from the same dataset driving the table.
+  // Fallback to current page data if the aggregated dataset is unavailable.
+  const filterSource = (allVolunteers && allVolunteers.length > 0) ? allVolunteers : volunteers;
+  const filterOptions = useFilterOptionsFromData(filterSource, {
+    // In booth volunteer records, populated objects are commonly exposed as
+    // state/division/parliament/... not state_id, so we reference those keys.
+    states: { field: 'state', nameField: 'name' },
+    divisions: { field: 'division', nameField: 'name', parentField: 'state' },
+    parliaments: { field: 'parliament', nameField: 'name', parentField: 'division' },
+    assemblies: { field: 'assembly', nameField: 'name', parentField: 'parliament' },
+    blocks: { field: 'block', nameField: 'name', parentField: 'assembly' },
+    booths: { field: 'booth', nameField: 'name', parentField: 'block' },
+    parties: { field: 'party', nameField: 'name' }
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 allVolunteers:', allVolunteers?.length, 'records');
+    console.log('📊 filterOptions.states:', filterOptions.states?.length, 'options');
+    console.log('📊 filterOptions:', filterOptions);
+  }, [allVolunteers, filterOptions]);
 
   const handleDeleteOpen = (id) => {
     setVolunteerDeleteId(id);
@@ -1734,8 +1816,8 @@ export default function BoothVolunteerListPage() {
           >
             <MenuItem value="">All Divisions</MenuItem>
             {filterOptions.divisions?.filter(division => {
-              const stateId = division.state_id?._id || division.state_id;
-              return stateId === tempFilters.state;
+              const stateId = division.state?._id || division.state_id?._id || division.state || division.state_id;
+              return String(stateId) === String(tempFilters.state);
             }).map((division) => (
               <MenuItem key={division._id} value={division._id}>
                 {division.name}
@@ -1759,8 +1841,8 @@ export default function BoothVolunteerListPage() {
           >
             <MenuItem value="">All Parliaments</MenuItem>
             {filterOptions.parliaments?.filter(parliament => {
-              const divisionId = parliament.division_id?._id || parliament.division_id;
-              return divisionId === tempFilters.division;
+              const divisionId = parliament.division?._id || parliament.division_id?._id || parliament.division || parliament.division_id;
+              return String(divisionId) === String(tempFilters.division);
             }).map((parliament) => (
               <MenuItem key={parliament._id} value={parliament._id}>
                 {parliament.name}
@@ -1784,8 +1866,8 @@ export default function BoothVolunteerListPage() {
           >
             <MenuItem value="">All Assemblies</MenuItem>
             {filterOptions.assemblies?.filter(assembly => {
-              const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
-              return parliamentId === tempFilters.parliament;
+              const parliamentId = assembly.parliament?._id || assembly.parliament_id?._id || assembly.parliament || assembly.parliament_id;
+              return String(parliamentId) === String(tempFilters.parliament);
             }).map((assembly) => (
               <MenuItem key={assembly._id} value={assembly._id}>
                 {assembly.name}
@@ -1809,8 +1891,8 @@ export default function BoothVolunteerListPage() {
           >
             <MenuItem value="">All Blocks</MenuItem>
             {filterOptions.blocks?.filter(block => {
-              const assemblyId = block.assembly_id?._id || block.assembly_id;
-              return assemblyId === tempFilters.assembly;
+              const assemblyId = block.assembly?._id || block.assembly_id?._id || block.assembly || block.assembly_id;
+              return String(assemblyId) === String(tempFilters.assembly);
             }).map((block) => (
               <MenuItem key={block._id} value={block._id}>
                 {block.name}
@@ -1834,8 +1916,8 @@ export default function BoothVolunteerListPage() {
           >
             <MenuItem value="">All Booths</MenuItem>
             {filterOptions.booths?.filter(booth => {
-              const blockId = booth.block_id?._id || booth.block_id;
-              return blockId === tempFilters.block;
+              const blockId = booth.block?._id || booth.block_id?._id || booth.block || booth.block_id;
+              return String(blockId) === String(tempFilters.block);
             }).map((booth) => (
               <MenuItem key={booth._id} value={booth._id}>
                 {booth.name} (No: {booth.booth_number})
