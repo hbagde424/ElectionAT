@@ -8,7 +8,8 @@ const {
   getVotesByBooth,
   getVotesByCandidate,
   getVotesByState,
-  getVotesByElectionYear
+  getVotesByElectionYear,
+  importBoothVotes
 } = require('../controllers/boothVotesController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -349,6 +350,9 @@ router.get('/state/:stateId', getVotesByState);
  *         description: Election year not found
  */
 router.get('/year/:yearId', getVotesByElectionYear);
+
+// Import booth votes from Excel
+router.post('/import', protect, authorize('superAdmin'), importBoothVotes);
 
 /**
  * @swagger

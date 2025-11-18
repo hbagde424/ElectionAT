@@ -31,10 +31,13 @@ import { Tooltip } from '@mui/material';
 export default function BoothVotesListPage() {
   const theme = useTheme();
   const csvLinkRef = useRef();
+  const importInputRef = useRef(null);
   const navigate = useNavigate();
   const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
   const [csvData, setCsvData] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   const [selectedVote, setSelectedVote] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -288,6 +291,89 @@ export default function BoothVotesListPage() {
         csvLinkRef.current.link.click();
       }
     }, 100);
+  };
+
+  const handleDownloadExcelTemplate = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const headers = [
+        'state',
+        'division_code',
+        'parliament_no',
+        'assembly_no',
+        'block',
+        'booth_number',
+        'candidate',
+        'election_year',
+        'total_votes'
+      ];
+
+      const example = [{
+        state: 'Rajasthan',
+        division_code: 'JP',
+        parliament_no: 1,
+        assembly_no: '1',
+        block: 'Amber',
+        booth_number: '12',
+        candidate: 'John Doe',
+        election_year: 2023,
+        total_votes: 1234
+      }];
+
+      const ws = XLSX.utils.json_to_sheet(example, { header: headers });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Template');
+      XLSX.writeFile(wb, 'booth_votes_template.xlsx');
+    } catch (err) {
+      console.error('Failed to download template:', err);
+    }
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const XLSX = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const ws = workbook.Sheets[workbook.SheetNames[0]];
+      const rowsRaw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      // normalize headers to snake_case lower
+      const normalizeKey = (k) => String(k)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+      const rows = rowsRaw.map((r) => {
+        const o = {};
+        Object.keys(r).forEach((k) => { o[normalizeKey(k)] = r[k]; });
+        return o;
+      });
+
+      const token = localStorage.getItem('serviceToken');
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-votes/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ rows })
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || 'Import failed');
+      setImportResult(json);
+      // refresh list
+      await fetchVotes(pagination.pageIndex, pagination.pageSize);
+    } catch (err) {
+      console.error('Import error:', err);
+      setImportResult({ success: false, error: err?.message || String(err) });
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
   };
 
   const fetchReferenceData = async () => {
@@ -597,12 +683,29 @@ export default function BoothVotesListPage() {
               style={{ display: "none" }}
               ref={csvLinkRef}
             />
+            <input
+              type="file"
+              ref={importInputRef}
+              accept=".xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={handleImportFile}
+            />
             <Button
               variant="outlined"
               onClick={handleDownloadCsv}
               disabled={csvLoading}
             >
               {csvLoading ? "Preparing CSV..." : "Download CSV"}
+            </Button>
+            <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+              Excel Template
+            </Button>
+            <Button
+              variant="outlined"
+              disabled={importing}
+              onClick={() => importInputRef.current && importInputRef.current.click()}
+            >
+              {importing ? 'Importing…' : 'Import Excel'}
             </Button>
             <Button
               variant="contained"
@@ -626,6 +729,21 @@ export default function BoothVotesListPage() {
             <strong>Data Access:</strong> {accessScope.description}
           </Typography>
         </Alert>
+
+        {importResult && (
+          <Alert
+            severity={importResult.success ? 'success' : 'error'}
+            sx={{ mx: 2, mb: 2 }}
+          >
+            {importResult.success ? (
+              <Typography variant="body2">
+                Imported {importResult.created || importResult.imported || 0} of {importResult.total || 0}. Skipped {importResult.skipped || 0}.
+              </Typography>
+            ) : (
+              <Typography variant="body2">Import failed: {importResult.error || 'Unknown error'}</Typography>
+            )}
+          </Alert>
+        )}
 
         <Stack
           direction="row"
