@@ -168,6 +168,11 @@ const BLOListPage = () => {
     const [csvData, setCsvData] = useState([]);
     const [exportLoading, setExportLoading] = useState(false);
 
+    // Excel import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     const columns = useMemo(() => [
         {
             header: 'BLO Name',
@@ -521,6 +526,52 @@ const BLOListPage = () => {
         setExportLoading(false);
     };
 
+    // Excel Template Download
+    const handleDownloadExcelTemplate = () => {
+        const XLSX = require('xlsx');
+        const headers = ['blo_name', 'contact_number', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
+        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+        XLSX.writeFile(workbook, 'blo-template.xlsx');
+    };
+
+    // Excel Import Handler
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = require('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map(row => {
+                const normalized = {};
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const response = await axiosServices.post('/blos/import', { data: normalizedData });
+            setImportResult(response.data);
+            if (response.data.success) {
+                fetchBLOs();
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err.message || 'Import failed' });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     return (
         <MainCard content={false}>
             <Stack spacing={2} sx={{ p: 2 }}>
@@ -535,6 +586,12 @@ const BLOListPage = () => {
                         >
                             {exportLoading ? 'Exporting...' : 'Export CSV'}
                         </Button>
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                            Download Excel Template
+                        </Button>
+                        <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
                         <Button
                             variant="contained"
                             startIcon={<Add />}
@@ -544,6 +601,14 @@ const BLOListPage = () => {
                         </Button>
                     </Stack>
                 </Stack>
+
+                {importResult && (
+                    <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)}>
+                        {importResult.message || (importResult.success ? 'Import successful' : 'Import failed')}
+                        {importResult.imported && ` (${importResult.imported} imported)`}
+                        {importResult.failed && ` (${importResult.failed} failed)`}
+                    </Alert>
+                )}
 
                 <Divider />
 
@@ -996,6 +1061,14 @@ const BLOListPage = () => {
                 open={deleteAlert.open}
                 handleClose={() => setDeleteAlert({ open: false, id: null })}
                 refresh={fetchBLOs}
+            />
+
+            <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
             />
         </MainCard>
     );

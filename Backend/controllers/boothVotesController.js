@@ -9,9 +9,6 @@ const Booth = require('../models/booth');
 const ElectionYear = require('../models/electionYear');
 const User = require('../models/User');
 
-// Shared helpers for import flows
-const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
-
 // @desc    Get all booth votes
 // @route   GET /api/booth-votes
 // @access  Public
@@ -594,106 +591,6 @@ exports.getVotesByElectionYear = async (req, res, next) => {
       count: votes.length,
       data: votes
     });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Import booth votes from Excel
-// @route   POST /api/booth-votes/import
-// @access  Private (SuperAdmin)
-exports.importBoothVotes = async (req, res, next) => {
-  try {
-    const { rows } = req.body;
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'No data provided. Expected array of rows.' });
-    }
-
-    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i] || {};
-      try {
-        // Resolve geographic hierarchy (state, division, parliament, assembly, block, booth)
-        const geo = await resolveGeographicHierarchy(row);
-        const missing = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
-        if (missing.length > 0) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Missing: ${missing.join(', ')}` });
-          continue;
-        }
-
-        // Resolve candidate: by id or by name (candidate or candidate_name)
-        let candidateId = null;
-        if (row.candidate_id) {
-          const cand = await Candidate.findById(String(row.candidate_id).trim());
-          candidateId = cand ? cand._id : null;
-        } else if (row.candidate || row.candidate_name) {
-          const cname = String(row.candidate || row.candidate_name).trim();
-          const cand = await Candidate.findOne({ name: { $regex: `^${cname}$`, $options: 'i' } });
-          candidateId = cand ? cand._id : null;
-        }
-        if (!candidateId) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Candidate not found' });
-          continue;
-        }
-
-        // Resolve election year: by id or by numeric year (election_year or year)
-        let electionYearId = null;
-        const yearVal = row.election_year_id || row.election_year || row.year;
-        if (yearVal) {
-          const yearStr = String(yearVal).trim();
-          if (/^[a-fA-F0-9]{24}$/.test(yearStr)) {
-            const y = await ElectionYear.findById(yearStr);
-            if (y) electionYearId = y._id;
-          }
-          if (!electionYearId) {
-            const yNum = parseInt(yearStr, 10);
-            if (!isNaN(yNum)) {
-              const y = await ElectionYear.findOne({ year: yNum });
-              if (y) electionYearId = y._id;
-            }
-          }
-        }
-        if (!electionYearId) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Election year not found' });
-          continue;
-        }
-
-        // Total votes (required)
-        const totalVotes = parseInt(row.total_votes ?? row.votes ?? row.vote_count, 10);
-        if (isNaN(totalVotes)) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'total_votes is required and must be a number' });
-          continue;
-        }
-
-        // Prepare payload
-        const payload = {
-          candidate_id: candidateId,
-          state_id: geo.state._id,
-          division_id: geo.division._id,
-          parliament_id: geo.parliament._id,
-          assembly_id: geo.assembly._id,
-          block_id: geo.block._id,
-          booth_id: geo.booth._id,
-          total_votes: totalVotes,
-          election_year_id: electionYearId,
-          created_by: req.user?._id || req.user?.id
-        };
-
-        // Create record
-        await BoothVotes.create(payload);
-        summary.created += 1;
-      } catch (err) {
-        summary.skipped += 1;
-        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
-      }
-    }
-
-    return res.status(200).json({ success: true, ...summary });
   } catch (err) {
     next(err);
   }

@@ -1018,6 +1018,11 @@ export default function CodingListPage() {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
+    // Excel import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
         const allData = await fetchAllCodingsForCsv();
@@ -1045,6 +1050,62 @@ export default function CodingListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    // Excel Template Download
+    const handleDownloadExcelTemplate = () => {
+        const XLSX = require('xlsx');
+        const headers = ['name', 'mobile', 'email', 'facebook', 'instagram', 'twitter', 'whatsapp_number', 'coding_types', 'state', 'division', 'parliament', 'assembly', 'block', 'panchayat', 'village', 'falliya'];
+        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+        XLSX.writeFile(workbook, 'coding-template.xlsx');
+    };
+
+    // Excel Import Handler
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = require('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map(row => {
+                const normalized = {};
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
+                body: JSON.stringify({ data: normalizedData })
+            });
+
+            const result = await response.json();
+            setImportResult(result);
+            if (result.success) {
+                fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err.message || 'Import failed' });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
     };
 
     return (
@@ -1390,6 +1451,12 @@ export default function CodingListPage() {
                             <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                                 {csvLoading ? "Preparing CSV..." : "Download All CSV"}
                             </Button>
+                            <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                                Download Excel Template
+                            </Button>
+                            <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                                {importing ? 'Importing...' : 'Import Excel'}
+                            </Button>
                             <Button
                                 variant="contained"
                                 startIcon={<Add />}
@@ -1402,6 +1469,14 @@ export default function CodingListPage() {
                             </Button>
                         </Stack>
                     </Stack>
+
+                    {importResult && (
+                        <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mx: 2 }}>
+                            {importResult.message || (importResult.success ? 'Import successful' : 'Import failed')}
+                            {importResult.imported && ` (${importResult.imported} imported)`}
+                            {importResult.failed && ` (${importResult.failed} failed)`}
+                        </Alert>
+                    )}
 
                     {/* Access Scope Information */}
                     <Alert
@@ -1683,6 +1758,14 @@ export default function CodingListPage() {
                     fetchCodingList(pagination.pageIndex, pagination.pageSize);
                     fetchBoothsWithCoding(yearFilter);
                 }}
+            />
+
+            <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
             />
         </>
     );
