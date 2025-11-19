@@ -4,7 +4,11 @@ import { useTheme } from '@mui/material/styles';
 import Map, { Source, Layer } from 'react-map-gl';
 import ControlPanel from './control-panel';
 import MapControl from 'components/third-party/map/MapControl';
-import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress, Stack, Chip } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress, Stack, Chip, Drawer, Paper, IconButton, Divider } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 
 // Complete Party color mapping
 const partyColors = {
@@ -33,7 +37,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
   const [winningCandidates, setWinningCandidates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // map component does not open its own drawer; parent page will handle assembly details
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedAssembly, setSelectedAssembly] = useState(null);
   const [filters, setFilters] = useState({
     pcName: 'all',
     party: 'all',
@@ -181,10 +186,11 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
     if (!e.features?.length) return;
 
     const feature = e.features[0];
-    console.info('Map feature clicked:', feature.properties);
-    // Notify parent component about assembly selection
+    setSelectedAssembly(feature.properties);
+    setDrawerOpen(true);
+    
+    // Notify parent component about assembly selection if callback provided
     if (onAssemblySelect && feature.properties) {
-      console.info('Invoking onAssemblySelect callback with:', feature.properties);
       try {
         onAssemblySelect(feature.properties);
       } catch (err) {
@@ -437,7 +443,174 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
         )}
       </Box>
 
-      {/* Map component does not render its own side drawer; parent handles assembly drawer */}
+      {/* Assembly Details Drawer */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: 450,
+            boxSizing: 'border-box',
+            p: 3,
+            overflowY: 'auto'
+          }
+        }}
+      >
+        {selectedAssembly && (
+          <Stack spacing={2}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h5" fontWeight={700}>
+                Assembly Details
+              </Typography>
+              <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Divider />
+
+            {/* Assembly Basic Info */}
+            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter }}>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box
+                    sx={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: '50%',
+                      bgcolor: getColorForFeature({ properties: selectedAssembly }),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      color: 'white',
+                      fontWeight: 700
+                    }}
+                  >
+                    {selectedAssembly.AC_NO || '?'}
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" fontWeight={700} color="primary">
+                      {selectedAssembly.AC_NAME || 'Assembly Constituency'}
+                    </Typography>
+                    {selectedAssembly.winningParty && (
+                      <Chip
+                        label={selectedAssembly.winningParty}
+                        sx={{ 
+                          mt: 0.5,
+                          bgcolor: getColorForFeature({ properties: selectedAssembly }),
+                          color: 'white'
+                        }}
+                        size="small"
+                      />
+                    )}
+                  </Box>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    AC Number
+                  </Typography>
+                  <Typography variant="h6" fontWeight={700}>
+                    {selectedAssembly.AC_NO || 'N/A'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Winning Candidate Info */}
+            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter }}>
+              <Stack spacing={2}>
+                <Typography variant="h6" fontWeight={700} color="success.dark">
+                  <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Winning Candidate
+                </Typography>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Candidate Name
+                  </Typography>
+                  <Typography variant="h6" fontWeight={700}>
+                    {selectedAssembly.winningCandidate || 'Unknown'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      Election Year
+                    </Typography>
+                    <Typography variant="h6" fontWeight={700} color="primary">
+                      {selectedAssembly.electionYear || 'N/A'}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      Margin
+                    </Typography>
+                    <Typography variant="h6" fontWeight={700} color="success.main">
+                      {selectedAssembly.margin !== 'N/A' && !isNaN(selectedAssembly.margin) 
+                        ? Number(selectedAssembly.margin).toLocaleString() 
+                        : selectedAssembly.margin || 'N/A'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Voting Statistics */}
+            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter }}>
+              <Stack spacing={2}>
+                <Typography variant="h6" fontWeight={700} color="info.dark">
+                  <HowToVoteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Voting Statistics
+                </Typography>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Total Votes
+                  </Typography>
+                  <Typography variant="h5" fontWeight={700} color="primary">
+                    {selectedAssembly.total_votes !== 'N/A' && !isNaN(selectedAssembly.total_votes)
+                      ? Number(selectedAssembly.total_votes).toLocaleString()
+                      : selectedAssembly.total_votes || 'N/A'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Location Information */}
+            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.warning.lighter }}>
+              <Stack spacing={2}>
+                <Typography variant="h6" fontWeight={700} color="warning.dark">
+                  <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Location Information
+                </Typography>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Parliament Constituency
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {selectedAssembly.PC_NAME || 'N/A'}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    State
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {selectedAssembly.ST_NAME || 'N/A'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Stack>
+        )}
+      </Drawer>
     </Box>
   );
 }
