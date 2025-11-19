@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import { useState, useCallback, memo, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
-import Map, { Source, Layer, Popup } from 'react-map-gl';
+import Map, { Source, Layer } from 'react-map-gl';
 import ControlPanel from './control-panel';
 import MapControl from 'components/third-party/map/MapControl';
-import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress, Stack, Chip } from '@mui/material';
 
 // Complete Party color mapping
 const partyColors = {
@@ -26,14 +26,14 @@ const partyColors = {
   'default': '#CCCCCC' // Light Gray for others
 };
 
-function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
+function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, ...other }) {
   const theme = useTheme();
   const [selectTheme, setSelectTheme] = useState('outdoors');
   const [assemblyData, setAssemblyData] = useState(null);
   const [winningCandidates, setWinningCandidates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [popupInfo, setPopupInfo] = useState(null);
+  // map component does not open its own drawer; parent page will handle assembly details
   const [filters, setFilters] = useState({
     pcName: 'all',
     party: 'all',
@@ -165,14 +165,32 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
   }, [filters.year, winningCandidates]);
 
   const handleFeatureClick = (e) => {
+    // Prevent default browser navigation/refresh if underlying DOM event exists
+    try {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+      if (e && e.originalEvent) {
+        if (typeof e.originalEvent.preventDefault === 'function') e.originalEvent.preventDefault();
+        if (typeof e.originalEvent.stopPropagation === 'function') e.originalEvent.stopPropagation();
+      }
+    } catch (err) {
+      console.warn('Error preventing default on map click event:', err);
+    }
+
     if (!e.features?.length) return;
 
     const feature = e.features[0];
-    setPopupInfo({
-      longitude: e.lngLat.lng,
-      latitude: e.lngLat.lat,
-      properties: feature.properties
-    });
+    console.info('Map feature clicked:', feature.properties);
+    // Notify parent component about assembly selection
+    if (onAssemblySelect && feature.properties) {
+      console.info('Invoking onAssemblySelect callback with:', feature.properties);
+      try {
+        onAssemblySelect(feature.properties);
+      } catch (err) {
+        console.error('Error in onAssemblySelect callback:', err);
+      }
+    }
   };
 
   const getFilteredData = () => {
@@ -361,70 +379,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
             </Source>
           )}
 
-          {popupInfo && (
-            <Popup
-              longitude={popupInfo.longitude}
-              latitude={popupInfo.latitude}
-              closeButton={true}
-              onClose={() => setPopupInfo(null)}
-              anchor="bottom"
-              closeOnClick={false}
-            >
-              <div style={{ minWidth: '220px', padding: '8px' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>
-                  {popupInfo.properties.AC_NAME || 'Assembly Constituency'}
-                </h4>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '8px',
-                  padding: '4px',
-                  backgroundColor: getColorForFeature({ properties: popupInfo.properties }),
-                  borderRadius: '4px'
-                }}>
-                  <span style={{ color: '#FFF', padding: '0 4px' }}>
-                    {popupInfo.properties.winningParty || 'Unknown Party'}
-                  </span>
-                </div>
-                <div style={{ marginTop: '8px' }}>
-                  <p><strong>Winning Candidate:</strong> {popupInfo.properties.winningCandidate || 'Unknown'}</p>
-                  <p><strong>Margin:</strong> {popupInfo.properties.margin || 'N/A'}</p>
-                  <p><strong>Total Votes:</strong> {popupInfo.properties.total_votes || 'N/A'}</p>
-                  <p><strong>Election Year:</strong> {popupInfo.properties.electionYear || 'N/A'}</p>
-                  <p><strong>AC Number:</strong> {popupInfo.properties.AC_NO || 'N/A'}</p>
-                  <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
-                  <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
-                </div>
-                {/* Last 3 years winning party names */}
-                <div style={{ marginTop: '12px' }}>
-                  <strong>Last 3 Years Winning Parties:</strong>
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {(() => {
-                      // Find AC_NO for this popup
-                      const acNo = popupInfo.properties.AC_NO;
-                      // Get all years for this AC_NO from winningCandidates
-                      let years = [];
-                      if (acNo && winningCandidates && winningCandidates[acNo]) {
-                        years = Object.keys(winningCandidates[acNo])
-                          .map(y => y.toString())
-                          .sort((a, b) => b.localeCompare(a)); // Descending
-                      }
-                      // Take last 3 years
-                      const last3Years = years.slice(0, 3);
-                      return last3Years.length > 0 ? last3Years.map(year => {
-                        const candidate = winningCandidates[acNo][year];
-                        return (
-                          <li key={year}>
-                            {year}: {candidate?.party_id?.name || 'Unknown'}
-                          </li>
-                        );
-                      }) : <li>No data</li>;
-                    })()}
-                  </ul>
-                </div>
-              </div>
-            </Popup>
-          )}
+
         </Map>
         <ControlPanel themes={themes} selectTheme={selectTheme} onChangeTheme={handleChangeTheme} />
 
@@ -481,6 +436,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
           </Box>
         )}
       </Box>
+
+      {/* Map component does not render its own side drawer; parent handles assembly drawer */}
     </Box>
   );
 }
@@ -490,5 +447,6 @@ export default memo(AssemblyConstituencyMap);
 AssemblyConstituencyMap.propTypes = {
   themes: PropTypes.object.isRequired,
   selectedYear: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onAssemblySelect: PropTypes.func,
   other: PropTypes.any
 };

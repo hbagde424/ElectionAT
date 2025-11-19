@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip,
+    Button, Stack, Box, Typography, Divider, Chip, Drawer, Paper,
     TextField,
     Dialog, DialogTitle, DialogContent, DialogActions,
     FormControl, InputLabel, Select, MenuItem, Alert
@@ -31,8 +31,13 @@ import WinningCandidateView from './WinningCandidatesView';
 
 // Beautiful details modal for State, Division, Parliament, Assembly, Party
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PersonIcon from '@mui/icons-material/Person';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 const EntityDetailsModal = ({ open, onClose, details, title }) => {
     if (!details) return null;
@@ -47,6 +52,8 @@ const EntityDetailsModal = ({ open, onClose, details, title }) => {
         }
         return String(value);
     };
+
+    
 
     // Pick main fields to highlight at top
     const mainField = details.name || details.abbreviation || details.title || '';
@@ -121,14 +128,153 @@ export default function WinningCandidateListPage() {
     const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel } = usePermissions();
 
+    // Helper to render values (object with name/username/year -> readable, else stringify)
+    const renderValue = (value) => {
+        if (value && typeof value === 'object') {
+            if (value.name) return value.name;
+            if (value.username) return value.username;
+            if (value.year) return value.year;
+            try { return JSON.stringify(value); } catch (e) { return String(value); }
+        }
+        return value !== undefined && value !== null ? String(value) : 'N/A';
+    };
+
+    // Render a full assembly details block for the assembly drawer
+    const renderAssemblyDetails = (assembly) => {
+        if (!assembly) return null;
+
+        // Helper: compute last 3 years winning parties from allCandidateList
+        const computeLast3Years = () => {
+            try {
+                if (!Array.isArray(allCandidateList) || allCandidateList.length === 0) return [];
+                const acId = assembly._id || assembly.AC_NO;
+                // Build map year -> party (prefer year_id.year or year_id)
+                const map = {};
+                allCandidateList.forEach(item => {
+                    const itemAssembly = item.assembly_id || {};
+                    const matches = (assembly._id && itemAssembly._id && String(itemAssembly._id) === String(assembly._id)) || (assembly.AC_NO && (String(itemAssembly.AC_NO) === String(assembly.AC_NO)));
+                    if (!matches) return;
+                    let year = '';
+                    if (item.year_id) {
+                        if (typeof item.year_id === 'object' && item.year_id.year) year = String(item.year_id.year);
+                        else year = String(item.year_id);
+                    }
+                    if (year) {
+                        map[year] = item.party_id?.name || 'Unknown';
+                    }
+                });
+                const years = Object.keys(map).sort((a, b) => b.localeCompare(a));
+                return years.slice(0, 3).map(y => ({ year: y, party: map[y] }));
+            } catch (e) {
+                return [];
+            }
+        };
+
+        const last3 = computeLast3Years();
+
+        // Access possible map-provided props or the fetched winning info
+        const acNo = assembly.AC_NO || assembly.ac_no || assembly.AC_No || renderValue(assembly.AC_NO || assembly.ac_no || assembly.AC_No);
+        const acName = assembly.name || assembly.AC_NAME || assembly.AC_Name || assembly.title || '';
+        const winningCandidate = (assemblyWinningInfo && (assemblyWinningInfo.candidate_id?.name || assemblyWinningInfo.name)) || assembly.winningCandidate || assembly.winning_candidate || assembly.winning || '';
+        const winningParty = (assemblyWinningInfo && (assemblyWinningInfo.party_id?.name || assemblyWinningInfo.party)) || assembly.winningParty || assembly.winning_party || assembly.party || '';
+        const electionYear = (assemblyWinningInfo && (assemblyWinningInfo.year_id?.year || assemblyWinningInfo.year_id || assemblyWinningInfo.election_year)) || assembly.electionYear || assembly.election_year || '';
+        const margin = (assemblyWinningInfo && (assemblyWinningInfo.margin || assemblyWinningInfo.total_margin)) || assembly.margin || assembly.total_margin || '';
+        const totalVotes = (assemblyWinningInfo && (assemblyWinningInfo.total_votes || assemblyWinningInfo.totalVotes || assemblyWinningInfo.electors)) || assembly.total_votes || assembly.totalVotes || assembly.total_electors || '';
+
+        return (
+            <Box>
+                {/* Header card with AC number and party */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter, mb: 2 }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: 'orange', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 22 }}>
+                            {acNo || 'NA'}
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                            <Typography variant="h6" fontWeight={700} color="primary">{acName || 'N/A'}</Typography>
+                            {winningParty && <Chip label={winningParty} size="small" sx={{ mt: 1, bgcolor: 'orange', color: 'white' }} />}
+                        </Box>
+                    </Stack>
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant="caption" color="text.secondary">AC Number</Typography>
+                        <Typography variant="h6" fontWeight={700}>{acNo || 'N/A'}</Typography>
+                    </Box>
+                </Paper>
+
+                {/* Winning Candidate card */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter, mb: 2 }}>
+                    <Stack spacing={1}>
+                        <Typography variant="h6" fontWeight={700} color="success.dark"><EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Winning Candidate</Typography>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary">Candidate Name</Typography>
+                            <Typography variant="h6" fontWeight={700}>{winningCandidate || assembly.candidate || 'N/A'}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 4, mt: 1 }}>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Election Year</Typography>
+                                <Typography variant="body1" sx={{ color: 'primary.main', fontWeight: 700 }}>{electionYear || 'N/A'}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Margin</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 700 }}>{margin ? Number(margin).toLocaleString() : 'N/A'}</Typography>
+                            </Box>
+                        </Box>
+                    </Stack>
+                </Paper>
+
+                {/* Voting statistics */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter, mb: 2 }}>
+                    <Typography variant="h6" fontWeight={700} color="info.dark"><HowToVoteIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Voting Statistics</Typography>
+                    <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">Total Votes</Typography>
+                        <Typography variant="h5" fontWeight={700} color="primary">{totalVotes ? Number(totalVotes).toLocaleString() : 'N/A'}</Typography>
+                    </Box>
+                </Paper>
+
+                {/* Location info */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.warning.lighter, mb: 2 }}>
+                    <Typography variant="h6" fontWeight={700} color="warning.dark"><AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Location Information</Typography>
+                    <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">Parliament Constituency</Typography>
+                        <Typography variant="body1" fontWeight={700}>{assembly.parliament_id?.name || assembly.PC_NAME || 'N/A'}</Typography>
+                    </Box>
+                    <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">State</Typography>
+                        <Typography variant="body1" fontWeight={700}>{assembly.state_id?.name || assembly.ST_NAME || assembly.state || 'N/A'}</Typography>
+                    </Box>
+                </Paper>
+
+                {/* Last 3 years winning parties */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[100] }}>
+                    <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Last 3 Years Winning Parties</Typography>
+                    <Stack spacing={1}>
+                        {last3.length > 0 ? last3.map(item => (
+                            <Box key={item.year} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                                <Typography variant="body2" fontWeight={600}>{item.year}</Typography>
+                                <Chip label={item.party} size="small" sx={{ bgcolor: 'primary.main', color: 'white' }} />
+                            </Box>
+                        )) : (
+                            <Typography variant="body2" color="text.secondary">No historical data available</Typography>
+                        )}
+                    </Stack>
+                </Paper>
+            </Box>
+        );
+    };
+
     const [selectedCandidate, setSelectedCandidate] = useState(null); // for edit modal
     const [openModal, setOpenModal] = useState(false); // for edit modal
     const [candidateDetails, setCandidateDetails] = useState(null); // for details modal
     const [openDetailsModal, setOpenDetailsModal] = useState(false); // for details modal
     const [openDelete, setOpenDelete] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false); // Side panel drawer
+    const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState(null); // Full candidate details for drawer
     const [candidateDeleteId, setCandidateDeleteId] = useState('');
     const [candidateList, setCandidateList] = useState([]);
     const [allCandidateList, setAllCandidateList] = useState([]);
+    const [selectedAssemblyFromMap, setSelectedAssemblyFromMap] = useState(null); // Assembly selected from map
+    const [assemblyDrawerOpen, setAssemblyDrawerOpen] = useState(false);
+    const [selectedAssemblyDetails, setSelectedAssemblyDetails] = useState(null); // full assembly record from API
+    const [assemblyWinningInfo, setAssemblyWinningInfo] = useState(null); // winning candidate record for selected assembly
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
@@ -209,7 +355,8 @@ export default function WinningCandidateListPage() {
     const handleApplyFilters = () => {
         setAppliedFilters(filterValues);
         setPagination({ pageIndex: 0, pageSize: 10 });
-        fetchCandidateList(0, 10, globalFilter);
+        // Immediately fetch with the current staged filterValues
+        fetchCandidateList(0, 10, globalFilter, filterValues);
     };
 
     const handleClearFilters = () => {
@@ -225,7 +372,8 @@ export default function WinningCandidateListPage() {
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
-        fetchCandidateList(0, 10, globalFilter);
+        // Fetch the candidate list with no filters
+        fetchCandidateList(0, 10, globalFilter, emptyFilters);
     };
 
     // Handle cascading filter changes
@@ -254,6 +402,161 @@ export default function WinningCandidateListPage() {
             parliament: parliamentValue,
             assembly: '' // Clear dependent filter
         });
+    };
+
+    // Handle assembly selection from map
+    const handleAssemblySelectFromMap = async (assemblyInfo) => {
+        if (!assemblyInfo) return;
+
+        
+        setSelectedAssemblyFromMap(assemblyInfo);
+        // open the assembly side drawer on the WinningCandidates page so user sees details + filter option
+        setAssemblyDrawerOpen(true);
+
+        try {
+            // Find the assembly in the assemblies list by AC_NO (compare as strings to avoid type mismatch)
+            let assembly = assemblies.find(a => String(a.AC_NO) === String(assemblyInfo.AC_NO));
+            
+            // If assembly not found in current list, try direct API lookup by AC_NO first
+            const acNoFromMap = assemblyInfo.AC_NO !== undefined && assemblyInfo.AC_NO !== null ? String(assemblyInfo.AC_NO).trim() : '';
+            if (!assembly && acNoFromMap) {
+                    try {
+                    const headers = getAuthHeaders();
+                    // Try a direct query first (if backend supports ac_no filter)
+                    const directRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?ac_no=${encodeURIComponent(acNoFromMap)}`, { headers });
+                    if (directRes.ok) {
+                        const directJson = await directRes.json();
+                        if (directJson.success && Array.isArray(directJson.data) && directJson.data.length > 0) {
+                            assembly = directJson.data[0];
+                            
+                            if (assembly && !assemblies.find(a => a._id === assembly._id)) setAssemblies(prev => [...prev, assembly]);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Direct AC_NO lookup failed, will fallback to full assemblies list:', err);
+                }
+
+                // Fallback to fetching all assemblies and searching by AC_NO
+                if (!assembly) {
+                    const headers = getAuthHeaders();
+                    const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`, { headers });
+                    const json = await response.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        assembly = json.data.find(a => String(a.AC_NO).trim() === acNoFromMap);
+                        // Update assemblies state if found
+                        if (assembly && !assemblies.find(a => a._id === assembly._id)) {
+                            setAssemblies(prev => [...prev, assembly]);
+                        }
+                    }
+                }
+            }
+            
+                if (assembly) {
+                // Try to fetch full assembly details by its _id
+                try {
+                    if (assembly._id) {
+                        const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assembly._id}`, { headers: getAuthHeaders() });
+                        const asmJson = await res.json();
+                        if (asmJson.success) {
+                            setSelectedAssemblyDetails(asmJson.data);
+                        } else {
+                            // fallback to storing the assembly object we have
+                            setSelectedAssemblyDetails(assembly);
+                        }
+                    } else {
+                        setSelectedAssemblyDetails(assembly);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch full assembly details:', err);
+                    setSelectedAssemblyDetails(assembly);
+                }
+                // After resolving assembly, try to fetch the winning candidate info for this assembly
+                try {
+                    const winRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${assembly._id}&all=true`, { headers: getAuthHeaders() });
+                    const winJson = await winRes.json();
+                    if (winJson.success && Array.isArray(winJson.data) && winJson.data.length > 0) {
+                        // Pick latest year if multiple
+                        const sorted = winJson.data.slice().sort((a, b) => {
+                            const ay = a.year_id?.year || a.year_id || '';
+                            const by = b.year_id?.year || b.year_id || '';
+                            return String(by).localeCompare(String(ay));
+                        });
+                        setAssemblyWinningInfo(sorted[0]);
+                    } else {
+                        setAssemblyWinningInfo(null);
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch winning candidate for assembly:', err);
+                    setAssemblyWinningInfo(null);
+                }
+
+                // Create new filters with assembly and its parent hierarchy
+                const newFilterValues = {
+                    party: '',
+                    state: assembly.state_id?._id || assembly.state_id || '',
+                    division: assembly.division_id?._id || assembly.division_id || '',
+                    parliament: assembly.parliament_id?._id || assembly.parliament_id || '',
+                    assembly: assembly._id,
+                    candidate: '',
+                    electionYear: ''
+                };
+                
+                // Update filter values
+                setFilterValues(newFilterValues);
+                setAppliedFilters(newFilterValues);
+
+                // Reset pagination to first page
+                const newPageIndex = 0;
+                setPagination(prev => ({ ...prev, pageIndex: newPageIndex }));
+
+                // Fetch using the shared fetchCandidateList helper so behavior is consistent
+                const tempAppliedFilters = { ...newFilterValues };
+                await fetchCandidateList(newPageIndex, pagination.pageSize, globalFilter, tempAppliedFilters);
+            } else {
+                console.warn('Assembly not found by AC_NO after fetching assemblies. assemblyInfo:', assemblyInfo);
+            }
+            
+            // Scroll to table
+            setTimeout(() => {
+                const tableElement = document.querySelector('[role="table"]');
+                if (tableElement) {
+                    tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        } catch (error) {
+            console.error('Error handling assembly selection:', error);
+        }
+    };
+
+    // Apply the assembly filter from the assembly drawer (moved here so it has access to component state)
+    const applyAssemblyFilterFromDrawer = async () => {
+        // Close drawer first for better UX
+        setAssemblyDrawerOpen(false);
+
+        // If we have fetched full assembly details, use its _id to set filters immediately
+        if (selectedAssemblyDetails && selectedAssemblyDetails._id) {
+            const assembly = selectedAssemblyDetails;
+            const newFilterValues = {
+                party: '',
+                state: assembly.state_id?._id || assembly.state_id || '',
+                division: assembly.division_id?._id || assembly.division_id || '',
+                parliament: assembly.parliament_id?._id || assembly.parliament_id || '',
+                assembly: assembly._id,
+                candidate: '',
+                electionYear: ''
+            };
+            setFilterValues(newFilterValues);
+            setAppliedFilters(newFilterValues);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            console.info('Applying assembly filter from drawer with:', newFilterValues);
+            await fetchCandidateList(0, pagination.pageSize, globalFilter, newFilterValues);
+            return;
+        }
+
+        // Fallback: call the existing handler which will resolve assembly and fetch
+        if (selectedAssemblyFromMap) {
+            await handleAssemblySelectFromMap(selectedAssemblyFromMap);
+        }
     };
 
     // Helper to return Authorization header when a token exists in localStorage
@@ -387,9 +690,14 @@ export default function WinningCandidateListPage() {
         }
     };
 
-    const fetchCandidateList = async (pageIndex, pageSize, globalFilter = '') => {
+    const fetchCandidateList = async (pageIndex, pageSize, globalFilter = '', filtersArg = null) => {
         setLoading(true);
         try {
+            // Use provided filtersArg for immediate fetch, otherwise use appliedFilters from state
+            const filtersToUse = filtersArg || appliedFilters || {};
+
+            
+
             let queryParams = [
                 `page=${pageIndex + 1}`,
                 `limit=${pageSize}`
@@ -399,28 +707,26 @@ export default function WinningCandidateListPage() {
                 queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             }
 
-            if (appliedFilters.party) {
-                queryParams.push(`party=${appliedFilters.party}`);
+            if (filtersToUse.party) {
+                queryParams.push(`party=${filtersToUse.party}`);
             }
-            if (appliedFilters.state) {
-                queryParams.push(`state=${appliedFilters.state}`);
+            if (filtersToUse.state) {
+                queryParams.push(`state=${filtersToUse.state}`);
             }
-            if (appliedFilters.division) {
-                queryParams.push(`division=${appliedFilters.division}`);
+            if (filtersToUse.division) {
+                queryParams.push(`division=${filtersToUse.division}`);
             }
-            if (appliedFilters.parliament) {
-                queryParams.push(`parliament=${appliedFilters.parliament}`);
+            if (filtersToUse.parliament) {
+                queryParams.push(`parliament=${filtersToUse.parliament}`);
             }
-            if (appliedFilters.assembly) {
-                queryParams.push(`assembly=${appliedFilters.assembly}`);
+            if (filtersToUse.assembly) {
+                queryParams.push(`assembly=${filtersToUse.assembly}`);
             }
-            if (appliedFilters.candidate) {
-                queryParams.push(`candidate=${appliedFilters.candidate}`);
+            if (filtersToUse.candidate) {
+                queryParams.push(`candidate=${filtersToUse.candidate}`);
             }
-            if (appliedFilters.electionYear) {
-                queryParams.push(`electionYear=${appliedFilters.electionYear}`);
-                if (process.env.NODE_ENV === 'development') {
-                }
+            if (filtersToUse.electionYear) {
+                queryParams.push(`electionYear=${filtersToUse.electionYear}`);
             }
 
             // hierarchy-based filtering
@@ -450,7 +756,8 @@ export default function WinningCandidateListPage() {
                 }
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?${queryParams.join('&')}`, { headers: getAuthHeaders() });
+            const url = `${import.meta.env.VITE_APP_API_URL}/winning-candidates?${queryParams.join('&')}`;
+            const res = await fetch(url, { headers: getAuthHeaders() });
             const json = await res.json();
             if (json.success) {
                 setCandidateList(json.data);
@@ -905,13 +1212,32 @@ export default function WinningCandidateListPage() {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
+                const handleViewDetails = async () => {
+                    try {
+                        const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/${row.original._id}`, {
+                            headers: getAuthHeaders()
+                        });
+                        if (response.ok) {
+                            const res = await response.json();
+                            setSelectedCandidateForDrawer(res.data || row.original);
+                            setDrawerOpen(true);
+                        } else {
+                            setSelectedCandidateForDrawer(row.original);
+                            setDrawerOpen(true);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching candidate details:', error);
+                        setSelectedCandidateForDrawer(row.original);
+                        setDrawerOpen(true);
+                    }
+                };
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
                         <IconButton
                             color="info"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/WInningCandidateList/${row.original._id}`);
+                                handleViewDetails();
                             }}
                         >
                             <Eye />
@@ -968,9 +1294,9 @@ export default function WinningCandidateListPage() {
     const handleDownloadCsv = async () => {
         setCsvLoading(true);
         try {
-            console.log('Starting CSV download process...'); // Debugging log to indicate process start
+            
             const allData = await fetchAllCandidatesForCsv();
-            console.log('Fetched Data:', allData); // Debugging log to inspect fetched data
+            
 
             if (!allData || allData.length === 0) {
                 console.error('No data available for CSV download.');
@@ -1001,14 +1327,13 @@ export default function WinningCandidateListPage() {
                 'Created At': formatDate(item.created_at)
             }));
 
-            console.log('Formatted CSV Data:', formattedData); // Debugging log to inspect formatted data
+            
 
             setCsvData(formattedData);
             setTimeout(() => {
-                console.log('Attempting to trigger CSV download...'); // Debugging log before triggering download
+                
                 if (csvLinkRef.current) {
                     csvLinkRef.current.link.click();
-                    console.log('CSV download triggered successfully.'); // Debugging log for success
                 } else {
                     console.error('CSVLink reference is null or undefined. Ensure the CSVLink component is rendered correctly.');
                 }
@@ -1072,6 +1397,338 @@ export default function WinningCandidateListPage() {
         }
     };
 
+    // Side Panel Component
+    const renderSidePanel = () => (
+        <Box
+            sx={{
+                position: 'fixed',
+                right: drawerOpen ? 0 : '-480px',
+                top: 0,
+                width: 480,
+                height: '100vh',
+                backgroundColor: 'background.paper',
+                boxShadow: drawerOpen ? 24 : 0,
+                transition: 'right 0.3s ease-in-out',
+                zIndex: 1300,
+                overflowY: 'auto',
+                p: 3
+            }}
+        >
+            {selectedCandidateForDrawer && (
+                <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h5" fontWeight={700}>
+                            Candidate Details
+                        </Typography>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                            <InfoOutlinedIcon />
+                        </IconButton>
+                    </Box>
+                    <Divider />
+
+                    {/* Candidate Basic Info */}
+                    <Box sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter, borderRadius: 2 }}>
+                        <Stack spacing={2}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box
+                                    sx={{
+                                        width: 80,
+                                        height: 80,
+                                        borderRadius: '50%',
+                                        bgcolor: theme.palette.primary.main,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '2rem',
+                                        color: 'white',
+                                        fontWeight: 700
+                                    }}
+                                >
+                                    {selectedCandidateForDrawer.candidate_id?.name?.charAt(0) || 'C'}
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" fontWeight={700} color="primary">
+                                        {selectedCandidateForDrawer.candidate_id?.name || 'N/A'}
+                                    </Typography>
+                                    <Chip
+                                        label={selectedCandidateForDrawer.party_id?.name || 'N/A'}
+                                        color="secondary"
+                                        size="small"
+                                        sx={{ mt: 0.5 }}
+                                    />
+                                </Box>
+                            </Box>
+
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                    Election Year
+                                </Typography>
+                                <Typography variant="h6" fontWeight={700} color="primary">
+                                    {selectedCandidateForDrawer.year_id?.year || 'N/A'}
+                                </Typography>
+                            </Box>
+
+                            {selectedCandidateForDrawer.type && selectedCandidateForDrawer.type.length > 0 && (
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Election Type
+                                    </Typography>
+                                    <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+                                        {selectedCandidateForDrawer.type.map((type, index) => (
+                                            <Chip key={index} label={type} size="small" color="info" variant="outlined" />
+                                        ))}
+                                    </Stack>
+                                </Box>
+                            )}
+                        </Stack>
+                    </Box>
+
+                    {/* Voting Statistics */}
+                    <Box sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter, borderRadius: 2 }}>
+                        <Stack spacing={2}>
+                            <Typography variant="h6" fontWeight={700} color="success.dark">
+                                <HowToVoteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                Voting Statistics
+                            </Typography>
+
+                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Total Votes
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight={700} color="primary">
+                                        {selectedCandidateForDrawer.total_votes?.toLocaleString() || 'N/A'}
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Poll %
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight={700} color="info.main">
+                                        {selectedCandidateForDrawer.poll_percentage || 'N/A'}
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Voting %
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight={700} color="secondary.main">
+                                        {selectedCandidateForDrawer.voting_percentage || 'N/A'}%
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Margin
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight={700} color="success.main">
+                                        {selectedCandidateForDrawer.margin?.toLocaleString() || 'N/A'}
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Margin %
+                                    </Typography>
+                                    <Typography variant="h6" fontWeight={700}>
+                                        {selectedCandidateForDrawer.margin_percentage || 'N/A'}
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        NOTA Votes
+                                    </Typography>
+                                    <Typography variant="h6" fontWeight={700}>
+                                        {selectedCandidateForDrawer.nota_votes || 'N/A'}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Stack>
+                    </Box>
+
+                    {/* Electors Information */}
+                    <Box sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter, borderRadius: 2 }}>
+                        <Stack spacing={2}>
+                            <Typography variant="h6" fontWeight={700} color="info.dark">
+                                <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                Electors Information
+                            </Typography>
+
+                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Total Electors
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight={700} color="primary">
+                                        {selectedCandidateForDrawer.electors?.toLocaleString() || selectedCandidateForDrawer.total_electors || 'N/A'}
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Male Electors
+                                    </Typography>
+                                    <Typography variant="h6" fontWeight={700} color="info.main">
+                                        {selectedCandidateForDrawer.male_electors?.toLocaleString() || 'N/A'}
+                                    </Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Female Electors
+                                    </Typography>
+                                    <Typography variant="h6" fontWeight={700} color="secondary.main">
+                                        {selectedCandidateForDrawer.female_electors?.toLocaleString() || 'N/A'}
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            {/* Gender Distribution */}
+                            {selectedCandidateForDrawer.male_electors && selectedCandidateForDrawer.female_electors && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 1, display: 'block' }}>
+                                        Gender Distribution
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                Male: {((selectedCandidateForDrawer.male_electors / (selectedCandidateForDrawer.male_electors + selectedCandidateForDrawer.female_electors)) * 100).toFixed(1)}%
+                                            </Typography>
+                                            <Box sx={{
+                                                height: 8,
+                                                backgroundColor: theme.palette.info.main,
+                                                borderRadius: 1,
+                                                width: `${(selectedCandidateForDrawer.male_electors / (selectedCandidateForDrawer.male_electors + selectedCandidateForDrawer.female_electors)) * 100}%`
+                                            }} />
+                                        </Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                Female: {((selectedCandidateForDrawer.female_electors / (selectedCandidateForDrawer.male_electors + selectedCandidateForDrawer.female_electors)) * 100).toFixed(1)}%
+                                            </Typography>
+                                            <Box sx={{
+                                                height: 8,
+                                                backgroundColor: theme.palette.secondary.main,
+                                                borderRadius: 1,
+                                                width: `${(selectedCandidateForDrawer.female_electors / (selectedCandidateForDrawer.male_electors + selectedCandidateForDrawer.female_electors)) * 100}%`
+                                            }} />
+                                        </Box>
+                                    </Box>
+                                </Box>
+                            )}
+                        </Stack>
+                    </Box>
+
+                    {/* Location Hierarchy */}
+                    <Box sx={{ p: 2.5, backgroundColor: theme.palette.warning.lighter, borderRadius: 2 }}>
+                        <Stack spacing={2}>
+                            <Typography variant="h6" fontWeight={700} color="warning.dark">
+                                <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                Location Hierarchy
+                            </Typography>
+
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                    State
+                                </Typography>
+                                <Typography variant="body1" fontWeight={600}>
+                                    {selectedCandidateForDrawer.state_id?.name || 'N/A'}
+                                </Typography>
+                            </Box>
+
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                    Division
+                                </Typography>
+                                <Typography variant="body1" fontWeight={600}>
+                                    {selectedCandidateForDrawer.division_id?.name || 'N/A'}
+                                </Typography>
+                            </Box>
+
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                    Parliament
+                                </Typography>
+                                <Typography variant="body1" fontWeight={600}>
+                                    {selectedCandidateForDrawer.parliament_id?.name || 'N/A'}
+                                </Typography>
+                            </Box>
+
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                    Assembly
+                                </Typography>
+                                <Typography variant="body1" fontWeight={600}>
+                                    {selectedCandidateForDrawer.assembly_id?.name || 'N/A'}
+                                    {selectedCandidateForDrawer.assembly_id?.AC_NO && (
+                                        <Chip
+                                            label={`AC No: ${selectedCandidateForDrawer.assembly_id.AC_NO}`}
+                                            size="small"
+                                            sx={{ ml: 1 }}
+                                        />
+                                    )}
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Box>
+
+                    {/* Description */}
+                    {selectedCandidateForDrawer.description && (
+                        <Box sx={{ p: 2, backgroundColor: theme.palette.grey[100], borderRadius: 2 }}>
+                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                Description
+                            </Typography>
+                            <Box sx={{ border: '1px solid #eee', borderRadius: 1, p: 2, bgcolor: 'background.default' }}>
+                                <div dangerouslySetInnerHTML={{ __html: selectedCandidateForDrawer.description }} />
+                            </Box>
+                        </Box>
+                    )}
+
+                    {/* Record Information */}
+                    {(selectedCandidateForDrawer.created_at || selectedCandidateForDrawer.updated_at) && (
+                        <Box sx={{ p: 2, backgroundColor: theme.palette.grey[100], borderRadius: 2 }}>
+                            <Stack spacing={1}>
+                                <Typography variant="caption" fontWeight={700} color="text.secondary">
+                                    Record Information
+                                </Typography>
+                                {selectedCandidateForDrawer.created_by && (
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Created By: {typeof selectedCandidateForDrawer.created_by === 'object' ? selectedCandidateForDrawer.created_by.username : selectedCandidateForDrawer.created_by}
+                                        </Typography>
+                                    </Box>
+                                )}
+                                {selectedCandidateForDrawer.created_at && (
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Created: {new Date(selectedCandidateForDrawer.created_at).toLocaleString()}
+                                        </Typography>
+                                    </Box>
+                                )}
+                                {selectedCandidateForDrawer.updated_by && (
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Updated By: {typeof selectedCandidateForDrawer.updated_by === 'object' ? selectedCandidateForDrawer.updated_by.username : selectedCandidateForDrawer.updated_by}
+                                        </Typography>
+                                    </Box>
+                                )}
+                                {selectedCandidateForDrawer.updated_at && (
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Last Updated: {new Date(selectedCandidateForDrawer.updated_at).toLocaleString()}
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Stack>
+                        </Box>
+                    )}
+                </Stack>
+            )}
+        </Box>
+    );
+
     if (loading) return <EmptyReactTable />;
 
     return (
@@ -1098,7 +1755,11 @@ export default function WinningCandidateListPage() {
             <Grid item xs={12}>
                 <MainCard title="Theme Variants">
                     <MapContainerStyled>
-                        <ChangeTheme {...mapConfiguration} themes={MAPBOX_THEMES} />
+                        <ChangeTheme 
+                            {...mapConfiguration} 
+                            themes={MAPBOX_THEMES} 
+                            onAssemblySelect={handleAssemblySelectFromMap}
+                        />
                     </MapContainerStyled>
                 </MainCard>
             </Grid>
@@ -1118,6 +1779,22 @@ export default function WinningCandidateListPage() {
                     </Typography>
                 </Alert>
                 <Stack spacing={2} sx={{ padding: 3 }}>
+                    {/* Selected Assembly from Map */}
+                    {selectedAssemblyFromMap && (
+                        <Alert 
+                            severity="info" 
+                            onClose={() => {
+                                setSelectedAssemblyFromMap(null);
+                                setFilterValues(prev => ({ ...prev, assembly: '' }));
+                                setAppliedFilters(prev => ({ ...prev, assembly: '' }));
+                            }}
+                            sx={{ mb: 1 }}
+                        >
+                            <Typography variant="body2">
+                                <strong>Filtered by Assembly:</strong> {selectedAssemblyFromMap.AC_NAME} (AC No: {selectedAssemblyFromMap.AC_NO})
+                            </Typography>
+                        </Alert>
+                    )}
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                         <TextField
                             size="small"
@@ -1411,6 +2088,57 @@ export default function WinningCandidateListPage() {
                 handleClose={handleDeleteClose}
                 refresh={() => fetchCandidateList(pagination.pageIndex, pagination.pageSize)}
             />
+
+            {/* Side Panel */}
+            {renderSidePanel()}
+
+            {/* Assembly Drawer (opened when clicking a polygon on the map) */}
+            <Drawer
+                anchor="right"
+                open={assemblyDrawerOpen}
+                onClose={() => setAssemblyDrawerOpen(false)}
+                sx={{ '& .MuiDrawer-paper': { width: 380, boxSizing: 'border-box', p: 3 } }}
+            >
+                {selectedAssemblyFromMap ? (
+                        <Stack spacing={2}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="h6" fontWeight={700}>Assembly</Typography>
+                                <IconButton onClick={() => setAssemblyDrawerOpen(false)} size="small"><InfoOutlinedIcon /></IconButton>
+                            </Box>
+                            <Divider />
+
+                            {/* Render the full assembly details (prefer full API record) */}
+                            {renderAssemblyDetails(selectedAssemblyDetails || selectedAssemblyFromMap)}
+
+                            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                                <Button variant="contained" onClick={applyAssemblyFilterFromDrawer}>
+                                    Apply Filter
+                                </Button>
+                                <Button variant="outlined" onClick={() => { setSelectedAssemblyFromMap(null); setSelectedAssemblyDetails(null); setAppliedFilters(prev => ({ ...prev, assembly: '' })); setFilterValues(prev => ({ ...prev, assembly: '' })); setAssemblyDrawerOpen(false); }}>
+                                    Clear
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    ) : (
+                        <Typography>No assembly selected</Typography>
+                    )}
+            </Drawer>
+
+            {/* Backdrop */}
+            {drawerOpen && (
+                <Box
+                    onClick={() => setDrawerOpen(false)}
+                    sx={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        zIndex: 1200
+                    }}
+                />
+            )}
         </>
     );
 }
