@@ -608,6 +608,45 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
                 </Box>
               </Stack>
             </Paper>
+
+            {/* Last 3 Years Winning Parties */}
+            <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[100] }}>
+              <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+                Last 3 Years Winning Parties
+              </Typography>
+              <Stack spacing={1}>
+                {(() => {
+                  const acNo = selectedAssembly.AC_NO;
+                  let years = [];
+                  if (acNo && winningCandidates && winningCandidates[acNo]) {
+                    years = Object.keys(winningCandidates[acNo])
+                      .map(y => y.toString())
+                      .sort((a, b) => b.localeCompare(a));
+                  }
+                  const last3Years = years.slice(0, 3);
+                  return last3Years.length > 0 ? last3Years.map(year => {
+                    const candidate = winningCandidates[acNo][year];
+                    const partyName = candidate?.party_id?.name || 'Unknown';
+                    return (
+                      <Box key={year} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {year}
+                        </Typography>
+                        <Chip
+                          label={partyName}
+                          size="small"
+                          sx={{ bgcolor: partyColors[partyName] || partyColors['default'], color: 'white' }}
+                        />
+                      </Box>
+                    );
+                  }) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No historical data available
+                    </Typography>
+                  );
+                })()}
+              </Stack>
+            </Paper>
           </Stack>
         )}
       </Drawer>
