@@ -1,10 +1,14 @@
 import PropTypes from 'prop-types';
 import { useState, useCallback, memo, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
-import Map, { Source, Layer, Popup } from 'react-map-gl';
+import Map, { Source, Layer } from 'react-map-gl';
 import ControlPanel from './control-panel';
 import MapControl from 'components/third-party/map/MapControl';
-import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress, Drawer, Paper, IconButton, Divider, Stack, Chip } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 
 // Complete Party color mapping
 const partyColors = {
@@ -33,7 +37,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
   const [winningCandidates, setWinningCandidates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [popupInfo, setPopupInfo] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedParliament, setSelectedParliament] = useState(null);
   const [filters, setFilters] = useState({
     pcName: 'all',
     party: 'all',
@@ -175,14 +180,24 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
   }, [filters.year, winningCandidates]);
 
   const handleFeatureClick = (e) => {
+    // Prevent default browser navigation/refresh
+    try {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+      if (e && e.originalEvent) {
+        if (typeof e.originalEvent.preventDefault === 'function') e.originalEvent.preventDefault();
+        if (typeof e.originalEvent.stopPropagation === 'function') e.originalEvent.stopPropagation();
+      }
+    } catch (err) {
+      console.warn('Error preventing default on map click event:', err);
+    }
+
     if (!e.features?.length) return;
 
     const feature = e.features[0];
-    setPopupInfo({
-      longitude: e.lngLat.lng,
-      latitude: e.lngLat.lat,
-      properties: feature.properties
-    });
+    setSelectedParliament(feature.properties);
+    setDrawerOpen(true);
   };
 
   // Filter parliament polygons by PC_NAME, party, and year
@@ -376,74 +391,237 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
             </Source>
           )}
 
-          {popupInfo && (
-            <Popup
-              longitude={popupInfo.longitude}
-              latitude={popupInfo.latitude}
-              closeButton={true}
-              onClose={() => setPopupInfo(null)}
-              anchor="bottom"
-              closeOnClick={false}
-            >
-              <div style={{ minWidth: '220px', padding: '8px' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>
-                  {popupInfo.properties.PC_NAME || 'Parliament Constituency'}
-                </h4>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '8px',
-                  padding: '4px',
-                  backgroundColor: getColorForFeature({ properties: popupInfo.properties }),
-                  borderRadius: '4px'
-                }}>
-                  <span style={{ color: '#FFF', padding: '0 4px' }}>
-                    {popupInfo.properties.winningParty || 'Unknown Party'}
-                  </span>
-                </div>
-                <div style={{ marginTop: '8px' }}>
-                  <p><strong>Winning Candidate:</strong> {popupInfo.properties.winningCandidate || 'Unknown'}</p>
-                  <p><strong>Margin:</strong> {popupInfo.properties.margin ?? 'N/A'}</p>
-                  <p><strong>Margin %:</strong> {popupInfo.properties.margin_percentage !== undefined && popupInfo.properties.margin_percentage !== null ? `${(popupInfo.properties.margin_percentage * 100).toFixed(2)}%` : 'N/A'}</p>
-                  <p><strong>Candidate Votes:</strong> {popupInfo.properties.candidate_votes ?? 'N/A'}</p>
-                  <p><strong>Total Votes (PC):</strong> {popupInfo.properties.total_votes_parliament ?? 'N/A'}</p>
-                  <p><strong>Election Year:</strong> {popupInfo.properties.election_election_year_id || 'N/A'}</p>
-                  <p><strong>PC Number:</strong> {popupInfo.properties.PC_NO || 'N/A'}</p>
-                  <p><strong>Parliament Constituency:</strong> {popupInfo.properties.PC_NAME || 'N/A'}</p>
-                  <p><strong>State:</strong> {popupInfo.properties.ST_NAME || 'N/A'}</p>
-                  {/* <p><strong>Position Result:</strong> {popupInfo.properties.position_result || 'N/A'}</p> */}
-                </div>
-                {/* Last 3 years winning party names for Parliament */}
-                <div style={{ marginTop: '12px' }}>
-                  <strong>Last 3 Years Winning Parties:</strong>
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+          {/* Parliament Details Drawer */}
+          <Drawer
+            anchor="right"
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            sx={{
+              '& .MuiDrawer-paper': {
+                width: 450,
+                boxSizing: 'border-box',
+                p: 3,
+                overflowY: 'auto'
+              }
+            }}
+          >
+            {selectedParliament && (
+              <Stack spacing={2}>
+                {/* Header */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="h5" fontWeight={700}>
+                    Parliament Details
+                  </Typography>
+                  <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                    <CloseIcon />
+                  </IconButton>
+                </Box>
+                <Divider />
+
+                {/* Parliament Basic Info */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter }}>
+                  <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box
+                        sx={{
+                          width: 72,
+                          height: 72,
+                          borderRadius: '50%',
+                          bgcolor: getColorForFeature({ properties: selectedParliament }),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.5rem',
+                          color: 'white',
+                          fontWeight: 700
+                        }}
+                      >
+                        {selectedParliament.PC_NO || '?'}
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" fontWeight={700} color="primary">
+                          {selectedParliament.PC_NAME || 'Parliament Constituency'}
+                        </Typography>
+                        {selectedParliament.winningParty && (
+                          <Chip
+                            label={selectedParliament.winningParty}
+                            sx={{ 
+                              mt: 0.5,
+                              bgcolor: getColorForFeature({ properties: selectedParliament }),
+                              color: 'white'
+                            }}
+                            size="small"
+                          />
+                        )}
+                      </Box>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        PC Number
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {selectedParliament.PC_NO || 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+
+                {/* Winning Candidate Info */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter }}>
+                  <Stack spacing={2}>
+                    <Typography variant="h6" fontWeight={700} color="success.dark">
+                      <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Winning Candidate
+                    </Typography>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Candidate Name
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {selectedParliament.winningCandidate || 'Unknown'}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                          Election Year
+                        </Typography>
+                        <Typography variant="h6" fontWeight={700} color="primary">
+                          {selectedParliament.election_election_year_id || 'N/A'}
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                          Margin
+                        </Typography>
+                        <Typography variant="h6" fontWeight={700} color="success.main">
+                          {selectedParliament.margin !== 'N/A' && !isNaN(selectedParliament.margin) 
+                            ? Number(selectedParliament.margin).toLocaleString() 
+                            : selectedParliament.margin || 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Margin Percentage
+                      </Typography>
+                      <Typography variant="body1" fontWeight={700}>
+                        {selectedParliament.margin_percentage !== undefined && selectedParliament.margin_percentage !== null 
+                          ? `${(selectedParliament.margin_percentage * 100).toFixed(2)}%` 
+                          : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+
+                {/* Voting Statistics */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter }}>
+                  <Stack spacing={2}>
+                    <Typography variant="h6" fontWeight={700} color="info.dark">
+                      <HowToVoteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Voting Statistics
+                    </Typography>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                          Candidate Votes
+                        </Typography>
+                        <Typography variant="h5" fontWeight={700} color="primary">
+                          {selectedParliament.candidate_votes !== undefined && selectedParliament.candidate_votes !== null
+                            ? Number(selectedParliament.candidate_votes).toLocaleString()
+                            : 'N/A'}
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                          Total Votes
+                        </Typography>
+                        <Typography variant="h5" fontWeight={700} color="info.main">
+                          {selectedParliament.total_votes_parliament !== undefined && selectedParliament.total_votes_parliament !== null
+                            ? Number(selectedParliament.total_votes_parliament).toLocaleString()
+                            : 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Stack>
+                </Paper>
+
+                {/* Location Information */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.warning.lighter }}>
+                  <Stack spacing={2}>
+                    <Typography variant="h6" fontWeight={700} color="warning.dark">
+                      <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Location Information
+                    </Typography>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Parliament Constituency
+                      </Typography>
+                      <Typography variant="body1" fontWeight={600}>
+                        {selectedParliament.PC_NAME || 'N/A'}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        State
+                      </Typography>
+                      <Typography variant="body1" fontWeight={600}>
+                        {selectedParliament.ST_NAME || 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+
+                {/* Last 3 Years Winning Parties */}
+                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[100] }}>
+                  <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+                    Last 3 Years Winning Parties
+                  </Typography>
+                  <Stack spacing={1}>
                     {(() => {
-                      // Find PC_NO for this popup
-                      const pcNo = popupInfo.properties.PC_NO;
-                      // Get all years for this PC_NO from winningCandidates
+                      const pcNo = selectedParliament.PC_NO;
                       let years = [];
                       if (pcNo && winningCandidates && winningCandidates[pcNo]) {
                         years = Object.keys(winningCandidates[pcNo])
                           .map(y => y.toString())
-                          .sort((a, b) => b.localeCompare(a)); // Descending
+                          .sort((a, b) => b.localeCompare(a));
                       }
-                      // Take last 3 years
                       const last3Years = years.slice(0, 3);
                       return last3Years.length > 0 ? last3Years.map(year => {
                         const candidate = winningCandidates[pcNo][year];
+                        const partyName = candidate?.party_id?.name || 'Unknown';
                         return (
-                          <li key={year}>
-                            {year}: {candidate?.party_id?.name || 'Unknown'}
-                          </li>
+                          <Box key={year} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                            <Typography variant="body2" fontWeight={600}>
+                              {year}
+                            </Typography>
+                            <Chip
+                              label={partyName}
+                              size="small"
+                              sx={{ bgcolor: partyColors[partyName] || partyColors['default'], color: 'white' }}
+                            />
+                          </Box>
                         );
-                      }) : <li>No data</li>;
+                      }) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No historical data available
+                        </Typography>
+                      );
                     })()}
-                  </ul>
-                </div>
-
-              </div>
-            </Popup>
-          )}
+                  </Stack>
+                </Paper>
+              </Stack>
+            )}
+          </Drawer>
           {loading && (
             <Box
               sx={{
