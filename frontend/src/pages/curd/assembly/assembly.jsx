@@ -17,6 +17,12 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import CloseIcon from '@mui/icons-material/Close';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import WorkIcon from '@mui/icons-material/Work';
+import GroupIcon from '@mui/icons-material/Group';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
@@ -56,6 +62,7 @@ export default function AssemblyListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
+    const [selectedMapAssembly, setSelectedMapAssembly] = useState(null);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -513,6 +520,31 @@ export default function AssemblyListPage() {
         });
     };
 
+    const applyAssemblyFilter = () => {
+        if (selectedMapAssembly && drawerData?.details?.assembly) {
+            const assembly = drawerData.details.assembly;
+            const newFilters = {
+                type: assembly.type || '',
+                category: assembly.category || '',
+                state_id: assembly.state_id?._id || '',
+                division_id: assembly.division_id?._id || '',
+                parliament_id: assembly.parliament_id?._id || ''
+            };
+            setFilters(newFilters);
+            setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
+            fetchAssemblies(0, pagination.pageSize, globalFilter, newFilters);
+            setDrawerOpen(false);
+            
+            // Scroll to table
+            setTimeout(() => {
+                const tableElement = document.querySelector('[role="table"]');
+                if (tableElement) {
+                    tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        }
+    };
+
     const fetchAssemblyDetailsByPolygon = async (acNo, acName) => {
         try {
             const token = localStorage.getItem('serviceToken');
@@ -645,6 +677,20 @@ export default function AssemblyListPage() {
                     }
                 });
                 setDrawerOpen(true);
+                
+                // Auto-apply filter to table when assembly details are loaded
+                if (assembly) {
+                    const newFilters = {
+                        type: assembly.type || '',
+                        category: assembly.category || '',
+                        state_id: assembly.state_id?._id || '',
+                        division_id: assembly.division_id?._id || '',
+                        parliament_id: assembly.parliament_id?._id || ''
+                    };
+                    setFilters(newFilters);
+                    setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
+                    fetchAssemblies(0, pagination.pageSize, globalFilter, newFilters);
+                }
             } else {
                 setDrawerData({ loading: false, acNo, acName, details: null, error: 'Assembly not found' });
                 setDrawerOpen(true);
@@ -753,9 +799,14 @@ export default function AssemblyListPage() {
                                         const props = assemblyFeature.properties || {};
                                         const acNo = props.AC_NO || props.ac_no || props.acNo || '';
                                         const acName = props.AC_NAME || props.name || '';
+                                        setSelectedMapAssembly({ acNo, acName });
                                         setDrawerData({ loading: true, acNo, acName, details: null });
                                         setDrawerOpen(true);
-                                        fetchAssemblyDetailsByPolygon(acNo, acName);
+                                        
+                                        // Fetch assembly details and apply filter immediately
+                                        (async () => {
+                                            await fetchAssemblyDetailsByPolygon(acNo, acName);
+                                        })();
                                     }
                                 } catch (err) {
                                     console.warn('Map click handler error:', err);
@@ -1044,79 +1095,220 @@ export default function AssemblyListPage() {
             />
 
             {/* Right-side Drawer for clicked assembly info */}
-            <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-                <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>
+            <Drawer 
+                anchor="right" 
+                open={drawerOpen} 
+                onClose={() => setDrawerOpen(false)}
+                sx={{
+                    '& .MuiDrawer-paper': {
+                        width: 450,
+                        boxSizing: 'border-box'
+                    }
+                }}
+            >
+                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                     {/* Header */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 2 }}>
                         <Box>
-                            <Typography variant="h6">Assembly Details</Typography>
-                            <Typography variant="caption" color="text.secondary">Click an assembly polygon to view more information</Typography>
+                            <Typography variant="h5" fontWeight={700}>Assembly Details</Typography>
+                            <Typography variant="caption" color="text.secondary">Complete information about selected assembly</Typography>
                         </Box>
-                        <IconButton color="secondary" onClick={() => setDrawerOpen(false)} sx={{ p: 0.5 }}>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
                             <CloseIcon />
                         </IconButton>
                     </Box>
+                    <Divider />
 
-                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 72px)' }}>
-                        {!drawerData && <Typography variant="body2">Click an assembly polygon to view details.</Typography>}
-                        {drawerData?.loading && <Typography variant="body2">Loading...</Typography>}
+                    {/* Content */}
+                    <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+                        {!drawerData && <Typography variant="body2" color="text.secondary">Click an assembly polygon to view details.</Typography>}
+                        {drawerData?.loading && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <Typography variant="body2">Loading...</Typography>
+                            </Box>
+                        )}
 
                         {drawerData?.details && (
                             <Stack spacing={2}>
-                                <Paper elevation={1} sx={{ p: 2, borderRadius: 1 }}>
-                                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Basic</Typography>
-                                    <Typography variant="body2"><strong>Name:</strong> {drawerData.details.assembly?.name || drawerData.acName || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>AC No:</strong> {drawerData.details.assembly?.AC_NO || drawerData.acNo || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Division:</strong> {drawerData.details.assembly?.division_id?.name || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.assembly?.parliament_id?.name || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>State:</strong> {drawerData.details.assembly?.state_id?.name || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Type:</strong> {drawerData.details.assembly?.type || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Category:</strong> {drawerData.details.assembly?.category || 'N/A'}</Typography>
-                                </Paper>
-
-                                <Paper elevation={0} sx={{ p: 1 }}>
-                                    <Typography variant="subtitle2">Blocks ({drawerData.details.blocks?.length || 0})</Typography>
-                                    {drawerData.details.blocks?.length ? drawerData.details.blocks.slice(0,8).map(b => (
-                                        <Typography key={b._id} variant="body2">• {b.name}</Typography>
-                                    )) : <Typography variant="body2">No blocks found.</Typography>}
-                                </Paper>
-
-                                <Paper elevation={0} sx={{ p: 1 }}>
-                                    <Typography variant="subtitle2">Booths ({drawerData.details.booths?.length || 0})</Typography>
-                                    {drawerData.details.booths?.length ? drawerData.details.booths.slice(0,8).map(bt => (
-                                        <Typography key={bt._id} variant="body2">• #{bt.booth_number} — {bt.name}</Typography>
-                                    )) : <Typography variant="body2">No booths found.</Typography>}
-                                </Paper>
-
-                                <Paper elevation={0} sx={{ p: 1 }}>
-                                    <Typography variant="subtitle2">Visits ({drawerData.details.visits?.length || 0})</Typography>
-                                    {drawerData.details.visits?.length ? drawerData.details.visits.slice(0,5).map(v => (
-                                        <Box key={v._id} sx={{ mb: 0.5 }}>
-                                            <Typography variant="body2">• {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} - {v.candidate_id?.name || ''}</Typography>
-                                            <Typography variant="caption" color="text.secondary">{v.locationName || ''}</Typography>
+                                {/* Assembly Basic Info */}
+                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter }}>
+                                    <Stack spacing={2}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Box
+                                                sx={{
+                                                    width: 72,
+                                                    height: 72,
+                                                    borderRadius: '50%',
+                                                    bgcolor: theme.palette.primary.main,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '1.5rem',
+                                                    color: 'white',
+                                                    fontWeight: 700
+                                                }}
+                                            >
+                                                {drawerData.details.assembly?.AC_NO || drawerData.acNo || '?'}
+                                            </Box>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="h6" fontWeight={700} color="primary">
+                                                    {drawerData.details.assembly?.name || drawerData.acName || 'N/A'}
+                                                </Typography>
+                                                <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {drawerData.details.assembly?.type && (
+                                                        <Chip label={drawerData.details.assembly.type} size="small" color="primary" variant="outlined" />
+                                                    )}
+                                                    {drawerData.details.assembly?.category && (
+                                                        <Chip label={drawerData.details.assembly.category} size="small" color="secondary" variant="outlined" />
+                                                    )}
+                                                </Stack>
+                                            </Box>
                                         </Box>
-                                    )) : <Typography variant="body2">No visits found.</Typography>}
+                                    </Stack>
                                 </Paper>
 
-                                <Paper elevation={0} sx={{ p: 1 }}>
-                                    <Typography variant="subtitle2">Work Status ({drawerData.details.workStatuses?.length || 0})</Typography>
-                                    {drawerData.details.workStatuses?.length ? drawerData.details.workStatuses.slice(0,5).map(ws => (
-                                        <Box key={ws._id} sx={{ mb: 0.5 }}>
-                                            <Typography variant="body2">• {ws.work_name || 'Work'} — {ws.status || ''}</Typography>
-                                            <Typography variant="caption" color="text.secondary">Budget: {ws.total_budget ?? 'N/A'} | Spent: {ws.spent_amount ?? 0}</Typography>
+                                {/* Location Information */}
+                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.warning.lighter }}>
+                                    <Typography variant="h6" fontWeight={700} color="warning.dark" sx={{ mb: 2 }}>
+                                        <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Location Hierarchy
+                                    </Typography>
+                                    <Stack spacing={1.5}>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>State</Typography>
+                                            <Typography variant="body1" fontWeight={600}>{drawerData.details.assembly?.state_id?.name || 'N/A'}</Typography>
                                         </Box>
-                                    )) : <Typography variant="body2">No work status records.</Typography>}
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>Division</Typography>
+                                            <Typography variant="body1" fontWeight={600}>{drawerData.details.assembly?.division_id?.name || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>Parliament</Typography>
+                                            <Typography variant="body1" fontWeight={600}>{drawerData.details.assembly?.parliament_id?.name || 'N/A'}</Typography>
+                                        </Box>
+                                    </Stack>
                                 </Paper>
 
-                                <Paper elevation={0} sx={{ p: 1 }}>
-                                    <Typography variant="subtitle2">Winning Candidates ({drawerData.details.winners?.length || 0})</Typography>
-                                    {drawerData.details.winners?.length ? drawerData.details.winners.slice(0,5).map(w => (
-                                        <Box key={w._id} sx={{ mb: 0.5 }}>
-                                            <Typography variant="body2">• {w.name || w.candidate_id?.name || 'Candidate'} — {w.party_id?.name || w.party || 'Party'}</Typography>
-                                            <Typography variant="caption" color="text.secondary">Year: {typeof w.year_id === 'object' ? (w.year_id?.year || w.year_id?.name) : w.year_id}</Typography>
-                                        </Box>
-                                    )) : <Typography variant="body2">No winners data.</Typography>}
+                                {/* Blocks Info */}
+                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter }}>
+                                    <Typography variant="h6" fontWeight={700} color="success.dark" sx={{ mb: 2 }}>
+                                        <LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Blocks ({drawerData.details.blocks?.length || 0})
+                                    </Typography>
+                                    <Stack spacing={1}>
+                                        {drawerData.details.blocks?.length ? drawerData.details.blocks.slice(0, 8).map(b => (
+                                            <Box key={b._id} sx={{ display: 'flex', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                                                <Typography variant="body2" fontWeight={600}>{b.name}</Typography>
+                                            </Box>
+                                        )) : (
+                                            <Typography variant="body2" color="text.secondary">No blocks found</Typography>
+                                        )}
+                                    </Stack>
                                 </Paper>
+
+                                {/* Booths Info */}
+                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter }}>
+                                    <Typography variant="h6" fontWeight={700} color="info.dark" sx={{ mb: 2 }}>
+                                        <HowToVoteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Booths ({drawerData.details.booths?.length || 0})
+                                    </Typography>
+                                    <Stack spacing={1}>
+                                        {drawerData.details.booths?.length ? drawerData.details.booths.slice(0, 8).map(bt => (
+                                            <Box key={bt._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                                                <Typography variant="body2" fontWeight={600}>#{bt.booth_number}</Typography>
+                                                <Typography variant="body2">{bt.name}</Typography>
+                                            </Box>
+                                        )) : (
+                                            <Typography variant="body2" color="text.secondary">No booths found</Typography>
+                                        )}
+                                    </Stack>
+                                </Paper>
+
+                                {/* Work Status */}
+                                {drawerData.details.workStatuses?.length > 0 && (
+                                    <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.secondary.lighter }}>
+                                        <Typography variant="h6" fontWeight={700} color="secondary.dark" sx={{ mb: 2 }}>
+                                            <WorkIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                            Work Status ({drawerData.details.workStatuses.length})
+                                        </Typography>
+                                        <Stack spacing={1}>
+                                            {drawerData.details.workStatuses.slice(0, 5).map(ws => (
+                                                <Box key={ws._id} sx={{ p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                                                    <Typography variant="body2" fontWeight={600}>{ws.work_name || 'Work'}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Status: {ws.status || 'N/A'} | Budget: ₹{ws.total_budget?.toLocaleString() || 'N/A'}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    </Paper>
+                                )}
+
+                                {/* Winning Candidates */}
+                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[100] }}>
+                                    <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+                                        <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Winning Candidates ({drawerData.details.winners?.length || 0})
+                                    </Typography>
+                                    <Stack spacing={1}>
+                                        {drawerData.details.winners?.length ? drawerData.details.winners.slice(0, 5).map(w => (
+                                            <Box key={w._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {w.name || w.candidate_id?.name || 'Candidate'}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Year: {typeof w.year_id === 'object' ? (w.year_id?.year || w.year_id?.name) : w.year_id}
+                                                    </Typography>
+                                                </Box>
+                                                <Chip 
+                                                    label={w.party_id?.name || w.party || 'Party'} 
+                                                    size="small" 
+                                                    color="primary"
+                                                />
+                                            </Box>
+                                        )) : (
+                                            <Typography variant="body2" color="text.secondary">No winners data</Typography>
+                                        )}
+                                    </Stack>
+                                </Paper>
+
+                                {/* Visits Info */}
+                                {drawerData.details.visits?.length > 0 && (
+                                    <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[50] }}>
+                                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+                                            <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                            Recent Visits ({drawerData.details.visits.length})
+                                        </Typography>
+                                        <Stack spacing={1}>
+                                            {drawerData.details.visits.slice(0, 5).map(v => (
+                                                <Box key={v._id} sx={{ p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {v.candidate_id?.name || 'Candidate'}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} • {v.locationName || ''}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    </Paper>
+                                )}
+
+                                {/* Apply Filter Button */}
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    fullWidth
+                                    size="large"
+                                    onClick={applyAssemblyFilter}
+                                    sx={{ mt: 2 }}
+                                >
+                                    Apply Filter to Table
+                                </Button>
+                                <Alert severity="info" sx={{ mt: 1 }}>
+                                    This will filter the table below to show only this assembly's data
+                                </Alert>
                             </Stack>
                         )}
                     </Box>
