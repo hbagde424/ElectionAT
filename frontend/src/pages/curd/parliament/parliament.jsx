@@ -445,33 +445,27 @@ export default function ParliamentListPage() {
     };
 
     const handleDownloadExcelTemplate = async () => {
-        const headers = ['name', 'parliament_no', 'description', 'category', 'state', 'division_code'];
-        const exampleRow = ['5th Parliament District', '25', 'Sample parliament description', 'General', 'Maharashtra', '1'];
-        
         try {
             const XLSX = await import('xlsx');
-            const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Template');
-            XLSX.writeFile(wb, 'parliaments_import_template.xlsx');
-            return;
-        } catch (e) {
-            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
-        }
-
-        try {
-            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'parliaments_import_template.csv';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('Failed to generate fallback CSV template:', err);
+            const templateData = [
+                {
+                    name: '5th Parliament District',
+                    parliament_no: '25',
+                    description: 'Sample parliament description',
+                    category: 'General',
+                    regional_type: 'Urban',
+                    state_no: '23',
+                    division_code: '1',
+                    election_year: '2024'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'parliaments_import_template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
         }
     };
 
@@ -487,7 +481,7 @@ export default function ParliamentListPage() {
             const wsName = wb.SheetNames[0];
             const ws = wb.Sheets[wsName];
             const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-            
+
             const rows = json.map((r) => {
                 const obj = {};
                 for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
@@ -496,8 +490,10 @@ export default function ParliamentListPage() {
                     parliament_no: obj.parliament_no ?? obj['parliament no'] ?? '',
                     description: obj.description ?? '',
                     category: obj.category ?? '',
-                    state: obj.state ?? '',
-                    division_code: obj.division_code ?? obj.division ?? ''
+                    regional_type: obj.regional_type ?? obj['regional type'] ?? '',
+                    state: obj.state_no ?? obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    election_year: obj.election_year ?? obj['election year'] ?? ''
                 };
             });
 
@@ -546,7 +542,7 @@ export default function ParliamentListPage() {
                     const pcNoStr = String(pcNo || '').trim();
                     const nameStr = String(pcName || '').trim().toLowerCase();
                     parliament = json.data.find(p => String(p.parliament_no || p['Parliament No'] || '').trim() === pcNoStr) ||
-                                 json.data.find(p => String(p.name || '').trim().toLowerCase() === nameStr);
+                        json.data.find(p => String(p.name || '').trim().toLowerCase() === nameStr);
                 }
             } catch (e) {
                 console.warn('Failed to fetch all parliaments for matching:', e);
@@ -575,7 +571,7 @@ export default function ParliamentListPage() {
                         const wr = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-candidates?pc_no=${encodeURIComponent(pcNo)}&all=true`, { headers });
                         const wj = await wr.json();
                         if (wj?.success && Array.isArray(wj.data)) winners = wj.data;
-                    } catch {}
+                    } catch { }
                 }
 
                 // Strictly filter winners to selected parliament by id or pc_no

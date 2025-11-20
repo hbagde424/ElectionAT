@@ -469,11 +469,12 @@ export default function AssemblyListPage() {
             const templateData = [
                 {
                     name: 'Gwalior North',
-                    AC_NO: '1',
                     description: 'Example assembly constituency',
+                    AC_NO: '1',
                     type: 'Urban',
                     category: 'General',
-                    division_code: 'GWL',
+                    state_no: '23',
+                    division_code: '1',
                     parliament_no: '101'
                 }
             ];

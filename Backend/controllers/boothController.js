@@ -729,6 +729,29 @@ exports.importBooths = async (req, res, next) => {
           continue;
         }
 
+        // Resolve election year from common variants (id, numeric year, or name)
+        let electionYearDoc = null;
+        const eyVal = row.election_year ?? row.year ?? row.electionYear ?? row.election ?? row.election_year_id ?? row.year_id;
+        if (eyVal !== undefined && eyVal !== null && String(eyVal).trim() !== '') {
+          const eyRaw = String(eyVal).trim();
+          const isObjectId = /^[a-fA-F0-9]{24}$/.test(eyRaw);
+          if (isObjectId) {
+            electionYearDoc = await ElectionYear.findById(eyRaw);
+          }
+          if (!electionYearDoc && !isNaN(Number(eyRaw))) {
+            electionYearDoc = await ElectionYear.findOne({ year: Number(eyRaw) });
+          }
+          if (!electionYearDoc) {
+            electionYearDoc = await ElectionYear.findOne({ name: { $regex: `^${eyRaw}$`, $options: 'i' } });
+          }
+        }
+
+        if (!electionYearDoc) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Missing: election_year not found' });
+          continue;
+        }
+
         // Check for duplicates
         const existing = await Booth.findOne({ 
           booth_number: row.booth_number,
@@ -751,6 +774,12 @@ exports.importBooths = async (req, res, next) => {
           parliament_id: geo.parliament._id,
           division_id: geo.division._id,
           state_id: geo.state._id,
+          election_year: electionYearDoc._id,
+          // Map gender/count fields from common variants (normalized keys from frontend are lowercase_with_underscores)
+          Male_Count: Number(row.male_count ?? row.Male_Count ?? row.MaleCount ?? row.male ?? 0) || 0,
+          Female_Count: Number(row.female_count ?? row.Female_Count ?? row.FemaleCount ?? row.female ?? 0) || 0,
+          others_Count: Number(row.others_count ?? row.others_Count ?? row.othersCount ?? row.others ?? 0) || 0,
+          Total: Number(row.total ?? row.Total ?? row.TotalCount ?? ((Number(row.male_count ?? row.Male_Count ?? 0) || 0) + (Number(row.female_count ?? row.Female_Count ?? 0) || 0) + (Number(row.others_count ?? row.others_Count ?? 0) || 0))) || 0,
           created_by: req.user.id,
           updated_by: req.user.id
         };

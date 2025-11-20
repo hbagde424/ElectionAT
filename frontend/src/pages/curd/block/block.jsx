@@ -427,14 +427,14 @@ export default function BlocksListPage() {
             const XLSX = await import('xlsx');
             const templateData = [
                 {
-                    name: 'Central Block',
+                    name: 'Gwalior Block',
                     block_no: '1',
                     category: 'Urban',
-                    state_name: 'Madhya Pradesh',
-                    division_code: 'GWL',
-                    parliament_no: '101',
                     AC_NO: '1',
-                    description: 'Example block entry'
+                    parliament_no: '101',
+                    division_code: '1',
+                    state_no: '23',
+                    description: 'Main city block'
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -485,11 +485,19 @@ export default function BlocksListPage() {
             const result = await response.json();
 
             if (response.ok) {
+                // Backend returns 'created', 'skipped', 'total', 'errors'
+                const created = result.created ?? result.imported ?? 0;
+                const skipped = result.skipped ?? 0;
+                const total = result.total ?? (created + skipped) ?? 0;
+                const errors = result.errors || [];
                 setImportResult({
                     success: true,
-                    imported: result.imported || 0,
-                    total: result.total || 0,
-                    errors: result.errors || []
+                    created,
+                    imported: created,
+                    skipped,
+                    total,
+                    errors,
+                    ids: result.ids || []
                 });
                 fetchBlocks(pagination.pageIndex, pagination.pageSize);
             } else {
@@ -595,9 +603,17 @@ export default function BlocksListPage() {
                             onClose={() => setImportResult(null)}
                             sx={{ mt: 1 }}
                         >
-                            {importResult.success
-                                ? `Imported: ${importResult.imported} / ${importResult.total} | Errors: ${importResult.errors?.length || 0}`
-                                : `Import failed: ${importResult.message}`}
+                            {importResult.success ? (
+                                (() => {
+                                    const created = importResult.created ?? importResult.imported ?? 0;
+                                    const skipped = importResult.skipped ?? 0;
+                                    const total = importResult.total ?? (created + skipped) ?? 0;
+                                    const errorsCount = importResult.errors?.length ?? 0;
+                                    return `Imported: ${created} / ${total} | Skipped: ${skipped} | Errors: ${errorsCount}`;
+                                })()
+                            ) : (
+                                `Import failed: ${importResult.message}`
+                            )}
                         </Alert>
                     )}
                 </Stack>

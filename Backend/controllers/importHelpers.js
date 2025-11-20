@@ -23,12 +23,15 @@ async function resolveGeographicHierarchy(row) {
     booth: null
   };
 
-  // State (name or ID)
-  const stateValue = toKey(row.state ?? row.State ?? row.state_name);
+  // State (name or ID or state_no)
+  const stateValue = toKey(row.state ?? row.State ?? row.state_name ?? row.state_no);
   if (stateValue) {
     const isObjectId = /^[a-fA-F0-9]{24}$/.test(stateValue);
     if (isObjectId) {
       result.state = await State.findById(stateValue);
+    }
+    if (!result.state && !isNaN(Number(stateValue))) {
+      result.state = await State.findOne({ state_no: Number(stateValue) });
     }
     if (!result.state) {
       result.state = await State.findOne({ name: { $regex: `^${stateValue}$`, $options: 'i' } });
@@ -56,21 +59,34 @@ async function resolveGeographicHierarchy(row) {
     }
   }
 
-  // Assembly (AC_NO or name)
-  const assemblyValue = row.assembly_no ?? row.AC_NO ?? row.assembly;
+  // Assembly (AC_NO or common variants or name)
+  const assemblyValue = row.assembly_no ?? row.AC_NO ?? row.AC_No ?? row.ACNo ?? row.ac_no ?? row.acno ?? row.assembly;
   if (assemblyValue !== undefined && assemblyValue !== null && assemblyValue !== '') {
+    // Try to find by AC_NO (stored often as string or number)
     result.assembly = await Assembly.findOne({ AC_NO: String(assemblyValue).trim() });
+    if (!result.assembly) {
+      // Try numeric match as well
+      const pn = Number(String(assemblyValue).trim());
+      if (!isNaN(pn)) {
+        result.assembly = await Assembly.findOne({ AC_NO: String(pn) });
+      }
+    }
     if (!result.assembly) {
       result.assembly = await Assembly.findOne({ name: { $regex: `^${assemblyValue}$`, $options: 'i' } });
     }
   }
 
-  // Block (name or ID)
-  const blockValue = toKey(row.block ?? row.block_name);
+  // Block (support numeric block_no variants, name or ID)
+  const blockValueRaw = row.block_no ?? row.blockNo ?? row.blocknumber ?? row.block_number ?? row.blockNumber ?? row.block ?? row.block_name;
+  const blockValue = toKey(blockValueRaw);
   if (blockValue) {
     const isObjectId = /^[a-fA-F0-9]{24}$/.test(blockValue);
     if (isObjectId) {
       result.block = await Block.findById(blockValue);
+    }
+    // If numeric, try matching block_no field
+    if (!result.block && !isNaN(Number(blockValue))) {
+      result.block = await Block.findOne({ block_no: Number(blockValue) });
     }
     if (!result.block) {
       result.block = await Block.findOne({ name: { $regex: `^${blockValue}$`, $options: 'i' } });

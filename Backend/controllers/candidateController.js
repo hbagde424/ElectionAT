@@ -398,3 +398,79 @@ exports.getCandidatesByCaste = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import candidates (client sends parsed rows)
+// @route   POST /api/candidates/import
+// @access  Private (Admin only)
+exports.importCandidates = async (req, res, next) => {
+  try {
+    const { toKey } = require('./importHelpers');
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : (Array.isArray(req.body?.data) ? req.body.data : null);
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows or data array is required in body' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const Party = require('../models/party');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const createdIds = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = toKey(r.name || r.full_name || r.Name || '');
+        if (!name) throw new Error('name is required');
+
+        let caste = toKey(r.caste || r.Caste || '');
+        // Normalize caste to allowed values
+        const allowedCastes = ['General', 'OBC', 'SC', 'ST', 'Other'];
+        if (!caste) caste = 'General';
+        // Accept lowercase variants
+        const casteMatch = allowedCastes.find(c => c.toLowerCase() === caste.toLowerCase());
+        caste = casteMatch || 'Other';
+
+        const criminal_cases = Number(r.criminal_cases ?? r['Criminal Cases'] ?? 0) || 0;
+        const assets = r.assets ?? r.Assets ?? '';
+        const liabilities = r.liabilities ?? r.Liabilities ?? '';
+        const education = r.education ?? r.Education ?? '';
+        const description = toKey(r.description ?? r.Description ?? '');
+
+        // Resolve party by name if provided
+        let partyId = null;
+        const partyName = toKey(r.party_name ?? r['Party Name'] ?? r.party);
+        if (partyName) {
+          const partyDoc = await Party.findOne({ name: { $regex: `^${partyName}$`, $options: 'i' } });
+          if (partyDoc) partyId = partyDoc._id;
+        }
+
+        const candidateData = {
+          name,
+          caste,
+          criminal_cases,
+          assets,
+          liabilities,
+          education,
+          description,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        if (partyId) candidateData.party_id = partyId;
+
+        const candidate = await Candidate.create(candidateData);
+        createdIds.push(candidate._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: createdIds });
+  } catch (err) {
+    next(err);
+  }
+};

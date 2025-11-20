@@ -475,6 +475,22 @@ exports.importParliaments = async (req, res, next) => {
           continue;
         }
 
+        // Resolve Election Year
+        let electionYearId = null;
+        if (row.election_year) {
+          const yearVal = Number(row.election_year);
+          if (!isNaN(yearVal)) {
+            const ey = await ElectionYear.findOne({ year: yearVal });
+            if (ey) electionYearId = ey._id;
+          }
+        }
+
+        if (!electionYearId) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Election year '${row.election_year}' not found or invalid` });
+          continue;
+        }
+
         // Check for duplicates
         const existing = await Parliament.findOne({ parliament_no: row.parliament_no });
         if (existing) {
@@ -487,9 +503,11 @@ exports.importParliaments = async (req, res, next) => {
           name: row.name,
           parliament_no: row.parliament_no,
           description: row.description || '',
-          category: row.category || 'General',
+          category: (row.category || 'general').toLowerCase(),
+          regional_type: (row.regional_type || 'mixed').toLowerCase(),
           division_id: geo.division._id,
           state_id: geo.state._id,
+          election_year_id: electionYearId,
           created_by: req.user.id,
           updated_by: req.user.id
         };

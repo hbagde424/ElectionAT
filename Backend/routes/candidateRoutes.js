@@ -6,6 +6,7 @@ const {
   updateCandidate,
   deleteCandidate,
   uploadPhoto,
+  importCandidates,
   getCandidatesByCriminalCases,
   getCandidatesByCaste
 } = require('../controllers/candidateController');
@@ -126,6 +127,9 @@ router.get('/:id', getUserPermissionsAndHierarchy, getCandidate);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin', 'admin'), upload.single('photo'), createCandidate);
+
+// Bulk import candidates from Excel/CSV
+router.post('/import', protect, authorize('superAdmin'), importCandidates);
 
 /**
  * @swagger

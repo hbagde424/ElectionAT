@@ -1,6 +1,6 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar
+    Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Alert
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -81,7 +81,7 @@ const CandidateListPage = () => {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?page=${actualPageIndex + 1}&limit=${actualPageSize}${query}`, { headers });
-            const json = await res.json();
+            const json = await safeParseJson(res);
 
             if (json.success) {
                 setCandidates(json.data);
@@ -183,6 +183,22 @@ const CandidateListPage = () => {
         } catch (e) {
             return value;
         }
+    };
+
+    // Safely parse JSON responses and surface HTML/text when server returns non-JSON (helps debug unexpected '<!DOCTYPE')
+    const safeParseJson = async (res) => {
+        const ct = res.headers?.get?.('content-type') || '';
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            console.error('HTTP error:', res.status, text);
+            throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        if (ct.includes('application/json')) {
+            return res.json();
+        }
+        const text = await res.text().catch(() => '');
+        console.error('Expected JSON but received non-JSON response:', text.slice(0, 1000));
+        throw new Error('Invalid JSON response from server');
     };
 
     const columns = useMemo(() => [
@@ -419,10 +435,8 @@ const CandidateListPage = () => {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/candidates?all=true`, { headers });
-            const json = await res.json();
-            if (json.success) {
-                return json.data;
-            }
+            const json = await safeParseJson(res);
+            if (json && json.success) return json.data;
         } catch (error) {
             console.error('Failed to fetch all candidates for CSV:', error);
         }
@@ -433,19 +447,30 @@ const CandidateListPage = () => {
         setCsvLoading(true);
         const allData = await fetchAllCandidatesForCsv();
         setCsvData(allData.map(item => ({
+            'ID': item._id || '',
             'Name': item.name || '',
-            'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
-            'Party': item.party_id?.name || '',
             'Caste': item.caste || '',
             'Criminal Cases': item.criminal_cases || 0,
-            'Education': item.education || '',
             'Assets': item.assets || '',
             'Liabilities': item.liabilities || '',
-            'Status': item.is_active ? 'Active' : 'Inactive',
+            'Education': item.education || '',
+            'Photo': item.photo || '',
+            'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
+            'Party ID': item.party_id?._id || (item.party_id || ''),
+            'Party Name': item.party_id?.name || '',
+            'State ID': item.state_id?._id || (item.state_id || ''),
+            'State Name': item.state_id?.name || '',
+            'Division ID': item.division_id?._id || (item.division_id || ''),
+            'Division Name': item.division_id?.name || '',
+            'Parliament ID': item.parliament_id?._id || (item.parliament_id || ''),
+            'Parliament Name': item.parliament_id?.name || '',
+            'Assembly ID': item.assembly_id?._id || (item.assembly_id || ''),
+            'Assembly Name': item.assembly_id?.name || '',
+            'Is Active': item.is_active ? 'Yes' : 'No',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
+            'Created At': item.created_at ? new Date(item.created_at).toISOString() : '',
+            'Updated At': item.updated_at ? new Date(item.updated_at).toISOString() : ''
         })));
         setCsvLoading(false);
         setTimeout(() => {
@@ -462,14 +487,18 @@ const CandidateListPage = () => {
             const templateData = [
                 {
                     name: 'Rajesh Kumar Singh',
-                    description: 'Former MLA and social worker',
-                    party_name: 'BJP',
                     caste: 'General',
                     criminal_cases: '0',
-                    education: 'B.A.',
-                    assets: '5000000',
-                    liabilities: '100000',
-                    is_active: 'true'
+                    assets: '₹50,00,000 (Land, House)',
+                    liabilities: '₹5,00,000 (Home Loan)',
+                    education: 'M.A. Political Science',
+                    photo: 'https://example.com/photo.jpg',
+                    description: 'Former MLA with 10 years experience',
+                    party_name: 'BJP',
+                    state_no: '23',
+                    division_code: '1',
+                    parliament_no: '101',
+                    AC_NO: '1'
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -515,7 +544,7 @@ const CandidateListPage = () => {
                 body: JSON.stringify({ data: normalizedData })
             });
 
-            const result = await response.json();
+            const result = await safeParseJson(response);
             setImportResult(result);
             if (result.success) {
                 fetchCandidates(pagination.pageIndex, pagination.pageSize, globalFilter);
@@ -570,9 +599,35 @@ const CandidateListPage = () => {
 
                 {importResult && (
                     <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mx: 3, mb: 2 }}>
-                        {importResult.message || (importResult.success ? 'Import successful' : 'Import failed')}
-                        {importResult.imported && ` (${importResult.imported} imported)`}
-                        {importResult.failed && ` (${importResult.failed} failed)`}
+                        <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {importResult.message || (importResult.success ? `Imported ${importResult.created ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+                            </Typography>
+
+                            {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+                                </Typography>
+                            )}
+
+                            {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                                    <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                                        {importResult.errors.slice(0, 10).map((err, idx) => (
+                                            <li key={idx}>
+                                                <Typography variant="body2">{`Row ${err.row}: ${err.message}`}</Typography>
+                                            </li>
+                                        ))}
+                                        {importResult.errors.length > 10 && (
+                                            <li>
+                                                <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                                            </li>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
                     </Alert>
                 )}
 

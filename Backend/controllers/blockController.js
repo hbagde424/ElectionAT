@@ -469,6 +469,10 @@ exports.importBlocks = async (req, res, next) => {
           continue;
         }
 
+        // Determine block number from common field variants
+        const rawBlockNo = row.block_no ?? row.blockNo ?? row.blocknumber ?? row.blockNumber ?? row.block;
+        const parsedBlockNo = rawBlockNo !== undefined && rawBlockNo !== null && String(rawBlockNo).trim() !== '' ? Number(String(rawBlockNo).trim()) : undefined;
+
         const blockData = {
           name: row.name,
           category: row.category || 'Urban',
@@ -477,7 +481,8 @@ exports.importBlocks = async (req, res, next) => {
           division_id: geo.division._id,
           state_id: geo.state._id,
           created_by: req.user.id,
-          updated_by: req.user.id
+          updated_by: req.user.id,
+          ...(parsedBlockNo ? { block_no: parsedBlockNo } : {})
         };
 
         const block = await Block.create(blockData);

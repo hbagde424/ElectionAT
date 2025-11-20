@@ -1172,20 +1172,22 @@ export default function BoothsListPage() {
             const XLSX = await import('xlsx');
             const templateData = [
                 {
-                    name: 'Main Polling Booth',
-                    booth_number: '101',
-                    full_address: '123 Main St, City',
-                    latitude: '19.0760',
-                    longitude: '72.8777',
-                    state_name: 'Madhya Pradesh',
-                    division_code: 'GWL',
-                    parliament_no: '101',
+                    name: 'Primary School Gwalior',
+                    booth_number: '1',
+                    full_address: 'Near City Center, Gwalior',
+                    latitude: '26.2183',
+                    longitude: '78.1828',
+                    block_no: '1',
                     AC_NO: '1',
-                    block_name: 'Block 1',
+                    parliament_no: '101',
+                    division_code: '1',
+                    state_no: '23',
+                    election_year: '2024',
                     Male_Count: '500',
                     Female_Count: '450',
-                    others_Count: '5',
-                    description: 'Example booth entry'
+                    others_Count: '0',
+                    Total: '950',
+                    description: 'Main polling station'
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -1236,10 +1238,14 @@ export default function BoothsListPage() {
             const result = await response.json();
 
             if (response.ok) {
+                // Backend may return `created` (new API) or `imported` (older API).
+                const created = result.created ?? result.imported ?? 0;
                 setImportResult({
                     success: true,
-                    imported: result.imported || 0,
+                    imported: created,
+                    created: created,
                     total: result.total || 0,
+                    skipped: result.skipped || 0,
                     errors: result.errors || []
                 });
                 fetchBooths(pagination.pageIndex, pagination.pageSize);
