@@ -1053,13 +1053,37 @@ export default function CodingListPage() {
     };
 
     // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['name', 'mobile', 'email', 'facebook', 'instagram', 'twitter', 'whatsapp_number', 'coding_types', 'state', 'division', 'parliament', 'assembly', 'block', 'panchayat', 'village', 'falliya'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'coding-template.xlsx');
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    name: 'Amit Sharma',
+                    mobile: '9876543210',
+                    email: 'amit@example.com',
+                    facebook: 'amit.sharma',
+                    twitter: '@amitsharma',
+                    instagram: 'amit_sharma',
+                    whatsapp_number: '9876543210',
+                    coding_types: 'Type A,Type B',
+                    state_name: 'Madhya Pradesh',
+                    division_name: 'Gwalior',
+                    parliament_no: '101',
+                    assembly_name: 'Gwalior North',
+                    block_name: 'Block 1',
+                    panchayat_name: 'Rampur Panchayat',
+                    village_name: 'Rampur',
+                    falliya_name: 'North Falliya'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'coding-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -1070,7 +1094,7 @@ export default function CodingListPage() {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];

@@ -8,6 +8,12 @@ const blockSchema = new mongoose.Schema({
     maxlength: [100, 'Block name cannot exceed 100 characters'],
     unique: true
   },
+  block_no: {
+    type: Number,
+    required: [true, 'Block number is required'],
+    unique: true,
+    min: [1, 'Block number must be at least 1']
+  },
   category: {
     type: String,
     enum: {
@@ -42,7 +48,7 @@ const blockSchema = new mongoose.Schema({
     ref: 'State',
     required: true
   },
-    description: {
+  description: {
     type: String,
     default: ''
   },
@@ -77,9 +83,6 @@ blockSchema.pre('save', function (next) {
 
 // Indexes for search and filtering
 blockSchema.index({ name: 'text' });
- // blockSchema.index({ assembly_id: 1 }); // Removed duplicate index, use index: true in schema if needed
- // blockSchema.index({ category: 1 }); // Removed duplicate index, use index: true in schema if needed
- // blockSchema.index({ is_active: 1 }); // Removed duplicate index, use index: true in schema if needed
 
 // Guard model registration to avoid OverwriteModelError during hot-reloads or multiple requires
 module.exports = mongoose.models.Block || mongoose.model('Block', blockSchema);

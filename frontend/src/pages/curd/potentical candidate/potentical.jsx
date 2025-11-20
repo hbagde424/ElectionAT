@@ -271,13 +271,34 @@ export default function PotentialCandidateListPage() {
   };
 
   // Excel Template Download
-  const handleDownloadExcelTemplate = () => {
-    const XLSX = require('xlsx');
-    const headers = ['name', 'party_id', 'constituency_id', 'election_year_id', 'postname', 'place', 'from_date', 'to_date', 'history', 'pros', 'cons', 'status', 'description'];
-    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-    XLSX.writeFile(workbook, 'potential-candidates-template.xlsx');
+  const handleDownloadExcelTemplate = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const templateData = [
+        {
+          name: 'Priya Sharma',
+          party_name: 'BJP',
+          constituency_name: 'Gwalior North',
+          election_year: '2024',
+          postname: 'MLA Candidate',
+          place: 'Gwalior',
+          from_date: '2024-01-01',
+          to_date: '2024-12-31',
+          history: 'Social worker since 2015',
+          pros: 'Strong grassroots support',
+          cons: 'New to politics',
+          status: 'Active',
+          description: 'Former teacher and community leader'
+        }
+      ];
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+      XLSX.writeFile(workbook, 'potential-candidates-template.xlsx');
+    } catch (error) {
+      console.error('Error generating template:', error);
+      alert('Failed to download template. Please try again.');
+    }
   };
 
   // Excel Import Handler
@@ -288,7 +309,7 @@ export default function PotentialCandidateListPage() {
     setImportResult(null);
 
     try {
-      const XLSX = require('xlsx');
+      const XLSX = await import('xlsx');
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];

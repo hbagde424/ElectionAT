@@ -456,13 +456,30 @@ const CandidateListPage = () => {
     };
 
     // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['name', 'description', 'party_id', 'caste', 'criminal_cases', 'education', 'assets', 'liabilities', 'is_active'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'candidates-template.xlsx');
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    name: 'Rajesh Kumar Singh',
+                    description: 'Former MLA and social worker',
+                    party_name: 'BJP',
+                    caste: 'General',
+                    criminal_cases: '0',
+                    education: 'B.A.',
+                    assets: '5000000',
+                    liabilities: '100000',
+                    is_active: 'true'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'candidates-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -473,7 +490,7 @@ const CandidateListPage = () => {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];

@@ -178,6 +178,32 @@ export default function BlocksListPage() {
             )
         },
         {
+            header: 'Name',
+            accessorKey: 'name',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Block No',
+            accessorKey: 'block_no',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="secondary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
             header: 'Description',
             accessorKey: 'description',
             cell: ({ getValue }) => (
@@ -375,6 +401,7 @@ export default function BlocksListPage() {
         const allData = await fetchAllBlocksForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            'Block No': item.block_no || 'N/A',
             Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             Category: item.category,
             State: item.state_id?.name || '',
@@ -396,16 +423,28 @@ export default function BlocksListPage() {
     };
 
     const handleDownloadExcelTemplate = async () => {
-        const XLSX = await import('xlsx');
-        const headers = ['name', 'category', 'state', 'division_code', 'parliament_no', 'assembly_no'];
-        const exampleData = [
-            ['Central Block', 'Urban', 'Maharashtra', '1', '5', '150']
-        ];
-        const worksheetData = [headers, ...exampleData];
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Blocks Template');
-        XLSX.writeFile(workbook, 'blocks_template.xlsx');
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    name: 'Central Block',
+                    block_no: '1',
+                    category: 'Urban',
+                    state_name: 'Madhya Pradesh',
+                    division_code: 'GWL',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    description: 'Example block entry'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'blocks_template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     const handleImportFile = async (e) => {

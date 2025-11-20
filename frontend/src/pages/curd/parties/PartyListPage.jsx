@@ -338,14 +338,27 @@ export default function PartyListPage() {
         }, 100);
     };
 
-    // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['name', 'description', 'abbreviation', 'symbol', 'founded_year'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'parties-template.xlsx');
+    // Download Excel Template
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    name: 'Bharatiya Janata Party',
+                    description: 'Indian political party',
+                    abbreviation: 'BJP',
+                    symbol: 'Lotus',
+                    founded_year: '1980'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'parties-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -356,7 +369,7 @@ export default function PartyListPage() {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];

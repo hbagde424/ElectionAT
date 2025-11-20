@@ -648,13 +648,31 @@ export default function CasteListPage() {
     };
 
     // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['caste', 'category', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'caste-list-template.xlsx');
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    caste: 'Brahmin',
+                    percentage: '15.5',
+                    category: 'General',
+                    state_no: '1',
+                    division_code: 'GWL',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block_no: '1',
+                    booth_number: '101',
+                    description: 'Example caste entry'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'caste-list-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -665,7 +683,7 @@ export default function CasteListPage() {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];

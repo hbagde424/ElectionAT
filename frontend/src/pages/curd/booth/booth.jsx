@@ -194,7 +194,7 @@ export default function BoothsListPage() {
             // Only fetch election years for modal, other filters will be populated from booth data
             const electionYearsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers });
             const electionYearsData = await electionYearsRes.json();
-            
+
             if (electionYearsData.success) setElectionYears(electionYearsData.data);
 
         } catch (error) {
@@ -743,7 +743,7 @@ export default function BoothsListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
-            
+
             // Fetch with high limit to get all available booths for filters
             const url = `${apiUrl}/booths?page=1&limit=10000`;
             const res = await fetch(url, { headers });
@@ -1168,16 +1168,34 @@ export default function BoothsListPage() {
     };
 
     const handleDownloadExcelTemplate = async () => {
-        const XLSX = await import('xlsx');
-        const headers = ['name', 'booth_number', 'full_address', 'latitude', 'longitude', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block'];
-        const exampleData = [
-            ['Main Polling Booth', '1', '123 Main St, City', '19.0760', '72.8777', 'Maharashtra', '1', '5', '150', 'Block A']
-        ];
-        const worksheetData = [headers, ...exampleData];
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Booths Template');
-        XLSX.writeFile(workbook, 'booths_template.xlsx');
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    name: 'Main Polling Booth',
+                    booth_number: '101',
+                    full_address: '123 Main St, City',
+                    latitude: '19.0760',
+                    longitude: '72.8777',
+                    state_name: 'Madhya Pradesh',
+                    division_code: 'GWL',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block_name: 'Block 1',
+                    Male_Count: '500',
+                    Female_Count: '450',
+                    others_Count: '5',
+                    description: 'Example booth entry'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'booths_template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     const handleImportFile = async (e) => {

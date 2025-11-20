@@ -946,13 +946,38 @@ export default function PartyActivitiesListPage() {
     };
 
     // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['title', 'activity_type', 'description', 'activity_date', 'end_date', 'location', 'status', 'attendance_count', 'media_coverage', 'media_links', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'party-activities-template.xlsx');
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    title: 'Jan Sabha',
+                    activity_type: 'Rally',
+                    description: 'Public rally in Gwalior',
+                    activity_date: '2024-01-15',
+                    end_date: '2024-01-15',
+                    location: 'Gwalior Maidan',
+                    status: 'Completed',
+                    attendance_count: '5000',
+                    media_coverage: 'Yes',
+                    media_links: 'http://example.com/news1',
+                    party_name: 'BJP',
+                    state_name: 'Madhya Pradesh',
+                    division_name: 'Gwalior',
+                    parliament_no: '101',
+                    assembly_name: 'Gwalior North',
+                    block_name: 'Block 1',
+                    booth_number: '101'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'party-activities-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -963,7 +988,7 @@ export default function PartyActivitiesListPage() {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];

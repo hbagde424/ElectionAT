@@ -56,7 +56,7 @@ const BLOListPage = () => {
     const [mapError, setMapError] = useState('');
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
-    
+
     // Helper: fit map to GeoJSON feature collection bounds with retries (same logic as booths page)
     const fitGeoJSONBounds = (fc, attempt = 0) => {
         try {
@@ -229,7 +229,7 @@ const BLOListPage = () => {
             cell: ({ row }) => (
                 <Stack direction="row" spacing={1}>
                     <Tooltip title="View Details">
-                            <IconButton 
+                        <IconButton
                             onClick={() => navigate(`/blo/${row.original._id}`)}
                             color="primary"
                         >
@@ -237,7 +237,7 @@ const BLOListPage = () => {
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Edit">
-                        <IconButton 
+                        <IconButton
                             onClick={() => handleEdit(row.original)}
                             color="secondary"
                         >
@@ -245,7 +245,7 @@ const BLOListPage = () => {
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                        <IconButton 
+                        <IconButton
                             onClick={() => handleDelete(row.original._id)}
                             color="error"
                         >
@@ -441,7 +441,7 @@ const BLOListPage = () => {
                 try {
                     const r = await fetch(url, { headers: getAuthHeaders() });
                     if (r.ok) { json = await r.json(); if (json) break; }
-                } catch {}
+                } catch { }
             }
             if (!json) {
                 setMapError(`No booth polygons found for block '${blockInput}'`);
@@ -475,7 +475,7 @@ const BLOListPage = () => {
             if (json.success && Array.isArray(json.data)) {
                 const boothNoStr = String(boothNo || '').trim();
                 booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr) ||
-                        json.data.find(b => String(b.booth_number).includes(boothNoStr));
+                    json.data.find(b => String(b.booth_number).includes(boothNoStr));
             }
 
             // fetch BLOs for this booth
@@ -527,13 +527,29 @@ const BLOListPage = () => {
     };
 
     // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['blo_name', 'contact_number', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'blo-template.xlsx');
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    blo_name: 'Rajesh Kumar',
+                    contact_number: '9876543210',
+                    state_name: 'Madhya Pradesh',
+                    division_code: 'GWL',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block_name: 'Block 1',
+                    booth_number: '101'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'blo-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -544,7 +560,7 @@ const BLOListPage = () => {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -821,7 +837,7 @@ const BLOListPage = () => {
                                             <Typography variant="subtitle2">BLO Entries ({drawerData.details.blos?.length || 0})</Typography>
                                             {drawerData.details.blos?.length ? drawerData.details.blos.slice(0, 20).map(b => (
                                                 <Box key={b._id} sx={{ mb: 1, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, cursor: 'pointer' }}
-                                                     onClick={() => navigate(`/blo/${b._id}`)}>
+                                                    onClick={() => navigate(`/blo/${b._id}`)}>
                                                     <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{b.blo_name || 'N/A'}</Typography>
                                                     <Typography variant="caption" color="text.secondary">
                                                         {b.contact_number || ''}

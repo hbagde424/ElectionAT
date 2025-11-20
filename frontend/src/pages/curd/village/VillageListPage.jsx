@@ -345,13 +345,30 @@ const VillageListPage = () => {
     };
 
     // Excel Template Download
-    const handleDownloadExcelTemplate = () => {
-        const XLSX = require('xlsx');
-        const headers = ['village_name', 'panchayat_id', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id', 'booth_id', 'location', 'latitude', 'longitude', 'male_count', 'female_count', 'others_count'];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-        XLSX.writeFile(workbook, 'villages-template.xlsx');
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    village_name: 'Rampur',
+                    panchayat_name: 'Rampur Gram Panchayat',
+                    state_name: 'Madhya Pradesh',
+                    location: 'Near Main Road',
+                    latitude: '26.1234',
+                    longitude: '78.5678',
+                    male_count: '500',
+                    female_count: '480',
+                    others_count: '2'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'village-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     // Excel Import Handler
@@ -362,7 +379,7 @@ const VillageListPage = () => {
         setImportResult(null);
 
         try {
-            const XLSX = require('xlsx');
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];

@@ -7,6 +7,12 @@ const stateSchema = new mongoose.Schema({
     trim: true,
     unique: true
   },
+  state_no: {
+    type: Number,
+    required: true,
+    unique: true,
+    min: [1, 'State number must be at least 1']
+  },
   description: {
     type: String,
     default: ''
@@ -30,7 +36,7 @@ const stateSchema = new mongoose.Schema({
   }
 });
 
-stateSchema.pre('save', function(next) {
+stateSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });

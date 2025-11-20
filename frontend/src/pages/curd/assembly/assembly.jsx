@@ -464,11 +464,20 @@ export default function AssemblyListPage() {
     // Load xlsx dynamically to avoid breaking the dev server when dependency is absent
     const handleDownloadExcelTemplate = async () => {
         // Use numeric/code fields instead of database IDs
-        const headers = ['name', 'AC_NO', 'description', 'type', 'category', 'division_code', 'parliament_no'];
-        // Try dynamic import of xlsx
         try {
             const XLSX = await import('xlsx');
-            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            const templateData = [
+                {
+                    name: 'Gwalior North',
+                    AC_NO: '1',
+                    description: 'Example assembly constituency',
+                    type: 'Urban',
+                    category: 'General',
+                    division_code: 'GWL',
+                    parliament_no: '101'
+                }
+            ];
+            const ws = XLSX.utils.json_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Template');
             // writeFile triggers browser download when built for web
@@ -480,7 +489,9 @@ export default function AssemblyListPage() {
 
         // Fallback: generate CSV template
         try {
-            const csvContent = headers.join(',') + '\n';
+            const headers = ['name', 'AC_NO', 'description', 'type', 'category', 'division_code', 'parliament_no'];
+            const exampleRow = ['Gwalior North', '1', 'Example assembly constituency', 'Urban', 'General', 'GWL', '101'];
+            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -534,7 +545,7 @@ export default function AssemblyListPage() {
             setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
             fetchAssemblies(0, pagination.pageSize, globalFilter, newFilters);
             setDrawerOpen(false);
-            
+
             // Scroll to table
             setTimeout(() => {
                 const tableElement = document.querySelector('[role="table"]');
@@ -594,7 +605,7 @@ export default function AssemblyListPage() {
                         const wr = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?ac_no=${encodeURIComponent(acNo)}&all=true`, { headers });
                         const wj = await wr.json();
                         if (wj?.success && Array.isArray(wj.data)) winners = wj.data;
-                    } catch {}
+                    } catch { }
                 }
 
                 // Narrow winners to only those belonging to this assembly (by assembly id or AC No).
@@ -677,7 +688,7 @@ export default function AssemblyListPage() {
                     }
                 });
                 setDrawerOpen(true);
-                
+
                 // Auto-apply filter to table when assembly details are loaded
                 if (assembly) {
                     const newFilters = {
@@ -802,7 +813,7 @@ export default function AssemblyListPage() {
                                         setSelectedMapAssembly({ acNo, acName });
                                         setDrawerData({ loading: true, acNo, acName, details: null });
                                         setDrawerOpen(true);
-                                        
+
                                         // Fetch assembly details and apply filter immediately
                                         (async () => {
                                             await fetchAssemblyDetailsByPolygon(acNo, acName);
@@ -1095,9 +1106,9 @@ export default function AssemblyListPage() {
             />
 
             {/* Right-side Drawer for clicked assembly info */}
-            <Drawer 
-                anchor="right" 
-                open={drawerOpen} 
+            <Drawer
+                anchor="right"
+                open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 sx={{
                     '& .MuiDrawer-paper': {
@@ -1261,9 +1272,9 @@ export default function AssemblyListPage() {
                                                         Year: {typeof w.year_id === 'object' ? (w.year_id?.year || w.year_id?.name) : w.year_id}
                                                     </Typography>
                                                 </Box>
-                                                <Chip 
-                                                    label={w.party_id?.name || w.party || 'Party'} 
-                                                    size="small" 
+                                                <Chip
+                                                    label={w.party_id?.name || w.party || 'Party'}
+                                                    size="small"
                                                     color="primary"
                                                 />
                                             </Box>

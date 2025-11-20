@@ -26,6 +26,7 @@ export default function BlocksModal({
 
     const [formData, setFormData] = useState({
         name: '',
+        block_no: '',
         category: 'Urban',
         state_id: '',
         division_id: '',
@@ -47,6 +48,7 @@ export default function BlocksModal({
         if (block && Array.isArray(states) && states.length > 0) {
             setFormData({
                 name: block.name || '',
+                block_no: block.block_no || '',
                 category: block.category || 'Urban',
                 state_id: block.state_id?._id?.toString() || block.state_id?.toString() || '',
                 division_id: block.division_id?._id?.toString() || block.division_id?.toString() || '',
@@ -58,6 +60,7 @@ export default function BlocksModal({
         } else if (!block) {
             setFormData({
                 name: '',
+                block_no: '',
                 category: 'Urban',
                 state_id: '',
                 division_id: '',
@@ -265,6 +268,24 @@ export default function BlocksModal({
                             {submitted && !formData.category && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Category is required</Box>
                             )}
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel>Block Number <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <TextField
+                                name="block_no"
+                                type="number"
+                                value={formData.block_no}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.block_no}
+                                helperText={submitted && !formData.block_no ? 'Block number is required' : ''}
+                                placeholder="Enter block number"
+                                inputProps={{ min: 1 }}
+                            />
                         </Stack>
                     </Grid>
 

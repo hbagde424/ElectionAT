@@ -119,11 +119,11 @@ export default function StatesListPage() {
         {
             header: '#',
             accessorKey: '_id',
-               cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
+            }
         },
         {
             header: 'Name',
@@ -137,6 +137,18 @@ export default function StatesListPage() {
                 }}>
                     {getValue()}
                 </Typography>
+            )
+        },
+        {
+            header: 'State No',
+            accessorKey: 'state_no',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue() || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
             )
         },
         {
@@ -247,6 +259,7 @@ export default function StatesListPage() {
         const allData = await fetchAllStatesForCsv();
         setCsvData(allData.map(item => ({
             Name: item.name,
+            'State No': item.state_no || 'N/A',
             Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
             Status: item.is_active ? 'Active' : 'Inactive',
             'Created By': item.created_by?.username || '',
@@ -301,7 +314,7 @@ export default function StatesListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{ 
+                                                sx={{
                                                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                                                     color: 'white',
                                                     fontWeight: 'bold',

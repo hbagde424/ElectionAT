@@ -18,6 +18,7 @@ export default function StateModal({
 
     const [formData, setFormData] = useState({
         name: '',
+        state_no: '',
         is_active: true,
         description: ''
     });
@@ -28,12 +29,14 @@ export default function StateModal({
         if (state) {
             setFormData({
                 name: state.name || '',
+                state_no: state.state_no || '',
                 is_active: state.is_active !== undefined ? state.is_active : true,
                 description: state.description || ''
             });
         } else {
             setFormData({
                 name: '',
+                state_no: '',
                 is_active: true,
                 description: ''
             });
@@ -135,6 +138,24 @@ export default function StateModal({
                                 error={submitted && !formData.name}
                                 helperText={submitted && !formData.name ? 'State name is required' : ''}
                                 placeholder="Enter state name"
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>State Number <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <TextField
+                                name="state_no"
+                                type="number"
+                                value={formData.state_no}
+                                onChange={handleChange}
+                                fullWidth
+                                required
+                                error={submitted && !formData.state_no}
+                                helperText={submitted && !formData.state_no ? 'State number is required' : ''}
+                                placeholder="Enter state number"
+                                inputProps={{ min: 1 }}
                             />
                         </Stack>
                     </Grid>
