@@ -22,6 +22,7 @@ import CasteModal from './CasteModal';
 import AlertCasteDelete from './AlertCasteDelete';
 import CasteView from './CasteView';
 import { usePermissions } from 'contexts/PermissionContext';
+import { safeRenderError } from 'utils/importResultHelpers';
 
 export default function CasteListPage() {
     const theme = useTheme();
@@ -819,7 +820,7 @@ export default function CasteListPage() {
                                         <Box component="ul" sx={{ pl: 3, m: 0 }}>
                                             {importResult.errors.slice(0, 10).map((err, idx) => (
                                                 <li key={idx}>
-                                                    <Typography variant="body2">{`Row ${err.row}: ${err.message}`}</Typography>
+                                                    <Typography variant="body2">{safeRenderError(err)}</Typography>
                                                 </li>
                                             ))}
                                             {importResult.errors.length > 10 && (
