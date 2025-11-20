@@ -7,7 +7,8 @@ const {
   deleteCasteList,
   getCasteListsByBooth,
   getCasteListsByState,
-  getCasteListsByCategory
+  getCasteListsByCategory,
+  importCasteLists
 } = require('../controllers/casteListController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -151,6 +152,9 @@ router.get('/:id', getUserPermissionsAndHierarchy, getCasteList);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin'), createCasteList);
+
+// Bulk import caste lists from Excel/CSV
+router.post('/import', protect, authorize('superAdmin'), importCasteLists);
 
 /**
  * @swagger

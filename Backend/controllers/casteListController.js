@@ -477,3 +477,74 @@ exports.getCasteListsByCategory = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Bulk import caste lists (client sends parsed rows)
+// @route   POST /api/caste-lists/import
+// @access  Private (Admin only)
+exports.importCasteLists = async (req, res, next) => {
+  const { resolveGeographicHierarchy, validateHierarchy, toKey } = require('./importHelpers');
+  
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : (Array.isArray(req.body?.data) ? req.body.data : null);
+    if (!rows) {
+      return res.status(400).json({ success: false, message: 'rows or data array is required in body' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const createdIds = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const caste = toKey(r.caste || r.Caste || '');
+        if (!caste) throw new Error('caste is required');
+
+        let category = toKey(r.category || r.Category || '');
+        const allowedCategories = ['SC', 'ST', 'OBC', 'GENERAL', 'General', 'Other'];
+        if (!category) category = 'Other';
+        const categoryMatch = allowedCategories.find(c => c.toLowerCase() === category.toLowerCase());
+        category = categoryMatch || 'Other';
+        if (category === 'GENERAL') category = 'General';
+
+        const percentage = r.percentage ?? r.Percentage ?? '';
+        const description = toKey(r.description ?? r.Description ?? '');
+
+        const geo = await resolveGeographicHierarchy(r);
+        const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (errors.length > 0) {
+          throw new Error(errors.join(', '));
+        }
+
+        const casteListData = {
+          caste,
+          category,
+          percentage,
+          description,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        const casteListEntry = await CasteList.create(casteListData);
+        createdIds.push(casteListEntry._id);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary, ids: createdIds });
+  } catch (err) {
+    next(err);
+  }
+};

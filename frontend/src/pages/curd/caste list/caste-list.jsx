@@ -94,6 +94,20 @@ export default function CasteListPage() {
 
     const accessScope = getUserAccessScope();
 
+    // Safe JSON parsing helper to avoid "Unexpected token '<'" when server returns HTML
+    const safeParseJson = async (res) => {
+        const ct = res.headers?.get?.('content-type') || '';
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            console.error('HTTP error:', res.status, text);
+            throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        if (ct.includes('application/json')) return res.json();
+        const text = await res.text().catch(() => '');
+        console.error('Expected JSON but received non-JSON response:', text.slice(0, 1000));
+        throw new Error('Invalid JSON response from server');
+    };
+
     const fetchAllCasteListForFilters = async () => {
         try {
             const query = {};
@@ -308,8 +322,8 @@ export default function CasteListPage() {
             }
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
-            const json = await res.json();
-            if (json.success) {
+            const json = await safeParseJson(res);
+            if (json && json.success) {
                 setCasteList(json.data);
                 setPageCount(json.pages);
             }
@@ -626,18 +640,28 @@ export default function CasteListPage() {
         setCsvLoading(true);
         const allData = await fetchAllCastesForCsv();
         setCsvData(allData.map(item => ({
-            Caste: item.caste,
-            Category: item.category,
-            State: item.state?.name || '',
-            Division: item.division?.name || '',
-            Parliament: item.parliament?.name || '',
-            Assembly: item.assembly?.name || '',
-            Block: item.block?.name || '',
-            Booth: item.booth?.name || '',
+            'ID': item._id || '',
+            'Caste': item.caste || '',
+            'Category': item.category || '',
+            'Percentage': item.percentage || '',
+            'Description': item.description || '',
+            'State ID': item.state?._id || (item.state_id || ''),
+            'State Name': item.state?.name || '',
+            'Division ID': item.division?._id || (item.division_id || ''),
+            'Division Name': item.division?.name || '',
+            'Parliament ID': item.parliament?._id || (item.parliament_id || ''),
+            'Parliament Name': item.parliament?.name || '',
+            'Assembly ID': item.assembly?._id || (item.assembly_id || ''),
+            'Assembly Name': item.assembly?.name || '',
+            'Block ID': item.block?._id || (item.block_id || ''),
+            'Block Name': item.block?.name || '',
+            'Booth ID': item.booth?._id || (item.booth_id || ''),
+            'Booth Name': item.booth?.name || '',
+            'Booth Number': item.booth?.booth_number || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
+            'Created At': item.created_at ? new Date(item.created_at).toISOString() : '',
+            'Updated At': item.updated_at ? new Date(item.updated_at).toISOString() : ''
         })));
         setCsvLoading(false);
         setTimeout(() => {
@@ -654,15 +678,15 @@ export default function CasteListPage() {
             const templateData = [
                 {
                     caste: 'Brahmin',
-                    percentage: '15.5',
                     category: 'General',
-                    state_no: '1',
-                    division_code: 'GWL',
+                    percentage: '15.5',
+                    description: 'Upper caste group',
+                    state_no: '23',
+                    division_code: '1',
                     parliament_no: '101',
                     AC_NO: '1',
                     block_no: '1',
-                    booth_number: '101',
-                    description: 'Example caste entry'
+                    booth_number: '1'
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -699,7 +723,7 @@ export default function CasteListPage() {
             });
 
             const token = localStorage.getItem('serviceToken');
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/castes/import`, {
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/caste-lists/import`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -708,7 +732,7 @@ export default function CasteListPage() {
                 body: JSON.stringify({ data: normalizedData })
             });
 
-            const result = await response.json();
+            const result = await safeParseJson(response);
             setImportResult(result);
             if (result.success) {
                 fetchCasteList(pagination.pageIndex, pagination.pageSize, globalFilter);
@@ -777,10 +801,36 @@ export default function CasteListPage() {
                     </Stack>
 
                     {importResult && (
-                        <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mx: 2 }}>
-                            {importResult.message || (importResult.success ? 'Import successful' : 'Import failed')}
-                            {importResult.imported && ` (${importResult.imported} imported)`}
-                            {importResult.failed && ` (${importResult.failed} failed)`}
+                        <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mx: 2, mb: 2 }}>
+                            <Box>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                    {importResult.message || (importResult.success ? `Imported ${importResult.created ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+                                </Typography>
+
+                                {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+                                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                        {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+                                    </Typography>
+                                )}
+
+                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                                        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                                            {importResult.errors.slice(0, 10).map((err, idx) => (
+                                                <li key={idx}>
+                                                    <Typography variant="body2">{`Row ${err.row}: ${err.message}`}</Typography>
+                                                </li>
+                                            ))}
+                                            {importResult.errors.length > 10 && (
+                                                <li>
+                                                    <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                                                </li>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                )}
+                            </Box>
                         </Alert>
                     )}
 
