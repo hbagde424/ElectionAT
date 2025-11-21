@@ -6,11 +6,19 @@ const Parliament = require('../models/Parliament');
 const Assembly = require('../models/Assembly');
 const Block = require('../models/block');
 const Booth = require('../models/booth');
+const Panchayat = require('../models/Panchayat');
+const Village = require('../models/Village');
+const Falliya = require('../models/Falliya');
 
 // Normalize functions
 const toKey = (s) => String(s || '').trim();
 const toUpper = (s) => String(s || '').trim().toUpperCase();
 const toLower = (s) => String(s || '').trim().toLowerCase();
+const toNumber = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(String(v).trim());
+  return isNaN(n) ? null : n;
+};
 
 // Resolve geographic hierarchy from codes/names
 async function resolveGeographicHierarchy(row) {
@@ -102,6 +110,60 @@ async function resolveGeographicHierarchy(row) {
     }
   }
 
+  // Panchayat (name or id) - prefer matching within block if available
+  const panchayatValue = toKey(row.panchayat_name ?? row.panchayat ?? row.panchayatName ?? row.panchayat_name);
+  if (panchayatValue) {
+    const isObjectId = /^[a-fA-F0-9]{24}$/.test(panchayatValue);
+    if (isObjectId) {
+      result.panchayat = await Panchayat.findById(panchayatValue);
+    }
+    if (!result.panchayat) {
+      const regex = { $regex: `^${panchayatValue}$`, $options: 'i' };
+      if (result.block && result.block._id) {
+        result.panchayat = await Panchayat.findOne({ panchayat_name: regex, block_id: result.block._id });
+      }
+      if (!result.panchayat) {
+        result.panchayat = await Panchayat.findOne({ panchayat_name: regex });
+      }
+    }
+  }
+
+  // Village (name or id) - prefer within panchayat when possible
+  const villageValue = toKey(row.village_name ?? row.village ?? row.villageName);
+  if (villageValue) {
+    const isObjectId = /^[a-fA-F0-9]{24}$/.test(villageValue);
+    if (isObjectId) {
+      result.village = await Village.findById(villageValue);
+    }
+    if (!result.village) {
+      const regex = { $regex: `^${villageValue}$`, $options: 'i' };
+      if (result.panchayat && result.panchayat._id) {
+        result.village = await Village.findOne({ village_name: regex, panchayat_id: result.panchayat._id });
+      }
+      if (!result.village) {
+        result.village = await Village.findOne({ village_name: regex });
+      }
+    }
+  }
+
+  // Falliya (name or id) - prefer within village when possible
+  const falliyaValue = toKey(row.falliya_name ?? row.falliya ?? row.falliyaName);
+  if (falliyaValue) {
+    const isObjectId = /^[a-fA-F0-9]{24}$/.test(falliyaValue);
+    if (isObjectId) {
+      result.falliya = await Falliya.findById(falliyaValue);
+    }
+    if (!result.falliya) {
+      const regex = { $regex: `^${falliyaValue}$`, $options: 'i' };
+      if (result.village && result.village._id) {
+        result.falliya = await Falliya.findOne({ falliya_name: regex, village_id: result.village._id });
+      }
+      if (!result.falliya) {
+        result.falliya = await Falliya.findOne({ falliya_name: regex });
+      }
+    }
+  }
+
   return result;
 }
 
@@ -120,6 +182,7 @@ module.exports = {
   toKey,
   toUpper,
   toLower,
+  toNumber,
   resolveGeographicHierarchy,
   validateHierarchy
 };

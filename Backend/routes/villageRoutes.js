@@ -4,7 +4,8 @@ const {
     getVillage,
     createVillage,
     updateVillage,
-    deleteVillage
+    deleteVillage,
+    importVillages
 } = require('../controllers/villageController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -168,6 +169,9 @@ const router = express.Router();
 router.route('/')
     .get(protect, getUserPermissionsAndHierarchy, getVillages)
     .post(protect, authorize('admin', 'superAdmin'), createVillage);
+
+// Bulk import
+router.post('/import', protect, authorize('admin', 'superAdmin'), importVillages);
 
 router.route('/:id')
     .get(protect, getUserPermissionsAndHierarchy, getVillage)

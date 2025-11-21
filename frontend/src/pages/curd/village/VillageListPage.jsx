@@ -6,6 +6,7 @@ import {
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import axiosServices from 'utils/axios';
+import { safeParseJson, safeRenderError } from 'utils/importResultHelpers';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import {
@@ -140,7 +141,7 @@ const VillageListPage = () => {
             cell: ({ row }) => (
                 <Stack direction="row" spacing={1}>
                     <Tooltip title="View Details">
-                            <IconButton 
+                        <IconButton
                             onClick={() => navigate(`/village/${row.original._id}`)}
                             color="primary"
                         >
@@ -148,7 +149,7 @@ const VillageListPage = () => {
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Edit">
-                        <IconButton 
+                        <IconButton
                             onClick={() => handleEdit(row.original)}
                             color="secondary"
                         >
@@ -156,7 +157,7 @@ const VillageListPage = () => {
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                        <IconButton 
+                        <IconButton
                             onClick={() => handleDelete(row.original._id)}
                             color="error"
                         >
@@ -352,10 +353,13 @@ const VillageListPage = () => {
                 {
                     village_name: 'Rampur',
                     panchayat_name: 'Rampur Gram Panchayat',
-                    state_name: 'Madhya Pradesh',
                     location: 'Near Main Road',
-                    latitude: '26.1234',
-                    longitude: '78.5678',
+                    state_no: '23',
+                    division_code: '1',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block: 'Block Name',
+                    booth_number: '1',
                     male_count: '500',
                     female_count: '480',
                     others_count: '2'
@@ -381,26 +385,53 @@ const VillageListPage = () => {
         try {
             const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-            const normalizedData = jsonData.map(row => {
-                const normalized = {};
-                Object.keys(row).forEach(key => {
-                    const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
-                    normalized[normalizedKey] = row[key];
-                });
-                return normalized;
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k];
+                return {
+                    village_name: obj.village_name ?? '',
+                    panchayat_name: obj.panchayat_name ?? obj.panchayat ?? '',
+                    location: obj.location ?? '',
+                    state: obj.state_no ?? obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    assembly_no: obj.ac_no ?? obj.assembly_no ?? obj.assembly ?? '',
+                    block: obj.block ?? '',
+                    booth_number: obj.booth_number ?? obj.booth ?? '',
+                    male_count: obj.male_count ?? '0',
+                    female_count: obj.female_count ?? '0',
+                    others_count: obj.others_count ?? '0'
+                };
             });
 
-            const response = await axiosServices.post('/villages/import', { data: normalizedData });
-            setImportResult(response.data);
-            if (response.data.success) {
-                fetchVillages();
+            const filtered = rows.filter(r => String(r.village_name).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/villages/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+
+            // Parse response defensively: backend may return HTML (auth redirect or error page)
+            const result = await safeParseJson(res);
+
+            if (!res.ok) {
+                setImportResult(result || { success: false, message: result?.message || `Request failed: ${res.status} ${res.statusText}` });
+            } else {
+                setImportResult(result || { success: false, message: 'Invalid JSON response from server' });
+                if (result?.success) fetchVillages();
             }
         } catch (err) {
-            setImportResult({ success: false, message: err.message || 'Import failed' });
+            setImportResult({ success: false, message: err?.message || String(err) });
         } finally {
             setImporting(false);
             if (importInputRef.current) importInputRef.current.value = '';
@@ -438,10 +469,36 @@ const VillageListPage = () => {
                 </Stack>
 
                 {importResult && (
-                    <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)}>
-                        {importResult.message || (importResult.success ? 'Import successful' : 'Import failed')}
-                        {importResult.imported && ` (${importResult.imported} imported)`}
-                        {importResult.failed && ` (${importResult.failed} failed)`}
+                    <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mx: 3, mb: 2 }}>
+                        <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {importResult.message || (importResult.success ? `Imported ${importResult.created ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+                            </Typography>
+
+                            {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+                                </Typography>
+                            )}
+
+                            {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                                    <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                                        {importResult.errors.slice(0, 10).map((err, idx) => (
+                                            <li key={idx}>
+                                                <Typography variant="body2">{safeRenderError(err)}</Typography>
+                                            </li>
+                                        ))}
+                                        {importResult.errors.length > 10 && (
+                                            <li>
+                                                <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                                            </li>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
                     </Alert>
                 )}
 

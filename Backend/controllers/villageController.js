@@ -330,10 +330,74 @@ const deleteVillage = async (req, res, next) => {
     }
 };
 
+// @desc    Bulk import villages (client sends parsed rows)
+// @route   POST /api/villages/import
+// @access  Private (Admin/SuperAdmin)
+const importVillages = async (req, res, next) => {
+    const { resolveGeographicHierarchy, validateHierarchy, toKey, toNumber } = require('./importHelpers');
+    try {
+        const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+        if (!rows) return res.status(400).json({ success: false, message: 'rows array is required in body' });
+
+        if (!req.user || !req.user.id) return res.status(401).json({ success: false, message: 'Not authorized' });
+
+        const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+        const created = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i] || {};
+            try {
+                const village_name = toKey(r.village_name || r.name || '');
+                const location = toKey(r.location || '');
+                const male_count = toNumber(r.male_count) ?? 0;
+                const female_count = toNumber(r.female_count) ?? 0;
+                const others_count = toNumber(r.others_count) ?? 0;
+                const total_count = toNumber(r.total_count) ?? (male_count + female_count + others_count);
+
+                if (!village_name) throw new Error('village_name is required');
+
+                const geo = await resolveGeographicHierarchy(r);
+                const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth', 'panchayat']);
+                if (errors.length > 0) throw new Error(errors.join(', '));
+
+                const villageData = {
+                    village_name,
+                    location,
+                    state_id: geo.state._id,
+                    division_id: geo.division._id,
+                    parliament_id: geo.parliament._id,
+                    assembly_id: geo.assembly._id,
+                    block_id: geo.block._id,
+                    booth_id: geo.booth._id,
+                    panchayat_id: geo.panchayat._id,
+                    male_count,
+                    female_count,
+                    others_count,
+                    total_count,
+                    created_by: req.user.id,
+                    updated_by: req.user.id
+                };
+
+                const v = await Village.create(villageData);
+                created.push(v._id);
+                summary.created += 1;
+            } catch (err) {
+                summary.skipped += 1;
+                summary.errors.push({ row: i + 1, message: err?.message || String(err), data: rows[i] });
+            }
+        }
+
+        return res.status(200).json({ success: true, ...summary, ids: created });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getVillages,
     getVillage,
     createVillage,
     updateVillage,
-    deleteVillage
+    deleteVillage,
+    importVillages
 };
