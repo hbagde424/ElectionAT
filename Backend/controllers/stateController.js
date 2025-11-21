@@ -2,7 +2,7 @@ const State = require('../models/state');
 
 // @desc    Get all states
 // @route   GET /api/states
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getStates = async (req, res, next) => {
   try {
     const Division = require('../models/Division');
@@ -114,6 +114,9 @@ exports.getStates = async (req, res, next) => {
 // @desc    Get single state
 // @route   GET /api/states/:id
 // @access  Public
+// @desc    Get single state
+// @route   GET /api/states/:id
+// @access  Private (Requires authentication via serviceToken)
 exports.getState = async (req, res, next) => {
   try {
     const state = await State.findById(req.params.id)

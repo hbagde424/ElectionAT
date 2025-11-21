@@ -406,6 +406,13 @@ export default function DashboardDefault() {
   };
 
   const fetchStates = async (pageIndex, pageSize, region = null) => {
+    // Check if user is authenticated before making request
+    const token = localStorage.getItem('serviceToken');
+    if (!token) {
+      console.warn('No authentication token found. Cannot fetch states.');
+      return;
+    }
+
     setStatesLoading(true);
     try {
       const params = {
@@ -421,6 +428,9 @@ export default function DashboardDefault() {
       }
     } catch (error) {
       console.error('Error fetching states:', error);
+      if (error.response?.status === 401) {
+        console.error('Authentication failed. Please log in again.');
+      }
     } finally {
       setStatesLoading(false);
     }
