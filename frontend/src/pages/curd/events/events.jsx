@@ -27,6 +27,7 @@ import AlertEventDelete from './AlertEventDelete';
 import EventView from './EventsView';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
+import { safeRenderError } from 'utils/importResultHelpers';
 
 export default function EventListPage() {
     const theme = useTheme();
@@ -149,6 +150,20 @@ export default function EventListPage() {
     };
 
     const accessScope = getUserAccessScope();
+
+    // Safe JSON parsing helper to avoid "Unexpected token '<'" when server returns HTML
+    const safeParseJson = async (res) => {
+        const ct = res.headers?.get?.('content-type') || '';
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            console.error('HTTP error:', res.status, text);
+            throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        if (ct.includes('application/json')) return res.json();
+        const text = await res.text().catch(() => '');
+        console.error('Expected JSON but received non-JSON response:', text.slice(0, 1000));
+        throw new Error('Invalid JSON response from server');
+    };
 
     // Memo: map event booth IDs to booth numbers for quick lookup (used for marker coloring)
     const eventBoothNumberSet = useMemo(() => {
@@ -455,15 +470,15 @@ export default function EventListPage() {
             ]);
 
             const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, panchayatsData, villagesData, falliyasData] = await Promise.all([
-                statesRes.json(),
-                divisionsRes.json(),
-                parliamentsRes.json(),
-                assembliesRes.json(),
-                blocksRes.json(),
-                boothsRes.json(),
-                panchayatsRes.json(),
-                villagesRes.json(),
-                falliyasRes.json()
+                safeParseJson(statesRes),
+                safeParseJson(divisionsRes),
+                safeParseJson(parliamentsRes),
+                safeParseJson(assembliesRes),
+                safeParseJson(blocksRes),
+                safeParseJson(boothsRes),
+                safeParseJson(panchayatsRes),
+                safeParseJson(villagesRes),
+                safeParseJson(falliyasRes)
             ]);
 
             if (statesData.success) setStates(statesData.data);
@@ -1190,10 +1205,8 @@ export default function EventListPage() {
         try {
             const token = localStorage.getItem('serviceToken');
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/events?all=true`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-            const json = await res.json();
-            if (json.success) {
-                return json.data;
-            }
+            const json = await safeParseJson(res);
+            if (json && json.success) return json.data;
         } catch (error) {
             console.error('Failed to fetch all events for CSV:', error);
         }
@@ -1208,24 +1221,38 @@ export default function EventListPage() {
         setCsvLoading(true);
         const allData = await fetchAllEventsForCsv();
         setCsvData(allData.map(item => ({
-            Name: item.name,
-            Type: item.type,
-            Status: item.status,
-            Description: item.description ? item.description.replace(/<[^>]+>/g, '') : '',
-            'Start Date': item.start_date,
-            'End Date': item.end_date,
-            Location: item.location,
-            State: item.state_id?.name || '',
-            Division: item.division_id?.name || '',
-            Parliament: item.parliament_id?.name || '',
-            Assembly: item.assembly_id?.name || '',
-            Block: item.block_id?.name || '',
-            Booth: item.booth_id?.name || '',
+            'ID': item._id || '',
+            'Name': item.name || '',
+            'Type': item.type || '',
+            'Status': item.status || '',
+            'Description': item.description ? item.description.replace(/<[^>]+>/g, '') : '',
+            'Start Date': item.start_date || '',
+            'End Date': item.end_date || '',
+            'Location': item.location || '',
+            'Year': item.year || '',
+            'State ID': item.state_id?._id || (item.state_id || ''),
+            'State Name': item.state_id?.name || '',
+            'Division ID': item.division_id?._id || (item.division_id || ''),
+            'Division Name': item.division_id?.name || '',
+            'Parliament ID': item.parliament_id?._id || (item.parliament_id || ''),
+            'Parliament Name': item.parliament_id?.name || '',
+            'Assembly ID': item.assembly_id?._id || (item.assembly_id || ''),
+            'Assembly Name': item.assembly_id?.name || '',
+            'Block ID': item.block_id?._id || (item.block_id || ''),
+            'Block Name': item.block_id?.name || '',
+            'Booth ID': item.booth_id?._id || (item.booth_id || ''),
+            'Booth Name': item.booth_id?.name || '',
             'Booth Number': item.booth_id?.booth_number || '',
+            'Panchayat ID': item.panchayat_id?._id || (item.panchayat_id || ''),
+            'Panchayat Name': item.panchayat_id?.panchayat_name || '',
+            'Village ID': item.village_id?._id || (item.village_id || ''),
+            'Village Name': item.village_id?.village_name || '',
+            'Falliya ID': item.falliya_id?._id || (item.falliya_id || ''),
+            'Falliya Name': item.falliya_id?.falliya_name || '',
             'Created By': item.created_by?.username || '',
             'Updated By': item.updated_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
+            'Created At': item.created_at ? new Date(item.created_at).toISOString() : '',
+            'Updated At': item.updated_at ? new Date(item.updated_at).toISOString() : ''
         })));
         setCsvLoading(false);
         setTimeout(() => {
@@ -1236,33 +1263,33 @@ export default function EventListPage() {
     };
 
     const handleDownloadExcelTemplate = async () => {
-        const headers = ['name', 'type', 'status', 'description', 'location', 'start_date', 'end_date', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
-        const exampleRow = ['Community Meeting', 'event', 'done', 'Sample event description', 'Central Hall', '2024-01-15', '2024-01-15', 'Maharashtra', '1', '5', '150', 'Block A', '1'];
-        
         try {
             const XLSX = await import('xlsx');
-            const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Template');
-            XLSX.writeFile(wb, 'events_import_template.xlsx');
-            return;
-        } catch (e) {
-            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
-        }
-
-        try {
-            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'events_import_template.csv';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('Failed to generate fallback CSV template:', err);
+            const templateData = [
+                {
+                    name: 'Jan Sabha Campaign Meeting',
+                    type: 'campaign',
+                    status: 'done',
+                    description: 'Public campaign meeting with community leaders',
+                    location: 'Community Hall, Gwalior',
+                    start_date: '2024-01-15',
+                    end_date: '2024-01-15',
+                    year: '2024',
+                    state_no: '23',
+                    division_code: '1',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block_no: '1',
+                    booth_number: '1'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'events_import_template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
         }
     };
 
@@ -1278,28 +1305,32 @@ export default function EventListPage() {
             const wsName = wb.SheetNames[0];
             const ws = wb.Sheets[wsName];
             const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-            
+
             const rows = json.map((r) => {
                 const obj = {};
-                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k];
                 return {
                     name: obj.name ?? '',
                     type: obj.type ?? '',
-                    status: obj.status ?? '',
+                    status: obj.status ?? 'incomplete',
                     description: obj.description ?? '',
                     location: obj.location ?? '',
                     start_date: obj.start_date ?? '',
                     end_date: obj.end_date ?? '',
-                    state: obj.state ?? '',
+                    year: obj.year ?? '',
+                    state: obj.state_no ?? obj.state ?? '',
                     division_code: obj.division_code ?? obj.division ?? '',
                     parliament_no: obj.parliament_no ?? obj.parliament ?? '',
-                    assembly_no: obj.assembly_no ?? obj.assembly ?? '',
-                    block: obj.block ?? '',
-                    booth_number: obj.booth_number ?? obj.booth ?? ''
+                    assembly_no: obj.ac_no ?? obj.assembly_no ?? obj.assembly ?? '',
+                    block_no: obj.block_no ?? obj.block ?? '',
+                    booth_number: obj.booth_number ?? obj.booth ?? '',
+                    panchayat_name: obj.panchayat_name ?? obj.panchayat ?? '',
+                    village_name: obj.village_name ?? obj.village ?? '',
+                    falliya_name: obj.falliya_name ?? obj.falliya ?? ''
                 };
             });
 
-            const filtered = rows.filter(r => String(r.name).trim());
+            const filtered = rows.filter(r => String(r.name).trim() && String(r.type).trim());
 
             const token = localStorage.getItem('serviceToken');
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/events/import`, {
@@ -1313,7 +1344,7 @@ export default function EventListPage() {
             const result = await res.json();
             setImportResult(result);
             if (result?.success) {
-                fetchEvents();
+                fetchEvents(pagination.pageIndex, pagination.pageSize, globalFilter);
             }
         } catch (err) {
             setImportResult({ success: false, message: err?.message || String(err) });
@@ -1569,17 +1600,36 @@ export default function EventListPage() {
 
                 {/* Import Result */}
                 {importResult && (
-                    <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
-                        {importResult.success ? (
-                            <span>
-                                Imported: {importResult.created || 0} / {importResult.total || 0}
-                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
-                                    <> | Errors: {importResult.errors.length}</>
-                                )}
-                            </span>
-                        ) : (
-                            <span>Import failed: {importResult.message || 'Unknown error'}</span>
-                        )}
+                    <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ m: 2 }}>
+                        <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {importResult.message || (importResult.success ? `Imported ${importResult.created ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+                            </Typography>
+
+                            {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+                                </Typography>
+                            )}
+
+                            {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                                    <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                                        {importResult.errors.slice(0, 10).map((err, idx) => (
+                                            <li key={idx}>
+                                                <Typography variant="body2">{safeRenderError(err)}</Typography>
+                                            </li>
+                                        ))}
+                                        {importResult.errors.length > 10 && (
+                                            <li>
+                                                <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                                            </li>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
                     </Alert>
                 )}
 

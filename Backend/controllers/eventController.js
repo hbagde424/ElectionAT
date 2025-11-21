@@ -603,6 +603,7 @@ exports.importEvents = async (req, res, next) => {
         const location = toKey(r.location);
         const start_date = r.start_date ? new Date(r.start_date) : null;
         const end_date = r.end_date ? new Date(r.end_date) : null;
+        const year = r.year ? parseInt(r.year) : null;
 
         if (!name || !type || !location || !start_date || !end_date) {
           throw new Error('name, type, location, start_date, end_date are required');
@@ -637,6 +638,20 @@ exports.importEvents = async (req, res, next) => {
           created_by: req.user.id,
           updated_by: req.user.id
         };
+
+        // Optional fields
+        if (year && year >= 2020 && year <= 2030) {
+          eventData.year = year;
+        }
+        if (geo.panchayat) {
+          eventData.panchayat_id = geo.panchayat._id;
+        }
+        if (geo.village) {
+          eventData.village_id = geo.village._id;
+        }
+        if (geo.falliya) {
+          eventData.falliya_id = geo.falliya._id;
+        }
 
         const event = await Event.create(eventData);
         created.push(event._id);
