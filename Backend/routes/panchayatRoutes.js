@@ -4,7 +4,8 @@ const {
     getPanchayat,
     createPanchayat,
     updatePanchayat,
-    deletePanchayat
+    deletePanchayat,
+    importPanchayats
 } = require('../controllers/panchayatController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -191,6 +192,9 @@ const router = express.Router();
 router.route('/')
     .get(protect, getUserPermissionsAndHierarchy, getPanchayats)
     .post(protect, authorize('admin', 'superAdmin'), createPanchayat);
+
+// Bulk import
+router.post('/import', protect, authorize('admin', 'superAdmin'), importPanchayats);
 
 router.route('/:id')
     .get(protect, getUserPermissionsAndHierarchy, getPanchayat)

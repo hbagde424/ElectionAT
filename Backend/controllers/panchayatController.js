@@ -439,10 +439,77 @@ const deletePanchayat = async (req, res, next) => {
     }
 };
 
+// @desc    Bulk import panchayats (client sends parsed rows)
+// @route   POST /api/panchayats/import
+// @access  Private (Admin/SuperAdmin)
+const importPanchayats = async (req, res, next) => {
+    const { resolveGeographicHierarchy, validateHierarchy, toKey, toNumber } = require('./importHelpers');
+    try {
+        const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+        if (!rows) return res.status(400).json({ success: false, message: 'rows array is required in body' });
+
+        if (!req.user || !req.user.id) return res.status(401).json({ success: false, message: 'Not authorized' });
+
+        const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+        const created = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i] || {};
+            try {
+                const panchayat_name = toKey(r.panchayat_name || r.name || '');
+                const location = toKey(r.location || '');
+                const male_count = toNumber(r.male_count) ?? 0;
+                const female_count = toNumber(r.female_count) ?? 0;
+                const others_count = toNumber(r.others_count) ?? 0;
+                const total_count = toNumber(r.total_count) ?? (male_count + female_count + others_count);
+
+                if (!panchayat_name) throw new Error('panchayat_name is required');
+
+                const geo = await resolveGeographicHierarchy(r);
+                const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+                if (errors.length > 0) throw new Error(errors.join(', '));
+
+                // Prevent duplicate in same booth
+                const existing = await Panchayat.findOne({ panchayat_name, booth_id: geo.booth._id });
+                if (existing) throw new Error('A panchayat with this name already exists in the selected booth');
+
+                const panchayatData = {
+                    panchayat_name,
+                    location,
+                    state_id: geo.state._id,
+                    division_id: geo.division._id,
+                    parliament_id: geo.parliament._id,
+                    assembly_id: geo.assembly._id,
+                    block_id: geo.block._id,
+                    booth_id: geo.booth._id,
+                    male_count,
+                    female_count,
+                    others_count,
+                    total_count,
+                    created_by: req.user.id,
+                    updated_by: req.user.id
+                };
+
+                const p = await Panchayat.create(panchayatData);
+                created.push(p._id);
+                summary.created += 1;
+            } catch (err) {
+                summary.skipped += 1;
+                summary.errors.push({ row: i + 1, message: err?.message || String(err), data: rows[i] });
+            }
+        }
+
+        return res.status(200).json({ success: true, ...summary, ids: created });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getPanchayats,
     getPanchayat,
     createPanchayat,
     updatePanchayat,
-    deletePanchayat
+    deletePanchayat,
+    importPanchayats
 };

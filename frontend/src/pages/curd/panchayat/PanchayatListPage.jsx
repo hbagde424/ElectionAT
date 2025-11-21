@@ -6,6 +6,7 @@ import {
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import axiosServices from 'utils/axios';
+import { safeParseJson, safeRenderError } from 'utils/importResultHelpers';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import {
@@ -57,6 +58,14 @@ const PanchayatListPage = () => {
         location: ''
     });
 
+    const filterOptions = useFilterOptionsFromData(allPanchayats, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' }
+    });
+
     // derive filtered lists for top-level filters so dropdowns cascade
     const filteredDivisions = filterOptions.divisions?.filter(d => (filters.state_id ? (d.state_id?._id || d.state_id) === filters.state_id : true)) || [];
     const filteredParliaments = filterOptions.parliaments?.filter(p => (filters.division_id ? (p.division_id?._id || p.division_id) === filters.division_id : true)) || [];
@@ -68,6 +77,11 @@ const PanchayatListPage = () => {
     const csvLinkRef = useRef(null);
     const [csvData, setCsvData] = useState([]);
     const [exportLoading, setExportLoading] = useState(false);
+
+    // Excel import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
 
     const columns = useMemo(() => [
         {
@@ -206,13 +220,6 @@ const PanchayatListPage = () => {
         }
     };
 
-    const filterOptions = useFilterOptionsFromData(allPanchayats, {
-        states: { field: 'state_id', nameField: 'name' },
-        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
-        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
-        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
-        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' }
-    });
 
     useEffect(() => {
         fetchHierarchyData();
@@ -343,6 +350,97 @@ const PanchayatListPage = () => {
         setExportLoading(false);
     };
 
+    // Excel Template Download
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    panchayat_name: 'Sample Panchayat',
+                    location: 'Near Main Road',
+                    state_no: '23',
+                    division_code: '1',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block: 'Block Name',
+                    booth_number: '1',
+                    male_count: '5000',
+                    female_count: '4800',
+                    others_count: '20'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'panchayat-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
+    };
+
+    // Excel Import Handler
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k];
+                return {
+                    panchayat_name: obj.panchayat_name ?? obj.name ?? '',
+                    location: obj.location ?? '',
+                    state: obj.state_no ?? obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    assembly_no: obj.ac_no ?? obj.assembly_no ?? obj.assembly ?? '',
+                    block: obj.block ?? '',
+                    booth_number: obj.booth_number ?? obj.booth ?? '',
+                    male_count: obj.male_count ?? '0',
+                    female_count: obj.female_count ?? '0',
+                    others_count: obj.others_count ?? '0'
+                };
+            });
+
+            const filtered = rows.filter(r => String(r.panchayat_name).trim());
+
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ rows: filtered })
+            });
+
+            // Parse response defensively
+            const result = await safeParseJson(res);
+
+            if (!res.ok) {
+                setImportResult(result || { success: false, message: result?.message || `Request failed: ${res.status} ${res.statusText}` });
+            } else {
+                setImportResult(result || { success: false, message: 'Invalid JSON response from server' });
+                if (result?.success) fetchPanchayats();
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err?.message || String(err) });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     return (
         <MainCard content={false}>
             <Stack spacing={2} sx={{ p: 2 }}>
@@ -357,6 +455,12 @@ const PanchayatListPage = () => {
                         >
                             {exportLoading ? 'Exporting...' : 'Export CSV'}
                         </Button>
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                            Download Excel Template
+                        </Button>
+                        <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
                         <Button
                             variant="contained"
                             startIcon={<Add />}
@@ -366,6 +470,40 @@ const PanchayatListPage = () => {
                         </Button>
                     </Stack>
                 </Stack>
+
+                {importResult && (
+                    <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mx: 3, mb: 2 }}>
+                        <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {importResult.message || (importResult.success ? `Imported ${importResult.created ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+                            </Typography>
+
+                            {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+                                </Typography>
+                            )}
+
+                            {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                                    <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                                        {importResult.errors.slice(0, 10).map((err, idx) => (
+                                            <li key={idx}>
+                                                <Typography variant="body2">{safeRenderError(err)}</Typography>
+                                            </li>
+                                        ))}
+                                        {importResult.errors.length > 10 && (
+                                            <li>
+                                                <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                                            </li>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
+                    </Alert>
+                )}
 
                 <Divider />
 
@@ -587,6 +725,14 @@ const PanchayatListPage = () => {
                 open={deleteAlert.open}
                 handleClose={() => setDeleteAlert({ open: false, id: null })}
                 refresh={fetchPanchayats}
+            />
+
+            <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
             />
         </MainCard>
     );
