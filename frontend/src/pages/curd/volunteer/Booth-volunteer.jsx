@@ -4,6 +4,7 @@ import {
   Button, Stack, Box, Typography, Divider, TextField, MenuItem, Alert, Drawer, Paper
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { safeParseJson, safeRenderError } from 'utils/importResultHelpers';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from 'contexts/PermissionContext';
@@ -1388,14 +1389,35 @@ export default function BoothVolunteerListPage() {
   };
 
   const handleDownloadExcelTemplate = async () => {
-    const XLSX = await import('xlsx');
-    const headers = ['name', 'contact', 'email', 'role', 'party', 'address', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
-    const exampleData = [['John Doe', '9876543210', 'john@example.com', 'Coordinator', 'INC', '123 Street Name', 'Maharashtra', 'DIV001', 'PC01', 'AC001', 'Block A', 'B001']];
-    const worksheetData = [headers, ...exampleData];
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Booth Volunteers');
-    XLSX.writeFile(workbook, 'booth_volunteers_template.xlsx');
+    try {
+      const XLSX = await import('xlsx');
+      const templateData = [
+        {
+          name: 'John Doe',
+          phone: '9876543210',
+          email: 'john@example.com',
+          role: 'Coordinator',
+          post: 'Booth President',
+          area_responsibility: 'Ward 1',
+          activity_level: 'High',
+          remarks: 'Active volunteer',
+          party: 'Party Name',
+          state_no: '23',
+          division_code: '1',
+          parliament_no: '101',
+          AC_NO: '1',
+          block: 'Block Name',
+          booth_number: '1'
+        }
+      ];
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+      XLSX.writeFile(workbook, 'booth-volunteer-template.xlsx');
+    } catch (error) {
+      console.error('Error generating template:', error);
+      alert('Failed to download template. Please try again.');
+    }
   };
 
   const handleImportFile = async (e) => {
@@ -1406,33 +1428,56 @@ export default function BoothVolunteerListPage() {
     try {
       const XLSX = await import('xlsx');
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      const normalizedData = jsonData.map((row) => {
-        const normalized = {};
-        Object.keys(row).forEach((key) => {
-          const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-          normalized[normalizedKey] = row[key];
-        });
-        return normalized;
+      const wb = XLSX.read(data, { type: 'array' });
+      const wsName = wb.SheetNames[0];
+      const ws = wb.Sheets[wsName];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      const rows = json.map((r) => {
+        const obj = {};
+        for (const k of Object.keys(r)) obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k];
+        return {
+          name: obj.name ?? '',
+          phone: obj.phone ?? obj.phone_number ?? '',
+          email: obj.email ?? '',
+          role: obj.role ?? '',
+          post: obj.post ?? '',
+          area_responsibility: obj.area_responsibility ?? '',
+          activity_level: obj.activity_level ?? '',
+          remarks: obj.remarks ?? '',
+          party: obj.party ?? obj.party_name ?? '',
+          state: obj.state_no ?? obj.state ?? '',
+          division_code: obj.division_code ?? obj.division ?? '',
+          parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+          assembly_no: obj.ac_no ?? obj.assembly_no ?? obj.assembly ?? '',
+          block: obj.block ?? '',
+          booth_number: obj.booth_number ?? obj.booth ?? ''
+        };
       });
-      const filteredRows = normalizedData.filter((r) => r.name);
+
+      const filtered = rows.filter(r => String(r.name).trim());
+
       const token = localStorage.getItem('serviceToken');
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/booth-volunteers/import`, {
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-        body: JSON.stringify({ rows: filteredRows })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ rows: filtered })
       });
-      const result = await response.json();
-      if (response.ok) {
-        setImportResult({ success: true, imported: result.imported || 0, total: result.total || 0, errors: result.errors || [] });
-        fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+
+      // Parse response defensively
+      const result = await safeParseJson(res);
+
+      if (!res.ok) {
+        setImportResult(result || { success: false, message: result?.message || `Request failed: ${res.status} ${res.statusText}` });
       } else {
-        setImportResult({ success: false, message: result.message || 'Import failed' });
+        setImportResult(result || { success: false, message: 'Invalid JSON response from server' });
+        if (result?.success) fetchVolunteers(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
       }
-    } catch (error) {
-      setImportResult({ success: false, message: error.message || 'Import failed' });
+    } catch (err) {
+      setImportResult({ success: false, message: err?.message || String(err) });
     } finally {
       setImporting(false);
       if (importInputRef.current) importInputRef.current.value = '';
@@ -2092,28 +2137,35 @@ export default function BoothVolunteerListPage() {
           onClose={() => setImportResult(null)}
           sx={{ m: 2 }}
         >
-          {importResult.success ? (
-            <>
-              Successfully imported {importResult.imported} out of {importResult.total} records.
-              {importResult.errors && importResult.errors.length > 0 && (
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="body2" fontWeight="bold">Errors:</Typography>
-                  {importResult.errors.slice(0, 5).map((err, idx) => (
-                    <Typography key={idx} variant="caption" display="block">
-                      Row {err.row}: {err.error}
-                    </Typography>
+          <Box>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              {importResult.message || (importResult.success ? `Imported ${importResult.created ?? importResult.imported ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+            </Typography>
+
+            {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+              </Typography>
+            )}
+
+            {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                  {importResult.errors.slice(0, 10).map((err, idx) => (
+                    <li key={idx}>
+                      <Typography variant="body2">{safeRenderError(err)}</Typography>
+                    </li>
                   ))}
-                  {importResult.errors.length > 5 && (
-                    <Typography variant="caption" display="block">
-                      ... and {importResult.errors.length - 5} more errors
-                    </Typography>
+                  {importResult.errors.length > 10 && (
+                    <li>
+                      <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                    </li>
                   )}
                 </Box>
-              )}
-            </>
-          ) : (
-            importResult.message
-          )}
+              </Box>
+            )}
+          </Box>
         </Alert>
       )}
 

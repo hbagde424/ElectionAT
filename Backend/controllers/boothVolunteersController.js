@@ -654,22 +654,23 @@ exports.importBoothVolunteers = async (req, res, next) => {
         const geo = await resolveGeographicHierarchy(row);
 
         // Validate required hierarchy fields
-        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
-        if (!hierarchyCheck.valid) {
+        const hierarchyErrors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (hierarchyErrors.length > 0) {
           results.errors.push({
             row: i + 1,
             data: row,
-            error: hierarchyCheck.errors.join(', ')
+            error: hierarchyErrors.join(', ')
           });
           continue;
         }
 
-        // Check for required fields
-        if (!row.name || !row.contact) {
+        // Check for required fields (support both `phone` and legacy `contact`)
+        const contactPhone = row.phone || row.contact || row.mobile || row.phone_number;
+        if (!row.name || !contactPhone) {
           results.errors.push({
             row: i + 1,
             data: row,
-            error: 'name and contact are required'
+            error: 'name and phone (contact) are required'
           });
           continue;
         }
@@ -686,18 +687,22 @@ exports.importBoothVolunteers = async (req, res, next) => {
         // Create booth volunteer entry
         const volunteerData = {
           name: row.name,
-          contact: row.contact,
-          booth: geo.booth._id,
+          phone: String(contactPhone).trim(),
+          booth_id: geo.booth._id,
           state_id: geo.state._id,
           division_id: geo.division._id,
           parliament_id: geo.parliament._id,
           assembly_id: geo.assembly._id,
           block_id: geo.block._id,
           role: row.role || 'volunteer',
+          post: row.post || row.position || undefined,
+          area_responsibility: row.area_responsibility || row.area || undefined,
+          activity_level: row.activity_level || undefined,
+          remarks: row.remarks || undefined,
           created_by: req.user._id
         };
 
-        if (partyId) volunteerData.party = partyId;
+        if (partyId) volunteerData.party_id = partyId;
         if (row.email) volunteerData.email = row.email;
         if (row.address) volunteerData.address = row.address;
 
