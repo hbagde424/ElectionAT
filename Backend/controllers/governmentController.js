@@ -442,12 +442,23 @@ exports.importGovernments = async (req, res, next) => {
         const geo = await resolveGeographicHierarchy(row);
 
         // Validate required hierarchy fields
-        const hierarchyCheck = validateHierarchy(geo, ['state']);
-        if (!hierarchyCheck.valid) {
+        const hierarchyErrors = validateHierarchy(geo, ['state']);
+        if (hierarchyErrors.length > 0) {
           results.errors.push({
             row: i + 1,
             data: row,
-            error: hierarchyCheck.errors.join(', ')
+            error: hierarchyErrors.join(', ')
+          });
+          continue;
+        }
+
+        // Validate required hierarchy fields - Government requires state, division, parliament, assembly
+        const requiredHierarchy = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly']);
+        if (requiredHierarchy.length > 0) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: requiredHierarchy.join(', ')
           });
           continue;
         }
@@ -462,23 +473,52 @@ exports.importGovernments = async (req, res, next) => {
           continue;
         }
 
+        if (!row.amount) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'amount is required'
+          });
+          continue;
+        }
+
+        // Parse year if provided
+        const year = row.year ? parseInt(row.year) : null;
+        if (year && (year < 2020 || year > 2030)) {
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: 'year must be between 2020 and 2030'
+          });
+          continue;
+        }
+
         // Create government schema entry
         const governmentData = {
           name: row.name,
+          type: row.type || 'new',
+          amount: parseFloat(row.amount) || 0,
+          project_complete_date: row.project_complete_date ? new Date(row.project_complete_date) : null,
           description: row.description || '',
-          scheme_type: row.scheme_type || 'social welfare',
-          budget: parseFloat(row.budget) || 0,
-          beneficiaries: parseInt(row.beneficiaries) || 0,
           state_id: geo.state._id,
-          created_by: req.user._id
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          created_by: req.user._id,
+          updated_by: req.user._id
         };
 
+        // Optional year field
+        if (year) {
+          governmentData.year = year;
+        }
+
         // Optional geographic fields
-        if (geo.division) governmentData.division_id = geo.division._id;
-        if (geo.parliament) governmentData.parliament_id = geo.parliament._id;
-        if (geo.assembly) governmentData.assembly_id = geo.assembly._id;
         if (geo.block) governmentData.block_id = geo.block._id;
         if (geo.booth) governmentData.booth_id = geo.booth._id;
+        if (geo.panchayat) governmentData.panchayat_id = geo.panchayat._id;
+        if (geo.village) governmentData.village_id = geo.village._id;
+        if (geo.falliya) governmentData.falliya_id = geo.falliya._id;
 
         await Government.create(governmentData);
         results.imported++;

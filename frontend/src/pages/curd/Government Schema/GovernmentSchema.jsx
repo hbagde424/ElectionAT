@@ -319,32 +319,32 @@ export default function GovernmentsListPage() {
         }
     }, [tempFilters.village, falliyas]);
 
-        const fetchAllGovernmentsForFilters = async () => {
-            const query = {};
-            // Scope by user hierarchy if present
-            if (userHierarchy?.state?._id) query.state_id = userHierarchy.state._id;
-            if (userHierarchy?.division?._id) query.division_id = userHierarchy.division._id;
-            if (userHierarchy?.parliament?._id) query.parliament_id = userHierarchy.parliament._id;
-            if (userHierarchy?.assembly?._id) query.assembly_id = userHierarchy.assembly._id;
-            if (userHierarchy?.block?._id) query.block_id = userHierarchy.block._id;
-            if (userHierarchy?.booth?._id) query.booth_id = userHierarchy.booth._id;
-            // Apply current table filters so options reflect current dataset
-            if (selectedState) query.state_id = selectedState;
-            if (selectedDivision) query.division_id = selectedDivision;
-            if (selectedParliament) query.parliament_id = selectedParliament;
-            if (selectedAssembly) query.assembly_id = selectedAssembly;
-            if (selectedBlock) query.block_id = selectedBlock;
-            if (selectedBooth) query.booth_id = selectedBooth;
-            if (selectedPanchayat) query.panchayat_id = selectedPanchayat;
-            if (selectedVillage) query.village_id = selectedVillage;
-            if (selectedFalliya) query.falliya_id = selectedFalliya;
-            if (selectedType) query.type = selectedType;
-            if (yearFilter) query.year = yearFilter;
-            if (globalFilter) query.search = globalFilter;
+    const fetchAllGovernmentsForFilters = async () => {
+        const query = {};
+        // Scope by user hierarchy if present
+        if (userHierarchy?.state?._id) query.state_id = userHierarchy.state._id;
+        if (userHierarchy?.division?._id) query.division_id = userHierarchy.division._id;
+        if (userHierarchy?.parliament?._id) query.parliament_id = userHierarchy.parliament._id;
+        if (userHierarchy?.assembly?._id) query.assembly_id = userHierarchy.assembly._id;
+        if (userHierarchy?.block?._id) query.block_id = userHierarchy.block._id;
+        if (userHierarchy?.booth?._id) query.booth_id = userHierarchy.booth._id;
+        // Apply current table filters so options reflect current dataset
+        if (selectedState) query.state_id = selectedState;
+        if (selectedDivision) query.division_id = selectedDivision;
+        if (selectedParliament) query.parliament_id = selectedParliament;
+        if (selectedAssembly) query.assembly_id = selectedAssembly;
+        if (selectedBlock) query.block_id = selectedBlock;
+        if (selectedBooth) query.booth_id = selectedBooth;
+        if (selectedPanchayat) query.panchayat_id = selectedPanchayat;
+        if (selectedVillage) query.village_id = selectedVillage;
+        if (selectedFalliya) query.falliya_id = selectedFalliya;
+        if (selectedType) query.type = selectedType;
+        if (yearFilter) query.year = yearFilter;
+        if (globalFilter) query.search = globalFilter;
 
-            const data = await fetchAllDataForFilters('/governments', query);
-            setAllGovernments(data);
-        };
+        const data = await fetchAllDataForFilters('/governments', query);
+        setAllGovernments(data);
+    };
 
     const filterOptions = useFilterOptionsFromData(allGovernments, {
         states: { field: 'state_id', nameField: 'name' },
@@ -1077,16 +1077,35 @@ export default function GovernmentsListPage() {
     };
 
     const handleDownloadExcelTemplate = async () => {
-        const XLSX = await import('xlsx');
-        const headers = ['name', 'description', 'scheme_type', 'budget', 'beneficiaries', 'state', 'division_code', 'parliament_no', 'assembly_no'];
-        const exampleData = [
-            ['PM Awas Yojana', 'Housing scheme for rural areas', 'social welfare', '50000', '100', 'Maharashtra', '1', '5', '150']
-        ];
-        const worksheetData = [headers, ...exampleData];
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Governments Template');
-        XLSX.writeFile(workbook, 'governments_template.xlsx');
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    name: 'PM Awas Yojana',
+                    type: 'new',
+                    amount: '50000',
+                    project_complete_date: '2024-12-31',
+                    state_no: '23',
+                    division_code: '1',
+                    parliament_no: '101',
+                    AC_NO: '1',
+                    block: 'Block Name',
+                    booth_number: '1',
+                    panchayat_name: 'Gram Panchayat',
+                    village_name: 'Village Name',
+                    falliya_name: 'Falliya Name',
+                    year: '2024',
+                    description: 'Housing scheme for rural areas'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'governments_import_template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
     };
 
     const handleImportFile = async (e) => {
@@ -1099,51 +1118,54 @@ export default function GovernmentsListPage() {
         try {
             const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const wb = XLSX.read(data, { type: 'array' });
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-            const normalizedData = jsonData.map((row) => {
-                const normalized = {};
-                Object.keys(row).forEach((key) => {
-                    const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-                    normalized[normalizedKey] = row[key];
-                });
-                return normalized;
+            const rows = json.map((r) => {
+                const obj = {};
+                for (const k of Object.keys(r)) obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k];
+                return {
+                    name: obj.name ?? '',
+                    type: obj.type ?? '',
+                    amount: obj.amount ?? '',
+                    project_complete_date: obj.project_complete_date ?? '',
+                    state: obj.state_no ?? obj.state ?? '',
+                    division_code: obj.division_code ?? obj.division ?? '',
+                    parliament_no: obj.parliament_no ?? obj.parliament ?? '',
+                    assembly_no: obj.ac_no ?? obj.assembly_no ?? obj.assembly ?? '',
+                    block: obj.block ?? '',
+                    booth_number: obj.booth_number ?? obj.booth ?? '',
+                    panchayat_name: obj.panchayat_name ?? obj.panchayat ?? '',
+                    village_name: obj.village_name ?? obj.village ?? '',
+                    falliya_name: obj.falliya_name ?? obj.falliya ?? '',
+                    year: obj.year ?? '',
+                    description: obj.description ?? ''
+                };
             });
 
-            const filteredRows = normalizedData.filter((r) => r.name);
+            const filtered = rows.filter((r) => String(r.name).trim());
 
             const token = localStorage.getItem('serviceToken');
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments/import`, {
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments/import`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(token && { Authorization: `Bearer ${token}` })
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify({ rows: filteredRows })
+                body: JSON.stringify({ rows: filtered })
             });
 
-            const result = await response.json();
-
-            if (response.ok) {
-                setImportResult({
-                    success: true,
-                    imported: result.imported || 0,
-                    total: result.total || 0,
-                    errors: result.errors || []
-                });
-                fetchGovernments(pagination.pageIndex, pagination.pageSize);
-            } else {
-                setImportResult({
-                    success: false,
-                    message: result.message || 'Import failed'
-                });
+            const result = await res.json();
+            setImportResult(result);
+            if (result?.success) {
+                fetchGovernments(pagination.pageIndex, pagination.pageSize, globalFilter);
             }
         } catch (error) {
             setImportResult({
                 success: false,
-                message: error.message || 'Import failed'
+                message: error?.message || String(error)
             });
         } finally {
             setImporting(false);
@@ -1362,14 +1384,36 @@ export default function GovernmentsListPage() {
                         </Button>
                     </Stack>
                     {importResult && (
-                        <Alert
-                            severity={importResult.success ? 'success' : 'error'}
-                            onClose={() => setImportResult(null)}
-                            sx={{ mt: 1 }}
-                        >
-                            {importResult.success
-                                ? `Imported: ${importResult.imported} / ${importResult.total} | Errors: ${importResult.errors?.length || 0}`
-                                : `Import failed: ${importResult.message}`}
+                        <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mt: 1, mx: 2 }}>
+                            <Box>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                    {importResult.message || (importResult.success ? `Imported ${importResult.created ?? 0} / ${importResult.total ?? ''}` : 'Import result')}
+                                </Typography>
+
+                                {typeof importResult.created !== 'undefined' && typeof importResult.skipped !== 'undefined' && (
+                                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                        {`Created: ${importResult.created} — Skipped: ${importResult.skipped}`}
+                                    </Typography>
+                                )}
+
+                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <Typography variant="subtitle2">Errors (first {Math.min(10, importResult.errors.length)}):</Typography>
+                                        <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                                            {importResult.errors.slice(0, 10).map((err, idx) => (
+                                                <li key={idx}>
+                                                    <Typography variant="body2">{`Row ${err.row}: ${err.message}`}</Typography>
+                                                </li>
+                                            ))}
+                                            {importResult.errors.length > 10 && (
+                                                <li>
+                                                    <Typography variant="body2">{`...and ${importResult.errors.length - 10} more`}</Typography>
+                                                </li>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                )}
+                            </Box>
                         </Alert>
                     )}
                 </Stack>

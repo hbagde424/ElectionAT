@@ -827,12 +827,12 @@ exports.importGenders = async (req, res, next) => {
         const geo = await resolveGeographicHierarchy(row);
 
         // Validate required hierarchy fields - Gender typically requires booth
-        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
-        if (!hierarchyCheck.valid) {
+        const hierarchyErrors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (hierarchyErrors.length > 0) {
           results.errors.push({
             row: i + 1,
             data: row,
-            error: hierarchyCheck.errors.join(', ')
+            error: hierarchyErrors.join(', ')
           });
           continue;
         }
