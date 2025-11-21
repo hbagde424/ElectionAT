@@ -157,8 +157,8 @@ router.get('/test', (req, res) => {
   });
 });
 
-// Public: optional authentication — attach hierarchy if token present
-router.get('/', getUserPermissionsAndHierarchy, getVisits);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getVisits);
 
 /**
  * @swagger

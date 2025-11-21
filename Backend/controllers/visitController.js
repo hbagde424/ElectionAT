@@ -44,7 +44,7 @@ const buildHierarchyFilter = (userHierarchy) => {
 
 // @desc    Get all visits
 // @route   GET /api/visits
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVisits = async (req, res, next) => {
   try {
     // Pagination

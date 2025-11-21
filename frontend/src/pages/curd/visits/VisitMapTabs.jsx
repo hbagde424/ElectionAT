@@ -132,7 +132,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
         const effectiveYear = overrides.hasOwnProperty('yearOverride') ? overrides.yearOverride : yearFilter;
         const effectiveElectionYearId = overrides.hasOwnProperty('electionYearIdOverride') ? overrides.electionYearIdOverride : selectedElectionYearId;
 
-    // fetchMapVisits start (filters available in state)
+        // fetchMapVisits start (filters available in state)
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -337,28 +337,26 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
         if (visitsFromTable && Array.isArray(visitsFromTable) && visitsFromTable.length > 0) return;
 
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            
-            const visitsUrl = `${import.meta.env.VITE_APP_API_URL}/visits?all=true&limit=50000`;
-            const visitsRes = await fetch(visitsUrl, { headers });
-            const visitsJson = await visitsRes.json();
+            // Use axiosServices which automatically includes serviceToken from localStorage via interceptor
+            const visitsUrl = `/visits?all=true&limit=50000`;
+            const visitsRes = await axiosServices.get(visitsUrl);
+            const visitsJson = visitsRes.data;
 
             // DEBUG: show what the visits endpoint returned (counts and a small sample)
             try {
-                console.log('[DEBUG] fetchBoothsWithVisits -> URL:', visitsUrl);
+                console.log('[DEBUG] fetchBoothsWithVisits -> URL:', `${import.meta.env.VITE_APP_API_URL}${visitsUrl}`);
                 console.log('[DEBUG] fetchBoothsWithVisits -> response success:', !!(visitsJson && visitsJson.success));
                 if (visitsJson && Array.isArray(visitsJson.data)) {
                     console.log('[DEBUG] fetchBoothsWithVisits -> raw visits count:', visitsJson.data.length);
-                    console.log('[DEBUG] fetchBoothsWithVisits -> sample visits (first 10):', visitsJson.data.slice(0, 10).map(v => ({ id: v._id || v.id, booth_id_raw: v.booth_id && (typeof v.booth_id === 'object' ? { id: v.booth_id._id || v.booth_id.id, booth_number: v.booth_id.booth_number || v.booth_id.BoothNo || v.booth_id.BoothNumber || null } : v.booth_id) }))); 
+                    console.log('[DEBUG] fetchBoothsWithVisits -> sample visits (first 10):', visitsJson.data.slice(0, 10).map(v => ({ id: v._id || v.id, booth_id_raw: v.booth_id && (typeof v.booth_id === 'object' ? { id: v.booth_id._id || v.booth_id.id, booth_number: v.booth_id.booth_number || v.booth_id.BoothNo || v.booth_id.BoothNumber || null } : v.booth_id) })));
                 } else {
                     console.log('[DEBUG] fetchBoothsWithVisits -> no array data in response:', visitsJson);
                 }
             } catch (dbgErr) {
                 console.warn('[DEBUG] fetchBoothsWithVisits -> debug logging failed:', dbgErr);
             }
-            
-            
+
+
             if (visitsJson.success && Array.isArray(visitsJson.data)) {
                 const boothIds = new Set();
                 const boothNumbers = new Set();
@@ -400,8 +398,9 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
                 if (unresolvedBoothIds.size > 0) {
                     try {
                         // resolving booth IDs to numbers
-                        const boothsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=50000`, { headers });
-                        const boothsJson = await boothsRes.json();
+                        // Use axiosServices which automatically includes serviceToken from localStorage via interceptor
+                        const boothsRes = await axiosServices.get('/booths?all=true&limit=50000');
+                        const boothsJson = boothsRes.data;
                         if (boothsJson && boothsJson.success && Array.isArray(boothsJson.data)) {
                             const idToNumber = new Map();
                             boothsJson.data.forEach(b => {
@@ -417,8 +416,8 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
 
                             unresolvedBoothIds.forEach(id => {
                                 const resolved = idToNumber.get(String(id));
-                                    if (resolved) {
-                                        originalNumbers.add(String(resolved).trim());
+                                if (resolved) {
+                                    originalNumbers.add(String(resolved).trim());
                                     boothNumbers.add(resolved);
                                     boothNumbers.add(resolved.toLowerCase());
                                     boothNumbers.add(String(parseInt(resolved)).trim());
@@ -469,7 +468,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
                 }
                 const fc = { type: 'FeatureCollection', features };
                 setBoothGeoJSON(fc);
-                
+
                 // Auto-zoom to fit all booth polygons (increased delay for map initialization)
                 setTimeout(() => autoZoomToBooths(fc, workStatusMapRef), 1000);
                 return;
@@ -505,7 +504,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
 
             const fc = { type: 'FeatureCollection', features: json.features };
             setBoothGeoJSON(fc);
-            
+
             // Auto-zoom to fit selected block's booth polygons (increased delay)
             setTimeout(() => autoZoomToBooths(fc, workStatusMapRef), 1000);
         } catch (e) {
@@ -691,7 +690,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
             return sameName || sameCoords;
         });
 
-        
+
 
         // Ask parent to open drawer for this location
         try {
@@ -785,19 +784,19 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
 
                                         // Support clicks on polygon fill and circle markers
                                         const boothFeature = features.find(f => f.layer && (f.layer.id === 'booth-fill' || f.layer.id === 'booth-visit-markers')) || features[0];
-                                                                    if (boothFeature && boothFeature.properties) {
-                                                                        const props = boothFeature.properties;
-                                                                        const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-                                                                        if (boothNo) {
-                                                                            // Ask parent to open a loading drawer while we fetch details
-                                                                            try {
-                                                                                if (typeof onOpenDrawer === 'function') {
-                                                                                    onOpenDrawer({ open: true, type: 'booth', data: { loading: true, boothNo, details: { booth: null, visits: [] } } });
-                                                                                }
-                                                                            } catch (_) { /* noop */ }
-                                                                            fetchBoothDetailsByPolygon(boothNo);
-                                                                        }
-                                                                    }
+                                        if (boothFeature && boothFeature.properties) {
+                                            const props = boothFeature.properties;
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                            if (boothNo) {
+                                                // Ask parent to open a loading drawer while we fetch details
+                                                try {
+                                                    if (typeof onOpenDrawer === 'function') {
+                                                        onOpenDrawer({ open: true, type: 'booth', data: { loading: true, boothNo, details: { booth: null, visits: [] } } });
+                                                    }
+                                                } catch (_) { /* noop */ }
+                                                fetchBoothDetailsByPolygon(boothNo);
+                                            }
+                                        }
                                     } catch (err) {
                                         console.warn('Error handling map click:', err);
                                     }
@@ -901,7 +900,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
 
                                 <select
                                     value={selectedElectionYearId}
-                                        onChange={(e) => {
+                                    onChange={(e) => {
                                         const selectedId = e.target.value;
                                         setSelectedElectionYearId(selectedId);
 
@@ -1121,10 +1120,10 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
                                         const boothNoStr = String(boothNo).trim();
                                         const boothNoLower = boothNoStr.toLowerCase();
                                         const boothNoInt = String(parseInt(boothNo) || boothNo).trim();
-                                        
-                                        let hasWorkStatus = boothsWithVisits.has(boothNoStr) || 
-                                                            boothsWithVisits.has(boothNoLower) ||
-                                                            boothsWithVisits.has(boothNoInt);
+
+                                        let hasWorkStatus = boothsWithVisits.has(boothNoStr) ||
+                                            boothsWithVisits.has(boothNoLower) ||
+                                            boothsWithVisits.has(boothNoInt);
                                         if (!hasWorkStatus) {
                                             // Fallback: compare digits with originalBoothNumbers
                                             const digits = (v) => String(v || '').replace(/[^0-9]/g, '');
@@ -1206,7 +1205,7 @@ const VisitMapTabs = ({ onFilterFromMap, onOpenDrawer, visitsFromTable }) => {
                 </Paper>
             </TabPanel>
 
-                {/* Drawer is handled by parent VisitListPage */}
+            {/* Drawer is handled by parent VisitListPage */}
         </MainCard>
     );
 };
