@@ -788,3 +788,153 @@ exports.getParliamentCandidateStatsByParliament = async (req, res, next) => {
     next(err);  
   }
 };
+
+// @desc    Import Parliament Candidates from Excel
+// @route   POST /api/parliament-candidates/import
+// @access  Private (SuperAdmin)
+exports.importParliamentCandidates = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+
+    // Allow the client to request automatic creation of missing Candidate records
+    const createMissing = req.body.create_missing_candidates || req.body.createMissingCandidates || false;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Normalize incoming names
+        const candidateName = row.candidate_name ? String(row.candidate_name).trim() : null;
+
+        // Find candidate by exact name (case-insensitive)
+        let candidate = null;
+        if (candidateName) {
+          candidate = await Candidate.findOne({ name: new RegExp(`^${candidateName}$`, 'i') });
+          // Fallback: contains match if exact not found
+          if (!candidate) {
+            const safe = candidateName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            candidate = await Candidate.findOne({ name: { $regex: safe, $options: 'i' } });
+          }
+        }
+
+        // Find parliament by name or number
+        let parliament = null;
+        if (row.parliament_name) {
+          parliament = await Parliament.findOne({ name: new RegExp(`^${String(row.parliament_name).trim()}$`, 'i') });
+          if (!parliament) {
+            parliament = await Parliament.findOne({ name: { $regex: String(row.parliament_name).trim(), $options: 'i' } });
+          }
+        }
+        if (!parliament && row.parliament_no) {
+          parliament = await Parliament.findOne({ parliament_no: row.parliament_no });
+        }
+
+        // Find election year
+        let electionYear = null;
+        if (row.election_year) {
+          electionYear = await Year.findOne({ year: row.election_year });
+        }
+
+        // Find party by name
+        let party = null;
+        if (row.party_name) {
+          party = await Party.findOne({ name: new RegExp(`^${String(row.party_name).trim()}$`, 'i') });
+          if (!party) party = await Party.findOne({ name: { $regex: String(row.party_name).trim(), $options: 'i' } });
+        }
+
+        // If party not found and createMissing enabled, create a minimal Party record
+        if (!party && createMissing && row.party_name) {
+          try {
+            const partyName = String(row.party_name).trim();
+            const newParty = await Party.create({ name: partyName, created_by: req.user ? req.user.id : null });
+            party = newParty;
+          } catch (partyErr) {
+            // Record the error but continue; lack of party will still cause validation failure later
+            summary.errors.push({ row: i + 1, message: `Failed to create party '${row.party_name}': ${partyErr.message}` });
+          }
+        }
+
+        // If candidate not found and createMissing is enabled, attempt to create a minimal Candidate record
+        if (!candidate && candidateName && createMissing) {
+          try {
+            const newCandData = { name: candidateName };
+            if (party) newCandData.party_id = party._id;
+            if (req.user && req.user.id) newCandData.created_by = req.user.id;
+            const createdCandidate = await Candidate.create(newCandData);
+            candidate = createdCandidate;
+          } catch (createErr) {
+            // If creation fails, log and continue to treat as not found
+            summary.errors.push({ row: i + 1, message: `Failed to create candidate '${candidateName}': ${createErr.message}` });
+          }
+        }
+
+        // Validation
+        if (!candidate) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Candidate '${row.candidate_name}' not found` });
+          continue;
+        }
+        if (!parliament) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Parliament '${row.parliament_name || row.parliament_no}' not found` });
+          continue;
+        }
+        if (!electionYear) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Election year '${row.election_year}' not found` });
+          continue;
+        }
+
+        // Check for duplicates
+        const existing = await ParliamentCandidate.findOne({
+          candidate_id: candidate._id,
+          parliament_id: parliament._id,
+          election_year_id: electionYear._id
+        });
+
+        if (existing) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Record already exists' });
+          continue;
+        }
+
+        // Create record
+        const candidateData = {
+          candidate_id: candidate._id,
+          parliament_id: parliament._id,
+          election_year_id: electionYear._id,
+          party_id: party ? party._id : null,
+          position_result: row.position_result || 'loss',
+          candidate_votes: parseFloat(row.candidate_votes) || 0,
+          total_votes_parliament: parseFloat(row.total_votes_parliament) || 0,
+          margin: parseFloat(row.margin) || 0,
+          margin_percentage: parseFloat(row.margin_percentage) || 0,
+          electors: parseFloat(row.electors) || 0,
+          turnout: parseFloat(row.turnout) || 0,
+          male_electors: parseFloat(row.male_electors) || 0,
+          female_electors: parseFloat(row.female_electors) || 0,
+          total_votes_polled: parseFloat(row.total_votes_polled) || 0,
+          valid_votes: parseFloat(row.valid_votes) || 0,
+          total_male_voters: parseFloat(row.total_male_voters) || 0,
+          female_voters: parseFloat(row.female_voters) || 0,
+          nota_votes: parseFloat(row.nota_votes) || 0,
+          created_by: req.user ? req.user.id : null,
+          updated_by: req.user ? req.user.id : null
+        };
+
+        await ParliamentCandidate.create(candidateData);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary });
+  } catch (err) {
+    next(err);
+  }
+};
