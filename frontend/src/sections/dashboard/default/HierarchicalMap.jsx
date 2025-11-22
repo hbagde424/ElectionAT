@@ -330,7 +330,7 @@ function HierarchicalMap({ onRegionClick }) {
     // Helper to add Authorization header when token exists
     const getAuthHeaders = () => {
         try {
-            const token = localStorage.serviceToken;
+            const token = localStorage.getItem('serviceToken');
             return token ? { Authorization: `Bearer ${token}` } : {};
         } catch (err) {
             return {};
@@ -1824,25 +1824,34 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch winning candidates for state to get last 3 years data
-            const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?state=${stateId}&limit=100`);
             let winningData = {};
-            if (winningResponse.ok) {
-                const result = await winningResponse.json();
-                if (result.success && result.data) {
-                    // Process to get winning parties by year
-                    const partyByYear = {};
-                    result.data.forEach(candidate => {
-                        if (candidate.year_id?.year && candidate.party_id?.name) {
-                            partyByYear[candidate.year_id.year] = candidate.party_id.name;
+            try {
+                const token = localStorage.getItem('serviceToken');
+                if (token) {
+                    const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?state=${stateId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                    if (winningResponse.ok) {
+                        const result = await winningResponse.json();
+                        if (result.success && result.data) {
+                            // Process to get winning parties by year
+                            const partyByYear = {};
+                            result.data.forEach(candidate => {
+                                if (candidate.year_id?.year && candidate.party_id?.name) {
+                                    partyByYear[candidate.year_id.year] = candidate.party_id.name;
+                                }
+                            });
+                            winningData = {
+                                winner_2023: partyByYear['2023'] || 'BJP',
+                                winner_2018: partyByYear['2018'] || 'INC', 
+                                winner_2013: partyByYear['2013'] || 'BJP'
+                            };
                         }
-                    });
-                    winningData = {
-                        winner_2023: partyByYear['2023'] || 'BJP',
-                        winner_2018: partyByYear['2018'] || 'INC', 
-                        winner_2013: partyByYear['2013'] || 'BJP'
-                    };
-
+                    }
+                } else {
+                    // No token: set N/A placeholders
+                    winningData = { winner_2023: 'N/A', winner_2018: 'N/A', winner_2013: 'N/A' };
                 }
+            } catch (e) {
+                console.warn('Failed to fetch winning candidates for state:', e);
             }
 
             setHoverData(prev => ({
@@ -1989,30 +1998,38 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch winning candidates data
-            const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?parliament=${parliamentObjectId}&limit=100`);
             let winningData = {};
-            if (winningResponse.ok) {
-                const result = await winningResponse.json();
-                if (result.success && result.data) {
-                    // Process to get winning parties by year and current MP
-                    const partyByYear = {};
-                    let currentMP = '';
-                    result.data.forEach(candidate => {
-                        if (candidate.year_id?.year && candidate.party_id?.name) {
-                            partyByYear[candidate.year_id.year] = candidate.party_id.name;
-                            if (candidate.year_id.year === '2024' || candidate.year_id.year === '2019') {
-                                currentMP = candidate.candidate_id?.name || '';
-                            }
+            try {
+                const token = localStorage.getItem('serviceToken');
+                if (token) {
+                    const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?parliament=${parliamentObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                    if (winningResponse.ok) {
+                        const result = await winningResponse.json();
+                        if (result.success && result.data) {
+                            // Process to get winning parties by year and current MP
+                            const partyByYear = {};
+                            let currentMP = '';
+                            result.data.forEach(candidate => {
+                                if (candidate.year_id?.year && candidate.party_id?.name) {
+                                    partyByYear[candidate.year_id.year] = candidate.party_id.name;
+                                    if (candidate.year_id.year === '2024' || candidate.year_id.year === '2019') {
+                                        currentMP = candidate.candidate_id?.name || '';
+                                    }
+                                }
+                            });
+                            winningData = {
+                                winner_2024: partyByYear['2024'] || partyByYear['2019'] || 'BJP',
+                                winner_2019: partyByYear['2019'] || 'BJP',
+                                winner_2014: partyByYear['2014'] || 'BJP',
+                                current_mp: currentMP
+                            };
                         }
-                    });
-                    winningData = {
-                        winner_2024: partyByYear['2024'] || partyByYear['2019'] || 'BJP',
-                        winner_2019: partyByYear['2019'] || 'BJP',
-                        winner_2014: partyByYear['2014'] || 'BJP',
-                        current_mp: currentMP
-                    };
-
+                    }
+                } else {
+                    winningData = { winner_2024: 'N/A', winner_2019: 'N/A', winner_2014: 'N/A', current_mp: 'N/A' };
                 }
+            } catch (e) {
+                console.warn('Failed to fetch winning candidates for parliament:', e);
             }
 
             // Fetch assemblies in this parliament
@@ -2176,22 +2193,30 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch winning candidates data (MLA info)
-            const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${assemblyObjectId}&limit=100`);
             let winningData = {};
-            if (winningResponse.ok) {
-                const result = await winningResponse.json();
-                if (result.success && result.data) {
-                    // Get current MLA (latest winner)
-                    let currentMLA = '';
-                    if (result.data.length > 0) {
-                        const latestCandidate = result.data[0]; // Assuming sorted by year desc
-                        currentMLA = latestCandidate.candidate_id?.name || '';
+            try {
+                const token = localStorage.getItem('serviceToken');
+                if (token) {
+                    const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${assemblyObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                    if (winningResponse.ok) {
+                        const result = await winningResponse.json();
+                        if (result.success && result.data) {
+                            // Get current MLA (latest winner)
+                            let currentMLA = '';
+                            if (result.data.length > 0) {
+                                const latestCandidate = result.data[0]; // Assuming sorted by year desc
+                                currentMLA = latestCandidate.candidate_id?.name || '';
+                            }
+                            winningData = {
+                                current_mla: currentMLA
+                            };
+                        }
                     }
-                    winningData = {
-                        current_mla: currentMLA
-                    };
-
+                } else {
+                    winningData = { current_mla: 'N/A' };
                 }
+            } catch (e) {
+                console.warn('Failed to fetch winning candidates for assembly:', e);
             }
 
             // Fetch total booths count for assembly
@@ -2376,7 +2401,9 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch winning candidate data for hover
     const fetchWinningCandidateData = async (type, id) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/stats/${type}/${id}`);
+            const token = localStorage.getItem('serviceToken');
+            if (!token) return; // skip when unauthenticated
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/stats/${type}/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
@@ -2397,8 +2424,10 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch assembly specific data for hover (electors, male/female electors, last 3 years winning party)
     const fetchAssemblyHoverData = async (assemblyId) => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            if (!token) return;
             const apiUrl = `${import.meta.env.VITE_APP_API_URL}/winning-candidates/stats/assembly/${assemblyId}`;
-            const response = await fetch(apiUrl);
+            const response = await fetch(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
             
             if (response.ok) {
                 const data = await response.json();

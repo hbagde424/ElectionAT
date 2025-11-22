@@ -165,7 +165,11 @@ export default function PartyActivitiesListPage() {
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+            if (!token) {
+                console.warn('No serviceToken, skipping reference data fetch');
+                return;
+            }
+            const fetchOpts = { headers: { Authorization: `Bearer ${token}` } };
             const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, partiesRes] = await Promise.all([
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states?limit=10000`, fetchOpts),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`, fetchOpts),
@@ -211,6 +215,12 @@ export default function PartyActivitiesListPage() {
     // Fetch all party activities for filters
     const fetchAllPartyActivitiesForFilters = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            if (!token) {
+                console.warn('No serviceToken, skipping fetchAllPartyActivitiesForFilters');
+                return;
+            }
+
             const hierarchyFilters = {};
             if (userHierarchy?.state) hierarchyFilters.state_id = userHierarchy.state._id;
             if (userHierarchy?.division) hierarchyFilters.division_id = userHierarchy.division._id;
@@ -240,7 +250,12 @@ export default function PartyActivitiesListPage() {
     const fetchBoothsWithActivities = async (selectedYear = yearFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            if (!token) {
+                console.warn('No serviceToken, skipping booths-with-activities fetch');
+                setBoothsWithActivities(new Set());
+                return;
+            }
+            const headers = { Authorization: `Bearer ${token}` };
             let url = `${import.meta.env.VITE_APP_API_URL}/party-activities?all=true&limit=50000`;
             if (selectedYear) url += `&year=${selectedYear}`;
             const activitiesRes = await fetch(url, { headers });
@@ -270,7 +285,12 @@ export default function PartyActivitiesListPage() {
         setMapError('');
         try {
             const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            if (!token) {
+                console.warn('No serviceToken, skipping loadBoothPolygons');
+                setBoothGeoJSON(null);
+                return;
+            }
+            const headers = { Authorization: `Bearer ${token}` };
 
             // Fetch booths with activities in parallel
             fetchBoothsWithActivities(yearFilter);
@@ -404,7 +424,12 @@ export default function PartyActivitiesListPage() {
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            if (!token) {
+                console.warn('No serviceToken, skipping fetchBoothDetailsByPolygon');
+                setDrawerData({ loading: false, boothNo, details: { booth: null, partyActivities: [] }, error: 'Authentication required' });
+                return;
+            }
+            const headers = { Authorization: `Bearer ${token}` };
 
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
             const json = await res.json();
@@ -504,7 +529,14 @@ export default function PartyActivitiesListPage() {
             });
 
             const token = localStorage.getItem('serviceToken');
-            const fetchOpts = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+            if (!token) {
+                console.warn('No serviceToken, skipping fetchPartyActivities');
+                setPartyActivities([]);
+                setPageCount(0);
+                setLoading(false);
+                return;
+            }
+            const fetchOpts = { headers: { Authorization: `Bearer ${token}` } };
             const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/party-activities?${queryParams}`, fetchOpts);
             const json = await res.json();
             if (json.success) {
@@ -528,6 +560,12 @@ export default function PartyActivitiesListPage() {
 
 
     useEffect(() => {
+        const token = localStorage.getItem('serviceToken');
+        if (!token) {
+            // No token: skip data-fetching effects to avoid unauthenticated requests
+            return;
+        }
+
         fetchPartyActivities(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
         fetchAllPartyActivitiesForFilters();

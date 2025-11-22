@@ -86,12 +86,14 @@ export default function BoothDemographicsModal({
     useEffect(() => {
         const fetchReferenceData = async () => {
             try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
                 const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes] = await Promise.all([
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`)
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                    fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers })
                 ]);
 
                 const [statesData, divisionsData, parliamentsData, assembliesData, blocksData] = await Promise.all([

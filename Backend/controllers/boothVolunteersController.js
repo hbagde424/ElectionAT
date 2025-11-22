@@ -12,7 +12,7 @@ const path = require('path');
 
 // @desc    Get all booth volunteers
 // @route   GET /api/booth-volunteers
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothVolunteers = async (req, res, next) => {
   try {
     // Log incoming query for debugging filter-related 500 errors
@@ -246,7 +246,7 @@ exports.getBoothVolunteers = async (req, res, next) => {
 
 // @desc    Get single booth volunteer
 // @route   GET /api/booth-volunteers/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothVolunteer = async (req, res, next) => {
   try {
     const volunteer = await BoothVolunteers.findById(req.params.id)
@@ -544,7 +544,7 @@ exports.deleteVolunteerDocument = async (req, res, next) => {
 
 // @desc    Get volunteers by booth
 // @route   GET /api/booth-volunteers/booth/:boothId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVolunteersByBooth = async (req, res, next) => {
   try {
     // Verify booth exists
@@ -573,7 +573,7 @@ exports.getVolunteersByBooth = async (req, res, next) => {
 
 // @desc    Get volunteers by party
 // @route   GET /api/booth-volunteers/party/:partyId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVolunteersByParty = async (req, res, next) => {
   try {
     // Verify party exists
@@ -602,7 +602,7 @@ exports.getVolunteersByParty = async (req, res, next) => {
 
 // @desc    Get volunteers by state
 // @route   GET /api/booth-volunteers/state/:stateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVolunteersByState = async (req, res, next) => {
   try {
     // Verify state exists

@@ -7,7 +7,7 @@ const User = require('../models/User');
 
 // @desc    Get all potential candidates
 // @route   GET /api/potential-candidates
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getPotentialCandidates = async (req, res, next) => {
   try {
     // Pagination
@@ -100,7 +100,7 @@ exports.getPotentialCandidates = async (req, res, next) => {
 
 // @desc    Get single potential candidate
 // @route   GET /api/potential-candidates/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getPotentialCandidate = async (req, res, next) => {
   try {
     const candidate = await PotentialCandidate.findById(req.params.id)

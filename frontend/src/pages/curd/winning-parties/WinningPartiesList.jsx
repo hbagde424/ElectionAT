@@ -651,13 +651,21 @@ const WinningPartyListPage = () => {
 
     const fetchAllWinningPartiesForCsv = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties?all=true`);
+            const token = localStorage.getItem('serviceToken');
+            if (!token) {
+                console.warn('No authentication token found. Cannot fetch winning parties.');
+                return [];
+            }
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties?all=true`, { headers: { Authorization: `Bearer ${token}` } });
             const json = await res.json();
             if (json.success) {
                 return json.data;
             }
         } catch (error) {
             console.error('Failed to fetch all winning parties for CSV:', error);
+            if (error.response?.status === 401) {
+                console.error('Authentication failed. Please log in again.');
+            }
         }
         return [];
     };

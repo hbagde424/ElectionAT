@@ -22,6 +22,12 @@ const router = express.Router();
  *   description: Booth survey management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getBoothSurveys);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothSurvey);
+
 /**
  * @swagger
  * /api/booth-surveys:
@@ -119,8 +125,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothSurvey'
  */
-// Public: optional authentication — getUserPermissionsAndHierarchy will attach hierarchy if token present
-router.get('/', getUserPermissionsAndHierarchy, getBoothSurveys);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getBoothSurveys);
 
 /**
  * @swagger
@@ -144,7 +150,8 @@ router.get('/', getUserPermissionsAndHierarchy, getBoothSurveys);
  *       404:
  *         description: Booth survey not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getBoothSurvey);
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothSurvey);
 
 /**
  * @swagger
@@ -284,7 +291,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBoothSurvey);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getSurveysByBooth);
+// Protected: requires authentication via serviceToken
+router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getSurveysByBooth);
 
 /**
  * @swagger
@@ -317,7 +325,8 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getSurveysByBooth)
  *       404:
  *         description: Surveyor not found
  */
-router.get('/surveyor/:surveyorId', getUserPermissionsAndHierarchy, getSurveysBySurveyor);
+// Protected: requires authentication via serviceToken
+router.get('/surveyor/:surveyorId', protect, getUserPermissionsAndHierarchy, getSurveysBySurveyor);
 
 /**
  * @swagger
@@ -350,7 +359,8 @@ router.get('/surveyor/:surveyorId', getUserPermissionsAndHierarchy, getSurveysBy
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getUserPermissionsAndHierarchy, getSurveysByState);
+// Protected: requires authentication via serviceToken
+router.get('/state/:stateId', protect, getUserPermissionsAndHierarchy, getSurveysByState);
 
 /**
  * @swagger

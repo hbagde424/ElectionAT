@@ -9,7 +9,7 @@ const User = require('../models/User');
 
 // @desc    Get all coding entries
 // @route   GET /api/codings
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getCodings = async (req, res, next) => {
   try {
     // Pagination
@@ -209,7 +209,7 @@ exports.getCodings = async (req, res, next) => {
 
 // @desc    Get single coding entry
 // @route   GET /api/codings/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getCoding = async (req, res, next) => {
   try {
     const coding = await Coding.findById(req.params.id)

@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 // @desc    Get all election years
 // @route   GET /api/election-years
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getElectionYears = async (req, res, next) => {
   try {
     // Pagination
@@ -49,7 +49,7 @@ exports.getElectionYears = async (req, res, next) => {
 
 // @desc    Get single election year
 // @route   GET /api/election-years/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getElectionYear = async (req, res, next) => {
   try {
     const electionYear = await ElectionYear.findById(req.params.id)

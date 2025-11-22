@@ -9,7 +9,7 @@ const Block = require('../models/block');
 
 // @desc    Get all booth surveys
 // @route   GET /api/booth-surveys
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothSurveys = async (req, res, next) => {
   try {
     // Pagination
@@ -166,7 +166,7 @@ exports.getBoothSurveys = async (req, res, next) => {
 
 // @desc    Get single booth survey
 // @route   GET /api/booth-surveys/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothSurvey = async (req, res, next) => {
   try {
     const survey = await BoothSurvey.findById(req.params.id)
@@ -349,7 +349,7 @@ exports.deleteBoothSurvey = async (req, res, next) => {
 
 // @desc    Get surveys by booth
 // @route   GET /api/booth-surveys/booth/:boothId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getSurveysByBooth = async (req, res, next) => {
   try {
     // Verify booth exists
@@ -377,7 +377,7 @@ exports.getSurveysByBooth = async (req, res, next) => {
 
 // @desc    Get surveys by surveyor
 // @route   GET /api/booth-surveys/surveyor/:surveyorId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getSurveysBySurveyor = async (req, res, next) => {
   try {
     // Verify surveyor exists
@@ -397,7 +397,7 @@ exports.getSurveysBySurveyor = async (req, res, next) => {
 
 // @desc    Get surveys by state
 // @route   GET /api/booth-surveys/state/:stateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getSurveysByState = async (req, res, next) => {
   try {
     // Verify state exists

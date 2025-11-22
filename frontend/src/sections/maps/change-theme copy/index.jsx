@@ -54,9 +54,20 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
     const fetchData = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem('serviceToken');
+        if (!token) {
+          console.warn('No authentication token found. Cannot fetch assembly data.');
+          setError('Authentication required. Please log in to view assembly data.');
+          setLoading(false);
+          return;
+        }
         const [assemblyResponse, candidatesResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`),
-          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`)
+          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
         ]);
         if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');
         if (!candidatesResponse.ok) throw new Error('Failed to fetch candidates data');
@@ -127,9 +138,9 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
     fetchData();
   }, [selectedYear]);
 
-  // Update assemblyData features with winning info for selected year filter
-  useEffect(() => {
-    if (!assemblyData || !winningCandidates) return;
+  // Update assemblyData features with winning info for selected year filter - using useMemo to avoid re-renders
+  const enrichedAssemblyData = useMemo(() => {
+    if (!assemblyData || !winningCandidates) return assemblyData;
     // Deep copy features to avoid mutating state directly
     const features = assemblyData.features.map(feature => {
       const acNo = feature.properties?.AC_NO;
@@ -166,8 +177,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
       }
       return newFeature;
     });
-    setAssemblyData(prev => ({ ...prev, features }));
-  }, [filters.year, winningCandidates]);
+    return { ...assemblyData, features };
+  }, [assemblyData, filters.year, winningCandidates]);
 
   const handleFeatureClick = (e) => {
     // Prevent default browser navigation/refresh if underlying DOM event exists
@@ -186,8 +197,9 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
     if (!e.features?.length) return;
 
     const feature = e.features[0];
-    setSelectedAssembly(feature.properties);
-    setDrawerOpen(true);
+    // Don't open drawer here - let parent component handle it to avoid double panels
+    // setSelectedAssembly(feature.properties);
+    // setDrawerOpen(true);
     
     // Notify parent component about assembly selection if callback provided
     if (onAssemblySelect && feature.properties) {
@@ -200,9 +212,9 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
   };
 
   const getFilteredData = () => {
-    if (!assemblyData) return null;
+    if (!enrichedAssemblyData) return null;
 
-    const filteredFeatures = assemblyData.features.filter(feature => {
+    const filteredFeatures = enrichedAssemblyData.features.filter(feature => {
       const pcMatch = filters.pcName === 'all' || feature.properties?.PC_NAME === filters.pcName;
       const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
       // Fix: Compare year as string, and only match if filter is not 'all'
@@ -443,8 +455,9 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
         )}
       </Box>
 
-      {/* Assembly Details Drawer */}
-      <Drawer
+      {/* Assembly Details Drawer - Disabled to prevent double panel, parent component handles drawer */}
+      {false && (
+        <Drawer
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -650,6 +663,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
           </Stack>
         )}
       </Drawer>
+      )}
     </Box>
   );
 }

@@ -9,7 +9,7 @@ const User = require('../models/User');
 
 // @desc    Get all caste lists
 // @route   GET /api/caste-lists
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getCasteLists = async (req, res, next) => {
   try {
     // Pagination
@@ -160,7 +160,7 @@ exports.getCasteLists = async (req, res, next) => {
 
 // @desc    Get single caste list
 // @route   GET /api/caste-lists/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getCasteList = async (req, res, next) => {
   try {
     const casteList = await CasteList.findById(req.params.id)

@@ -5,7 +5,7 @@ const { logActivity, diffObjects } = require('../utils/logActivity');
 
 // @desc    Get all active party records
 // @route   GET /api/active-parties
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getActiveParties = async (req, res, next) => {
   try {
     // Pagination
@@ -52,7 +52,7 @@ exports.getActiveParties = async (req, res, next) => {
 
 // @desc    Get single active party record
 // @route   GET /api/active-parties/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getActiveParty = async (req, res, next) => {
   try {
     const activeParty = await ActiveParty.findById(req.params.id)
@@ -232,7 +232,7 @@ exports.deleteActiveParty = async (req, res, next) => {
 
 // @desc    Get active parties by booth
 // @route   GET /api/active-parties/booth/:boothId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getActivePartiesByBooth = async (req, res, next) => {
   try {
     // Verify booth exists

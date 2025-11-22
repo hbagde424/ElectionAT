@@ -75,7 +75,7 @@ function getFullHierarchyPipeline() {
 
 // @desc    Get full geographical hierarchy
 // @route   GET /api/hierarchy
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 const getFullHierarchy = async (req, res, next) => {
   try {
     // Pagination

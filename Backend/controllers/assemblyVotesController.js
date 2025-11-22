@@ -11,7 +11,7 @@ const User = require('../models/User');
 
 // @desc    Get assembly statistics
 // @route   GET /api/assembly-votes/stats
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getAssemblyStats = async (req, res, next) => {
   try {
     const year = req.query.year || '2023';
@@ -92,7 +92,7 @@ exports.getAssemblyStats = async (req, res, next) => {
 
 // @desc    Get all assembly votes
 // @route   GET /api/assembly-votes
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getAssemblyVotes = async (req, res, next) => {
   try {
     // Pagination
@@ -249,7 +249,7 @@ exports.getAssemblyVotes = async (req, res, next) => {
 
 // @desc    Get single assembly vote record
 // @route   GET /api/assembly-votes/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getAssemblyVote = async (req, res, next) => {
   try {
     const vote = await AssemblyVotes.findById(req.params.id)
@@ -458,7 +458,7 @@ exports.deleteAssemblyVote = async (req, res, next) => {
 
 // @desc    Get votes by assembly
 // @route   GET /api/assembly-votes/assembly/:assemblyId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByAssembly = async (req, res, next) => {
   try {
     // Verify assembly exists
@@ -488,7 +488,7 @@ exports.getVotesByAssembly = async (req, res, next) => {
 
 // @desc    Get votes by candidate
 // @route   GET /api/assembly-votes/candidate/:candidateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByCandidate = async (req, res, next) => {
   try {
     // Verify candidate exists
@@ -517,7 +517,7 @@ exports.getVotesByCandidate = async (req, res, next) => {
 
 // @desc    Get votes by state
 // @route   GET /api/assembly-votes/state/:stateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByState = async (req, res, next) => {
   try {
     // Verify state exists
@@ -547,7 +547,7 @@ exports.getVotesByState = async (req, res, next) => {
 
 // @desc    Get votes by election year
 // @route   GET /api/assembly-votes/year/:yearId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByElectionYear = async (req, res, next) => {
   try {
     // Verify election year exists

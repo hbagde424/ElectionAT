@@ -390,6 +390,77 @@ const VisitListPage = () => {
         }
     };
 
+    // Excel import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
+    // Excel Template Download
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    visit_date: '2024-01-15',
+                    visit_type: 'Survey',
+                    candidate_name: 'Candidate Name',
+                    state_name: 'State Name',
+                    division_name: 'Division Name',
+                    parliament_name: 'Parliament Name',
+                    assembly_name: 'Assembly Name',
+                    block_name: 'Block Name',
+                    booth_name: 'Booth Name',
+                    people_met: '50',
+                    feedback: 'Positive feedback',
+                    status: 'Completed'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'visit-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
+    };
+
+    // Excel Import Handler
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map(row => {
+                const normalized = {};
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const response = await axiosServices.post('/visits/import', { rows: normalizedData });
+            setImportResult(response.data);
+            if (response.data.success) {
+                fetchVisits();
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err.message || 'Import failed' });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     const fetchAllVisitsForFilters = async () => {
         const hierarchyFilters = {};
         if (userHierarchy?.state) hierarchyFilters.state = userHierarchy.state._id || userHierarchy.state;
@@ -405,19 +476,25 @@ const VisitListPage = () => {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            if (!token) {
+                console.warn('No authentication token found.');
+                return;
+            }
+            const headers = { Authorization: `Bearer ${token}` };
             const [
                 statesRes, divisionsRes, parliamentsRes,
                 assembliesRes, blocksRes, boothsRes,
                 candidatesRes, electionYearsRes
             ] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers })
             ]);
 
             const [
@@ -434,7 +511,7 @@ const VisitListPage = () => {
                 candidatesRes.json(),
                 electionYearsRes.json(),
                 // users may be used to resolve created_by/updated_by ids -> names
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`).then(r => r.json())
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers }).then(r => r.json())
             ]);
 
             if (statesData.success) setStates(statesData.data);
@@ -959,11 +1036,56 @@ const VisitListPage = () => {
                                     <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                                         {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                                     </Button>
+                                    <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                                        Download Excel Template
+                                    </Button>
+                                    <Button variant="outlined" component="label" disabled={importing}>
+                                        {importing ? 'Importing...' : 'Import Excel'}
+                                        <input
+                                            ref={importInputRef}
+                                            type="file"
+                                            hidden
+                                            accept=".xlsx,.xls"
+                                            onChange={handleImportFile}
+                                        />
+                                    </Button>
                                     <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpenModal(true); }}>
                                         Add Visit
                                     </Button>
                                 </Stack>
                             </Stack>
+
+                            {/* Import Result Alert */}
+                            {importResult && (
+                                <Alert
+                                    severity={importResult.success ? 'success' : 'error'}
+                                    onClose={() => setImportResult(null)}
+                                    sx={{ mb: 2 }}
+                                >
+                                    {importResult.success ? (
+                                        `Successfully imported ${importResult.created || 0} records. ${importResult.skipped > 0 ? `Skipped ${importResult.skipped} records.` : ''}`
+                                    ) : (
+                                        `Import failed: ${importResult.message || 'Unknown error'}`
+                                    )}
+                                    {importResult.errors && importResult.errors.length > 0 && (
+                                        <Box sx={{ mt: 1 }}>
+                                            <Typography variant="caption" component="div">
+                                                Errors:
+                                            </Typography>
+                                            {importResult.errors.slice(0, 5).map((err, idx) => (
+                                                <Typography key={idx} variant="caption" component="div">
+                                                    Row {err.row}: {err.message}
+                                                </Typography>
+                                            ))}
+                                            {importResult.errors.length > 5 && (
+                                                <Typography variant="caption">
+                                                    ...and {importResult.errors.length - 5} more errors
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    )}
+                                </Alert>
+                            )}
 
                             {/* Access Scope Information */}
                             <Alert

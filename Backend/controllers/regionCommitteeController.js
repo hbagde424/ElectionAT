@@ -17,7 +17,7 @@ const getRegionModel = (regionType) => {
 
 // @desc    Get all region committees
 // @route   GET /api/region-committees
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getRegionCommittees = async (req, res, next) => {
   try {
     const { region_type, region_id } = req.query;

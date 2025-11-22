@@ -171,40 +171,50 @@ export default function DivisionListPage() {
 
         const fetchDivisions = async (pageIndex, pageSize, globalFilter = '', stateFilter = '') => {
             setLoading(true);
-            try {
-                let url;
-                let ignorePagination = !!globalFilter;
-                if (ignorePagination) {
-                    // When searching, fetch all results (up to 10000)
-                    let query = [];
-                    if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
-                    if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-                    const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-                    url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
-                } else {
-                    // Normal pagination
-                    let query = [];
-                    if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-                    const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-                    url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
-                }
-                const token = localStorage.getItem('serviceToken');
-                const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-                const json = await res.json();
-                if (json.success) {
-                    setDivisions(json.data);
-                    setPageCount(ignorePagination ? 1 : json.pages);
-                } else {
+                try {
+                    // Check if user is authenticated before making request
+                    const token = localStorage.getItem('serviceToken');
+                    if (!token) {
+                        console.warn('No authentication token found. Cannot fetch divisions.');
+                        setLoading(false);
+                        return;
+                    }
+
+                    let url;
+                    let ignorePagination = !!globalFilter;
+                    if (ignorePagination) {
+                        // When searching, fetch all results (up to 10000)
+                        let query = [];
+                        if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
+                        if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+                        const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+                        url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
+                    } else {
+                        // Normal pagination
+                        let query = [];
+                        if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+                        const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+                        url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
+                    }
+                    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+                    const json = await res.json();
+                    if (json.success) {
+                        setDivisions(json.data);
+                        setPageCount(ignorePagination ? 1 : json.pages);
+                    } else {
+                        setDivisions([]);
+                        setPageCount(0);
+                    }
+                } catch (error) {
                     setDivisions([]);
                     setPageCount(0);
+                    console.error('Failed to fetch divisions:', error);
+                    if (error.response?.status === 401) {
+                        console.error('Authentication failed. Please log in again.');
+                    }
+                } finally {
+                    setLoading(false);
                 }
-            } catch (error) {
-                setDivisions([]);
-                setPageCount(0);
-                console.error('Failed to fetch divisions:', error);
-            } finally {
-                setLoading(false);
-            }
         };
 
         const fetchAllDivisionsForFilters = async () => {

@@ -75,7 +75,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothPartyPresence'
  */
-router.get('/', getPartyPresences);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getPartyPresences);
 
 /**
  * @swagger
@@ -99,7 +100,8 @@ router.get('/', getPartyPresences);
  *       404:
  *         description: Record not found
  */
-router.get('/:id', getPartyPresenceById);
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getPartyPresenceById);
 
 /**
  * @swagger
@@ -212,7 +214,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deletePartyPresence);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getPresencesByBooth);
+// Protected: requires authentication via serviceToken
+router.get('/booth/:boothId', protect, getPresencesByBooth);
 
 /**
  * @swagger
@@ -245,7 +248,8 @@ router.get('/booth/:boothId', getPresencesByBooth);
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', getPresencesByParty);
+// Protected: requires authentication via serviceToken
+router.get('/party/:partyId', protect, getPresencesByParty);
 
 /**
  * @swagger

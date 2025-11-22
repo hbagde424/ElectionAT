@@ -71,7 +71,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothInfrastructure'
  */
-router.get('/', getAllBoothInfrastructures);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getAllBoothInfrastructures);
 
 /**
  * @swagger
@@ -95,7 +96,8 @@ router.get('/', getAllBoothInfrastructures);
  *       404:
  *         description: Record not found
  */
-router.get('/:id', getBoothInfrastructure);
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getBoothInfrastructure);
 
 /**
  * @swagger
@@ -207,7 +209,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBoothInfrastructur
  *                   items:
  *                     $ref: '#/components/schemas/BoothInfrastructure'
  */
-router.get('/premises/:premisesType', getInfrastructureByPremisesType);
+// Protected: requires authentication via serviceToken
+router.get('/premises/:premisesType', protect, getInfrastructureByPremisesType);
 
 /**
  * @swagger
@@ -239,7 +242,8 @@ router.get('/premises/:premisesType', getInfrastructureByPremisesType);
  *                   items:
  *                     $ref: '#/components/schemas/BoothInfrastructure'
  */
-router.get('/category/:categorization', getInfrastructureByCategorization);
+// Protected: requires authentication via serviceToken
+router.get('/category/:categorization', protect, getInfrastructureByCategorization);
 
 /**
  * @swagger

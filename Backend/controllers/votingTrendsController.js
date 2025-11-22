@@ -8,7 +8,7 @@ const Party = require('../models/party');
 
 // @desc    Get all voting trends
 // @route   GET /api/voting-trends
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotingTrends = async (req, res, next) => {
   try {
     // Pagination

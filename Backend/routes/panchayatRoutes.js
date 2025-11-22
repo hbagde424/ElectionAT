@@ -19,6 +19,12 @@ const router = express.Router();
  *   description: Panchayat management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getPanchayats);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getPanchayat);
+
 /**
  * @swagger
  * /api/panchayats:

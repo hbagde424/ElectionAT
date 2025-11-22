@@ -18,6 +18,12 @@ const router = express.Router();
  *   description: Election year management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getElectionYears);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getElectionYear);
+
 /**
  * @swagger
  * /api/election-years:

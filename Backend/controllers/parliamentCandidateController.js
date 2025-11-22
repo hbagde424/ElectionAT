@@ -1,6 +1,6 @@
 // @desc    Get winning party for each parliament (for a given year or latest year)
 // @route   GET /api/parliament-candidates/winning-party-by-parliament
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 const Parliament = require('../models/Parliament');
 const Party = require('../models/party');
 const Year = require('../models/electionYear');
@@ -150,7 +150,7 @@ function normalizeCandidateDoc(doc) {
 
 // @desc    Get all Parliament Candidates
 // @route   GET /api/parliament-candidates
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getParliamentCandidates = async (req, res, next) => {
   try {
     // Pagination
@@ -305,7 +305,7 @@ exports.getParliamentCandidates = async (req, res, next) => {
 
 // @desc    Get single Parliament Candidate
 // @route   GET /api/parliament-candidates/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getParliamentCandidate = async (req, res, next) => {
   try {
     const candidate = await ParliamentCandidate.findById(req.params.id)

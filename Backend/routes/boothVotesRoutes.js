@@ -8,7 +8,8 @@ const {
   getVotesByBooth,
   getVotesByCandidate,
   getVotesByState,
-  getVotesByElectionYear
+  getVotesByElectionYear,
+  importBoothVotes
 } = require('../controllers/boothVotesController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -21,6 +22,12 @@ const router = express.Router();
  *   name: Booth Votes
  *   description: Booth vote management
  */
+
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getBoothVotes);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothVote);
 
 /**
  * @swagger
@@ -164,6 +171,33 @@ router.post('/', protect, authorize('superAdmin'), createBoothVote);
 
 /**
  * @swagger
+ * /api/booth-votes/import:
+ *   post:
+ *     summary: Import booth votes from Excel
+ *     tags: [Booth Votes]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importBoothVotes);
+
+/**
+ * @swagger
  * /api/booth-votes/{id}:
  *   put:
  *     summary: Update booth vote record
@@ -249,7 +283,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBoothVote);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getVotesByBooth);
+router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getVotesByBooth);
 
 /**
  * @swagger
@@ -282,7 +316,7 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getVotesByBooth);
  *       404:
  *         description: Candidate not found
  */
-router.get('/candidate/:candidateId', getVotesByCandidate);
+router.get('/candidate/:candidateId', protect, getUserPermissionsAndHierarchy, getVotesByCandidate);
 
 /**
  * @swagger
@@ -315,7 +349,7 @@ router.get('/candidate/:candidateId', getVotesByCandidate);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getVotesByState);
+router.get('/state/:stateId', protect, getUserPermissionsAndHierarchy, getVotesByState);
 
 /**
  * @swagger
@@ -348,7 +382,7 @@ router.get('/state/:stateId', getVotesByState);
  *       404:
  *         description: Election year not found
  */
-router.get('/year/:yearId', getVotesByElectionYear);
+router.get('/year/:yearId', protect, getUserPermissionsAndHierarchy, getVotesByElectionYear);
 
 /**
  * @swagger

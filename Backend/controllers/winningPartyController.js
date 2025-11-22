@@ -15,7 +15,7 @@ const ElectionYear = require('../models/electionYear');
 
 // @desc    Get winning party data grouped by year and party for graph
 // @route   GET /api/winning-parties/graph
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getWinningPartysForGraph = async (req, res, next) => {
   try {
     let query = WinningParty.find()
@@ -260,7 +260,7 @@ exports.getWinningParties = async (req, res, next) => {
 
 // @desc    Get single winning party record
 // @route   GET /api/winning-parties/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getWinningParty = async (req, res, next) => {
   try {
     const winningParty = await WinningParty.findById(req.params.id)
@@ -609,6 +609,75 @@ exports.getWinningPartiesByBooth = async (req, res, next) => {
       count: winningParties.length,
       data: winningParties
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Import Winning Parties from Excel
+// @route   POST /api/winning-parties/import
+// @access  Private (SuperAdmin)
+exports.importWinningParties = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+
+    const { resolveGeographicHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        let candidate = null;
+        if (row.candidate_name) {
+          candidate = await Candidate.findOne({ name: new RegExp(`^${row.candidate_name}$`, 'i') });
+        }
+
+        let party = null;
+        if (row.party_name) {
+          party = await Party.findOne({ name: new RegExp(`^${row.party_name}$`, 'i') });
+        }
+
+        let electionYear = null;
+        if (row.election_year) {
+          electionYear = await ElectionYear.findOne({ year: row.election_year });
+        }
+
+        const geo = await resolveGeographicHierarchy(row);
+
+        if (!candidate) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Candidate '${row.candidate_name}' not found` });
+          continue;
+        }
+
+        const winningPartyData = {
+          candidate_id: candidate._id,
+          party_id: party ? party._id : null,
+          election_year: electionYear ? electionYear._id : null,
+          votes: parseInt(row.votes) || 0,
+          margin: parseInt(row.margin) || 0,
+          state_id: geo.state ? geo.state._id : null,
+          division_id: geo.division ? geo.division._id : null,
+          parliament_id: geo.parliament ? geo.parliament._id : null,
+          assembly_id: geo.assembly ? geo.assembly._id : null,
+          block_id: geo.block ? geo.block._id : null,
+          booth_id: geo.booth ? geo.booth._id : null,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        await WinningParty.create(winningPartyData);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary });
   } catch (err) {
     next(err);
   }

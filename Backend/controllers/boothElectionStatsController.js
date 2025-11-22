@@ -2,7 +2,7 @@ const BoothElectionStats = require('../models/boothElectionStats');
 
 // @desc    Get all booth election stats
 // @route   GET /api/booth-stats
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothStats = async (req, res, next) => {
   try {
     // Pagination
@@ -45,7 +45,7 @@ exports.getBoothStats = async (req, res, next) => {
 
 // @desc    Get election stats by booth ID
 // @route   GET /api/booth-stats/booth/:boothId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getStatsByBooth = async (req, res, next) => {
   try {
     const stats = await BoothElectionStats.find({ booth_id: req.params.boothId })
@@ -65,7 +65,7 @@ exports.getStatsByBooth = async (req, res, next) => {
 
 // @desc    Get election stats by year ID
 // @route   GET /api/booth-stats/year/:yearId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getStatsByYear = async (req, res, next) => {
   try {
     const stats = await BoothElectionStats.find({ year_id: req.params.yearId })
@@ -85,7 +85,7 @@ exports.getStatsByYear = async (req, res, next) => {
 
 // @desc    Get single booth election stats
 // @route   GET /api/booth-stats/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothStatsById = async (req, res, next) => {
   try {
     const stats = await BoothElectionStats.findById(req.params.id)

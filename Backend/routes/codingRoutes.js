@@ -21,6 +21,12 @@ const router = express.Router();
  *   description: Coding management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getCodings);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getCoding);
+
 /**
  * @swagger
  * /api/codings:

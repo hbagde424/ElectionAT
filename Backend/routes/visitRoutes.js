@@ -9,7 +9,8 @@ const {
   getVisitsByDateRange,
   getVisitsByStatus,
   getNearbyVisits,
-  getCandidatePath
+  getCandidatePath,
+  importVisits
 } = require('../controllers/visitController');
 const {
   uploadVisitDocument,
@@ -27,6 +28,12 @@ const router = express.Router();
  *   name: Visits
  *   description: Visit management
  */
+
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getVisits);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getVisit);
 
 /**
  * @swagger
@@ -207,6 +214,33 @@ router.get('/:id', getVisit);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('admin', 'superAdmin'), createVisit);
+
+/**
+ * @swagger
+ * /api/visits/import:
+ *   post:
+ *     summary: Import visits from Excel
+ *     tags: [Visits]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importVisits);
 
 /**
  * @swagger

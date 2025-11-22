@@ -11,7 +11,7 @@ const User = require('../models/User');
 
 // @desc    Get all booth votes
 // @route   GET /api/booth-votes
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothVotes = async (req, res, next) => {
   try {
     // Pagination
@@ -213,7 +213,7 @@ exports.getBoothVotes = async (req, res, next) => {
 
 // @desc    Get single booth vote record
 // @route   GET /api/booth-votes/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothVote = async (req, res, next) => {
   try {
     const vote = await BoothVotes.findById(req.params.id)
@@ -459,7 +459,7 @@ exports.deleteBoothVote = async (req, res, next) => {
 
 // @desc    Get votes by booth
 // @route   GET /api/booth-votes/booth/:boothId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByBooth = async (req, res, next) => {
   try {
     // Verify booth exists
@@ -495,7 +495,7 @@ exports.getVotesByBooth = async (req, res, next) => {
 
 // @desc    Get votes by candidate
 // @route   GET /api/booth-votes/candidate/:candidateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByCandidate = async (req, res, next) => {
   try {
     // Verify candidate exists
@@ -524,7 +524,7 @@ exports.getVotesByCandidate = async (req, res, next) => {
 
 // @desc    Get votes by state
 // @route   GET /api/booth-votes/state/:stateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByState = async (req, res, next) => {
   try {
     // Verify state exists
@@ -561,7 +561,7 @@ exports.getVotesByState = async (req, res, next) => {
 
 // @desc    Get votes by election year
 // @route   GET /api/booth-votes/year/:yearId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByElectionYear = async (req, res, next) => {
   try {
     // Verify election year exists
@@ -591,6 +591,85 @@ exports.getVotesByElectionYear = async (req, res, next) => {
       count: votes.length,
       data: votes
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Import Booth Votes from Excel
+// @route   POST /api/booth-votes/import
+// @access  Private (SuperAdmin)
+exports.importBoothVotes = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+
+    const { resolveGeographicHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        let candidate = null;
+        if (row.candidate_name) {
+          candidate = await Candidate.findOne({ name: new RegExp(`^${row.candidate_name}$`, 'i') });
+        }
+
+        let booth = null;
+        if (row.booth_name || row.booth_number) {
+          booth = await Booth.findOne({
+            $or: [
+              { name: new RegExp(`^${row.booth_name}$`, 'i') },
+              { booth_number: row.booth_number }
+            ]
+          });
+        }
+
+        let electionYear = null;
+        if (row.election_year) {
+          electionYear = await ElectionYear.findOne({ year: row.election_year });
+        }
+
+        const geo = await resolveGeographicHierarchy(row);
+
+        if (!candidate) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Candidate '${row.candidate_name}' not found` });
+          continue;
+        }
+        if (!booth) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Booth '${row.booth_name || row.booth_number}' not found` });
+          continue;
+        }
+
+        const voteData = {
+          candidate: candidate._id,
+          booth: booth._id,
+          election_year_id: electionYear ? electionYear._id : null,
+          total_votes: parseInt(row.total_votes) || 0,
+          vote_percentage: parseFloat(row.vote_percentage) || 0,
+          margin: parseInt(row.margin) || 0,
+          state: geo.state ? geo.state._id : null,
+          division: geo.division ? geo.division._id : null,
+          parliament: geo.parliament ? geo.parliament._id : null,
+          assembly: geo.assembly ? geo.assembly._id : null,
+          block: geo.block ? geo.block._id : null,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        await BoothVotes.create(voteData);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary });
   } catch (err) {
     next(err);
   }

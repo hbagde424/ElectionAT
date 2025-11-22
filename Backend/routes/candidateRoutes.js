@@ -23,6 +23,12 @@ const router = express.Router();
  *   description: Candidate management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getCandidates);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getCandidate);
+
 /**
  * @swagger
  * /api/candidates:
@@ -78,7 +84,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Candidate'
  */
-router.get('/', getUserPermissionsAndHierarchy, getCandidates);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getCandidates);
 
 /**
  * @swagger
@@ -102,7 +109,8 @@ router.get('/', getUserPermissionsAndHierarchy, getCandidates);
  *       404:
  *         description: Candidate not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getCandidate);
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getCandidate);
 
 /**
  * @swagger
@@ -257,7 +265,8 @@ router.post('/:id/photo', protect, authorize('superAdmin', 'admin'), uploadPhoto
  *                         items:
  *                           $ref: '#/components/schemas/Candidate'
  */
-router.get('/criminal-cases', getCandidatesByCriminalCases);
+// Protected: requires authentication via serviceToken
+router.get('/criminal-cases', protect, getCandidatesByCriminalCases);
 
 /**
  * @swagger
@@ -293,7 +302,8 @@ router.get('/criminal-cases', getCandidatesByCriminalCases);
  *                         items:
  *                           $ref: '#/components/schemas/Candidate'
  */
-router.get('/caste', getCandidatesByCaste);
+// Protected: requires authentication via serviceToken
+router.get('/caste', protect, getCandidatesByCaste);
 
 /**
  * @swagger

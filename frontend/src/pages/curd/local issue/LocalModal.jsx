@@ -181,15 +181,26 @@ export default function LocalIssueModal({
     // Fetch panchayats, villages, falliyas on modal open
     useEffect(() => {
         if (open) {
+            const token = localStorage.getItem('serviceToken');
+            if (!token) {
+                console.warn('No authentication token found.');
+                return;
+            }
+            const headers = { Authorization: `Bearer ${token}` };
             Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats?limit=10000`).then(r => r.json()),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/villages?limit=10000`).then(r => r.json()),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas?limit=10000`).then(r => r.json())
+                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats?limit=10000`, { headers }).then(r => r.json()),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/villages?limit=10000`, { headers }).then(r => r.json()),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas?limit=10000`, { headers }).then(r => r.json())
             ]).then(([panchayatsRes, villagesRes, falliyasRes]) => {
                 if (panchayatsRes.success) setPanchayats(panchayatsRes.data);
                 if (villagesRes.success) setVillages(villagesRes.data);
                 if (falliyasRes.success) setFalliyas(falliyasRes.data);
-            }).catch(err => console.error('Error fetching location data:', err));
+            }).catch(err => {
+                console.error('Error fetching location data:', err);
+                if (err.response?.status === 401) {
+                    console.error('Authentication failed. Please log in again.');
+                }
+            });
         }
     }, [open]);
 

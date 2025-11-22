@@ -9,7 +9,7 @@ const Party = require('../models/party');
 
 // @desc    Get all influencers
 // @route   GET /api/influencers
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getInfluencers = async (req, res, next) => {
   try {
     // Pagination
@@ -188,7 +188,7 @@ exports.getInfluencers = async (req, res, next) => {
 
 // @desc    Get single influencer
 // @route   GET /api/influencers/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getInfluencer = async (req, res, next) => {
   try {
     const influencer = await Influencer.findById(req.params.id)

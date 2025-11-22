@@ -6,7 +6,7 @@ const Division = require('../models/Division');
 
 // @desc    Get all districts
 // @route   GET /api/districts
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getDistricts = async (req, res, next) => {
   try {
     // Pagination
@@ -137,7 +137,7 @@ exports.getDistricts = async (req, res, next) => {
 
 // @desc    Get single district
 // @route   GET /api/districts/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getDistrict = async (req, res, next) => {
   try {
     const district = await District.findById(req.params.id)
@@ -367,7 +367,7 @@ exports.deleteDistrict = async (req, res, next) => {
 
 // @desc    Get districts by state
 // @route   GET /api/districts/state/:stateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getDistrictsByState = async (req, res, next) => {
   try {
     // Verify state exists
@@ -415,7 +415,7 @@ exports.getDistrictsByState = async (req, res, next) => {
 
 // @desc    Get districts by division
 // @route   GET /api/districts/division/:divisionId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getDistrictsByDivision = async (req, res, next) => {
   try {
     // Verify division exists

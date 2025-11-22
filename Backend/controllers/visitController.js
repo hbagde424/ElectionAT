@@ -643,7 +643,7 @@ exports.getVisits = async (req, res, next) => {
 
 // @desc    Get single visit
 // @route   GET /api/visits/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVisit = async (req, res, next) => {
   try {
     const visit = await Visit.findById(req.params.id)
@@ -1385,6 +1385,81 @@ exports.deleteVisitDocument = async (req, res, next) => {
     await visit.save();
 
     res.status(200).json({ success: true, message: 'Document removed' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Import Visits from Excel
+// @route   POST /api/visits/import
+// @access  Private (SuperAdmin)
+exports.importVisits = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+
+    const { resolveGeographicHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        if (!row.visit_date) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Missing visit date' });
+          continue;
+        }
+
+        // Find candidate if provided
+        let candidate = null;
+        if (row.candidate_name) {
+          const Candidate = require('../models/Candidate');
+          candidate = await Candidate.findOne({ name: new RegExp(`^${row.candidate_name}$`, 'i') });
+        }
+
+        // Find booth if provided
+        let booth = null;
+        if (row.booth_name || row.booth_number) {
+          const Booth = require('../models/booth');
+          booth = await Booth.findOne({
+            $or: [
+              { name: new RegExp(`^${row.booth_name}$`, 'i') },
+              { booth_number: row.booth_number }
+            ]
+          });
+        }
+
+        const visitData = {
+          visit_date: new Date(row.visit_date),
+          visit_type: row.visit_type || 'Other',
+          candidate_id: candidate ? candidate._id : null,
+          booth_id: booth ? booth._id : null,
+          state_id: geo.state ? geo.state._id : null,
+          division_id: geo.division ? geo.division._id : null,
+          parliament_id: geo.parliament ? geo.parliament._id : null,
+          assembly_id: geo.assembly ? geo.assembly._id : null,
+          block_id: geo.block ? geo.block._id : null,
+          people_met: parseInt(row.people_met) || 0,
+          feedback: row.feedback || '',
+          status: row.status || 'Planned',
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        await Visit.create(visitData);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary });
   } catch (err) {
     next(err);
   }

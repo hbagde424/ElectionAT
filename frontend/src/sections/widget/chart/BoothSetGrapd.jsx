@@ -72,7 +72,7 @@ function ApexDonutChart({ data, loading }) {
   const backColor = theme.palette.background.paper;
 
   const getPartyData = useCallback(() => {
-    if (!data || !data.length) return { series: [], labels: [], stats: {} };
+    if (!data || !Array.isArray(data) || data.length === 0) return { series: [], labels: [], stats: {} };
 
     const partyStats = {};
     data.forEach(item => {
@@ -172,7 +172,14 @@ export default function TotalSeatsByParty() {
 
   const fetchYears = useCallback(async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
+      const token = localStorage.getItem('serviceToken');
+      if (!token) {
+        console.warn('No token found. Skipping election years fetch.');
+        return;
+      }
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const result = await res.json();
       const availableYears = result.data.map(d => d.year).sort((a, b) => b - a);
       setYears(availableYears);
@@ -187,12 +194,23 @@ export default function TotalSeatsByParty() {
   const fetchWinningParties = useCallback(async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('serviceToken');
+      if (!token) {
+        console.warn('No token found. Skipping winning parties fetch.');
+        setData([]);
+        setLoading(false);
+        return;
+      }
       const yearParam = selectedYear ? `?year=${selectedYear}` : '';
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties/graph${yearParam}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties/graph${yearParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const result = await response.json();
-      setData(result.data);
+      setData(result.data || []);
 
-      const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/total-booths${yearParam}`);
+      const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/total-booths${yearParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (boothsResponse.ok) {
         const boothsData = await boothsResponse.json();
         setTotalBooths(boothsData.totalBooths || 0);
@@ -216,7 +234,7 @@ export default function TotalSeatsByParty() {
   const handleClose = () => setAnchorEl(null);
 
   const getPartyStats = useCallback(() => {
-    if (!data.length) return { partyStats: {}, totalVotes: 0, totalSeats: 0 };
+    if (!data || !Array.isArray(data) || data.length === 0) return { partyStats: {}, totalVotes: 0, totalSeats: 0 };
     const stats = {}, total = { seats: 0, votes: 0 };
 
     data.forEach(item => {

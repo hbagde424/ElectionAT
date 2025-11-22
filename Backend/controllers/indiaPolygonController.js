@@ -2,7 +2,7 @@ const IndiaPolygon = require('../models/IndiaPolygon');
 
 // @desc    Get India polygon
 // @route   GET /api/india-polygon
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getIndiaPolygon = async (req, res, next) => {
   try {
     const polygon = await IndiaPolygon.findOne();

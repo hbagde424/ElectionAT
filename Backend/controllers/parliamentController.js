@@ -6,7 +6,7 @@ const ElectionYear = require('../models/electionYear');
 
 // @desc    Get all parliaments
 // @route   GET /api/parliaments
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getParliaments = async (req, res, next) => {
   try {
     // Pagination

@@ -4,7 +4,7 @@ const Party = require('../models/party');
 
 // @desc    Get all vote shares
 // @route   GET /api/vote-shares
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVoteShares = async (req, res, next) => {
   try {
     // Pagination
@@ -46,7 +46,7 @@ exports.getVoteShares = async (req, res, next) => {
 
 // @desc    Get single vote share record
 // @route   GET /api/vote-shares/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVoteShareById = async (req, res, next) => {
   try {
     const voteShare = await BoothPartyVoteShare.findById(req.params.id)
@@ -195,7 +195,7 @@ exports.deleteVoteShare = async (req, res, next) => {
 
 // @desc    Get vote shares by election stat ID
 // @route   GET /api/vote-shares/stat/:statId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVoteSharesByStat = async (req, res, next) => {
   try {
     // Verify stat exists
@@ -223,7 +223,7 @@ exports.getVoteSharesByStat = async (req, res, next) => {
 
 // @desc    Get vote shares by party ID
 // @route   GET /api/vote-shares/party/:partyId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVoteSharesByParty = async (req, res, next) => {
   try {
     // Verify party exists

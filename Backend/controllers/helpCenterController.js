@@ -45,7 +45,7 @@ const createTransporter = () => {
 
 // @desc    Send contact form email
 // @route   POST /api/help-center/contact
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.sendContactEmail = async (req, res) => {
   try {
     const { name, mobile, email, description } = req.body;

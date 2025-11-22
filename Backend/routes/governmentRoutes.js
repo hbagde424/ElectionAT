@@ -21,6 +21,12 @@ const router = express.Router();
  *   description: Government project management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getGovernments);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getGovernment);
+
 /**
  * @swagger
  * /api/governments:

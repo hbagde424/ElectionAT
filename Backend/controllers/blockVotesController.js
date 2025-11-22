@@ -11,7 +11,7 @@ const User = require('../models/User');
 
 // @desc    Get all block votes
 // @route   GET /api/block-votes
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBlockVotes = async (req, res, next) => {
   try {
     // Pagination
@@ -166,7 +166,7 @@ exports.getBlockVotes = async (req, res, next) => {
 
 // @desc    Get single block vote record
 // @route   GET /api/block-votes/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBlockVote = async (req, res, next) => {
   try {
     const vote = await BlockVotes.findById(req.params.id)
@@ -375,7 +375,7 @@ exports.deleteBlockVote = async (req, res, next) => {
 
 // @desc    Get votes by block
 // @route   GET /api/block-votes/block/:blockId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByBlock = async (req, res, next) => {
   try {
     // Verify block exists
@@ -405,7 +405,7 @@ exports.getVotesByBlock = async (req, res, next) => {
 
 // @desc    Get votes by candidate
 // @route   GET /api/block-votes/candidate/:candidateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByCandidate = async (req, res, next) => {
   try {
     // Verify candidate exists
@@ -434,7 +434,7 @@ exports.getVotesByCandidate = async (req, res, next) => {
 
 // @desc    Get votes by state
 // @route   GET /api/block-votes/state/:stateId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByState = async (req, res, next) => {
   try {
     // Verify state exists
@@ -464,7 +464,7 @@ exports.getVotesByState = async (req, res, next) => {
 
 // @desc    Get votes by election year
 // @route   GET /api/block-votes/year/:yearId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getVotesByElectionYear = async (req, res, next) => {
   try {
     // Verify election year exists

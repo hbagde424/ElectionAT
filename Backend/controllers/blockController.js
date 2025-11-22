@@ -11,7 +11,7 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @desc    Get all blocks
 // @route   GET /api/blocks
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBlocks = async (req, res, next) => {
   try {
     // Pagination
@@ -138,7 +138,7 @@ exports.getBlocks = async (req, res, next) => {
 
 // @desc    Get single block
 // @route   GET /api/blocks/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBlock = async (req, res, next) => {
   try {
     const block = await Block.findById(req.params.id)
@@ -345,7 +345,7 @@ exports.deleteBlock = async (req, res, next) => {
 
 // @desc    Get blocks by assembly
 // @route   GET /api/blocks/assembly/:assemblyId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBlocksByAssembly = async (req, res, next) => {
   try {
     // Verify assembly exists
@@ -374,7 +374,7 @@ exports.getBlocksByAssembly = async (req, res, next) => {
 
 // @desc    Get blocks by parliament
 // @route   GET /api/blocks/parliament/:parliamentId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBlocksByParliament = async (req, res, next) => {
   try {
     // Verify parliament exists

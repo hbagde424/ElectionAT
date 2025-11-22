@@ -8,7 +8,7 @@ const Booth = require('../models/booth');
 
 // @desc    Get all samitis
 // @route   GET /api/samitis
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getSamitis = async (req, res, next) => {
   try {
     // Pagination
@@ -129,7 +129,7 @@ exports.getSamitis = async (req, res, next) => {
 
 // @desc    Get single samiti
 // @route   GET /api/samitis/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getSamiti = async (req, res, next) => {
   try {
     const samiti = await Samiti.findById(req.params.id)
@@ -414,6 +414,67 @@ exports.deleteSamiti = async (req, res, next) => {
       success: true,
       data: {}
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Import Samitis from Excel
+// @route   POST /api/samitis/import
+// @access  Private (SuperAdmin)
+exports.importSamitis = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
+    }
+
+    const { resolveGeographicHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        if (!row.samiti_name) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Missing samiti name' });
+          continue;
+        }
+
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Check for duplicates
+        const existing = await Samiti.findOne({ samiti_name: row.samiti_name });
+        if (existing) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Samiti already exists' });
+          continue;
+        }
+
+        const samitiData = {
+          samiti_name: row.samiti_name,
+          village_name: row.village_name || '',
+          falia_name: row.falia_name || '',
+          state_id: geo.state ? geo.state._id : null,
+          division_id: geo.division ? geo.division._id : null,
+          parliament_id: geo.parliament ? geo.parliament._id : null,
+          assembly_id: geo.assembly ? geo.assembly._id : null,
+          block_id: geo.block ? geo.block._id : null,
+          booth_id: geo.booth ? geo.booth._id : null,
+          created_by: req.user.id,
+          updated_by: req.user.id
+        };
+
+        await Samiti.create(samitiData);
+        summary.created += 1;
+      } catch (err) {
+        summary.skipped += 1;
+        summary.errors.push({ row: i + 1, message: err.message || String(err) });
+      }
+    }
+
+    return res.status(200).json({ success: true, ...summary });
   } catch (err) {
     next(err);
   }

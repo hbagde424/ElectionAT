@@ -79,7 +79,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/FAQ'
  */
-router.get('/', getFAQs);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getFAQs);
 
 /**
  * @swagger
@@ -102,7 +103,7 @@ router.get('/', getFAQs);
  *                   items:
  *                     type: string
  */
-router.get('/categories/list', getFAQCategories);
+router.get('/categories/list', protect, getFAQCategories);
 
 /**
  * @swagger
@@ -126,7 +127,7 @@ router.get('/categories/list', getFAQCategories);
  *       404:
  *         description: FAQ not found
  */
-router.get('/:id', getFAQ);
+router.get('/:id', protect, getFAQ);
 
 /**
  * @swagger

@@ -22,6 +22,12 @@ const router = express.Router();
  *   description: Booth management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getBooths);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBooth);
+
 /**
  * @swagger
  * /api/booths:
@@ -97,8 +103,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Booth'
  */
-// Public: optional authentication — attach hierarchy if token present
-router.get('/', getUserPermissionsAndHierarchy, getBooths);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getBooths);
 
 /**
  * @swagger
@@ -122,7 +128,8 @@ router.get('/', getUserPermissionsAndHierarchy, getBooths);
  *       404:
  *         description: Booth not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getBooth);
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBooth);
 
 /**
  * @swagger
@@ -235,7 +242,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBooth);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getBoothsByAssembly);
+// Protected: requires authentication via serviceToken
+router.get('/assembly/:assemblyId', protect, getUserPermissionsAndHierarchy, getBoothsByAssembly);
 
 /**
  * @swagger
@@ -268,7 +276,8 @@ router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getBoothsByA
  *       404:
  *         description: Block not found
  */
-router.get('/block/:blockId', getUserPermissionsAndHierarchy, getBoothsByBlock);
+// Protected: requires authentication via serviceToken
+router.get('/block/:blockId', protect, getUserPermissionsAndHierarchy, getBoothsByBlock);
 
 /**
  * @swagger
@@ -301,7 +310,8 @@ router.get('/block/:blockId', getUserPermissionsAndHierarchy, getBoothsByBlock);
  *       404:
  *         description: Election year not found
  */
-router.get('/year/:yearId', getUserPermissionsAndHierarchy, getBoothsByYear);
+// Protected: requires authentication via serviceToken
+router.get('/year/:yearId', protect, getUserPermissionsAndHierarchy, getBoothsByYear);
 
 /**
  * @swagger

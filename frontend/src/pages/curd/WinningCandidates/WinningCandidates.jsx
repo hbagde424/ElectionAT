@@ -408,7 +408,7 @@ export default function WinningCandidateListPage() {
     const handleAssemblySelectFromMap = async (assemblyInfo) => {
         if (!assemblyInfo) return;
 
-        
+        console.log('Assembly selected from map:', assemblyInfo);
         setSelectedAssemblyFromMap(assemblyInfo);
         // open the assembly side drawer on the WinningCandidates page so user sees details + filter option
         setAssemblyDrawerOpen(true);
@@ -501,17 +501,14 @@ export default function WinningCandidateListPage() {
                     electionYear: ''
                 };
                 
-                // Update filter values
+                // Update filter values - this will trigger the useEffect to fetch data
                 setFilterValues(newFilterValues);
                 setAppliedFilters(newFilterValues);
 
-                // Reset pagination to first page
-                const newPageIndex = 0;
-                setPagination(prev => ({ ...prev, pageIndex: newPageIndex }));
+                // Reset pagination to first page - this will also trigger the useEffect
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
 
-                // Fetch using the shared fetchCandidateList helper so behavior is consistent
-                const tempAppliedFilters = { ...newFilterValues };
-                await fetchCandidateList(newPageIndex, pagination.pageSize, globalFilter, tempAppliedFilters);
+                // Note: No need to call fetchCandidateList here as the useEffect will handle it
             } else {
                 console.warn('Assembly not found by AC_NO after fetching assemblies. assemblyInfo:', assemblyInfo);
             }
@@ -549,11 +546,11 @@ export default function WinningCandidateListPage() {
             setAppliedFilters(newFilterValues);
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
             console.info('Applying assembly filter from drawer with:', newFilterValues);
-            await fetchCandidateList(0, pagination.pageSize, globalFilter, newFilterValues);
+            // Note: useEffect will automatically fetch when filters or pagination change
             return;
         }
 
-        // Fallback: call the existing handler which will resolve assembly and fetch
+        // Fallback: call the existing handler which will resolve assembly
         if (selectedAssemblyFromMap) {
             await handleAssemblySelectFromMap(selectedAssemblyFromMap);
         }
@@ -562,7 +559,7 @@ export default function WinningCandidateListPage() {
     // Helper to return Authorization header when a token exists in localStorage
     const getAuthHeaders = () => {
         try {
-            const token = localStorage.serviceToken;
+            const token = localStorage.getItem('serviceToken');
             return token ? { Authorization: `Bearer ${token}` } : {};
         } catch (err) {
             return {};
@@ -771,10 +768,34 @@ export default function WinningCandidateListPage() {
     };
 
     useEffect(() => {
+        const token = localStorage.getItem('serviceToken');
+        if (!token) {
+            console.warn('No serviceToken, skipping winning candidates list fetch');
+            setCandidateList([]);
+            setPageCount(0);
+            setLoading(false);
+            return;
+        }
+
         fetchCandidateList(pagination.pageIndex, pagination.pageSize, globalFilter);
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters]);
 
     useEffect(() => {
+        const token = localStorage.getItem('serviceToken');
+        if (!token) {
+            console.warn('No serviceToken, skipping winning candidates reference data and filters fetch');
+            setStates([]);
+            setParties([]);
+            setCandidates([]);
+            setYears([]);
+            setDivisions([]);
+            setParliaments([]);
+            setAssemblies([]);
+            setAllCandidateList([]);
+            setLoading(false);
+            return;
+        }
+
         fetchReferenceData();
         fetchAllCandidateListForFilters();
     }, []);

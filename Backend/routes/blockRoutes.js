@@ -22,6 +22,12 @@ const router = express.Router();
  *   description: Block management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getBlocks);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBlock);
+
 /**
  * @swagger
  * /api/blocks:

@@ -118,6 +118,11 @@ const SamitiListPage = () => {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
+    // Excel import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
+
     // Debounce search input
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -682,6 +687,80 @@ const SamitiListPage = () => {
         }
     };
 
+    // Excel Template Download
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    samiti_name: 'Samiti Name Example',
+                    village: 'Village Name',
+                    falia: 'Falia Name',
+                    count: 100,
+                    state_name: 'Madhya Pradesh',
+                    division_name: 'Division Name',
+                    parliament_name: 'Parliament Name',
+                    assembly_name: 'Assembly Name',
+                    block_name: 'Block Name',
+                    booth_name: 'Booth Name'
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'samiti-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
+    };
+
+    // Excel Import Handler
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map(row => {
+                const normalized = {};
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/samitis/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
+                body: JSON.stringify({ rows: normalizedData, create_missing_candidates: true })
+            });
+
+            const result = await response.json();
+            setImportResult(result);
+            if (result.success) {
+                fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err.message || 'Import failed' });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: '#',
@@ -1184,11 +1263,55 @@ const SamitiListPage = () => {
                                     <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                                         {csvLoading ? 'Preparing CSV...' : 'Download CSV'}
                                     </Button>
+                                    <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                                        Download Excel Template
+                                    </Button>
+                                    <Button variant="outlined" component="label" disabled={importing}>
+                                        {importing ? 'Importing...' : 'Import Excel'}
+                                        <input
+                                            ref={importInputRef}
+                                            type="file"
+                                            hidden
+                                            accept=".xlsx,.xls"
+                                            onChange={handleImportFile}
+                                        />
+                                    </Button>
                                     <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpenModal(true); }}>
                                         Add Samiti
                                     </Button>
                                 </Stack>
                             </Stack>
+
+                            {/* Import Result Alert */}
+                            {importResult && (
+                                <Alert
+                                    severity={importResult.success ? 'success' : 'error'}
+                                    onClose={() => setImportResult(null)}
+                                >
+                                    {importResult.success ? (
+                                        `Successfully imported ${importResult.created || 0} records. ${importResult.skipped > 0 ? `Skipped ${importResult.skipped} records.` : ''}`
+                                    ) : (
+                                        `Import failed: ${importResult.message || 'Unknown error'}`
+                                    )}
+                                    {importResult.errors && importResult.errors.length > 0 && (
+                                        <Box sx={{ mt: 1 }}>
+                                            <Typography variant="caption" component="div">
+                                                Errors:
+                                            </Typography>
+                                            {importResult.errors.slice(0, 5).map((err, idx) => (
+                                                <Typography key={idx} variant="caption" component="div">
+                                                    Row {err.row}: {err.message}
+                                                </Typography>
+                                            ))}
+                                            {importResult.errors.length > 5 && (
+                                                <Typography variant="caption">
+                                                    ...and {importResult.errors.length - 5} more errors
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    )}
+                                </Alert>
+                            )}
 
                             {/* Access Scope Information */}
                             <Alert severity="info">

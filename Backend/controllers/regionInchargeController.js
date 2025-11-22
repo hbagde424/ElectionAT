@@ -3,7 +3,7 @@ const RegionCommittee = require('../models/RegionCommittee');
 
 // @desc    Get all region incharges
 // @route   GET /api/region-incharges
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getRegionIncharges = async (req, res, next) => {
   try {
     // Pagination

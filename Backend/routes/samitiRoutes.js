@@ -4,7 +4,8 @@ const {
   getSamiti,
   createSamiti,
   updateSamiti,
-  deleteSamiti
+  deleteSamiti,
+  importSamitis
 } = require('../controllers/samitiController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -17,6 +18,12 @@ const router = express.Router();
  *   name: Samitis
  *   description: Samiti management
  */
+
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getSamitis);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getSamiti);
 
 /**
  * @swagger
@@ -152,6 +159,33 @@ router.get('/:id', getUserPermissionsAndHierarchy, getSamiti);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin', 'admin'), createSamiti);
+
+/**
+ * @swagger
+ * /api/samitis/import:
+ *   post:
+ *     summary: Import samitis from Excel
+ *     tags: [Samitis]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importSamitis);
 
 /**
  * @swagger

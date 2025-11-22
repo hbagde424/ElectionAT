@@ -6,7 +6,7 @@ const ElectionYear = require('../models/electionYear');
 
 // @desc    Get all booth polygons
 // @route   GET /api/booth-polygons
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygons = async (req, res, next) => {
   try {
     // Pagination
@@ -78,7 +78,7 @@ exports.getBoothPolygons = async (req, res, next) => {
 
 // @desc    Get single booth polygon
 // @route   GET /api/booth-polygons/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygon = async (req, res, next) => {
   try {
     const polygon = await BoothPolygon.findById(req.params.id);
@@ -101,7 +101,7 @@ exports.getBoothPolygon = async (req, res, next) => {
 
 // @desc    Get booth polygons by assembly (AC)
 // @route   GET /api/booth-polygons/assembly/:acNo
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygonsByAssembly = async (req, res, next) => {
   try {
     const acNo = parseInt(req.params.acNo);
@@ -120,7 +120,7 @@ exports.getBoothPolygonsByAssembly = async (req, res, next) => {
 
 // @desc    Get booth polygons by block
 // @route   GET /api/booth-polygons/block/:blockName
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygonsByBlock = async (req, res, next) => {
   try {
     const blockName = req.params.blockName.trim();
@@ -180,7 +180,7 @@ exports.getBoothPolygonsByBlock = async (req, res, next) => {
 
 // @desc    Get booth polygons by election year
 // @route   GET /api/booth-polygons/year/:yearId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygonsByYear = async (req, res, next) => {
   try {
     // Verify election year exists
@@ -206,7 +206,7 @@ exports.getBoothPolygonsByYear = async (req, res, next) => {
 
 // @desc    Get booth polygons within a geographical area
 // @route   GET /api/booth-polygons/within
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygonsWithin = async (req, res, next) => {
   try {
     const { lat, lng, radius } = req.query;
@@ -240,7 +240,7 @@ exports.getBoothPolygonsWithin = async (req, res, next) => {
 
 // @desc    Get booth polygons by block number
 // @route   GET /api/booth-polygons/block-number/:blockNumber
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getBoothPolygonsByBlockNumber = async (req, res, next) => {
   try {
     const blockNumber = req.params.blockNumber.trim();

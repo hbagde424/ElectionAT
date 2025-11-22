@@ -113,7 +113,7 @@ exports.getStates = async (req, res, next) => {
 
 // @desc    Get single state
 // @route   GET /api/states/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 // @desc    Get single state
 // @route   GET /api/states/:id
 // @access  Private (Requires authentication via serviceToken)

@@ -172,7 +172,13 @@ export default function TotalIncome() {
 
   const fetchYears = useCallback(async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
+      const token = localStorage.getItem('serviceToken');
+      if (!token) {
+        console.warn('No serviceToken, skipping fetchYears');
+        setError('Authentication required');
+        return;
+      }
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) {
         throw new Error('Failed to fetch election years');
       }
@@ -197,7 +203,14 @@ export default function TotalIncome() {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true&year=${selectedYear}`);
+      const token = localStorage.getItem('serviceToken');
+      if (!token) {
+        console.warn('No serviceToken, skipping winning-candidates fetch');
+        setError('Authentication required');
+        setData([]);
+        return;
+      }
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true&year=${selectedYear}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) {
         throw new Error(`Failed to fetch assembly data: ${res.status} ${res.statusText}`);
       }

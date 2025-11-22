@@ -20,6 +20,12 @@ const router = express.Router();
  *   description: Potential candidate management
  */
 
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getPotentialCandidates);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getPotentialCandidate);
+
 /**
  * @swagger
  * /api/potential-candidates:

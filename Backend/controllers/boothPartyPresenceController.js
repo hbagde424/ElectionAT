@@ -4,7 +4,7 @@ const Party = require('../models/party');
 
 // @desc    Get all party presence records
 // @route   GET /api/party-presence
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getPartyPresences = async (req, res, next) => {
   try {
     // Pagination
@@ -200,7 +200,7 @@ exports.deletePartyPresence = async (req, res, next) => {
 
 // @desc    Get party presence records by booth ID
 // @route   GET /api/party-presence/booth/:boothId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getPresencesByBooth = async (req, res, next) => {
   try {
     // Verify booth exists
@@ -228,7 +228,7 @@ exports.getPresencesByBooth = async (req, res, next) => {
 
 // @desc    Get party presence records by party ID
 // @route   GET /api/party-presence/party/:partyId
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getPresencesByParty = async (req, res, next) => {
   try {
     // Verify party exists

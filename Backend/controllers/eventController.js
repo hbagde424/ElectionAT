@@ -8,7 +8,7 @@ const State = require('../models/state');
 
 // @desc    Get all events
 // @route   GET /api/events
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getEvents = async (req, res, next) => {
   try {
     // Pagination
@@ -198,7 +198,7 @@ exports.getEvents = async (req, res, next) => {
 
 // @desc    Get single event
 // @route   GET /api/events/:id
-// @access  Public
+// @access  Private (Requires authentication via serviceToken)
 exports.getEvent = async (req, res, next) => {
   try {
     const event = await Event.findById(req.params.id)

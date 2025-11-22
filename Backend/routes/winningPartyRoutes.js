@@ -8,7 +8,8 @@ const {
   getWinningPartiesByParty,
   getWinningPartiesByYear,
   getWinningPartiesByBooth,
-  getWinningPartysForGraph
+  getWinningPartysForGraph,
+  importWinningParties
 } = require('../controllers/winningPartyController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -21,6 +22,12 @@ const router = express.Router();
  *   name: WinningParties
  *   description: Winning party management
  */
+
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getWinningParties);
+
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getWinningParty);
 
 /**
  * @swagger
@@ -205,6 +212,33 @@ router.get('/:id', getWinningParty);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('admin', 'superAdmin'), createWinningParty);
+
+/**
+ * @swagger
+ * /api/winning-parties/import:
+ *   post:
+ *     summary: Import winning parties from Excel
+ *     tags: [WinningParties]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importWinningParties);
 
 /**
  * @swagger

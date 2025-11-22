@@ -67,6 +67,15 @@ export default function FAQ() {
 
   // Fetch FAQ data from API
   useEffect(() => {
+    const token = localStorage.getItem('serviceToken');
+    if (!token) {
+      console.warn('No serviceToken, skipping public FAQ data fetch');
+      setFaqData([]);
+      setCategories([]);
+      setLoading(false);
+      return;
+    }
+
     fetchFAQData();
   }, []);
 
@@ -74,7 +83,15 @@ export default function FAQ() {
     try {
       setLoading(true);
       // Fetch all active FAQs
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?is_active=true&all=true`);
+      const token = localStorage.getItem('serviceToken');
+      if (!token) {
+        console.warn('No serviceToken inside fetchFAQData, aborting');
+        setFaqData([]);
+        setCategories([]);
+        return;
+      }
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?is_active=true&all=true`, { headers });
       const result = await response.json();
       
       if (result.success && result.data) {
