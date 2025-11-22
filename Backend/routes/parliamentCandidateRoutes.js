@@ -1,17 +1,3 @@
-const express = require('express');
-const {
-  getParliamentCandidates,
-  getParliamentCandidate,
-  createParliamentCandidate,
-  updateParliamentCandidate,
-  deleteParliamentCandidate,
-  getParliamentCandidateStats,
-  getParliamentCandidateStatsByParliament
-} = require('../controllers/parliamentCandidateController');
-const { protect, authorize } = require('../middlewares/auth');
-const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
-
-const router = express.Router();
 
 /**
  * @swagger
@@ -170,10 +156,10 @@ router.get('/debug/data', async (req, res) => {
   try {
     const ParliamentCandidate = require('../models/ParliamentCandidate');
     const Parliament = require('../models/Parliament');
-    
+
     const parliaments = await Parliament.find().limit(5);
     const candidates = await ParliamentCandidate.find().populate('parliament_id', 'name parliament_no').limit(5);
-    
+
     res.json({
       success: true,
       parliaments,
@@ -231,6 +217,10 @@ router.get('/:id', getUserPermissionsAndHierarchy, getParliamentCandidate);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin', 'admin'), createParliamentCandidate);
+
+// Bulk import parliament candidates from Excel
+router.post('/import', protect, authorize('superAdmin'), importParliamentCandidates);
+
 
 /**
  * @swagger

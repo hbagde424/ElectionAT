@@ -1396,12 +1396,9 @@ export default function BoothVolunteerListPage() {
           name: 'John Doe',
           phone: '9876543210',
           email: 'john@example.com',
-          role: 'Coordinator',
-          post: 'Booth President',
-          area_responsibility: 'Ward 1',
-          activity_level: 'High',
-          remarks: 'Active volunteer',
-          party: 'Party Name',
+          address: '123 Main St',
+          role: 'Volunteer',
+          year: '2024',
           state_no: '23',
           division_code: '1',
           parliament_no: '101',
@@ -1440,12 +1437,9 @@ export default function BoothVolunteerListPage() {
           name: obj.name ?? '',
           phone: obj.phone ?? obj.phone_number ?? '',
           email: obj.email ?? '',
+          address: obj.address ?? '',
           role: obj.role ?? '',
-          post: obj.post ?? '',
-          area_responsibility: obj.area_responsibility ?? '',
-          activity_level: obj.activity_level ?? '',
-          remarks: obj.remarks ?? '',
-          party: obj.party ?? obj.party_name ?? '',
+          year: obj.year ?? '',
           state: obj.state_no ?? obj.state ?? '',
           division_code: obj.division_code ?? obj.division ?? '',
           parliament_no: obj.parliament_no ?? obj.parliament ?? '',
@@ -1458,7 +1452,7 @@ export default function BoothVolunteerListPage() {
       const filtered = rows.filter(r => String(r.name).trim());
 
       const token = localStorage.getItem('serviceToken');
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booth-volunteers/import`, {
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/booth-volunteers/import`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
