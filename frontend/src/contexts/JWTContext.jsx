@@ -45,7 +45,20 @@ const setSession = (serviceToken) => {
 
 // ==============================|| JWT CONTEXT & PROVIDER ||============================== //
 
-const JWTContext = createContext(null);
+// Create context with default values to prevent "context must be use inside provider" error
+// Use a symbol to identify if context is from provider
+export const CONTEXT_PROVIDED = Symbol('CONTEXT_PROVIDED');
+const JWTContext = createContext({
+  isLoggedIn: false,
+  isInitialized: false,
+  user: null,
+  login: async () => { },
+  logout: () => { },
+  register: async () => { },
+  resetPassword: async () => { },
+  updateProfile: () => { },
+  [CONTEXT_PROVIDED]: false // Flag to identify default context
+});
 
 export const JWTProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
@@ -161,11 +174,18 @@ export const JWTProvider = ({ children }) => {
 
   const updateProfile = () => { };
 
+  // Always render the Provider so context is available, show loader inside if needed
+  const contextValue = { ...state, login, logout, register, resetPassword, updateProfile, [CONTEXT_PROVIDED]: true };
+
   if (state.isInitialized !== undefined && !state.isInitialized) {
-    return <Loader />;
+    return (
+      <JWTContext.Provider value={contextValue}>
+        <Loader />
+      </JWTContext.Provider>
+    );
   }
 
-  return <JWTContext.Provider value={{ ...state, login, logout, register, resetPassword, updateProfile }}>{children}</JWTContext.Provider>;
+  return <JWTContext.Provider value={contextValue}>{children}</JWTContext.Provider>;
 };
 
 export default JWTContext;

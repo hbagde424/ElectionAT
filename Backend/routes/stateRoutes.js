@@ -63,7 +63,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/State'
  */
-router.get('/', getUserPermissionsAndHierarchy, getStates);
+// Protected: requires authentication via serviceToken
+router.get('/', protect, getUserPermissionsAndHierarchy, getStates);
 
 /**
  * @swagger
@@ -87,7 +88,8 @@ router.get('/', getUserPermissionsAndHierarchy, getStates);
  *       404:
  *         description: State not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getState);
+// Protected: requires authentication via serviceToken
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getState);
 
 /**
  * @swagger

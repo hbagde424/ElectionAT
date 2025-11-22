@@ -233,6 +233,13 @@ export default function DashboardDefault() {
   // Fetch dashboard data
   useEffect(() => {
     const fetchData = async () => {
+      // Check if user is authenticated before making requests
+      const token = localStorage.getItem('serviceToken');
+      if (!token) {
+        console.warn('No authentication token found. Skipping dashboard data fetch.');
+        return;
+      }
+
       try {
         setLoading(true);
         // Fetch assembly votes data
@@ -249,6 +256,9 @@ export default function DashboardDefault() {
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        if (error.response?.status === 401) {
+          console.error('Authentication failed. Please log in again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -322,6 +332,13 @@ export default function DashboardDefault() {
   const [workStatusesPageCount, setWorkStatusesPageCount] = useState(0);
 
   const fetchVisits = async (pageIndex, pageSize, region = null) => {
+    // Check if user is authenticated before making request
+    const token = localStorage.getItem('serviceToken');
+    if (!token) {
+      console.warn('No authentication token found. Cannot fetch visits.');
+      return;
+    }
+
     setLoading(true);
     try {
       const params = {
@@ -342,6 +359,9 @@ export default function DashboardDefault() {
       }
     } catch (error) {
       console.error('Error fetching visits:', error);
+      if (error.response?.status === 401) {
+        console.error('Authentication failed. Please log in again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -386,6 +406,13 @@ export default function DashboardDefault() {
   };
 
   const fetchStates = async (pageIndex, pageSize, region = null) => {
+    // Check if user is authenticated before making request
+    const token = localStorage.getItem('serviceToken');
+    if (!token) {
+      console.warn('No authentication token found. Cannot fetch states.');
+      return;
+    }
+
     setStatesLoading(true);
     try {
       const params = {
@@ -401,6 +428,9 @@ export default function DashboardDefault() {
       }
     } catch (error) {
       console.error('Error fetching states:', error);
+      if (error.response?.status === 401) {
+        console.error('Authentication failed. Please log in again.');
+      }
     } finally {
       setStatesLoading(false);
     }

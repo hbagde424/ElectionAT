@@ -58,8 +58,16 @@ export default function StatesListPage() {
     const fetchStates = async (pageIndex, pageSize, searchTerm = '') => {
         setLoading(true);
         try {
+            // Check if user is authenticated before making request
+            const token = localStorage.getItem('serviceToken');
+            if (!token) {
+                console.warn('No authentication token found. Cannot fetch states.');
+                return;
+            }
+
             const query = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=${pageIndex + 1}&limit=${pageSize}${query}`);
+            const headers = { Authorization: `Bearer ${token}` };
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setStates(json.data);
@@ -67,6 +75,9 @@ export default function StatesListPage() {
             }
         } catch (error) {
             console.error('Failed to fetch states:', error);
+            if (error.response?.status === 401) {
+                console.error('Authentication failed. Please log in again.');
+            }
         } finally {
             setLoading(false);
         }
