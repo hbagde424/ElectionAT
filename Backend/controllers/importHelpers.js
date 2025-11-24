@@ -144,6 +144,63 @@ async function resolveGeographicHierarchy(row) {
         result.village = await Village.findOne({ village_name: regex });
       }
     }
+
+    // If we found a village or panchayat, backfill higher-level hierarchy from their stored IDs
+    // This allows imports that include only village/panchayat names to succeed.
+    if (result.village) {
+      try {
+        // village document contains parent IDs: panchayat_id, booth_id, block_id, assembly_id, parliament_id, division_id, state_id
+        if (!result.panchayat && result.village.panchayat_id) {
+          result.panchayat = await Panchayat.findById(result.village.panchayat_id);
+        }
+        if (!result.booth && result.village.booth_id) {
+          result.booth = await Booth.findById(result.village.booth_id);
+        }
+        if (!result.block && result.village.block_id) {
+          result.block = await Block.findById(result.village.block_id);
+        }
+        if (!result.assembly && result.village.assembly_id) {
+          result.assembly = await Assembly.findById(result.village.assembly_id);
+        }
+        if (!result.parliament && result.village.parliament_id) {
+          result.parliament = await Parliament.findById(result.village.parliament_id);
+        }
+        if (!result.division && result.village.division_id) {
+          result.division = await Division.findById(result.village.division_id);
+        }
+        if (!result.state && result.village.state_id) {
+          result.state = await State.findById(result.village.state_id);
+        }
+      } catch (e) {
+        // ignore backfill errors, resolution will report missing fields later
+      }
+    }
+
+    if (result.panchayat && !result.village) {
+      try {
+        // panchayat document contains parent IDs as well
+        if (!result.booth && result.panchayat.booth_id) {
+          result.booth = await Booth.findById(result.panchayat.booth_id);
+        }
+        if (!result.block && result.panchayat.block_id) {
+          result.block = await Block.findById(result.panchayat.block_id);
+        }
+        if (!result.assembly && result.panchayat.assembly_id) {
+          result.assembly = await Assembly.findById(result.panchayat.assembly_id);
+        }
+        if (!result.parliament && result.panchayat.parliament_id) {
+          result.parliament = await Parliament.findById(result.panchayat.parliament_id);
+        }
+        if (!result.division && result.panchayat.division_id) {
+          result.division = await Division.findById(result.panchayat.division_id);
+        }
+        if (!result.state && result.panchayat.state_id) {
+          result.state = await State.findById(result.panchayat.state_id);
+        }
+      } catch (e) {
+        // ignore backfill errors
+      }
+    }
   }
 
   // Falliya (name or id) - prefer within village when possible

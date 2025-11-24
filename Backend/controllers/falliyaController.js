@@ -1,5 +1,6 @@
 const Falliya = require('../models/Falliya');
 const { validationResult } = require('express-validator');
+const { resolveGeographicHierarchy, validateHierarchy, toKey } = require('./importHelpers');
 
 // @desc    Get all falliyas with filters and pagination
 // @route   GET /api/falliyas
@@ -325,10 +326,90 @@ const deleteFalliya = async (req, res, next) => {
     }
 };
 
+// @desc    Import falliyas from Excel/CSV
+// @route   POST /api/falliyas/import
+// @access  Private (Admin only)
+const importFalliyas = async (req, res, next) => {
+    try {
+        const rows = Array.isArray(req.body?.rows) ? req.body.rows : (Array.isArray(req.body?.data) ? req.body.data : null);
+        if (!rows) {
+            return res.status(400).json({ success: false, message: 'rows or data array is required in body' });
+        }
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        const summary = { total: rows.length, imported: 0, skipped: 0, errors: [] };
+
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i] || {};
+            try {
+                const falliyaName = toKey(r.falliya_name || r['Falliya Name'] || r.name || r.falliyaName || '');
+
+                if (!falliyaName) throw new Error('falliya_name is required');
+
+                const geo = await resolveGeographicHierarchy(r);
+                const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth', 'panchayat', 'village']);
+                if (errors.length > 0) throw new Error(errors.join(', '));
+
+                // Duplicate check: falliya_name within same village
+                const existing = await Falliya.findOne({ falliya_name: falliyaName, village_id: geo.village._id });
+                if (existing) {
+                    summary.skipped += 1;
+                    summary.errors.push({ row: i + 1, message: 'Falliya already exists for this village' });
+                    continue;
+                }
+
+                const getNumber = (obj, keys) => {
+                    for (const k of keys) {
+                        if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+                            const n = Number(obj[k]);
+                            return Number.isNaN(n) ? null : n;
+                        }
+                    }
+                    return null;
+                };
+
+                const falliyaData = {
+                    falliya_name: falliyaName,
+                    state_id: geo.state._id,
+                    division_id: geo.division._id,
+                    parliament_id: geo.parliament._id,
+                    assembly_id: geo.assembly._id,
+                    block_id: geo.block._id,
+                    booth_id: geo.booth._id,
+                    panchayat_id: geo.panchayat._id,
+                    village_id: geo.village._id,
+                    location: toKey(r.location || r.Location || ''),
+                    latitude: r.latitude ?? r.Latitude ?? null,
+                    longitude: r.longitude ?? r.Longitude ?? null,
+                    male_count: getNumber(r, ['male_count', 'male_population', 'male', 'male_pop', 'Male_Count', 'Male Population', 'MalePopulation']),
+                    female_count: getNumber(r, ['female_count', 'female_population', 'female', 'female_pop', 'Female_Count', 'Female Population', 'FemalePopulation']),
+                    others_count: getNumber(r, ['others_count', 'others_population', 'others', 'others_pop', 'Others_Count', 'Others Population', 'OthersPopulation']),
+                    created_by: req.user.id,
+                    updated_by: req.user.id
+                };
+
+                await Falliya.create(falliyaData);
+                summary.imported += 1;
+            } catch (err) {
+                summary.skipped += 1;
+                summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+            }
+        }
+
+        return res.status(200).json({ success: true, ...summary });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getFalliyas,
     getFalliya,
     createFalliya,
     updateFalliya,
-    deleteFalliya
+    deleteFalliya,
+    importFalliyas
 };

@@ -5,6 +5,7 @@ const {
     createFalliya,
     updateFalliya,
     deleteFalliya
+    , importFalliyas
 } = require('../controllers/falliyaController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -184,6 +185,9 @@ router.route('/:id')
     .get(protect, getUserPermissionsAndHierarchy, getFalliya)
     .put(protect, authorize('admin', 'superAdmin'), updateFalliya)
     .delete(protect, authorize('admin', 'superAdmin'), deleteFalliya);
+
+// Bulk import falliyas from Excel/CSV
+router.post('/import', protect, authorize('superAdmin'), importFalliyas);
 
 /**
  * @swagger
