@@ -60,9 +60,17 @@ async function resolveGeographicHierarchy(row) {
   if (parliamentValue !== undefined && parliamentValue !== null && parliamentValue !== '') {
     const pn = Number(String(parliamentValue).trim());
     if (!isNaN(pn)) {
-      result.parliament = await Parliament.findOne({ parliament_no: pn });
+      // Prefer parliament within the resolved state when available
+      if (result.state && result.state._id) {
+        result.parliament = await Parliament.findOne({ parliament_no: pn, state_id: result.state._id });
+      }
+      // Fallback to any parliament with that number
+      if (!result.parliament) {
+        result.parliament = await Parliament.findOne({ parliament_no: pn });
+      }
     }
     if (!result.parliament) {
+      // Try name match
       result.parliament = await Parliament.findOne({ name: { $regex: `^${parliamentValue}$`, $options: 'i' } });
     }
   }
@@ -71,14 +79,27 @@ async function resolveGeographicHierarchy(row) {
   const assemblyValue = row.assembly_no ?? row.AC_NO ?? row.AC_No ?? row.ACNo ?? row.ac_no ?? row.acno ?? row.assembly;
   if (assemblyValue !== undefined && assemblyValue !== null && assemblyValue !== '') {
     // Try to find by AC_NO (stored often as string or number)
-    result.assembly = await Assembly.findOne({ AC_NO: String(assemblyValue).trim() });
+    const av = String(assemblyValue).trim();
+    // Prefer assembly within the resolved parliament/state when possible
+    if (result.parliament && result.parliament._id) {
+      result.assembly = await Assembly.findOne({ AC_NO: av, parliament_id: result.parliament._id });
+    }
+    if (!result.assembly && result.state && result.state._id) {
+      // Try matching by AC_NO within the state
+      result.assembly = await Assembly.findOne({ AC_NO: av, state_id: result.state._id });
+    }
+    // Try plain AC_NO match (string)
     if (!result.assembly) {
-      // Try numeric match as well
-      const pn = Number(String(assemblyValue).trim());
+      result.assembly = await Assembly.findOne({ AC_NO: av });
+    }
+    // Try numeric variant
+    if (!result.assembly) {
+      const pn = Number(av);
       if (!isNaN(pn)) {
         result.assembly = await Assembly.findOne({ AC_NO: String(pn) });
       }
     }
+    // Finally try by name
     if (!result.assembly) {
       result.assembly = await Assembly.findOne({ name: { $regex: `^${assemblyValue}$`, $options: 'i' } });
     }
