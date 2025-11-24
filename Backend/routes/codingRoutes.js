@@ -8,6 +8,7 @@ const {
   getCodingsByBooth,
   getCodingsByState,
   getCodingsByType
+  , importCodings
 } = require('../controllers/codingController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -312,6 +313,35 @@ router.get('/state/:stateId', getCodingsByState);
  *         description: Invalid coding type
  */
 router.get('/type/:type', getCodingsByType);
+
+/**
+ * @swagger
+ * /api/codings/import:
+ *   post:
+ *     summary: Import codings from Excel
+ *     tags: [Codings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import results
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/import', protect, authorize('superAdmin'), importCodings);
 
 /**
  * @swagger

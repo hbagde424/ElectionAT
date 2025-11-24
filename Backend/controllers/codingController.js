@@ -764,3 +764,111 @@ exports.getCodingsByAnyTypes = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import codings from Excel
+// @route   POST /api/codings/import
+// @access  Private/Admin
+exports.importCodings = async (req, res, next) => {
+  try {
+    const rows = req.body.rows || req.body.data;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided. Expected array of rows.' });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+
+    const validTypes = ['BC', 'PP', 'IP', 'FH', 'SMM', 'MS', 'FP', 'ER', 'AK', 'FM', 'वरिष्ठ', 'युवा', 'वोटर प्रभारी'];
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Require full geographic hierarchy up to booth
+        const hierarchyErrors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (hierarchyErrors.length > 0) {
+          results.errors.push({ row: i + 1, data: row, error: hierarchyErrors.join(', ') });
+          continue;
+        }
+
+        // Required basic fields
+        if (!row.name || !row.mobile) {
+          results.errors.push({ row: i + 1, data: row, error: 'Name and mobile are required' });
+          continue;
+        }
+
+        // Parse coding_types - may be array or comma-separated string
+        let coding_types = row.coding_types || row.codingTypes || row.coding_types_raw || row.coding_types_string;
+        if (!coding_types) {
+          results.errors.push({ row: i + 1, data: row, error: 'coding_types is required (comma-separated or array)' });
+          continue;
+        }
+
+        if (!Array.isArray(coding_types)) {
+          if (typeof coding_types === 'string') {
+            coding_types = coding_types.split(',').map(s => s.trim()).filter(Boolean);
+          } else {
+            coding_types = [];
+          }
+        }
+
+        if (coding_types.length === 0) {
+          results.errors.push({ row: i + 1, data: row, error: 'coding_types could not be parsed or is empty' });
+          continue;
+        }
+
+        // Validate coding types
+        for (const t of coding_types) {
+          if (!validTypes.includes(t)) {
+            results.errors.push({ row: i + 1, data: row, error: `Invalid coding type: ${t}` });
+            continue;
+          }
+        }
+
+        // Check duplicate by booth + mobile
+        const existing = await Coding.findOne({ booth_id: geo.booth._id, mobile: row.mobile });
+        if (existing) {
+          results.errors.push({ row: i + 1, data: row, error: `Coding already exists for booth with mobile: ${row.mobile}` });
+          continue;
+        }
+
+        const codingData = {
+          name: row.name,
+          mobile: row.mobile,
+          email: row.email || row.Email || undefined,
+          facebook: row.facebook || undefined,
+          instagram: row.instagram || undefined,
+          twitter: row.twitter || undefined,
+          whatsapp_number: row.whatsapp_number || row.whatsapp || undefined,
+          coding_types: coding_types,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          panchayat_id: geo.panchayat?._id || undefined,
+          village_id: geo.village?._id || undefined,
+          falliya_id: geo.falliya?._id || undefined,
+          created_by: req.user ? req.user._id : undefined,
+          description: row.description || ''
+        };
+
+        await Coding.create(codingData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({ row: i + 1, data: row, error: err.message || 'Failed to import coding' });
+      }
+    }
+
+    res.status(200).json({ success: true, imported: results.imported, total: results.total, errors: results.errors });
+
+  } catch (err) {
+    next(err);
+  }
+};
