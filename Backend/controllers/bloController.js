@@ -1,6 +1,7 @@
 const BLO = require('../models/BLO');
 const { logActivity } = require('../utils/logActivity');
 const { validationResult } = require('express-validator');
+const { resolveGeographicHierarchy, validateHierarchy, toKey } = require('./importHelpers');
 
 // @desc    Get all BLOs with filters and pagination
 // @route   GET /api/BLOs
@@ -430,11 +431,75 @@ const deleteBLO = async (req, res, next) => {
     }
 };
 
+// @desc    Import BLOs from Excel
+// @route   POST /api/blos/import
+// @access  Private (Admin)
+const importBLOs = async (req, res, next) => {
+    try {
+        const rows = Array.isArray(req.body?.rows) ? req.body.rows : (Array.isArray(req.body?.data) ? req.body.data : null);
+        if (!rows) {
+            return res.status(400).json({ success: false, message: 'rows or data array is required in body' });
+        }
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        const summary = { total: rows.length, imported: 0, skipped: 0, errors: [] };
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i] || {};
+            try {
+                const bloName = toKey(r.blo_name || r['BLO Name'] || r.name || r.bloName || '');
+                const contact = toKey(r.contact_number || r['Contact Number'] || r.contact || r.phone || '');
+
+                if (!bloName) throw new Error('blo_name is required');
+                if (!contact) throw new Error('contact_number is required');
+
+                const geo = await resolveGeographicHierarchy(r);
+                const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+                if (errors.length > 0) throw new Error(errors.join(', '));
+
+                // Check duplicate by name + booth
+                const existing = await BLO.findOne({ blo_name: bloName, booth_id: geo.booth._id });
+                if (existing) {
+                    summary.skipped += 1;
+                    summary.errors.push({ row: i + 1, message: 'BLO already exists for this booth' });
+                    continue;
+                }
+
+                const bloData = {
+                    blo_name: bloName,
+                    contact_number: contact,
+                    state_id: geo.state._id,
+                    division_id: geo.division._id,
+                    parliament_id: geo.parliament._id,
+                    assembly_id: geo.assembly._id,
+                    block_id: geo.block._id,
+                    booth_id: geo.booth._id,
+                    created_by: req.user.id,
+                    updated_by: req.user.id
+                };
+
+                await BLO.create(bloData);
+                summary.imported += 1;
+            } catch (err) {
+                summary.skipped += 1;
+                summary.errors.push({ row: i + 1, message: err?.message || String(err) });
+            }
+        }
+
+        return res.status(200).json({ success: true, ...summary });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getBLOs,
     getBLO,
     createBLO,
     updateBLO,
-    deleteBLO
+    deleteBLO,
+    importBLOs
 };
 

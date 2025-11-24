@@ -6,12 +6,16 @@ const {
   createBLO,
   updateBLO,
   deleteBLO
+  , importBLOs
 } = require('../controllers/bloController');
 const { protect } = require('../middlewares/auth');
 
 router.route('/')
   .get(protect, getBLOs)
   .post(protect, createBLO);
+
+router.route('/import')
+  .post(protect, importBLOs);
 
 router.route('/:id')
   .get(protect, getBLO)
