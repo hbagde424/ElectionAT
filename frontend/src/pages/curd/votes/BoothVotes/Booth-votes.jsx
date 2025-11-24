@@ -299,20 +299,28 @@ export default function BoothVotesListPage() {
   const handleDownloadExcelTemplate = async () => {
     try {
       const XLSX = await import('xlsx');
+      // Numeric-code based template to match Gender/Government templates
       const templateData = [
         {
-          candidate_name: 'Candidate Name',
-          booth_name: 'Booth Name',
-          booth_number: 123,
+          // Geography (numeric/code fields)
+          state_no: '23',
+          division_code: '1',
+          parliament_no: '101',
+          AC_NO: '1',
+          block: 'Block Name',
+          booth_number: '1',
+
+          // Election year (numeric year)
           election_year: 2024,
-          total_votes: 5000,
-          vote_percentage: 52.5,
-          margin: 500,
-          state_name: 'Madhya Pradesh',
-          division_name: 'Division Name',
-          parliament_name: 'Parliament Name',
-          assembly_name: 'Assembly Name',
-          block_name: 'Block Name'
+
+          // Candidate must be provided by ID (ObjectId) in this numeric-only mode
+          // Provide candidate by name only (ID removed per request)
+          candidate_name: 'Candidate Name',
+
+          // Vote values
+          total_votes: 0,
+          vote_percentage: 0,
+          margin: 0
         }
       ];
       const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -345,7 +353,26 @@ export default function BoothVotesListPage() {
           const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
           normalized[normalizedKey] = row[key];
         });
-        return normalized;
+
+        // Map the numeric/code-based columns expected in Option B
+        const mapped = {
+          state_no: normalized.state_no || normalized.state || undefined,
+          division_code: normalized.division_code || normalized.division || undefined,
+          parliament_no: normalized.parliament_no || normalized.parliament || undefined,
+          assembly_no: normalized.ac_no || normalized.ac_no || normalized.assembly_no || normalized.ac_no || undefined,
+          block: normalized.block || normalized.block_name || undefined,
+          booth_number: normalized.booth_number || normalized.booth_no || normalized.booth || undefined,
+
+          election_year: normalized.election_year || normalized.year || undefined,
+          // Only send candidate_name (no candidate_id field in Excel)
+          candidate_name: normalized.candidate_name || normalized.candidate || normalized.name || undefined,
+
+          total_votes: normalized.total_votes || normalized.votes || normalized.total || undefined,
+          vote_percentage: normalized.vote_percentage || normalized.vote_percent || normalized.votepercentage || undefined,
+          margin: normalized.margin || normalized.vote_margin || undefined
+        };
+
+        return { ...normalized, ...mapped };
       });
 
       const token = localStorage.getItem('serviceToken');
@@ -355,6 +382,8 @@ export default function BoothVotesListPage() {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
+        // In numeric-only mode we require `candidate_id` and numeric geography like `booth_number`.
+        // Allow creating missing candidates from names: enable create_missing_candidates
         body: JSON.stringify({ rows: normalizedData, create_missing_candidates: true })
       });
 

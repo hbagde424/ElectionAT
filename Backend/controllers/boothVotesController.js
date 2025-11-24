@@ -601,64 +601,109 @@ exports.getVotesByElectionYear = async (req, res, next) => {
 // @access  Private (SuperAdmin)
 exports.importBoothVotes = async (req, res, next) => {
   try {
-    const { rows } = req.body;
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : (Array.isArray(req.body?.data) ? req.body.data : null);
+    const createMissingCandidates = !!req.body.create_missing_candidates;
+
     if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'No data provided' });
+      return res.status(400).json({ success: false, message: 'No data provided. Expected rows or data array.' });
     }
 
     const { resolveGeographicHierarchy } = require('./importHelpers');
     const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
 
+    const getNumber = (obj, keys) => {
+      for (const k of keys) {
+        if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+          const n = Number(String(obj[k]).trim());
+          return Number.isNaN(n) ? 0 : n;
+        }
+      }
+      return 0;
+    };
+
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+      const row = rows[i] || {};
       try {
+        // Candidate: accept either `candidate_id` (ObjectId) or `candidate_name` (string)
+        const candidateIdRaw = row.candidate_id || row.candidateid || '';
+        const candidateNameRaw = row.candidate_name || row.candidate || row.name || '';
         let candidate = null;
-        if (row.candidate_name) {
-          candidate = await Candidate.findOne({ name: new RegExp(`^${row.candidate_name}$`, 'i') });
+        if (candidateIdRaw && /^[a-f\d]{24}$/i.test(String(candidateIdRaw).trim())) {
+          candidate = await Candidate.findById(String(candidateIdRaw).trim());
+        }
+        if (!candidate && candidateNameRaw) {
+          const nameTrim = String(candidateNameRaw).trim();
+          candidate = await Candidate.findOne({ name: new RegExp(`^${nameTrim}$`, 'i') });
+          if (!candidate && createMissingCandidates) {
+            candidate = await Candidate.create({ name: nameTrim, created_by: req.user?.id || req.user?._id || null });
+          }
+        }
+        if (!candidate) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Candidate not found by id or name ('${candidateIdRaw || candidateNameRaw}')` });
+          continue;
+        }
+
+        // Booth must be identified by booth_number (numeric or string)
+        const boothNumberRaw = row.booth_number || row.booth_no || row.boothNo || row.booth || '';
+        if (!boothNumberRaw && !(row.booth_id && /^[a-f\d]{24}$/i.test(String(row.booth_id).trim()))) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Missing 'booth_number' (required)` });
+          continue;
         }
 
         let booth = null;
-        if (row.booth_name || row.booth_number) {
-          booth = await Booth.findOne({
-            $or: [
-              { name: new RegExp(`^${row.booth_name}$`, 'i') },
-              { booth_number: row.booth_number }
-            ]
-          });
+        if (row.booth_id && /^[a-f\d]{24}$/i.test(String(row.booth_id).trim())) {
+          booth = await Booth.findById(String(row.booth_id).trim());
         }
-
-        let electionYear = null;
-        if (row.election_year) {
-          electionYear = await ElectionYear.findOne({ year: row.election_year });
-        }
-
-        const geo = await resolveGeographicHierarchy(row);
-
-        if (!candidate) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Candidate '${row.candidate_name}' not found` });
-          continue;
+        if (!booth && boothNumberRaw) {
+          booth = await Booth.findOne({ booth_number: String(boothNumberRaw).trim() });
         }
         if (!booth) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Booth '${row.booth_name || row.booth_number}' not found` });
+          summary.errors.push({ row: i + 1, message: `Booth with number '${boothNumberRaw}' not found` });
           continue;
         }
 
+        // Election year - require numeric year or ObjectId
+        const yearVal = row.election_year || row.year || row.electionYear || '';
+        let electionYear = null;
+        if (!yearVal) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Missing 'election_year' (required)` });
+          continue;
+        }
+        const yearIsId = /^[a-f\d]{24}$/i.test(String(yearVal).trim());
+        if (yearIsId) {
+          electionYear = await ElectionYear.findById(String(yearVal).trim());
+        } else {
+          const num = Number(String(yearVal).trim());
+          if (!isNaN(num)) {
+            electionYear = await ElectionYear.findOne({ year: num });
+          }
+        }
+        if (!electionYear) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Election year '${yearVal}' not found` });
+          continue;
+        }
+
+        // Resolve geographic hierarchy (will use booth_number to locate booth and parent IDs)
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Prefer using parent IDs from the found Booth document for accuracy
         const voteData = {
-          candidate: candidate._id,
-          booth: booth._id,
-          election_year_id: electionYear ? electionYear._id : null,
-          total_votes: parseInt(row.total_votes) || 0,
-          vote_percentage: parseFloat(row.vote_percentage) || 0,
-          margin: parseInt(row.margin) || 0,
-          state: geo.state ? geo.state._id : null,
-          division: geo.division ? geo.division._id : null,
-          parliament: geo.parliament ? geo.parliament._id : null,
-          assembly: geo.assembly ? geo.assembly._id : null,
-          block: geo.block ? geo.block._id : null,
-          created_by: req.user.id,
-          updated_by: req.user.id
+          candidate_id: candidate._id,
+          booth_id: booth._id,
+          election_year_id: electionYear._id,
+          total_votes: Number(getNumber(row, ['total_votes', 'votes', 'totalvotes', 'total_votes_count'])) || 0,
+          state_id: booth.state_id || (geo.state ? geo.state._id : null),
+          division_id: booth.division_id || (geo.division ? geo.division._id : null),
+          parliament_id: booth.parliament_id || (geo.parliament ? geo.parliament._id : null),
+          assembly_id: booth.assembly_id || (geo.assembly ? geo.assembly._id : null),
+          block_id: booth.block_id || (geo.block ? geo.block._id : null),
+          created_by: req.user?.id || req.user?._id || null,
+          updated_by: req.user?.id || req.user?._id || null
         };
 
         await BoothVotes.create(voteData);
