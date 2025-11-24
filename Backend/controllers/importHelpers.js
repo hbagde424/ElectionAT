@@ -242,6 +242,39 @@ async function resolveGeographicHierarchy(row) {
     }
   }
 
+  // Fallback inference: if block or booth still not found, try to infer from higher-level entities
+  // This helps imports that specify only assembly/parliament/division/state
+  try {
+    if (!result.block) {
+      if (result.assembly && result.assembly._id) {
+        result.block = await Block.findOne({ assembly_id: result.assembly._id });
+      }
+      if (!result.block && result.division && result.division._id) {
+        result.block = await Block.findOne({ division_id: result.division._id });
+      }
+      if (!result.block && result.state && result.state._id) {
+        result.block = await Block.findOne({ state_id: result.state._id });
+      }
+    }
+
+    if (!result.booth) {
+      if (result.block && result.block._id) {
+        result.booth = await Booth.findOne({ block_id: result.block._id });
+      }
+      if (!result.booth && result.assembly && result.assembly._id) {
+        result.booth = await Booth.findOne({ assembly_id: result.assembly._id });
+      }
+      if (!result.booth && result.division && result.division._id) {
+        result.booth = await Booth.findOne({ division_id: result.division._id });
+      }
+      if (!result.booth && result.state && result.state._id) {
+        result.booth = await Booth.findOne({ state_id: result.state._id });
+      }
+    }
+  } catch (e) {
+    // ignore fallback lookup errors; main validation will surface missing fields
+  }
+
   return result;
 }
 

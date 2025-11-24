@@ -510,13 +510,13 @@ exports.importLocalIssues = async (req, res, next) => {
         // Resolve geographic hierarchy
         const geo = await resolveGeographicHierarchy(row);
 
-        // Validate required hierarchy fields
-        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly']);
-        if (!hierarchyCheck.valid) {
+        // Validate required hierarchy fields (LocalIssue model requires block and booth)
+        const hierarchyErrors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (hierarchyErrors.length > 0) {
           results.errors.push({
             row: i + 1,
             data: row,
-            error: hierarchyCheck.errors.join(', ')
+            error: hierarchyErrors.join(', ')
           });
           continue;
         }
@@ -531,12 +531,34 @@ exports.importLocalIssues = async (req, res, next) => {
           continue;
         }
 
-        // Create local issue entry
+        // Normalize and map fields to model enums/defaults
+        const statusMap = {
+          open: 'Reported',
+          reported: 'Reported',
+          'in progress': 'In Progress',
+          'in-progress': 'In Progress',
+          resolved: 'Resolved',
+          rejected: 'Rejected'
+        };
+        const priorityMap = {
+          low: 'Low',
+          medium: 'Medium',
+          med: 'Medium',
+          high: 'High',
+          critical: 'Critical'
+        };
+
+        const rawStatus = String(row.status || '').trim();
+        const normalizedStatus = statusMap[rawStatus.toLowerCase()] || (rawStatus ? rawStatus : undefined);
+
+        const rawPriority = String(row.priority || '').trim();
+        const normalizedPriority = priorityMap[rawPriority.toLowerCase()] || (rawPriority ? (rawPriority.charAt(0).toUpperCase() + rawPriority.slice(1)) : undefined);
+
         const issueData = {
           issue_name: row.issue_name,
           description: row.description || '',
-          priority: row.priority || 'medium',
-          status: row.status || 'open',
+          priority: normalizedPriority || 'Medium',
+          status: normalizedStatus || 'Reported',
           state_id: geo.state._id,
           division_id: geo.division._id,
           parliament_id: geo.parliament._id,
@@ -544,9 +566,12 @@ exports.importLocalIssues = async (req, res, next) => {
           created_by: req.user._id
         };
 
-        // Optional fields
-        if (geo.block) issueData.block_id = geo.block._id;
-        if (geo.booth) issueData.booth_id = geo.booth._id;
+        // Required per model: block and booth will be present (we validated above)
+        issueData.block_id = geo.block._id;
+        issueData.booth_id = geo.booth._id;
+
+        // Department is required by model; use provided or default to 'General'
+        issueData.department = row.department || row.department_name || 'General';
 
         await LocalIssue.create(issueData);
         results.imported++;
