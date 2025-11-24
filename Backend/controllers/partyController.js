@@ -190,3 +190,64 @@ exports.deleteParty = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Import parties from Excel
+// @route   POST /api/parties/import
+// @access  Private/Admin
+exports.importParties = async (req, res, next) => {
+  try {
+    const rows = req.body.rows || req.body.data;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided. Expected array of rows.' });
+    }
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Basic validation
+        const name = row.name || row.party_name || row.Name;
+        const abbreviation = row.abbreviation || row.Abbreviation || '';
+
+        if (!name) {
+          results.errors.push({ row: i + 1, data: row, error: 'name is required' });
+          continue;
+        }
+
+        // Check duplicates by name or abbreviation
+        const existing = await Party.findOne({ $or: [{ name: name }, { abbreviation: abbreviation }] });
+        if (existing) {
+          results.errors.push({ row: i + 1, data: row, error: 'Party already exists with this name or abbreviation' });
+          continue;
+        }
+
+        // Check user
+        if (!req.user || !req.user._id) {
+          results.errors.push({ row: i + 1, data: row, error: 'Not authorized - user not identified' });
+          continue;
+        }
+
+        const partyData = {
+          name: name,
+          abbreviation: abbreviation || undefined,
+          symbol: row.symbol || row.Symbol || undefined,
+          founded_year: row.founded_year || row.Founded_Year || undefined,
+          description: row.description || row.Description || '',
+          created_by: req.user._id
+        };
+
+        await Party.create(partyData);
+        results.imported++;
+
+      } catch (err) {
+        results.errors.push({ row: i + 1, data: row, error: err.message || 'Failed to import party' });
+      }
+    }
+
+    res.status(200).json({ success: true, imported: results.imported, total: results.total, errors: results.errors });
+  } catch (err) {
+    next(err);
+  }
+};
