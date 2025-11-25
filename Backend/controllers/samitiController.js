@@ -441,8 +441,48 @@ exports.importSamitis = async (req, res, next) => {
           continue;
         }
 
-        // Resolve geographic hierarchy
+        // Resolve geographic hierarchy (name-first)
         const geo = await resolveGeographicHierarchy(row);
+
+        // Fallback to numeric identifier lookups when resolver couldn't find entities
+        const parseNum = (v) => {
+          if (v === undefined || v === null || v === '') return null;
+          const n = Number(v);
+          return Number.isNaN(n) ? null : n;
+        };
+
+        let state = geo.state || null;
+        let division = geo.division || null;
+        let parliament = geo.parliament || null;
+        let assembly = geo.assembly || null;
+        let block = geo.block || null;
+        let booth = geo.booth || null;
+
+        // Try numeric lookups for each level if not found
+        if (!state) {
+          const sNo = parseNum(row.state_no) || parseNum(row.state_number) || parseNum(row.state);
+          if (sNo != null) state = await State.findOne({ state_no: sNo });
+        }
+        if (!division) {
+          const dCode = row.division_code || row.divisioncode || row.division_code || row.division_code_number;
+          if (dCode) division = await Division.findOne({ code: String(dCode) });
+        }
+        if (!parliament) {
+          const pNo = parseNum(row.parliament_no) || parseNum(row.parliament_number) || parseNum(row.parliament);
+          if (pNo != null) parliament = await Parliament.findOne({ parliament_no: pNo });
+        }
+        if (!assembly) {
+          const ac = parseNum(row.AC_NO) || parseNum(row.ac_no) || parseNum(row.constituency_no) || parseNum(row.AC) ;
+          if (ac != null) assembly = await Assembly.findOne({ AC_NO: ac });
+        }
+        if (!block) {
+          const bNo = parseNum(row.block_number) || parseNum(row.block_no) || parseNum(row.block);
+          if (bNo != null) block = await Block.findOne({ block_number: bNo });
+        }
+        if (!booth) {
+          const bo = parseNum(row.booth_number) || parseNum(row.booth_no) || parseNum(row.booth);
+          if (bo != null) booth = await Booth.findOne({ booth_number: bo });
+        }
 
         // Check for duplicates
         const existing = await Samiti.findOne({ samiti_name: row.samiti_name });
@@ -454,17 +494,69 @@ exports.importSamitis = async (req, res, next) => {
 
         const samitiData = {
           samiti_name: row.samiti_name,
-          village_name: row.village_name || '',
-          falia_name: row.falia_name || '',
-          state_id: geo.state ? geo.state._id : null,
-          division_id: geo.division ? geo.division._id : null,
-          parliament_id: geo.parliament ? geo.parliament._id : null,
-          assembly_id: geo.assembly ? geo.assembly._id : null,
-          block_id: geo.block ? geo.block._id : null,
-          booth_id: geo.booth ? geo.booth._id : null,
+          count: row.count !== undefined && row.count !== null && row.count !== '' ? Number(row.count) : (row.count_value ? Number(row.count_value) : 0),
+          village_name: row.village_name || row.village || '',
+          falia_name: row.falia_name || row.falia || row.falliya || '',
+          // Prefer resolved objects from resolver but fall back to numeric-lookups above
+          state_id: (state && state._id) || (geo.state ? geo.state._id : null),
+          division_id: (division && division._id) || (geo.division ? geo.division._id : null),
+          parliament_id: (parliament && parliament._id) || (geo.parliament ? geo.parliament._id : null),
+          assembly_id: (assembly && assembly._id) || (geo.assembly ? geo.assembly._id : null),
+          block_id: (block && block._id) || (geo.block ? geo.block._id : null),
+          booth_id: (booth && booth._id) || (geo.booth ? geo.booth._id : null),
+          // Local refs: accept either explicit ids or names
+          panchayat_id: row.panchayat_id || null,
+          village_id: row.village_id || null,
+          falliya_id: row.falliya_id || null,
+          year: row.year ? (Number.isNaN(Number(row.year)) ? row.year : Number(row.year)) : undefined,
           created_by: req.user.id,
           updated_by: req.user.id
         };
+
+        // Resolve panchayat/village/falliya by name when IDs are not provided
+        const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        try {
+          if (!samitiData.panchayat_id) {
+            const pname = row.panchayat_name || row.panchayat || null;
+            if (pname) {
+              const Panchayat = require('../models/Panchayat');
+              const query = { panchayat_name: { $regex: `^${escapeRegex(pname)}$`, $options: 'i' } };
+              // Narrow by block if available
+              if (samitiData.block_id) query.block_id = samitiData.block_id;
+              const p = await Panchayat.findOne(query).select('_id');
+              if (p) samitiData.panchayat_id = p._id;
+            }
+          }
+
+          if (!samitiData.village_id) {
+            const vname = row.village_name || row.village || null;
+            if (vname) {
+              const Village = require('../models/Village');
+              const qv = { village_name: { $regex: `^${escapeRegex(vname)}$`, $options: 'i' } };
+              // Narrow by panchayat or block if available
+              if (samitiData.panchayat_id) qv.panchayat_id = samitiData.panchayat_id;
+              else if (samitiData.block_id) qv.block_id = samitiData.block_id;
+              const v = await Village.findOne(qv).select('_id');
+              if (v) samitiData.village_id = v._id;
+            }
+          }
+
+          if (!samitiData.falliya_id) {
+            const fname = row.falliya_name || row.falia || row.falliya || null;
+            if (fname) {
+              const Falliya = require('../models/Falliya');
+              const qf = { falliya_name: { $regex: `^${escapeRegex(fname)}$`, $options: 'i' } };
+              // Narrow by village/panchayat/block if available
+              if (samitiData.village_id) qf.village_id = samitiData.village_id;
+              else if (samitiData.panchayat_id) qf.panchayat_id = samitiData.panchayat_id;
+              else if (samitiData.block_id) qf.block_id = samitiData.block_id;
+              const f = await Falliya.findOne(qf).select('_id');
+              if (f) samitiData.falliya_id = f._id;
+            }
+          }
+        } catch (e) {
+          // non-fatal: continue with whatever we have
+        }
 
         await Samiti.create(samitiData);
         summary.created += 1;

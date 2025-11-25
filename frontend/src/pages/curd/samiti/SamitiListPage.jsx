@@ -659,15 +659,21 @@ const SamitiListPage = () => {
             if (json.success) {
                 const csvData = json.data.map(item => ({
                     'Samiti Name': item.samiti_name || '',
-                    'Village': item.village || '',
-                    'Falia': item.falia || '',
+                    'Village': item.village || item.village_name || '',
+                    'Falia': item.falia || item.falia_name || '',
                     'Count': item.count || 0,
-                    'State': item.state_id?.name || '',
-                    'Division': item.division_id?.name || '',
-                    'Parliament': item.parliament_id?.name || '',
-                    'Assembly': item.assembly_id?.name || '',
-                    'Block': item.block_id?.name || '',
-                    'Booth': item.booth_id?.name || '',
+                    'Year': item.year || '',
+                    // Numeric geography codes (when available on populated refs)
+                    'State No': item.state_id?.state_no || item.state_no || '',
+                    'Division Code': item.division_id?.division_code || item.division_code || '',
+                    'Parliament No': item.parliament_id?.parliament_no || item.parliament_no || '',
+                    'Assembly AC_NO': item.assembly_id?.AC_NO || item.assembly_id?.ac_no || item.AC_NO || item.ac_no || '',
+                    'Block No': item.block_id?.block_number || item.block_number || '',
+                    'Booth No': item.booth_id?.booth_number || item.booth_number || '',
+                    // Local refs by name when available
+                    'Panchayat': item.panchayat_id?.panchayat_name || item.panchayat_name || '',
+                    'Village Name': item.village_id?.village_name || item.village_name || '',
+                    'Falia': item.falliya_id?.falliya_name || item.falliya_name || '',
                     'Created By': item.created_by?.username || '',
                     'Created At': item.created_at ? new Date(item.created_at).toLocaleString('en-IN') : '',
                     'Updated At': item.updated_at ? new Date(item.updated_at).toLocaleString('en-IN') : ''
@@ -697,12 +703,18 @@ const SamitiListPage = () => {
                     village: 'Village Name',
                     falia: 'Falia Name',
                     count: 100,
-                    state_name: 'Madhya Pradesh',
-                    division_name: 'Division Name',
-                    parliament_name: 'Parliament Name',
-                    assembly_name: 'Assembly Name',
-                    block_name: 'Block Name',
-                    booth_name: 'Booth Name'
+                    year: new Date().getFullYear(),
+                    // Numeric identifiers (preferred): state_no, division_code, parliament_no, AC_NO, block_number, booth_number
+                    state_no: '',
+                    division_code: '',
+                    parliament_no: '',
+                    AC_NO: '',
+                    block_number: '',
+                    booth_number: '',
+                    // Optional local refs by name (preferred over ids)
+                    panchayat_name: '',
+                    village_name: '',
+                    falliya_name: ''
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
