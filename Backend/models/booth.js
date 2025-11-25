@@ -105,4 +105,4 @@ boothSchema.pre('save', function (next) {
   next();
 });
 
-module.exports = mongoose.model('Booth', boothSchema);
+module.exports = mongoose.models.Booth || mongoose.model('Booth', boothSchema);

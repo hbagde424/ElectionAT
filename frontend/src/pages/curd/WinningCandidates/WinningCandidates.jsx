@@ -1368,8 +1368,37 @@ export default function WinningCandidateListPage() {
 
     const handleDownloadExcelTemplate = async () => {
         const XLSX = await import('xlsx');
-        const headers = ['candidate_name', 'party', 'year', 'total_votes', 'vote_percentage', 'margin', 'state', 'division_code', 'parliament_no', 'assembly_no'];
-        const exampleData = [['Rahul Gandhi', 'INC', '2024', '500000', '52.5', '50000', 'Maharashtra', 'DIV001', 'PC01', 'AC001']];
+        // Numeric-first template: use numeric geography identifiers and include common winning candidate fields
+        const headers = [
+            'candidate_name', 'party_name', 'election_year', 'type',
+            'state_no', 'division_code', 'parliament_no', 'AC_NO', 'block_number', 'booth_number',
+            'total_votes', 'poll_percentage', 'voting_percentage', 'margin', 'margin_percentage',
+            'total_electors', 'male_electors', 'female_electors', 'nota_votes', 'description'
+        ];
+
+        const exampleData = [[
+            'Ramesh Kumar', // candidate_name
+            'Example Party', // party_name
+            2024, // election_year
+            'General', // type
+            6, // state_no
+            'DIV012', // division_code
+            3, // parliament_no
+            45, // AC_NO (assembly number)
+            7, // block_number
+            102, // booth_number
+            12500, // total_votes
+            0.552, // poll_percentage (0.552 = 55.2%)
+            65.3, // voting_percentage
+            2500, // margin
+            0.04, // margin_percentage (4%)
+            150000, // total_electors
+            76000, // male_electors
+            74000, // female_electors
+            120, // nota_votes
+            'Example description or notes for this winning candidate'
+        ]];
+
         const worksheetData = [headers, ...exampleData];
         const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
         const workbook = XLSX.utils.book_new();
@@ -1396,17 +1425,30 @@ export default function WinningCandidateListPage() {
                 });
                 return normalized;
             });
-            const filteredRows = normalizedData.filter((r) => r.candidate_name);
+
+            // Map older 'electors' header to 'total_electors' which backend expects
+            const normalizedAndMapped = normalizedData.map(r => {
+                const copy = { ...r };
+                if (copy.electors && !copy.total_electors) copy.total_electors = copy.electors;
+                return copy;
+            });
+
+            const filteredRows = normalizedAndMapped.filter((r) => r.candidate_name);
             const token = localStorage.getItem('serviceToken');
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/winning-candidates/import`, {
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/import`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
                 body: JSON.stringify({ rows: filteredRows })
             });
             const result = await response.json();
             if (response.ok) {
-                setImportResult({ success: true, imported: result.imported || 0, total: result.total || 0, errors: result.errors || [] });
-                fetchCandidates();
+                // backend may return { imported, total } or { results: { created, total, errors } }
+                const imported = result.imported || result.results?.created || result.results?.imported || 0;
+                const total = result.total || result.results?.total || rows?.length || filteredRows.length || 0;
+                const errors = result.errors || result.results?.errors || [];
+                setImportResult({ success: true, imported, total, errors });
+                // refresh list
+                fetchCandidateList(pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters);
             } else {
                 setImportResult({ success: false, message: result.message || 'Import failed' });
             }

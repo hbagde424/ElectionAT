@@ -7,6 +7,8 @@ const Assembly = require('../models/Assembly');
 const Party = require('../models/party');
 const Candidate = require('../models/Candidate');
 const Year = require('../models/electionYear');
+const Block = require('../models/block');
+const Booth = require('../models/booth');
 
 // @desc    Get all winning candidates
 // @route   GET /api/winning-candidates
@@ -1260,125 +1262,170 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
 // @access  Private/Admin
 exports.importWinningCandidates = async (req, res, next) => {
   try {
-    const { rows } = req.body;
+    const rows = Array.isArray(req.body.rows) ? req.body.rows : (Array.isArray(req.body) ? req.body : []);
 
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No data provided. Expected array of rows.'
-      });
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No rows provided for import' });
     }
 
-    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+    const results = { total: rows.length, created: 0, skipped: 0, errors: [] };
 
-    const results = { imported: 0, total: rows.length, errors: [] };
+    const parseNum = (v) => {
+      if (v === undefined || v === null || v === '') return null;
+      const n = Number(String(v).replace(/,/g, ''));
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
 
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+      const row = rows[i] || {};
       try {
-        // Resolve geographic hierarchy
-        const geo = await resolveGeographicHierarchy(row);
-
-        // Validate required hierarchy fields
-        const hierarchyCheck = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly']);
-        if (!hierarchyCheck.valid) {
-          results.errors.push({
-            row: i + 1,
-            data: row,
-            error: hierarchyCheck.errors.join(', ')
-          });
-          continue;
+        // Resolve year (allow year_id or election_year)
+        let yearDoc = null;
+        if (row.year_id && mongoose.Types.ObjectId.isValid(String(row.year_id))) {
+          yearDoc = await Year.findById(row.year_id);
         }
-
-        // Check for required fields
-        if (!row.candidate_name) {
-          results.errors.push({
-            row: i + 1,
-            data: row,
-            error: 'candidate_name is required'
-          });
-          continue;
+        if (!yearDoc && row.election_year) {
+          const y = parseNum(row.election_year) || row.election_year;
+          yearDoc = await Year.findOne({ year: y });
+          if (!yearDoc && parseNum(y)) {
+            yearDoc = await Year.create({ year: parseNum(y) });
+          }
         }
 
         // Resolve party
-        let partyId = null;
-        if (row.party) {
-          const party = await Party.findOne({ name: { $regex: new RegExp(`^${row.party}$`, 'i') } });
-          if (!party) {
-            results.errors.push({
-              row: i + 1,
-              data: row,
-              error: `Party not found: ${row.party}`
-            });
-            continue;
-          }
-          partyId = party._id;
+        let party = null;
+        if (row.party_id && mongoose.Types.ObjectId.isValid(String(row.party_id))) {
+          party = await Party.findById(row.party_id);
+        }
+        if (!party && row.party_name) {
+          const name = row.party_name.trim();
+          party = await Party.findOne({ name: new RegExp('^' + escapeRegex(name) + '$', 'i') });
         }
 
-        // Resolve year
-        let yearId = null;
-        if (row.year) {
-          const yearDoc = await Year.findOne({ year: parseInt(row.year) });
-          if (!yearDoc) {
-            results.errors.push({
-              row: i + 1,
-              data: row,
-              error: `Election year not found: ${row.year}`
-            });
-            continue;
+        // Resolve candidate (id preferred, else name)
+        let candidate = null;
+        if (row.candidate_id && mongoose.Types.ObjectId.isValid(String(row.candidate_id))) {
+          candidate = await Candidate.findById(row.candidate_id);
+        }
+        if (!candidate && row.candidate_name) {
+          const cname = row.candidate_name.trim();
+          const q = { name: new RegExp('^' + escapeRegex(cname) + '$', 'i') };
+          // narrow by assembly if ac provided
+          const acNo = parseNum(row.AC_NO || row.assembly_no) || null;
+          if (acNo) {
+            const assemblyDoc = await Assembly.findOne({ AC_NO: acNo });
+            if (assemblyDoc) q.assembly_id = assemblyDoc._id;
+          } else if (row.assembly_id && mongoose.Types.ObjectId.isValid(String(row.assembly_id))) {
+            q.assembly_id = row.assembly_id;
           }
-          yearId = yearDoc._id;
+          candidate = await Candidate.findOne(q);
         }
 
-        // Resolve candidate if provided
-        let candidateId = null;
-        if (row.candidate_id) {
-          const candidate = await Candidate.findById(row.candidate_id);
-          if (candidate) {
-            candidateId = candidate._id;
-          }
+        if (!candidate) {
+          results.skipped++;
+          results.errors.push({ row: i + 1, message: 'Candidate not found or missing' });
+          continue;
         }
 
-        // Create winning candidate entry
-        const winningData = {
-          candidate_name: row.candidate_name,
-          candidate_id: candidateId,
-          party_id: partyId,
-          year_id: yearId,
-          state_id: geo.state._id,
-          division_id: geo.division._id,
-          parliament_id: geo.parliament._id,
-          assembly_id: geo.assembly._id,
-          total_votes: parseInt(row.total_votes) || 0,
-          vote_percentage: parseFloat(row.vote_percentage) || 0,
-          margin: parseInt(row.margin) || 0,
-          runner_up: row.runner_up || '',
-          electors: parseInt(row.electors) || 0,
-          male_electors: parseInt(row.male_electors) || 0,
-          female_electors: parseInt(row.female_electors) || 0,
-          created_by: req.user._id
+        // Resolve geography using numeric fallbacks and names
+        let state = null, division = null, parliament = null, assembly = null, block = null, booth = null;
+
+        if (row.state_id && mongoose.Types.ObjectId.isValid(String(row.state_id))) state = await State.findById(row.state_id);
+        if (!state) {
+          const sNo = parseNum(row.state_no) || parseNum(row.state_number) || null;
+          if (sNo) state = await State.findOne({ state_no: sNo });
+          if (!state && row.state_name) state = await State.findOne({ name: new RegExp('^' + escapeRegex(row.state_name.trim()) + '$', 'i') });
+        }
+
+        if (row.division_id && mongoose.Types.ObjectId.isValid(String(row.division_id))) division = await Division.findById(row.division_id);
+        if (!division) {
+          const dCode = row.division_code || row.division_code_no || null;
+          if (dCode) division = await Division.findOne({ code: dCode }) || await Division.findOne({ division_code: dCode });
+          if (!division && row.division_name) division = await Division.findOne({ name: new RegExp('^' + escapeRegex(row.division_name.trim()) + '$', 'i') });
+          if (!division && state) division = await Division.findOne({ state_id: state._id });
+        }
+
+        if (row.parliament_id && mongoose.Types.ObjectId.isValid(String(row.parliament_id))) parliament = await Parliament.findById(row.parliament_id);
+        if (!parliament) {
+          const pNo = parseNum(row.parliament_no) || parseNum(row.parliament_number) || null;
+          if (pNo) parliament = await Parliament.findOne({ parliament_no: pNo }) || await Parliament.findOne({ no: pNo });
+          if (!parliament && row.parliament_name) parliament = await Parliament.findOne({ name: new RegExp('^' + escapeRegex(row.parliament_name.trim()) + '$', 'i') });
+          if (!parliament && division) parliament = await Parliament.findOne({ division_id: division._id });
+        }
+
+        if (row.assembly_id && mongoose.Types.ObjectId.isValid(String(row.assembly_id))) assembly = await Assembly.findById(row.assembly_id);
+        if (!assembly) {
+          const acNo = parseNum(row.AC_NO) || parseNum(row.AC) || parseNum(row.assembly_no) || null;
+          if (acNo) assembly = await Assembly.findOne({ AC_NO: acNo }) || await Assembly.findOne({ ac_no: acNo });
+          if (!assembly && row.assembly_name) assembly = await Assembly.findOne({ name: new RegExp('^' + escapeRegex(row.assembly_name.trim()) + '$', 'i') });
+          if (!assembly && parliament) assembly = await Assembly.findOne({ parliament_id: parliament._id });
+        }
+
+        if (row.block_id && mongoose.Types.ObjectId.isValid(String(row.block_id))) block = await Block.findById(row.block_id);
+        if (!block) {
+          const bNo = parseNum(row.block_number) || parseNum(row.block_no) || null;
+          if (bNo && assembly) block = await Block.findOne({ assembly_id: assembly ? assembly._id : undefined, block_no: bNo }) || await Block.findOne({ block_number: bNo });
+          if (!block && row.block_name) block = await Block.findOne({ name: new RegExp('^' + escapeRegex(row.block_name.trim()) + '$', 'i') });
+        }
+
+        if (row.booth_id && mongoose.Types.ObjectId.isValid(String(row.booth_id))) booth = await Booth.findById(row.booth_id);
+        if (!booth) {
+          const boothNo = parseNum(row.booth_number) || parseNum(row.booth_no) || null;
+          if (boothNo && assembly) booth = await Booth.findOne({ assembly_id: assembly ? assembly._id : undefined, booth_number: boothNo }) || await Booth.findOne({ booth_no: boothNo });
+          if (!booth && row.booth_name) booth = await Booth.findOne({ name: new RegExp('^' + escapeRegex(row.booth_name.trim()) + '$', 'i') });
+        }
+
+        // build payload
+        const payload = {
+          candidate_id: candidate._id,
+          party_id: party ? party._id : undefined,
+          year_id: yearDoc ? yearDoc._id : undefined,
+          state_id: state ? state._id : undefined,
+          division_id: division ? division._id : undefined,
+          parliament_id: parliament ? parliament._id : undefined,
+          assembly_id: assembly ? assembly._id : undefined,
+          block_id: block ? block._id : undefined,
+          booth_id: booth ? booth._id : undefined,
+          AC_NO: assembly ? assembly.AC_NO || assembly.AC : (row.AC_NO || row.assembly_no || row.AC),
+          total_votes: parseNum(row.total_votes) || parseNum(row.votes) || 0,
+          margin: parseNum(row.margin) || 0,
+          margin_percentage: parseNum(row.margin_percentage) || null,
+          poll_percentage: typeof row.poll_percentage === 'string' ? row.poll_percentage : (row.poll_percentage ? String(row.poll_percentage) + '%' : undefined),
+          voting_percentage: parseNum(row.voting_percentage) || null,
+          electors: parseNum(row.electors) || null,
+          total_electors: parseNum(row.total_electors) || parseNum(row.electors) || null,
+          male_electors: parseNum(row.male_electors) || null,
+          female_electors: parseNum(row.female_electors) || null,
+          nota_votes: parseNum(row.nota_votes) || null,
+          description: row.description || row.notes || '',
+          type: Array.isArray(row.type) ? row.type : (row.type ? String(row.type).split(/[,;|]/).map(t => t.trim()) : ['General']),
+          created_by: req.user && req.user.id ? req.user.id : undefined,
+          assembly_no: assembly ? (assembly.AC_NO || assembly.AC || row.AC_NO || row.assembly_no) : (row.AC_NO || row.assembly_no)
         };
 
-        await WinningCandidate.create(winningData);
-        results.imported++;
+        Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
 
-      } catch (err) {
-        results.errors.push({
-          row: i + 1,
-          data: row,
-          error: err.message || 'Failed to import winning candidate'
-        });
+        // avoid duplicates: if same assembly+year exists, update
+        const existing = (payload.year_id && payload.assembly_id) ? await WinningCandidate.findOne({ assembly_id: payload.assembly_id, year_id: payload.year_id }) : null;
+        if (existing) {
+          await WinningCandidate.findByIdAndUpdate(existing._id, payload, { new: true, runValidators: true });
+          results.created++;
+        } else {
+          await WinningCandidate.create(payload);
+          results.created++;
+        }
+
+      } catch (rowErr) {
+        results.skipped++;
+        results.errors.push({ row: i + 1, message: rowErr.message });
       }
     }
 
-    res.status(200).json({
-      success: true,
-      imported: results.imported,
-      total: results.total,
-      errors: results.errors
-    });
-
+    res.status(200).json({ success: true, results });
   } catch (err) {
+    console.error('importWinningCandidates error:', err);
     next(err);
   }
 };
