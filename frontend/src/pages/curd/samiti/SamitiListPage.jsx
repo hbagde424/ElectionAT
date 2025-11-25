@@ -699,22 +699,22 @@ const SamitiListPage = () => {
             const XLSX = await import('xlsx');
             const templateData = [
                 {
-                    samiti_name: 'Samiti Name Example',
-                    village: 'Village Name',
-                    falia: 'Falia Name',
-                    count: 100,
-                    year: new Date().getFullYear(),
+                    samiti_name: 'Gram Samiti Example',
+                    village: 'Khargone',
+                    falia: 'Main Falia',
+                    count: 150,
+                    year: 2025,
                     // Numeric identifiers (preferred): state_no, division_code, parliament_no, AC_NO, block_number, booth_number
-                    state_no: '',
-                    division_code: '',
-                    parliament_no: '',
-                    AC_NO: '',
-                    block_number: '',
-                    booth_number: '',
+                    state_no: 6,
+                    division_code: '12',
+                    parliament_no: 3,
+                    AC_NO: 45,
+                    block_number: 7,
+                    booth_number: 102,
                     // Optional local refs by name (preferred over ids)
-                    panchayat_name: '',
-                    village_name: '',
-                    falliya_name: ''
+                    panchayat_name: 'Khargone Panchayat',
+                    village_name: 'Khargone Village',
+                    falliya_name: 'Main Falia'
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);

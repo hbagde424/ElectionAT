@@ -652,29 +652,93 @@ exports.importWinningParties = async (req, res, next) => {
     const { resolveGeographicHierarchy } = require('./importHelpers');
     const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
 
+    const parseNum = (v) => {
+      if (v === undefined || v === null || v === '') return null;
+      const n = Number(v);
+      return Number.isNaN(n) ? null : n;
+    };
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
+        // Candidate resolution: prefer candidate_id if provided, else by name
         let candidate = null;
-        if (row.candidate_name) {
+        if (row.candidate_id && /^[a-f\d]{24}$/i.test(String(row.candidate_id))) {
+          candidate = await Candidate.findById(row.candidate_id);
+        }
+        if (!candidate && row.candidate_name) {
           candidate = await Candidate.findOne({ name: new RegExp(`^${row.candidate_name}$`, 'i') });
         }
 
+        // Party resolution
         let party = null;
-        if (row.party_name) {
+        if (row.party_id && /^[a-f\d]{24}$/i.test(String(row.party_id))) {
+          party = await Party.findById(row.party_id);
+        }
+        if (!party && row.party_name) {
           party = await Party.findOne({ name: new RegExp(`^${row.party_name}$`, 'i') });
         }
 
+        // Election year: accept numeric year or id; create minimal doc if numeric year missing
         let electionYear = null;
-        if (row.election_year) {
-          electionYear = await ElectionYear.findOne({ year: row.election_year });
+        if (row.election_year && /^[a-f\d]{24}$/i.test(String(row.election_year))) {
+          electionYear = await ElectionYear.findById(row.election_year);
+        } else if (row.election_year) {
+          const y = parseNum(row.election_year) || row.election_year;
+          if (y) {
+            electionYear = await ElectionYear.findOne({ year: y });
+            if (!electionYear) {
+              // create a minimal election year record
+              try {
+                electionYear = await ElectionYear.create({ year: Number(y) });
+              } catch (e) {
+                // ignore create errors
+                electionYear = await ElectionYear.findOne({ year: y });
+              }
+            }
+          }
         }
 
+        // Resolve geographic hierarchy (name-first)
         const geo = await resolveGeographicHierarchy(row);
 
+        // Numeric fallbacks
+        let state = geo.state || null;
+        let division = geo.division || null;
+        let parliament = geo.parliament || null;
+        let assembly = geo.assembly || null;
+        let block = geo.block || null;
+        let booth = geo.booth || null;
+
+        if (!state) {
+          const sNo = parseNum(row.state_no) || parseNum(row.state_number) || parseNum(row.state);
+          if (sNo != null) state = await State.findOne({ state_no: sNo });
+        }
+        if (!division) {
+          const dCode = row.division_code || row.divisioncode || row.division_code_number;
+          if (dCode) division = await Division.findOne({ code: String(dCode) });
+        }
+        if (!parliament) {
+          const pNo = parseNum(row.parliament_no) || parseNum(row.parliament_number) || parseNum(row.parliament);
+          if (pNo != null) parliament = await Parliament.findOne({ parliament_no: pNo });
+        }
+        if (!assembly) {
+          const ac = parseNum(row.AC_NO) || parseNum(row.ac_no) || parseNum(row.constituency_no) || parseNum(row.AC);
+          if (ac != null) assembly = await Assembly.findOne({ AC_NO: ac });
+        }
+        if (!block) {
+          const bNo = parseNum(row.block_number) || parseNum(row.block_no) || parseNum(row.block);
+          if (bNo != null) block = await Block.findOne({ block_number: bNo });
+        }
+        if (!booth) {
+          const bo = parseNum(row.booth_number) || parseNum(row.booth_no) || parseNum(row.booth);
+          if (bo != null) booth = await Booth.findOne({ booth_number: bo });
+        }
+
+        // Candidate is required for winning party
         if (!candidate) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Candidate '${row.candidate_name}' not found` });
+          summary.errors.push({ row: i + 1, message: `Candidate '${row.candidate_name || row.candidate || ''}' not found` });
           continue;
         }
 
@@ -682,14 +746,20 @@ exports.importWinningParties = async (req, res, next) => {
           candidate_id: candidate._id,
           party_id: party ? party._id : null,
           election_year: electionYear ? electionYear._id : null,
-          votes: parseInt(row.votes) || 0,
-          margin: parseInt(row.margin) || 0,
-          state_id: geo.state ? geo.state._id : null,
-          division_id: geo.division ? geo.division._id : null,
-          parliament_id: geo.parliament ? geo.parliament._id : null,
-          assembly_id: geo.assembly ? geo.assembly._id : null,
-          block_id: geo.block ? geo.block._id : null,
-          booth_id: geo.booth ? geo.booth._id : null,
+          votes: parseNum(row.votes) || 0,
+          margin: parseNum(row.margin) || 0,
+          electors: parseNum(row.electors) || null,
+          male_electors: parseNum(row.male_electors) || null,
+          female_electors: parseNum(row.female_electors) || null,
+          nota_votes: parseNum(row.nota_votes) || null,
+          description: row.description || row.remark || '',
+          state_id: (state && state._id) || (geo.state ? geo.state._id : null),
+          division_id: (division && division._id) || (geo.division ? geo.division._id : null),
+          parliament_id: (parliament && parliament._id) || (geo.parliament ? geo.parliament._id : null),
+          assembly_id: (assembly && assembly._id) || (geo.assembly ? geo.assembly._id : null),
+          block_id: (block && block._id) || (geo.block ? geo.block._id : null),
+          booth_id: (booth && booth._id) || (geo.booth ? geo.booth._id : null),
+          booth_number: parseNum(row.booth_number) || row.booth_number || (booth && booth.booth_number) || null,
           created_by: req.user.id,
           updated_by: req.user.id
         };

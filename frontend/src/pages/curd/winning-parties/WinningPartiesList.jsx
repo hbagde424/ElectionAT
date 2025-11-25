@@ -191,6 +191,10 @@ const WinningPartyListPage = () => {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    // Excel import states
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
 
     const fetchWinningParties = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
@@ -676,12 +680,14 @@ const WinningPartyListPage = () => {
         setCsvData(allData.map(item => ({
             'Candidate': item.candidate_id?.name || '',
             'Party': item.party_id?.name || '',
-            'State': item.state_id?.name || '',
-            'Division': item.division_id?.name || '',
-            'Parliament': item.parliament_id?.name || '',
-            'Assembly': item.assembly_id?.name || '',
-            'Block': item.block_id?.name || '',
-            'Booth': item.booth_id?.name || '',
+            // numeric geography identifiers
+            'State No': item.state_id?.state_no || item.state_no || '',
+            'Division Code': item.division_id?.division_code || item.division_code || '',
+            'Parliament No': item.parliament_id?.parliament_no || item.parliament_no || '',
+            'Assembly AC_NO': item.assembly_id?.AC_NO || item.assembly_id?.ac_no || item.AC_NO || item.ac_no || '',
+            'Block No': item.block_id?.block_number || item.block_number || '',
+            'Booth No': item.booth_id?.booth_number || item.booth_number || '',
+            'Booth Name': item.booth_id?.name || '',
             'Booth Number': item.booth_number || '',
             'Election Year': item.election_year?.year || '',
             'Votes': item.votes || 0,
@@ -690,6 +696,7 @@ const WinningPartyListPage = () => {
             'Male Electors': item.male_electors || 'N/A',
             'Female Electors': item.female_electors || 'N/A',
             'NOTA Votes': item.nota_votes || 'N/A',
+            'Description': item.description || '',
             'Created At': item.created_at,
             'Updated At': item.updated_at
         })));
@@ -699,6 +706,87 @@ const WinningPartyListPage = () => {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    // Excel Template Download
+    const handleDownloadExcelTemplate = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    candidate_name: 'Ramesh Kumar',
+                    party_name: 'Example Party',
+                    votes: 12500,
+                    margin: 2500,
+                    electors: 20000,
+                    male_electors: 10000,
+                    female_electors: 10000,
+                    nota_votes: 10,
+                    description: 'Sample import record',
+                    election_year: 2024,
+                    // Numeric identifiers
+                    state_no: 6,
+                    division_code: '12',
+                    parliament_no: 3,
+                    AC_NO: 45,
+                    block_number: 7,
+                    booth_number: 102
+                }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'winning-parties-template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
+        }
+    };
+
+    // Excel Import Handler
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+
+        try {
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map(row => {
+                const normalized = {};
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = key.toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-parties/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
+                body: JSON.stringify({ rows: normalizedData })
+            });
+
+            const result = await response.json();
+            setImportResult(result);
+            if (result.success) {
+                fetchWinningParties(pagination.pageIndex, pagination.pageSize, globalFilter);
+            }
+        } catch (err) {
+            setImportResult({ success: false, message: err.message || 'Import failed' });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
+        }
     };
 
     if (loading) return <EmptyReactTable />;
@@ -762,6 +850,19 @@ const WinningPartyListPage = () => {
                         />
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                        </Button>
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
+                            Download Excel Template
+                        </Button>
+                        <Button variant="outlined" component="label" disabled={importing}>
+                            {importing ? 'Importing...' : 'Import Excel'}
+                            <input
+                                ref={importInputRef}
+                                type="file"
+                                hidden
+                                accept=".xlsx,.xls"
+                                onChange={handleImportFile}
+                            />
                         </Button>
                         <Button variant="contained" startIcon={<Add />} onClick={() => { setEditData(null); setOpenModal(true); }}>
                             Add Record
