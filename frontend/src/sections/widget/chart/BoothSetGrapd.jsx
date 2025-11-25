@@ -206,17 +206,26 @@ export default function TotalSeatsByParty() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const result = await response.json();
-      setData(result.data || []);
-
-      const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/total-booths${yearParam}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (boothsResponse.ok) {
-        const boothsData = await boothsResponse.json();
-        setTotalBooths(boothsData.totalBooths || 0);
+      
+      if (result.success && result.data) {
+        setData(result.data || []);
+        
+        // Fetch total booths for the year
+        try {
+          const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/total-booths${yearParam}`);
+          if (boothsResponse.ok) {
+            const boothsData = await boothsResponse.json();
+            setTotalBooths(boothsData.totalBooths || 0);
+          }
+        } catch (boothErr) {
+          console.warn('Could not fetch booth count:', boothErr);
+        }
+      } else {
+        setData([]);
       }
     } catch (err) {
       setError(err.message);
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -276,7 +285,7 @@ export default function TotalSeatsByParty() {
         <Grid item xs={12}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="h5">
-              Total Booth in Gandhwani ({selectedYear})
+              Total Assembly Seats by Party ({selectedYear})
             </Typography>
             <Stack direction="row" spacing={2}>
               <Button
@@ -321,10 +330,10 @@ export default function TotalSeatsByParty() {
             <Grid item xs={6}>
               <MainCard content={false}>
                 <Stack alignItems="center" sx={{ p: 2 }} spacing={0.5}>
-                  <Typography variant="h6">Total Booths</Typography>
+                  <Typography variant="h6">Total Seats</Typography>
                   <Typography variant="h4">{totalSeats}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Total Votes: {totalVotes.toLocaleString()}
+                    Winning Parties: {Object.keys(partyStats).length}
                   </Typography>
                 </Stack>
               </MainCard>

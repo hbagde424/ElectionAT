@@ -8,7 +8,8 @@ const {
   getBoothsByAssembly,
   getBoothsByBlock,
   getBoothsByYear,
-  importBooths
+  importBooths,
+  getTotalBooths
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');

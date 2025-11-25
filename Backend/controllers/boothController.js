@@ -798,3 +798,30 @@ exports.importBooths = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get total booths count
+// @route   GET /api/total-booths
+// @access  Public
+exports.getTotalBooths = async (req, res, next) => {
+  try {
+    const year = req.query.year;
+    let query = {};
+    
+    if (year) {
+      // Find election year by year number
+      const electionYear = await ElectionYear.findOne({ year: parseInt(year) });
+      if (electionYear) {
+        query.election_year = electionYear._id;
+      }
+    }
+    
+    const totalBooths = await Booth.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      totalBooths
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -18,52 +18,77 @@ const ElectionYear = require('../models/electionYear');
 // @access  Private (Requires authentication via serviceToken)
 exports.getWinningPartysForGraph = async (req, res, next) => {
   try {
-    let query = WinningParty.find()
-      .populate('party_id', 'name')
-      .populate('election_year', 'year');
+    // Build base query and ensure election_year is populated
+    let query = WinningParty.find().populate('party_id', 'name').populate('election_year', 'year');
 
-    // Filter by year (optional query param)
-    if (req.query.year) {
-      const year = parseInt(req.query.year, 10);
+    const yearParam = req.query.year;
+    let fallbackYearFilter = null;
+
+    if (yearParam) {
+      const year = parseInt(yearParam, 10);
       if (isNaN(year)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Year must be a valid number'
-        });
+        return res.status(400).json({ success: false, message: 'Year must be a valid number' });
       }
 
+      // Try to find ElectionYear document first
       const yearDoc = await ElectionYear.findOne({ year: year });
-      if (!yearDoc) {
-        return res.status(404).json({
-          success: false,
-          message: `No election data found for year ${year}`
-        });
+      if (yearDoc) {
+        query = query.where('election_year').equals(yearDoc._id);
+      } else {
+        // If ElectionYear doc not found, we'll fetch records and filter by populated election_year.year
+        // as some records may store/populate the year differently (or election_year may be numeric)
+        fallbackYearFilter = year;
       }
-
-      query = query.where('election_year').equals(yearDoc._id);
     }
 
     const winningParties = await query.exec();
-    const total = await WinningParty.countDocuments(query.getFilter());
+    // Debug log: incoming year param and fetched count
+    console.debug('[winningPartysForGraph] requestedYear=', req.query.year, 'fetchedRecords=', winningParties.length);
 
-    // const graphData = winningParties.reduce((acc, record) => {
-    //   const year = record.election_year?.year || 'Unknown Year';
-    //   const party = record.party_id?.name || 'Unknown Party';
+    // If fallbackYearFilter is set, filter results in-memory by election_year.year or numeric election_year
+    let filtered = winningParties;
+    if (fallbackYearFilter !== null) {
+      filtered = winningParties.filter(r => {
+        try {
+          // If election_year is populated object with .year
+          if (r.election_year && typeof r.election_year === 'object' && r.election_year.year) {
+            return Number(r.election_year.year) === Number(fallbackYearFilter);
+          }
+          // If election_year stored as plain number/string
+          if (r.election_year && (typeof r.election_year === 'number' || typeof r.election_year === 'string')) {
+            return Number(r.election_year) === Number(fallbackYearFilter);
+          }
+        } catch (e) {
+          return false;
+        }
+        return false;
+      });
+    }
 
-    //   if (!acc[year]) acc[year] = {};
-    //   if (!acc[year][party]) acc[year][party] = 0;
+    const total = filtered.length;
+    res.status(200).json({ success: true, count: filtered.length, total, data: filtered });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    //   acc[year][party] += 1;
-
-    //   return acc;
-    // }, {});
-
-    res.status(200).json({
-      success: true,
-      count: winningParties.length,
-      total,
-      data: winningParties
+// Debug endpoint - return counts of winning party records grouped by populated election_year.year
+exports.getWinningPartysYearCounts = async (req, res, next) => {
+  try {
+    // Populate election_year.year
+    const all = await WinningParty.find().populate('election_year', 'year');
+    const counts = {};
+    all.forEach(r => {
+      let y = 'unknown';
+      if (r.election_year && typeof r.election_year === 'object' && r.election_year.year) {
+        y = String(r.election_year.year);
+      } else if (r.election_year && (typeof r.election_year === 'number' || typeof r.election_year === 'string')) {
+        y = String(r.election_year);
+      }
+      counts[y] = (counts[y] || 0) + 1;
     });
+    console.debug('[getWinningPartysYearCounts] counts=', counts);
+    res.status(200).json({ success: true, counts });
   } catch (err) {
     next(err);
   }

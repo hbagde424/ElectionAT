@@ -9,6 +9,7 @@ const {
   getWinningPartiesByYear,
   getWinningPartiesByBooth,
   getWinningPartysForGraph,
+  getWinningPartysYearCounts,
   importWinningParties
 } = require('../controllers/winningPartyController');
 const { protect, authorize } = require('../middlewares/auth');
@@ -24,10 +25,9 @@ const router = express.Router();
  */
 
 // Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getWinningParties);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getWinningParty);
+// Note: specific/static routes (like '/graph') are registered below.
+// The parameterized '/:id' route is intentionally registered after
+// all specific routes to avoid shadowing them (e.g. '/graph').
 
 /**
  * @swagger
@@ -162,6 +162,9 @@ router.get('/', getUserPermissionsAndHierarchy, getWinningParties);
  *                       BJP: 30
  *                       INC: 30
  */
+
+// Debug route to inspect which years are present in the DB
+router.get('/debug/years', getWinningPartysYearCounts);
 
 router.get('/graph', getWinningPartysForGraph);
 

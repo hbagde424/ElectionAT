@@ -221,6 +221,10 @@ apiRouter.use('/villages', villageRoutes);
 apiRouter.use('/falliyas', falliyaRoutes);
 apiRouter.use('/csv-export', csvExportRoutes);
 
+// Public routes - no authentication required
+const { getTotalBooths } = require('./controllers/boothController');
+apiRouter.get('/total-booths', getTotalBooths);
+
 // Mount the API router on both /api and /backend/api paths
 app.use('/api', apiRouter);
 app.use('/backend/api', apiRouter);
