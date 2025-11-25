@@ -344,18 +344,18 @@ const VisitListPage = () => {
 
                 const csvData = json.data.map(item => ({
                     'Candidate': stripHtml(item.candidate_id?.name || ''),
-                    // 'Candidate ID': item.candidate_id?._id || '',
                     'Post': stripHtml(item.post || ''),
                     'Election Year': item.election_year_id?.year || '',
                     'Election Type': item.election_year_id?.election_type || '',
                     'Date': item.date ? formatDate(item.date) : '',
                     'Status': item.work_status || '',
-                    'State': item.state_id?.name || '',
-                    'Division': item.division_id?.name || '',
-                    'Assembly': item.assembly_id?.name || '',
-                    'Parliament': item.parliament_id?.name || '',
-                    'Block': item.block_id?.name || '',
-                    'Booth': item.booth_id?.name || '',
+                    // Numeric geography fields only (per request)
+                    'State No': item.state_id?.state_no ?? '',
+                    'Division Code': item.division_id?.division_code ?? '',
+                    'Parliament No': item.parliament_id?.parliament_no ?? '',
+                    'Assembly AC_NO': item.assembly_id?.AC_NO ?? item.assembly_id?.assembly_number ?? '',
+                    'Block No': item.block_id?.block_no ?? '',
+                    'Booth No': item.booth_id?.booth_number ?? '',
                     'Location': stripHtml(item.locationName || ''),
                     'Longitude': item.longitude ?? '',
                     'Latitude': item.latitude ?? '',
@@ -401,18 +401,51 @@ const VisitListPage = () => {
             const XLSX = await import('xlsx');
             const templateData = [
                 {
-                    visit_date: '2024-01-15',
+                    // Date and basic
+                    date: '2024-01-15',
                     visit_type: 'Survey',
+                    post: 'MLA Visit',
+
+                    // Candidate (by name only)
                     candidate_name: 'Candidate Name',
-                    state_name: 'State Name',
-                    division_name: 'Division Name',
-                    parliament_name: 'Parliament Name',
-                    assembly_name: 'Assembly Name',
-                    block_name: 'Block Name',
-                    booth_name: 'Booth Name',
+
+                    // Geographic numeric identifiers (preferred)
+                    state_no: '',
+                    division_code: '',
+                    parliament_no: '',
+                    AC_NO: '', // assembly/constituency number
+                    block_number: '',
+                    booth_number: '',
+
+                    // NOTE: names removed on request — use numeric identifiers only
+
+                    // Election year
+                    election_year: '2024',
+                    election_year_id: '',
+
+                    // Counts, status, text fields
                     people_met: '50',
                     feedback: 'Positive feedback',
-                    status: 'Completed'
+                    work_status: 'announced',
+                    workName: 'Road Repair',
+                    visitAgenda: 'Discuss road repair and fund release',
+                    speechFiveLines: 'Short speech lines...',
+                    speechIssue: 'Local infrastructure',
+
+                    // Dates
+                    announcementDate: '2024-01-10',
+                    completionDate: '2024-06-30',
+                    budgetAnnouncedDate: '2024-02-01',
+
+                    // Location & coords
+                    locationName: 'Near Market',
+                    latitude: '22.7167',
+                    longitude: '75.8577',
+
+                    // Meta
+                    description: 'Notes and description',
+                    remark: 'Follow up required',
+                    documents: '', // JSON array string or leave blank
                 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);

@@ -1406,50 +1406,145 @@ exports.importVisits = async (req, res, next) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        // Resolve geographic hierarchy
-        const geo = await resolveGeographicHierarchy(row);
+        // Resolve geographic hierarchy using helper (supports numeric codes and names)
+        let geo = await resolveGeographicHierarchy(row);
 
-        if (!row.visit_date) {
+        // If helper didn't find some levels, attempt numeric fallbacks explicitly
+        if ((!geo.state || !geo.state._id) && (row.state_no || row.state_no === 0)) {
+          geo.state = await State.findOne({ state_no: Number(row.state_no) });
+        }
+        if ((!geo.division || !geo.division._id) && (row.division_code || row.division_code === 0)) {
+          geo.division = await Division.findOne({ division_code: String(row.division_code) });
+        }
+        if ((!geo.parliament || !geo.parliament._id) && (row.parliament_no || row.parliament_no === 0)) {
+          geo.parliament = await Parliament.findOne({ parliament_no: Number(row.parliament_no) });
+        }
+        if ((!geo.assembly || !geo.assembly._id) && (row.AC_NO || row.AC_NO === 0 || row.ac_no)) {
+          const ac = row.AC_NO ?? row.ac_no ?? row.constituency_no ?? row.constituencyNumber;
+          if (ac !== undefined && ac !== null && String(ac).trim() !== '') {
+            const acStr = String(ac).trim();
+            geo.assembly = await Assembly.findOne({ AC_NO: acStr }) || await Assembly.findOne({ AC_NO: String(Number(acStr)) });
+          }
+        }
+        if ((!geo.block || !geo.block._id) && (row.block_number || row.block_no || row.blockNumber)) {
+          const bnum = row.block_number ?? row.block_no ?? row.blockNumber;
+          if (bnum !== undefined && bnum !== null && String(bnum).trim() !== '') {
+            geo.block = await Block.findOne({ block_no: Number(String(bnum).trim()) }) || await Block.findOne({ name: new RegExp(`^${String(bnum).trim()}$`, 'i') });
+          }
+        }
+        if ((!geo.booth || !geo.booth._id) && (row.booth_number || row.booth_no)) {
+          const bth = row.booth_number ?? row.booth_no ?? row.boothNumber;
+          if (bth !== undefined && bth !== null && String(bth).trim() !== '') {
+            geo.booth = await Booth.findOne({ booth_number: String(bth).trim() }) || await Booth.findOne({ name: new RegExp(`^${String(bth).trim()}$`, 'i') });
+          }
+        }
+
+        // Date: accept either 'date' or 'visit_date'
+        const dateRaw = row.date || row.visit_date || row.VisitDate || row.Date;
+        if (!dateRaw) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Missing visit date' });
+          summary.errors.push({ row: i + 1, message: 'Missing visit date (column "date" or "visit_date")' });
+          continue;
+        }
+        const dateObj = new Date(dateRaw);
+        if (isNaN(dateObj.getTime())) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Invalid visit date' });
           continue;
         }
 
-        // Find candidate if provided
+        // Candidate: accept name or id
         let candidate = null;
-        if (row.candidate_name) {
-          const Candidate = require('../models/Candidate');
-          candidate = await Candidate.findOne({ name: new RegExp(`^${row.candidate_name}$`, 'i') });
+        if (row.candidate_id && String(row.candidate_id).match(/^[0-9a-fA-F]{24}$/)) {
+          candidate = await Candidate.findById(row.candidate_id);
+        } else if (row.candidate_name || row.candidate) {
+          const cname = row.candidate_name || row.candidate;
+          candidate = await Candidate.findOne({ name: new RegExp(`^${String(cname).trim()}$`, 'i') });
         }
 
-        // Find booth if provided
-        let booth = null;
-        if (row.booth_name || row.booth_number) {
-          const Booth = require('../models/booth');
-          booth = await Booth.findOne({
-            $or: [
-              { name: new RegExp(`^${row.booth_name}$`, 'i') },
-              { booth_number: row.booth_number }
-            ]
-          });
+        // Booth override: prefer explicit booth_number if provided
+        let booth = geo.booth || null;
+        if ((row.booth_number || row.booth_no || row.booth) && !booth) {
+          const bthVal = row.booth_number ?? row.booth_no ?? row.booth;
+          booth = await Booth.findOne({ booth_number: String(bthVal).trim() }) || await Booth.findOne({ name: new RegExp(`^${String(bthVal).trim()}$`, 'i') });
         }
 
+        // Election year resolution (accept numeric year or election_year_id)
+        let electionYearId = null;
+        if (row.election_year_id && String(row.election_year_id).match(/^[0-9a-fA-F]{24}$/)) {
+          electionYearId = row.election_year_id;
+        } else if (row.election_year || row.year) {
+          const y = row.election_year ?? row.year;
+          if (/^\d{4}$/.test(String(y))) {
+            const ey = await ElectionYear.findOne({ year: Number(y) });
+            if (ey) electionYearId = ey._id;
+            else {
+              // create minimal election year if needed
+              try {
+                const createdBy = req.user ? req.user.id : null;
+                const newEy = await ElectionYear.create({ year: Number(y), election_type: 'Assembly', created_by: createdBy });
+                electionYearId = newEy._id;
+              } catch (e) {
+                // ignore creation errors
+              }
+            }
+          }
+        }
+
+        // Normalize work_status
+        const rawStatus = (row.work_status || row.status || row.status_work || '').toString().toLowerCase().trim();
+        let status = 'announced';
+        if (rawStatus) {
+          if (rawStatus.startsWith('ann') || rawStatus === 'announced') status = 'announced';
+          else if (rawStatus.startsWith('app') || rawStatus === 'approved') status = 'approved';
+          else if (rawStatus.includes('in') && rawStatus.includes('progress')) status = 'in progress';
+          else if (rawStatus.startsWith('comp') || rawStatus === 'complete') status = 'complete';
+          else status = rawStatus;
+        }
+
+        // Parse optional numeric fields
+        const peopleMet = row.people_met !== undefined ? parseInt(row.people_met) || 0 : (row.peopleMet !== undefined ? parseInt(row.peopleMet) || 0 : 0);
+
+        // Parse coordinates
+        const longitude = row.longitude !== undefined ? Number(row.longitude) : (row.lng !== undefined ? Number(row.lng) : undefined);
+        const latitude = row.latitude !== undefined ? Number(row.latitude) : (row.lat !== undefined ? Number(row.lat) : undefined);
+
+        // Additional text fields
         const visitData = {
-          visit_date: new Date(row.visit_date),
-          visit_type: row.visit_type || 'Other',
-          candidate_id: candidate ? candidate._id : null,
-          booth_id: booth ? booth._id : null,
-          state_id: geo.state ? geo.state._id : null,
-          division_id: geo.division ? geo.division._id : null,
-          parliament_id: geo.parliament ? geo.parliament._id : null,
-          assembly_id: geo.assembly ? geo.assembly._id : null,
-          block_id: geo.block ? geo.block._id : null,
-          people_met: parseInt(row.people_met) || 0,
-          feedback: row.feedback || '',
-          status: row.status || 'Planned',
-          created_by: req.user.id,
-          updated_by: req.user.id
+          date: dateObj,
+          post: row.post || row.Post || undefined,
+          visit_type: row.visit_type || row.visitType || row.type || 'Other',
+          candidate_id: candidate ? candidate._id : undefined,
+          booth_id: booth ? booth._id : (geo.booth ? geo.booth._id : undefined),
+          state_id: geo.state ? geo.state._id : undefined,
+          division_id: geo.division ? geo.division._id : undefined,
+          parliament_id: geo.parliament ? geo.parliament._id : undefined,
+          assembly_id: geo.assembly ? geo.assembly._id : undefined,
+          block_id: geo.block ? geo.block._id : undefined,
+          people_met: peopleMet,
+          feedback: row.feedback || row.remarks || '',
+          work_status: status,
+          workName: row.workName || row.work_name || row.work || undefined,
+          visitAgenda: row.visitAgenda || row.visit_agenda || row.agenda || undefined,
+          speechFiveLines: row.speechFiveLines || row.speech_five_lines || undefined,
+          speechIssue: row.speechIssue || row.speech_issue || undefined,
+          announcementDate: row.announcementDate ? new Date(row.announcementDate) : (row.announcement_date ? new Date(row.announcement_date) : undefined),
+          completionDate: row.completionDate ? new Date(row.completionDate) : (row.completion_date ? new Date(row.completion_date) : undefined),
+          budgetAnnouncedDate: row.budgetAnnouncedDate ? new Date(row.budgetAnnouncedDate) : (row.budget_announced_date ? new Date(row.budget_announced_date) : undefined),
+          documents: undefined,
+          remark: row.remark || row.remarks || undefined,
+          longitude: typeof longitude === 'number' && !isNaN(longitude) ? longitude : undefined,
+          latitude: typeof latitude === 'number' && !isNaN(latitude) ? latitude : undefined,
+          locationName: row.locationName || row.location_name || row.location || undefined,
+          description: row.description || '',
+          year: row.year ? (Number(row.year) || undefined) : undefined,
+          election_year_id: electionYearId,
+          created_by: req.user ? req.user.id : undefined,
+          updated_by: req.user ? req.user.id : undefined
         };
+
+        // Only include documents if provided as array of {name,filePath}
+        if (Array.isArray(row.documents) && row.documents.length) visitData.documents = row.documents;
 
         await Visit.create(visitData);
         summary.created += 1;
