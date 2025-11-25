@@ -4,7 +4,7 @@ const Assembly = require('../models/Assembly');
 const ElectionYear = require('../models/electionYear');
 const Candidate = require('../models/Candidate');
 const User = require('../models/User');
-
+const { resolveGeographicHierarchy } = require('./importHelpers');
 // @desc    Get all potential candidates
 // @route   GET /api/potential-candidates
 // @access  Private (Requires authentication via serviceToken)
@@ -354,6 +354,185 @@ exports.getPotentialCandidatesByParty = async (req, res, next) => {
       count: candidates.length,
       data: candidates
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Import potential candidates from Excel/CSV
+// @route   POST /api/potential-candidates/import
+// @access  Private (Admin/SuperAdmin)
+exports.importPotentialCandidates = async (req, res, next) => {
+  try {
+    const rows = req.body.rows || req.body.data;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided. Expected array of rows.' });
+    }
+
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        // Resolve geographic hierarchy (we need assembly/constituency)
+        const geo = await resolveGeographicHierarchy(row);
+        // If resolveGeographicHierarchy didn't find assembly, try common alternative keys (assembly number / constituency number / constituency_name)
+        if (!geo.assembly || !geo.assembly._id) {
+          // Try numeric assembly identifiers commonly used in templates
+          const acCandidates = [row.AC_NO, row.ac_no, row.acno, row.assembly_no, row.assemblyNumber, row.assembly_number, row.constituency_no, row.constituency_number];
+          let foundAssembly = null;
+          for (const ac of acCandidates) {
+            if (ac === undefined || ac === null || String(ac).trim() === '') continue;
+            const acStr = String(ac).trim();
+            // try numeric match first
+            if (!isNaN(Number(acStr))) {
+              // prefer scoped lookup if state/parliament resolved
+              if (geo.parliament && geo.parliament._id) {
+                foundAssembly = await Assembly.findOne({ AC_NO: acStr, parliament_id: geo.parliament._id });
+              }
+              if (!foundAssembly && geo.state && geo.state._id) {
+                foundAssembly = await Assembly.findOne({ AC_NO: acStr, state_id: geo.state._id });
+              }
+              if (!foundAssembly) {
+                foundAssembly = await Assembly.findOne({ AC_NO: acStr });
+              }
+            }
+            if (foundAssembly) break;
+          }
+
+          // Try constituency_name / constituency if provided (name match)
+          if (!foundAssembly) {
+            const cname = row.constituency_name || row.constituency || row.constituencyName || row.constituency_name;
+            if (cname) {
+              foundAssembly = await Assembly.findOne({ name: { $regex: `^${String(cname).trim()}$`, $options: 'i' } });
+            }
+          }
+
+          if (foundAssembly) {
+            geo.assembly = foundAssembly;
+          }
+
+          if (!geo.assembly || !geo.assembly._id) {
+            results.errors.push({ row: i + 1, data: row, error: 'Constituency/Assembly not found (try providing AC_NO or constituency_no)' });
+            continue;
+          }
+        }
+
+        // Resolve party
+        let party = null;
+        if (row.party_id) party = await Party.findById(row.party_id);
+        if (!party && row.party) party = await Party.findOne({ name: { $regex: `^${String(row.party).trim()}$`, $options: 'i' } });
+        if (!party && row.party_name) party = await Party.findOne({ name: { $regex: `^${String(row.party_name).trim()}$`, $options: 'i' } });
+        if (!party) {
+          results.errors.push({ row: i + 1, data: row, error: 'Party not found' });
+          continue;
+        }
+
+        // Resolve election year
+        let electionYear = null;
+        if (row.election_year_id) electionYear = await ElectionYear.findById(row.election_year_id);
+        if (!electionYear && row.election_year) {
+          electionYear = await ElectionYear.findOne({ year: Number(row.election_year) });
+        }
+        if (!electionYear) {
+          results.errors.push({ row: i + 1, data: row, error: 'Election year not found' });
+          continue;
+        }
+
+        // Supporter candidates validation (optional)
+        let supporterCandidates = [];
+        if (row.supporter_candidates) {
+          const ids = Array.isArray(row.supporter_candidates) ? row.supporter_candidates : String(row.supporter_candidates).split(',').map(s => s.trim()).filter(Boolean);
+          if (ids.length) {
+            const found = await Candidate.find({ _id: { $in: ids } });
+            if (found.length !== ids.length) {
+              results.errors.push({ row: i + 1, data: row, error: 'One or more supporter candidate IDs not found' });
+              continue;
+            }
+            supporterCandidates = ids;
+          }
+        }
+
+        // Build and normalize potential candidate payload
+        const getVal = (keys) => {
+          for (const k of keys) {
+            if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k];
+          }
+          return undefined;
+        };
+
+        const postName = getVal(['postname','postName','post','post_name']);
+        const postPlace = getVal(['place','post_place','postPlace']);
+        const fromDateRaw = getVal(['from_date','fromDate','post_from','postFrom']);
+        const toDateRaw = getVal(['to_date','toDate','post_to','postTo']);
+        const parseDate = (d) => {
+          if (d === undefined || d === null || String(d).trim() === '') return undefined;
+          const dt = new Date(d);
+          if (isNaN(dt.getTime())) return undefined;
+          return dt;
+        };
+
+        const postDetails = row.post_details || row.postDetails || (postName ? {
+          postname: postName,
+          place: postPlace || '',
+          from_date: parseDate(fromDateRaw),
+          to_date: parseDate(toDateRaw)
+        } : undefined);
+
+        // Ensure required post_details fields are present
+        if (!postDetails || !postDetails.place || !postDetails.from_date || !postDetails.to_date) {
+          results.errors.push({ row: i + 1, data: row, error: 'post_details missing required fields: place/from_date/to_date' });
+          continue;
+        }
+
+        // Normalize status to allowed enum values: active, inactive, under_review
+        const rawStatus = getVal(['status']);
+        let statusNorm = 'under_review';
+        if (rawStatus) {
+          const s = String(rawStatus).toLowerCase().trim();
+          if (s.startsWith('act')) statusNorm = 'active';
+          else if (s.startsWith('inac') || s === 'inactive') statusNorm = 'inactive';
+          else if (s.includes('under') || s.includes('review')) statusNorm = 'under_review';
+        }
+
+        // Validate image URL (if present), otherwise omit
+        let imageVal = getVal(['image','Image']);
+        if (imageVal) {
+          try {
+            const u = new URL(String(imageVal).trim());
+            imageVal = u.href;
+          } catch (e) {
+            imageVal = undefined;
+          }
+        } else {
+          imageVal = undefined;
+        }
+
+        const payload = {
+          name: getVal(['name','Name']),
+          party_id: party._id,
+          constituency_id: geo.assembly._id,
+          election_year_id: electionYear._id,
+          history: getVal(['history','History']) || '',
+          post_details: postDetails,
+          pros: getVal(['pros']) || '',
+          cons: getVal(['cons']) || '',
+          supporter_candidates: supporterCandidates,
+          ...(imageVal ? { image: imageVal } : {}),
+          status: statusNorm,
+          description: getVal(['description']) || '' ,
+          created_by: req.user ? (req.user.id || req.user._id) : undefined,
+          updated_by: req.user ? (req.user.id || req.user._id) : undefined
+        };
+
+        const created = await PotentialCandidate.create(payload);
+        results.imported++;
+      } catch (err) {
+        results.errors.push({ row: i + 1, data: row, error: err.message || 'Failed to import' });
+      }
+    }
+
+    res.status(200).json({ success: true, imported: results.imported, total: results.total, errors: results.errors });
   } catch (err) {
     next(err);
   }

@@ -7,6 +7,7 @@ const {
   deletePotentialCandidate,
   getPotentialCandidatesByConstituency,
   getPotentialCandidatesByParty
+  , importPotentialCandidates
 } = require('../controllers/potentialCandidateController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -263,6 +264,9 @@ router.get('/constituency/:constituencyId', getUserPermissionsAndHierarchy, getP
  *         description: Party not found
  */
 router.get('/party/:partyId', getPotentialCandidatesByParty);
+
+// Import endpoint
+router.post('/import', protect, authorize('admin', 'superAdmin'), importPotentialCandidates);
 
 /**
  * @swagger
