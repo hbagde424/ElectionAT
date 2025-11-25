@@ -1269,8 +1269,19 @@ export default function WorkStatusListPage() {
     };
 
     const handleDownloadExcelTemplate = async () => {
-        const headers = ['work_name', 'department', 'status', 'work_type', 'approved_fund_from', 'total_budget', 'spent_amount', 'description', 'start_date', 'expected_end_date', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
-        const exampleRow = ['Road Construction', 'PWD', 'in progress', 'infrastructure', 'vidhayak nidhi', '5000000', '2000000', 'Sample work description', '2024-01-01', '2024-12-31', 'Maharashtra', '1', '5', '150', 'Block A', '1'];
+        // Prefer numeric/geocode fields (state_no, division_code, parliament_no, assembly_no, block_no, booth_number)
+        const headers = [
+            'work_name', 'department', 'status', 'work_type', 'approved_fund_from', 'total_budget', 'spent_amount', 'description',
+            'start_date', 'expected_end_date', 'actual_end_date', 'announced_date', 'announced_by', 'year',
+            'state_no', 'division_code', 'parliament_no', 'assembly_no', 'block_no', 'block_number', 'booth_number',
+            'panchayat_name', 'village_name', 'falliya_name', 'falia', 'district'
+        ];
+        const exampleRow = [
+            'Road Construction', 'PWD', 'in progress', 'infrastructure', 'vidhayak nidhi', '5000000', '2000000', 'Sample work description',
+            '2024-01-01', '2024-12-31', '', '2024-01-15', 'Engineer', '2024',
+            '27', 'DIV01', '5', '150', '10', '10', '123',
+            'Sample Panchayat', 'Sample Village', 'Sample Faliya', 'Sample Falia', 'Sample District'
+        ];
         
         try {
             const XLSX = await import('xlsx');
@@ -1311,10 +1322,11 @@ export default function WorkStatusListPage() {
             const wsName = wb.SheetNames[0];
             const ws = wb.Sheets[wsName];
             const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-            
+
             const rows = json.map((r) => {
                 const obj = {};
                 for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
+                // Map a wide set of possible column names to the shape expected by the backend helper
                 return {
                     work_name: obj.work_name ?? '',
                     department: obj.department ?? '',
@@ -1326,12 +1338,26 @@ export default function WorkStatusListPage() {
                     description: obj.description ?? '',
                     start_date: obj.start_date ?? '',
                     expected_end_date: obj.expected_end_date ?? '',
-                    state: obj.state ?? '',
+                    actual_end_date: obj.actual_end_date ?? '',
+                    announced_date: obj.announced_date ?? '',
+                    announced_by: obj.announced_by ?? '',
+                    year: obj.year ?? '',
+
+                    // Geographic numeric-first fields (helpers accept many variants)
+                    state_no: obj.state_no ?? obj.state ?? '',
                     division_code: obj.division_code ?? obj.division ?? '',
                     parliament_no: obj.parliament_no ?? obj.parliament ?? '',
-                    assembly_no: obj.assembly_no ?? obj.assembly ?? '',
+                    assembly_no: obj.assembly_no ?? obj.ac_no ?? obj.ac ?? obj.assembly ?? '',
+                    block_no: obj.block_no ?? obj.block_number ?? obj.block ?? '',
                     block: obj.block ?? '',
-                    booth_number: obj.booth_number ?? obj.booth ?? ''
+                    booth_number: obj.booth_number ?? obj.booth ?? '',
+
+                    // Local names/backfills
+                    panchayat_name: obj.panchayat_name ?? obj.panchayat ?? '',
+                    village_name: obj.village_name ?? obj.village ?? '',
+                    falliya_name: obj.falliya_name ?? obj.falliya ?? '',
+                    falia: obj.falia ?? '' ,
+                    district: obj.district ?? ''
                 };
             });
 
