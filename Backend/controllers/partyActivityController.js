@@ -68,61 +68,139 @@ exports.getPartyActivities = async (req, res, next) => {
     }
 
     // State
-    if (req.query.state || req.query.state_id) {
-      const stateId = await handleIdOrName('state', State) || await handleIdOrName('state_id', State);
+    if (req.query.state || req.query.state_id || req.query.state_no) {
+      // Support state by ID, name or numeric code (state_no)
+      let stateId = null;
+      if (req.query.state_no) {
+        const sn = Number(String(req.query.state_no).trim());
+        if (!isNaN(sn)) {
+          const st = await State.findOne({ state_no: sn });
+          if (st) stateId = st._id;
+        }
+      }
+      stateId = stateId || await handleIdOrName('state', State) || await handleIdOrName('state_id', State);
       if (stateId) {
         query = query.where('state_id').equals(stateId);
-      } else if (req.query.state || req.query.state_id) {
+      } else if (req.query.state || req.query.state_id || req.query.state_no) {
         return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
 
     // Division
-    if (req.query.division || req.query.division_id) {
-      const divisionId = await handleIdOrName('division', Division) || await handleIdOrName('division_id', Division);
+    if (req.query.division || req.query.division_id || req.query.division_code) {
+      let divisionId = null;
+      if (req.query.division_code) {
+        const dc = String(req.query.division_code).trim();
+        if (dc) {
+          const div = await Division.findOne({ division_code: { $regex: `^${dc}$`, $options: 'i' } });
+          if (div) divisionId = div._id;
+        }
+      }
+      divisionId = divisionId || await handleIdOrName('division', Division) || await handleIdOrName('division_id', Division);
       if (divisionId) {
         query = query.where('division_id').equals(divisionId);
-      } else if (req.query.division || req.query.division_id) {
+      } else if (req.query.division || req.query.division_id || req.query.division_code) {
         return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
 
     // Parliament
-    if (req.query.parliament || req.query.parliament_id) {
-      const parliamentId = await handleIdOrName('parliament', Parliament) || await handleIdOrName('parliament_id', Parliament);
+    if (req.query.parliament || req.query.parliament_id || req.query.parliament_no) {
+      let parliamentId = null;
+      if (req.query.parliament_no) {
+        const pn = Number(String(req.query.parliament_no).trim());
+        if (!isNaN(pn)) {
+          // prefer parliament within state if provided
+          if (req.query.state || req.query.state_id || req.query.state_no) {
+            let stateDoc = null;
+            if (req.query.state_no) stateDoc = await State.findOne({ state_no: Number(String(req.query.state_no).trim()) });
+            stateDoc = stateDoc || (await handleIdOrName('state', State)) || (await handleIdOrName('state_id', State));
+            if (stateDoc) parliamentId = (await Parliament.findOne({ parliament_no: pn, state_id: stateDoc }))?._id || null;
+          }
+          if (!parliamentId) {
+            const p = await Parliament.findOne({ parliament_no: pn });
+            if (p) parliamentId = p._id;
+          }
+        }
+      }
+      parliamentId = parliamentId || await handleIdOrName('parliament', Parliament) || await handleIdOrName('parliament_id', Parliament);
       if (parliamentId) {
         query = query.where('parliament_id').equals(parliamentId);
-      } else if (req.query.parliament || req.query.parliament_id) {
+      } else if (req.query.parliament || req.query.parliament_id || req.query.parliament_no) {
         return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
 
     // Assembly
-    if (req.query.assembly || req.query.assembly_id) {
-      const assemblyId = await handleIdOrName('assembly', Assembly) || await handleIdOrName('assembly_id', Assembly);
+    if (req.query.assembly || req.query.assembly_id || req.query.AC_NO || req.query.ac_no || req.query.acno) {
+      let assemblyId = null;
+      const ac = req.query.AC_NO || req.query.ac_no || req.query.acno;
+      if (ac) {
+        const av = String(ac).trim();
+        // prefer assembly within parliament/state when available
+        if (req.query.parliament || req.query.parliament_id || req.query.parliament_no) {
+          const parliamentId = await (async () => {
+            if (req.query.parliament_no) {
+              const pn = Number(String(req.query.parliament_no).trim());
+              if (!isNaN(pn)) {
+                const p = await Parliament.findOne({ parliament_no: pn });
+                return p ? p._id : null;
+              }
+            }
+            return (await handleIdOrName('parliament', Parliament)) || (await handleIdOrName('parliament_id', Parliament));
+          })();
+          if (parliamentId) assemblyId = (await Assembly.findOne({ AC_NO: av, parliament_id: parliamentId }))?._id || null;
+        }
+        if (!assemblyId && (req.query.state || req.query.state_id || req.query.state_no)) {
+          const stateDoc = req.query.state_no ? await State.findOne({ state_no: Number(String(req.query.state_no).trim()) }) : ((await handleIdOrName('state', State)) || (await handleIdOrName('state_id', State)));
+          if (stateDoc) assemblyId = (await Assembly.findOne({ AC_NO: av, state_id: stateDoc }))?._id || null;
+        }
+        if (!assemblyId) {
+          const a = await Assembly.findOne({ AC_NO: av });
+          if (a) assemblyId = a._id;
+        }
+      }
+      assemblyId = assemblyId || await handleIdOrName('assembly', Assembly) || await handleIdOrName('assembly_id', Assembly);
       if (assemblyId) {
         query = query.where('assembly_id').equals(assemblyId);
-      } else if (req.query.assembly || req.query.assembly_id) {
+      } else if (req.query.assembly || req.query.assembly_id || req.query.AC_NO || req.query.ac_no || req.query.acno) {
         return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
 
     // Block
-    if (req.query.block || req.query.block_id) {
-      const blockId = await handleIdOrName('block', Block) || await handleIdOrName('block_id', Block);
+    if (req.query.block || req.query.block_id || req.query.block_no || req.query.block_number) {
+      let blockId = null;
+      const bn = req.query.block_no ?? req.query.block_number;
+      if (bn) {
+        const bnum = Number(String(bn).trim());
+        if (!isNaN(bnum)) {
+          const bdoc = await Block.findOne({ block_no: bnum });
+          if (bdoc) blockId = bdoc._id;
+        }
+      }
+      blockId = blockId || await handleIdOrName('block', Block) || await handleIdOrName('block_id', Block);
       if (blockId) {
         query = query.where('block_id').equals(blockId);
-      } else if (req.query.block || req.query.block_id) {
+      } else if (req.query.block || req.query.block_id || req.query.block_no || req.query.block_number) {
         return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
 
     // Booth
-    if (req.query.booth || req.query.booth_id) {
-      const boothId = await handleIdOrName('booth', Booth) || await handleIdOrName('booth_id', Booth);
+    if (req.query.booth || req.query.booth_id || req.query.booth_number) {
+      let boothId = null;
+      if (req.query.booth_number) {
+        const bn = String(req.query.booth_number).trim();
+        if (bn) {
+          const bdoc = await Booth.findOne({ booth_number: bn });
+          if (bdoc) boothId = bdoc._id;
+        }
+      }
+      boothId = boothId || await handleIdOrName('booth', Booth) || await handleIdOrName('booth_id', Booth);
       if (boothId) {
         query = query.where('booth_id').equals(boothId);
-      } else if (req.query.booth || req.query.booth_id) {
+      } else if (req.query.booth || req.query.booth_id || req.query.booth_number) {
         return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
       }
     }
@@ -527,6 +605,129 @@ exports.getUpcomingPartyActivities = async (req, res, next) => {
       count: activities.length,
       data: activities
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Import party activities from Excel/CSV
+// @route   POST /api/party-activities/import
+// @access  Private (Admin only)
+exports.importPartyActivities = async (req, res, next) => {
+  try {
+    const rows = req.body.rows || req.body.data;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided. Expected array of rows.' });
+    }
+
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+    const results = { imported: 0, total: rows.length, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const geo = await resolveGeographicHierarchy(row);
+
+        // Require full geographic hierarchy up to booth for accurate mapping
+        const hierarchyErrors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        if (hierarchyErrors.length > 0) {
+          results.errors.push({ row: i + 1, data: row, error: hierarchyErrors.join(', ') });
+          continue;
+        }
+
+        // Resolve party (by id or name)
+        let partyId = null;
+        const Party = require('../models/party');
+        if (row.party_id) partyId = row.party_id;
+        else if (row.party) partyId = row.party;
+        else if (row.party_name) {
+          const p = await Party.findOne({ name: { $regex: `^${String(row.party_name).trim()}$`, $options: 'i' } });
+          if (p) partyId = p._id;
+        }
+        if (!partyId) {
+          results.errors.push({ row: i + 1, data: row, error: 'Party not found' });
+          continue;
+        }
+
+        // Required fields: title, activity_date and activity_type (allow case/spacing variants)
+        if (!row.title || !row.activity_date) {
+          results.errors.push({ row: i + 1, data: row, error: 'title and activity_date are required' });
+          continue;
+        }
+
+        // Normalize activity_type to allowed enum values
+        const atRaw = row.activity_type || row.activityType || row.activity || '';
+        let activityType = String(atRaw || '').trim().toLowerCase();
+        if (activityType) {
+          // common variants
+          if (activityType.includes('door') && activityType.includes('door')) activityType = 'door_to_door';
+          activityType = activityType.replace(/\s+/g, '_');
+          if (activityType === 'press_conference' || activityType === 'pressconference' || activityType === 'press-conference') activityType = 'press_conference';
+        }
+
+        const allowedActivityTypes = ['rally', 'sabha', 'meeting', 'campaign', 'door_to_door', 'press_conference'];
+        if (!activityType || !allowedActivityTypes.includes(activityType)) {
+          results.errors.push({ row: i + 1, data: row, error: `Invalid or missing activity_type: ${atRaw}` });
+          continue;
+        }
+
+        // Normalize status
+        const stRaw = row.status || row.Status || '';
+        let status = stRaw ? String(stRaw).trim().toLowerCase() : 'scheduled';
+        if (status === 'canceled') status = 'cancelled';
+        if (status === 'done') status = 'completed';
+        const allowedStatuses = ['scheduled', 'completed', 'cancelled', 'postponed'];
+        if (!allowedStatuses.includes(status)) {
+          results.errors.push({ row: i + 1, data: row, error: `Invalid status: ${stRaw}` });
+          continue;
+        }
+
+        // Parse activity_date and end_date
+        const activityDate = new Date(row.activity_date);
+        if (isNaN(activityDate.getTime())) {
+          results.errors.push({ row: i + 1, data: row, error: `Invalid activity_date: ${row.activity_date}` });
+          continue;
+        }
+        const endDate = row.end_date ? new Date(row.end_date) : null;
+        if (endDate && isNaN(endDate.getTime())) {
+          results.errors.push({ row: i + 1, data: row, error: `Invalid end_date: ${row.end_date}` });
+          continue;
+        }
+
+        // Build activity payload
+        const activityPayload = {
+          title: row.title,
+          activity_type: activityType,
+          description: row.description || row.Description || '',
+          activity_date: activityDate,
+          end_date: endDate,
+          location: row.location || '',
+          status,
+          attendance_count: row.attendance_count ? Number(row.attendance_count) : undefined,
+          media_coverage: (String(row.media_coverage || '').toLowerCase() === 'yes') || row.media_coverage === true,
+          media_links: row.media_links ? (Array.isArray(row.media_links) ? row.media_links : String(row.media_links).split(',').map(s => s.trim()).filter(Boolean)) : [],
+          party_id: partyId,
+          state_id: geo.state._id,
+          division_id: geo.division._id,
+          parliament_id: geo.parliament._id,
+          assembly_id: geo.assembly._id,
+          block_id: geo.block._id,
+          booth_id: geo.booth._id,
+          panchayat_id: geo.panchayat?._id || undefined,
+          village_id: geo.village?._id || undefined,
+          falliya_id: geo.falliya?._id || undefined,
+          created_by: req.user ? req.user._id : undefined,
+          year: row.year ? Number(row.year) : undefined
+        };
+
+        await PartyActivity.create(activityPayload);
+        results.imported++;
+      } catch (err) {
+        results.errors.push({ row: i + 1, data: row, error: err.message || 'Failed to import activity' });
+      }
+    }
+
+    res.status(200).json({ success: true, imported: results.imported, total: results.total, errors: results.errors });
   } catch (err) {
     next(err);
   }

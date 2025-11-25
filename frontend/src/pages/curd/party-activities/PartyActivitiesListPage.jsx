@@ -236,14 +236,14 @@ export default function PartyActivitiesListPage() {
         }
     };
 
-    // Extract filter options from allPartyActivities
+    // Extract filter options from allPartyActivities (prefer numeric identifiers)
     const filterOptions = useFilterOptionsFromData(allPartyActivities, {
-        states: { field: 'state_id', nameField: 'name' },
-        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
-        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
-        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
-        blocks: { field: 'block_id', nameField: 'name', parentField: 'assembly_id' },
-        booths: { field: 'booth_id', nameField: 'name', parentField: 'block_id' }
+        states: { field: 'state_id', nameField: 'state_no' },
+        divisions: { field: 'division_id', nameField: 'division_code', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'parliament_no', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'AC_NO', parentField: 'parliament_id' },
+        blocks: { field: 'block_id', nameField: 'block_number', parentField: 'assembly_id' },
+        booths: { field: 'booth_id', nameField: 'booth_number', parentField: 'block_id' }
     });
 
     // Fetch booths with activities to mark them on the map
@@ -642,7 +642,7 @@ export default function PartyActivitiesListPage() {
             accessorKey: 'state_id',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.name || 'N/A'}
+                    label={getValue()?.state_no || getValue()?.name || 'N/A'}
                     color="primary"
                     size="small"
                     variant="outlined"
@@ -654,7 +654,7 @@ export default function PartyActivitiesListPage() {
             accessorKey: 'division_id',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.name || 'N/A'}
+                    label={getValue()?.division_code || getValue()?.name || 'N/A'}
                     color="warning"
                     size="small"
                     variant="outlined"
@@ -666,7 +666,7 @@ export default function PartyActivitiesListPage() {
             accessorKey: 'parliament_id',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.name || 'N/A'}
+                    label={getValue()?.parliament_no || getValue()?.name || 'N/A'}
                     color="secondary"
                     size="small"
                     variant="outlined"
@@ -678,7 +678,7 @@ export default function PartyActivitiesListPage() {
             accessorKey: 'assembly_id',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.name || 'N/A'}
+                    label={getValue()?.AC_NO || getValue()?.name || 'N/A'}
                     color="info"
                     size="small"
                     variant="outlined"
@@ -690,7 +690,7 @@ export default function PartyActivitiesListPage() {
             accessorKey: 'block_id',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue()?.name || 'N/A'}
+                    label={getValue()?.block_number || getValue()?.name || 'N/A'}
                     color="primary"
                     size="small"
                     variant="outlined"
@@ -702,7 +702,7 @@ export default function PartyActivitiesListPage() {
             accessorKey: 'booth_id',
             cell: ({ getValue }) => (
                 <Chip
-                    label={getValue() ? `${getValue().name} (${getValue().booth_number})` : 'N/A'}
+                    label={getValue()?.booth_number || getValue()?.name || 'N/A'}
                     color="success"
                     size="small"
                     variant="outlined"
@@ -956,12 +956,12 @@ export default function PartyActivitiesListPage() {
         setCsvData(allData.map(item => ({
             Title: item.title,
             'Activity Type': item.activity_type,
-            State: item.state_id?.name || '',
-            Division: item.division_id?.name || '',
-            Parliament: item.parliament_id?.name || '',
-            Assembly: item.assembly_id?.name || '',
-            Block: item.block_id?.name || '',
-            Booth: item.booth_id ? `${item.booth_id.name} (${item.booth_id.booth_number})` : '',
+            State: item.state_id?.state_no || item.state_id?.name || '',
+            Division: item.division_id?.division_code || item.division_id?.name || '',
+            Parliament: item.parliament_id?.parliament_no || item.parliament_id?.name || '',
+            Assembly: item.assembly_id?.AC_NO || item.assembly_id?.name || '',
+            Block: item.block_id?.block_number || item.block_id?.name || '',
+            Booth: item.booth_id ? (item.booth_id.booth_number || item.booth_id.name) : '',
             Description: item.description,
             'Activity Date': item.activity_date,
             'End Date': item.end_date,
@@ -1000,11 +1000,11 @@ export default function PartyActivitiesListPage() {
                     media_coverage: 'Yes',
                     media_links: 'http://example.com/news1',
                     party_name: 'BJP',
-                    state_name: 'Madhya Pradesh',
-                    division_name: 'Gwalior',
+                    state_no: '23',
+                    division_code: 'GW',
                     parliament_no: '101',
-                    assembly_name: 'Gwalior North',
-                    block_name: 'Block 1',
+                    AC_NO: '45',
+                    block_number: '12',
                     booth_number: '101'
                 }
             ];
@@ -1094,8 +1094,8 @@ export default function PartyActivitiesListPage() {
                                 <MenuItem value="">Select Block</MenuItem>
                                 <MenuItem value="ALL">All Blocks</MenuItem>
                                 {blocks?.map((b) => (
-                                    <MenuItem key={b._id} value={b.name}>{b.name}</MenuItem>
-                                ))}
+                                            <MenuItem key={b._id} value={b.block_number || b.name}>{b.block_number || b.name}</MenuItem>
+                                        ))}
                             </TextField>
                             <TextField
                                 select
@@ -1393,7 +1393,7 @@ export default function PartyActivitiesListPage() {
                         >
                             <MenuItem value="">All States</MenuItem>
                             {filterOptions.states?.map((state) => (
-                                <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
+                                <MenuItem key={state._id} value={state._id}>{state.state_no || state.name}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
@@ -1413,7 +1413,7 @@ export default function PartyActivitiesListPage() {
                                 const stateId = d.state_id?._id || d.state_id;
                                 return stateId === filters?.state_id;
                             }).map((division) => (
-                                <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                                <MenuItem key={division._id} value={division._id}>{division.division_code || division.name}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
@@ -1433,7 +1433,7 @@ export default function PartyActivitiesListPage() {
                                 const divisionId = p.division_id?._id || p.division_id;
                                 return divisionId === filters?.division_id;
                             }).map((parliament) => (
-                                <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                                <MenuItem key={parliament._id} value={parliament._id}>{parliament.parliament_no || parliament.name}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
@@ -1453,7 +1453,7 @@ export default function PartyActivitiesListPage() {
                                 const parliamentId = a.parliament_id?._id || a.parliament_id;
                                 return parliamentId === filters?.parliament_id;
                             }).map((assembly) => (
-                                <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                                <MenuItem key={assembly._id} value={assembly._id}>{assembly.AC_NO || assembly.name}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
@@ -1473,7 +1473,7 @@ export default function PartyActivitiesListPage() {
                                 const assemblyId = b.assembly_id?._id || b.assembly_id;
                                 return assemblyId === filters?.assembly_id;
                             }).map((block) => (
-                                <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                                <MenuItem key={block._id} value={block._id}>{block.block_number || block.name}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
@@ -1494,7 +1494,7 @@ export default function PartyActivitiesListPage() {
                                 return blockId === filters?.block_id;
                             }).map((booth) => (
                                 <MenuItem key={booth._id} value={booth._id}>
-                                    {booth.name} (No: {booth.booth_number})
+                                    {booth.booth_number || booth.name}
                                 </MenuItem>
                             ))}
                         </Select>
@@ -1637,9 +1637,9 @@ export default function PartyActivitiesListPage() {
                                     <Typography variant="subtitle1" sx={{ mb: 1 }}>Booth Information</Typography>
                                     <Typography variant="body2"><strong>Name:</strong> {drawerData.details.booth?.name || 'N/A'}</Typography>
                                     <Typography variant="body2"><strong>Booth No:</strong> {drawerData.details.booth?.booth_number || drawerData.details.boothNo || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth?.block_id?.name || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth?.assembly_id?.name || 'N/A'}</Typography>
-                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth?.parliament_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Block:</strong> {drawerData.details.booth?.block_id?.block_number || drawerData.details.booth?.block_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Assembly:</strong> {drawerData.details.booth?.assembly_id?.AC_NO || drawerData.details.booth?.assembly_id?.name || 'N/A'}</Typography>
+                                    <Typography variant="body2"><strong>Parliament:</strong> {drawerData.details.booth?.parliament_id?.parliament_no || drawerData.details.booth?.parliament_id?.name || 'N/A'}</Typography>
                                 </Paper>
 
                                 <Paper elevation={0} sx={{ p: 1 }}>

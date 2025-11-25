@@ -8,6 +8,7 @@ const {
   deletePartyActivity,
   getPartyActivitiesByParty,
   getUpcomingPartyActivities
+  , importPartyActivities
 } = require('../controllers/partyActivityController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -255,6 +256,9 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getPartyActivity);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('admin', 'superAdmin'), upload.array('media', 10), createPartyActivity);
+
+// Import endpoint (Excel/CSV)
+router.post('/import', protect, authorize('admin', 'superAdmin'), importPartyActivities);
 
 /**
  * @swagger
