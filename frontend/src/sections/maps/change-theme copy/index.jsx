@@ -48,6 +48,8 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
   const [parties, setParties] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
   const mapRef = useRef(null);
+  // Track last selected assembly to prevent duplicate callbacks/refreshes
+  const lastSelectedRef = useRef({ acNo: null, ts: 0 });
 
   // Initial data fetch (assembly polygons and all candidates)
   useEffect(() => {
@@ -183,12 +185,13 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
   const handleFeatureClick = (e) => {
     // Prevent default browser navigation/refresh if underlying DOM event exists
     try {
-      if (e && typeof e.preventDefault === 'function') {
-        e.preventDefault();
-      }
-      if (e && e.originalEvent) {
-        if (typeof e.originalEvent.preventDefault === 'function') e.originalEvent.preventDefault();
-        if (typeof e.originalEvent.stopPropagation === 'function') e.originalEvent.stopPropagation();
+      // Prevent default and stop propagation on the underlying DOM event
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const orig = e && e.originalEvent;
+      if (orig) {
+        try { orig.preventDefault && orig.preventDefault(); } catch (err) {}
+        try { orig.stopPropagation && orig.stopPropagation(); } catch (err) {}
+        try { orig.stopImmediatePropagation && orig.stopImmediatePropagation(); } catch (err) {}
       }
     } catch (err) {
       console.warn('Error preventing default on map click event:', err);
@@ -197,10 +200,22 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
     if (!e.features?.length) return;
 
     const feature = e.features[0];
+
+    // Guard: Avoid repeatedly selecting the same assembly (prevents duplicate refreshes)
+    const acNo = feature?.properties?.AC_NO;
+    const now = Date.now();
+    if (acNo) {
+      // If same AC_NO clicked within 800ms, ignore it as a duplicate
+      if (lastSelectedRef.current.acNo === acNo && (now - lastSelectedRef.current.ts) < 800) {
+        return;
+      }
+      lastSelectedRef.current = { acNo, ts: now };
+    }
+
     // Don't open drawer here - let parent component handle it to avoid double panels
     // setSelectedAssembly(feature.properties);
     // setDrawerOpen(true);
-    
+
     // Notify parent component about assembly selection if callback provided
     if (onAssemblySelect && feature.properties) {
       try {
