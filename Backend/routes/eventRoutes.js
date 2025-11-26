@@ -21,12 +21,6 @@ const router = express.Router();
  *   name: Events
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getEvents);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getEvent);
-
 /**
             description: Event description (HTML allowed)
             example: "<p>Some description about the event.</p>"

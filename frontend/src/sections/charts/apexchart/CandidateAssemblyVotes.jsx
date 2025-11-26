@@ -104,13 +104,7 @@ export default function VoterTurnoutChart() {
     const fetchElectionData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('serviceToken');
-        if (!token) {
-          setError('Authentication required');
-          setLoading(false);
-          return;
-        }
-        const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/assembly/687a036493d4235d02ea1d11/year/68774484dff1e9c4616e78df`, { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/assembly/687a036493d4235d02ea1d11/year/68774484dff1e9c4616e78df`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

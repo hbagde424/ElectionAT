@@ -63,8 +63,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothElectionStats'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getBoothStats);
+router.get('/', getBoothStats);
 
 /**
  * @swagger
@@ -88,8 +87,7 @@ router.get('/', protect, getBoothStats);
  *               items:
  *                 $ref: '#/components/schemas/BoothElectionStats'
  */
-// Protected: requires authentication via serviceToken
-router.get('/booth/:boothId', protect, getStatsByBooth);
+router.get('/booth/:boothId', getStatsByBooth);
 
 /**
  * @swagger
@@ -113,8 +111,7 @@ router.get('/booth/:boothId', protect, getStatsByBooth);
  *               items:
  *                 $ref: '#/components/schemas/BoothElectionStats'
  */
-// Protected: requires authentication via serviceToken
-router.get('/year/:yearId', protect, getStatsByYear);
+router.get('/year/:yearId', getStatsByYear);
 
 /**
  * @swagger
@@ -138,8 +135,7 @@ router.get('/year/:yearId', protect, getStatsByYear);
  *       404:
  *         description: Record not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getBoothStatsById);
+router.get('/:id', getBoothStatsById);
 
 /**
  * @swagger

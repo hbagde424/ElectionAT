@@ -42,9 +42,7 @@ export default function FAQListPage() {
         setLoading(true);
         try {
             const query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?page=${pageIndex + 1}&limit=${pageSize}${query}`);
             const json = await res.json();
             if (json.success) {
                 setFaqs(json.data);
@@ -235,9 +233,7 @@ export default function FAQListPage() {
 
     const fetchAllFAQsForCsv = async () => {
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?all=true`, { headers });
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/faqs?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;

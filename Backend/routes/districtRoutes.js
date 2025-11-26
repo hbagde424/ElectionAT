@@ -20,12 +20,6 @@ const router = express.Router();
  *   description: District management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getDistricts);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getDistrict);
-
 /**
  * @swagger
  * /api/districts:

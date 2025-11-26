@@ -9,7 +9,7 @@ const User = require('../models/User');
 
 // @desc    Get all local issues
 // @route   GET /api/local-issues
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getLocalIssues = async (req, res, next) => {
   try {
     // Pagination
@@ -202,7 +202,7 @@ exports.getLocalIssues = async (req, res, next) => {
 
 // @desc    Get single local issue
 // @route   GET /api/local-issues/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getLocalIssue = async (req, res, next) => {
   try {
     const localIssue = await LocalIssue.findById(req.params.id)

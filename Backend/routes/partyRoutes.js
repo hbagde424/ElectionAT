@@ -42,8 +42,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Party'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getParties);
+router.get('/', getUserPermissionsAndHierarchy, getParties);
 
 /**
  * @swagger

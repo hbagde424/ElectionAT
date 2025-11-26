@@ -2,7 +2,7 @@ const FAQ = require('../models/FAQ');
 
 // @desc    Get all FAQs
 // @route   GET /api/faqs
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getFAQs = async (req, res, next) => {
   try {
     // Pagination

@@ -21,12 +21,6 @@ const router = express.Router();
  *   description: Local issue management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getLocalIssues);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getLocalIssue);
-
 /**
  * @swagger
  * /api/local-issues:

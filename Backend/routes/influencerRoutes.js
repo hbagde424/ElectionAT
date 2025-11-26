@@ -21,12 +21,6 @@ const router = express.Router();
  *   description: Influencer management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getInfluencers);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getInfluencer);
-
 /**
  * @swagger
  * /api/influencers:
@@ -102,8 +96,7 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getInfluencer);
  *                   items:
  *                     $ref: '#/components/schemas/Influencer'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getInfluencers);
+router.get('/', getUserPermissionsAndHierarchy, getInfluencers);
 
 /**
  * @swagger
@@ -127,8 +120,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getInfluencers);
  *       404:
  *         description: Influencer not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getInfluencer);
+router.get('/:id', getUserPermissionsAndHierarchy, getInfluencer);
 
 /**
  * @swagger
@@ -241,8 +233,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteInfluencer);
  *       404:
  *         description: Booth not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getInfluencersByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getInfluencersByBooth);
 
 /**
  * @swagger

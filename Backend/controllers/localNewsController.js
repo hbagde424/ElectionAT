@@ -3,7 +3,7 @@ const Booth = require('../models/booth');
 
 // @desc    Get all local news
 // @route   GET /api/local-news
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getLocalNews = async (req, res, next) => {
   try {
     // Pagination

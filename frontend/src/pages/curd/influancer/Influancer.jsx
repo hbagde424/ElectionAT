@@ -730,14 +730,7 @@ export default function InfluencersListPage() {
                 currentLimit = 10000; // Get all results when searching
             }
 
-            const token = localStorage.getItem('serviceToken');
-            if (!token) {
-                console.warn('No authentication token found. Cannot fetch influencers.');
-                setLoading(false);
-                return;
-            }
-
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${currentPage}&limit=${currentLimit}${query}`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${currentPage}&limit=${currentLimit}${query}`);
             const json = await res.json();
             if (json.success) {
                 setInfluencers(json.data);
@@ -754,9 +747,6 @@ export default function InfluencersListPage() {
             }
         } catch (error) {
             console.error('Failed to fetch influencers:', error);
-            if (error.response?.status === 401) {
-                console.error('Authentication failed. Please log in again.');
-            }
         } finally {
             setLoading(false);
         }

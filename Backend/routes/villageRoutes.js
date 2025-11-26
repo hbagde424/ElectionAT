@@ -19,12 +19,6 @@ const router = express.Router();
  *   description: Village management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getVillages);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getVillage);
-
 /**
  * @swagger
  * /api/villages:

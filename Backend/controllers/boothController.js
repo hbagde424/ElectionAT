@@ -12,7 +12,7 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @desc    Get all booths
 // @route   GET /api/booths
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBooths = async (req, res, next) => {
   try {
     // Pagination
@@ -305,7 +305,7 @@ exports.getBooths = async (req, res, next) => {
 // The rest of your controller methods remain the same...
 // @desc    Get single booth
 // @route   GET /api/booths/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBooth = async (req, res, next) => {
   try {
     // Validate ObjectId
@@ -555,7 +555,7 @@ exports.deleteBooth = async (req, res, next) => {
 
 // @desc    Get booths by assembly
 // @route   GET /api/booths/assembly/:assemblyId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBoothsByAssembly = async (req, res, next) => {
   try {
     // Validate ObjectId
@@ -623,7 +623,7 @@ exports.getBoothsByAssembly = async (req, res, next) => {
 
 // @desc    Get booths by block
 // @route   GET /api/booths/block/:blockId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBoothsByBlock = async (req, res, next) => {
   try {
     // Validate ObjectId
@@ -661,7 +661,7 @@ exports.getBoothsByBlock = async (req, res, next) => {
 
 // @desc    Get booths by election year
 // @route   GET /api/booths/year/:yearId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBoothsByYear = async (req, res, next) => {
   try {
     // Validate ObjectId

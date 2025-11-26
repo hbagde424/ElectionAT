@@ -218,6 +218,16 @@ export default function BoothSurveyListPage() {
 
   const handleDeleteClose = () => setOpenDelete(false);
 
+  const handleDownloadExcelTemplate = async () => {
+    const XLSX = await import('xlsx');
+    const headers = ['survey_date', 'total_voters', 'surveyed_count', 'favorable_count', 'unfavorable_count', 'neutral_count', 'remark', 'state', 'division_code', 'parliament_no', 'assembly_no', 'block', 'booth_number'];
+    const exampleData = [['2024-01-15', '1000', '500', '250', '150', '100', 'Good response', 'Maharashtra', 'DIV001', 'PC01', 'AC001', 'Block A', 'B001']];
+    const worksheetData = [headers, ...exampleData];
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Booth Survey');
+    XLSX.writeFile(workbook, 'booth_survey_template.xlsx');
+  };
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0];
@@ -367,39 +377,6 @@ export default function BoothSurveyListPage() {
     link.click();
     document.body.removeChild(link);
   };
-
-  // Excel Template Download
-  const handleDownloadExcelTemplate = async () => {
-    try {
-      const XLSX = await import('xlsx');
-      const templateData = [
-        {
-          booth_name: 'Booth Name',
-          survey_date: '2024-01-15',
-          respondent_name: 'John Doe',
-          respondent_mobile: '9876543210',
-          q3: 'male',
-          q4: '31-35',
-          q5: 'urban',
-          q6: 'graduate',
-          q7: 'govt_job',
-          q8: 'middle',
-          q9: 'bjp',
-          status: 'Completed',
-          remarks: 'Sample survey remarks'
-        }
-      ];
-      const worksheet = XLSX.utils.json_to_sheet(templateData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-      XLSX.writeFile(workbook, 'booth-survey-template.xlsx');
-    } catch (error) {
-      console.error('Error generating template:', error);
-      alert('Failed to download template. Please try again.');
-    }
-  };
-
-  
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'N/A';

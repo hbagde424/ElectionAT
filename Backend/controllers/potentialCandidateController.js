@@ -7,7 +7,7 @@ const User = require('../models/User');
 const { resolveGeographicHierarchy } = require('./importHelpers');
 // @desc    Get all potential candidates
 // @route   GET /api/potential-candidates
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getPotentialCandidates = async (req, res, next) => {
   try {
     // Pagination
@@ -100,7 +100,7 @@ exports.getPotentialCandidates = async (req, res, next) => {
 
 // @desc    Get single potential candidate
 // @route   GET /api/potential-candidates/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getPotentialCandidate = async (req, res, next) => {
   try {
     const candidate = await PotentialCandidate.findById(req.params.id)

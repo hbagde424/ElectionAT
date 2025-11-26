@@ -71,16 +71,19 @@ export default function AssemblyListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const [statesRes, divisionsRes, parliamentsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`)
             ]);
 
+            const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
             ]);
 
             const usersData = await usersRes.json();
@@ -103,14 +106,6 @@ export default function AssemblyListPage() {
     const fetchAssemblies = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('serviceToken');
-            if (!token) {
-                console.warn('No authentication token found. Cannot fetch assemblies.');
-                setAssemblies([]);
-                setPageCount(0);
-                setLoading(false);
-                return;
-            }
             const queryParams = [];
             if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
             if (currentFilters.type) queryParams.push(`type=${encodeURIComponent(currentFilters.type)}`);
@@ -122,7 +117,10 @@ export default function AssemblyListPage() {
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
             const url = `${import.meta.env.VITE_APP_API_URL}/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
 
-            const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(url, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
             const json = await res.json();
 
             if (json.success) {
@@ -137,22 +135,13 @@ export default function AssemblyListPage() {
     };
 
     useEffect(() => {
-        // Initial load only when authenticated
-        const token = localStorage.getItem('serviceToken');
-        if (!token) {
-            console.warn('No authentication token found. Skipping initial assembly data load.');
-            return;
-        }
-
-        // Default values for first load
-        fetchAssemblies(0, 10);
+        // Initial load
+        fetchAssemblies(0, 10); // Default values for first load
         fetchReferenceData();
-
         // Load assembly polygons for map
         (async () => {
             try {
-                const headers = { Authorization: `Bearer ${token}` };
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`, { headers });
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 let features = [];

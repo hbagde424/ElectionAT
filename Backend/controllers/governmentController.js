@@ -8,7 +8,7 @@ const Booth = require('../models/booth');
 
 // @desc    Get all government projects
 // @route   GET /api/governments
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getGovernments = async (req, res, next) => {
   try {
     // Pagination
@@ -143,7 +143,7 @@ exports.getGovernments = async (req, res, next) => {
 
 // @desc    Get single government project
 // @route   GET /api/governments/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getGovernment = async (req, res, next) => {
   try {
     const government = await Government.findById(req.params.id)

@@ -24,12 +24,6 @@ const router = express.Router();
  *   description: Work status management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getWorkStatuses);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getWorkStatus);
-
 /**
  * @swagger
  * /api/work-status:

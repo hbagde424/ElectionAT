@@ -206,8 +206,8 @@ const upload = require('../config/mediaUpload');
  *                   items:
  *                     $ref: '#/components/schemas/PartyActivity'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getPartyActivities);
+// Public: optional authentication — attach hierarchy if token is present
+router.get('/', getUserPermissionsAndHierarchy, getPartyActivities);
 
 /**
  * @swagger
@@ -231,7 +231,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getPartyActivities);
  *       404:
  *         description: Party activity not found
  */
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getPartyActivity);
+router.get('/:id', getUserPermissionsAndHierarchy, getPartyActivity);
 
 /**
  * @swagger
@@ -347,7 +347,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deletePartyActi
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', protect, getUserPermissionsAndHierarchy, getPartyActivitiesByParty);
+router.get('/party/:partyId', getUserPermissionsAndHierarchy, getPartyActivitiesByParty);
 
 /**
  * @swagger
@@ -372,6 +372,6 @@ router.get('/party/:partyId', protect, getUserPermissionsAndHierarchy, getPartyA
  *                   items:
  *                     $ref: '#/components/schemas/PartyActivity'
  */
-router.get('/upcoming', protect, getUserPermissionsAndHierarchy, getUpcomingPartyActivities);
+router.get('/upcoming', getUserPermissionsAndHierarchy, getUpcomingPartyActivities);
 
 module.exports = router;

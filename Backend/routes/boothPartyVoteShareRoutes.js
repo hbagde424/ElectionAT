@@ -69,8 +69,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/BoothPartyVoteShare'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getVoteShares);
+router.get('/', getVoteShares);
 
 /**
  * @swagger
@@ -94,8 +93,7 @@ router.get('/', protect, getVoteShares);
  *       404:
  *         description: Record not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getVoteShareById);
+router.get('/:id', getVoteShareById);
 
 /**
  * @swagger
@@ -208,8 +206,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteVoteShare);
  *       404:
  *         description: Election stat not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/stat/:statId', protect, getVoteSharesByStat);
+router.get('/stat/:statId', getVoteSharesByStat);
 
 /**
  * @swagger
@@ -242,8 +239,7 @@ router.get('/stat/:statId', protect, getVoteSharesByStat);
  *       404:
  *         description: Party not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/party/:partyId', protect, getVoteSharesByParty);
+router.get('/party/:partyId', getVoteSharesByParty);
 
 /**
  * @swagger

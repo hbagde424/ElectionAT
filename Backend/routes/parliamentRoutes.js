@@ -21,12 +21,6 @@ const router = express.Router();
  *   description: Parliament management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getParliaments);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getParliament);
-
 /**
  * @swagger
  * /api/parliaments:

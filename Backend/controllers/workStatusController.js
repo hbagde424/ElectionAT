@@ -9,7 +9,7 @@ const District = require('../models/District');
 
 // @desc    Get all work statuses
 // @route   GET /api/work-status
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getWorkStatuses = async (req, res, next) => {
   try {
     // Pagination
@@ -254,7 +254,7 @@ exports.getWorkStatuses = async (req, res, next) => {
 
 // @desc    Get single work status
 // @route   GET /api/work-status/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getWorkStatus = async (req, res, next) => {
   try {
     const workStatus = await WorkStatus.findById(req.params.id)

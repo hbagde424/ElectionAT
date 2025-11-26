@@ -4,7 +4,7 @@ const Party = require('../models/party');
 
 // @desc    Get all MLAs
 // @route   GET /api/accomplished-mlas
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAccomplishedMLAs = async (req, res, next) => {
   try {
     const mlas = await AccomplishedMLA.find()
@@ -24,7 +24,7 @@ exports.getAccomplishedMLAs = async (req, res, next) => {
 
 // @desc    Get single MLA
 // @route   GET /api/accomplished-mlas/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAccomplishedMLA = async (req, res, next) => {
   try {
     const mla = await AccomplishedMLA.findById(req.params.id)
@@ -148,7 +148,7 @@ exports.deleteAccomplishedMLA = async (req, res, next) => {
 
 // @desc    Get current MLAs
 // @route   GET /api/accomplished-mlas/current
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getCurrentMLAs = async (req, res, next) => {
   try {
     const mlas = await AccomplishedMLA.find({ is_current: true })
@@ -167,7 +167,7 @@ exports.getCurrentMLAs = async (req, res, next) => {
 
 // @desc    Get MLAs by assembly
 // @route   GET /api/accomplished-mlas/assembly/:assemblyId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getMLAsByAssembly = async (req, res, next) => {
   try {
     const mlas = await AccomplishedMLA.find({ assembly_id: req.params.assemblyId })
@@ -186,7 +186,7 @@ exports.getMLAsByAssembly = async (req, res, next) => {
 
 // @desc    Get MLAs by party
 // @route   GET /api/accomplished-mlas/party/:partyId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getMLAsByParty = async (req, res, next) => {
   try {
     const mlas = await AccomplishedMLA.find({ party_id: req.params.partyId })

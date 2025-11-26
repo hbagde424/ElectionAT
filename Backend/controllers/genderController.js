@@ -9,7 +9,7 @@ const User = require('../models/User');
 
 // @desc    Get all gender entries
 // @route   GET /api/genders
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getGenders = async (req, res, next) => {
   try {
     // Pagination
@@ -189,7 +189,7 @@ exports.getGenders = async (req, res, next) => {
 
 // @desc    Get single gender entry
 // @route   GET /api/genders/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getGender = async (req, res, next) => {
   try {
     const gender = await Gender.findById(req.params.id)

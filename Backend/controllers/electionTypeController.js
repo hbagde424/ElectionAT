@@ -9,7 +9,7 @@ const User = require('../models/User');
 
 // @desc    Get all election types
 // @route   GET /api/election-types
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getElectionTypes = async (req, res, next) => {
   try {
     // Pagination

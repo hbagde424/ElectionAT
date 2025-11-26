@@ -9,7 +9,7 @@ const Booth = require('../models/booth');
 
 // @desc    Get all party activities
 // @route   GET /api/party-activities
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getPartyActivities = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;

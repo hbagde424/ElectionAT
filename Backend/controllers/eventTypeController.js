@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 // @desc    Get all event types
 // @route   GET /api/event-types
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getEventTypes = async (req, res, next) => {
   try {
     // Pagination

@@ -236,12 +236,7 @@ export default function TotalIncome() {
   // Fetch available years
   const fetchYears = useCallback(async () => {
     try {
-      const token = localStorage.getItem('serviceToken');
-      if (!token) {
-        console.warn('No authentication token found.');
-        return;
-      }
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`);
       if (!response.ok) {
         throw new Error('Failed to fetch election years');
       }
@@ -259,14 +254,8 @@ export default function TotalIncome() {
   const fetchWinningCandidates = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('serviceToken');
-      if (!token) {
-        console.warn('No authentication token found.');
-        setLoading(false);
-        return;
-      }
       const yearParam = selectedYear ? `?year=${selectedYear}` : '';
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/graph${yearParam}`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/graph${yearParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch winning candidates');
       }

@@ -20,12 +20,6 @@ const router = express.Router();
  *   description: Booth demographic data management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getBoothDemographics);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothDemographic);
-
 /**
  * @swagger
  * components:
@@ -227,8 +221,7 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothDemographic)
  *                   items:
  *                     $ref: '#/components/schemas/BoothDemographics'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getBoothDemographics);
+router.get('/', getUserPermissionsAndHierarchy, getBoothDemographics);
 
 /**
  * @swagger
@@ -252,8 +245,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getBoothDemographics);
  *       404:
  *         description: Booth demographics not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getBoothDemographic);
+router.get('/:id', getBoothDemographic);
 
 /**
  * @swagger
@@ -357,8 +349,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteBoothDemo
  *       404:
  *         description: Booth or demographics not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/booth/:boothId', protect, getDemographicsByBooth);
+router.get('/booth/:boothId', getDemographicsByBooth);
 
 /**
  * @swagger
@@ -391,7 +382,6 @@ router.get('/booth/:boothId', protect, getDemographicsByBooth);
  *       404:
  *         description: Assembly not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/assembly/:assemblyId', protect, getDemographicsByAssembly);
+router.get('/assembly/:assemblyId', getDemographicsByAssembly);
 
 module.exports = router;

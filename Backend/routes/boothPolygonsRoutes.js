@@ -11,7 +11,6 @@ const {
 
 const router = express.Router();
 const { createSafeHandler } = require('../middlewares/paramSanitizer');
-const { protect } = require('../middlewares/auth');
 
 // Apply parameter validation to common parameters
 router.param('id', (req, res, next, id) => {
@@ -132,8 +131,7 @@ router.param('acNo', (req, res, next, acNo) => {
  *                     pages:
  *                       type: integer
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, createSafeHandler(getBoothPolygons));
+router.get('/', createSafeHandler(getBoothPolygons));
 
 /**
  * @swagger
@@ -157,8 +155,7 @@ router.get('/', protect, createSafeHandler(getBoothPolygons));
  *       404:
  *         description: Booth polygon not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, createSafeHandler(getBoothPolygon));
+router.get('/:id', createSafeHandler(getBoothPolygon));
 
 /**
  * @swagger
@@ -188,8 +185,7 @@ router.get('/:id', protect, createSafeHandler(getBoothPolygon));
  *                   items:
  *                     $ref: '#/components/schemas/BoothPolygonFeature'
  */
-// Protected: requires authentication via serviceToken
-router.get('/assembly/:acNo', protect, createSafeHandler(getBoothPolygonsByAssembly));
+router.get('/assembly/:acNo', createSafeHandler(getBoothPolygonsByAssembly));
 
 /**
  * @swagger
@@ -225,8 +221,7 @@ router.get('/assembly/:acNo', protect, createSafeHandler(getBoothPolygonsByAssem
  *       400:
  *         description: Bad request when block name is empty
  */
-// Protected: requires authentication via serviceToken
-router.get('/block/:blockName', protect, createSafeHandler(getBoothPolygonsByBlock));
+router.get('/block/:blockName', createSafeHandler(getBoothPolygonsByBlock));
 
 /**
  * @swagger
@@ -258,8 +253,7 @@ router.get('/block/:blockName', protect, createSafeHandler(getBoothPolygonsByBlo
  *       404:
  *         description: Election year not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/year/:yearId', protect, getBoothPolygonsByYear);
+router.get('/year/:yearId', getBoothPolygonsByYear);
 
 /**
  * @swagger
@@ -304,8 +298,7 @@ router.get('/year/:yearId', protect, getBoothPolygonsByYear);
  *       400:
  *         description: Missing required parameters
  */
-// Protected: requires authentication via serviceToken
-router.get('/within', protect, getBoothPolygonsWithin);
+router.get('/within', getBoothPolygonsWithin);
 
 
 /**
@@ -342,8 +335,7 @@ router.get('/within', protect, getBoothPolygonsWithin);
  *       400:
  *         description: Bad request when block number is empty
  */
-// Protected: requires authentication via serviceToken
-router.get('/block-number/:blockNumber', protect, getBoothPolygonsByBlockNumber);
+router.get('/block-number/:blockNumber', getBoothPolygonsByBlockNumber);
 
 /**
  * @swagger

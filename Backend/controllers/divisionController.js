@@ -24,7 +24,7 @@ const populateDivision = (query) => {
 
 // @desc    Get all divisions
 // @route   GET /api/divisions
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getDivisions = async (req, res, next) => {
   try {
     // Pagination
@@ -108,7 +108,7 @@ exports.getDivisions = async (req, res, next) => {
 
 // @desc    Get single division
 // @route   GET /api/divisions/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getDivision = async (req, res, next) => {
   try {
     let query = Division.findById(req.params.id);

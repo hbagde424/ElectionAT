@@ -73,17 +73,20 @@ export default function ParliamentListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const [statesRes, divisionsRes, assembliesRes, electionYearsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
             ]);
 
+            const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
             ]);
 
             const usersData = await usersRes.json();
@@ -156,9 +159,7 @@ export default function ParliamentListPage() {
     useEffect(() => {
         (async () => {
             try {
-                const token = localStorage.getItem('serviceToken');
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons`, { headers });
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliament-polygons`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 let features = [];

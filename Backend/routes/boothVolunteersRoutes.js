@@ -24,12 +24,6 @@ const router = express.Router();
  *   description: Booth volunteer management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getBoothVolunteers);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothVolunteer);
-
 /**
  * @swagger
  * /api/booth-volunteers:
@@ -116,8 +110,8 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothVolunteer);
  *                   items:
  *                     $ref: '#/components/schemas/BoothVolunteer'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getBoothVolunteers);
+// Public: optional authentication — attach hierarchy if token present
+router.get('/', getUserPermissionsAndHierarchy, getBoothVolunteers);
 
 /**
  * @swagger
@@ -141,8 +135,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getBoothVolunteers);
  *       404:
  *         description: Booth volunteer not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothVolunteer);
+router.get('/:id', getUserPermissionsAndHierarchy, getBoothVolunteer);
 
 /**
  * @swagger
@@ -390,8 +383,7 @@ router.delete('/:id/documents/:documentId', protect, authorize('superAdmin', 'co
  *       404:
  *         description: Booth not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getVolunteersByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getVolunteersByBooth);
 
 /**
  * @swagger
@@ -424,8 +416,7 @@ router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getVolunt
  *       404:
  *         description: Party not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/party/:partyId', protect, getUserPermissionsAndHierarchy, getVolunteersByParty);
+router.get('/party/:partyId', getUserPermissionsAndHierarchy, getVolunteersByParty);
 
 /**
  * @swagger
@@ -458,8 +449,7 @@ router.get('/party/:partyId', protect, getUserPermissionsAndHierarchy, getVolunt
  *       404:
  *         description: State not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/state/:stateId', protect, getUserPermissionsAndHierarchy, getVolunteersByState);
+router.get('/state/:stateId', getUserPermissionsAndHierarchy, getVolunteersByState);
 
 /**
  * @swagger

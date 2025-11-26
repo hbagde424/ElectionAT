@@ -70,9 +70,7 @@ export default function BlockVotesListPage() {
       if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
 
       const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-      const token = localStorage.getItem('serviceToken');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-votes?page=${pageIndex + 1}&limit=${pageSize}${queryString}`, { headers });
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-votes?page=${pageIndex + 1}&limit=${pageSize}${queryString}`);
       const json = await res.json();
       if (json.success) {
         setVotes(json.data);
@@ -88,9 +86,7 @@ export default function BlockVotesListPage() {
   const fetchAllVotesForCsv = async () => {
     setCsvLoading(true);
     try {
-      const token = localStorage.getItem('serviceToken');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-votes?all=true`, { headers });
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/block-votes?all=true`);
       const json = await res.json();
       if (json.success) {
         return json.data;
@@ -132,22 +128,16 @@ export default function BlockVotesListPage() {
 
   const fetchReferenceData = async () => {
     try {
-      const token = localStorage.getItem('serviceToken');
-      if (!token) {
-        console.warn('No authentication token found.');
-        return;
-      }
-      const headers = { Authorization: `Bearer ${token}` };
       const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, candidatesRes, electionYearsRes, usersRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers }),
-        fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
+        fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/booths`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/candidates`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`),
+        fetch(`${import.meta.env.VITE_APP_API_URL}/users`)
       ]);
 
       const statesJson = await statesRes.json();

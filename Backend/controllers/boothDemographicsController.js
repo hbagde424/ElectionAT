@@ -8,7 +8,7 @@ const Block = require('../models/block');
 
 // @desc    Get all booth demographics
 // @route   GET /api/booth-demographics
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBoothDemographics = async (req, res, next) => {
   try {
     // Pagination
@@ -101,7 +101,7 @@ exports.getBoothDemographics = async (req, res, next) => {
 
 // @desc    Get single booth demographics
 // @route   GET /api/booth-demographics/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getBoothDemographic = async (req, res, next) => {
   try {
     const demographic = await BoothDemographics.findById(req.params.id)
@@ -305,7 +305,7 @@ exports.deleteBoothDemographics = async (req, res, next) => {
 
 // @desc    Get demographics by booth
 // @route   GET /api/booth-demographics/booth/:boothId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getDemographicsByBooth = async (req, res, next) => {
   try {
     const booth = await Booth.findById(req.params.boothId);
@@ -341,7 +341,7 @@ exports.getDemographicsByBooth = async (req, res, next) => {
 
 // @desc    Get demographics by assembly
 // @route   GET /api/booth-demographics/assembly/:assemblyId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getDemographicsByAssembly = async (req, res, next) => {
   try {
     const assembly = await Assembly.findById(req.params.assemblyId);

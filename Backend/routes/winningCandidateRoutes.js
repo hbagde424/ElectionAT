@@ -109,8 +109,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getWinningCandidates);
+router.get('/', getUserPermissionsAndHierarchy, getWinningCandidates);
 
 /**
  * @swagger
@@ -146,7 +145,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getWinningCandidates);
  *                       assembly_count:
  *                         type: integer
  */
-router.get('/predicted-party-assembly-count', protect, require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
+router.get('/predicted-party-assembly-count', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
 
 
 /**
@@ -194,7 +193,7 @@ router.get('/predicted-party-assembly-count', protect, require('../controllers/w
  *                       win_count:
  *                         type: integer
  */
-router.get('/predict/2028', protect, require('../controllers/winningCandidateController').predictWinningPartyForNextYear);
+router.get('/predict/2028', require('../controllers/winningCandidateController').predictWinningPartyForNextYear);
 
 
 /**
@@ -234,7 +233,7 @@ router.get('/predict/2028', protect, require('../controllers/winningCandidateCon
  *                       assembly_count:
  *                         type: integer
  */
-router.get('/party-assembly-count', protect, getPartyAssemblyCountByYear);
+router.get('/party-assembly-count', getPartyAssemblyCountByYear);
 
 /**
  * @swagger
@@ -267,7 +266,7 @@ router.get('/party-assembly-count', protect, getPartyAssemblyCountByYear);
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-router.get('/graph', protect, getWinningCandidatesForGraph);
+router.get('/graph', getWinningCandidatesForGraph);
 
 /**
  * @swagger
@@ -297,7 +296,7 @@ router.get('/graph', protect, getWinningCandidatesForGraph);
  *       404:
  *         description: Winning candidate not found
  */
-router.get('/:id', protect, getWinningCandidate);
+router.get('/:id', getWinningCandidate);
 
 /**
  * @swagger
@@ -468,7 +467,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteWinningCandidate);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', protect, getWinningCandidatesByAssembly);
+router.get('/assembly/:assemblyId', getWinningCandidatesByAssembly);
 
 /**
  * @swagger
@@ -502,7 +501,7 @@ router.get('/assembly/:assemblyId', protect, getWinningCandidatesByAssembly);
  *       404:
  *         description: Parliament not found
  */
-router.get('/parliament/:parliamentId', protect, getWinningCandidatesByParliament);
+router.get('/parliament/:parliamentId', getWinningCandidatesByParliament);
 
 /**
  * @swagger
@@ -536,7 +535,7 @@ router.get('/parliament/:parliamentId', protect, getWinningCandidatesByParliamen
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', protect, getWinningCandidatesByParty);
+router.get('/party/:partyId', getWinningCandidatesByParty);
 
 /**
  * @swagger
@@ -617,7 +616,7 @@ router.get('/party/:partyId', protect, getWinningCandidatesByParty);
  *       404:
  *         description: Assembly, year or candidates not found
  */
-router.get('/assembly/:assemblyId/year/:yearId', protect, getCandidatesByAssemblyAndYear);
+router.get('/assembly/:assemblyId/year/:yearId', getCandidatesByAssemblyAndYear);
 
 /**
  * @swagger
@@ -659,7 +658,7 @@ router.get('/assembly/:assemblyId/year/:yearId', protect, getCandidatesByAssembl
  *                     latestElectionYear:
  *                       type: string
  */
-router.get('/stats/:type/:id', protect, getWinningCandidateStatsForMap);
+router.get('/stats/:type/:id', getWinningCandidateStatsForMap);
 
 /**
  * @swagger

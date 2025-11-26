@@ -2,7 +2,7 @@ const Party = require('../models/party');
 
 // @desc    Get all parties
 // @route   GET /api/parties
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getParties = async (req, res, next) => {
   try {
     let { page = 1, limit = 10, search = '', all = false } = req.query;

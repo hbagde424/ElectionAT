@@ -19,12 +19,6 @@ const router = express.Router();
  *   description: Falliya management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getFalliyas);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getFalliya);
-
 /**
  * @swagger
  * /api/falliyas:

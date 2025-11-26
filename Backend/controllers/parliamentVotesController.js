@@ -11,7 +11,7 @@ const User = require('../models/User');
 
 // @desc    Get all parliament votes
 // @route   GET /api/parliament-votes
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getParliamentVotes = async (req, res, next) => {
   try {
     // Pagination

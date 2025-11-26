@@ -24,12 +24,6 @@ const router = express.Router();
  *   description: Gender statistics management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getGenders);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getGender);
-
 /**
  * @swagger
  * /api/genders:

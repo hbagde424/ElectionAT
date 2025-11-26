@@ -22,12 +22,6 @@ const router = express.Router();
  *   description: Caste list management
  */
 
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getCasteLists);
-
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getCasteList);
-
 /**
  * @swagger
  * /api/caste-lists:
@@ -109,8 +103,7 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getCasteList);
  *                   items:
  *                     $ref: '#/components/schemas/CasteList'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getCasteLists);
+router.get('/', getUserPermissionsAndHierarchy, getCasteLists);
 
 /**
  * @swagger
@@ -134,8 +127,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getCasteLists);
  *       404:
  *         description: Caste list not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getCasteList);
+router.get('/:id', getUserPermissionsAndHierarchy, getCasteList);
 
 /**
  * @swagger
@@ -251,8 +243,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteCasteList);
  *       404:
  *         description: Booth not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getCasteListsByBooth);
+router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getCasteListsByBooth);
 
 /**
  * @swagger
@@ -285,8 +276,7 @@ router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getCasteL
  *       404:
  *         description: State not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/state/:stateId', protect, getCasteListsByState);
+router.get('/state/:stateId', getCasteListsByState);
 
 /**
  * @swagger
@@ -320,8 +310,7 @@ router.get('/state/:stateId', protect, getCasteListsByState);
  *       400:
  *         description: Invalid category
  */
-// Protected: requires authentication via serviceToken
-router.get('/category/:category', protect, getCasteListsByCategory);
+router.get('/category/:category', getCasteListsByCategory);
 
 /**
  * @swagger

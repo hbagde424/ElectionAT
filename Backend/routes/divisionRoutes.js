@@ -70,8 +70,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Division'
  */
-// Protected: requires authentication via serviceToken
-router.get('/', protect, getUserPermissionsAndHierarchy, getDivisions);
+router.get('/', getUserPermissionsAndHierarchy, getDivisions);
 
 /**
  * @swagger
@@ -95,8 +94,7 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getDivisions);
  *       404:
  *         description: Division not found
  */
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getDivision);
+router.get('/:id', getUserPermissionsAndHierarchy, getDivision);
 
 /**
  * @swagger

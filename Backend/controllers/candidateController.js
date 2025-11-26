@@ -7,7 +7,7 @@ const path = require('path');
 
 // @desc    Get all candidates
 // @route   GET /api/candidates
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getCandidates = async (req, res, next) => {
   try {
     // Pagination
@@ -96,7 +96,7 @@ exports.getCandidates = async (req, res, next) => {
 
 // @desc    Get single candidate
 // @route   GET /api/candidates/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getCandidate = async (req, res, next) => {
   try {
     const candidate = await Candidate.findById(req.params.id)
@@ -347,7 +347,7 @@ exports.uploadPhoto = async (req, res, next) => {
 
 // @desc    Get candidates by criminal cases count
 // @route   GET /api/candidates/criminal-cases
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getCandidatesByCriminalCases = async (req, res, next) => {
   try {
     const candidates = await Candidate.aggregate([
@@ -374,7 +374,7 @@ exports.getCandidatesByCriminalCases = async (req, res, next) => {
 
 // @desc    Get candidates by caste
 // @route   GET /api/candidates/caste
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getCandidatesByCaste = async (req, res, next) => {
   try {
     const candidates = await Candidate.aggregate([

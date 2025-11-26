@@ -6,7 +6,7 @@ const Parliament = require('../models/Parliament');
 
 // @desc    Get all assemblies
 // @route   GET /api/assemblies
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAssemblies = async (req, res, next) => {
   try {
     // Pagination
@@ -126,7 +126,7 @@ exports.getAssemblies = async (req, res, next) => {
 
 // @desc    Get single assembly
 // @route   GET /api/assemblies/:id
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAssembly = async (req, res, next) => {
   try {
     // If userHierarchy exists, ensure user can access this assembly
@@ -390,7 +390,7 @@ exports.deleteAssembly = async (req, res, next) => {
 
 // @desc    Get assemblies by parliament
 // @route   GET /api/assemblies/parliament/:parliamentId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAssembliesByParliament = async (req, res, next) => {
   try {
     // Verify parliament exists
@@ -444,7 +444,7 @@ exports.getAssembliesByParliament = async (req, res, next) => {
 
 // @desc    Get assemblies by division
 // @route   GET /api/assemblies/division/:divisionId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAssembliesByDivision = async (req, res, next) => {
   try {
     // Verify division exists

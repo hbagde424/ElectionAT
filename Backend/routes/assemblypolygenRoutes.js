@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const assemblyController = require('../controllers/assemblypolygenController');
-const { protect } = require('../middlewares/auth');
 
 /**
  * @swagger
@@ -22,7 +21,7 @@ const { protect } = require('../middlewares/auth');
  *       500:
  *         description: Server error
  */
-router.get('/', protect, assemblyController.getAllAssemblies);
+router.get('/', assemblyController.getAllAssemblies);
 
 /**
  * @swagger
@@ -43,7 +42,7 @@ router.get('/', protect, assemblyController.getAllAssemblies);
  *       404:
  *         description: Assembly not found
  */
-router.get('/vs-code/:vs_code', protect, assemblyController.getAssemblyByVSCode);
+router.get('/vs-code/:vs_code', assemblyController.getAssemblyByVSCode);
 
 /**
  * @swagger
@@ -64,7 +63,7 @@ router.get('/vs-code/:vs_code', protect, assemblyController.getAssemblyByVSCode)
  *       404:
  *         description: No assemblies found
  */
-router.get('/district/:district', protect, assemblyController.getAssembliesByDistrict);
+router.get('/district/:district', assemblyController.getAssembliesByDistrict);
 
 /**
  * @swagger
@@ -99,7 +98,7 @@ router.get('/district/:district', protect, assemblyController.getAssembliesByDis
  *       404:
  *         description: No assemblies found
  */
-router.get('/within', protect, assemblyController.getAssembliesWithin);
+router.get('/within', assemblyController.getAssembliesWithin);
 
 /**
  * @swagger
@@ -120,6 +119,6 @@ router.get('/within', protect, assemblyController.getAssembliesWithin);
  *       404:
  *         description: No assemblies found
  */
-router.get('/parliament/:pc_name', protect, assemblyController.getAssembliesByParliament);
+router.get('/parliament/:pc_name', assemblyController.getAssembliesByParliament);
 
 module.exports = router;

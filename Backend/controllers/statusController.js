@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 // @desc    Get all statuses
 // @route   GET /api/statuses
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getStatuses = async (req, res, next) => {
   try {
     // Pagination

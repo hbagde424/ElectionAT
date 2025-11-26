@@ -3,7 +3,7 @@ const BlockPolygon = require('../models/blockPolygonModel');
 
 // @desc    Get all block polygons
 // @route   GET /api/block-polygons
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAllBlockPolygons = async (req, res, next) => {
   try {
     const polygons = await BlockPolygon.find();
@@ -19,7 +19,7 @@ exports.getAllBlockPolygons = async (req, res, next) => {
 
 // @desc    Get block polygons by block name
 // @route   GET /api/block-polygons/block/:blockName
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getPolygonsByBlock = async (req, res, next) => {
   try {
     const blockName = req.params.blockName;
@@ -46,7 +46,7 @@ exports.getPolygonsByBlock = async (req, res, next) => {
 
 // @desc    Get polygons by booth number
 // @route   GET /api/block-polygons/booth/:boothNumber
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getPolygonsByBooth = async (req, res, next) => {
   try {
     const boothNumber = Number(req.params.boothNumber); // Convert to number
@@ -94,7 +94,7 @@ exports.getPolygonsByBooth = async (req, res, next) => {
 
 // @desc    Get single booth polygon by booth ID
 // @route   GET /api/block-polygons/booth-id/:boothId
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getPolygonByBoothId = async (req, res, next) => {
   try {
     const boothId = req.params.boothId;

@@ -3,7 +3,7 @@ const Booth = require('../models/booth');
 
 // @desc    Get all booth infrastructure records
 // @route   GET /api/booth-infrastructure
-// @access  Private (Requires authentication via serviceToken)
+// @access  Public
 exports.getAllBoothInfrastructures = async (req, res, next) => {
   try {
     // Pagination

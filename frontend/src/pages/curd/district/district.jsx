@@ -373,21 +373,13 @@ export default function DistrictListPage() {
 
     const fetchAllDistrictsForCsv = async () => {
         try {
-            const token = localStorage.getItem('serviceToken');
-            if (!token) {
-                console.warn('No authentication token found. Cannot fetch districts.');
-                return [];
-            }
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/districts?all=true`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/districts?all=true`);
             const json = await res.json();
             if (json.success) {
                 return json.data;
             }
         } catch (error) {
             console.error('Failed to fetch all districts for CSV:', error);
-            if (error.response?.status === 401) {
-                console.error('Authentication failed. Please log in again.');
-            }
         }
         return [];
     };
