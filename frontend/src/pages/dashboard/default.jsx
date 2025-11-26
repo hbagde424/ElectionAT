@@ -81,7 +81,7 @@ import { preload } from 'swr';
 
 // Assets & Styles
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
-// import AssemblyMap from 'sections/dashboard/default/AssemblyMap';
+import AssemblyMap from 'sections/dashboard/default/AssemblyMap';
 import ChangeTheme from 'sections/maps/change-theme copy';
 // import ParliamentMap from 'sections/dashboard/default/ParliamentMap';
 import ParliamentMap from 'sections/maps/change-themeparliament';
@@ -1095,7 +1095,7 @@ export default function DashboardDefault() {
             <TabPanel value="2" sx={{ p: 0 }}>
               <MainCard title="Assembly Map">
                 <MapContainerStyled>
-                  <ChangeTheme onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
+                  <AssemblyMap onAssemblySelect={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
                 </MapContainerStyled>
               </MainCard>
             </TabPanel>
