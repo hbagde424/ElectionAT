@@ -84,60 +84,126 @@ const CRUDMenu = {
   permissions: ['Users', 'Help Center', 'FAQ', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'], // Any read permission shows this group
   children: [
     {
-      id: 'Users',
-      title: <FormattedMessage id="Users" />,
-      type: 'item',
-      url: '/Users',
-      icon: icons.People,
-      permissions: ['Users']
+      id: 'authentication',
+      title: <FormattedMessage id="Authentication" defaultMessage="Authentication" />,
+      type: 'collapse',
+      icon: icons.SecurityUser,
+      permissions: ['Users', 'role', 'matrix', 'assign-role-to-user'],
+      children: [
+        {
+          id: 'Users',
+          title: <FormattedMessage id="Users" />,
+          type: 'item',
+          url: '/Users',
+          icon: icons.People,
+          permissions: ['Users']
+        },
+        {
+          id: 'role',
+          title: <FormattedMessage id="Role" defaultMessage="Role" />,
+          type: 'item',
+          url: '/roles',
+          icon: icons.Shield,
+          permissions: ['role']
+        },
+        {
+          id: 'matrix',
+          title: <FormattedMessage id="Permission Matrix" defaultMessage="Permission Matrix" />,
+          type: 'item',
+          url: '/Matrics',
+          icon: icons.ShieldSearch,
+          permissions: ['matrix']
+        },
+        {
+          id: 'assign-role-to-user',
+          title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
+          type: 'item',
+          url: '/assign-role-to-user',
+          icon: icons.User,
+          permissions: ['assign-role-to-user']
+        }
+      ]
     },
     {
-      id: 'role',
-      title: <FormattedMessage id="Role" defaultMessage="Role" />,
-      type: 'item',
-      url: '/roles',
-      icon: icons.Shield,
-      permissions: ['role']
-    },
-    {
-      id: 'matrix',
-      title: <FormattedMessage id="Permission Matrix" defaultMessage="Permission Matrix" />,
-      type: 'item',
-      url: '/Matrics',
-      icon: icons.ShieldSearch,
-      permissions: ['matrix']
-    },
-    {
-      id: 'assign-role-to-user',
-      title: <FormattedMessage id="Assign Role to User" defaultMessage="Assign Role to User" />,
-      type: 'item',
-      url: '/assign-role-to-user',
-      icon: icons.User,
-      permissions: ['assign-role-to-user']
-    },
-    {
-      id: 'state',
-      title: <FormattedMessage id="State" />,
-      type: 'item',
-      url: '/state',
-      icon: icons.Location,
-      permissions: ['state']
-    },
-    {
-      id: 'division',
-      title: <FormattedMessage id="Division" />,
-      type: 'item',
-      url: '/division',
-      icon: icons.Bank, // Administrative division
-      permissions: ['division']
-    },
-    {
-      id: 'parliament',
-      title: <FormattedMessage id="Parliament" />,
-      type: 'item',
-      url: '/parliament',
-      icon: icons.Building,
-      permissions: ['parliament']
+      id: 'master',
+      title: <FormattedMessage id="Master" defaultMessage="Master" />,
+      type: 'collapse',
+      icon: icons.HierarchySqu,
+      permissions: ['state', 'division', 'parliament', 'assembly', 'block', 'booth', 'panchayat', 'village', 'falliya'],
+      children: [
+        {
+          id: 'state',
+          title: <FormattedMessage id="State" />,
+          type: 'item',
+          url: '/state',
+          icon: icons.Location,
+          permissions: ['state']
+        },
+        {
+          id: 'division',
+          title: <FormattedMessage id="Division" />,
+          type: 'item',
+          url: '/division',
+          icon: icons.Bank,
+          permissions: ['division']
+        },
+        {
+          id: 'parliament',
+          title: <FormattedMessage id="Parliament" />,
+          type: 'item',
+          url: '/parliament',
+          icon: icons.Building,
+          permissions: ['parliament']
+        },
+        {
+          id: 'assembly',
+          title: <FormattedMessage id="Assembly" />,
+          type: 'item',
+          url: '/assembly',
+          icon: icons.Courthouse,
+          permissions: ['assembly']
+        },
+        {
+          id: 'block',
+          title: <FormattedMessage id="Block" />,
+          type: 'item',
+          url: '/block',
+          icon: icons.Location,
+          permissions: ['block']
+        },
+        {
+          id: 'booth',
+          title: <FormattedMessage id="Booth" />,
+          type: 'item',
+          url: '/booth',
+          icon: icons.Home,
+          permissions: ['booth']
+        },
+        {
+          id: 'panchayat',
+          title: <FormattedMessage id="Panchayat" />,
+          type: 'item',
+          url: '/panchayat',
+          icon: icons.HierarchySqu,
+          permissions: ['panchayat']
+        },
+        {
+          id: 'village',
+          title: <FormattedMessage id="Village" />,
+          type: 'item',
+          url: '/village',
+          icon: icons.HierarchySqu,
+          permissions: ['village']
+        },
+        {
+          id: 'falliya',
+          title: <FormattedMessage id="Falliya" />,
+          type: 'item',
+          url: '/falliya',
+          icon: icons.HierarchySqu,
+          permissions: ['falliya']
+        }
+      ]
     },
     {
       id: 'parliament-candidate',
@@ -146,15 +212,6 @@ const CRUDMenu = {
       url: '/parliament-candidate',
       icon: icons.UserOctagon,
       permissions: ['parliament-candidate']
-    },
-
-    {
-      id: 'assembly',
-      title: <FormattedMessage id="Assembly" />,
-      type: 'item',
-      url: '/assembly',
-      icon: icons.Courthouse, // Government building
-      permissions: ['assembly']
     },
     {
       id: 'district',
@@ -165,52 +222,12 @@ const CRUDMenu = {
       permissions: ['district']
     },
     {
-      id: 'block',
-      title: <FormattedMessage id="Block" />,
-      type: 'item',
-      url: '/block',
-      icon: icons.Location, // Geographical block
-      permissions: ['block']
-    },
-    {
-      id: 'booth',
-      title: <FormattedMessage id="Booth" />,
-      type: 'item',
-      url: '/booth',
-      icon: icons.Home, // Polling booth
-      permissions: ['booth']
-    },
-    {
       id: 'blo',
       title: <FormattedMessage id="BLO Officers" defaultMessage="BLO Officers" />,
       type: 'item',
       url: '/blo',
       icon: icons.UserOctagon,
       permissions: ['blo']
-    },
-    {
-      id: 'panchayat',
-      title: <FormattedMessage id="Panchayat" />,
-      type: 'item',
-      url: '/panchayat',
-      icon: icons.HierarchySqu,
-      permissions: ['panchayat']
-    },
-    {
-      id: 'village',
-      title: <FormattedMessage id="Village" />,
-      type: 'item',
-      url: '/village',
-      icon: icons.HierarchySqu,
-      permissions: ['village']
-    },
-    {
-      id: 'falliya',
-      title: <FormattedMessage id="Falliya" />,
-      type: 'item',
-      url: '/falliya',
-      icon: icons.HierarchySqu,
-      permissions: ['falliya']
     },
     // {
     //   id: 'Assembly-Votes',
