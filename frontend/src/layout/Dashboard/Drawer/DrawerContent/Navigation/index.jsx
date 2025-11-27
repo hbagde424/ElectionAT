@@ -45,17 +45,18 @@ export default function Navigation() {
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [menuItems, setMenuItems] = useState({ items: [] });
 
-  let dashboardMenu = MenuFromAPI();
+  // let dashboardMenu = MenuFromAPI();
   useLayoutEffect(() => {
-    if (menuLoading && !isFound(menuItem, 'group-dashboard-loading')) {
-      menuItem.items.splice(0, 0, dashboardMenu);
+    // Commented out dynamic dashboard menu injection to avoid duplicate Dashboard entries
+    // if (menuLoading && !isFound(menuItem, 'group-dashboard-loading')) {
+    //   menuItem.items.splice(0, 0, dashboardMenu);
+    //   setMenuItems({ items: [...menuItem.items] });
+    // } else if (!menuLoading && dashboardMenu?.id !== undefined && !isFound(menuItem, 'group-dashboard')) {
+    //   menuItem.items.splice(0, 1, dashboardMenu);
+    //   setMenuItems({ items: [...menuItem.items] });
+    // } else {
       setMenuItems({ items: [...menuItem.items] });
-    } else if (!menuLoading && dashboardMenu?.id !== undefined && !isFound(menuItem, 'group-dashboard')) {
-      menuItem.items.splice(0, 1, dashboardMenu);
-      setMenuItems({ items: [...menuItem.items] });
-    } else {
-      setMenuItems({ items: [...menuItem.items] });
-    }
+    // }
     // eslint-disable-next-line
   }, [menuLoading]);
 

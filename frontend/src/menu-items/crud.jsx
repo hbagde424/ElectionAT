@@ -125,11 +125,11 @@ const CRUDMenu = {
       ]
     },
     {
-      id: 'master',
+      id: 'Master Data',
       title: <FormattedMessage id="Master" defaultMessage="Master" />,
       type: 'collapse',
       icon: icons.HierarchySqu,
-      permissions: ['state', 'division', 'parliament', 'assembly', 'block', 'booth', 'panchayat', 'village', 'falliya'],
+      permissions: ['state', 'division', 'parliament', 'assembly', 'block', 'booth', 'panchayat', 'village', 'falliya', 'district', 'parties'],
       children: [
         {
           id: 'state',
@@ -203,6 +203,23 @@ const CRUDMenu = {
           icon: icons.HierarchySqu,
           permissions: ['falliya']
         }
+        ,
+        {
+          id: 'district',
+          title: <FormattedMessage id="District" />,
+          type: 'item',
+          url: '/district',
+          icon: icons.Location,
+          permissions: ['district']
+        },
+        {
+          id: 'parties',
+          title: <FormattedMessage id="Parties" />,
+          type: 'item',
+          url: '/parties',
+          icon: icons.Flag,
+          permissions: ['parties']
+        }
       ]
     },
     {
@@ -213,14 +230,7 @@ const CRUDMenu = {
       icon: icons.UserOctagon,
       permissions: ['parliament-candidate']
     },
-    {
-      id: 'district',
-      title: <FormattedMessage id="District" />,
-      type: 'item',
-      url: '/district',
-      icon: icons.Location,
-      permissions: ['district']
-    },
+    
     {
       id: 'blo',
       title: <FormattedMessage id="BLO Officers" defaultMessage="BLO Officers" />,
@@ -344,14 +354,7 @@ const CRUDMenu = {
     //   url: '/Parliament-Votes',
     //   icon: icons.TrendUp, // Voting trends
     // },
-    {
-      id: 'parties',
-      title: <FormattedMessage id="Parties" />,
-      type: 'item',
-      url: '/parties',
-      icon: icons.Flag,
-      permissions: ['parties']
-    },
+    
     {
       id: 'Party-Activities',
       title: <FormattedMessage id="Party-Activities" />,

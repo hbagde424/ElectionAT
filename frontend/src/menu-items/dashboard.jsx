@@ -49,6 +49,16 @@ const loadingMenu = {
   ]
 };
 
+// Static dashboard group to ensure a single Dashboard entry
+const staticDashboard = {
+  id: 'group-dashboard',
+  title: <FormattedMessage id="dashboard" />,
+  type: 'group',
+  icon: icons.dashboard,
+  url: '/dashboard/default',
+  breadcrumbs: false
+};
+
 // ==============================|| STATIC MENU FOR ADMIN ITEMS ||============================== //
 
 const adminMenu = {
@@ -148,4 +158,5 @@ function fillItem(item, children) {
 }
 
 export default adminMenu;
+export { staticDashboard };
 
