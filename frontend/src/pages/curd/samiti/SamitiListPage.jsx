@@ -266,6 +266,8 @@ const SamitiListPage = () => {
             if (yearFilter) queryParams.push(`year=${yearFilter}`);
             if (yearFilter) queryParams.push(`year=${yearFilter}`);
 
+            console.debug('[Samiti] fetchSamitis params:', queryParams.join('&'), 'appliedFilters:', appliedFilters, 'globalFilter:', globalFilter, 'yearFilter:', yearFilter);
+
             const { data: json } = await axiosServices.get(`/samitis?${queryParams.join('&')}`);
             if (json.success) {
                 setSamitis(json.data);
@@ -303,10 +305,15 @@ const SamitiListPage = () => {
         }
     };
 
+    // Fetch reference data only once on mount
     useEffect(() => {
-        fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
         fetchAllSamitisForFilters();
+    }, []);
+
+    // Fetch samitis when filters or pagination change
+    useEffect(() => {
+        fetchSamitis(pagination.pageIndex, pagination.pageSize, globalFilter);
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters, yearFilter]);
 
     // Fetch booths that have samiti data
@@ -491,6 +498,8 @@ const SamitiListPage = () => {
         }
     }, [blocks, mapboxToken]);
 
+    // Note: Removed temporary debug interceptors that were preventing normal UI clicks.
+
     // Refresh samiti markers when year filter changes
     useEffect(() => {
         if (boothGeoJSON && yearFilter !== undefined) {
@@ -551,6 +560,15 @@ const SamitiListPage = () => {
                 } catch (err) {
                     console.error('[Samiti Map] Error fetching samitis:', err);
                 }
+                    // Also apply booth filter to samiti table so bottom table shows entries for this booth
+                    try {
+                        console.debug('[Samiti Map] Applying booth filter to table:', booth._id);
+                        setFilterValues(prev => ({ ...prev, booth: booth._id }));
+                        setAppliedFilters(prev => ({ ...prev, booth: booth._id }));
+                        setPagination({ pageIndex: 0, pageSize: 10 });
+                    } catch (err) {
+                        console.warn('[Samiti Map] Failed to apply booth filter:', err);
+                    }
             } else {
                 console.warn('[Samiti Map] No booth matched, cannot fetch samitis');
             }
@@ -1043,10 +1061,37 @@ const SamitiListPage = () => {
                                         onClick={(e) => {
                                             if (!boothGeoJSON) return;
                                             try {
+                                                // Aggressively prevent any native/default click behavior and log event target
+                                                try { if (e && typeof e.preventDefault === 'function') e.preventDefault(); } catch {}
+                                                try { if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); } catch {}
+                                                try {
+                                                    if (e && e.originalEvent) {
+                                                        if (typeof e.originalEvent.preventDefault === 'function') e.originalEvent.preventDefault();
+                                                        if (typeof e.originalEvent.stopPropagation === 'function') e.originalEvent.stopPropagation();
+                                                        if (typeof e.originalEvent.stopImmediatePropagation === 'function') e.originalEvent.stopImmediatePropagation();
+                                                    }
+                                                } catch {}
+                                                console.debug('[Samiti Map] click handler: prevented default/propagation');
+
+                                                // Log originalEvent target and ancestor anchors (helps find unexpected navigation)
+                                                try {
+                                                    const orig = e && e.originalEvent;
+                                                    if (orig && orig.target) {
+                                                        const tgt = orig.target;
+                                                        try { console.debug('[Samiti Map] originalEvent target:', tgt.tagName, tgt.className || '', tgt.id || '', tgt.href || ''); } catch {}
+                                                        try {
+                                                            const anchor = tgt.closest && tgt.closest('a');
+                                                            if (anchor) console.warn('[Samiti Map] Found ancestor <a> for click target:', anchor.href, anchor); 
+                                                        } catch (err) { /* ignore */ }
+                                                    } else {
+                                                        console.debug('[Samiti Map] originalEvent not present or has no target');
+                                                    }
+                                                } catch (logErr) { console.warn('[Samiti Map] error logging originalEvent target', logErr); }
+
                                                 const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
                                                 let features = e.features || [];
                                                 if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
-                                                    const point = e.point || { x: e.x, y: e.y };
+                                                    const point = e.point || { x: e.x, y: e.y } || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
                                                     if (point) {
                                                         features = map.queryRenderedFeatures([point.x, point.y], { layers: ['booth-fill'] }) || [];
                                                     }
@@ -1054,11 +1099,30 @@ const SamitiListPage = () => {
                                                 const boothFeature = features.find(f => f.layer && f.layer.id === 'booth-fill') || features[0];
                                                 if (boothFeature) {
                                                     const props = boothFeature.properties || {};
-                                                    console.log('[Samiti Map] Clicked polygon properties:', props);
+                                                    console.debug('[Samiti Map] Clicked polygon properties:', props);
                                                     const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth || (props.properties && (props.properties.BoothNo || props.properties.booth_number));
-                                                    console.log('[Samiti Map] Extracted boothNo:', boothNo);
+                                                    console.debug('[Samiti Map] Extracted boothNo:', boothNo);
+
+                                                    // Immediately set drawer and apply filters similar to Gender page
                                                     setDrawerOpen(true);
                                                     setDrawerData({ loading: true, boothNo, details: null });
+
+                                                    // Apply booth filter immediately so table updates without needing a page refresh
+                                                    // We'll set both the UI inputs and the appliedFilters so the side-panel reflects selection
+                                                    try {
+                                                        // If booth id is available in polygon props, use that; otherwise fetch in the detail fetch
+                                                        if (props && (props.id || props.booth || props.BoothId || props._id)) {
+                                                            const candidateId = props.id || props.booth || props.BoothId || props._id;
+                                                            setFilterValues(prev => ({ ...prev, booth: candidateId }));
+                                                            setAppliedFilters(prev => ({ ...prev, booth: candidateId }));
+                                                            setPagination({ pageIndex: 0, pageSize: 10 });
+                                                            console.debug('[Samiti Map] Applied booth filter from polygon props:', candidateId);
+                                                        }
+                                                    } catch (applyErr) {
+                                                        console.warn('[Samiti Map] Failed to apply immediate booth filter from props:', applyErr);
+                                                    }
+
+                                                    // Continue to fetch booth details (which will also try to match booth by booth number and set filters)
                                                     fetchBoothDetailsByPolygon(boothNo);
                                                 }
                                             } catch (err) {
