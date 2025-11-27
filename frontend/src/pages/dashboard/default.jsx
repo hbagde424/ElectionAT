@@ -1108,7 +1108,11 @@ export default function DashboardDefault() {
               </MainCard>
             </TabPanel>
             <TabPanel value="4" sx={{ p: 0 }}>
-              <DistrictMap onRegionClick={handleMapClick} />
+              <MainCard title="District Map">
+                <MapContainerStyled>
+                  <DistrictMap onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
+                </MapContainerStyled>
+              </MainCard>
             </TabPanel>
             {/* <TabPanel value="5" sx={{ p: 0 }}>
               <MainCard title="Block Map">
