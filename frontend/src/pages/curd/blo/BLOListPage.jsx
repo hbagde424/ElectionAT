@@ -121,6 +121,30 @@ const BLOListPage = () => {
         contact_number: ''
     });
 
+    // Temporary filters (for UI before Apply)
+    const [tempFilters, setTempFilters] = useState({
+        state_id: '',
+        division_id: '',
+        parliament_id: '',
+        assembly_id: '',
+        block_id: '',
+        booth_id: '',
+        blo_name: '',
+        contact_number: ''
+    });
+
+    // Applied filters (for actual API calls)
+    const [appliedFilters, setAppliedFilters] = useState({
+        state_id: '',
+        division_id: '',
+        parliament_id: '',
+        assembly_id: '',
+        block_id: '',
+        booth_id: '',
+        blo_name: '',
+        contact_number: ''
+    });
+
     const fetchAllBLOsForFilters = async () => {
         try {
             const query = {};
@@ -130,14 +154,14 @@ const BLOListPage = () => {
             if (userHierarchy?.assembly) query.assembly_id = userHierarchy.assembly._id || userHierarchy.assembly;
             if (userHierarchy?.block) query.block_id = userHierarchy.block._id || userHierarchy.block;
             if (userHierarchy?.booth) query.booth_id = userHierarchy.booth._id || userHierarchy.booth;
-            if (filters?.state_id) query.state_id = filters.state_id;
-            if (filters?.division_id) query.division_id = filters.division_id;
-            if (filters?.parliament_id) query.parliament_id = filters.parliament_id;
-            if (filters?.assembly_id) query.assembly_id = filters.assembly_id;
-            if (filters?.block_id) query.block_id = filters.block_id;
-            if (filters?.booth_id) query.booth_id = filters.booth_id;
-            if (filters?.blo_name) query.blo_name = filters.blo_name;
-            if (filters?.contact_number) query.contact_number = filters.contact_number;
+            if (appliedFilters?.state_id) query.state_id = appliedFilters.state_id;
+            if (appliedFilters?.division_id) query.division_id = appliedFilters.division_id;
+            if (appliedFilters?.parliament_id) query.parliament_id = appliedFilters.parliament_id;
+            if (appliedFilters?.assembly_id) query.assembly_id = appliedFilters.assembly_id;
+            if (appliedFilters?.block_id) query.block_id = appliedFilters.block_id;
+            if (appliedFilters?.booth_id) query.booth_id = appliedFilters.booth_id;
+            if (appliedFilters?.blo_name) query.blo_name = appliedFilters.blo_name;
+            if (appliedFilters?.contact_number) query.contact_number = appliedFilters.contact_number;
             if (globalFilter) query.search = globalFilter;
 
             const data = await fetchAllDataForFilters('/blos', query);
@@ -157,11 +181,11 @@ const BLOListPage = () => {
     });
 
     // derive filtered lists for top-level filters so dropdowns cascade
-    const filteredDivisions = filterOptions.divisions?.filter(d => (filters.state_id ? (d.state_id?._id || d.state_id) === filters.state_id : true)) || [];
-    const filteredParliaments = filterOptions.parliaments?.filter(p => (filters.division_id ? (p.division_id?._id || p.division_id) === filters.division_id : true)) || [];
-    const filteredAssemblies = filterOptions.assemblies?.filter(a => (filters.parliament_id ? (a.parliament_id?._id || a.parliament_id) === filters.parliament_id : true)) || [];
-    const filteredBlocks = filterOptions.blocks?.filter(b => (filters.assembly_id ? (b.assembly_id?._id || b.assembly_id) === filters.assembly_id : true)) || [];
-    const filteredBooths = filterOptions.booths?.filter(b => (filters.block_id ? (b.block_id?._id || b.block_id) === filters.block_id : true)) || [];
+    const filteredDivisions = filterOptions.divisions?.filter(d => (tempFilters.state_id ? (d.state_id?._id || d.state_id) === tempFilters.state_id : true)) || [];
+    const filteredParliaments = filterOptions.parliaments?.filter(p => (tempFilters.division_id ? (p.division_id?._id || p.division_id) === tempFilters.division_id : true)) || [];
+    const filteredAssemblies = filterOptions.assemblies?.filter(a => (tempFilters.parliament_id ? (a.parliament_id?._id || a.parliament_id) === tempFilters.parliament_id : true)) || [];
+    const filteredBlocks = filterOptions.blocks?.filter(b => (tempFilters.assembly_id ? (b.assembly_id?._id || b.assembly_id) === tempFilters.assembly_id : true)) || [];
+    const filteredBooths = filterOptions.booths?.filter(b => (tempFilters.block_id ? (b.block_id?._id || b.block_id) === tempFilters.block_id : true)) || [];
 
     // CSV export
     const csvLinkRef = useRef(null);
@@ -284,10 +308,10 @@ const BLOListPage = () => {
         fetchAllBLOsForFilters();
     }, []);
 
-    // Keep filter options in sync with current table filters (globalFilter already fetched in main useEffect)
+    // Keep filter options in sync with current applied filters (globalFilter already fetched in main useEffect)
     useEffect(() => {
         fetchAllBLOsForFilters();
-    }, [JSON.stringify(filters)]);
+    }, [JSON.stringify(appliedFilters)]);
 
     const fetchHierarchyData = async () => {
         try {
@@ -314,7 +338,7 @@ const BLOListPage = () => {
     // Fetch BLOs data
     useEffect(() => {
         fetchBLOs();
-    }, [pagination, sorting, globalFilter, filters]);
+    }, [pagination, sorting, globalFilter, appliedFilters]);
 
     const fetchBLOs = async () => {
         setLoading(true);
@@ -323,13 +347,14 @@ const BLOListPage = () => {
                 page: pagination.pageIndex + 1,
                 limit: pagination.pageSize,
                 ...(globalFilter && { search: globalFilter }),
-                ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
+                ...Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v))
             });
 
             if (sorting.length > 0) {
                 params.append('sort', `${sorting[0].desc ? '-' : ''}${sorting[0].id}`);
             }
 
+            console.debug('[BLO] fetching with params:', params.toString(), 'sorting:', sorting, 'globalFilter:', globalFilter, 'appliedFilters:', appliedFilters);
             const response = await axiosServices.get(`/blos?${params}`);
             const { data, total, pages } = response.data;
 
@@ -357,12 +382,16 @@ const BLOListPage = () => {
     };
 
     const handleFilterChange = (name, value) => {
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setTempFilters(prev => ({ ...prev, [name]: value }));
+    };
+
+    const applyFilters = () => {
+        setAppliedFilters(tempFilters);
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
     const clearFilters = () => {
-        setFilters({
+        const emptyFilters = {
             state_id: '',
             division_id: '',
             parliament_id: '',
@@ -371,8 +400,11 @@ const BLOListPage = () => {
             booth_id: '',
             blo_name: '',
             contact_number: ''
-        });
+        };
+        setTempFilters(emptyFilters);
+        setAppliedFilters(emptyFilters);
         setGlobalFilter('');
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
     // Map helpers
@@ -488,9 +520,28 @@ const BLOListPage = () => {
                 }
             }
 
+            // also set table filters to this booth so the table below shows related data
+            if (booth && booth._id) {
+                handlePolygonSelectSetFilter(booth);
+            }
             setDrawerData({ loading: false, boothNo, details: { booth, blos: blosForBooth } });
         } catch (e) {
             setDrawerData({ loading: false, boothNo, details: { booth: null, blos: [] }, error: e.message });
+        }
+    };
+
+    // When a polygon is selected on the map we also want the table to filter to that booth
+    // Set both tempFilters and appliedFilters so UI reflects selection and the table updates immediately
+    const handlePolygonSelectSetFilter = (booth) => {
+        try {
+            const boothId = booth?._id || booth;
+            if (!boothId) return;
+            console.debug('[BLO] polygon selected booth id:', boothId);
+            setTempFilters(prev => ({ ...prev, booth_id: boothId }));
+            setAppliedFilters(prev => ({ ...prev, booth_id: boothId }));
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        } catch (err) {
+            console.warn('Failed to set polygon booth filter:', err);
         }
     };
 
@@ -501,7 +552,7 @@ const BLOListPage = () => {
             const params = new URLSearchParams({
                 all: 'true',
                 ...(globalFilter && { search: globalFilter }),
-                ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
+                ...Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v))
             });
 
             const response = await axiosServices.get(`/blos?${params}`);
@@ -868,7 +919,7 @@ const BLOListPage = () => {
                         <FormControl fullWidth>
                             <InputLabel>State</InputLabel>
                             <Select
-                                value={filters.state_id}
+                                value={tempFilters.state_id}
                                 onChange={(e) => handleFilterChange('state_id', e.target.value)}
                                 label="State"
                             >
@@ -885,10 +936,10 @@ const BLOListPage = () => {
                         <FormControl fullWidth>
                             <InputLabel>Division</InputLabel>
                             <Select
-                                value={filters.division_id}
+                                value={tempFilters.division_id}
                                 onChange={(e) => handleFilterChange('division_id', e.target.value)}
                                 label="Division"
-                                disabled={!filters.state_id}
+                                disabled={!tempFilters.state_id}
                             >
                                 <MenuItem value="">All Divisions</MenuItem>
                                 {filteredDivisions.map(division => (
@@ -903,7 +954,7 @@ const BLOListPage = () => {
                         <TextField
                             fullWidth
                             placeholder="BLO Name"
-                            value={filters.blo_name}
+                            value={tempFilters.blo_name}
                             onChange={(e) => handleFilterChange('blo_name', e.target.value)}
                         />
                     </Grid>
@@ -911,10 +962,10 @@ const BLOListPage = () => {
                         <FormControl fullWidth>
                             <InputLabel>Parliament</InputLabel>
                             <Select
-                                value={filters.parliament_id}
+                                value={tempFilters.parliament_id}
                                 onChange={(e) => handleFilterChange('parliament_id', e.target.value)}
                                 label="Parliament"
-                                disabled={!filters.division_id}
+                                disabled={!tempFilters.division_id}
                             >
                                 <MenuItem value="">All Parliaments</MenuItem>
                                 {filteredParliaments.map(parliament => (
@@ -929,10 +980,10 @@ const BLOListPage = () => {
                         <FormControl fullWidth>
                             <InputLabel>Assembly</InputLabel>
                             <Select
-                                value={filters.assembly_id}
+                                value={tempFilters.assembly_id}
                                 onChange={(e) => handleFilterChange('assembly_id', e.target.value)}
                                 label="Assembly"
-                                disabled={!filters.parliament_id}
+                                disabled={!tempFilters.parliament_id}
                             >
                                 <MenuItem value="">All Assemblies</MenuItem>
                                 {filteredAssemblies.map(assembly => (
@@ -947,10 +998,10 @@ const BLOListPage = () => {
                         <FormControl fullWidth>
                             <InputLabel>Block</InputLabel>
                             <Select
-                                value={filters.block_id}
+                                value={tempFilters.block_id}
                                 onChange={(e) => handleFilterChange('block_id', e.target.value)}
                                 label="Block"
-                                disabled={!filters.assembly_id}
+                                disabled={!tempFilters.assembly_id}
                             >
                                 <MenuItem value="">All Blocks</MenuItem>
                                 {filteredBlocks.map(block => (
@@ -965,10 +1016,10 @@ const BLOListPage = () => {
                         <FormControl fullWidth>
                             <InputLabel>Booth</InputLabel>
                             <Select
-                                value={filters.booth_id}
+                                value={tempFilters.booth_id}
                                 onChange={(e) => handleFilterChange('booth_id', e.target.value)}
                                 label="Booth"
-                                disabled={!filters.block_id}
+                                disabled={!tempFilters.block_id}
                             >
                                 <MenuItem value="">All Booths</MenuItem>
                                 {filteredBooths.map(booth => (
@@ -983,9 +1034,14 @@ const BLOListPage = () => {
                         <TextField
                             fullWidth
                             placeholder="Contact Number"
-                            value={filters.contact_number}
+                            value={tempFilters.contact_number}
                             onChange={(e) => handleFilterChange('contact_number', e.target.value)}
                         />
+                    </Grid>
+                    <Grid item xs={12} md={1}>
+                        <Button fullWidth variant="contained" onClick={applyFilters}>
+                            Apply
+                        </Button>
                     </Grid>
                     <Grid item xs={12} md={1}>
                         <Button fullWidth variant="outlined" onClick={clearFilters}>
