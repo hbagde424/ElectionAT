@@ -868,9 +868,50 @@ export default function ParliamentCandidateListPage() {
     return (
         <>
             <MainCard content={false}>
-                <ScrollX>
-                    <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ padding: 2 }}>
-                        <Stack direction="row" alignItems="center" spacing={2}>
+                <Box sx={{ padding: 2 }}>
+                    <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mb: 1, flexWrap: 'wrap' }}>
+                        <Button
+                            variant="outlined"
+                            startIcon={csvLoading ? <CircularProgress size={18} /> : <DocumentDownload />}
+                            onClick={handleDownloadCsv}
+                            disabled={csvLoading}
+                        >
+                            {csvLoading ? 'Preparing...' : 'Export CSV'}
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadExcelTemplate}
+                        >
+                            Download Excel Template
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            component="label"
+                            disabled={importing}
+                        >
+                            {importing ? 'Importing...' : 'Import Excel'}
+                            <input
+                                ref={importInputRef}
+                                type="file"
+                                hidden
+                                accept=".xlsx,.xls"
+                                onChange={handleImportFile}
+                            />
+                        </Button>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => {
+                                setSelectedCandidate(null);
+                                setOpenModal(true);
+                            }}
+                        >
+                            Add Parliament Candidate
+                        </Button>
+                    </Stack>
+
+                    <ScrollX>
+                        <Stack direction="row" alignItems="center" spacing={2} sx={{ whiteSpace: 'nowrap' }}>
                             <Typography variant="h5">Parliament Candidates</Typography>
                             <TextField
                                 size="small"
@@ -946,47 +987,8 @@ export default function ParliamentCandidateListPage() {
                                 </Select>
                             </FormControl>
                         </Stack>
-                        <Stack direction="row" spacing={2}>
-                            <Button
-                                variant="outlined"
-                                startIcon={csvLoading ? <CircularProgress size={18} /> : <DocumentDownload />}
-                                onClick={handleDownloadCsv}
-                                disabled={csvLoading}
-                            >
-                                {csvLoading ? 'Preparing...' : 'Export CSV'}
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={handleDownloadExcelTemplate}
-                            >
-                                Download Excel Template
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                component="label"
-                                disabled={importing}
-                            >
-                                {importing ? 'Importing...' : 'Import Excel'}
-                                <input
-                                    ref={importInputRef}
-                                    type="file"
-                                    hidden
-                                    accept=".xlsx,.xls"
-                                    onChange={handleImportFile}
-                                />
-                            </Button>
-                            <Button
-                                variant="contained"
-                                startIcon={<Add />}
-                                onClick={() => {
-                                    setSelectedCandidate(null);
-                                    setOpenModal(true);
-                                }}
-                            >
-                                Add Parliament Candidate
-                            </Button>
-                        </Stack>
-                    </Stack>
+                    </ScrollX>
+                </Box>
 
                     {/* Import Result Alert */}
                     {importResult && (
@@ -1021,8 +1023,9 @@ export default function ParliamentCandidateListPage() {
                         </Box>
                     )}
 
-                    <TableContainer>
-                        <Table>
+                    <ScrollX>
+                        <TableContainer component={Paper} sx={{ width: '100%' }}>
+                            <Table sx={{ minWidth: 900 }}>
                             <TableHead sx={{ backgroundColor: 'primary.main' }}>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
@@ -1084,8 +1087,9 @@ export default function ParliamentCandidateListPage() {
                                     </Fragment>
                                 ))}
                             </TableBody>
-                        </Table>
-                    </TableContainer>
+                            </Table>
+                        </TableContainer>
+                    </ScrollX>
 
                     <Divider />
                     <Box sx={{ p: 2 }}>
@@ -1096,7 +1100,6 @@ export default function ParliamentCandidateListPage() {
                             getPageCount={() => pageCount}
                         />
                     </Box>
-                </ScrollX>
             </MainCard>
 
             {/* CSV Download Link */}
