@@ -29,9 +29,10 @@ const closedMixin = (theme) => ({
   }),
 
   overflowX: 'hidden',
-  width: MINI_DRAWER_WIDTH,
+  width: 0,
   borderRight: 'none',
-  boxShadow: theme.customShadows.z1
+  boxShadow: 'none',
+  visibility: 'visible'
 });
 
 // ==============================|| DRAWER - MINI STYLED ||============================== //

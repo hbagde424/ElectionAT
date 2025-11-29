@@ -21,7 +21,7 @@ import AddCustomer from 'sections/apps/customer/AddCustomer';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import AuthGuard from 'utils/route-guard/AuthGuard';
 
-import { DRAWER_WIDTH, MenuOrientation } from 'config';
+import { DRAWER_WIDTH, MINI_DRAWER_WIDTH, MenuOrientation } from 'config';
 import useConfig from 'hooks/useConfig';
 import { handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
 
@@ -40,13 +40,14 @@ const url = ispValueAvailable ? 'https://1.envato.market/OrJ5nn' : 'https://1.en
 export default function MainLayout() {
   const theme = useTheme();
 
-  const { menuMasterLoading } = useGetMenuMaster();
+  const { menuMasterLoading, menuMaster } = useGetMenuMaster();
   const downXL = useMediaQuery(theme.breakpoints.down('xl'));
   const downLG = useMediaQuery(theme.breakpoints.down('lg'));
 
   const { container, miniDrawer, menuOrientation } = useConfig();
 
   const isHorizontal = menuOrientation === MenuOrientation.HORIZONTAL && !downLG;
+  const drawerOpen = menuMaster?.isDashboardDrawerOpened ?? false;
 
   // set media wise responsive drawer
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function MainLayout() {
         <Header />
         {!isHorizontal ? <Drawer /> : <HorizontalBar />}
 
-        <Box component="main" sx={{ width: `calc(100% - ${DRAWER_WIDTH}px)`, flexGrow: 1, p: { xs: 2, md: 3 } }}>
+        <Box component="main" sx={{ width: `calc(100% - ${drawerOpen ? DRAWER_WIDTH : 0}px)`, flexGrow: 1, p: { xs: 2, md: 3 } }}>
           <Toolbar sx={{ mt: isHorizontal ? 8 : 'inherit', mb: isHorizontal ? 2 : 'inherit' }} />
           <Container
             maxWidth={container ? 'xl' : false}
