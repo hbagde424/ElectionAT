@@ -94,7 +94,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/ParliamentCandidate'
  */
-router.get('/', protect, getUserPermissionsAndHierarchy, getParliamentCandidates);
+router.get('/',  getUserPermissionsAndHierarchy, getParliamentCandidates);
 
 /**
  * @swagger
