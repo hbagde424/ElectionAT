@@ -102,7 +102,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Coding'
  */
-router.get('/', getUserPermissionsAndHierarchy, getCodings);
+router.get('/', protect, getUserPermissionsAndHierarchy, getCodings);
 
 /**
  * @swagger
@@ -126,7 +126,7 @@ router.get('/', getUserPermissionsAndHierarchy, getCodings);
  *       404:
  *         description: Coding entry not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getCoding);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getCoding);
 
 /**
  * @swagger

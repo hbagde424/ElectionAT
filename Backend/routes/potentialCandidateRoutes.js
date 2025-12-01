@@ -87,7 +87,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/PotentialCandidate'
  */
-router.get('/', getUserPermissionsAndHierarchy, getPotentialCandidates);
+router.get('/', protect, getUserPermissionsAndHierarchy, getPotentialCandidates);
 
 /**
  * @swagger
@@ -111,7 +111,7 @@ router.get('/', getUserPermissionsAndHierarchy, getPotentialCandidates);
  *       404:
  *         description: Potential candidate not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getPotentialCandidate);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getPotentialCandidate);
 
 /**
  * @swagger
@@ -224,7 +224,7 @@ router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deletePote
  *       404:
  *         description: Constituency not found
  */
-router.get('/constituency/:constituencyId', getUserPermissionsAndHierarchy, getPotentialCandidatesByConstituency);
+router.get('/constituency/:constituencyId', protect, getUserPermissionsAndHierarchy, getPotentialCandidatesByConstituency);
 
 /**
  * @swagger
@@ -257,7 +257,7 @@ router.get('/constituency/:constituencyId', getUserPermissionsAndHierarchy, getP
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', getPotentialCandidatesByParty);
+router.get('/party/:partyId',protect, getPotentialCandidatesByParty);
 
 // Import endpoint
 router.post('/import', protect, authorize('admin', 'superAdmin'), importPotentialCandidates);

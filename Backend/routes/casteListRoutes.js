@@ -103,7 +103,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/CasteList'
  */
-router.get('/', getUserPermissionsAndHierarchy, getCasteLists);
+router.get('/', protect, getUserPermissionsAndHierarchy, getCasteLists);
 
 /**
  * @swagger
@@ -127,7 +127,7 @@ router.get('/', getUserPermissionsAndHierarchy, getCasteLists);
  *       404:
  *         description: Caste list not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getCasteList);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getCasteList);
 
 /**
  * @swagger

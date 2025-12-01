@@ -85,7 +85,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/District'
  */
-router.get('/', getUserPermissionsAndHierarchy, getDistricts);
+router.get('/', protect, getUserPermissionsAndHierarchy, getDistricts);
 
 /**
  * @swagger
@@ -109,7 +109,7 @@ router.get('/', getUserPermissionsAndHierarchy, getDistricts);
  *       404:
  *         description: District not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getDistrict);
+router.get('/:id', protect,  getUserPermissionsAndHierarchy, getDistrict);
 
 /**
  * @swagger
@@ -223,7 +223,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteDistrict);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getDistrictsByState);
+router.get('/state/:stateId', protect, getDistrictsByState);
 
 /**
  * @swagger
@@ -256,7 +256,7 @@ router.get('/state/:stateId', getDistrictsByState);
  *       404:
  *         description: Division not found
  */
-router.get('/division/:divisionId', getDistrictsByDivision);
+router.get('/division/:divisionId', protect, getDistrictsByDivision);
 
 /**
  * @swagger

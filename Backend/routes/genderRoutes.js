@@ -99,7 +99,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Gender'
  */
-router.get('/', getUserPermissionsAndHierarchy, getGenders);
+router.get('/', protect, getUserPermissionsAndHierarchy, getGenders);
 
 /**
  * @swagger
@@ -143,7 +143,7 @@ router.get('/', getUserPermissionsAndHierarchy, getGenders);
  *                     total:
  *                       type: number
  */
-router.get('/stats/:type/:id', getUserPermissionsAndHierarchy, getGenderStatsForMap);
+router.get('/stats/:type/:id',  protect, getUserPermissionsAndHierarchy, getGenderStatsForMap);
 
 /**
  * @swagger
@@ -167,7 +167,7 @@ router.get('/stats/:type/:id', getUserPermissionsAndHierarchy, getGenderStatsFor
  *       404:
  *         description: Gender entry not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getGender);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getGender);
 
 /**
  * @swagger
@@ -309,7 +309,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteGender);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getGendersByBooth);
+router.get('/booth/:boothId', protect, getGendersByBooth);
 
 /**
  * @swagger
@@ -342,7 +342,7 @@ router.get('/booth/:boothId', getGendersByBooth);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getGendersByState);
+router.get('/state/:stateId', protect, getGendersByState);
 
 /**
  * @swagger
@@ -386,7 +386,7 @@ router.get('/state/:stateId', getGendersByState);
  *                     total:
  *                       type: number
  */
-router.get('/stats/:type/:id', getGenderStatsForMap);
+router.get('/stats/:type/:id', protect,getGenderStatsForMap);
 
 /**
  * @swagger

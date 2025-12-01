@@ -99,7 +99,7 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/Assembly'
  */
 // Public: optional authentication
-router.get('/', getUserPermissionsAndHierarchy, getAssemblies);
+router.get('/', protect, getUserPermissionsAndHierarchy, getAssemblies);
 
 /**
  * @swagger
@@ -124,7 +124,7 @@ router.get('/', getUserPermissionsAndHierarchy, getAssemblies);
  *         description: Assembly not found
  */
 // Public: optional authentication
-router.get('/:id', getUserPermissionsAndHierarchy, getAssembly);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getAssembly);
 
 /**
  * @swagger
@@ -238,7 +238,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteAssembly);
  *         description: Parliament not found
  */
 // Public: optional authentication
-router.get('/parliament/:parliamentId', getUserPermissionsAndHierarchy, getAssembliesByParliament);
+router.get('/parliament/:parliamentId', protect, getUserPermissionsAndHierarchy, getAssembliesByParliament);
 
 /**
  * @swagger
@@ -272,7 +272,7 @@ router.get('/parliament/:parliamentId', getUserPermissionsAndHierarchy, getAssem
  *         description: Division not found
  */
 // Public: optional authentication
-router.get('/division/:divisionId', getUserPermissionsAndHierarchy, getAssembliesByDivision);
+router.get('/division/:divisionId', protect, getUserPermissionsAndHierarchy, getAssembliesByDivision);
 
 /**
  * @swagger

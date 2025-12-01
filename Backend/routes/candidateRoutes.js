@@ -78,7 +78,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Candidate'
  */
-router.get('/', getUserPermissionsAndHierarchy, getCandidates);
+router.get('/', protect, getUserPermissionsAndHierarchy, getCandidates);
 
 /**
  * @swagger
@@ -102,7 +102,7 @@ router.get('/', getUserPermissionsAndHierarchy, getCandidates);
  *       404:
  *         description: Candidate not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getCandidate);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getCandidate);
 
 /**
  * @swagger
@@ -257,7 +257,7 @@ router.post('/:id/photo', protect, authorize('superAdmin', 'admin'), uploadPhoto
  *                         items:
  *                           $ref: '#/components/schemas/Candidate'
  */
-router.get('/criminal-cases', getCandidatesByCriminalCases);
+router.get('/criminal-cases', protect, getUserPermissionsAndHierarchy, getCandidatesByCriminalCases);
 
 /**
  * @swagger
@@ -293,7 +293,7 @@ router.get('/criminal-cases', getCandidatesByCriminalCases);
  *                         items:
  *                           $ref: '#/components/schemas/Candidate'
  */
-router.get('/caste', getCandidatesByCaste);
+router.get('/caste', protect,  getCandidatesByCaste);
 
 /**
  * @swagger

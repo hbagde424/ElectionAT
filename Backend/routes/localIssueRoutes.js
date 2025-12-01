@@ -118,7 +118,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/LocalIssue'
  */
-router.get('/', getUserPermissionsAndHierarchy, getLocalIssues);
+router.get('/', protect, getUserPermissionsAndHierarchy, getLocalIssues);
 
 /**
  * @swagger
@@ -142,7 +142,7 @@ router.get('/', getUserPermissionsAndHierarchy, getLocalIssues);
  *       404:
  *         description: Local issue not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getLocalIssue);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getLocalIssue);
 
 /**
  * @swagger
@@ -282,7 +282,7 @@ router.delete('/:id', protect, authorize('superAdmin', 'superAdmin'), deleteLoca
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getLocalIssuesByBooth);
+router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getLocalIssuesByBooth);
 
 /**
  * @swagger
@@ -316,7 +316,7 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getLocalIssuesByBo
  *       400:
  *         description: Invalid status
  */
-router.get('/status/:status', getLocalIssuesByStatus);
+router.get('/status/:status', protect, getLocalIssuesByStatus);
 
 /**
  * @swagger

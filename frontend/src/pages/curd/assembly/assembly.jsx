@@ -71,33 +71,28 @@ export default function AssemblyListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const [statesRes, divisionsRes, parliamentsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`)
-            ]);
-
             const token = localStorage.getItem('serviceToken');
-            const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+            const commonHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+            const [statesRes, divisionsRes, parliamentsRes, usersRes] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: commonHeaders }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: commonHeaders }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: commonHeaders }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: commonHeaders })
             ]);
 
             const usersData = await usersRes.json();
-            if (usersData.success) setUsers(usersData.data);
+            if (usersData && usersData.success) setUsers(usersData.data);
 
             const [statesData, divisionsData, parliamentsData] = await Promise.all([
-                statesRes.json(),
-                divisionsRes.json(),
-                parliamentsRes.json()
+                statesRes.json().catch(() => null),
+                divisionsRes.json().catch(() => null),
+                parliamentsRes.json().catch(() => null)
             ]);
 
-            if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
+            if (statesData && statesData.success) setStates(statesData.data);
+            if (divisionsData && divisionsData.success) setDivisions(divisionsData.data);
+            if (parliamentsData && parliamentsData.success) setParliaments(parliamentsData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }

@@ -80,7 +80,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/LocalNews'
  */
-router.get('/', getLocalNews);
+router.get('/', protect, getLocalNews);
 
 /**
  * @swagger
@@ -104,7 +104,7 @@ router.get('/', getLocalNews);
  *       404:
  *         description: News item not found
  */
-router.get('/:id', getLocalNewsItem);
+router.get('/:id', protect, getLocalNewsItem);
 
 /**
  * @swagger
@@ -217,7 +217,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteLocalNews);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getNewsByBooth);
+router.get('/booth/:boothId', protect, getNewsByBooth);
 
 /**
  * @swagger

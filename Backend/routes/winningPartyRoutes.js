@@ -124,7 +124,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningParty'
  */
-router.get('/', getUserPermissionsAndHierarchy, getWinningParties);
+router.get('/', protect, getUserPermissionsAndHierarchy, getWinningParties);
 
 /**
  * @swagger
@@ -164,9 +164,9 @@ router.get('/', getUserPermissionsAndHierarchy, getWinningParties);
  */
 
 // Debug route to inspect which years are present in the DB
-router.get('/debug/years', getWinningPartysYearCounts);
+router.get('/debug/years', protect, getWinningPartysYearCounts);
 
-router.get('/graph', getWinningPartysForGraph);
+router.get('/graph', protect, getWinningPartysForGraph);
 
 /**
  * @swagger
@@ -190,7 +190,7 @@ router.get('/graph', getWinningPartysForGraph);
  *       404:
  *         description: Winning party record not found
  */
-router.get('/:id', getWinningParty);
+router.get('/:id', protect, getWinningParty);
 
 /**
  * @swagger
@@ -330,7 +330,7 @@ router.delete('/:id', protect, authorize('admin', 'superAdmin'), deleteWinningPa
  *       404:
  *         description: Party not found
  */
-router.get('/party/:partyId', getWinningPartiesByParty);
+router.get('/party/:partyId', protect, getWinningPartiesByParty);
 
 /**
  * @swagger
@@ -363,7 +363,7 @@ router.get('/party/:partyId', getWinningPartiesByParty);
  *       404:
  *         description: Election year not found
  */
-router.get('/year/:yearId', getWinningPartiesByYear);
+router.get('/year/:yearId', protect,getWinningPartiesByYear);
 
 /**
  * @swagger
@@ -396,7 +396,7 @@ router.get('/year/:yearId', getWinningPartiesByYear);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getWinningPartiesByBooth);
+router.get('/booth/:boothId', protect, getWinningPartiesByBooth);
 
 /**
  * @swagger

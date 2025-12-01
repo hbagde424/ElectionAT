@@ -109,7 +109,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WinningCandidate'
  */
-router.get('/', getUserPermissionsAndHierarchy, getWinningCandidates);
+router.get('/', protect, getUserPermissionsAndHierarchy, getWinningCandidates);
 
 /**
  * @swagger
@@ -145,7 +145,7 @@ router.get('/', getUserPermissionsAndHierarchy, getWinningCandidates);
  *                       assembly_count:
  *                         type: integer
  */
-router.get('/predicted-party-assembly-count', require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
+router.get('/predicted-party-assembly-count', protect,  require('../controllers/winningCandidateController').getPredictedPartyAssemblyCount2028);
 
 
 /**

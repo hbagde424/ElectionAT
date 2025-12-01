@@ -121,7 +121,7 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/Event'
  */
 // Public: optional authentication — attach hierarchy if token present
-router.get('/', getUserPermissionsAndHierarchy, getEvents);
+router.get('/', protect, getUserPermissionsAndHierarchy, getEvents);
 
 /**
  * @swagger
@@ -145,7 +145,7 @@ router.get('/', getUserPermissionsAndHierarchy, getEvents);
  *       404:
  *         description: Event not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getEvent);
+router.get('/:id',  protect, getUserPermissionsAndHierarchy, getEvent);
 
 /**
  * @swagger

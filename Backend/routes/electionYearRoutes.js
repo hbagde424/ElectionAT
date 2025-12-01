@@ -69,7 +69,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/ElectionYear'
  */
-router.get('/', getUserPermissionsAndHierarchy, getElectionYears);
+router.get('/', protect, getUserPermissionsAndHierarchy, getElectionYears);
 
 /**
  * @swagger
@@ -93,7 +93,7 @@ router.get('/', getUserPermissionsAndHierarchy, getElectionYears);
  *       404:
  *         description: Election year not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getElectionYear);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getElectionYear);
 
 /**
  * @swagger

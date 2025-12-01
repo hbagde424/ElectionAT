@@ -96,7 +96,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Influencer'
  */
-router.get('/', getUserPermissionsAndHierarchy, getInfluencers);
+router.get('/', protect, getUserPermissionsAndHierarchy, getInfluencers);
 
 /**
  * @swagger
@@ -120,7 +120,7 @@ router.get('/', getUserPermissionsAndHierarchy, getInfluencers);
  *       404:
  *         description: Influencer not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getInfluencer);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getInfluencer);
 
 /**
  * @swagger
@@ -233,7 +233,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteInfluencer);
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getInfluencersByBooth);
+router.get('/booth/:boothId', protect, getUserPermissionsAndHierarchy, getInfluencersByBooth);
 
 /**
  * @swagger
@@ -266,7 +266,7 @@ router.get('/booth/:boothId', getUserPermissionsAndHierarchy, getInfluencersByBo
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getInfluencersByAssembly);
+router.get('/assembly/:assemblyId', protect,  getInfluencersByAssembly);
 
 /**
  * @swagger

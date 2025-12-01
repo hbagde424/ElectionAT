@@ -104,7 +104,7 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/Block'
  */
 // Public: optional authentication — attach hierarchy if token present
-router.get('/', getUserPermissionsAndHierarchy, getBlocks);
+router.get('/', protect, getUserPermissionsAndHierarchy, getBlocks);
 
 /**
  * @swagger
@@ -128,7 +128,7 @@ router.get('/', getUserPermissionsAndHierarchy, getBlocks);
  *       404:
  *         description: Block not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getBlock);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getBlock);
 
 /**
  * @swagger
@@ -242,7 +242,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBlock);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getBlocksByAssembly);
+router.get('/assembly/:assemblyId', protect, getUserPermissionsAndHierarchy, getBlocksByAssembly);
 
 /**
  * @swagger
@@ -275,7 +275,7 @@ router.get('/assembly/:assemblyId', getUserPermissionsAndHierarchy, getBlocksByA
  *       404:
  *         description: Parliament not found
  */
-router.get('/parliament/:parliamentId', getUserPermissionsAndHierarchy, getBlocksByParliament);
+router.get('/parliament/:parliamentId', protect, getUserPermissionsAndHierarchy, getBlocksByParliament);
 
 /**
  * @swagger

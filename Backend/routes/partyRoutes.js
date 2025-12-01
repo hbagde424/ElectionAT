@@ -42,7 +42,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Party'
  */
-router.get('/', getUserPermissionsAndHierarchy, getParties);
+router.get('/', protect, getUserPermissionsAndHierarchy, getParties);
 
 /**
  * @swagger
@@ -66,7 +66,7 @@ router.get('/', getUserPermissionsAndHierarchy, getParties);
  *       404:
  *         description: Party not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getParty);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getParty);
 
 /**
  * @swagger

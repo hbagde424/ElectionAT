@@ -92,7 +92,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Government'
  */
-router.get('/', getUserPermissionsAndHierarchy, getGovernments);
+router.get('/', protect, getUserPermissionsAndHierarchy, getGovernments);
 
 /**
  * @swagger
@@ -116,7 +116,7 @@ router.get('/', getUserPermissionsAndHierarchy, getGovernments);
  *       404:
  *         description: Government project not found
  */
-router.get('/:id', getUserPermissionsAndHierarchy, getGovernment);
+router.get('/:id', protect, getUserPermissionsAndHierarchy, getGovernment);
 
 /**
  * @swagger
@@ -256,7 +256,7 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteGovernment);
  *       404:
  *         description: State not found
  */
-router.get('/state/:stateId', getUserPermissionsAndHierarchy, getGovernmentsByState);
+router.get('/state/:stateId', protect, getUserPermissionsAndHierarchy, getGovernmentsByState);
 
 /**
  * @swagger
@@ -289,7 +289,7 @@ router.get('/state/:stateId', getUserPermissionsAndHierarchy, getGovernmentsBySt
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', getGovernmentsByAssembly);
+router.get('/assembly/:assemblyId', protect, getGovernmentsByAssembly);
 
 /**
  * @swagger

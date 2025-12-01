@@ -146,7 +146,7 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/WorkStatus'
  */
-router.get('/', getUserPermissionsAndHierarchy, getWorkStatuses);
+router.get('/', protect, getUserPermissionsAndHierarchy, getWorkStatuses);
 
 /**
  * @swagger
@@ -178,7 +178,7 @@ router.get('/', getUserPermissionsAndHierarchy, getWorkStatuses);
  *                       totalSpent:
  *                         type: number
  */
-router.get('/statistics', getUserPermissionsAndHierarchy, getWorkStatusStatistics);
+router.get('/statistics', protect, getUserPermissionsAndHierarchy, getWorkStatusStatistics);
 
 /**
  * @swagger
@@ -202,7 +202,7 @@ router.get('/statistics', getUserPermissionsAndHierarchy, getWorkStatusStatistic
  *       404:
  *         description: Work status not found
  */
-router.get('/:id', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatus);
+router.get('/:id', protect, validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatus);
 
 /**
  * @swagger
@@ -315,7 +315,7 @@ router.delete('/:id', validateObjectIdParams, protect, authorize('admin', 'super
  *       404:
  *         description: Booth not found
  */
-router.get('/booth/:boothId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByBooth);
+router.get('/booth/:boothId', protect, validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByBooth);
 
 /**
  * @swagger
@@ -348,7 +348,7 @@ router.get('/booth/:boothId', validateObjectIdParams, getUserPermissionsAndHiera
  *       404:
  *         description: Block not found
  */
-router.get('/block/:blockId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByBlock);
+router.get('/block/:blockId', protect, validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByBlock);
 
 /**
  * @swagger
@@ -381,7 +381,7 @@ router.get('/block/:blockId', validateObjectIdParams, getUserPermissionsAndHiera
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByAssembly);
+router.get('/assembly/:assemblyId', protect, validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatusesByAssembly);
 
 /**
  * @swagger
