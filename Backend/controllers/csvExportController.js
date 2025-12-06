@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const OtpToken = require('../models/OtpToken');
 const User = require('../models/User');
-const { sendSms } = require('../utils/sms');
+const { sendSms, formatOtpMessage } = require('../utils/sms');
 
 const OTP_TTL_MINUTES = parseInt(process.env.CSV_EXPORT_OTP_TTL_MINUTES || '5', 10);
 const OTP_LENGTH = parseInt(process.env.CSV_EXPORT_OTP_LENGTH || '6', 10);
@@ -15,7 +15,7 @@ function generateOtp(length = 6) {
 exports.requestCsvOtp = async (req, res) => {
   try {
     let otpMobile = process.env.CSV_OTP_MOBILE_NUMBER;
-    
+
     // If specific mobile not set in env, find super admin
     if (!otpMobile) {
       const superAdmin = await User.findOne({ role: 'superAdmin', isActive: true }).sort({ created_at: 1 });
@@ -45,7 +45,8 @@ exports.requestCsvOtp = async (req, res) => {
 
     console.log('OTP Token created with ID:', token._id); // Debug log
 
-    const msg = `Your ElectionAtlas CSV download OTP is ${otp}. Valid for ${OTP_TTL_MINUTES} minutes. Do not share with anyone.`;
+    // Use the formatOtpMessage utility for consistent formatting
+    const msg = formatOtpMessage(otp, OTP_TTL_MINUTES);
 
     // Development mode: Log OTP to console for testing
     if (process.env.NODE_ENV === 'development') {
@@ -63,11 +64,11 @@ exports.requestCsvOtp = async (req, res) => {
     // Mask the mobile for frontend display
     const masked = otpMobile?.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2') || '**********';
 
-    const response = { 
-      success: true, 
-      requestId: token._id, 
-      to: masked, 
-      expiresInMinutes: OTP_TTL_MINUTES 
+    const response = {
+      success: true,
+      requestId: token._id,
+      to: masked,
+      expiresInMinutes: OTP_TTL_MINUTES
     };
 
     // In development mode, include OTP in response for testing

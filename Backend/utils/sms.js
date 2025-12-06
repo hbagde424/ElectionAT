@@ -1,24 +1,29 @@
 // utils/sms.js
-// SMS sending utility using custom SMS gateway API
+// SMS sending utility using custom SMS gateway API with real configuration
 
 const axios = require('axios');
+const smsConfig = require('../config/smsConfig');
 
-const SMS_API_KEY = process.env.SMS_API_KEY;
-const SMS_SENDER_ID = process.env.SMS_SENDER_ID || 'ELECAT';
-const SMS_TEMPLATE_ID = process.env.SMS_TEMPLATE_ID;
-const SMS_ROUTE = process.env.SMS_ROUTE || '1';
-const SMS_API_URL = process.env.SMS_API_URL || 'http://216.48.180.220/vb/apikey.php';
-
-async function sendSms(to, message) {
+/**
+ * Send SMS using the configured SMS gateway
+ * @param {string} to - Mobile number (10 digits or with country code)
+ * @param {string} message - Message to send
+ * @param {object} options - Optional parameters like templateId override
+ * @returns {Promise<boolean>} - Success status
+ */
+async function sendSms(to, message, options = {}) {
   if (!to) throw new Error('Destination mobile number required');
   if (!message) throw new Error('SMS message required');
 
   // Normalize mobile number (remove +91 prefix if present, ensure 10 digits)
   let cleanNumber = to.replace(/^\+91/, '').replace(/\D/g, '');
   if (cleanNumber.length === 10) {
-    // Good, keep as is
+    // Add 91 prefix for API
+    cleanNumber = '91' + cleanNumber;
   } else if (cleanNumber.length === 12 && cleanNumber.startsWith('91')) {
-    cleanNumber = cleanNumber.substring(2);
+    // Already has 91 prefix, keep as is
+  } else if (cleanNumber.length === 10) {
+    cleanNumber = '91' + cleanNumber;
   }
 
   // Development mode: Always log to console
@@ -31,48 +36,79 @@ async function sendSms(to, message) {
     console.log('='.repeat(70) + '\n');
   }
 
-  // If SMS API configured, use it
-  if (SMS_API_KEY && SMS_SENDER_ID && SMS_TEMPLATE_ID) {
-    try {
-      const params = {
-        apikey: SMS_API_KEY,
-        senderid: SMS_SENDER_ID,
-        templateid: SMS_TEMPLATE_ID,
-        route: SMS_ROUTE,
-        number: cleanNumber,
-        message: encodeURIComponent(message)
-      };
+  try {
+    // Use real SMS configuration
+    const templateId = options.templateId || smsConfig.templateId;
 
-      const queryString = new URLSearchParams(params).toString();
-      const fullUrl = `${SMS_API_URL}?${queryString}`;
+    // Build URL with query parameters
+    const url = `${smsConfig.apiUrl}?apikey=${smsConfig.apiKey}&senderid=${smsConfig.senderId}&templateid=${templateId}&number=${cleanNumber}&message=${encodeURIComponent(message)}`;
 
-      console.log('📱 Sending SMS...');
-      console.log('API URL:', SMS_API_URL);
-      console.log('To:', cleanNumber);
-      console.log('Message:', message);
+    console.log('📱 Sending SMS via Real Gateway...');
+    console.log('API URL:', smsConfig.apiUrl);
+    console.log('Sender ID:', smsConfig.senderId);
+    console.log('Template ID:', templateId);
+    console.log('To:', cleanNumber);
+    console.log('Message:', message);
 
-      const response = await axios.get(fullUrl, { timeout: 10000 });
-      
-      console.log('SMS API Response:', JSON.stringify(response.data, null, 2));
-      
-      if (response.data && response.data.status === 'Success') {
-        console.log(`✅ SMS sent successfully to ${cleanNumber}, MessageID: ${response.data.data?.messageid || 'N/A'}`);
+    const response = await axios.get(url, { timeout: 10000 });
+
+    console.log('SMS API Response:', JSON.stringify(response.data, null, 2));
+
+    // Check for successful response
+    // The API might return different response formats, so we check multiple conditions
+    if (response.data) {
+      const data = response.data;
+
+      // Success scenarios
+      if (data.status === 'Success' || data.Status === 'Success' ||
+        data.status === 'success' || data.Status === 'success' ||
+        (data.ErrorCode === '000' || data.errorCode === '000')) {
+        console.log(`✅ SMS sent successfully to ${cleanNumber}`);
+        if (data.MessageID || data.messageid || data.messageId) {
+          console.log(`Message ID: ${data.MessageID || data.messageid || data.messageId}`);
+        }
         return true;
       } else {
-        console.error('❌ SMS API error:', response.data);
-        throw new Error(response.data?.description || 'SMS send failed');
+        console.error('❌ SMS API error:', data);
+        // In development, still return true for testing
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ Continuing in development mode despite API error');
+          return true;
+        }
+        throw new Error(data.description || data.Description || data.message || 'SMS send failed');
       }
-    } catch (err) {
-      console.error('SMS send failed:', err.message);
-      // Fallback to console in case of API failure
-      console.log(`[SMS FALLBACK] to ${cleanNumber}: ${message}`);
-      return false;
     }
-  }
 
-  // Fallback: log to console (development/testing)
-  console.log(`[SMS DEV MODE] to ${cleanNumber}: ${message}`);
-  return true;
+    return true;
+  } catch (err) {
+    console.error('SMS send failed:', err.message);
+
+    // In development mode, log but don't fail
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[SMS DEV FALLBACK] to ${cleanNumber}: ${message}`);
+      return true;
+    }
+
+    // In production, throw error
+    throw err;
+  }
 }
 
-module.exports = { sendSms };
+/**
+ * Format OTP message using template
+ * @param {string} otp - OTP code
+ * @param {number} ttlMinutes - Time to live in minutes
+ * @param {string} template - Template to use (default: otpTemplate)
+ * @returns {string} - Formatted message
+ */
+function formatOtpMessage(otp, ttlMinutes = 5, template = null) {
+  const messageTemplate = template || smsConfig.otpTemplate;
+
+  return messageTemplate
+    .replace('{BRAND}', smsConfig.brand)
+    .replace('{OTP}', otp)
+    .replace('{TTL}', ttlMinutes)
+    .replace('{SIGN}', smsConfig.signature);
+}
+
+module.exports = { sendSms, formatOtpMessage };

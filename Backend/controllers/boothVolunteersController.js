@@ -7,6 +7,10 @@ const Assembly = require('../models/Assembly');
 const Parliament = require('../models/Parliament');
 const Block = require('../models/block');
 const User = require('../models/User');
+const OtpToken = require('../models/OtpToken');
+const bcrypt = require('bcryptjs');
+const { sendSms, formatOtpMessage } = require('../utils/sms');
+const smsConfig = require('../config/smsConfig');
 const fs = require('fs');
 const path = require('path');
 
@@ -427,7 +431,7 @@ exports.updateBoothVolunteer = async (req, res, next) => {
         size: file.size,
         path: file.path
       }));
-      
+
       req.body.documents = volunteer.documents ? [...volunteer.documents, ...newDocuments] : newDocuments;
     }
 
@@ -722,5 +726,183 @@ exports.importBoothVolunteers = async (req, res, next) => {
 
   } catch (err) {
     next(err);
+  }
+};
+
+// OTP Configuration
+const OTP_TTL_MINUTES = parseInt(process.env.BOOTH_VOLUNTEER_OTP_TTL_MINUTES || '5', 10);
+const OTP_LENGTH = parseInt(process.env.BOOTH_VOLUNTEER_OTP_LENGTH || '6', 10);
+
+function generateOtp(length = 6) {
+  const min = Math.pow(10, length - 1);
+  const max = Math.pow(10, length) - 1;
+  return String(Math.floor(Math.random() * (max - min + 1)) + min);
+}
+
+// @desc    Request OTP for booth volunteer operations
+// @route   POST /api/booth-volunteers/request-otp
+// @access  Private
+exports.requestBoothVolunteerOtp = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+
+    if (!mobile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number is required'
+      });
+    }
+
+    // Validate mobile number format
+    const cleanMobile = mobile.toString().trim().replace(/\D/g, '');
+    if (!/^[0-9]{10}$/.test(cleanMobile)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid 10-digit mobile number'
+      });
+    }
+
+    const otp = generateOtp(OTP_LENGTH);
+    console.log('Generated Booth Volunteer OTP:', otp);
+
+    const codeHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+    const token = await OtpToken.create({
+      purpose: 'booth_volunteer',
+      codeHash,
+      sentTo: cleanMobile,
+      createdBy: req.user._id,
+      expiresAt,
+      meta: {
+        requestedBy: {
+          id: req.user._id,
+          username: req.user.username,
+          email: req.user.email
+        },
+        userAgent: req.headers['user-agent'] || null,
+        ip: req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null
+      }
+    });
+
+    console.log('Booth Volunteer OTP Token created with ID:', token._id);
+
+    // Format message using booth volunteer template
+    const msg = formatOtpMessage(
+      otp,
+      OTP_TTL_MINUTES,
+      smsConfig.boothVolunteerOtpTemplate
+    );
+
+    // Development mode: Log OTP to console
+    if (process.env.NODE_ENV === 'development') {
+      console.log('='.repeat(60));
+      console.log('🔐 BOOTH VOLUNTEER OTP (Development Mode)');
+      console.log('='.repeat(60));
+      console.log(`OTP: ${otp}`);
+      console.log(`Mobile: ${cleanMobile}`);
+      console.log(`Expires in: ${OTP_TTL_MINUTES} minutes`);
+      console.log('='.repeat(60));
+    }
+
+    await sendSms(cleanMobile, msg);
+
+    // Mask mobile for response
+    const masked = cleanMobile.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2');
+
+    const response = {
+      success: true,
+      requestId: token._id,
+      to: masked,
+      expiresInMinutes: OTP_TTL_MINUTES
+    };
+
+    // Include OTP in development mode
+    if (process.env.NODE_ENV === 'development') {
+      response.devOtp = otp;
+    }
+
+    return res.json(response);
+  } catch (err) {
+    console.error('requestBoothVolunteerOtp error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+// @desc    Verify OTP for booth volunteer operations
+// @route   POST /api/booth-volunteers/verify-otp
+// @access  Private
+exports.verifyBoothVolunteerOtp = async (req, res) => {
+  try {
+    const { requestId, otp } = req.body || {};
+
+    if (!requestId || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'requestId and otp are required'
+      });
+    }
+
+    const token = await OtpToken.findById(requestId);
+    if (!token || token.purpose !== 'booth_volunteer') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP request'
+      });
+    }
+
+    if (token.usedAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP already used'
+      });
+    }
+
+    if (new Date() > token.expiresAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP expired'
+      });
+    }
+
+    if (token.attempts >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many attempts. Please request a new OTP.'
+      });
+    }
+
+    const match = await bcrypt.compare(otp, token.codeHash);
+    token.attempts += 1;
+
+    if (!match) {
+      await token.save();
+      return res.status(400).json({
+        success: false,
+        message: 'Incorrect OTP',
+        attemptsRemaining: Math.max(0, 5 - token.attempts)
+      });
+    }
+
+    token.usedAt = new Date();
+    await token.save();
+
+    console.log(`✅ Booth Volunteer OTP verified successfully for request ${requestId}`);
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully'
+    });
+  } catch (err) {
+    console.error('verifyBoothVolunteerOtp error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to verify OTP',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };

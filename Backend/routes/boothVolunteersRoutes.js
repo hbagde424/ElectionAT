@@ -9,7 +9,9 @@ const {
   getVolunteersByBooth,
   getVolunteersByParty,
   getVolunteersByState,
-  importBoothVolunteers
+  importBoothVolunteers,
+  requestBoothVolunteerOtp,
+  verifyBoothVolunteerOtp
 } = require('../controllers/boothVolunteersController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -224,6 +226,10 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getBoothVolunteer);
  *         description: Not authorized
  */
 router.post('/import', protect, authorize('superAdmin'), importBoothVolunteers);
+
+// OTP Routes for Booth Volunteers
+router.post('/request-otp', protect, requestBoothVolunteerOtp);
+router.post('/verify-otp', protect, verifyBoothVolunteerOtp);
 
 router.post('/', protect, authorize('superAdmin', 'coordinator'), volunteerUpload.array('documents', 10), createBoothVolunteer);
 
