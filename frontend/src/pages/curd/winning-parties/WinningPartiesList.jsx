@@ -3,6 +3,12 @@ import {
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar,
     FormControl, InputLabel, Select, MenuItem, Grid, TextField, Alert
 } from '@mui/material';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import CircularProgress from '@mui/material/CircularProgress';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import { useTheme } from '@mui/material/styles';
@@ -191,6 +197,18 @@ const WinningPartyListPage = () => {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    // OTP flow for CSV export
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
     // Excel import states
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
@@ -674,7 +692,7 @@ const WinningPartyListPage = () => {
         return [];
     };
 
-    const handleDownloadCsv = async () => {
+    const startCsvDownload = async () => {
         setCsvLoading(true);
         const allData = await fetchAllWinningPartiesForCsv();
         setCsvData(allData.map(item => ({
@@ -706,6 +724,10 @@ const WinningPartyListPage = () => {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    const handleDownloadCsv = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     // Excel Template Download
@@ -848,6 +870,35 @@ const WinningPartyListPage = () => {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                                                {/* OTP Dialog for CSV export */}
+                                                <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                                                    <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                                                    <DialogContent>
+                                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                                            OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                                                        </Typography>
+                                                        <TextField
+                                                            autoFocus
+                                                            fullWidth
+                                                            label="OTP"
+                                                            value={otpCode}
+                                                            onChange={(e) => setOtpCode(e.target.value)}
+                                                            disabled={otpLoading}
+                                                            inputProps={{ maxLength: 8 }}
+                                                        />
+                                                        {otpError && (
+                                                            <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                                                {otpError}
+                                                            </Typography>
+                                                        )}
+                                                    </DialogContent>
+                                                    <DialogActions>
+                                                        <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                                                        <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode.trim()}>
+                                                            {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                                                        </Button>
+                                                    </DialogActions>
+                                                </Dialog>
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, MenuItem, TextField, Tooltip, Alert
+    Button, Stack, Box, Typography, Divider, Chip, MenuItem, TextField, Tooltip, Alert,
+    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilte
 import DivisionModal from './DivisionModal';
 import AlertDivisionDelete from './AlertDivisionDelete';
 import DivisionView from './DivisionView';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function DivisionListPage() {
     const theme = useTheme();
@@ -43,6 +45,17 @@ export default function DivisionListPage() {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
 
     // Import functionality states
     const [importing, setImporting] = useState(false);
@@ -50,7 +63,7 @@ export default function DivisionListPage() {
     const importInputRef = useRef();
 
     // Download all divisions for CSV
-    const handleDownloadCsv = async () => {
+    const startCsvDownload = async () => {
         setCsvLoading(true);
         try {
             let url = `${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`;
@@ -70,6 +83,10 @@ export default function DivisionListPage() {
         } finally {
             setCsvLoading(false);
         }
+    };
+
+    const handleDownloadCsv = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     const handleDownloadExcelTemplate = async () => {
@@ -422,6 +439,35 @@ export default function DivisionListPage() {
                                 style={{ display: 'none' }}
                                 ref={csvLinkRef}
                             />
+                            {/* OTP Dialog for CSV export */}
+                            <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                                <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                                <DialogContent>
+                                    <Typography variant="body2" sx={{ mb: 1 }}>
+                                        OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                                    </Typography>
+                                    <TextField
+                                        autoFocus
+                                        fullWidth
+                                        label="OTP"
+                                        value={otpCode}
+                                        onChange={(e) => setOtpCode(e.target.value)}
+                                        disabled={otpLoading}
+                                        inputProps={{ maxLength: 8 }}
+                                    />
+                                    {otpError && (
+                                        <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                            {otpError}
+                                        </Typography>
+                                    )}
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                                    <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode?.trim()}>
+                                        {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                                    </Button>
+                                </DialogActions>
+                            </Dialog>
                             <Button
                                 variant="outlined"
                                 onClick={handleDownloadExcelTemplate}

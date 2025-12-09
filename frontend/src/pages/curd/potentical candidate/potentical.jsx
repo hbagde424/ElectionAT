@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, Stack, Box, Typography, Divider, Chip, Avatar, Alert,
-  FormControl, Select, MenuItem, TextField
+  FormControl, Select, MenuItem, TextField, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User, CalendarTick, DocumentDownload } from 'iconsax-react';
@@ -31,6 +31,7 @@ import PotentialCandidateView from 'pages/curd/potentical candidate/PotentialCan
 import { Tooltip } from '@mui/material';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function PotentialCandidateListPage() {
   const theme = useTheme();
@@ -268,6 +269,28 @@ export default function PotentialCandidateListPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // OTP flow for CSV export
+  const {
+    otpDialogOpen,
+    otpCode,
+    setOtpCode,
+    loading: otpLoading,
+    maskedDest,
+    error: otpError,
+    requestOtp,
+    verifyOtp,
+    closeDialog
+  } = useCsvOtp();
+
+  const startCsvDownload = async () => {
+    // Reuse the existing CSV generation logic
+    handleCSVDownload();
+  };
+
+  const handleCSVDownloadWithOtp = async () => {
+    await requestOtp(startCsvDownload);
   };
 
   // Excel Template Download
@@ -696,7 +719,7 @@ export default function PotentialCandidateListPage() {
               <Button
                 variant="outlined"
                 startIcon={<DocumentDownload />}
-                onClick={handleCSVDownload}
+                onClick={handleCSVDownloadWithOtp}
                 disabled={candidates.length === 0}
               >
                 Export CSV
@@ -710,6 +733,27 @@ export default function PotentialCandidateListPage() {
               <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedCandidate(null); setOpenModal(true); }}>
                 Add Candidate
               </Button>
+              {/* OTP Dialog for CSV export */}
+              <Dialog open={otpDialogOpen} onClose={closeDialog}>
+                <DialogTitle>Enter OTP</DialogTitle>
+                <DialogContent>
+                  <Typography variant="body2">An OTP has been sent to {maskedDest}</Typography>
+                  <TextField
+                    autoFocus
+                    margin="dense"
+                    label="OTP"
+                    fullWidth
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                  />
+                  {otpLoading && <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}><CircularProgress size={24} /></Box>}
+                  {otpError && <Typography color="error" sx={{ mt: 1 }}>{otpError}</Typography>}
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={closeDialog}>Cancel</Button>
+                  <Button onClick={async () => { await verifyOtp(); }} disabled={otpLoading}>Verify</Button>
+                </DialogActions>
+              </Dialog>
             </Stack>
           </Stack>
 

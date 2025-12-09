@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip,
-    Drawer, Paper, Alert
+    Drawer, Paper, Alert, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +26,7 @@ import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilte
 import ParliamentModal from './ParliamentModal';
 import AlertParliamentDelete from './AlertParliamentDelete';
 import ParliamentView from './ParliamentView';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function ParliamentListPage() {
     const theme = useTheme();
@@ -417,8 +418,19 @@ export default function ParliamentListPage() {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
 
-    const handleDownloadCsv = async () => {
+    const startCsvDownload = async () => {
         setCsvLoading(true);
         const allData = await fetchAllParliamentsForCsv();
         setCsvData(allData.map(item => ({
@@ -442,6 +454,10 @@ export default function ParliamentListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    const handleDownloadCsv = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     const handleDownloadExcelTemplate = async () => {
@@ -683,6 +699,35 @@ export default function ParliamentListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        {/* OTP Dialog for CSV export */}
+                        <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                            <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                            <DialogContent>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                                </Typography>
+                                <TextField
+                                    autoFocus
+                                    fullWidth
+                                    label="OTP"
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                    disabled={otpLoading}
+                                    inputProps={{ maxLength: 8 }}
+                                />
+                                {otpError && (
+                                    <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                        {otpError}
+                                    </Typography>
+                                )}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                                <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode?.trim()}>
+                                    {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
                         <Button
                             variant="outlined"
                             onClick={handleDownloadExcelTemplate}

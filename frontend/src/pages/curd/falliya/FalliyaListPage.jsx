@@ -1,7 +1,8 @@
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Grid,
-    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert
+    IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert,
+    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -21,6 +22,7 @@ import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import FalliyaModal from './FalliyaModal';
 import AlertFalliyaDelete from './AlertFalliyaDelete';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 
 const FalliyaListPage = () => {
     const theme = useTheme();
@@ -65,6 +67,17 @@ const FalliyaListPage = () => {
     const csvLinkRef = useRef(null);
     const [csvData, setCsvData] = useState([]);
     const [exportLoading, setExportLoading] = useState(false);
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
 
     // Excel import states
     const [importing, setImporting] = useState(false);
@@ -313,7 +326,7 @@ const FalliyaListPage = () => {
     };
 
     // CSV Export
-    const handleExport = async () => {
+    const startCsvDownload = async () => {
         setExportLoading(true);
         try {
             const params = new URLSearchParams({
@@ -350,6 +363,10 @@ const FalliyaListPage = () => {
             console.error('Error exporting data:', error);
         }
         setExportLoading(false);
+    };
+
+    const handleExport = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     // Excel Template Download
@@ -581,6 +598,35 @@ const FalliyaListPage = () => {
                     filename={`falliyas-export-${new Date().toISOString().split('T')[0]}.csv`}
                     style={{ display: 'none' }}
                 />
+                {/* OTP Dialog for CSV export */}
+                <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                    <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                            OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                        </Typography>
+                        <TextField
+                            autoFocus
+                            fullWidth
+                            label="OTP"
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                            disabled={otpLoading}
+                            inputProps={{ maxLength: 8 }}
+                        />
+                        {otpError && (
+                            <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                {otpError}
+                            </Typography>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                        <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode?.trim()}>
+                            {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </Stack>
 
             {/* Modals */}

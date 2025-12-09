@@ -16,6 +16,8 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { useCsvOtp } from 'hooks/useCsvOtp';
+import { Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 
 import GenderModal from './genderModal';
 import AlertGenderDelete from './AlertGenderDelete';
@@ -104,6 +106,17 @@ export default function GenderListPage() {
 
     // Import states
     const csvLinkRef = useRef();
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
     const importInputRef = useRef();
@@ -1023,48 +1036,33 @@ export default function GenderListPage() {
     const [csvLoading, setCsvLoading] = useState(false);
 
     const handleDownloadCsv = async () => {
-        setCsvLoading(true);
-        const allData = await fetchAllGendersForCsv();
-        setCsvData(allData.map(item => ({
-            'Male Count': item.male,
-            'Female Count': item.female,
-            'others Count': item.others,
-            'Total': item.male + item.female + item.others,
-            'State': item.state_id?.name || '',
-            'Division': item.division_id?.name || '',
-            'Parliament': item.parliament_id?.name || '',
-            'Assembly': item.assembly_id?.name || '',
-            'Block': item.block_id?.name || '',
-            'Booth': item.booth_id?.name || '',
-            'Booth Number': item.booth_id?.booth_number || '',
-            'Created By': item.created_by?.username || '',
-            'Created At': item.created_at
-        })));
-        //  setCsvData(allData.map(item => ({
+        const startCsvDownload = async () => {
+            setCsvLoading(true);
+            const allData = await fetchAllGendersForCsv();
+            setCsvData(allData.map(item => ({
+                'Male Count': item.male,
+                'Female Count': item.female,
+                'others Count': item.others,
+                'Total': item.male + item.female + item.others,
+                'State': item.state_id?.name || '',
+                'Division': item.division_id?.name || '',
+                'Parliament': item.parliament_id?.name || '',
+                'Assembly': item.assembly_id?.name || '',
+                'Block': item.block_id?.name || '',
+                'Booth': item.booth_id?.name || '',
+                'Booth Number': item.booth_id?.booth_number || '',
+                'Created By': item.created_by?.username || '',
+                'Created At': item.created_at
+            })));
+            setCsvLoading(false);
+            setTimeout(() => {
+                if (csvLinkRef.current) {
+                    csvLinkRef.current.link.click();
+                }
+            }, 100);
+        };
 
-
-        //     'State': item.state?.name || '',
-        //     'State ID': item.state?._id || '',
-        //     'Division': item.division?.name || '',
-        //     'Division ID': item.division?._id || '',
-        //     'Parliament': item.parliament?.name || '',
-        //     'Parliament ID': item.parliament?._id || '',
-        //     'Assembly': item.assembly?.name || '',
-        //     'Assembly ID': item.assembly?._id || '',
-        //     'Block': item.block?.name || '',
-        //     'Block ID': item.block?._id || '',
-        //     'Booth': item.booth?.name || '',
-        //     'Booth Number': item.booth?.booth_number || '',
-        //     'Booth ID': item.booth?._id || '',
-        //     'Created By': item.created_by?.username || '',
-        //     'Created At': item.created_at
-        // })));
-        setCsvLoading(false);
-        setTimeout(() => {
-            if (csvLinkRef.current) {
-                csvLinkRef.current.link.click();
-            }
-        }, 100);
+        await requestOtp(startCsvDownload);
     };
 
     const handleDownloadExcelTemplate = async () => {
@@ -1359,6 +1357,34 @@ export default function GenderListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                            <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                            <DialogContent>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                                </Typography>
+                                <TextField
+                                    autoFocus
+                                    fullWidth
+                                    label="OTP"
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                    disabled={otpLoading}
+                                    inputProps={{ maxLength: 8 }}
+                                />
+                                {otpError && (
+                                    <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                        {otpError}
+                                    </Typography>
+                                )}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                                <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode.trim()}>
+                                    {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
                         <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
                             Download Excel Template
                         </Button>

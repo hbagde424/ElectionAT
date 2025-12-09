@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField,
-    FormControl, InputLabel, Select, MenuItem, Grid, Drawer, Paper
+    FormControl, InputLabel, Select, MenuItem, Grid, Drawer, Paper,
+    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -19,6 +20,7 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 import { Alert } from '@mui/material';
 import { usePermissions } from 'contexts/PermissionContext';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
@@ -907,12 +909,25 @@ export default function PartyActivitiesListPage() {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
+    // OTP flow for CSV export
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
+
     // Excel import states
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
     const importInputRef = useRef();
 
-    const handleDownloadCsv = async () => {
+    const startCsvDownload = async () => {
         setCsvLoading(true);
         const allData = await fetchAllPartyActivitiesForCsv();
         setCsvData(allData.map(item => ({
@@ -943,6 +958,10 @@ export default function PartyActivitiesListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    const handleDownloadCsv = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     // Excel Template Download
@@ -1265,6 +1284,27 @@ export default function PartyActivitiesListPage() {
                             style={{ display: 'none' }}
                             ref={csvLinkRef}
                         />
+                        {/* OTP Dialog for CSV export */}
+                        <Dialog open={otpDialogOpen} onClose={closeDialog}>
+                            <DialogTitle>Enter OTP</DialogTitle>
+                            <DialogContent>
+                                <Typography variant="body2">An OTP has been sent to {maskedDest}</Typography>
+                                <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    label="OTP"
+                                    fullWidth
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                />
+                                {otpLoading && <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}><CircularProgress size={24} /></Box>}
+                                {otpError && <Typography color="error" sx={{ mt: 1 }}>{otpError}</Typography>}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={closeDialog}>Cancel</Button>
+                                <Button onClick={async () => { await verifyOtp(); }} disabled={otpLoading}>Verify</Button>
+                            </DialogActions>
+                        </Dialog>
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>

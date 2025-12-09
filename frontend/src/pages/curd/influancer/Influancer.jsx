@@ -12,6 +12,9 @@ import {
     useReactTable, flexRender
 } from '@tanstack/react-table';
 import MainCard from 'components/MainCard';
+
+import { useCsvOtp } from 'hooks/useCsvOtp';
+import { Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
@@ -1161,7 +1164,20 @@ export default function InfluencersListPage() {
     const [csvLoading, setCsvLoading] = useState(false);
     const csvLinkRef = useRef();
 
-    const handleDownloadCsv = async () => {
+    // OTP flow for CSV export
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
+
+    const startCsvDownload = async () => {
         setCsvLoading(true);
         const allData = await fetchAllInfluencersForCsv();
         setCsvData(allData.map(item => ({
@@ -1189,6 +1205,10 @@ export default function InfluencersListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    const handleDownloadCsv = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     const handleDownloadExcelTemplate = async () => {
@@ -1499,6 +1519,27 @@ export default function InfluencersListPage() {
                         </Button>
                     </Stack>
                 </Stack>
+                {/* OTP Dialog for CSV export */}
+                <Dialog open={otpDialogOpen} onClose={closeDialog}>
+                    <DialogTitle>Enter OTP</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body2">An OTP has been sent to {maskedDest}</Typography>
+                        <TextField
+                            autoFocus
+                            margin="dense"
+                            label="OTP"
+                            fullWidth
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                        />
+                        {otpLoading && <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}><CircularProgress size={24} /></Box>}
+                        {otpError && <Typography color="error" sx={{ mt: 1 }}>{otpError}</Typography>}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={closeDialog}>Cancel</Button>
+                        <Button onClick={async () => { await verifyOtp(); }} disabled={otpLoading}>Verify</Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Import Result */}
                 {importResult && (

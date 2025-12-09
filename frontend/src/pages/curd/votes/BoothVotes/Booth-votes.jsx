@@ -7,6 +7,8 @@ import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash, User } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
 import { CSVLink } from 'react-csv';
+import { useCsvOtp } from 'hooks/useCsvOtp';
+import { Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 import { usePermissions } from 'contexts/PermissionContext';
 
 // third-party
@@ -267,7 +269,21 @@ export default function BoothVotesListPage() {
     }
   };
 
-  const handleDownloadCsv = async () => {
+  // OTP flow for CSV export
+  const {
+    otpDialogOpen,
+    otpCode,
+    setOtpCode,
+    loading: otpLoading,
+    maskedDest,
+    error: otpError,
+    requestOtp,
+    verifyOtp,
+    closeDialog
+  } = useCsvOtp();
+
+  const startCsvDownload = async () => {
+    // Called after OTP verification
     const allData = await fetchAllVotesForCsv();
     const formattedData = allData.map(item => ({
       'Candidate': item.candidate?.name || 'N/A',
@@ -290,9 +306,15 @@ export default function BoothVotesListPage() {
 
     setTimeout(() => {
       if (csvLinkRef.current) {
+        // Use react-csv internal link
         csvLinkRef.current.link.click();
       }
-    }, 100);
+    }, 150);
+  };
+
+  const handleDownloadCsv = async () => {
+    // Start OTP flow; after verify the hook will call our startCsvDownload
+    await requestOtp(startCsvDownload);
   };
 
   // Excel Template Download
@@ -707,6 +729,35 @@ export default function BoothVotesListPage() {
               style={{ display: "none" }}
               ref={csvLinkRef}
             />
+            {/* OTP Dialog for CSV export */}
+            <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+              <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+              <DialogContent>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                </Typography>
+                <TextField
+                  autoFocus
+                  fullWidth
+                  label="OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  disabled={otpLoading}
+                  inputProps={{ maxLength: 8 }}
+                />
+                {otpError && (
+                  <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                    {otpError}
+                  </Typography>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode.trim()}>
+                  {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                </Button>
+              </DialogActions>
+            </Dialog>
             <Button
               variant="outlined"
               onClick={handleDownloadCsv}

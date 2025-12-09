@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
-    Tooltip, Grid, Drawer, Paper, Alert
+    Tooltip, Grid, Drawer, Paper, Alert, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
@@ -17,6 +17,7 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
@@ -126,6 +127,19 @@ export default function LocalIssueListPage() {
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
     const importInputRef = useRef();
+
+    // OTP flow for CSV export
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
 
     // Memo: Build a deduplicated markers FeatureCollection (1 point per unique booth number)
     const boothMarkersGeoJSON = useMemo(() => {
@@ -1190,7 +1204,7 @@ export default function LocalIssueListPage() {
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
 
-    const handleDownloadCsv = async () => {
+    const startCsvDownload = async () => {
         setCsvLoading(true);
         const allData = await fetchAllLocalIssuesForCsv();
         setCsvData(allData.map(item => ({
@@ -1218,6 +1232,10 @@ export default function LocalIssueListPage() {
                 csvLinkRef.current.link.click();
             }
         }, 100);
+    };
+
+    const handleDownloadCsv = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     const handleDownloadExcelTemplate = async () => {
@@ -1480,6 +1498,27 @@ export default function LocalIssueListPage() {
                         <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
                             {importing ? 'Importing...' : 'Import Excel'}
                         </Button>
+                        {/* OTP Dialog for CSV export */}
+                        <Dialog open={otpDialogOpen} onClose={closeDialog}>
+                            <DialogTitle>Enter OTP</DialogTitle>
+                            <DialogContent>
+                                <Typography variant="body2">An OTP has been sent to {maskedDest}</Typography>
+                                <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    label="OTP"
+                                    fullWidth
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                />
+                                {otpLoading && <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}><CircularProgress size={24} /></Box>}
+                                {otpError && <Typography color="error" sx={{ mt: 1 }}>{otpError}</Typography>}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={closeDialog}>Cancel</Button>
+                                <Button onClick={async () => { await verifyOtp(); }} disabled={otpLoading}>Verify</Button>
+                            </DialogActions>
+                        </Dialog>
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
