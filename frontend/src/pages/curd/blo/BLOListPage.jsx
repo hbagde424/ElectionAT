@@ -2,7 +2,7 @@ import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Stack, Typography, Box, Tooltip, Divider, Chip, Avatar, Grid,
     IconButton, Select, MenuItem, FormControl, InputLabel, TextField, Alert,
-    Drawer
+    Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
@@ -15,6 +15,7 @@ import {
     useReactTable, flexRender
 } from '@tanstack/react-table';
 import { CSVLink } from 'react-csv';
+import { useCsvOtp } from 'hooks/useCsvOtp';
 import { Add, Edit, Trash, Eye } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
 import { HeaderSort, TablePagination } from 'components/third-party/react-table';
@@ -191,6 +192,17 @@ const BLOListPage = () => {
     const csvLinkRef = useRef(null);
     const [csvData, setCsvData] = useState([]);
     const [exportLoading, setExportLoading] = useState(false);
+    const {
+        otpDialogOpen,
+        otpCode,
+        setOtpCode,
+        loading: otpLoading,
+        maskedDest,
+        error: otpError,
+        requestOtp,
+        verifyOtp,
+        closeDialog
+    } = useCsvOtp();
 
     // Excel import states
     const [importing, setImporting] = useState(false);
@@ -545,8 +557,8 @@ const BLOListPage = () => {
         }
     };
 
-    // CSV Export
-    const handleExport = async () => {
+    // CSV Export (OTP-protected)
+    const startCsvDownload = async () => {
         setExportLoading(true);
         try {
             const params = new URLSearchParams({
@@ -575,6 +587,10 @@ const BLOListPage = () => {
             console.error('Error exporting data:', error);
         }
         setExportLoading(false);
+    };
+
+    const handleExport = async () => {
+        await requestOtp(startCsvDownload);
     };
 
     // Excel Template Download
@@ -1103,6 +1119,28 @@ const BLOListPage = () => {
 
                 {/* Pagination */}
                 <TablePagination table={table} />
+
+                {/* OTP Dialog for CSV export */}
+                <Dialog open={otpDialogOpen} onClose={closeDialog} fullWidth maxWidth="xs">
+                    <DialogTitle>Enter OTP to download CSV</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body2" sx={{ mb: 1 }}>OTP will be sent to: {maskedDest || 'your registered number'}</Typography>
+                        <TextField
+                            label="OTP"
+                            fullWidth
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                            margin="dense"
+                        />
+                        {otpError && <Alert severity="error" sx={{ mt: 1 }}>{otpError}</Alert>}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={closeDialog}>Cancel</Button>
+                        <Button onClick={verifyOtp} variant="contained" disabled={otpLoading}>
+                            {otpLoading ? <CircularProgress size={18} /> : 'Verify & Download'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Hidden CSV export link */}
                 <CSVLink
