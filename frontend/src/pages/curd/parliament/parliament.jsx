@@ -74,20 +74,18 @@ export default function ParliamentListPage() {
 
     const fetchReferenceData = async () => {
         try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
             const [statesRes, divisionsRes, assembliesRes, electionYearsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`)
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/election-years`, { headers })
             ]);
 
-            const token = localStorage.getItem('serviceToken');
             const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
             ]);
 
             const usersData = await usersRes.json();

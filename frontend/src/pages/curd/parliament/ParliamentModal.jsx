@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Chip, Box
+    Chip, Box, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
@@ -30,8 +30,10 @@ export default function ParliamentModal({
         division_id: '',
         assembly_id: '',
         election_year_id: '',
-        description: ''
+        description: '',
+        polygon: null
     });
+    const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
@@ -62,8 +64,12 @@ export default function ParliamentModal({
                 division_id: '',
                 assembly_id: '',
                 election_year_id: '',
-                description: ''
+                assembly_id: '',
+                election_year_id: '',
+                description: '',
+                polygon: null
             });
+            setFileName('');
         }
     }, [parliament]);
 
@@ -130,6 +136,45 @@ export default function ParliamentModal({
             ...prev,
             description: value
         }));
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setFileName(file.name);
+
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            // Extract Feature (keep geometry AND properties)
+            let feature = null;
+            if (json.type === 'FeatureCollection' && json.features?.length > 0) {
+                // Take the first feature
+                feature = json.features[0];
+            } else if (json.type === 'Feature') {
+                feature = json;
+            } else if (json.type === 'Polygon' || json.type === 'MultiPolygon') {
+                // If raw geometry, wrap in Feature
+                feature = {
+                    type: "Feature",
+                    geometry: json,
+                    properties: {}
+                };
+            }
+
+            if (feature && feature.geometry) {
+                setFormData(prev => ({ ...prev, polygon: feature }));
+            } else {
+                alert('Invalid GeoJSON: Could not find valid Feature or Geometry');
+                setFileName('');
+            }
+        } catch (err) {
+            console.error('Error reading geojson:', err);
+            alert('Invalid JSON file');
+            setFileName('');
+        }
     };
 
     const handleSubmit = async () => {
@@ -335,14 +380,44 @@ export default function ParliamentModal({
                             />
                         </Stack>
                     </Grid>
+
+                    {/* Row 5: GeoJSON Upload */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Parliament Polygon (GeoJSON)</InputLabel>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                >
+                                    Upload File
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept=".json,.geojson"
+                                        onChange={handleFileChange}
+                                    />
+                                </Button>
+                                {fileName ? (
+                                    <Typography variant="body2">{fileName}</Typography>
+                                ) : (
+                                    parliament?.polygon && (
+                                        <Typography variant="body2" color="success.main">
+                                            Existing Polygon Present
+                                        </Typography>
+                                    )
+                                )}
+                            </Box>
+                        </Stack>
+                    </Grid>
                 </Grid>
-            </DialogContent>
+            </DialogContent >
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
                 <Button variant="contained" onClick={handleSubmit}>
                     {parliament ? 'Update' : 'Submit'}
                 </Button>
             </DialogActions>
-        </Dialog>
+        </Dialog >
     );
 }

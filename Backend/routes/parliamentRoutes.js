@@ -7,7 +7,8 @@ const {
   deleteParliament,
   getParliamentsByState,
   getParliamentsByDivision,
-  importParliaments
+  importParliaments,
+  uploadParliamentPolygon
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -138,6 +139,8 @@ router.get('/:id', protect, getUserPermissionsAndHierarchy, getParliament);
  *       401:
  *         description: Not authorized
  */
+// Protected: requires authentication via serviceToken
+router.post('/upload-polygon', protect, authorize('superAdmin'), uploadParliamentPolygon);
 router.post('/', protect, authorize('superAdmin', "Parliament"), createParliament);
 
 /**

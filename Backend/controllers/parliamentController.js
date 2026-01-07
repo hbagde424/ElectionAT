@@ -31,6 +31,7 @@ exports.getParliaments = async (req, res, next) => {
       .populate('election_year_id', '_id year election_type')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
+      .select('-polygon')
       .sort({ name: 1 });
 
     // If userHierarchy is present (middleware attached), restrict results to user's scope
@@ -522,6 +523,92 @@ exports.importParliaments = async (req, res, next) => {
     }
 
     return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Upload parliament polygon (GeoJSON)
+// @route   POST /api/parliaments/upload-polygon
+// @access  Private (Admin only)
+exports.uploadParliamentPolygon = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const geoJsonData = req.body;
+
+    if (!geoJsonData || !geoJsonData.type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON data'
+      });
+    }
+
+    let features = [];
+    if (geoJsonData.type === 'FeatureCollection') {
+      features = geoJsonData.features;
+    } else if (geoJsonData.type === 'Feature') {
+      features = [geoJsonData];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON type. Must be FeatureCollection or Feature'
+      });
+    }
+
+    let updatedCount = 0;
+    let errors = [];
+
+    for (const feature of features) {
+      if (!feature.properties) continue;
+
+      const props = feature.properties;
+      // Try to find parliament by name variants
+      const parliamentName = props.PC_NAME || props.PC_NAME_E || props.PCNAME || props.Name || props.NAME || props.name;
+
+      // Note: Parliament matching might need "Parliament No" or "PC_NO" if names are ambiguous, 
+      // but usually names are unique within a state. Since this is a global upload, 
+      // ideally we iterate and try to match.
+
+      if (!parliamentName) {
+        errors.push('Feature passed without a valid name property (PC_NAME, PC_NAME_E, name)');
+        continue;
+      }
+
+      // Case-insensitive search
+      const parliament = await Parliament.findOne({
+        name: { $regex: new RegExp(`^${parliamentName}$`, 'i') }
+      });
+
+      if (parliament) {
+        // Update parliament with polygon feature
+        parliament.polygon = feature;
+        await parliament.save();
+        updatedCount++;
+      } else {
+        errors.push(`Parliament not found for: ${parliamentName}`);
+      }
+    }
+
+    if (updatedCount === 0 && errors.length > 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No parliaments matched',
+        errors
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated polygons for ${updatedCount} parliaments`,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
   } catch (err) {
     next(err);
   }
