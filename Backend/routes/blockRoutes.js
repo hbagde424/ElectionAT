@@ -8,7 +8,8 @@ const {
   getBlocksByAssembly,
   getBlocksByParliament,
   toggleBlockActive,
-  importBlocks
+  importBlocks,
+  uploadBlockPolygon
 } = require('../controllers/blockController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -327,6 +328,9 @@ router.patch('/:id/toggle-active', protect, authorize('superAdmin'), toggleBlock
  *         description: Unauthorized
  */
 router.post('/import', protect, authorize('superAdmin'), importBlocks);
+
+// Protected: requires authentication via serviceToken
+router.post('/upload-polygon', protect, authorize('superAdmin'), uploadBlockPolygon);
 
 /**
  * @swagger
