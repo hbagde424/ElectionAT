@@ -22,6 +22,7 @@ import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilte
 import DivisionModal from './DivisionModal';
 import AlertDivisionDelete from './AlertDivisionDelete';
 import DivisionView from './DivisionView';
+import DivisionPolygonUpload from './DivisionPolygonUpload';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function DivisionListPage() {
@@ -41,6 +42,7 @@ export default function DivisionListPage() {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
     const [stateFilter, setStateFilter] = useState('');
+    const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
     // CSV download state
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
@@ -159,535 +161,535 @@ export default function DivisionListPage() {
     };
 
     const fetchReferenceData = async () => {
-            try {
-                const getAuthHeaders = () => {
-                    const token = localStorage.getItem('serviceToken');
-                    return token ? { Authorization: `Bearer ${token}` } : {};
-                };
-
-                const [statesRes] = await Promise.all([
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() })
-                ]);
-
-                const [usersRes] = await Promise.all([
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: getAuthHeaders() })
-                ]);
-
-                const usersData = await usersRes.json();
-                if (usersData.success) setUsers(usersData.data);
-
-                const [statesData] = await Promise.all([
-                    statesRes.json()
-                ]);
-
-                if (statesData.success) setStates(statesData.data);
-            } catch (error) {
-                console.error('Failed to fetch reference data:', error);
-            }
-        };
-
-        const fetchDivisions = async (pageIndex, pageSize, globalFilter = '', stateFilter = '') => {
-            setLoading(true);
-            try {
-                let url;
-                let ignorePagination = !!globalFilter;
-                if (ignorePagination) {
-                    // When searching, fetch all results (up to 10000)
-                    let query = [];
-                    if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
-                    if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-                    const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-                    url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
-                } else {
-                    // Normal pagination
-                    let query = [];
-                    if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-                    const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-                    url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
-                }
+        try {
+            const getAuthHeaders = () => {
                 const token = localStorage.getItem('serviceToken');
-                const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-                const json = await res.json();
-                if (json.success) {
-                    setDivisions(json.data);
-                    setPageCount(ignorePagination ? 1 : json.pages);
-                } else {
-                    setDivisions([]);
-                    setPageCount(0);
-                }
-            } catch (error) {
+                return token ? { Authorization: `Bearer ${token}` } : {};
+            };
+
+            const [statesRes] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() })
+            ]);
+
+            const [usersRes] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: getAuthHeaders() })
+            ]);
+
+            const usersData = await usersRes.json();
+            if (usersData.success) setUsers(usersData.data);
+
+            const [statesData] = await Promise.all([
+                statesRes.json()
+            ]);
+
+            if (statesData.success) setStates(statesData.data);
+        } catch (error) {
+            console.error('Failed to fetch reference data:', error);
+        }
+    };
+
+    const fetchDivisions = async (pageIndex, pageSize, globalFilter = '', stateFilter = '') => {
+        setLoading(true);
+        try {
+            let url;
+            let ignorePagination = !!globalFilter;
+            if (ignorePagination) {
+                // When searching, fetch all results (up to 10000)
+                let query = [];
+                if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
+                if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+                const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+                url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
+            } else {
+                // Normal pagination
+                let query = [];
+                if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+                const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+                url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
+            }
+            const token = localStorage.getItem('serviceToken');
+            const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            const json = await res.json();
+            if (json.success) {
+                setDivisions(json.data);
+                setPageCount(ignorePagination ? 1 : json.pages);
+            } else {
                 setDivisions([]);
                 setPageCount(0);
-                console.error('Failed to fetch divisions:', error);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (error) {
+            setDivisions([]);
+            setPageCount(0);
+            console.error('Failed to fetch divisions:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        const fetchAllDivisionsForFilters = async () => {
-            try {
-                const data = await fetchAllDataForFilters('/divisions', {});
-                setAllDivisions(data);
-            } catch (error) {
-                console.error('Failed to fetch all divisions for filters:', error);
-            }
-        };
+    const fetchAllDivisionsForFilters = async () => {
+        try {
+            const data = await fetchAllDataForFilters('/divisions', {});
+            setAllDivisions(data);
+        } catch (error) {
+            console.error('Failed to fetch all divisions for filters:', error);
+        }
+    };
 
-        const filterOptions = useFilterOptionsFromData(allDivisions, {
-            states: { field: 'state_id', nameField: 'name' }
+    const filterOptions = useFilterOptionsFromData(allDivisions, {
+        states: { field: 'state_id', nameField: 'name' }
+    });
+
+    useEffect(() => {
+        fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
+        fetchReferenceData();
+        fetchAllDivisionsForFilters();
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
+
+    // Reset to first page when searching or filtering
+    useEffect(() => {
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [globalFilter, stateFilter]);
+
+    const handleDeleteOpen = (id) => {
+        setDivisionDeleteId(id);
+        setOpenDelete(true);
+    };
+
+    const handleDeleteClose = () => setOpenDelete(false);
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
+    };
 
-        useEffect(() => {
-            fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
-            fetchReferenceData();
-            fetchAllDivisionsForFilters();
-        }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
-
-        // Reset to first page when searching or filtering
-        useEffect(() => {
-            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-        }, [globalFilter, stateFilter]);
-
-        const handleDeleteOpen = (id) => {
-            setDivisionDeleteId(id);
-            setOpenDelete(true);
-        };
-
-        const handleDeleteClose = () => setOpenDelete(false);
-
-        const formatDate = (dateString) => {
-            if (!dateString) return 'N/A';
-            return new Date(dateString).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        };
-
-        const columns = useMemo(() => [
-            {
-                header: '#',
-                accessorKey: '_id',
-                cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    const serialNumber = pageIndex * pageSize + row.index + 1;
-                    return <Typography>{serialNumber}</Typography>;
-                }
-            },
-            {
-                header: 'Name',
-                accessorKey: 'name',
-                cell: ({ getValue }) => (
-                    <Typography sx={{
-                        maxWidth: 200,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                    }}>
-                        {getValue()}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Description',
-                accessorKey: 'description',
-                cell: ({ getValue }) => (
-                    <Typography sx={{
-                        maxWidth: 250,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        fontStyle: 'italic',
-                        color: 'text.secondary'
-                    }}>
-                        {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Code',
-                accessorKey: 'division_code',
-                cell: ({ getValue }) => (
-                    <Chip
-                        label={getValue()?.toUpperCase() || 'N/A'}
-                        size="small"
-                        variant="outlined"
-                    />
-                )
-            },
-            {
-                header: 'State',
-                accessorKey: 'state_id',
-                cell: ({ getValue }) => (
-                    <Chip
-                        label={getValue()?.name || 'N/A'}
-                        color="primary"
-                        size="small"
-                        variant="outlined"
-                    />
-                )
-            },
-            {
-                header: 'Created By',
-                accessorKey: 'created_by',
-                cell: ({ getValue }) => (
-                    <Typography>
-                        {getValue()?.username || 'N/A'}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Updated By',
-                accessorKey: 'updated_by',
-                cell: ({ getValue }) => (
-                    <Typography>
-                        {getValue()?.username || 'N/A'}
-                    </Typography>
-                )
-            },
-            {
-                header: 'Created At',
-                accessorKey: 'created_at',
-                cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-            },
-            {
-                header: 'Updated At',
-                accessorKey: 'updated_at',
-                cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-            },
-            {
-                header: 'Actions',
-                meta: { className: 'cell-center' },
-                cell: ({ row }) => {
-                    return (
-                        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                            <Tooltip title="View Details">
-                                <IconButton
-                                    color="secondary"
-                                    onClick={() => navigate(`/division/${row.original._id}`)}
-                                >
-                                    <Eye />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Edit">
-                                <IconButton color="primary" onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedDivision(row.original);
-                                    setOpenModal(true);
-                                }}>
-                                    <Edit />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete">
-                                <IconButton color="error" onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteOpen(row.original._id);
-                                }}>
-                                    <Trash />
-                                </IconButton>
-                            </Tooltip>
-                        </Stack>
-                    );
-                }
+    const columns = useMemo(() => [
+        {
+            header: '#',
+            accessorKey: '_id',
+            cell: ({ row, table }) => {
+                const { pageIndex, pageSize } = table.getState().pagination;
+                const serialNumber = pageIndex * pageSize + row.index + 1;
+                return <Typography>{serialNumber}</Typography>;
             }
-        ], [theme]);
-
-        const table = useReactTable({
-            data: divisions,
-            columns,
-            state: { pagination, globalFilter },
-            pageCount,
-            manualPagination: true,
-            onPaginationChange: setPagination,
-            onGlobalFilterChange: setGlobalFilter,
-            getCoreRowModel: getCoreRowModel(),
-            getSortedRowModel: getSortedRowModel(),
-            getFilteredRowModel: getFilteredRowModel(),
-            getPaginationRowModel: getPaginationRowModel(),
-            getRowCanExpand: () => true
-        });
-
-        if (loading) return <EmptyReactTable />;
-
-        return (
-            <>
-                <MainCard content={false}>
-                    {/* Header: Search + Filters + Actions */}
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={40}
-                        alignItems={{ xs: 'stretch', sm: 'center' }}
-                        justifyContent="space-between"
-                        sx={{ p: 2 }}
-                    >
-
-                        <DebouncedInput
-                            value={globalFilter}
-                            onFilterChange={setGlobalFilter}
-                            placeholder={`Search ${divisions.length} divisions...`}
-                        />
-
-                        <Stack
-                            direction="row"
-                            spacing={1}
-                            flexWrap="wrap"
-                            justifyContent="flex-end"
-                        >
-                            <CSVLink
-                                data={csvData}
-                                filename="divisions_all.csv"
-                                style={{ display: 'none' }}
-                                ref={csvLinkRef}
-                            />
-                            {/* OTP Dialog for CSV export */}
-                            <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
-                                <DialogTitle>Enter OTP to Download CSV</DialogTitle>
-                                <DialogContent>
-                                    <Typography variant="body2" sx={{ mb: 1 }}>
-                                        OTP sent to: <strong>{maskedDest || '**********'}</strong>
-                                    </Typography>
-                                    <TextField
-                                        autoFocus
-                                        fullWidth
-                                        label="OTP"
-                                        value={otpCode}
-                                        onChange={(e) => setOtpCode(e.target.value)}
-                                        disabled={otpLoading}
-                                        inputProps={{ maxLength: 8 }}
-                                    />
-                                    {otpError && (
-                                        <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
-                                            {otpError}
-                                        </Typography>
-                                    )}
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
-                                    <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode?.trim()}>
-                                        {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
-                                    </Button>
-                                </DialogActions>
-                            </Dialog>
-                            <Button
-                                variant="outlined"
-                                onClick={handleDownloadExcelTemplate}
-                                size="small"
+        },
+        {
+            header: 'Name',
+            accessorKey: 'name',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Description',
+            accessorKey: 'description',
+            cell: ({ getValue }) => (
+                <Typography sx={{
+                    maxWidth: 250,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontStyle: 'italic',
+                    color: 'text.secondary'
+                }}>
+                    {getValue() ? getValue().replace(/<[^>]+>/g, '').slice(0, 100) : ''}
+                </Typography>
+            )
+        },
+        {
+            header: 'Code',
+            accessorKey: 'division_code',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.toUpperCase() || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'State',
+            accessorKey: 'state_id',
+            cell: ({ getValue }) => (
+                <Chip
+                    label={getValue()?.name || 'N/A'}
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Created By',
+            accessorKey: 'created_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Updated By',
+            accessorKey: 'updated_by',
+            cell: ({ getValue }) => (
+                <Typography>
+                    {getValue()?.username || 'N/A'}
+                </Typography>
+            )
+        },
+        {
+            header: 'Created At',
+            accessorKey: 'created_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Actions',
+            meta: { className: 'cell-center' },
+            cell: ({ row }) => {
+                return (
+                    <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                        <Tooltip title="View Details">
+                            <IconButton
+                                color="secondary"
+                                onClick={() => navigate(`/division/${row.original._id}`)}
                             >
-                                Download Excel Template
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={() => {
-                                    if (importInputRef.current) importInputRef.current.click();
-                                }}
-                                size="small"
-                                disabled={importing}
-                            >
-                                {importing ? 'Importing...' : 'Import Excel'}
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={handleDownloadCsv}
-                                disabled={csvLoading}
-                                size="small"
-                            >
-                                {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
-                            </Button>
-                            <Button
-                                variant="contained"
-                                startIcon={<Add />}
-                                onClick={() => {
-                                    setSelectedDivision(null);
-                                    setOpenModal(true);
-                                }}
-                                size="small"
-                            >
-                                Add Division
-                            </Button>
-                        </Stack>
+                                <Eye />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                            <IconButton color="primary" onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDivision(row.original);
+                                setOpenModal(true);
+                            }}>
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton color="error" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOpen(row.original._id);
+                            }}>
+                                <Trash />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
+                );
+            }
+        }
+    ], [theme]);
 
-                    {/* Import Result */}
-                    {importResult && (
-                        <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
-                            {importResult.success ? (
-                                <span>
-                                    Imported: {importResult.created || 0} / {importResult.total || 0}
-                                    {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
-                                        <> | Errors: {importResult.errors.length}</>
-                                    )}
-                                </span>
-                            ) : (
-                                <span>Import failed: {importResult.message || 'Unknown error'}</span>
-                            )}
-                        </Alert>
-                    )}
+    const table = useReactTable({
+        data: divisions,
+        columns,
+        state: { pagination, globalFilter },
+        pageCount,
+        manualPagination: true,
+        onPaginationChange: setPagination,
+        onGlobalFilterChange: setGlobalFilter,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getRowCanExpand: () => true
+    });
 
-                    {/* Filters */}
+    if (loading) return <EmptyReactTable />;
+
+    return (
+        <>
+            <MainCard content={false}>
+                {/* Header: Search + Filters + Actions */}
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={40}
+                    alignItems={{ xs: 'stretch', sm: 'center' }}
+                    justifyContent="space-between"
+                    sx={{ p: 2 }}
+                >
+
+                    <DebouncedInput
+                        value={globalFilter}
+                        onFilterChange={setGlobalFilter}
+                        placeholder={`Search ${divisions.length} divisions...`}
+                    />
+
                     <Stack
                         direction="row"
-                        spacing={2}
-                        alignItems="center"
-                        sx={{ p: 2, flexWrap: 'wrap' }}
+                        spacing={1}
+                        flexWrap="wrap"
+                        justifyContent="flex-end"
                     >
-                        <TextField
-                            select
-                            label="State"
-                            value={stateFilter}
-                            onChange={(e) => {
-                                setStateFilter(e.target.value);
-                            }}
-                            sx={{ minWidth: 150 }}
-                            size="small"
-                        >
-                            <MenuItem value="">All States</MenuItem>
-                            {filterOptions.states?.map((state) => (
-                                <MenuItem key={state._id} value={state._id}>
-                                    {state.name}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
+                        <CSVLink
+                            data={csvData}
+                            filename="divisions_all.csv"
+                            style={{ display: 'none' }}
+                            ref={csvLinkRef}
+                        />
+                        {/* OTP Dialog for CSV export */}
+                        <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                            <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                            <DialogContent>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                                </Typography>
+                                <TextField
+                                    autoFocus
+                                    fullWidth
+                                    label="OTP"
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                    disabled={otpLoading}
+                                    inputProps={{ maxLength: 8 }}
+                                />
+                                {otpError && (
+                                    <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                        {otpError}
+                                    </Typography>
+                                )}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                                <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode?.trim()}>
+                                    {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
                         <Button
-                            variant="contained"
-                            onClick={() => fetchDivisions(
-                                pagination.pageIndex,
-                                pagination.pageSize,
-                                globalFilter,
-                                stateFilter
-                            )}
+                            variant="outlined"
+                            onClick={handleDownloadExcelTemplate}
                             size="small"
                         >
-                            Apply
+                            Download Excel Template
                         </Button>
                         <Button
                             variant="outlined"
                             onClick={() => {
-                                setStateFilter('');
-                                setGlobalFilter('');
-                                fetchDivisions(
-                                    pagination.pageIndex,
-                                    pagination.pageSize,
-                                    '',
-                                    ''
-                                );
+                                if (importInputRef.current) importInputRef.current.click();
+                            }}
+                            size="small"
+                            disabled={importing}
+                        >
+                            {importing ? 'Importing...' : 'Import Excel'}
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadCsv}
+                            disabled={csvLoading}
+                            size="small"
+                        >
+                            {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                        </Button>
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => {
+                                setSelectedDivision(null);
+                                setOpenModal(true);
                             }}
                             size="small"
                         >
-                            Clear
+                            Add Division
                         </Button>
                     </Stack>
+                </Stack>
+
+                {/* Import Result */}
+                {importResult && (
+                    <Alert severity={importResult.success ? 'success' : 'error'} sx={{ m: 2 }}>
+                        {importResult.success ? (
+                            <span>
+                                Imported: {importResult.created || 0} / {importResult.total || 0}
+                                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                                    <> | Errors: {importResult.errors.length}</>
+                                )}
+                            </span>
+                        ) : (
+                            <span>Import failed: {importResult.message || 'Unknown error'}</span>
+                        )}
+                    </Alert>
+                )}
+
+                {/* Filters */}
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    sx={{ p: 2, flexWrap: 'wrap' }}
+                >
+                    <TextField
+                        select
+                        label="State"
+                        value={stateFilter}
+                        onChange={(e) => {
+                            setStateFilter(e.target.value);
+                        }}
+                        sx={{ minWidth: 150 }}
+                        size="small"
+                    >
+                        <MenuItem value="">All States</MenuItem>
+                        {filterOptions.states?.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>
+                                {state.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+
+                    <Button
+                        variant="contained"
+                        onClick={() => fetchDivisions(
+                            pagination.pageIndex,
+                            pagination.pageSize,
+                            globalFilter,
+                            stateFilter
+                        )}
+                        size="small"
+                    >
+                        Apply
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setStateFilter('');
+                            setGlobalFilter('');
+                            fetchDivisions(
+                                pagination.pageIndex,
+                                pagination.pageSize,
+                                '',
+                                ''
+                            );
+                        }}
+                        size="small"
+                    >
+                        Clear
+                    </Button>
+                </Stack>
 
 
 
 
 
-                    {/* Table */}
-                    <ScrollX>
-                        <TableContainer>
-                            <Table>
-                                <TableHead sx={{ backgroundColor: 'primary.main' }}>
-                                    {table.getHeaderGroups().map((headerGroup) => (
-                                        <TableRow key={headerGroup.id}>
-                                            {headerGroup.headers.map((header) => (
-                                                <TableCell
-                                                    key={header.id}
-                                                    onClick={header.column.getToggleSortingHandler()}
-                                                    sx={{
-                                                        cursor: header.column.getCanSort()
-                                                            ? 'pointer'
-                                                            : 'default',
-                                                        color: 'white',
-                                                        fontWeight: 'bold',
-                                                        backgroundColor: 'primary.main'
-                                                    }}
-                                                >
-                                                    <Stack direction="row" spacing={1} alignItems="center">
-                                                        <Box>
-                                                            {flexRender(
-                                                                header.column.columnDef.header,
-                                                                header.getContext()
-                                                            )}
-                                                        </Box>
-                                                        {header.column.getCanSort() && (
-                                                            <HeaderSort column={header.column} />
+                {/* Table */}
+                <ScrollX>
+                    <TableContainer>
+                        <Table>
+                            <TableHead sx={{ backgroundColor: 'primary.main' }}>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => (
+                                            <TableCell
+                                                key={header.id}
+                                                onClick={header.column.getToggleSortingHandler()}
+                                                sx={{
+                                                    cursor: header.column.getCanSort()
+                                                        ? 'pointer'
+                                                        : 'default',
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: 'primary.main'
+                                                }}
+                                            >
+                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                    <Box>
+                                                        {flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
                                                         )}
-                                                    </Stack>
+                                                    </Box>
+                                                    {header.column.getCanSort() && (
+                                                        <HeaderSort column={header.column} />
+                                                    )}
+                                                </Stack>
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableHead>
+                            <TableBody>
+                                {table.getRowModel().rows.map((row) => (
+                                    <Fragment key={row.id}>
+                                        <TableRow>
+                                            {row.getVisibleCells().map((cell) => (
+                                                <TableCell key={cell.id}>
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
                                                 </TableCell>
                                             ))}
                                         </TableRow>
-                                    ))}
-                                </TableHead>
-                                <TableBody>
-                                    {table.getRowModel().rows.map((row) => (
-                                        <Fragment key={row.id}>
+                                        {row.getIsExpanded() && (
                                             <TableRow>
-                                                {row.getVisibleCells().map((cell) => (
-                                                    <TableCell key={cell.id}>
-                                                        {flexRender(
-                                                            cell.column.columnDef.cell,
-                                                            cell.getContext()
-                                                        )}
-                                                    </TableCell>
-                                                ))}
+                                                <TableCell colSpan={row.getVisibleCells().length}>
+                                                    <DivisionView data={row.original} />
+                                                </TableCell>
                                             </TableRow>
-                                            {row.getIsExpanded() && (
-                                                <TableRow>
-                                                    <TableCell colSpan={row.getVisibleCells().length}>
-                                                        <DivisionView data={row.original} />
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-                                        </Fragment>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                        <Divider />
-                        <Box sx={{ p: 2 }}>
-                            <TablePagination
-                                setPageSize={(size) =>
-                                    setPagination((prev) => ({ ...prev, pageSize: size }))
-                                }
-                                setPageIndex={(index) =>
-                                    setPagination((prev) => ({ ...prev, pageIndex: index }))
-                                }
-                                getState={table.getState}
-                                getPageCount={() => pageCount}
-                            />
-                        </Box>
-                    </ScrollX>
-                </MainCard>
+                                        )}
+                                    </Fragment>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <Divider />
+                    <Box sx={{ p: 2 }}>
+                        <TablePagination
+                            setPageSize={(size) =>
+                                setPagination((prev) => ({ ...prev, pageSize: size }))
+                            }
+                            setPageIndex={(index) =>
+                                setPagination((prev) => ({ ...prev, pageIndex: index }))
+                            }
+                            getState={table.getState}
+                            getPageCount={() => pageCount}
+                        />
+                    </Box>
+                </ScrollX>
+            </MainCard>
 
-                {/* Hidden Import Input */}
-                <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    ref={importInputRef}
-                    style={{ display: 'none' }}
-                    onChange={handleImportFile}
-                />
+            {/* Hidden Import Input */}
+            <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                ref={importInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+            />
 
-                {/* Modals */}
-                <DivisionModal
-                    open={openModal}
-                    modalToggler={setOpenModal}
-                    division={selectedDivision}
-                    states={states}
-                    refresh={() =>
-                        fetchDivisions(pagination.pageIndex, pagination.pageSize)
-                    }
-                />
+            {/* Modals */}
+            <DivisionModal
+                open={openModal}
+                modalToggler={setOpenModal}
+                division={selectedDivision}
+                states={states}
+                refresh={() =>
+                    fetchDivisions(pagination.pageIndex, pagination.pageSize)
+                }
+            />
 
-                <AlertDivisionDelete
-                    id={divisionDeleteId}
-                    open={openDelete}
-                    handleClose={handleDeleteClose}
-                    refresh={() =>
-                        fetchDivisions(pagination.pageIndex, pagination.pageSize)
-                    }
-                />
-            </>
-        );
+            <AlertDivisionDelete
+                id={divisionDeleteId}
+                open={openDelete}
+                handleClose={handleDeleteClose}
+                refresh={() =>
+                    fetchDivisions(pagination.pageIndex, pagination.pageSize)
+                }
+            />
+        </>
+    );
 
-    }
+}

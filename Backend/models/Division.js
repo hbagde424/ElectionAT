@@ -39,17 +39,21 @@ const divisionSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 });
 
 // Update timestamp before saving
-divisionSchema.pre('save', function(next) {
+divisionSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
 
 // Static method for checking if division code is taken
-divisionSchema.statics.isDivisionCodeTaken = async function(divisionCode, excludeDivisionId) {
+divisionSchema.statics.isDivisionCodeTaken = async function (divisionCode, excludeDivisionId) {
   const division = await this.findOne({ division_code: divisionCode, _id: { $ne: excludeDivisionId } });
   return !!division;
 };

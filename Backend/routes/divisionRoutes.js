@@ -6,7 +6,8 @@ const {
   updateDivision,
   deleteDivision,
   getDivisionsByState,
-  importDivisions
+  importDivisions,
+  uploadDivisionPolygon
 } = require('../controllers/divisionController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -71,6 +72,7 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/Division'
  */
 // Protected: requires authentication via serviceToken
+router.post('/upload-polygon', protect, authorize('superAdmin'), uploadDivisionPolygon);
 router.get('/', protect, getUserPermissionsAndHierarchy, getDivisions);
 
 /**

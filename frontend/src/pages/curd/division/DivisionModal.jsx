@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Switch, FormControlLabel, Chip, Box
+    Switch, FormControlLabel, Chip, Box, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
@@ -23,8 +23,11 @@ export default function DivisionModal({
         division_code: '',
         state_id: '',
         is_active: true,
-        description: ''
+        is_active: true,
+        description: '',
+        polygon: null
     });
+    const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [serverError, setServerError] = useState('');
 
@@ -43,8 +46,12 @@ export default function DivisionModal({
                 division_code: '',
                 state_id: '',
                 is_active: true,
-                description: ''
+                state_id: '',
+                is_active: true,
+                description: '',
+                polygon: null
             });
+            setFileName('');
         }
     }, [division]);
 
@@ -61,6 +68,45 @@ export default function DivisionModal({
             ...prev,
             description: value
         }));
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setFileName(file.name);
+
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            // Extract Feature (keep geometry AND properties)
+            let feature = null;
+            if (json.type === 'FeatureCollection' && json.features?.length > 0) {
+                // Take the first feature
+                feature = json.features[0];
+            } else if (json.type === 'Feature') {
+                feature = json;
+            } else if (json.type === 'Polygon' || json.type === 'MultiPolygon') {
+                // If raw geometry, wrap in Feature
+                feature = {
+                    type: "Feature",
+                    geometry: json,
+                    properties: {}
+                };
+            }
+
+            if (feature && feature.geometry) {
+                setFormData(prev => ({ ...prev, polygon: feature }));
+            } else {
+                alert('Invalid GeoJSON: Could not find valid Feature or Geometry');
+                setFileName('');
+            }
+        } catch (err) {
+            console.error('Error reading geojson:', err);
+            alert('Invalid JSON file');
+            setFileName('');
+        }
     };
 
     const handleSubmit = async () => {
@@ -235,7 +281,37 @@ export default function DivisionModal({
                         </Stack>
                     </Grid>
 
-                    
+                    {/* Row 4: GeoJSON Upload */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Division Polygon (GeoJSON)</InputLabel>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                >
+                                    Upload File
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept=".json,.geojson"
+                                        onChange={handleFileChange}
+                                    />
+                                </Button>
+                                {fileName ? (
+                                    <Typography variant="body2">{fileName}</Typography>
+                                ) : (
+                                    division?.polygon && (
+                                        <Typography variant="body2" color="success.main">
+                                            Existing Polygon Present
+                                        </Typography>
+                                    )
+                                )}
+                            </Box>
+                        </Stack>
+                    </Grid>
+
+
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>

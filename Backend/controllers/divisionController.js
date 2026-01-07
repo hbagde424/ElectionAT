@@ -49,6 +49,7 @@ exports.getDivisions = async (req, res, next) => {
     }
     let query = Division.find(filter);
     query = populateDivision(query);
+    query = query.select('-polygon');
     query = query.sort({ name: 1 });
 
     // Enhanced search functionality: only apply regex to string fields
@@ -383,6 +384,96 @@ exports.importDivisions = async (req, res, next) => {
     }
 
     return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Upload division polygon (GeoJSON)
+// @route   POST /api/divisions/upload-polygon
+// @access  Private (Admin only)
+exports.uploadDivisionPolygon = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const geoJsonData = req.body;
+
+    if (!geoJsonData || !geoJsonData.type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON data'
+      });
+    }
+
+    let features = [];
+    if (geoJsonData.type === 'FeatureCollection') {
+      features = geoJsonData.features;
+    } else if (geoJsonData.type === 'Feature') {
+      features = [geoJsonData];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON type. Must be FeatureCollection or Feature'
+      });
+    }
+
+    let updatedCount = 0;
+    let errors = [];
+
+    for (const feature of features) {
+      if (!feature.properties) continue;
+
+      const props = feature.properties;
+      // Try to find division by name variants or code
+      // Adjust these property names based on what standard GeoJSONs usually have for Divisions/Districts
+      const divisionName = props.DIVNAME || props.DIVNAME_E || props.DIV_NAME || props.name || props.Name || props.NAME;
+      // Also potentially look for code if available in properties
+      // const divisionCode = props.DIVCODE || props.CODE; // optional logic
+
+      if (!divisionName) {
+        errors.push('Feature passed without a valid name property (DIVNAME, DIVNAME_E, name)');
+        continue;
+      }
+
+      // Case-insensitive search
+      // We might need to restrict by State if state info is inside the polygon properties?
+      // For now, doing a global name search or name + state search if state provided in query???
+      // The current requirement is likely just name matching.
+
+      const division = await Division.findOne({
+        name: { $regex: new RegExp(`^${divisionName}$`, 'i') }
+      });
+
+      if (division) {
+        // Update division with polygon feature
+        division.polygon = feature;
+        // Optionally update other metadata if needed
+        await division.save();
+        updatedCount++;
+      } else {
+        errors.push(`Division not found for: ${divisionName}`);
+      }
+    }
+
+    if (updatedCount === 0 && errors.length > 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No divisions matched',
+        errors
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated polygons for ${updatedCount} divisions`,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
   } catch (err) {
     next(err);
   }
