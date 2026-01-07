@@ -33,6 +33,10 @@ const stateSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 });
 

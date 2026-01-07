@@ -45,6 +45,7 @@ exports.getStates = async (req, res, next) => {
     let query = State.find(stateFilter)
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
+      .select('-polygon')
       .sort({ name: 1 });
 
     const states = await query.skip(skip).limit(limit).exec();
@@ -246,6 +247,89 @@ exports.deleteState = async (req, res, next) => {
       success: true,
       data: {}
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Upload state polygon (GeoJSON)
+// @route   POST /api/states/upload-polygon
+// @access  Private (Admin only)
+exports.uploadStatePolygon = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const geoJsonData = req.body;
+
+    if (!geoJsonData || !geoJsonData.type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON data'
+      });
+    }
+
+    let features = [];
+    if (geoJsonData.type === 'FeatureCollection') {
+      features = geoJsonData.features;
+    } else if (geoJsonData.type === 'Feature') {
+      features = [geoJsonData];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON type. Must be FeatureCollection or Feature'
+      });
+    }
+
+    let updatedCount = 0;
+    let errors = [];
+
+    for (const feature of features) {
+      if (!feature.properties) continue;
+
+      const props = feature.properties;
+      // Try to find state by name variants
+      const stateName = props.STNAME || props.STNAME_SH || props.name || props.Name || props.NAME;
+
+      if (!stateName) {
+        errors.push('Feature passed without a valid name property (STNAME, STNAME_SH, name)');
+        continue;
+      }
+
+      // Case-insensitive search
+      const state = await State.findOne({
+        name: { $regex: new RegExp(`^${stateName}$`, 'i') }
+      });
+
+      if (state) {
+        // Update state with polygon feature (geometry + properties)
+        state.polygon = feature;
+        // Optionally update other metadata if needed
+        await state.save();
+        updatedCount++;
+      } else {
+        errors.push(`State not found for: ${stateName}`);
+      }
+    }
+
+    if (updatedCount === 0 && errors.length > 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No states matched',
+        errors
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated polygons for ${updatedCount} states`,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
   } catch (err) {
     next(err);
   }

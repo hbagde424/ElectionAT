@@ -3,11 +3,15 @@ const router = express.Router();
 const {
     getStatePolygons,
     getStatePolygonByCode,
-    seedStatePolygons
+    seedStatePolygons,
+    createStatePolygon
 } = require('../controllers/statePolygonController');
 
 // Get all state polygons
 router.get('/', getStatePolygons);
+
+// Create new state polygon
+router.post('/', createStatePolygon);
 
 // Get single state polygon by state code
 router.get('/:stateCode', getStatePolygonByCode);

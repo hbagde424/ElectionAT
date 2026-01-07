@@ -32,7 +32,7 @@ const router = createBrowserRouter(
     ComponentsRoutes,
     MainRoutes
   ],
-  { basename: '/election' }
+  // { basename: '/election' }
 );
 
 export default router;

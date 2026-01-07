@@ -4,7 +4,8 @@ const {
   getState,
   createState,
   updateState,
-  deleteState
+  deleteState,
+  uploadStatePolygon
 } = require('../controllers/stateController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -64,6 +65,7 @@ const router = express.Router();
  *                     $ref: '#/components/schemas/State'
  */
 // Protected: requires authentication via serviceToken
+router.post('/upload-polygon', protect, authorize('superAdmin'), uploadStatePolygon);
 router.get('/', protect, getUserPermissionsAndHierarchy, getStates);
 
 /**

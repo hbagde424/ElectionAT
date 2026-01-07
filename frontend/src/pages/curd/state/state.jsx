@@ -20,6 +20,7 @@ import { CSVLink } from 'react-csv';
 import StateModal from './StateModal';
 import AlertStateDelete from './AlertStateDelete';
 import StateView from './StateView';
+import StatePolygonUpload from './StatePolygonUpload';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function StatesListPage() {
@@ -36,6 +37,7 @@ export default function StatesListPage() {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
     const [searchInput, setSearchInput] = useState('');
+    const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
 
     const fetchUsers = async () => {
         try {
@@ -343,6 +345,9 @@ export default function StatesListPage() {
                         <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
+                        <Button variant="outlined" onClick={() => setOpenPolygonUpload(true)}>
+                            Upload Polygon
+                        </Button>
                         <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedState(null); setOpenModal(true); }}>
                             Add State
                         </Button>
@@ -421,6 +426,15 @@ export default function StatesListPage() {
                 open={openDelete}
                 handleClose={handleDeleteClose}
                 refresh={() => fetchStates(pagination.pageIndex, pagination.pageSize)}
+            />
+
+            <StatePolygonUpload
+                open={openPolygonUpload}
+                onClose={() => setOpenPolygonUpload(false)}
+                onSuccess={() => {
+                    // Refresh states if needed
+                    fetchStates(pagination.pageIndex, pagination.pageSize);
+                }}
             />
         </>
     );

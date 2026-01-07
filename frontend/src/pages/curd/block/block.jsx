@@ -78,7 +78,6 @@ export default function BlocksListPage() {
                 fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
-                // fetch(`${import.meta.env.VITE_APP_API_URL}/districts`, { headers }),
                 fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
             ]);
 
@@ -90,7 +89,6 @@ export default function BlocksListPage() {
                 divisionsRes.json(),
                 parliamentsRes.json(),
                 assembliesRes.json()
-                // districtsRes.json()
             ]);
 
             if (statesData.success) setStates(statesData.data);

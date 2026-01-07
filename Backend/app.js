@@ -101,8 +101,9 @@ app.options('*', cors({
   credentials: true
 }));
 
-// Body parser
-app.use(express.json());
+// Body parser with increased limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -129,15 +130,10 @@ app.use(helmet({
 }));
 
 // Serve static files from uploads directory
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Add Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-
-// Body parser with increased limit
-app.use(express.json({ limit: '50mb' })); // Add this line
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Create an Express Router to handle all API routes
 const apiRouter = express.Router();
