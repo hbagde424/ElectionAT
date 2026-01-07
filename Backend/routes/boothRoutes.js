@@ -9,7 +9,8 @@ const {
   getBoothsByBlock,
   getBoothsByYear,
   importBooths,
-  getTotalBooths
+  getTotalBooths,
+  uploadBoothPolygon
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -330,6 +331,9 @@ router.get('/year/:yearId', protect, getUserPermissionsAndHierarchy, getBoothsBy
  *         description: Unauthorized
  */
 router.post('/import', protect, authorize('superAdmin'), importBooths);
+
+// Protected: requires authentication via serviceToken
+router.post('/upload-polygon', protect, authorize('superAdmin'), uploadBoothPolygon);
 
 /**
  * @swagger

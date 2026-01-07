@@ -53,7 +53,7 @@ const boothSchema = new mongoose.Schema({
   },
   election_year: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ElectionYear', 
+    ref: 'ElectionYear',
     required: true
   },
   Male_Count: {
@@ -76,7 +76,7 @@ const boothSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-    description: {
+  description: {
     type: String,
     default: ''
   },
@@ -97,6 +97,10 @@ const boothSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 });
 

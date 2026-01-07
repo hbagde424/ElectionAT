@@ -43,9 +43,9 @@ exports.getBooths = async (req, res, next) => {
         });
       }
 
-  const searchRegex = { $regex: searchTerm, $options: 'i' };
-  // If searchTerm is numeric, also add direct numeric match to booth_number
-  const numericSearch = !isNaN(searchTerm) ? parseInt(searchTerm) : null;
+      const searchRegex = { $regex: searchTerm, $options: 'i' };
+      // If searchTerm is numeric, also add direct numeric match to booth_number
+      const numericSearch = !isNaN(searchTerm) ? parseInt(searchTerm) : null;
 
       try {
         // First, find related IDs from referenced collections that match the search
@@ -233,7 +233,8 @@ exports.getBooths = async (req, res, next) => {
     aggregationPipeline.push(
       { $sort: { booth_number: 1 } },
       { $skip: skip },
-      { $limit: limit }
+      { $limit: limit },
+      { $project: { polygon: 0 } }
     );
 
     // Execute aggregation
@@ -418,8 +419,11 @@ exports.createBooth = async (req, res, next) => {
       ...req.body,
       created_by: req.user.id,
       description: req.body.description || '',
-
     };
+
+    if (req.body.polygon) {
+      boothData.polygon = req.body.polygon;
+    }
 
     const booth = await Booth.create(boothData);
 
@@ -491,8 +495,12 @@ exports.updateBooth = async (req, res, next) => {
     req.body.updated_at = new Date();
     req.body.description = req.body.description || '';
 
+    const updateData = { ...req.body };
+    if (req.body.polygon) {
+      updateData.polygon = req.body.polygon;
+    }
 
-    booth = await Booth.findByIdAndUpdate(req.params.id, req.body, {
+    booth = await Booth.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     })
@@ -609,7 +617,8 @@ exports.getBoothsByAssembly = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
-      .populate('election_year', 'year');
+      .populate('election_year', 'year')
+      .select('-polygon');
 
     res.status(200).json({
       success: true,
@@ -647,7 +656,8 @@ exports.getBoothsByBlock = async (req, res, next) => {
       .sort({ booth_number: 1 })
       .populate('assembly_id', 'name')
       .populate('created_by', 'username')
-      .populate('election_year', 'year');
+      .populate('election_year', 'year')
+      .select('-polygon');
 
     res.status(200).json({
       success: true,
@@ -686,7 +696,8 @@ exports.getBoothsByYear = async (req, res, next) => {
       .populate('block_id', 'name')
       .populate('assembly_id', 'name')
       .populate('created_by', 'username')
-      .populate('election_year', 'year');
+      .populate('election_year', 'year')
+      .select('-polygon');
 
     res.status(200).json({
       success: true,
@@ -753,9 +764,9 @@ exports.importBooths = async (req, res, next) => {
         }
 
         // Check for duplicates
-        const existing = await Booth.findOne({ 
+        const existing = await Booth.findOne({
           booth_number: row.booth_number,
-          assembly_id: geo.assembly._id 
+          assembly_id: geo.assembly._id
         });
         if (existing) {
           summary.skipped += 1;
@@ -799,6 +810,98 @@ exports.importBooths = async (req, res, next) => {
   }
 };
 
+// @desc    Upload booth polygon (GeoJSON)
+// @route   POST /api/booths/upload-polygon
+// @access  Private (Admin only)
+exports.uploadBoothPolygon = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const geoJsonData = req.body;
+
+    if (!geoJsonData || !geoJsonData.type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON data'
+      });
+    }
+
+    let features = [];
+    if (geoJsonData.type === 'FeatureCollection') {
+      features = geoJsonData.features;
+    } else if (geoJsonData.type === 'Feature') {
+      features = [geoJsonData];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON type. Must be FeatureCollection or Feature'
+      });
+    }
+
+    let updatedCount = 0;
+    let errors = [];
+
+    for (const feature of features) {
+      if (!feature.properties) continue;
+
+      const props = feature.properties;
+      // Try to find booth by different property names
+      const boothNo = props.BOOTH_NO || props.booth_no || props['Booth No'] || props.Booth_No || props.PART_NO || props.part_no;
+      const boothName = props.BOOTH_NAME || props.booth_name || props['Booth Name'] || props.Name || props.NAME || props.name;
+
+      if (!boothNo && !boothName) {
+        errors.push('Feature passed without a valid match property (Booth_No, Booth_Name, or Name)');
+        continue;
+      }
+
+      let booth = null;
+
+      // Try finding by Booth No first if available
+      if (boothNo) {
+        booth = await Booth.findOne({ booth_number: String(boothNo) });
+      }
+
+      // If not found by No, try by Name
+      if (!booth && boothName) {
+        booth = await Booth.findOne({
+          name: { $regex: new RegExp(`^${boothName}$`, 'i') }
+        });
+      }
+
+      if (booth) {
+        // Update booth with polygon feature
+        booth.polygon = feature;
+        await booth.save();
+        updatedCount++;
+      } else {
+        errors.push(`Booth not found for: Booth_No=${boothNo}, Name=${boothName}`);
+      }
+    }
+
+    if (updatedCount === 0 && errors.length > 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No booths matched',
+        errors
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated polygons for ${updatedCount} booths`,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get total booths count
 // @route   GET /api/total-booths
 // @access  Public
@@ -806,7 +909,7 @@ exports.getTotalBooths = async (req, res, next) => {
   try {
     const year = req.query.year;
     let query = {};
-    
+
     if (year) {
       // Find election year by year number
       const electionYear = await ElectionYear.findOne({ year: parseInt(year) });
@@ -814,9 +917,9 @@ exports.getTotalBooths = async (req, res, next) => {
         query.election_year = electionYear._id;
       }
     }
-    
+
     const totalBooths = await Booth.countDocuments(query);
-    
+
     res.status(200).json({
       success: true,
       totalBooths

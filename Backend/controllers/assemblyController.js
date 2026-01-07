@@ -10,8 +10,13 @@ const Parliament = require('../models/Parliament');
 exports.getAssemblies = async (req, res, next) => {
   try {
     // Pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit);
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit);
+
+    // If searching or no limit provided, set a high limit
+    if (!!req.query.search || !limit || limit <= 0) {
+      limit = 10000;
+    }
     const skip = (page - 1) * limit;
 
     // Build filter object

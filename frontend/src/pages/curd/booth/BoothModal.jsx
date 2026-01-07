@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Box, IconButton, Tooltip, CircularProgress
+    Box, IconButton, Tooltip, CircularProgress, Typography
 } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { useEffect, useState, useContext } from 'react';
@@ -40,8 +40,10 @@ export default function BoothModal({
         Female_Count: '',
         others_Count: '',
         Total: '',
-        description: ''
+        description: '',
+        polygon: null
     });
+    const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
 
@@ -68,7 +70,8 @@ export default function BoothModal({
                 Female_Count: booth.Female_Count || '',
                 others_Count: booth.others_Count || '',
                 Total: booth.Total || '',
-                description: booth.description || ''
+                description: booth.description || '',
+                polygon: booth.polygon || null
             });
         } else {
             setFormData({
@@ -87,8 +90,10 @@ export default function BoothModal({
                 Female_Count: '',
                 others_Count: '',
                 Total: '',
-                description: ''
+                description: '',
+                polygon: null
             });
+            setFileName('');
         }
     }, [booth]);
 
@@ -204,6 +209,45 @@ export default function BoothModal({
             ...prev,
             description: value
         }));
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setFileName(file.name);
+
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            // Extract Feature (keep geometry AND properties)
+            let feature = null;
+            if (json.type === 'FeatureCollection' && json.features?.length > 0) {
+                // Take the first feature
+                feature = json.features[0];
+            } else if (json.type === 'Feature') {
+                feature = json;
+            } else if (json.type === 'Polygon' || json.type === 'MultiPolygon') {
+                // If raw geometry, wrap in Feature
+                feature = {
+                    type: "Feature",
+                    geometry: json,
+                    properties: {}
+                };
+            }
+
+            if (feature && feature.geometry) {
+                setFormData(prev => ({ ...prev, polygon: feature }));
+            } else {
+                alert('Invalid GeoJSON: Could not find valid Feature or Geometry');
+                setFileName('');
+            }
+        } catch (err) {
+            console.error('Error reading geojson:', err);
+            alert('Invalid JSON file');
+            setFileName('');
+        }
     };
 
     const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
@@ -330,7 +374,7 @@ export default function BoothModal({
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
                     {/* Row: Description (Rich Text) */}
-                    
+
                     {/* Row 1: Name and Booth Number */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
@@ -648,7 +692,6 @@ export default function BoothModal({
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Description</InputLabel>
-                            {/* Use ReactQuill for rich text editing */}
                             <ReactQuill
                                 theme="snow"
                                 value={formData.description}
@@ -656,6 +699,36 @@ export default function BoothModal({
                                 placeholder="Enter booth description (optional)"
                                 style={{ minHeight: 100 }}
                             />
+                        </Stack>
+                    </Grid>
+
+                    {/* Polygon Upload */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Booth Polygon (GeoJSON)</InputLabel>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                >
+                                    Upload File
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept=".json,.geojson"
+                                        onChange={handleFileChange}
+                                    />
+                                </Button>
+                                {fileName ? (
+                                    <Typography variant="body2">{fileName}</Typography>
+                                ) : (
+                                    booth?.polygon && (
+                                        <Typography variant="body2" color="success.main">
+                                            Existing Polygon Present
+                                        </Typography>
+                                    )
+                                )}
+                            </Box>
                         </Stack>
                     </Grid>
                 </Grid>

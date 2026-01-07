@@ -7,7 +7,11 @@ exports.getStates = async (req, res, next) => {
   try {
     const Division = require('../models/Division');
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit);
+    let limit = parseInt(req.query.limit);
+
+    if (!!req.query.search || !limit || limit <= 0) {
+      limit = 10000;
+    }
     const skip = (page - 1) * limit;
 
     let stateFilter = {};
