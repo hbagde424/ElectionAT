@@ -7,7 +7,8 @@ const {
   deleteAssembly,
   getAssembliesByParliament,
   getAssembliesByDivision,
-  importAssemblies
+  importAssemblies,
+  uploadAssemblyPolygon
 } = require('../controllers/assemblyController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -307,6 +308,9 @@ router.get('/division/:divisionId', protect, getUserPermissionsAndHierarchy, get
  *         description: Import summary
  */
 router.post('/import', protect, authorize('superAdmin'), importAssemblies);
+
+// Protected: requires authentication via serviceToken
+router.post('/upload-polygon', protect, authorize('superAdmin'), uploadAssemblyPolygon);
 
 /**
  * @swagger

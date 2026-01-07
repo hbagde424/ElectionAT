@@ -75,11 +75,15 @@ const assemblySchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 });
 
 // Update timestamp before saving
-assemblySchema.pre('save', function(next) {
+assemblySchema.pre('save', function (next) {
   this.updated_at = Date.now();
   if (this.isModified()) {
     this.updated_by = this._locals?.user?.id; // Will be set from controller

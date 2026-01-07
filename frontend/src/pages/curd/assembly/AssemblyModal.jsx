@@ -1,7 +1,7 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Switch, FormControlLabel, Chip, Box
+    Switch, FormControlLabel, Chip, Box, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
@@ -28,8 +28,11 @@ export default function AssemblyModal({
         category: 'General',
         state_id: '',
         division_id: '',
-        parliament_id: ''
+        division_id: '',
+        parliament_id: '',
+        polygon: null
     });
+    const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
     // Filtered arrays for cascading dropdowns
@@ -60,8 +63,11 @@ export default function AssemblyModal({
                 category: 'General',
                 state_id: '',
                 division_id: '',
-                parliament_id: ''
+                division_id: '',
+                parliament_id: '',
+                polygon: null
             });
+            setFileName('');
         }
     }, [assembly]);
 
@@ -127,6 +133,45 @@ export default function AssemblyModal({
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setFileName(file.name);
+
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            // Extract Feature (keep geometry AND properties)
+            let feature = null;
+            if (json.type === 'FeatureCollection' && json.features?.length > 0) {
+                // Take the first feature
+                feature = json.features[0];
+            } else if (json.type === 'Feature') {
+                feature = json;
+            } else if (json.type === 'Polygon' || json.type === 'MultiPolygon') {
+                // If raw geometry, wrap in Feature
+                feature = {
+                    type: "Feature",
+                    geometry: json,
+                    properties: {}
+                };
+            }
+
+            if (feature && feature.geometry) {
+                setFormData(prev => ({ ...prev, polygon: feature }));
+            } else {
+                alert('Invalid GeoJSON: Could not find valid Feature or Geometry');
+                setFileName('');
+            }
+        } catch (err) {
+            console.error('Error reading geojson:', err);
+            alert('Invalid JSON file');
+            setFileName('');
+        }
     };
 
     const handleSubmit = async () => {
@@ -356,6 +401,36 @@ export default function AssemblyModal({
                             {submitted && !formData.parliament_id && (
                                 <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Parliament is required</Box>
                             )}
+                        </Stack>
+                    </Grid>
+
+                    {/* Row 6: GeoJSON Upload */}
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Assembly Polygon (GeoJSON)</InputLabel>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                >
+                                    Upload File
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept=".json,.geojson"
+                                        onChange={handleFileChange}
+                                    />
+                                </Button>
+                                {fileName ? (
+                                    <Typography variant="body2">{fileName}</Typography>
+                                ) : (
+                                    assembly?.polygon && (
+                                        <Typography variant="body2" color="success.main">
+                                            Existing Polygon Present
+                                        </Typography>
+                                    )
+                                )}
+                            </Box>
                         </Stack>
                     </Grid>
                 </Grid>

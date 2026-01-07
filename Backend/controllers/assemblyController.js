@@ -96,6 +96,7 @@ exports.getAssemblies = async (req, res, next) => {
       .populate('parliament_id', '_id name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
+      .select('-polygon')
       .sort({ name: 1 });
 
     const assemblies = await query.skip(skip).limit(limit).exec();
@@ -105,7 +106,7 @@ exports.getAssemblies = async (req, res, next) => {
     try {
       if (req.query.search) {
         console.log('🔎 Assemblies search:', req.query.search, '=> returned', assemblies.length, 'candidates');
-        console.log('🔎 Candidate sample:', assemblies.slice(0,10).map(a => ({ _id: a._id, AC_NO: a.AC_NO, name: a.name })));
+        console.log('🔎 Candidate sample:', assemblies.slice(0, 10).map(a => ({ _id: a._id, AC_NO: a.AC_NO, name: a.name })));
       }
     } catch (e) {
       console.warn('Could not log assembly candidates:', e && e.message);
@@ -244,6 +245,10 @@ exports.createAssembly = async (req, res, next) => {
       updated_by: req.user.id
     };
 
+    if (req.body.polygon) {
+      assemblyData.polygon = req.body.polygon;
+    }
+
     const assembly = await Assembly.create(assemblyData);
 
     res.status(201).json({
@@ -336,6 +341,10 @@ exports.updateAssembly = async (req, res, next) => {
       updated_by: req.user.id,
       updated_at: new Date()
     };
+
+    if (req.body.polygon) {
+      updateData.polygon = req.body.polygon;
+    }
 
     assembly = await Assembly.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
@@ -641,6 +650,99 @@ exports.importAssemblies = async (req, res, next) => {
     }
 
     return res.status(200).json({ success: true, ...summary, ids: created });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Upload assembly polygon (GeoJSON)
+// @route   POST /api/assemblies/upload-polygon
+// @access  Private (Admin only)
+exports.uploadAssemblyPolygon = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const geoJsonData = req.body;
+
+    if (!geoJsonData || !geoJsonData.type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON data'
+      });
+    }
+
+    let features = [];
+    if (geoJsonData.type === 'FeatureCollection') {
+      features = geoJsonData.features;
+    } else if (geoJsonData.type === 'Feature') {
+      features = [geoJsonData];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GeoJSON type. Must be FeatureCollection or Feature'
+      });
+    }
+
+    let updatedCount = 0;
+    let errors = [];
+
+    for (const feature of features) {
+      if (!feature.properties) continue;
+
+      const props = feature.properties;
+      // Try to find assembly by different property names
+      // Common keys: AC_NO, AC_NAME, AC_NAME_E, name, NAME, etc.
+      const acNo = props.AC_NO || props.ac_no || props['AC NO'];
+      const acName = props.AC_NAME || props.AC_NAME_E || props.ACNAME || props.Name || props.NAME || props.name;
+
+      if (!acNo && !acName) {
+        errors.push('Feature passed without a valid match property (AC_NO or Name)');
+        continue;
+      }
+
+      let assembly = null;
+
+      // Try finding by AC_NO first if available
+      if (acNo) {
+        assembly = await Assembly.findOne({ AC_NO: String(acNo).trim() });
+      }
+
+      // If not found by AC_NO, try by Name
+      if (!assembly && acName) {
+        assembly = await Assembly.findOne({
+          name: { $regex: new RegExp(`^${acName}$`, 'i') }
+        });
+      }
+
+      if (assembly) {
+        // Update assembly with polygon feature
+        assembly.polygon = feature;
+        await assembly.save();
+        updatedCount++;
+      } else {
+        errors.push(`Assembly not found for: AC_NO=${acNo}, Name=${acName}`);
+      }
+    }
+
+    if (updatedCount === 0 && errors.length > 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No assemblies matched',
+        errors
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated polygons for ${updatedCount} assemblies`,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
   } catch (err) {
     next(err);
   }
