@@ -196,7 +196,7 @@ export default function BLOModal({
 
         // Validate BLO name length
         if (formData.blo_name.length > 100) {
-            newErrors.blo_name = 'BLO name cannot exceed 100 characters';
+            newErrors.blo_name = 'BLA name cannot exceed 100 characters';
         }
 
         // Validate contact number length
@@ -527,14 +527,14 @@ export default function BLOModal({
                     {/* BLO Information */}
                     <Grid item xs={12} sx={{ mt: 2 }}>
                         <Typography variant="h6" gutterBottom>
-                            BLO Information
+                            BLA Information
                         </Typography>
                         <Divider sx={{ mb: 2 }} />
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <FormTextField
-                            label="BLO Name"
+                            label="BLA Name"
                             name="blo_name"
                             value={formData.blo_name}
                             onChange={handleInputChange}

@@ -1,5 +1,6 @@
 import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
 import { CalendarTick, User } from 'iconsax-react';
+import DivisionPolygonMap from './DivisionPolygonMap';
 
 export default function DivisionView({ data }) {
     if (!data) return null;
@@ -25,11 +26,6 @@ export default function DivisionView({ data }) {
                     size="small"
                     variant="outlined"
                 />
-                {/* <Chip
-                    label={data.is_active ? 'Active' : 'Inactive'}
-                    color={data.is_active ? 'success' : 'default'}
-                    size="small"
-                /> */}
             </Stack>
 
             {data.description && (
@@ -118,6 +114,13 @@ export default function DivisionView({ data }) {
                     </Grid>
                 </Grid>
             </Grid>
+
+            {/* Polygon Map Section */}
+            <Divider sx={{ my: 3 }} />
+            <Box>
+                <Typography variant="h6" gutterBottom>Division Map</Typography>
+                <DivisionPolygonMap divisionId={data._id} />
+            </Box>
         </Box>
     );
 }

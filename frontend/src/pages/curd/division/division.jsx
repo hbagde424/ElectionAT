@@ -22,7 +22,6 @@ import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilte
 import DivisionModal from './DivisionModal';
 import AlertDivisionDelete from './AlertDivisionDelete';
 import DivisionView from './DivisionView';
-import DivisionPolygonUpload from './DivisionPolygonUpload';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function DivisionListPage() {
@@ -36,13 +35,11 @@ export default function DivisionListPage() {
     const [divisions, setDivisions] = useState([]);
     const [allDivisions, setAllDivisions] = useState([]);
     const [states, setStates] = useState([]);
-    const [users, setUsers] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
     const [stateFilter, setStateFilter] = useState('');
-    const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
     // CSV download state
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
@@ -171,17 +168,7 @@ export default function DivisionListPage() {
                 fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() })
             ]);
 
-            const [usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: getAuthHeaders() })
-            ]);
-
-            const usersData = await usersRes.json();
-            if (usersData.success) setUsers(usersData.data);
-
-            const [statesData] = await Promise.all([
-                statesRes.json()
-            ]);
-
+            const statesData = await statesRes.json();
             if (statesData.success) setStates(statesData.data);
         } catch (error) {
             console.error('Failed to fetch reference data:', error);

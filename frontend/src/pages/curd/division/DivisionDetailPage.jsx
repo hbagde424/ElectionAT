@@ -28,6 +28,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import DivisionPolygonMap from './DivisionPolygonMap';
 
 const DivisionDetailPage = () => {
     const theme = useTheme();
@@ -218,6 +219,16 @@ const DivisionDetailPage = () => {
                                     <Typography variant="body1">{formatDateTime(division.updated_at)}</Typography>
                                 </Grid>
                             </Grid>
+                        </CardContent>
+                    </MainCard>
+                </Grid>
+
+                {/* Division Polygon Map */}
+                <Grid item xs={12}>
+                    <MainCard>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2 }}>Division Map</Typography>
+                            <DivisionPolygonMap divisionId={division._id} />
                         </CardContent>
                     </MainCard>
                 </Grid>

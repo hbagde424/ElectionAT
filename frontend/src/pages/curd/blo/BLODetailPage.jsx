@@ -56,7 +56,7 @@ const BLODetailPage = () => {
     const fetchBLODetails = async () => {
         try {
             setLoading(true);
-            console.log('Fetching BLO details for ID:', id);
+            console.log('Fetching BLA details for ID:', id);
             const token = localStorage.getItem('serviceToken');
             console.log('Token available:', !!token);
 
@@ -79,12 +79,12 @@ const BLODetailPage = () => {
                 }
             } else {
                 console.error('API returned success: false', response.data);
-                setError('Failed to fetch BLO details');
+                setError('Failed to fetch BLA details');
             }
         } catch (error) {
-            console.error('Error fetching BLO details:', error);
+            console.error('Error fetching BLA details:', error);
             // axiosServices response interceptor sometimes returns the response data or a string
-            const errMessage = (error && (error.message || error)) || 'Error loading BLO details.';
+            const errMessage = (error && (error.message || error)) || 'Error loading BLA details.';
             // If the error indicates missing/invalid auth, redirect to login for a better UX
             if (typeof errMessage === 'string' && errMessage.toLowerCase().includes('not authorized')) {
                 // Use navigate to go to login page
@@ -93,7 +93,7 @@ const BLODetailPage = () => {
             }
 
             // Fallback: show generic message
-            setError('Error loading BLO details. Please try again.');
+            setError('Error loading BLA details. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -158,7 +158,7 @@ const BLODetailPage = () => {
             <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <LinearProgress />
                 <Box sx={{ mt: 2 }}>
-                    <Typography>Loading BLO details...</Typography>
+                    <Typography>Loading BLA details...</Typography>
                 </Box>
             </Container>
         );
@@ -200,7 +200,7 @@ const BLODetailPage = () => {
                     </IconButton>
                     <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="h4" component="h1">
-                            BLO details
+                            BLA details
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             {formatDateTime(BLO.created_at)}
@@ -262,10 +262,10 @@ const BLODetailPage = () => {
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={8}>
                             <Paper elevation={0} sx={{ p: 2, borderLeft: 4, borderColor: 'primary.main' }}>
-                                <Typography variant="subtitle2" color="text.secondary">BLO Officer Information</Typography>
+                                <Typography variant="subtitle2" color="text.secondary">BLA Officer Information</Typography>
                                 <Grid container spacing={1} sx={{ mt: 1 }}>
                                     <Grid item xs={12} sm={6}>
-                                        <Typography variant="caption" color="text.secondary">BLO Name</Typography>
+                                        <Typography variant="caption" color="text.secondary">BLA Name</Typography>
                                         <Typography variant="body2" sx={{ fontWeight: 500 }}>{BLO.blo_name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>

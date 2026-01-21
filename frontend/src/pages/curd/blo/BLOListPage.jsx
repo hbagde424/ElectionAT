@@ -509,7 +509,7 @@ const BLOListPage = () => {
         }
     }, [blocks, mapboxToken]);
 
-    // When clicking a polygon, fetch booth + BLO details for drawer
+    // When clicking a polygon, fetch booth + BLA details for drawer
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
             const headers = getAuthHeaders();
@@ -660,7 +660,7 @@ const BLOListPage = () => {
             <Stack spacing={2} sx={{ p: 2 }}>
                 {/* Header */}
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h4">BLO Officers Management</Typography>
+                    <Typography variant="h4">BLA Officers Management</Typography>
                     <Stack direction="row" spacing={2}>
                         <Button
                             variant="outlined"
@@ -697,7 +697,7 @@ const BLOListPage = () => {
 
                 {/* Map Section (similar to Coding CRUD) */}
                 <Box sx={{ p: 2, pb: 0 }}>
-                    <Typography variant="h6" sx={{ mb: 1 }}>BLO Coverage Map</Typography>
+                    <Typography variant="h6" sx={{ mb: 1 }}>BLA Coverage Map</Typography>
                     {mapError && (
                         <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>
                     )}
@@ -863,11 +863,11 @@ const BLOListPage = () => {
                         <Stack direction="row" spacing={3}>
                             <Stack direction="row" spacing={1} alignItems="center">
                                 <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: '#22c55e', border: '2px solid #ffffff', boxShadow: 1 }} />
-                                <Typography variant="caption">Has BLO</Typography>
+                                <Typography variant="caption">Has BLA</Typography>
                             </Stack>
                             <Stack direction="row" spacing={1} alignItems="center">
                                 <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: '#ef4444', border: '2px solid #ffffff', boxShadow: 1 }} />
-                                <Typography variant="caption">No BLO</Typography>
+                                <Typography variant="caption">No BLA</Typography>
                             </Stack>
                         </Stack>
                     </Paper>
@@ -926,7 +926,7 @@ const BLOListPage = () => {
                     <Grid item xs={12} md={3}>
                         <TextField
                             fullWidth
-                            placeholder="Search BLOs..."
+                            placeholder="Search BLAs..."
                             value={globalFilter}
                             onChange={(e) => setGlobalFilter(e.target.value)}
                         />
@@ -969,7 +969,7 @@ const BLOListPage = () => {
                     <Grid item xs={12} md={2}>
                         <TextField
                             fullWidth
-                            placeholder="BLO Name"
+                            placeholder="BLA Name"
                             value={tempFilters.blo_name}
                             onChange={(e) => handleFilterChange('blo_name', e.target.value)}
                         />
