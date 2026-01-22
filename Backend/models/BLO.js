@@ -42,12 +42,17 @@ const bloSchema = new mongoose.Schema({
     },
     contact_number: {
         type: String,
-        required: [true, 'Contact number is required'],
+        required: false,
         trim: true,
         maxlength: [15, 'Contact number cannot exceed 15 characters']
     },
-
-    // Tracking fields
+    
+    // Election year reference
+    election_year_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ElectionYear',
+        required: false
+    },
     created_by: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -97,6 +102,7 @@ bloSchema.statics.findWithFullDetails = function(filter = {}) {
         .populate('assembly_id', 'name AC_NO')
         .populate('block_id', 'name')
         .populate('booth_id', 'name booth_number')
+        .populate('election_year_id', 'year')
         .populate('created_by', 'username')
         .populate('updated_by', 'username')
         .sort({ created_at: -1 });

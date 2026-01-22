@@ -1,7 +1,7 @@
 const BLO = require('../models/BLO');
 const { logActivity } = require('../utils/logActivity');
 const { validationResult } = require('express-validator');
-const { resolveGeographicHierarchy, validateHierarchy, toKey } = require('./importHelpers');
+const { resolveGeographicHierarchy, validateHierarchy, toKey, toUpper } = require('./importHelpers');
 
 // @desc    Get all BLOs with filters and pagination
 // @route   GET /api/BLOs
@@ -19,6 +19,7 @@ const getBLOs = async (req, res, next) => {
         booth_id,
         blo_name,
         location,
+        election_year_id,
         all
     } = req.query;
 
@@ -44,6 +45,7 @@ const getBLOs = async (req, res, next) => {
     if (booth_id) filter.booth_id = booth_id;
     if (blo_name) filter.blo_name = { $regex: blo_name, $options: 'i' };
     if (location) filter.location = { $regex: location, $options: 'i' };
+    if (election_year_id) filter.election_year_id = election_year_id;
 
     // Add text search if provided
     if (search) {
@@ -97,7 +99,6 @@ const getBLOs = async (req, res, next) => {
 // @access  Private
 const getBLO = async (req, res, next) => {
     try {
-        // Use a different variable name to avoid shadowing the model
         const blo = await BLO.findById(req.params.id)
             .populate('state_id', 'name')
             .populate('division_id', 'name')
@@ -105,6 +106,7 @@ const getBLO = async (req, res, next) => {
             .populate('assembly_id', 'name AC_NO')
             .populate('block_id', 'name')
             .populate('booth_id', 'name booth_number')
+            .populate('election_year_id', 'year')
             .populate('created_by', 'username')
             .populate('updated_by', 'username');
 
@@ -152,7 +154,6 @@ const getBLO = async (req, res, next) => {
 // @route   POST /api/BLOs
 // @access  Private
 const createBLO = async (req, res, next) => {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
@@ -163,7 +164,6 @@ const createBLO = async (req, res, next) => {
     }
 
     try {
-        // Verify all referenced entities exist
         const [State, Division, Parliament, Assembly, Block, Booth] = await Promise.all([
             require('../models/state').findById(req.body.state_id),
             require('../models/Division').findById(req.body.division_id),
@@ -173,49 +173,13 @@ const createBLO = async (req, res, next) => {
             require('../models/booth').findById(req.body.booth_id)
         ]);
 
-        if (!State) {
+        if (!State || !Division || !Parliament || !Assembly || !Block || !Booth) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid state ID'
+                message: 'Invalid hierarchy reference'
             });
         }
 
-        if (!Division) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid division ID'
-            });
-        }
-
-        if (!Parliament) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid parliament ID'
-            });
-        }
-
-        if (!Assembly) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid assembly ID'
-            });
-        }
-
-        if (!Block) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid block ID'
-            });
-        }
-
-        if (!Booth) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid booth ID'
-            });
-        }
-
-        // Check for duplicate BLO name in the same booth
         const existingBLO = await BLO.findOne({
             blo_name: req.body.blo_name,
             booth_id: req.body.booth_id
@@ -228,7 +192,6 @@ const createBLO = async (req, res, next) => {
             });
         }
 
-        // Create new BLO
         const bloData = {
             ...req.body,
             created_by: req.user.id,
@@ -237,7 +200,6 @@ const createBLO = async (req, res, next) => {
 
         const newBLO = await BLO.create(bloData);
 
-        // Fetch the created BLO with populated fields
         const populatedBLO = await BLO.findById(newBLO._id)
             .populate('state_id', 'name')
             .populate('division_id', 'name')
@@ -245,6 +207,7 @@ const createBLO = async (req, res, next) => {
             .populate('assembly_id', 'name AC_NO')
             .populate('block_id', 'name')
             .populate('booth_id', 'name booth_number')
+            .populate('election_year_id', 'year')
             .populate('created_by', 'username')
             .populate('updated_by', 'username');
 
@@ -267,7 +230,6 @@ const createBLO = async (req, res, next) => {
 // @route   PUT /api/BLOs/:id
 // @access  Private
 const updateBLO = async (req, res, next) => {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
@@ -287,87 +249,6 @@ const updateBLO = async (req, res, next) => {
             });
         }
 
-        // Verify all referenced entities exist if they're being updated
-        if (req.body.state_id && req.body.state_id !== existingBLO.state_id.toString()) {
-            const state = await require('../models/state').findById(req.body.state_id);
-            if (!state) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid state ID'
-                });
-            }
-        }
-
-        if (req.body.division_id && req.body.division_id !== existingBLO.division_id.toString()) {
-            const division = await require('../models/Division').findById(req.body.division_id);
-            if (!division) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid division ID'
-                });
-            }
-        }
-
-        if (req.body.parliament_id && req.body.parliament_id !== existingBLO.parliament_id.toString()) {
-            const parliament = await require('../models/Parliament').findById(req.body.parliament_id);
-            if (!parliament) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid parliament ID'
-                });
-            }
-        }
-
-        if (req.body.assembly_id && req.body.assembly_id !== existingBLO.assembly_id.toString()) {
-            const assembly = await require('../models/Assembly').findById(req.body.assembly_id);
-            if (!assembly) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid assembly ID'
-                });
-            }
-        }
-
-        if (req.body.block_id && req.body.block_id !== existingBLO.block_id.toString()) {
-            const block = await require('../models/block').findById(req.body.block_id);
-            if (!block) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid block ID'
-                });
-            }
-        }
-
-        if (req.body.booth_id && req.body.booth_id !== existingBLO.booth_id.toString()) {
-            const booth = await require('../models/booth').findById(req.body.booth_id);
-            if (!booth) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid booth ID'
-                });
-            }
-        }
-
-        // Check for duplicate BLO name if name or booth is being changed
-        if (req.body.blo_name || req.body.booth_id) {
-            const nameToCheck = req.body.blo_name || existingBLO.blo_name;
-            const boothToCheck = req.body.booth_id || existingBLO.booth_id;
-
-            const duplicateBLO = await BLO.findOne({
-                blo_name: nameToCheck,
-                booth_id: boothToCheck,
-                _id: { $ne: req.params.id }
-            });
-
-            if (duplicateBLO) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'A BLO with this name already exists in the selected booth'
-                });
-            }
-        }
-
-        // Update BLO
         const updateData = {
             ...req.body,
             updated_by: req.user.id
@@ -383,6 +264,7 @@ const updateBLO = async (req, res, next) => {
          .populate('assembly_id', 'name AC_NO')
          .populate('block_id', 'name')
          .populate('booth_id', 'name booth_number')
+         .populate('election_year_id', 'year')
          .populate('created_by', 'username')
          .populate('updated_by', 'username');
 
@@ -445,42 +327,157 @@ const importBLOs = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Not authorized' });
         }
 
+        const Booth = require('../models/booth');
+        const State = require('../models/state');
+        const Division = require('../models/Division');
+        const Parliament = require('../models/Parliament');
+        const Assembly = require('../models/Assembly');
+        const Block = require('../models/block');
+        const ElectionYear = require('../models/electionYear');
+
         const summary = { total: rows.length, imported: 0, skipped: 0, errors: [] };
+        
         for (let i = 0; i < rows.length; i++) {
             const r = rows[i] || {};
             try {
-                const bloName = toKey(r.blo_name || r['BLO Name'] || r.name || r.bloName || '');
-                const contact = toKey(r.contact_number || r['Contact Number'] || r.contact || r.phone || '');
+                // Extract data from Excel columns
+                const bloName = toKey(r.blo_name || '');
+                const contact = toKey(r.contact_number || '');
+                const stateName = toKey(r.state_name || '');
+                const divisionCode = toUpper(r.division_code || '');
+                const parliamentNo = r.parliament_no;
+                const acNo = toKey(r.AC_NO || '');
+                const blockName = toKey(r.block_name || '');
+                const boothNumber = toKey(r.booth_number || '');
+                const electionYearInput = r.election_year_id || r['Election Year ID'] || r.year_id || r.election_year || r['Election Year'] || null;
 
                 if (!bloName) throw new Error('blo_name is required');
-                if (!contact) throw new Error('contact_number is required');
+                if (!boothNumber) throw new Error('booth_number is required');
 
-                const geo = await resolveGeographicHierarchy(r);
-                const errors = validateHierarchy(geo, ['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
-                if (errors.length > 0) throw new Error(errors.join(', '));
+                // Find State by name
+                let state = await State.findOne({ name: { $regex: `^${stateName}`, $options: 'i' } });
+                if (!state) throw new Error(`State not found: ${stateName}`);
 
-                // Check duplicate by name + booth
-                const existing = await BLO.findOne({ blo_name: bloName, booth_id: geo.booth._id });
-                if (existing) {
-                    summary.skipped += 1;
-                    summary.errors.push({ row: i + 1, message: 'BLO already exists for this booth' });
-                    continue;
+                // Find Division by code
+                let division = await Division.findOne({ 
+                    division_code: { $regex: `^${divisionCode}`, $options: 'i' },
+                    state_id: state._id 
+                });
+                if (!division) throw new Error(`Division not found: ${divisionCode}`);
+
+                // Find Parliament by number
+                let parliament = await Parliament.findOne({ 
+                    parliament_no: Number(parliamentNo),
+                    division_id: division._id 
+                });
+                if (!parliament) throw new Error(`Parliament not found: ${parliamentNo}`);
+
+                // Find Assembly by AC_NO
+                let assembly = await Assembly.findOne({ 
+                    AC_NO: acNo,
+                    parliament_id: parliament._id 
+                });
+                if (!assembly) throw new Error(`Assembly not found: ${acNo}`);
+
+                // Find Block by name
+                let block = await Block.findOne({ 
+                    name: { $regex: `^${blockName}`, $options: 'i' },
+                    assembly_id: assembly._id 
+                });
+                if (!block) throw new Error(`Block not found: ${blockName}`);
+
+                // Find or create booth
+                let booth = await Booth.findOne({ 
+                    booth_number: boothNumber, 
+                    block_id: block._id 
+                });
+
+                // Try numeric match if string match failed
+                if (!booth && !isNaN(Number(boothNumber))) {
+                    booth = await Booth.findOne({ 
+                        booth_number: Number(boothNumber), 
+                        block_id: block._id 
+                    });
                 }
 
+                // If booth doesn't exist, create it
+                if (!booth) {
+                    let electionYear = null;
+
+                    // Get election year for booth creation
+                    if (electionYearInput) {
+                        if (String(electionYearInput).match(/^[0-9a-fA-F]{24}$/)) {
+                            electionYear = await ElectionYear.findById(electionYearInput);
+                        }
+                        if (!electionYear) {
+                            electionYear = await ElectionYear.findOne({ year: electionYearInput });
+                        }
+                    }
+
+                    // If no election year provided, get the latest one
+                    if (!electionYear) {
+                        electionYear = await ElectionYear.findOne().sort({ year: -1 });
+                    }
+
+                    if (!electionYear) {
+                        throw new Error('No election year found to create booth');
+                    }
+
+                    // Create new booth
+                    booth = await Booth.create({
+                        name: `Booth ${boothNumber}`,
+                        booth_number: boothNumber,
+                        full_address: `${block.name}, ${assembly.name}`,
+                        block_id: block._id,
+                        assembly_id: assembly._id,
+                        parliament_id: parliament._id,
+                        division_id: division._id,
+                        state_id: state._id,
+                        election_year: electionYear._id,
+                        created_by: req.user.id,
+                        updated_by: req.user.id
+                    });
+                }
+
+                // Resolve election year ID for BLO
+                let electionYearId = null;
+                if (electionYearInput) {
+                    let electionYear = null;
+
+                    if (String(electionYearInput).match(/^[0-9a-fA-F]{24}$/)) {
+                        electionYear = await ElectionYear.findById(electionYearInput);
+                    }
+
+                    if (!electionYear) {
+                        electionYear = await ElectionYear.findOne({ year: electionYearInput });
+                    }
+
+                    if (!electionYear) {
+                        throw new Error(`Election year not found: ${electionYearInput}`);
+                    }
+
+                    electionYearId = electionYear._id;
+                }
+
+                // Create BLO record
                 const bloData = {
                     blo_name: bloName,
                     contact_number: contact,
-                    state_id: geo.state._id,
-                    division_id: geo.division._id,
-                    parliament_id: geo.parliament._id,
-                    assembly_id: geo.assembly._id,
-                    block_id: geo.block._id,
-                    booth_id: geo.booth._id,
+                    state_id: state._id,
+                    division_id: division._id,
+                    parliament_id: parliament._id,
+                    assembly_id: assembly._id,
+                    block_id: block._id,
+                    booth_id: booth._id,
                     created_by: req.user.id,
                     updated_by: req.user.id
                 };
 
-                await BLO.create(bloData);
+                if (electionYearId) {
+                    bloData.election_year_id = electionYearId;
+                }
+
+                const newBLO = await BLO.create(bloData);
                 summary.imported += 1;
             } catch (err) {
                 summary.skipped += 1;
@@ -502,4 +499,3 @@ module.exports = {
     deleteBLO,
     importBLOs
 };
-

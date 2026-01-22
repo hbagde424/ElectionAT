@@ -74,6 +74,7 @@ export default function BLOModal({
     assemblies = [],
     blocks = [],
     booths = [],
+    electionYears = [],
     refresh
 }) {
     // helper to normalize id (accepts string id or populated object)
@@ -91,7 +92,8 @@ export default function BLOModal({
         block_id: '',
         booth_id: '',
         blo_name: '',
-        contact_number: ''
+        contact_number: '',
+        election_year_id: ''
     });
 
     // Location suggestions state
@@ -121,7 +123,8 @@ export default function BLOModal({
                 block_id: BLO.block_id?._id || '',
                 booth_id: BLO.booth_id?._id || '',
                 blo_name: BLO.blo_name || '',
-                contact_number: BLO.contact_number || ''
+                contact_number: BLO.contact_number || '',
+                election_year_id: BLO.election_year_id?._id || ''
             });
         } else {
             setFormData({
@@ -132,7 +135,8 @@ export default function BLOModal({
                 block_id: '',
                 booth_id: '',
                 blo_name: '',
-                contact_number: ''
+                contact_number: '',
+                election_year_id: ''
             });
         }
         setErrors({});
@@ -192,15 +196,14 @@ export default function BLOModal({
         if (!formData.block_id) newErrors.block_id = 'Block is required';
         if (!formData.booth_id) newErrors.booth_id = 'Booth is required';
         if (!formData.blo_name.trim()) newErrors.blo_name = 'BLO name is required';
-        if (!formData.contact_number.trim()) newErrors.contact_number = 'Contact number is required';
 
         // Validate BLO name length
         if (formData.blo_name.length > 100) {
             newErrors.blo_name = 'BLA name cannot exceed 100 characters';
         }
 
-        // Validate contact number length
-        if (formData.contact_number.length > 15) {
+        // Validate contact number length (only if provided)
+        if (formData.contact_number && formData.contact_number.length > 15) {
             newErrors.contact_number = 'Contact number cannot exceed 15 characters';
         }
 
@@ -389,7 +392,8 @@ export default function BLOModal({
                 block_id: formData.block_id,
                 booth_id: formData.booth_id,
                 blo_name: formData.blo_name.trim(),
-                contact_number: formData.contact_number.trim()
+                contact_number: formData.contact_number ? formData.contact_number.trim() : '',
+                election_year_id: formData.election_year_id || null
             };
 
             if (BLO) {
@@ -417,7 +421,8 @@ export default function BLOModal({
             block_id: '',
             booth_id: '',
             blo_name: '',
-            contact_number: ''
+            contact_number: '',
+            election_year_id: ''
         });
         setErrors({});
         setSubmitError('');
@@ -427,7 +432,7 @@ export default function BLOModal({
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
             <DialogTitle>
                 <Typography variant="h4">
-                    {BLO ? 'Edit BLO Officer' : 'Add New BLO'}
+                    {BLO ? 'Edit BLO Officer' : 'Add New BLA'}
                 </Typography>
             </DialogTitle>
             
@@ -616,7 +621,7 @@ export default function BLOModal({
                     {/* BLO Contact Information */}
                     <Grid item xs={12} sx={{ mt: 2 }}>
                         <Typography variant="h6" gutterBottom>
-                            BLO Contact Information
+                            BLA Contact Information
                         </Typography>
                         <Divider sx={{ mb: 2 }} />
                     </Grid>
@@ -634,7 +639,7 @@ export default function BLOModal({
 
                     <Grid item xs={12} sm={4}>
                         <FormTextField
-                            label="FeContact Number"
+                            label="Contact Number"
                             name="alt_contact"
                             value={formData.alt_contact}
                             onChange={handleInputChange}
@@ -645,12 +650,24 @@ export default function BLOModal({
 
                     <Grid item xs={12} sm={4}>
                         <FormTextField
-                            label="alt_email"
+                            label="Email"
                             name="alt_email"
                             value={formData.alt_email}
                             onChange={handleInputChange}
                             error={errors.alt_email}
                             type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <FormSelect
+                            label="Election Year"
+                            name="election_year_id"
+                            value={formData.election_year_id}
+                            options={electionYears}
+                            onChange={handleInputChange}
+                            error={errors.election_year_id}
+                            labelKey="year"
                         />
                     </Grid>
                 </Grid>
@@ -671,7 +688,7 @@ export default function BLOModal({
                             {BLO ? 'Updating...' : 'Creating...'}
                         </>
                     ) : (
-                        BLO ? 'Update BLO' : 'Create BLO'
+                        BLO ? 'Update BLA' : 'Create BLA'
                     )}
                 </Button>
             </DialogActions>

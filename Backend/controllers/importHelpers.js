@@ -125,9 +125,36 @@ async function resolveGeographicHierarchy(row) {
   // Booth (number or name)
   const boothValue = row.booth_number ?? row.booth;
   if (boothValue !== undefined && boothValue !== null && boothValue !== '') {
-    result.booth = await Booth.findOne({ booth_number: String(boothValue).trim() });
+    const boothStr = String(boothValue).trim();
+    
+    // Try scoped to block FIRST (most specific)
+    if (result.block && result.block._id) {
+      result.booth = await Booth.findOne({ booth_number: boothStr, block_id: result.block._id });
+    }
+    
+    // Try numeric match within block
+    if (!result.booth && result.block && result.block._id && !isNaN(Number(boothStr))) {
+      result.booth = await Booth.findOne({ booth_number: Number(boothStr), block_id: result.block._id });
+    }
+    
+    // Try within assembly if block didn't work
+    if (!result.booth && result.assembly && result.assembly._id) {
+      result.booth = await Booth.findOne({ booth_number: boothStr, assembly_id: result.assembly._id });
+    }
+    
+    // Try numeric match within assembly
+    if (!result.booth && result.assembly && result.assembly._id && !isNaN(Number(boothStr))) {
+      result.booth = await Booth.findOne({ booth_number: Number(boothStr), assembly_id: result.assembly._id });
+    }
+    
+    // Only use global fallback as LAST resort
     if (!result.booth) {
-      result.booth = await Booth.findOne({ name: { $regex: `^${boothValue}$`, $options: 'i' } });
+      result.booth = await Booth.findOne({ booth_number: boothStr });
+    }
+    
+    // Try numeric match globally
+    if (!result.booth && !isNaN(Number(boothStr))) {
+      result.booth = await Booth.findOne({ booth_number: Number(boothStr) });
     }
   }
 
