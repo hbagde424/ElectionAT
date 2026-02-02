@@ -39,7 +39,7 @@ const BLODetailPage = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const { id } = useParams();
-    const [BLO, setBLO] = useState(null);
+    const [BLA, setBLA] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [boothCoords, setBoothCoords] = useState(null);
@@ -49,28 +49,28 @@ const BLODetailPage = () => {
     const mapRef = React.useRef(null);
 
     useEffect(() => {
-        console.log('BLODetailPage mounted with ID:', id);
-        fetchBLODetails();
+        console.log('BLADetailPage mounted with ID:', id);
+        fetchBLADetails();
     }, [id]);
 
-    const fetchBLODetails = async () => {
+    const fetchBLADetails = async () => {
         try {
             setLoading(true);
             console.log('Fetching BLA details for ID:', id);
             const token = localStorage.getItem('serviceToken');
             console.log('Token available:', !!token);
 
-            const response = await axiosServices.get(`/blos/${id}`, {
+            const response = await axiosServices.get(`/blas/${id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log('BLO API response:', response);
+            console.log('BLA API response:', response);
             if (response.data.success) {
-                setBLO(response.data.data);
+                setBLA(response.data.data);
                 setError(null);
-                // After setting BLO, try to fetch booth info for map
+                // After setting BLA, try to fetch booth info for map
                 try {
                     const boothId = response.data.data?.booth_id?._id || response.data.data?.booth_id;
                     if (boothId) fetchBoothForMap(boothId);
@@ -150,7 +150,7 @@ const BLODetailPage = () => {
     };
 
     const handleBack = () => {
-        navigate('/blo');
+        navigate('/bla');
     };
 
     if (loading) {
@@ -177,14 +177,14 @@ const BLODetailPage = () => {
         );
     }
 
-    if (!BLO) {
+    if (!BLA) {
         return (
             <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                    BLO not found
+                    BLA not found
                 </Alert>
                 <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>
-                    Back to BLOs
+                    Back to BLAs
                 </Button>
             </Container>
         );
@@ -203,7 +203,7 @@ const BLODetailPage = () => {
                             BLA details
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            {formatDateTime(BLO.created_at)}
+                            {formatDateTime(BLA.created_at)}
                         </Typography>
                     </Box>
                 </Stack>
@@ -227,31 +227,31 @@ const BLODetailPage = () => {
                         href="#"
                         onClick={(e) => {
                             e.preventDefault();
-                            navigate('/blo');
+                            navigate('/bla');
                         }}
                     >
-                        BLO Officers
+                        BLA Officers
                     </Link>
                     <Typography color="text.primary">
-                        {BLO.blo_name}
+                        {BLA.bla_name}
                     </Typography>
                 </Breadcrumbs>
             </Box>
 
-            {/* BLO Information - Banner + Two-column layout */}
+            {/* BLA Information - Banner + Two-column layout */}
             <MainCard>
                 <Box sx={{ bgcolor: 'primary.light', color: 'primary.contrastText', p: 2, borderRadius: '8px 8px 0 0' }}>
                     <Grid container alignItems="center">
                         <Grid item xs>
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{BLO.blo_name || 'Unnamed BLO'}</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{BLA.bla_name || 'Unnamed BLA'}</Typography>
                             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                Contact: {BLO.contact_number || 'N/A'} • Booth: {BLO.booth_id?.name || 'N/A'}
+                                Contact: {BLA.contact_number || 'N/A'} • Booth: {BLA.booth_id?.name || 'N/A'}
                             </Typography>
                         </Grid>
                         <Grid item>
                             <Stack direction="row" spacing={1}>
-                                {BLO.contact_number && (
-                                    <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${BLO.contact_number}`}>Call</Button>
+                                {BLA.contact_number && (
+                                    <Button variant="outlined" color="inherit" startIcon={<Phone />} href={`tel:${BLA.contact_number}`}>Call</Button>
                                 )}
                             </Stack>
                         </Grid>
@@ -266,35 +266,35 @@ const BLODetailPage = () => {
                                 <Grid container spacing={1} sx={{ mt: 1 }}>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">BLA Name</Typography>
-                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{BLO.blo_name || 'N/A'}</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{BLA.bla_name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">Contact Number</Typography>
-                                        <Typography variant="body2">{BLO.contact_number || 'N/A'}</Typography>
+                                        <Typography variant="body2">{BLA.contact_number || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">State</Typography>
-                                        <Typography variant="body2">{BLO.state_id?.name || 'N/A'}</Typography>
+                                        <Typography variant="body2">{BLA.state_id?.name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">Division</Typography>
-                                        <Typography variant="body2">{BLO.division_id?.name || 'N/A'}</Typography>
+                                        <Typography variant="body2">{BLA.division_id?.name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">Parliament</Typography>
-                                        <Typography variant="body2">{BLO.parliament_id?.name || 'N/A'}</Typography>
+                                        <Typography variant="body2">{BLA.parliament_id?.name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">Assembly</Typography>
-                                        <Typography variant="body2">{BLO.assembly_id?.name || 'N/A'}</Typography>
+                                        <Typography variant="body2">{BLA.assembly_id?.name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">Block</Typography>
-                                        <Typography variant="body2">{BLO.block_id?.name || 'N/A'}</Typography>
+                                        <Typography variant="body2">{BLA.block_id?.name || 'N/A'}</Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="caption" color="text.secondary">Booth</Typography>
-                                        <Typography variant="body2">{BLO.booth_id?.name || 'N/A'} (#{BLO.booth_id?.booth_number || 'N/A'})</Typography>
+                                        <Typography variant="body2">{BLA.booth_id?.name || 'N/A'} (#{BLA.booth_id?.booth_number || 'N/A'})</Typography>
                                     </Grid>
                                 </Grid>
                             </Paper>
@@ -305,16 +305,16 @@ const BLODetailPage = () => {
                                 <Typography variant="subtitle2" color="text.secondary">Metadata</Typography>
                                 <Box sx={{ mt: 1 }}>
                                     <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                        <strong>Created:</strong> {formatDateTime(BLO.created_at)}
+                                        <strong>Created:</strong> {formatDateTime(BLA.created_at)}
                                     </Typography>
                                     <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                        <strong>Updated:</strong> {formatDateTime(BLO.updated_at)}
+                                        <strong>Updated:</strong> {formatDateTime(BLA.updated_at)}
                                     </Typography>
                                     <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                        <strong>Created By:</strong> {BLO.created_by?.username || BLO.created_by?.name || 'N/A'}
+                                        <strong>Created By:</strong> {BLA.created_by?.username || BLA.created_by?.name || 'N/A'}
                                     </Typography>
                                     <Typography variant="body2">
-                                        <strong>Updated By:</strong> {BLO.updated_by?.username || BLO.updated_by?.name || 'N/A'}
+                                        <strong>Updated By:</strong> {BLA.updated_by?.username || BLA.updated_by?.name || 'N/A'}
                                     </Typography>
                                 </Box>
                             </Paper>
@@ -356,5 +356,5 @@ const BLODetailPage = () => {
     );
 };
 
-export default BLODetailPage;
+export default BLADetailPage;
 

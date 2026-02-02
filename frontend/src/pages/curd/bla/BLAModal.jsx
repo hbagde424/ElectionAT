@@ -3,11 +3,12 @@ import {
     Button, Grid, Stack, TextField, InputLabel, Select,
     MenuItem, FormControl, FormHelperText, Alert,
     CircularProgress, Typography, Autocomplete, Divider,
-    IconButton, Tooltip
+    IconButton, Tooltip, Switch, FormControlLabel
 } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { useEffect, useState, useRef } from 'react';
 import axiosServices from 'utils/axios';
+import StarRating from 'components/StarRating';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -47,7 +48,9 @@ const FormTextField = ({
     error,
     disabled,
     type = 'text',
-    required = false
+    required = false,
+    multiline = false,
+    rows = 1
 }) => (
     <Stack spacing={1}>
         <InputLabel required={required} sx={{ fontWeight: 'bold' }}>{label}:</InputLabel>
@@ -60,14 +63,16 @@ const FormTextField = ({
             error={!!error}
             helperText={error}
             disabled={disabled}
+            multiline={multiline}
+            rows={multiline ? rows : 1}
         />
     </Stack>
 );
 
-export default function BLOModal({
+export default function BLAModal({
     open,
     modalToggler,
-    BLO,
+    BLA,
     states = [],
     divisions = [],
     parliaments = [],
@@ -91,9 +96,13 @@ export default function BLOModal({
         assembly_id: '',
         block_id: '',
         booth_id: '',
-        blo_name: '',
+        bla_name: '',
         contact_number: '',
-        election_year_id: ''
+        email: '',
+        full_address: '',
+        is_active: true,
+        election_year_id: '',
+        performance_rating: 0
     });
 
     // Location suggestions state
@@ -114,17 +123,21 @@ export default function BLOModal({
 
     // Initialize form data
     useEffect(() => {
-        if (BLO) {
+        if (BLA) {
             setFormData({
-                state_id: BLO.state_id?._id || '',
-                division_id: BLO.division_id?._id || '',
-                parliament_id: BLO.parliament_id?._id || '',
-                assembly_id: BLO.assembly_id?._id || '',
-                block_id: BLO.block_id?._id || '',
-                booth_id: BLO.booth_id?._id || '',
-                blo_name: BLO.blo_name || '',
-                contact_number: BLO.contact_number || '',
-                election_year_id: BLO.election_year_id?._id || ''
+                state_id: BLA.state_id?._id || '',
+                division_id: BLA.division_id?._id || '',
+                parliament_id: BLA.parliament_id?._id || '',
+                assembly_id: BLA.assembly_id?._id || '',
+                block_id: BLA.block_id?._id || '',
+                booth_id: BLA.booth_id?._id || '',
+                bla_name: BLA.bla_name || '',
+                contact_number: BLA.contact_number || '',
+                email: BLA.email || '',
+                full_address: BLA.full_address || '',
+                is_active: BLA.is_active !== undefined ? BLA.is_active : true,
+                election_year_id: BLA.election_year_id?._id || '',
+                performance_rating: BLA.performance_rating || 0
             });
         } else {
             setFormData({
@@ -134,14 +147,18 @@ export default function BLOModal({
                 assembly_id: '',
                 block_id: '',
                 booth_id: '',
-                blo_name: '',
+                bla_name: '',
                 contact_number: '',
-                election_year_id: ''
+                email: '',
+                full_address: '',
+                is_active: true,
+                election_year_id: '',
+                performance_rating: 0
             });
         }
         setErrors({});
         setSubmitError('');
-    }, [BLO, open]);
+    }, [BLA, open]);
 
     // Update filtered options based on selections
     useEffect(() => {
@@ -195,16 +212,32 @@ export default function BLOModal({
         if (!formData.assembly_id) newErrors.assembly_id = 'Assembly is required';
         if (!formData.block_id) newErrors.block_id = 'Block is required';
         if (!formData.booth_id) newErrors.booth_id = 'Booth is required';
-        if (!formData.blo_name.trim()) newErrors.blo_name = 'BLO name is required';
+        if (!formData.bla_name.trim()) newErrors.bla_name = 'BLA name is required';
 
-        // Validate BLO name length
-        if (formData.blo_name.length > 100) {
-            newErrors.blo_name = 'BLA name cannot exceed 100 characters';
+        // Validate BLA name length
+        if (formData.bla_name.length > 100) {
+            newErrors.bla_name = 'BLA name cannot exceed 100 characters';
         }
 
         // Validate contact number length (only if provided)
         if (formData.contact_number && formData.contact_number.length > 15) {
             newErrors.contact_number = 'Contact number cannot exceed 15 characters';
+        }
+
+        // Validate email format (only if provided)
+        if (formData.email && formData.email.trim()) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.email)) {
+                newErrors.email = 'Please enter a valid email address';
+            }
+            if (formData.email.length > 100) {
+                newErrors.email = 'Email cannot exceed 100 characters';
+            }
+        }
+
+        // Validate full address length (only if provided)
+        if (formData.full_address && formData.full_address.length > 500) {
+            newErrors.full_address = 'Full address cannot exceed 500 characters';
         }
 
         setErrors(newErrors);
@@ -391,21 +424,25 @@ export default function BLOModal({
                 assembly_id: formData.assembly_id,
                 block_id: formData.block_id,
                 booth_id: formData.booth_id,
-                blo_name: formData.blo_name.trim(),
+                bla_name: formData.bla_name.trim(),
                 contact_number: formData.contact_number ? formData.contact_number.trim() : '',
-                election_year_id: formData.election_year_id || null
+                email: formData.email ? formData.email.trim() : '',
+                full_address: formData.full_address ? formData.full_address.trim() : '',
+                is_active: formData.is_active,
+                election_year_id: formData.election_year_id || null,
+                performance_rating: formData.performance_rating || 0
             };
 
-            if (BLO) {
-                await axiosServices.put(`/blos/${BLO._id}`, submitData);
+            if (BLA) {
+                await axiosServices.put(`/blas/${BLA._id}`, submitData);
             } else {
-                await axiosServices.post('/blos', submitData);
+                await axiosServices.post('/blas', submitData);
             }
 
             modalToggler();
             refresh();
         } catch (error) {
-            console.error('Error saving BLO:', error);
+            console.error('Error saving BLA:', error);
             setSubmitError(error.response?.data?.message || 'An error occurred while saving');
         }
         setIsSubmitting(false);
@@ -420,9 +457,13 @@ export default function BLOModal({
             assembly_id: '',
             block_id: '',
             booth_id: '',
-            blo_name: '',
+            bla_name: '',
             contact_number: '',
-            election_year_id: ''
+            email: '',
+            full_address: '',
+            is_active: true,
+            election_year_id: '',
+            performance_rating: 0
         });
         setErrors({});
         setSubmitError('');
@@ -432,7 +473,7 @@ export default function BLOModal({
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
             <DialogTitle>
                 <Typography variant="h4">
-                    {BLO ? 'Edit BLO Officer' : 'Add New BLA'}
+                    {BLA ? 'Edit BLA Officer' : 'Add New BLA'}
                 </Typography>
             </DialogTitle>
             
@@ -462,6 +503,11 @@ export default function BLOModal({
                             error={errors.state_id}
                             required
                         />
+                        {states.length === 0 && (
+                            <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
+                                Loading states...
+                            </Typography>
+                        )}
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -529,7 +575,7 @@ export default function BLOModal({
                         />
                     </Grid>
 
-                    {/* BLO Information */}
+                    {/* BLA Information */}
                     <Grid item xs={12} sx={{ mt: 2 }}>
                         <Typography variant="h6" gutterBottom>
                             BLA Information
@@ -540,12 +586,55 @@ export default function BLOModal({
                     <Grid item xs={12} sm={6}>
                         <FormTextField
                             label="BLA Name"
-                            name="blo_name"
-                            value={formData.blo_name}
+                            name="bla_name"
+                            value={formData.bla_name}
                             onChange={handleInputChange}
-                            error={errors.blo_name}
+                            error={errors.bla_name}
                             required
                         />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Status:</InputLabel>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.is_active}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                                        color="primary"
+                                    />
+                                }
+                                label={formData.is_active ? 'Active' : 'Inactive'}
+                            />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <FormTextField
+                            label="Full Address"
+                            name="full_address"
+                            value={formData.full_address}
+                            onChange={handleInputChange}
+                            error={errors.full_address}
+                            multiline
+                            rows={3}
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <Stack spacing={1}>
+                            <InputLabel sx={{ fontWeight: 'bold' }}>Performance Rating:</InputLabel>
+                            <StarRating
+                                value={formData.performance_rating}
+                                onChange={(newValue) => {
+                                    setFormData(prev => ({ ...prev, performance_rating: newValue || 0 }));
+                                }}
+                                readOnly={false}
+                                showLabel={true}
+                                size="large"
+                            />
+                        </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -618,7 +707,7 @@ export default function BLOModal({
                         />
                     </Grid>
 
-                    {/* BLO Contact Information */}
+                    {/* BLA Contact Information */}
                     <Grid item xs={12} sx={{ mt: 2 }}>
                         <Typography variant="h6" gutterBottom>
                             BLA Contact Information
@@ -633,29 +722,18 @@ export default function BLOModal({
                             value={formData.contact_number}
                             onChange={handleInputChange}
                             error={errors.contact_number}
-                            type="number"
-                        />
-                    </Grid>
-
-                    <Grid item xs={12} sm={4}>
-                        <FormTextField
-                            label="Contact Number"
-                            name="alt_contact"
-                            value={formData.alt_contact}
-                            onChange={handleInputChange}
-                            error={errors.alt_contact}
-                            type="number"
+                            type="tel"
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={4}>
                         <FormTextField
                             label="Email"
-                            name="alt_email"
-                            value={formData.alt_email}
+                            name="email"
+                            value={formData.email}
                             onChange={handleInputChange}
-                            error={errors.alt_email}
-                            type="number"
+                            error={errors.email}
+                            type="email"
                         />
                     </Grid>
 
@@ -685,14 +763,16 @@ export default function BLOModal({
                     {isSubmitting ? (
                         <>
                             <CircularProgress size={20} sx={{ mr: 1 }} />
-                            {BLO ? 'Updating...' : 'Creating...'}
+                            {BLA ? 'Updating...' : 'Creating...'}
                         </>
                     ) : (
-                        BLO ? 'Update BLA' : 'Create BLA'
+                        BLA ? 'Update BLA' : 'Create BLA'
                     )}
                 </Button>
             </DialogActions>
         </Dialog>
     );
-}
+};
+
+
 

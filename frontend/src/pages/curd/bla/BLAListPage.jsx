@@ -22,22 +22,24 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 import ScrollX from 'components/ScrollX';
 import MainCard from 'components/MainCard';
 import EmptyReactTable from 'pages/tables/react-table/empty';
-import BLOModal from './BLOModal';
-import AlertBLODelete from './AlertBLODelete';
+import BLAModal from './BLAModal';
+import AlertBLADelete from './AlertBLADelete';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
+import MaskedPhoneNumber from 'components/MaskedPhoneNumber';
+import StarRating from 'components/StarRating';
 
-const BLOListPage = () => {
+const BLAListPage = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const { userHierarchy, getUserHighestLevel, canAccessLevel } = usePermissions();
-    const [BLOs, setBLOs] = useState([]);
-    const [allBLOs, setAllBLOs] = useState([]);
+    const [BLAs, setBLAs] = useState([]);
+    const [allBLAs, setAllBLAs] = useState([]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [openModal, setOpenModal] = useState(false);
-    const [selectedBLO, setSelectedBLO] = useState(null);
+    const [selectedBLA, setSelectedBLA] = useState(null);
     const [deleteAlert, setDeleteAlert] = useState({ open: false, id: null });
     const [globalFilter, setGlobalFilter] = useState('');
     const [sorting, setSorting] = useState([]);
@@ -110,7 +112,7 @@ const BLOListPage = () => {
     };
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
-    const [boothsWithBLO, setBoothsWithBLO] = useState(new Set());
+    const [boothsWithBLA, setBoothsWithBLA] = useState(new Set());
 
     // Filters
     const [filters, setFilters] = useState({
@@ -120,7 +122,7 @@ const BLOListPage = () => {
         assembly_id: '',
         block_id: '',
         booth_id: '',
-        blo_name: '',
+        bla_name: '',
         contact_number: '',
         election_year_id: ''
     });
@@ -133,7 +135,7 @@ const BLOListPage = () => {
         assembly_id: '',
         block_id: '',
         booth_id: '',
-        blo_name: '',
+        bla_name: '',
         contact_number: '',
         election_year_id: ''
     });
@@ -146,12 +148,12 @@ const BLOListPage = () => {
         assembly_id: '',
         block_id: '',
         booth_id: '',
-        blo_name: '',
+        bla_name: '',
         contact_number: '',
         election_year_id: ''
     });
 
-    const fetchAllBLOsForFilters = async () => {
+    const fetchAllBLAsForFilters = async () => {
         try {
             const query = {};
             if (userHierarchy?.state) query.state_id = userHierarchy.state._id || userHierarchy.state;
@@ -166,18 +168,18 @@ const BLOListPage = () => {
             if (appliedFilters?.assembly_id) query.assembly_id = appliedFilters.assembly_id;
             if (appliedFilters?.block_id) query.block_id = appliedFilters.block_id;
             if (appliedFilters?.booth_id) query.booth_id = appliedFilters.booth_id;
-            if (appliedFilters?.blo_name) query.blo_name = appliedFilters.blo_name;
+            if (appliedFilters?.bla_name) query.bla_name = appliedFilters.bla_name;
             if (appliedFilters?.contact_number) query.contact_number = appliedFilters.contact_number;
             if (globalFilter) query.search = globalFilter;
 
-            const data = await fetchAllDataForFilters('/blos', query);
-            setAllBLOs(data);
+            const data = await fetchAllDataForFilters('/blas', query);
+            setAllBLAs(data);
         } catch (error) {
-            console.error('Failed to fetch all BLOs for filters:', error);
+            console.error('Failed to fetch all blas for filters:', error);
         }
     };
 
-    const filterOptions = useFilterOptionsFromData(allBLOs, {
+    const filterOptions = useFilterOptionsFromData(allBLAs, {
         states: { field: 'state_id', nameField: 'name' },
         divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
         parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
@@ -216,11 +218,49 @@ const BLOListPage = () => {
 
     const columns = useMemo(() => [
         {
-            header: 'BLO Name',
-            accessorKey: 'blo_name',
+            header: 'BLA Name',
+            accessorKey: 'bla_name',
             cell: ({ getValue }) => (
                 <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                     {getValue()}
+                </Typography>
+            )
+        },
+        {
+            header: 'Performance',
+            accessorKey: 'performance_rating',
+            cell: ({ getValue, row }) => (
+                <StarRating 
+                    value={getValue() || 0} 
+                    readOnly 
+                    showLabel={false}
+                    size="small"
+                />
+            )
+        },
+        {
+            header: 'Status',
+            accessorKey: 'is_active',
+            cell: ({ getValue }) => (
+                <Chip 
+                    label={getValue() ? 'Active' : 'Inactive'} 
+                    color={getValue() ? 'success' : 'error'}
+                    size="small"
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            header: 'Full Address',
+            accessorKey: 'full_address',
+            cell: ({ getValue }) => (
+                <Typography variant="body2" sx={{ 
+                    maxWidth: 200, 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {getValue() || 'N/A'}
                 </Typography>
             )
         },
@@ -279,6 +319,16 @@ const BLOListPage = () => {
         {
             header: 'Contact Number',
             accessorKey: 'contact_number',
+            cell: ({ getValue, row }) => (
+                <MaskedPhoneNumber 
+                    maskedNumber={getValue() || 'N/A'} 
+                    blaId={row.original._id}
+                />
+            )
+        },
+        {
+            header: 'Email',
+            accessorKey: 'email',
             cell: ({ getValue }) => (
                 <Typography variant="body2">
                     {getValue() || 'N/A'}
@@ -293,7 +343,7 @@ const BLOListPage = () => {
                 <Stack direction="row" spacing={1}>
                     <Tooltip title="View Details">
                         <IconButton
-                            onClick={() => navigate(`/blo/${row.original._id}`)}
+                            onClick={() => navigate(`/BLA/${row.original._id}`)}
                             color="primary"
                         >
                             <Eye />
@@ -321,7 +371,7 @@ const BLOListPage = () => {
     ], [navigate]);
 
     const table = useReactTable({
-        data: BLOs,
+        data: BLAs,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -344,12 +394,12 @@ const BLOListPage = () => {
     // Fetch hierarchy data
     useEffect(() => {
         fetchHierarchyData();
-        fetchAllBLOsForFilters();
+        fetchAllBLAsForFilters();
     }, []);
 
     // Keep filter options in sync with current applied filters (globalFilter already fetched in main useEffect)
     useEffect(() => {
-        fetchAllBLOsForFilters();
+        fetchAllBLAsForFilters();
     }, [JSON.stringify(appliedFilters)]);
 
     const fetchHierarchyData = async () => {
@@ -364,24 +414,50 @@ const BLOListPage = () => {
                 axiosServices.get('/election-years?all=true')
             ]);
 
-            setStates(statesRes.data.data || []);
-            setDivisions(divisionsRes.data.data || []);
-            setParliaments(parliamentsRes.data.data || []);
-            setAssemblies(assembliesRes.data.data || []);
-            setBlocks(blocksRes.data.data || []);
-            setBooths(boothsRes.data.data || []);
-            setElectionYears(electionYearsRes.data.data || []);
+            // Handle different response structures
+            const getDataFromResponse = (res) => {
+                if (res.data?.data) return res.data.data;
+                if (res.data?.success && Array.isArray(res.data.data)) return res.data.data;
+                if (Array.isArray(res.data)) return res.data;
+                return [];
+            };
+
+            const statesData = getDataFromResponse(statesRes);
+            const divisionsData = getDataFromResponse(divisionsRes);
+            const parliamentsData = getDataFromResponse(parliamentsRes);
+            const assembliesData = getDataFromResponse(assembliesRes);
+            const blocksData = getDataFromResponse(blocksRes);
+            const boothsData = getDataFromResponse(boothsRes);
+            const electionYearsData = getDataFromResponse(electionYearsRes);
+
+            console.log('Hierarchy data fetched:', {
+                states: statesData?.length || 0,
+                divisions: divisionsData?.length || 0,
+                parliaments: parliamentsData?.length || 0,
+                assemblies: assembliesData?.length || 0,
+                blocks: blocksData?.length || 0,
+                booths: boothsData?.length || 0,
+                electionYears: electionYearsData?.length || 0
+            });
+
+            setStates(statesData);
+            setDivisions(divisionsData);
+            setParliaments(parliamentsData);
+            setAssemblies(assembliesData);
+            setBlocks(blocksData);
+            setBooths(boothsData);
+            setElectionYears(electionYearsData);
         } catch (error) {
             console.error('Error fetching hierarchy data:', error);
         }
     };
 
-    // Fetch BLOs data
+    // Fetch blas data
     useEffect(() => {
-        fetchBLOs();
+        fetchBLAs();
     }, [pagination, sorting, globalFilter, appliedFilters]);
 
-    const fetchBLOs = async () => {
+    const fetchBLAs = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -395,29 +471,29 @@ const BLOListPage = () => {
                 params.append('sort', `${sorting[0].desc ? '-' : ''}${sorting[0].id}`);
             }
 
-            console.debug('[BLO] fetching with params:', params.toString(), 'sorting:', sorting, 'globalFilter:', globalFilter, 'appliedFilters:', appliedFilters);
-            const response = await axiosServices.get(`/blos?${params}`);
+            console.debug('[BLA] fetching with params:', params.toString(), 'sorting:', sorting, 'globalFilter:', globalFilter, 'appliedFilters:', appliedFilters);
+            const response = await axiosServices.get(`/blas?${params}`);
             const { data, total, pages } = response.data;
 
-            setBLOs(data || []);
+            setBLAs(data || []);
             setPageCount(pages || 0);
             
-            // Refresh booths with BLO markers on map
-            fetchBoothsWithBLO();
+            // Refresh booths with BLA markers on map
+            fetchBoothsWithBLA();
         } catch (error) {
-            console.error('Error fetching BLOs:', error);
-            setBLOs([]);
+            console.error('Error fetching blas:', error);
+            setBLAs([]);
         }
         setLoading(false);
     };
 
     const handleAdd = () => {
-        setSelectedBLO(null);
+        setSelectedBLA(null);
         setOpenModal(true);
     };
 
-    const handleEdit = (BLO) => {
-        setSelectedBLO(BLO);
+    const handleEdit = (BLA) => {
+        setSelectedBLA(BLA);
         setOpenModal(true);
     };
 
@@ -442,7 +518,7 @@ const BLOListPage = () => {
             assembly_id: '',
             block_id: '',
             booth_id: '',
-            blo_name: '',
+            bla_name: '',
             contact_number: '',
             election_year_id: ''
         };
@@ -458,17 +534,17 @@ const BLOListPage = () => {
         return token ? { Authorization: `Bearer ${token}` } : {};
     };
 
-    // Fetch list of booths that already have a BLO (optionally filtered by year)
-    const fetchBoothsWithBLO = async (year = '') => {
+    // Fetch list of booths that already have a BLA (optionally filtered by year)
+    const fetchBoothsWithBLA = async (year = '') => {
         try {
-            let url = '/blos?all=true&limit=50000';
+            let url = '/blas?all=true&limit=50000';
             if (year) {
                 url += `&election_year_id=${year}`;
             }
             const res = await axiosServices.get(url);
             const list = res?.data?.data || [];
             
-            // Create a Set of booth numbers (not IDs) that have BLOs
+            // Create a Set of booth numbers (not IDs) that have blas
             const boothNumbers = new Set();
             list.forEach(b => {
                 const booth = b.booth_id;
@@ -477,10 +553,10 @@ const BLOListPage = () => {
                     boothNumbers.add(String(boothNumber).trim());
                 }
             });
-            console.debug('[BLO Map] Fetched booths with BLO:', boothNumbers.size, 'year:', year || 'all', 'booth numbers:', Array.from(boothNumbers).slice(0, 5));
-            setBoothsWithBLO(boothNumbers);
+            console.debug('[BLA Map] Fetched booths with BLA:', boothNumbers.size, 'year:', year || 'all', 'booth numbers:', Array.from(boothNumbers).slice(0, 5));
+            setBoothsWithBLA(boothNumbers);
         } catch (e) {
-            console.warn('Failed to fetch booths with BLO:', e);
+            console.warn('Failed to fetch booths with BLA:', e);
         }
     };
 
@@ -492,8 +568,8 @@ const BLOListPage = () => {
         }
         setMapError('');
         try {
-            // Fetch booths with BLO markers in parallel, filtered by year if selected
-            fetchBoothsWithBLO(selectedMapYear);
+            // Fetch booths with BLA markers in parallel, filtered by year if selected
+            fetchBoothsWithBLA(selectedMapYear);
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -551,10 +627,10 @@ const BLOListPage = () => {
         }
     }, [blocks, mapboxToken]);
 
-    // Refresh BLO markers when year filter changes
+    // Refresh BLA markers when year filter changes
     useEffect(() => {
         if (boothGeoJSON) {
-            fetchBoothsWithBLO(selectedMapYear);
+            fetchBoothsWithBLA(selectedMapYear);
         }
     }, [selectedMapYear]);
 
@@ -571,30 +647,30 @@ const BLOListPage = () => {
                     json.data.find(b => String(b.booth_number).includes(boothNoStr));
             }
 
-            // fetch BLOs for this booth (with year filter if selected)
-            let blosForBooth = [];
+            // fetch blas for this booth (with year filter if selected)
+            let blasForBooth = [];
             if (booth && booth._id) {
-                let bloUrl = `${import.meta.env.VITE_APP_API_URL}/blos?all=true&booth_id=${encodeURIComponent(booth._id)}`;
+                let blaUrl = `${import.meta.env.VITE_APP_API_URL}/blas?all=true&booth_id=${encodeURIComponent(booth._id)}`;
                 if (selectedMapYear) {
-                    bloUrl += `&election_year_id=${encodeURIComponent(selectedMapYear)}`;
+                    blaUrl += `&election_year_id=${encodeURIComponent(selectedMapYear)}`;
                 }
-                const resB = await fetch(bloUrl, { headers });
+                const resB = await fetch(blaUrl, { headers });
                 const jb = await resB.json();
                 if (jb && jb.success && Array.isArray(jb.data)) {
-                    blosForBooth = jb.data;
+                    blasForBooth = jb.data;
                 }
             }
 
-            console.debug('[BLO Map] Fetched booth details:', booth?.booth_number, 'BLOs:', blosForBooth.length);
+            console.debug('[BLA Map] Fetched booth details:', booth?.booth_number, 'blas:', blasForBooth.length);
 
             // also set table filters to this booth so the table below shows related data
             if (booth && booth._id) {
                 handlePolygonSelectSetFilter(booth);
             }
-            setDrawerData({ loading: false, boothNo, details: { booth, blos: blosForBooth } });
+            setDrawerData({ loading: false, boothNo, details: { booth, blas: blasForBooth } });
         } catch (e) {
-            console.error('[BLO Map] Error fetching booth details:', e);
-            setDrawerData({ loading: false, boothNo, details: { booth: null, blos: [] }, error: e.message });
+            console.error('[BLA Map] Error fetching booth details:', e);
+            setDrawerData({ loading: false, boothNo, details: { booth: null, blas: [] }, error: e.message });
         }
     };
 
@@ -604,7 +680,7 @@ const BLOListPage = () => {
         try {
             const boothId = booth?._id || booth;
             if (!boothId) return;
-            console.debug('[BLO] polygon selected booth id:', boothId);
+            console.debug('[BLA] polygon selected booth id:', boothId);
             setTempFilters(prev => ({ ...prev, booth_id: boothId }));
             setAppliedFilters(prev => ({ ...prev, booth_id: boothId }));
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -623,20 +699,24 @@ const BLOListPage = () => {
                 ...Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v))
             });
 
-            const response = await axiosServices.get(`/blos?${params}`);
-            const exportData = response.data.data.map(BLO => ({
-                'BLO Name': BLO.blo_name,
-                'State': BLO.state_id?.name || '',
-                'Division': BLO.division_id?.name || '',
-                'Parliament': BLO.parliament_id?.name || '',
-                'Assembly': BLO.assembly_id?.name || '',
-                'Block': BLO.block_id?.name || '',
-                'Booth Number': BLO.booth_id?.booth_number || '',
-                'Booth Name': BLO.booth_id?.name || '',
-                'Election Year': BLO.election_year_id?.year || '',
-                'Contact Number': BLO.contact_number || '',
-                'Created At': new Date(BLO.created_at).toLocaleDateString(),
-                'Updated At': new Date(BLO.updated_at).toLocaleDateString()
+            const response = await axiosServices.get(`/blas?${params}`);
+            const exportData = response.data.data.map(BLA => ({
+                'BLA Name': BLA.bla_name,
+                'Status': BLA.is_active ? 'Active' : 'Inactive',
+                'Contact Number': BLA.contact_number || '',
+                'Email': BLA.email || '',
+                'Full Address': BLA.full_address || '',
+                'State': BLA.state_id?.name || '',
+                'Division': BLA.division_id?.name || '',
+                'Parliament': BLA.parliament_id?.name || '',
+                'Assembly': BLA.assembly_id?.name || '',
+                'Block': BLA.block_id?.name || '',
+                'Booth Number': BLA.booth_id?.booth_number || '',
+                'Booth Name': BLA.booth_id?.name || '',
+                'Election Year': BLA.election_year_id?.year || '',
+                'Performance Rating': BLA.performance_rating || 0,
+                'Created At': new Date(BLA.created_at).toLocaleDateString(),
+                'Updated At': new Date(BLA.updated_at).toLocaleDateString()
             }));
 
             setCsvData(exportData);
@@ -657,7 +737,7 @@ const BLOListPage = () => {
             const XLSX = await import('xlsx');
             const templateData = [
                 {
-                    blo_name: 'Rajesh Kumar',
+                    bla_name: 'Rajesh Kumar',
                     contact_number: '9876543210',
                     state_name: 'Madhya Pradesh',
                     division_code: 'GWL',
@@ -671,7 +751,7 @@ const BLOListPage = () => {
             const worksheet = XLSX.utils.json_to_sheet(templateData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-            XLSX.writeFile(workbook, 'blo-template.xlsx');
+            XLSX.writeFile(workbook, 'BLA-template.xlsx');
         } catch (error) {
             console.error('Error generating template:', error);
             alert('Failed to download template. Please try again.');
@@ -701,10 +781,10 @@ const BLOListPage = () => {
                 return normalized;
             });
 
-            const response = await axiosServices.post('/blos/import', { data: normalizedData });
+            const response = await axiosServices.post('/blas/import', { data: normalizedData });
             setImportResult(response.data);
             if (response.data.success) {
-                fetchBLOs();
+                fetchBLAs();
             }
         } catch (err) {
             setImportResult({ success: false, message: err.message || 'Import failed' });
@@ -739,7 +819,7 @@ const BLOListPage = () => {
                             startIcon={<Add />}
                             onClick={handleAdd}
                         >
-                            Add BLO Officer
+                            Add BLA Officer
                         </Button>
                     </Stack>
                 </Stack>
@@ -817,7 +897,7 @@ const BLOListPage = () => {
                                         mapTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' :
                                             'mapbox://styles/mapbox/streets-v11'
                             }
-                            interactiveLayerIds={boothGeoJSON ? ['blo-booth-fill'] : []}
+                            interactiveLayerIds={boothGeoJSON ? ['BLA-booth-fill'] : []}
                             onClick={async (e) => {
                                 if (!boothGeoJSON) return;
                                 try {
@@ -826,7 +906,7 @@ const BLOListPage = () => {
                                     if ((!features || features.length === 0) && map && map.queryRenderedFeatures) {
                                         features = map.queryRenderedFeatures(e.point);
                                     }
-                                    const boothFeature = features.find(f => f.layer && f.layer.id === 'blo-booth-fill') || features[0];
+                                    const boothFeature = features.find(f => f.layer && f.layer.id === 'BLA-booth-fill') || features[0];
                                     if (boothFeature) {
                                         const props = boothFeature.properties || {};
                                         const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
@@ -841,11 +921,11 @@ const BLOListPage = () => {
                         >
                             <MapControl />
                             {boothGeoJSON && (
-                                <Source id="blo-booth-source" type="geojson" data={boothGeoJSON}>
-                                    <Layer id="blo-booth-fill" type="fill" paint={{ 'fill-color': '#1E90FF', 'fill-opacity': 0.25 }} />
-                                    <Layer id="blo-booth-outline" type="line" paint={{ 'line-color': '#1E90FF', 'line-width': 2 }} />
+                                <Source id="BLA-booth-source" type="geojson" data={boothGeoJSON}>
+                                    <Layer id="BLA-booth-fill" type="fill" paint={{ 'fill-color': '#1E90FF', 'fill-opacity': 0.25 }} />
+                                    <Layer id="BLA-booth-outline" type="line" paint={{ 'line-color': '#1E90FF', 'line-width': 2 }} />
                                     <Layer
-                                        id="blo-booth-label"
+                                        id="BLA-booth-label"
                                         type="symbol"
                                         layout={{
                                             'text-field': ['format', ['coalesce', ['get', 'BoothNo'], ['get', 'BoothNumber'], ['get', 'boothNo'], ['get', 'booth_number'], ['get', 'Booth_Name'], ['get', 'BoothName'], ['get', 'name'], ['literal', '']], { 'font-scale': 1 }, '\n', { 'font-scale': 0.85 }, ['coalesce', ['get', 'BoothName'], ['get', 'Booth_Name'], ['get', 'name'], ['literal', '']]],
@@ -864,10 +944,10 @@ const BLOListPage = () => {
                                 </Source>
                             )}
 
-                            {/* BLO Markers Layer */}
+                            {/* BLA Markers Layer */}
                             {boothGeoJSON && (
                                 <Source
-                                    id="blo-booth-markers"
+                                    id="BLA-booth-markers"
                                     type="geojson"
                                     data={{
                                         type: 'FeatureCollection',
@@ -894,14 +974,14 @@ const BLOListPage = () => {
                                             }
 
                                             const hasBLO = (() => {
-                                                // Match booth number directly from polygon with booth numbers that have BLOs
+                                                // Match booth number directly from polygon with booth numbers that have blas
                                                 const boothNoStr = String(boothNo || '').trim();
-                                                const hasIt = boothsWithBLO.has(boothNoStr);
+                                                const hasIt = boothsWithBLA.has(boothNoStr);
                                                 
                                                 // Also try numeric comparison in case of formatting differences
                                                 if (!hasIt && boothNoStr) {
                                                     const boothNoNum = parseInt(boothNoStr, 10);
-                                                    for (let bn of boothsWithBLO) {
+                                                    for (let bn of boothsWithBLA) {
                                                         if (parseInt(bn, 10) === boothNoNum) {
                                                             return true;
                                                         }
@@ -909,7 +989,7 @@ const BLOListPage = () => {
                                                 }
                                                 
                                                 if (hasIt) {
-                                                    console.debug('[BLO Map] Found BLO for booth number:', boothNoStr);
+                                                    console.debug('[BLA Map] Found BLA for booth number:', boothNoStr);
                                                 }
                                                 return hasIt;
                                             })();
@@ -923,7 +1003,7 @@ const BLOListPage = () => {
                                     }}
                                 >
                                     <Layer
-                                        id="blo-booth-blo-markers"
+                                        id="BLA-booth-BLA-markers"
                                         type="circle"
                                         paint={{
                                             'circle-radius': 6,
@@ -964,7 +1044,7 @@ const BLOListPage = () => {
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>
                                 <Box>
                                     <Typography variant="h6">Booth Details</Typography>
-                                    <Typography variant="caption" color="text.secondary">Click a booth polygon to view BLO entries</Typography>
+                                    <Typography variant="caption" color="text.secondary">Click a booth polygon to view BLA entries</Typography>
                                 </Box>
                                 <IconButton color="secondary" onClick={() => setDrawerOpen(false)} sx={{ p: 0.5 }}>
                                     <CloseIcon />
@@ -987,17 +1067,131 @@ const BLOListPage = () => {
                                         </Paper>
 
                                         <Paper elevation={0} sx={{ p: 1 }}>
-                                            <Typography variant="subtitle2">BLO Entries ({drawerData.details.blos?.length || 0})</Typography>
-                                            {drawerData.details.blos?.length ? drawerData.details.blos.slice(0, 20).map(b => (
-                                                <Box key={b._id} sx={{ mb: 1, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, cursor: 'pointer' }}
-                                                    onClick={() => navigate(`/blo/${b._id}`)}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{b.blo_name || 'N/A'}</Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        <strong>Mobile:</strong> {b.contact_number || 'N/A'}
+                                            <Typography variant="subtitle2">BLA Entries ({drawerData.details.blas?.length || 0})</Typography>
+                                            {drawerData.details.blas?.length ? drawerData.details.blas.slice(0, 20).map(b => (
+                                                <Box key={b._id} sx={{ mb: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, cursor: 'pointer' }}
+                                                    onClick={() => navigate(`/BLA/${b._id}`)}>
+                                                    
+                                                    {/* BLA Name and Status */}
+                                                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{b.bla_name || 'N/A'}</Typography>
+                                                        <Chip 
+                                                            label={b.is_active ? 'Active' : 'Inactive'} 
+                                                            color={b.is_active ? 'success' : 'error'}
+                                                            size="small"
+                                                            variant="outlined"
+                                                        />
+                                                    </Stack>
+
+                                                    {/* Contact Number */}
+                                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
+                                                            <strong>Mobile:</strong>
+                                                        </Typography>
+                                                        <MaskedPhoneNumber 
+                                                            maskedNumber={b.contact_number || 'N/A'} 
+                                                            blaId={b._id}
+                                                        />
+                                                    </Stack>
+
+                                                    {/* Email */}
+                                                    {b.email && (
+                                                        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
+                                                                <strong>Email:</strong>
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ 
+                                                                flex: 1,
+                                                                wordBreak: 'break-word'
+                                                            }}>
+                                                                {b.email}
+                                                            </Typography>
+                                                        </Stack>
+                                                    )}
+
+                                                    {/* Full Address */}
+                                                    {b.full_address && (
+                                                        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
+                                                                <strong>Address:</strong>
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ 
+                                                                flex: 1,
+                                                                wordBreak: 'break-word',
+                                                                lineHeight: 1.3
+                                                            }}>
+                                                                {b.full_address}
+                                                            </Typography>
+                                                        </Stack>
+                                                    )}
+
+                                                    {/* Performance Rating */}
+                                                    {b.performance_rating > 0 && (
+                                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
+                                                                <strong>Rating:</strong>
+                                                            </Typography>
+                                                            <StarRating 
+                                                                value={b.performance_rating} 
+                                                                readOnly 
+                                                                showLabel={false}
+                                                                size="small"
+                                                            />
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                ({b.performance_rating}/5)
+                                                            </Typography>
+                                                        </Stack>
+                                                    )}
+
+                                                    {/* Election Year */}
+                                                    {b.election_year_id && (
+                                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
+                                                                <strong>Year:</strong>
+                                                            </Typography>
+                                                            <Typography variant="caption">
+                                                                {b.election_year_id?.year || 'N/A'}
+                                                            </Typography>
+                                                        </Stack>
+                                                    )}
+
+                                                    {/* Hierarchy Information */}
+                                                    <Divider sx={{ my: 1 }} />
+                                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                                                        Hierarchy:
                                                     </Typography>
+                                                    
+                                                    <Stack spacing={0.5}>
+                                                        <Typography variant="caption">
+                                                            <strong>State:</strong> {b.state_id?.name || 'N/A'}
+                                                        </Typography>
+                                                        <Typography variant="caption">
+                                                            <strong>Division:</strong> {b.division_id?.name || 'N/A'}
+                                                        </Typography>
+                                                        <Typography variant="caption">
+                                                            <strong>Parliament:</strong> {b.parliament_id?.name || 'N/A'}
+                                                        </Typography>
+                                                        <Typography variant="caption">
+                                                            <strong>Assembly:</strong> {b.assembly_id?.name || 'N/A'}
+                                                        </Typography>
+                                                        <Typography variant="caption">
+                                                            <strong>Block:</strong> {b.block_id?.name || 'N/A'}
+                                                        </Typography>
+                                                    </Stack>
+
+                                                    {/* Created/Updated Info */}
+                                                    <Divider sx={{ my: 1 }} />
+                                                    <Stack direction="row" justifyContent="space-between">
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Created: {b.created_at ? new Date(b.created_at).toLocaleDateString() : 'N/A'}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Updated: {b.updated_at ? new Date(b.updated_at).toLocaleDateString() : 'N/A'}
+                                                        </Typography>
+                                                    </Stack>
                                                 </Box>
                                             )) : (
-                                                <Typography variant="body2">No BLO entries found for this booth.</Typography>
+                                                <Typography variant="body2">No BLA entries found for this booth.</Typography>
                                             )}
                                         </Paper>
                                     </Stack>
@@ -1056,8 +1250,8 @@ const BLOListPage = () => {
                         <TextField
                             fullWidth
                             placeholder="BLA Name"
-                            value={tempFilters.blo_name}
-                            onChange={(e) => handleFilterChange('blo_name', e.target.value)}
+                            value={tempFilters.bla_name}
+                            onChange={(e) => handleFilterChange('bla_name', e.target.value)}
                         />
                     </Grid>
                     <Grid item xs={12} md={2}>
@@ -1249,16 +1443,16 @@ const BLOListPage = () => {
                 <CSVLink
                     ref={csvLinkRef}
                     data={csvData}
-                    filename={`BLOs-export-${new Date().toISOString().split('T')[0]}.csv`}
+                    filename={`blas-export-${new Date().toISOString().split('T')[0]}.csv`}
                     style={{ display: 'none' }}
                 />
             </Stack>
 
             {/* Modals */}
-            <BLOModal
+            <BLAModal
                 open={openModal}
                 modalToggler={() => setOpenModal(false)}
-                BLO={selectedBLO}
+                BLA={selectedBLA}
                 states={states}
                 divisions={divisions}
                 parliaments={parliaments}
@@ -1266,15 +1460,15 @@ const BLOListPage = () => {
                 blocks={blocks}
                 booths={booths}
                 electionYears={electionYears}
-                refresh={fetchBLOs}
+                refresh={fetchBLAs}
             />
 
-            <AlertBLODelete
+            <AlertBLADelete
                 id={deleteAlert.id}
-                title={selectedBLO?.BLO_name}
+                title={selectedBLA?.bla_name}
                 open={deleteAlert.open}
                 handleClose={() => setDeleteAlert({ open: false, id: null })}
-                refresh={fetchBLOs}
+                refresh={fetchBLAs}
             />
 
             <input
@@ -1288,4 +1482,6 @@ const BLOListPage = () => {
     );
 };
 
-export default BLOListPage;
+export default BLAListPage;
+
+

@@ -12,7 +12,7 @@ import {
 import { useState } from 'react';
 import axiosServices from 'utils/axios';
 
-const AlertBLODelete = ({ id, title, open, handleClose, refresh }) => {
+const AlertBLADelete = ({ id, title, open, handleClose, refresh }) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
 
@@ -23,14 +23,14 @@ const AlertBLODelete = ({ id, title, open, handleClose, refresh }) => {
         setDeleteError('');
 
         try {
-            await axiosServices.delete(`/blos/${id}`);
+            await axiosServices.delete(`/blas/${id}`);
             handleClose();
             refresh();
         } catch (error) {
-            console.error('Error deleting BLO:', error);
+            console.error('Error deleting BLA:', error);
             setDeleteError(
                 error.response?.data?.message || 
-                'Failed to delete BLO. Please try again.'
+                'Failed to delete BLA. Please try again.'
             );
         }
         setIsDeleting(false);
@@ -54,7 +54,7 @@ const AlertBLODelete = ({ id, title, open, handleClose, refresh }) => {
         >
             <DialogTitle id="alert-dialog-title">
                 <Typography variant="h4" component="div">
-                    Delete BLO
+                    Delete BLA
                 </Typography>
             </DialogTitle>
             
@@ -66,7 +66,7 @@ const AlertBLODelete = ({ id, title, open, handleClose, refresh }) => {
                 )}
                 
                 <DialogContentText id="alert-dialog-description">
-                    Are you sure you want to delete the BLO Officer{' '}
+                    Are you sure you want to delete the BLA Officer{' '}
                     <Typography component="span" sx={{ fontWeight: 'bold' }}>
                         "{title}"
                     </Typography>
@@ -107,4 +107,4 @@ const AlertBLODelete = ({ id, title, open, handleClose, refresh }) => {
     );
 };
 
-export default AlertBLODelete;
+export default AlertBLADelete;

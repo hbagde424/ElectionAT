@@ -4,7 +4,7 @@ const otpTokenSchema = new mongoose.Schema({
   purpose: {
     type: String,
     required: true,
-    enum: ['csv_export']
+    enum: ['csv_export', 'bla_phone_reveal']
   },
   codeHash: {
     type: String,

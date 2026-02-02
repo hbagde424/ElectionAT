@@ -232,12 +232,12 @@ const CRUDMenu = {
     },
     
     {
-      id: 'blo',
+      id: 'bla',
       title: <FormattedMessage id="BLA Officers" defaultMessage="BLA Officers" />,
       type: 'item',
-      url: '/blo',
+      url: '/bla',
       icon: icons.UserOctagon,
-      permissions: ['blo']
+      permissions: ['bla']
     },
     // {
     //   id: 'Assembly-Votes',
