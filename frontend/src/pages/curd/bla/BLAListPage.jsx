@@ -1074,7 +1074,14 @@ const BLAListPage = () => {
                                                     
                                                     {/* BLA Name and Status */}
                                                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                                                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{b.bla_name || 'N/A'}</Typography>
+                                                        <Stack direction="row" spacing={1} alignItems="center">
+                                                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                                                                Name:
+                                                            </Typography>
+                                                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                                                {b.bla_name || 'N/A'}
+                                                            </Typography>
+                                                        </Stack>
                                                         <Chip 
                                                             label={b.is_active ? 'Active' : 'Inactive'} 
                                                             color={b.is_active ? 'success' : 'error'}
