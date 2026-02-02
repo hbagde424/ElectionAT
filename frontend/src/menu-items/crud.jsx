@@ -239,6 +239,14 @@ const CRUDMenu = {
       icon: icons.UserOctagon,
       permissions: ['bla']
     },
+    {
+      id: 'blo',
+      title: <FormattedMessage id="BLO Officers" defaultMessage="BLO Officers" />,
+      type: 'item',
+      url: '/blo',
+      icon: icons.UserOctagon,
+      permissions: ['blo']
+    },
     // {
     //   id: 'Assembly-Votes',
     //   title: <FormattedMessage id="Assembly-Votes" />,

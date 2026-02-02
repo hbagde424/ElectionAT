@@ -149,6 +149,8 @@ const WInningCandidateList = Loadable(lazy(() => import('pages/curd/WinningCandi
 const WinningCandidatesDetailPage = Loadable(lazy(() => import('pages/curd/WinningCandidates/WinningCandidatesDetailPage')));
 const BLAListPage = Loadable(lazy(() => import('pages/curd/bla/BLAListPage')));
 const BLADetailPage = Loadable(lazy(() => import('pages/curd/bla/BLADetailPage')));
+const BLOListPage = Loadable(lazy(() => import('pages/curd/blo/BLOListPage')));
+const BLODetailPage = Loadable(lazy(() => import('pages/curd/blo/BLODetailPage')));
 // const EditBoothVolunteer = Loadable(lazy(() => import('pages/volunteer/EditVolunteerForm')));
 // const Boothinfrastracture = Loadable(lazy(() => import('pages/curd/Booth-infrastructure')));
 const State = Loadable(lazy(() => import('pages/curd/state/state')));
@@ -928,6 +930,14 @@ const MainRoutes = {
         {
           path: 'bla/:id',
           element: <BLADetailPage />
+        },
+        {
+          path: 'blo',
+          element: <BLOListPage />
+        },
+        {
+          path: 'blo/:id',
+          element: <BLODetailPage />
         },
         {
           path: 'price',
