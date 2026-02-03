@@ -233,7 +233,7 @@ const CRUDMenu = {
     
     {
       id: 'bla',
-      title: <FormattedMessage id="BLA Officers" defaultMessage="BLA Officers" />,
+      title: <FormattedMessage id="BLA Officers" defaultMessage="BLA " />,
       type: 'item',
       url: '/bla',
       icon: icons.UserOctagon,

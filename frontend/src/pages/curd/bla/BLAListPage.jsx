@@ -799,7 +799,7 @@ const BLAListPage = () => {
             <Stack spacing={2} sx={{ p: 2 }}>
                 {/* Header */}
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h4">BLA Officers Management</Typography>
+                    <Typography variant="h4">BLA Management</Typography>
                     <Stack direction="row" spacing={2}>
                         <Button
                             variant="outlined"
