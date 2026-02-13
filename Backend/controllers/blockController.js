@@ -56,12 +56,48 @@ exports.getBlocks = async (req, res, next) => {
 
     // Filter by assembly
     if (req.query.assembly) {
-      query = query.where('assembly_id').equals(req.query.assembly);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.assembly);
+      if (isObjectId) {
+        query = query.where('assembly_id').equals(req.query.assembly);
+      } else {
+        const assemblyDoc = await Assembly.findOne({ name: req.query.assembly });
+        if (assemblyDoc) {
+          query = query.where('assembly_id').equals(assemblyDoc._id);
+        } else {
+          // No such assembly, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by parliament
     if (req.query.parliament) {
-      query = query.where('parliament_id').equals(req.query.parliament);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.parliament);
+      if (isObjectId) {
+        query = query.where('parliament_id').equals(req.query.parliament);
+      } else {
+        const parliamentDoc = await Parliament.findOne({ name: req.query.parliament });
+        if (parliamentDoc) {
+          query = query.where('parliament_id').equals(parliamentDoc._id);
+        } else {
+          // No such parliament, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by district
@@ -94,7 +130,25 @@ exports.getBlocks = async (req, res, next) => {
 
     // Filter by state
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state);
+      if (isObjectId) {
+        query = query.where('state_id').equals(req.query.state);
+      } else {
+        const stateDoc = await State.findOne({ name: req.query.state });
+        if (stateDoc) {
+          query = query.where('state_id').equals(stateDoc._id);
+        } else {
+          // No such state, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // If userHierarchy exists, restrict by user's scope (most specific first) unless superAdmin

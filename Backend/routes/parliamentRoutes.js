@@ -89,8 +89,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Parliament'
  */
-// Public: optional authentication — getUserPermissionsAndHierarchy will attach hierarchy if token present
-router.get('/', protect, getUserPermissionsAndHierarchy, getParliaments);
+// Public: no authentication required for reading parliament data
+router.get('/', getParliaments);
 
 /**
  * @swagger
@@ -114,8 +114,8 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getParliaments);
  *       404:
  *         description: Parliament not found
  */
-// Public: optional authentication
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getParliament);
+// Public: no authentication required for reading parliament data
+router.get('/:id', getParliament);
 
 /**
  * @swagger
@@ -230,8 +230,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);
  *       404:
  *         description: State not found
  */
-// Public: optional authentication
-router.get('/state/:stateId', protect, getUserPermissionsAndHierarchy, getParliamentsByState);
+// Public: no authentication required for reading parliament data
+router.get('/state/:stateId', getParliamentsByState);
 
 /**
  * @swagger
@@ -264,8 +264,8 @@ router.get('/state/:stateId', protect, getUserPermissionsAndHierarchy, getParlia
  *       404:
  *         description: Division not found
  */
-// Public: optional authentication
-router.get('/division/:divisionId', protect, getUserPermissionsAndHierarchy, getParliamentsByDivision);
+// Public: no authentication required for reading parliament data
+router.get('/division/:divisionId', getParliamentsByDivision);
 
 /**
  * @swagger

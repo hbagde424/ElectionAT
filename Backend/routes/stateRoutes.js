@@ -66,7 +66,8 @@ const router = express.Router();
  */
 // Protected: requires authentication via serviceToken
 router.post('/upload-polygon', protect, authorize('superAdmin'), uploadStatePolygon);
-router.get('/', protect, getUserPermissionsAndHierarchy, getStates);
+// Public: no authentication required for reading state data
+router.get('/', getStates);
 
 /**
  * @swagger
@@ -91,7 +92,9 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getStates);
  *         description: State not found
  */
 // Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getState);
+// router.get('/:id', protect, getUserPermissionsAndHierarchy, getState);
+// Public: no authentication required for reading state data
+router.get('/:id', getState);
 
 /**
  * @swagger

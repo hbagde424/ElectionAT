@@ -63,22 +63,94 @@ exports.getAssemblies = async (req, res, next) => {
 
     // Filter by state
     if (req.query.state_id) {
-      filter.state_id = req.query.state_id;
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state_id);
+      if (isObjectId) {
+        filter.state_id = req.query.state_id;
+      } else {
+        const stateDoc = await State.findOne({ name: req.query.state_id });
+        if (stateDoc) {
+          filter.state_id = stateDoc._id;
+        } else {
+          // No such state, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by district
     if (req.query.district) {
-      filter.district_id = req.query.district;
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.district);
+      if (isObjectId) {
+        filter.district_id = req.query.district;
+      } else {
+        const districtDoc = await District.findOne({ name: req.query.district });
+        if (districtDoc) {
+          filter.district_id = districtDoc._id;
+        } else {
+          // No such district, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by division
     if (req.query.division) {
-      filter.division_id = req.query.division;
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        filter.division_id = req.query.division;
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          filter.division_id = divisionDoc._id;
+        } else {
+          // No such division, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // Filter by parliament
     if (req.query.parliament) {
-      filter.parliament_id = req.query.parliament;
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.parliament);
+      if (isObjectId) {
+        filter.parliament_id = req.query.parliament;
+      } else {
+        const parliamentDoc = await Parliament.findOne({ name: req.query.parliament });
+        if (parliamentDoc) {
+          filter.parliament_id = parliamentDoc._id;
+        } else {
+          // No such parliament, return empty result
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
 
     // If userHierarchy exists, restrict by user's scope (most specific first)

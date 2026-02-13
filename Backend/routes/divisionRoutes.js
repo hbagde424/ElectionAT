@@ -73,7 +73,8 @@ const router = express.Router();
  */
 // Protected: requires authentication via serviceToken
 router.post('/upload-polygon', protect, authorize('superAdmin'), uploadDivisionPolygon);
-router.get('/', protect, getUserPermissionsAndHierarchy, getDivisions);
+// Public: no authentication required for reading division data
+router.get('/', getDivisions);
 
 /**
  * @swagger
@@ -98,11 +99,11 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getDivisions);
  *         description: Division not found
  */
 // Move state route above id route to avoid route parameter conflicts
-// Protected: requires authentication via serviceToken
-router.get('/state/:stateId', protect, getDivisionsByState);
+// Public: no authentication required for reading division data
+router.get('/state/:stateId', getDivisionsByState);
 
-// Protected: requires authentication via serviceToken
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getDivision);
+// Public: no authentication required for reading division data
+router.get('/:id', getDivision);
 
 /**
  * @swagger

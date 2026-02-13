@@ -99,8 +99,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Assembly'
  */
-// Public: optional authentication
-router.get('/', protect, getUserPermissionsAndHierarchy, getAssemblies);
+// Public: no authentication required for reading assembly data
+router.get('/', getAssemblies);
 
 /**
  * @swagger
@@ -124,8 +124,8 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getAssemblies);
  *       404:
  *         description: Assembly not found
  */
-// Public: optional authentication
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getAssembly);
+// Public: no authentication required for reading assembly data
+router.get('/:id', getAssembly);
 
 /**
  * @swagger
@@ -238,8 +238,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteAssembly);
  *       404:
  *         description: Parliament not found
  */
-// Public: optional authentication
-router.get('/parliament/:parliamentId', protect, getUserPermissionsAndHierarchy, getAssembliesByParliament);
+// Public: no authentication required for reading assembly data
+router.get('/parliament/:parliamentId', getAssembliesByParliament);
 
 /**
  * @swagger
@@ -272,8 +272,8 @@ router.get('/parliament/:parliamentId', protect, getUserPermissionsAndHierarchy,
  *       404:
  *         description: Division not found
  */
-// Public: optional authentication
-router.get('/division/:divisionId', protect, getUserPermissionsAndHierarchy, getAssembliesByDivision);
+// Public: no authentication required for reading assembly data
+router.get('/division/:divisionId', getAssembliesByDivision);
 
 /**
  * @swagger

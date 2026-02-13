@@ -99,8 +99,8 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Booth'
  */
-// Public: optional authentication — attach hierarchy if token present
-router.get('/', protect, getUserPermissionsAndHierarchy, getBooths);
+// Public: no authentication required for reading booth data
+router.get('/', getBooths);
 
 /**
  * @swagger
@@ -124,7 +124,8 @@ router.get('/', protect, getUserPermissionsAndHierarchy, getBooths);
  *       404:
  *         description: Booth not found
  */
-router.get('/:id', protect, getUserPermissionsAndHierarchy, getBooth);
+// Public: no authentication required for reading booth data
+router.get('/:id', getBooth);
 
 /**
  * @swagger
@@ -237,7 +238,8 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBooth);
  *       404:
  *         description: Assembly not found
  */
-router.get('/assembly/:assemblyId', protect, getUserPermissionsAndHierarchy, getBoothsByAssembly);
+// Public: no authentication required for reading booth data
+router.get('/assembly/:assemblyId', getBoothsByAssembly);
 
 /**
  * @swagger
@@ -270,7 +272,8 @@ router.get('/assembly/:assemblyId', protect, getUserPermissionsAndHierarchy, get
  *       404:
  *         description: Block not found
  */
-router.get('/block/:blockId', protect, getUserPermissionsAndHierarchy, getBoothsByBlock);
+// Public: no authentication required for reading booth data
+router.get('/block/:blockId', getBoothsByBlock);
 
 /**
  * @swagger
@@ -303,7 +306,8 @@ router.get('/block/:blockId', protect, getUserPermissionsAndHierarchy, getBooths
  *       404:
  *         description: Election year not found
  */
-router.get('/year/:yearId', protect, getUserPermissionsAndHierarchy, getBoothsByYear);
+// Public: no authentication required for reading booth data
+router.get('/year/:yearId', getBoothsByYear);
 
 /**
  * @swagger

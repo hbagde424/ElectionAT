@@ -1185,7 +1185,8 @@ function HierarchicalMap({ onRegionClick }) {
                                 // Fallback: if no booths found, try matching by block number
                                 if (booths.length === 0 && blk.blockNumber) {
                                     console.log(`⚠️ No booths found for block ${blk.name}, trying fallback...`);
-                                    const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`);
+                                    const headers = getAuthHeaders();
+                                    const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
                                     if (allResp.ok) {
                                         const allBody = await allResp.json();
                                         const candidates = Array.isArray(allBody.data) ? allBody.data : [];
@@ -1421,7 +1422,8 @@ function HierarchicalMap({ onRegionClick }) {
                         });
                     } else {
                         // fallback: fetch all booths and match by booth number present in transformedData
-                        const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`);
+                        const headers = getAuthHeaders();
+                        const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
                         if (!allResp.ok) return;
                         const allBody = await allResp.json();
                         const candidates = Array.isArray(allBody.data) ? allBody.data : [];
@@ -1804,9 +1806,22 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch aggregated gender stats for state using existing API
-            const genderResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?state=${stateId}&limit=1000`);
+            const headers = getAuthHeaders();
+            
+            // Fetch all data in parallel instead of sequential
+            const [genderResponse, winningResponse] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/genders?state=${stateId}&limit=1000`, { headers }),
+                (async () => {
+                    const token = localStorage.getItem('serviceToken');
+                    if (token) {
+                        return fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?state=${stateId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                    }
+                    return null;
+                })()
+            ]);
+            
             let genderData = {};
-            if (genderResponse.ok) {
+            if (genderResponse && genderResponse.ok) {
                 const result = await genderResponse.json();
                 if (result.success && result.data) {
                     // Aggregate the gender data
@@ -1819,16 +1834,13 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-
                 }
             }
 
             // Fetch winning candidates for state to get last 3 years data
             let winningData = {};
             try {
-                const token = localStorage.getItem('serviceToken');
-                if (token) {
-                    const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?state=${stateId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                if (winningResponse) {
                     if (winningResponse.ok) {
                         const result = await winningResponse.json();
                         if (result.success && result.data) {
@@ -1977,10 +1989,32 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch gender stats for parliament
-            const parliamentObjectId = parliamentData._id || parliamentId;
-            const genderResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?parliament=${parliamentObjectId}&limit=1000`);
+            const parliamentObjectId = parliamentData._id;
+            
+            // If we couldn't fetch parliament data, skip the rest
+            if (!parliamentObjectId) {
+                console.warn('⚠️ Could not fetch parliament data for ID:', parliamentId);
+                return;
+            }
+            
+            const headers = getAuthHeaders();
+            
+            // Fetch all data in parallel instead of sequential
+            const [genderResponse, winningResponse, assembliesResponse, boothsResponse] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/genders?parliament=${parliamentObjectId}&limit=1000`, { headers }),
+                (async () => {
+                    const token = localStorage.getItem('serviceToken');
+                    if (token) {
+                        return fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?parliament=${parliamentObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                    }
+                    return null;
+                })(),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/parliament/${parliamentObjectId}`),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?parliament=${parliamentObjectId}&limit=1`, { headers })
+            ]);
+            
             let genderData = {};
-            if (genderResponse.ok) {
+            if (genderResponse && genderResponse.ok) {
                 const result = await genderResponse.json();
                 if (result.success && result.data) {
                     // Aggregate the gender data
@@ -1993,16 +2027,13 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-
                 }
             }
 
             // Fetch winning candidates data
             let winningData = {};
             try {
-                const token = localStorage.getItem('serviceToken');
-                if (token) {
-                    const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?parliament=${parliamentObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                if (winningResponse) {
                     if (winningResponse.ok) {
                         const result = await winningResponse.json();
                         if (result.success && result.data) {
@@ -2033,52 +2064,77 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch assemblies in this parliament
-            const assembliesResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/parliament/${parliamentObjectId}`);
             let assembliesData = [];
-            if (assembliesResponse.ok) {
+            if (assembliesResponse && assembliesResponse.ok) {
                 const result = await assembliesResponse.json();
                 if (result.success) {
                     assembliesData = result.data || [];
-
                 }
             }
 
-            // Fetch total booths count
-            const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?parliament=${parliamentObjectId}&limit=1`);
+            // Fetch total booths count (already fetched in parallel above)
             let totalBooths = 0;
-            if (boothsResponse.ok) {
+            if (boothsResponse && boothsResponse.ok) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-
                 }
             }
 
-            setHoverData(prev => ({
-                ...prev,
-                [`parliamentary_${parliamentId}`]: {
-                    ...prev[`parliamentary_${parliamentId}`],
-                    parliamentData,
-                    genderData,
-                    winningData,
-                    assembliesData,
-                    totalBooths
-                }
-            }));
+            // Store data under multiple cache keys for flexibility
+            const keysToSet = new Set();
+            keysToSet.add(`parliamentary_${parliamentId}`);
+            
+            // Also add cache key using parliament_no if available
+            if (parliamentData && parliamentData.parliament_no) {
+                keysToSet.add(`parliamentary_${parliamentData.parliament_no}`);
+            }
+            
+            // Also add cache key using _id if available
+            if (parliamentData && parliamentData._id) {
+                keysToSet.add(`parliamentary_${parliamentData._id}`);
+            }
+            
+            setHoverData(prev => {
+                const next = { ...prev };
+                keysToSet.forEach(key => {
+                    next[key] = {
+                        ...next[key],
+                        parliamentData,
+                        genderData,
+                        winningData,
+                        assembliesData,
+                        totalBooths
+                    };
+                });
+                return next;
+            });
         } catch (error) {
             console.error('❌ Error fetching parliament data:', error);
             // Set empty data to prevent infinite loading
-            setHoverData(prev => ({
-                ...prev,
-                [`parliamentary_${parliamentId}`]: {
-                    parliamentData: {},
-                    genderData: {},
-                    winningData: {},
-                    assembliesData: [],
-                    totalBooths: 0,
-                    error: true
-                }
-            }));
+            const keysToSet = new Set();
+            keysToSet.add(`parliamentary_${parliamentId}`);
+            if (parliamentData && parliamentData.parliament_no) {
+                keysToSet.add(`parliamentary_${parliamentData.parliament_no}`);
+            }
+            if (parliamentData && parliamentData._id) {
+                keysToSet.add(`parliamentary_${parliamentData._id}`);
+            }
+            
+            setHoverData(prev => {
+                const next = { ...prev };
+                keysToSet.forEach(key => {
+                    next[key] = {
+                        parliamentData: {},
+                        genderData: {},
+                        winningData: {},
+                        assembliesData: [],
+                        totalBooths: 0,
+                        error: true
+                    };
+                });
+                return next;
+            });
         }
     };
 
@@ -2172,10 +2228,31 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch gender stats for assembly
-            const assemblyObjectId = assemblyData._id || assemblyId;
-            const genderResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?assembly=${assemblyObjectId}&limit=1000`);
+            const assemblyObjectId = assemblyData._id;
+            
+            // If we couldn't fetch assembly data, skip the rest
+            if (!assemblyObjectId) {
+                console.warn('⚠️ Could not fetch assembly data for ID:', assemblyId);
+                return;
+            }
+            
+            const headers = getAuthHeaders();
+            
+            // Fetch all data in parallel instead of sequential
+            const [genderResponse, winningResponse, boothsResponse] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/genders?assembly=${assemblyObjectId}&limit=1000`, { headers }),
+                (async () => {
+                    const token = localStorage.getItem('serviceToken');
+                    if (token) {
+                        return fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${assemblyObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                    }
+                    return null;
+                })(),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?assembly=${assemblyObjectId}&limit=1`, { headers })
+            ]);
+            
             let genderData = {};
-            if (genderResponse.ok) {
+            if (genderResponse && genderResponse.ok) {
                 const result = await genderResponse.json();
                 if (result.success && result.data) {
                     // Aggregate the gender data
@@ -2188,16 +2265,13 @@ function HierarchicalMap({ onRegionClick }) {
                         others: totalOthers,
                         total: totalMale + totalFemale + totalOthers
                     };
-
                 }
             }
 
             // Fetch winning candidates data (MLA info)
             let winningData = {};
             try {
-                const token = localStorage.getItem('serviceToken');
-                if (token) {
-                    const winningResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${assemblyObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                if (winningResponse) {
                     if (winningResponse.ok) {
                         const result = await winningResponse.json();
                         if (result.success && result.data) {
@@ -2220,13 +2294,11 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch total booths count for assembly
-            const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?assembly=${assemblyObjectId}&limit=1`);
             let totalBooths = 0;
-            if (boothsResponse.ok) {
+            if (boothsResponse && boothsResponse.ok) {
                 const result = await boothsResponse.json();
                 if (result.success) {
                     totalBooths = result.total || 0;
-
                 }
             }
 
@@ -2306,8 +2378,16 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch total booths count for block
-            const blockObjectId = blockData._id || blockId;
-            const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?block=${blockObjectId}&limit=1`);
+            const blockObjectId = blockData._id;
+            
+            // If we couldn't fetch block data, skip the rest
+            if (!blockObjectId) {
+                console.warn('⚠️ Could not fetch block data for ID:', blockId);
+                return;
+            }
+            
+            const headers = getAuthHeaders();
+            const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?block=${blockObjectId}&limit=1`, { headers });
             let totalBooths = 0;
             if (boothsResponse.ok) {
                 const result = await boothsResponse.json();
@@ -2317,14 +2397,31 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
 
-            setHoverData(prev => ({
-                ...prev,
-                [`block_${blockId}`]: {
-                    ...prev[`block_${blockId}`],
-                    blockData,
-                    totalBooths
-                }
-            }));
+            // Store data under multiple cache keys for flexibility
+            const keysToSet = new Set();
+            keysToSet.add(`block_${blockId.toLowerCase()}`);
+            
+            // Also add cache key using block name if available
+            if (blockData && blockData.name) {
+                keysToSet.add(`block_${blockData.name.toLowerCase()}`);
+            }
+            
+            // Also add cache key using _id if available
+            if (blockData && blockData._id) {
+                keysToSet.add(`block_${blockData._id}`);
+            }
+            
+            setHoverData(prev => {
+                const next = { ...prev };
+                keysToSet.forEach(key => {
+                    next[key] = {
+                        ...next[key],
+                        blockData,
+                        totalBooths
+                    };
+                });
+                return next;
+            });
         } catch (error) {
 
         }
@@ -2336,7 +2433,8 @@ function HierarchicalMap({ onRegionClick }) {
 
             
             // Fetch booth basic info by booth number
-            const boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothId)}`);
+            const headers = getAuthHeaders();
+            const boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothId)}`, { headers });
             let boothData = {};
             if (boothResponse.ok) {
                 const result = await boothResponse.json();
@@ -2380,7 +2478,8 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch gender data for hover
     const fetchGenderData = async (type, id) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders/stats/${type}/${id}`);
+            const headers = getAuthHeaders();
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders/stats/${type}/${id}`, { headers });
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
@@ -2491,15 +2590,21 @@ function HierarchicalMap({ onRegionClick }) {
                 const data = await response.json();
 
                 if (data.success) {
-                    const cacheKey = `block_${blockId}`;
+                    // Store under multiple cache keys for flexibility
+                    const keysToSet = new Set();
+                    keysToSet.add(`block_${blockId.toLowerCase()}`);
+                    keysToSet.add(`block_${blockId}`);
 
-                    setHoverData(prev => ({
-                        ...prev,
-                        [cacheKey]: {
-                            ...prev[cacheKey],
-                            genderData: data.data
-                        }
-                    }));
+                    setHoverData(prev => {
+                        const next = { ...prev };
+                        keysToSet.forEach(key => {
+                            next[key] = {
+                                ...next[key],
+                                genderData: data.data
+                            };
+                        });
+                        return next;
+                    });
                 } else {
 
                 }

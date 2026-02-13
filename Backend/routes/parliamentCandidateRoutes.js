@@ -124,7 +124,7 @@ router.get('/',  getUserPermissionsAndHierarchy, getParliamentCandidates);
  *                     resultsByParty:
  *                       type: array
  */
-router.get('/stats/overview', protect, getUserPermissionsAndHierarchy, getParliamentCandidateStats);
+router.get('/stats/overview', getParliamentCandidateStats);
 
 /**
  * @swagger
@@ -165,7 +165,7 @@ router.get('/stats/overview', protect, getUserPermissionsAndHierarchy, getParlia
  *       404:
  *         description: No data found for this parliament
  */
-router.get('/stats/parliament/:parliamentId', protect, getUserPermissionsAndHierarchy, getParliamentCandidateStatsByParliament);
+router.get('/stats/parliament/:parliamentId', getParliamentCandidateStatsByParliament);
 
 // Debug endpoint to check what data exists
 router.get('/debug/data', async (req, res) => {

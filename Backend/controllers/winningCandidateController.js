@@ -145,10 +145,44 @@ exports.getWinningCandidates = async (req, res, next) => {
       query = query.where('party_id').equals(req.query.party);
     }
     if (req.query.state) {
-      query = query.where('state_id').equals(req.query.state);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state);
+      if (isObjectId) {
+        query = query.where('state_id').equals(req.query.state);
+      } else {
+        const stateDoc = await State.findOne({ name: req.query.state });
+        if (stateDoc) {
+          query = query.where('state_id').equals(stateDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
     if (req.query.division) {
-      query = query.where('division_id').equals(req.query.division);
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
     }
     if (req.query.type) {
       query = query.where('type').all([req.query.type]);
@@ -1134,11 +1168,11 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
     let query = {};
 
     // Validate type
-    const validTypes = ['assembly', 'parliament'];
+    const validTypes = ['assembly', 'parliament', 'division', 'state'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid type. Must be assembly or parliament'
+        message: 'Invalid type. Must be assembly, parliament, division, or state'
       });
     }
 
@@ -1199,6 +1233,22 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
         aggregationPipeline = [
           {
             $match: { parliament_id: id }
+          }
+        ];
+        break;
+      case 'division':
+        // For division, match by division_id
+        aggregationPipeline = [
+          {
+            $match: { division_id: id }
+          }
+        ];
+        break;
+      case 'state':
+        // For state, match by state_id
+        aggregationPipeline = [
+          {
+            $match: { state_id: id }
           }
         ];
         break;

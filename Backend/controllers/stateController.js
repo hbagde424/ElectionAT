@@ -124,9 +124,22 @@ exports.getStates = async (req, res, next) => {
 // @access  Private (Requires authentication via serviceToken)
 exports.getState = async (req, res, next) => {
   try {
-    const state = await State.findById(req.params.id)
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
+    const stateId = req.params.id;
+    
+    // Check if it's a valid ObjectId
+    const isObjectId = /^[a-f\d]{24}$/i.test(stateId);
+    let state;
+    
+    if (isObjectId) {
+      state = await State.findById(stateId)
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username');
+    } else {
+      // Try to find by name
+      state = await State.findOne({ name: stateId })
+        .populate('created_by', 'username')
+        .populate('updated_by', 'username');
+    }
 
     if (!state) {
       return res.status(404).json({
