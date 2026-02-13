@@ -46,6 +46,48 @@ router.get('/vs-code/:vs_code', assemblyController.getAssemblyByVSCode);
 
 /**
  * @swagger
+ * /api/assembly-polygons/ac-no/{ac_no}:
+ *   get:
+ *     summary: Get assembly polygon by AC_NO
+ *     tags: [Assembly Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: ac_no
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assembly Constituency Number
+ *     responses:
+ *       200:
+ *         description: Assembly polygon data
+ *       404:
+ *         description: Assembly polygon not found
+ */
+router.get('/ac-no/:ac_no', assemblyController.getAssemblyPolygonByACNo);
+
+/**
+ * @swagger
+ * /api/assembly-polygons/name/{name}:
+ *   get:
+ *     summary: Get assembly polygon by name
+ *     tags: [Assembly Polygons]
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assembly name (e.g., chhatisgard_assemly)
+ *     responses:
+ *       200:
+ *         description: Assembly polygon data
+ *       404:
+ *         description: Assembly polygon not found
+ */
+router.get('/name/:name', assemblyController.getAssemblyPolygonByName);
+
+/**
+ * @swagger
  * /api/assembly-polygons/district/{district}:
  *   get:
  *     summary: Get assemblies by district

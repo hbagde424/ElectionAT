@@ -32,6 +32,7 @@ import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
 import { removePTags } from 'utils/cleanHtml';
+import PolygonMap from 'components/PolygonMap';
 
 const BoothDetailPage = () => {
     const theme = useTheme();
@@ -40,6 +41,7 @@ const BoothDetailPage = () => {
     const [booth, setBooth] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
         console.log('BoothDetailPage mounted with ID:', id);
@@ -296,6 +298,16 @@ const BoothDetailPage = () => {
                                 </Box>
                             </Paper>
                         </Grid>
+                    </Grid>
+
+                    {/* Booth Map */}
+                    <Grid item xs={12} sx={{ mt: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2 }}>Booth Map</Typography>
+                        <PolygonMap 
+                            polygon={booth.polygon} 
+                            mapboxToken={mapboxToken}
+                            height={400}
+                        />
                     </Grid>
                 </CardContent>
             </MainCard>

@@ -28,7 +28,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
-import DivisionPolygonMap from './DivisionPolygonMap';
+import PolygonMap from 'components/PolygonMap';
 
 const DivisionDetailPage = () => {
     const theme = useTheme();
@@ -37,6 +37,7 @@ const DivisionDetailPage = () => {
     const [division, setDivision] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
         console.log('DivisionDetailPage mounted with ID:', id);
@@ -228,7 +229,11 @@ const DivisionDetailPage = () => {
                     <MainCard>
                         <CardContent>
                             <Typography variant="h6" sx={{ mb: 2 }}>Division Map</Typography>
-                            <DivisionPolygonMap divisionId={division._id} />
+                            <PolygonMap 
+                                polygon={division.polygon} 
+                                mapboxToken={mapboxToken}
+                                height={400}
+                            />
                         </CardContent>
                     </MainCard>
                 </Grid>

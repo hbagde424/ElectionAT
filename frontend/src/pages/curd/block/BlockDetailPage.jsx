@@ -30,6 +30,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import PolygonMap from 'components/PolygonMap';
 
 const BlockDetailPage = () => {
     const theme = useTheme();
@@ -38,6 +39,7 @@ const BlockDetailPage = () => {
     const [block, setBlock] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
         console.log('BlockDetailPage mounted with ID:', id);
@@ -307,6 +309,16 @@ const BlockDetailPage = () => {
                             </Typography>
                         </Box>
                     )}
+
+                    {/* Block Map */}
+                    <Box sx={{ mt: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2 }}>Block Map</Typography>
+                        <PolygonMap 
+                            polygon={block.polygon} 
+                            mapboxToken={mapboxToken}
+                            height={400}
+                        />
+                    </Box>
                 </CardContent>
             </MainCard>
         </Container>

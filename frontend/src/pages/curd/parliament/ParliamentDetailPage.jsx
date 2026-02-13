@@ -20,6 +20,7 @@ import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
 import DetailRenderer from 'components/DetailRenderer';
+import PolygonMap from 'components/PolygonMap';
 
 const ParliamentDetailPage = () => {
     const theme = useTheme();
@@ -28,6 +29,7 @@ const ParliamentDetailPage = () => {
     const [parliament, setParliament] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
         fetchParliamentDetails();
@@ -117,7 +119,19 @@ const ParliamentDetailPage = () => {
 
             <MainCard>
                 <CardContent>
-                    <DetailRenderer data={parliament} />
+                    <Grid container spacing={3}>
+                        <Grid item xs={12}>
+                            <DetailRenderer data={parliament} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Typography variant="h6" sx={{ mb: 2 }}>Parliament Map</Typography>
+                            <PolygonMap 
+                                polygon={parliament.polygon} 
+                                mapboxToken={mapboxToken}
+                                height={400}
+                            />
+                        </Grid>
+                    </Grid>
                 </CardContent>
             </MainCard>
         </Container>

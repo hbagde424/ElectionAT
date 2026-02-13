@@ -29,6 +29,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import MainCard from 'components/MainCard';
 import axiosServices from 'utils/axios';
+import PolygonMap from 'components/PolygonMap';
 
 const AssemblyDetailPage = () => {
     const theme = useTheme();
@@ -37,11 +38,19 @@ const AssemblyDetailPage = () => {
     const [assembly, setAssembly] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [assemblyPolygon, setAssemblyPolygon] = useState(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
         console.log('AssemblyDetailPage mounted with ID:', id);
         fetchAssemblyDetails();
     }, [id]);
+
+    useEffect(() => {
+        if (assembly?.AC_NO) {
+            fetchAssemblyPolygon();
+        }
+    }, [assembly?.AC_NO]);
 
     const fetchAssemblyDetails = async () => {
         try {
@@ -64,6 +73,30 @@ const AssemblyDetailPage = () => {
             setError('Error loading assembly details. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAssemblyPolygon = async () => {
+        try {
+            // Assembly data already has polygon field
+            if (assembly?.polygon) {
+                // Check if polygon is a valid GeoJSON feature
+                if (assembly.polygon.type === 'Feature' && assembly.polygon.geometry) {
+                    setAssemblyPolygon({ 
+                        type: 'FeatureCollection', 
+                        features: [assembly.polygon] 
+                    });
+                    return;
+                } else if (assembly.polygon.type === 'FeatureCollection' && assembly.polygon.features) {
+                    setAssemblyPolygon(assembly.polygon);
+                    return;
+                }
+            }
+            
+            setAssemblyPolygon(null);
+        } catch (e) {
+            console.error('Failed to load assembly polygon:', e);
+            setAssemblyPolygon(null);
         }
     };
 
@@ -248,42 +281,49 @@ const AssemblyDetailPage = () => {
                             </Grid>
                         </Grid>
 
-                        {/* Column 3 */}
+                        {/* Column 3 - Map */}
                         <Grid item xs={12} md={4}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.created_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated By
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {assembly.updated_by?.username || 'N/A'}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(assembly.created_at)}
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        Updated At
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {formatDateTime(assembly.updated_at)}
-                                    </Typography>
-                                </Grid>
-                            </Grid>
+                            <PolygonMap 
+                                polygon={assemblyPolygon} 
+                                mapboxToken={mapboxToken}
+                                height={300}
+                            />
+                        </Grid>
+                    </Grid>
+
+                    {/* Additional Info Row */}
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Created By
+                            </Typography>
+                            <Typography variant="body1">
+                                {assembly.created_by?.username || 'N/A'}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Updated By
+                            </Typography>
+                            <Typography variant="body1">
+                                {assembly.updated_by?.username || 'N/A'}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Created At
+                            </Typography>
+                            <Typography variant="body1">
+                                {formatDateTime(assembly.created_at)}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Updated At
+                            </Typography>
+                            <Typography variant="body1">
+                                {formatDateTime(assembly.updated_at)}
+                            </Typography>
                         </Grid>
                     </Grid>
 

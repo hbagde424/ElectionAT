@@ -81,6 +81,64 @@ exports.getAssemblyByVSCode = async (req, res) => {
   }
 };
 
+// Get assembly polygon by Name
+exports.getAssemblyPolygonByName = async (req, res) => {
+  try {
+    const assemblyName = req.params.name;
+    if (!assemblyName) {
+      return res.status(400).json({ message: 'Assembly name is required' });
+    }
+
+    const assembly = await Assembly.findOne(
+      { 'features.properties.Name': { $regex: assemblyName, $options: 'i' } },
+      { _id: 0, __v: 0 }
+    ).lean();
+
+    if (!assembly) {
+      return res.status(404).json({ message: 'Assembly polygon not found for this name' });
+    }
+
+    // Filter features to only include matching assembly
+    const filteredFeatures = assembly.features.filter(f => 
+      f.properties?.Name?.toLowerCase().includes(assemblyName.toLowerCase())
+    );
+
+    if (filteredFeatures.length === 0) {
+      return res.status(404).json({ message: 'No matching assembly polygon found' });
+    }
+
+    return sendJsonResponse(res, { 
+      type: 'FeatureCollection', 
+      features: filteredFeatures 
+    });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// Get assembly polygon by AC_NO (Assembly Constituency Number)
+exports.getAssemblyPolygonByACNo = async (req, res) => {
+  try {
+    const acNo = req.params.ac_no;
+    if (!acNo) {
+      return res.status(400).json({ message: 'AC_NO is required' });
+    }
+
+    const assembly = await Assembly.findOne(
+      { 'features.properties.STCODE11': acNo },
+      { _id: 0, __v: 0 }
+    ).lean();
+
+    if (!assembly) {
+      return res.status(404).json({ message: 'Assembly polygon not found for this AC_NO' });
+    }
+
+    return sendJsonResponse(res, assembly);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
 // Get assemblies by district
 exports.getAssembliesByDistrict = async (req, res) => {
   try {
