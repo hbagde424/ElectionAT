@@ -285,7 +285,7 @@ export default function DivisionModal({
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Division Polygon (GeoJSON)</InputLabel>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                                 <Button
                                     variant="outlined"
                                     component="label"
@@ -306,6 +306,19 @@ export default function DivisionModal({
                                             Existing Polygon Present
                                         </Typography>
                                     )
+                                )}
+                                {(fileName || division?.polygon) && (
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        size="small"
+                                        onClick={() => {
+                                            setFormData(prev => ({ ...prev, polygon: null }));
+                                            setFileName('');
+                                        }}
+                                    >
+                                        Delete Polygon
+                                    </Button>
                                 )}
                             </Box>
                         </Stack>

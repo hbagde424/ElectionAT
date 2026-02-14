@@ -49,7 +49,6 @@ exports.getDivisions = async (req, res, next) => {
     }
     let query = Division.find(filter);
     query = populateDivision(query);
-    query = query.select('-polygon');
     query = query.sort({ name: 1 });
 
     // Enhanced search functionality: only apply regex to string fields

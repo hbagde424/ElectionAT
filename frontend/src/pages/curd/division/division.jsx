@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, MenuItem, TextField, Tooltip, Alert,
-    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
+    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Drawer
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import CloseIcon from '@mui/icons-material/Close';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -17,7 +18,11 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import DivisionModal from './DivisionModal';
 import AlertDivisionDelete from './AlertDivisionDelete';
@@ -27,6 +32,7 @@ import { useCsvOtp } from 'hooks/useCsvOtp';
 export default function DivisionListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy, getUserHighestLevel } = usePermissions();
 
     const [selectedDivision, setSelectedDivision] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -60,6 +66,15 @@ export default function DivisionListPage() {
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
     const importInputRef = useRef();
+
+    // Map & Drawer state
+    const [divisionGeoJSON, setDivisionGeoJSON] = useState(null);
+    const [allDivisionGeoJSON, setAllDivisionGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     // Download all divisions for CSV
     const startCsvDownload = async () => {
@@ -169,7 +184,16 @@ export default function DivisionListPage() {
             ]);
 
             const statesData = await statesRes.json();
-            if (statesData.success) setStates(statesData.data);
+            if (statesData.success) {
+                // Filter states based on user hierarchy
+                let filteredStates = statesData.data;
+                if (userHierarchy?.state) {
+                    // User has state-level access - show only their state
+                    filteredStates = statesData.data.filter(s => String(s._id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+                // If division-level or no hierarchy, still show all states for reference
+                setStates(statesData.success ? statesData.data : []);
+            }
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
@@ -178,28 +202,38 @@ export default function DivisionListPage() {
     const fetchDivisions = async (pageIndex, pageSize, globalFilter = '', stateFilter = '') => {
         setLoading(true);
         try {
-            let url;
-            let ignorePagination = !!globalFilter;
-            if (ignorePagination) {
-                // When searching, fetch all results (up to 10000)
-                let query = [];
-                if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
-                if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-                const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-                url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
-            } else {
-                // Normal pagination
-                let query = [];
-                if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
-                const queryString = query.length > 0 ? `&${query.join('&')}` : '';
-                url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
-            }
+            // Always fetch all divisions first to apply hierarchy filter correctly
+            let query = [];
+            if (globalFilter) query.push(`search=${encodeURIComponent(globalFilter)}`);
+            if (stateFilter) query.push(`state=${encodeURIComponent(stateFilter)}`);
+            const queryString = query.length > 0 ? `&${query.join('&')}` : '';
+            
+            const url = `${import.meta.env.VITE_APP_API_URL}/divisions?page=1&limit=10000${queryString}`;
             const token = localStorage.getItem('serviceToken');
             const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const json = await res.json();
+            
             if (json.success) {
-                setDivisions(json.data);
-                setPageCount(ignorePagination ? 1 : json.pages);
+                // Filter divisions based on user hierarchy
+                let filteredDivisions = json.data;
+                if (userHierarchy?.division) {
+                    // User has division-level access - show only their division
+                    filteredDivisions = json.data.filter(d => String(d._id) === String(userHierarchy.division._id || userHierarchy.division));
+                } else if (userHierarchy?.state) {
+                    // User has state-level access - show only their state's divisions
+                    filteredDivisions = json.data.filter(d => String(d.state_id?._id || d.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+                // If no hierarchy, show all divisions (superAdmin)
+
+                // Now apply pagination to filtered data
+                const totalCount = filteredDivisions.length;
+                const calculatedPages = Math.ceil(totalCount / pageSize);
+                const startIndex = pageIndex * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedDivisions = filteredDivisions.slice(startIndex, endIndex);
+
+                setDivisions(paginatedDivisions);
+                setPageCount(calculatedPages);
             } else {
                 setDivisions([]);
                 setPageCount(0);
@@ -230,12 +264,156 @@ export default function DivisionListPage() {
         fetchDivisions(pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter);
         fetchReferenceData();
         fetchAllDivisionsForFilters();
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, stateFilter, userHierarchy]);
+
+    // Load division polygons from divisions table - filtered by user hierarchy
+    useEffect(() => {
+        (async () => {
+            try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?all=true&limit=10000`, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                
+                if (!json.success || !Array.isArray(json.data)) {
+                    throw new Error('Invalid response format');
+                }
+
+                // Filter divisions based on user hierarchy
+                let divisionsToUse = json.data;
+                if (userHierarchy?.division) {
+                    // User has division-level access - show only their division
+                    divisionsToUse = json.data.filter(d => String(d._id) === String(userHierarchy.division._id || userHierarchy.division));
+                } else if (userHierarchy?.state) {
+                    // User has state-level access - show only their state's divisions
+                    divisionsToUse = json.data.filter(d => String(d.state_id?._id || d.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+                // If no hierarchy, show all divisions (superAdmin)
+
+                // Extract polygons from divisions that have polygon data
+                const features = [];
+                divisionsToUse.forEach(division => {
+                    if (division.polygon) {
+                        // Handle both Feature and FeatureCollection formats
+                        let featureToAdd = null;
+                        
+                        if (division.polygon.type === 'Feature') {
+                            // Single Feature
+                            featureToAdd = {
+                                ...division.polygon,
+                                properties: {
+                                    ...division.polygon.properties,
+                                    division_id: division._id,
+                                    division_name: division.name,
+                                    division_code: division.division_code
+                                }
+                            };
+                        } else if (division.polygon.type === 'FeatureCollection' && Array.isArray(division.polygon.features)) {
+                            // FeatureCollection - add all features
+                            division.polygon.features.forEach(feat => {
+                                features.push({
+                                    ...feat,
+                                    properties: {
+                                        ...feat.properties,
+                                        division_id: division._id,
+                                        division_name: division.name,
+                                        division_code: division.division_code
+                                    }
+                                });
+                            });
+                            return; // Skip the single feature add below
+                        }
+                        
+                        if (featureToAdd) {
+                            features.push(featureToAdd);
+                        }
+                    }
+                });
+
+                if (!features.length) {
+                    setMapError('No divisions with polygon data available');
+                    setAllDivisionGeoJSON(null);
+                    setDivisionGeoJSON(null);
+                } else {
+                    const geoJSON = { type: 'FeatureCollection', features };
+                    setAllDivisionGeoJSON(geoJSON);
+                    setDivisionGeoJSON(geoJSON);
+                    setMapError(''); // Clear any previous errors
+                }
+            } catch (e) {
+                console.error('Failed to load division polygons:', e);
+                setMapError(`Failed to load polygon data: ${e.message}`);
+                setAllDivisionGeoJSON(null);
+                setDivisionGeoJSON(null);
+            }
+        })();
+    }, [userHierarchy]);
+
+    // Filter polygons based on current table data
+    useEffect(() => {
+        if (!allDivisionGeoJSON) {
+            return;
+        }
+
+        // Show all polygons on map, not just current page
+        setDivisionGeoJSON(allDivisionGeoJSON);
+    }, [allDivisionGeoJSON]);
 
     // Reset to first page when searching or filtering
     useEffect(() => {
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     }, [globalFilter, stateFilter]);
+
+    const fetchDivisionDetailsByPolygon = async (divisionId, divisionName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch division by ID
+            let division = null;
+            let blocks = [];
+            let assemblies = [];
+
+            if (divisionId) {
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/${divisionId}`, { headers });
+                    const json = await res.json();
+                    if (json?.success && json.data) {
+                        division = json.data;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch division by ID:', e);
+                }
+
+                if (division && division._id) {
+                    const did = division._id;
+                    const fetches = [
+                        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?division=${encodeURIComponent(did)}&all=true&limit=10000`, { headers }),
+                        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?division=${encodeURIComponent(did)}&all=true&limit=10000`, { headers })
+                    ];
+                    const [bRes, aRes] = await Promise.allSettled(fetches);
+                    const tryJson = async (r) => { try { const j = await r.json(); return j; } catch { return null; } };
+                    if (bRes.status === 'fulfilled' && bRes.value.ok) { const j = await tryJson(bRes.value); if (j?.success && Array.isArray(j.data)) blocks = j.data; }
+                    if (aRes.status === 'fulfilled' && aRes.value.ok) { const j = await tryJson(aRes.value); if (j?.success && Array.isArray(j.data)) assemblies = j.data; }
+
+                    setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: { division, blocks, assemblies } });
+                    setDrawerOpen(true);
+                } else {
+                    setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: null, error: 'Division not found' });
+                    setDrawerOpen(true);
+                }
+            } else {
+                setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: null, error: 'Invalid division ID' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch division details by polygon:', err);
+            setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
+    };
 
     const handleDeleteOpen = (id) => {
         setDivisionDeleteId(id);
@@ -345,6 +523,21 @@ export default function DivisionListPage() {
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
         {
+            header: 'Polygon',
+            accessorKey: 'polygon',
+            cell: ({ getValue }) => {
+                const hasPolygon = !!getValue();
+                return (
+                    <Chip
+                        label={hasPolygon ? 'Yes' : 'No'}
+                        color={hasPolygon ? 'success' : 'default'}
+                        size="small"
+                        variant="outlined"
+                    />
+                );
+            }
+        },
+        {
             header: 'Actions',
             meta: { className: 'cell-center' },
             cell: ({ row }) => {
@@ -401,6 +594,134 @@ export default function DivisionListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Division Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>Division Map</Typography>
+                    {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
+                    {!divisionGeoJSON && !mapError && (
+                        <Alert severity="info" sx={{ mb: 1 }}>Loading map data...</Alert>
+                    )}
+                    <MapContainerStyled sx={{ minHeight: 400 }}>
+                        {mapboxToken ? (
+                            <Map
+                                ref={mapRef}
+                                mapboxAccessToken={mapboxToken}
+                                initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 6 }}
+                                mapStyle="mapbox://styles/mapbox/streets-v12"
+                                interactiveLayerIds={divisionGeoJSON ? ['division-fill'] : []}
+                                onClick={(e) => {
+                                    if (!divisionGeoJSON) return;
+                                    try {
+                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                        const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                        let features = e.features || [];
+                                        if ((!features || features.length === 0) && map && point) {
+                                            features = map.queryRenderedFeatures([point.x, point.y], { layers: ['division-fill'] }) || [];
+                                        }
+                                        const f = features.find(f => f.layer && f.layer.id === 'division-fill') || features[0];
+                                        if (f) {
+                                            const props = f.properties || {};
+                                            const divisionId = props.division_id || '';
+                                            const divisionName = props.division_name || '';
+                                            setDrawerData({ loading: true, divisionCode: divisionName, divisionName: divisionName, details: null });
+                                            setDrawerOpen(true);
+                                            fetchDivisionDetailsByPolygon(divisionId, divisionName);
+                                        }
+                                    } catch (err) {
+                                        console.warn('Map click handler error:', err);
+                                    }
+                                }}
+                            >
+                                <MapControl />
+                                {divisionGeoJSON && (
+                                    <Source id="division-polygons" type="geojson" data={divisionGeoJSON}>
+                                        <Layer id="division-fill" type="fill" paint={{ 'fill-color': '#4CAF50', 'fill-opacity': 0.22 }} />
+                                        <Layer id="division-outline" type="line" paint={{ 'line-color': '#388E3C', 'line-width': 2 }} />
+                                        <Layer
+                                            id="division-label"
+                                            type="symbol"
+                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'division_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'division_code'], ['get', 'code'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
+                                            paint={{
+                                                'text-color': '#000',
+                                                'text-halo-color': '#ffffff',
+                                                'text-halo-width': 2
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                            </Map>
+                        ) : (
+                            <Alert severity="error">Mapbox token not configured</Alert>
+                        )}
+                    </MapContainerStyled>
+                </Box>
+
+                {/* Drawer for Division Details */}
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
+                        <Typography variant="h6">Division Details</Typography>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 60px)' }}>
+                        {drawerData?.loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : drawerData?.error ? (
+                            <Alert severity="error">{drawerData.error}</Alert>
+                        ) : drawerData?.details ? (
+                            <Stack spacing={2}>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Division Code</Typography>
+                                    <Typography variant="body1">{drawerData.divisionCode || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Division Name</Typography>
+                                    <Typography variant="body1">{drawerData.divisionName || 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">State</Typography>
+                                    <Typography variant="body1">{drawerData.details.division?.state_id?.name || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                                    <Typography variant="body2">{drawerData.details.division?.description ? drawerData.details.division.description.replace(/<[^>]+>/g, '') : 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Blocks ({drawerData.details.blocks?.length || 0})</Typography>
+                                    {drawerData.details.blocks && drawerData.details.blocks.length > 0 ? (
+                                        <Stack spacing={1}>
+                                            {drawerData.details.blocks.map((block) => (
+                                                <Chip key={block._id} label={block.name} size="small" variant="outlined" />
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Typography variant="body2" color="textSecondary">No blocks found</Typography>
+                                    )}
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Assemblies ({drawerData.details.assemblies?.length || 0})</Typography>
+                                    {drawerData.details.assemblies && drawerData.details.assemblies.length > 0 ? (
+                                        <Stack spacing={1}>
+                                            {drawerData.details.assemblies.map((assembly) => (
+                                                <Chip key={assembly._id} label={assembly.name} size="small" variant="outlined" color="primary" />
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Typography variant="body2" color="textSecondary">No assemblies found</Typography>
+                                    )}
+                                </Box>
+                            </Stack>
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">Click on a division on the map to view details</Typography>
+                        )}
+                    </Box>
+                </Drawer>
                 {/* Header: Search + Filters + Actions */}
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
