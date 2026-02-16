@@ -34,7 +34,6 @@ exports.getBlocks = async (req, res, next) => {
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
       .populate('updated_by', 'username')
-      .select('-polygon')
       .sort({ name: 1 });
 
     // Enhanced search functionality: search across all string fields in the model

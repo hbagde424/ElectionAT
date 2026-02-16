@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
+    Button, Stack, Box, Typography, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Drawer, Alert, MenuItem, TextField, Tooltip
 } from '@mui/material';
-import TextField from '@mui/material/TextField';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import {
@@ -16,6 +16,10 @@ import { HeaderSort, TablePagination } from 'components/third-party/react-table'
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
+import { usePermissions } from 'contexts/PermissionContext';
 
 import StateModal from './StateModal';
 import AlertStateDelete from './AlertStateDelete';
@@ -25,6 +29,7 @@ import { useCsvOtp } from 'hooks/useCsvOtp';
 
 export default function StatesListPage() {
     const theme = useTheme();
+    const { userHierarchy } = usePermissions();
 
     const [selectedState, setSelectedState] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -38,6 +43,15 @@ export default function StatesListPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
+
+    // Map & Drawer state
+    const [stateGeoJSON, setStateGeoJSON] = useState(null);
+    const [allStateGeoJSON, setAllStateGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     const fetchUsers = async () => {
         try {
@@ -55,18 +69,36 @@ export default function StatesListPage() {
     const fetchStates = async (pageIndex, pageSize, searchTerm = '') => {
         setLoading(true);
         try {
+            // Always fetch all states first to apply hierarchy filter correctly
             const query = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
             const token = localStorage.getItem('serviceToken');
             const headers = {};
             if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?page=1&limit=10000${query}`, { headers });
             const json = await res.json();
             if (json.success) {
-                setStates(json.data);
-                setPageCount(json.pages);
+                // Filter states based on user hierarchy
+                let filteredStates = json.data;
+                if (userHierarchy?.state) {
+                    // User has state-level access - show only their state
+                    filteredStates = json.data.filter(s => String(s._id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+                // If no hierarchy, show all states (superAdmin)
+
+                // Now apply pagination to filtered data
+                const totalCount = filteredStates.length;
+                const calculatedPages = Math.ceil(totalCount / pageSize);
+                const startIndex = pageIndex * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedStates = filteredStates.slice(startIndex, endIndex);
+
+                setStates(paginatedStates);
+                setPageCount(calculatedPages);
             }
         } catch (error) {
             console.error('Failed to fetch states:', error);
+            setStates([]);
+            setPageCount(0);
         } finally {
             setLoading(false);
         }
@@ -91,7 +123,7 @@ export default function StatesListPage() {
                 clearTimeout(debouncedFetchStates.current);
             }
         };
-    }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+    }, [pagination.pageIndex, pagination.pageSize, globalFilter, userHierarchy]);
 
     // keep local input synced with globalFilter
     useEffect(() => {
@@ -102,9 +134,145 @@ export default function StatesListPage() {
         fetchUsers();
     }, []);
 
+    // Load state polygons from states table - filtered by user hierarchy
+    useEffect(() => {
+        (async () => {
+            try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?limit=10000`, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                
+                if (!json.success || !Array.isArray(json.data)) {
+                    throw new Error('Invalid response format');
+                }
+
+                // Filter states based on user hierarchy
+                let statesToUse = json.data;
+                if (userHierarchy?.state) {
+                    // User has state-level access - show only their state
+                    statesToUse = json.data.filter(s => String(s._id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+                // If no hierarchy, show all states (superAdmin)
+
+                // Extract polygons from states that have polygon data
+                const features = [];
+                statesToUse.forEach(state => {
+                    if (state.polygon) {
+                        let featureToAdd = null;
+                        
+                        if (state.polygon.type === 'Feature') {
+                            featureToAdd = {
+                                ...state.polygon,
+                                properties: {
+                                    ...state.polygon.properties,
+                                    state_id: state._id,
+                                    state_name: state.name,
+                                    state_no: state.state_no
+                                }
+                            };
+                        } else if (state.polygon.type === 'FeatureCollection' && Array.isArray(state.polygon.features)) {
+                            state.polygon.features.forEach(feat => {
+                                features.push({
+                                    ...feat,
+                                    properties: {
+                                        ...feat.properties,
+                                        state_id: state._id,
+                                        state_name: state.name,
+                                        state_no: state.state_no
+                                    }
+                                });
+                            });
+                            return;
+                        }
+                        
+                        if (featureToAdd) {
+                            features.push(featureToAdd);
+                        }
+                    }
+                });
+
+                if (!features.length) {
+                    setMapError('No states with polygon data available');
+                    setAllStateGeoJSON(null);
+                    setStateGeoJSON(null);
+                } else {
+                    const geoJSON = { type: 'FeatureCollection', features };
+                    setAllStateGeoJSON(geoJSON);
+                    setStateGeoJSON(geoJSON);
+                    setMapError('');
+                }
+            } catch (e) {
+                console.error('Failed to load state polygons:', e);
+                setMapError(`Failed to load polygon data: ${e.message}`);
+                setAllStateGeoJSON(null);
+                setStateGeoJSON(null);
+            }
+        })();
+    }, [userHierarchy]);
+
+    // Filter polygons based on current table data
+    useEffect(() => {
+        if (!allStateGeoJSON) {
+            return;
+        }
+
+        // Show all polygons on map, not just current page
+        setStateGeoJSON(allStateGeoJSON);
+    }, [allStateGeoJSON]);
+
     const handleDeleteOpen = (id) => {
         setStateDeleteId(id);
         setOpenDelete(true);
+    };
+
+    const fetchStateDetailsByPolygon = async (stateId, stateName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch state by ID
+            let state = null;
+            let divisions = [];
+
+            if (stateId) {
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/${stateId}`, { headers });
+                    const json = await res.json();
+                    if (json?.success && json.data) {
+                        state = json.data;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch state by ID:', e);
+                }
+
+                if (state && state._id) {
+                    const sid = state._id;
+                    try {
+                        const dRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?state=${encodeURIComponent(sid)}&all=true&limit=10000`, { headers });
+                        const dJson = await dRes.json();
+                        if (dJson?.success && Array.isArray(dJson.data)) divisions = dJson.data;
+                    } catch (e) {
+                        console.warn('Failed to fetch divisions:', e);
+                    }
+
+                    setDrawerData({ loading: false, stateName: stateName, stateNo: state.state_no, details: { state, divisions } });
+                    setDrawerOpen(true);
+                } else {
+                    setDrawerData({ loading: false, stateName: stateName, details: null, error: 'State not found' });
+                    setDrawerOpen(true);
+                }
+            } else {
+                setDrawerData({ loading: false, stateName: stateName, details: null, error: 'Invalid state ID' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch state details by polygon:', err);
+            setDrawerData({ loading: false, stateName: stateName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
     };
 
     const handleDeleteClose = () => setOpenDelete(false);
@@ -198,6 +366,21 @@ export default function StatesListPage() {
             header: 'Updated At',
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+        },
+        {
+            header: 'Polygon',
+            accessorKey: 'polygon',
+            cell: ({ getValue }) => {
+                const hasPolygon = !!getValue();
+                return (
+                    <Chip
+                        label={hasPolygon ? 'Yes' : 'No'}
+                        color={hasPolygon ? 'success' : 'default'}
+                        size="small"
+                        variant="outlined"
+                    />
+                );
+            }
         },
         {
             header: 'Actions',
@@ -297,6 +480,118 @@ export default function StatesListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* State Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>State Map</Typography>
+                    {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
+                    {!stateGeoJSON && !mapError && (
+                        <Alert severity="info" sx={{ mb: 1 }}>Loading map data...</Alert>
+                    )}
+                    <MapContainerStyled sx={{ minHeight: 400 }}>
+                        {mapboxToken ? (
+                            <Map
+                                ref={mapRef}
+                                mapboxAccessToken={mapboxToken}
+                                initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 5 }}
+                                mapStyle="mapbox://styles/mapbox/streets-v12"
+                                interactiveLayerIds={stateGeoJSON ? ['state-fill'] : []}
+                                onClick={(e) => {
+                                    if (!stateGeoJSON) return;
+                                    try {
+                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                        const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                        let features = e.features || [];
+                                        if ((!features || features.length === 0) && map && point) {
+                                            features = map.queryRenderedFeatures([point.x, point.y], { layers: ['state-fill'] }) || [];
+                                        }
+                                        const f = features.find(f => f.layer && f.layer.id === 'state-fill') || features[0];
+                                        if (f) {
+                                            const props = f.properties || {};
+                                            const stateId = props.state_id || '';
+                                            const stateName = props.state_name || '';
+                                            setDrawerData({ loading: true, stateName: stateName, details: null });
+                                            setDrawerOpen(true);
+                                            fetchStateDetailsByPolygon(stateId, stateName);
+                                        }
+                                    } catch (err) {
+                                        console.warn('Map click handler error:', err);
+                                    }
+                                }}
+                            >
+                                <MapControl />
+                                {stateGeoJSON && (
+                                    <Source id="state-polygons" type="geojson" data={stateGeoJSON}>
+                                        <Layer id="state-fill" type="fill" paint={{ 'fill-color': '#FF9800', 'fill-opacity': 0.22 }} />
+                                        <Layer id="state-outline" type="line" paint={{ 'line-color': '#F57C00', 'line-width': 2 }} />
+                                        <Layer
+                                            id="state-label"
+                                            type="symbol"
+                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'state_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'state_no'], ['get', 'no'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
+                                            paint={{
+                                                'text-color': '#000',
+                                                'text-halo-color': '#ffffff',
+                                                'text-halo-width': 2
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                            </Map>
+                        ) : (
+                            <Alert severity="error">Mapbox token not configured</Alert>
+                        )}
+                    </MapContainerStyled>
+                </Box>
+
+                {/* Drawer for State Details */}
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
+                        <Typography variant="h6">State Details</Typography>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 60px)' }}>
+                        {drawerData?.loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : drawerData?.error ? (
+                            <Alert severity="error">{drawerData.error}</Alert>
+                        ) : drawerData?.details ? (
+                            <Stack spacing={2}>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">State Name</Typography>
+                                    <Typography variant="body1">{drawerData.stateName || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">State No</Typography>
+                                    <Typography variant="body1">{drawerData.stateNo || 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                                    <Typography variant="body2">{drawerData.details.state?.description ? drawerData.details.state.description.replace(/<[^>]+>/g, '') : 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Divisions ({drawerData.details.divisions?.length || 0})</Typography>
+                                    {drawerData.details.divisions && drawerData.details.divisions.length > 0 ? (
+                                        <Stack spacing={1}>
+                                            {drawerData.details.divisions.map((division) => (
+                                                <Chip key={division._id} label={division.name} size="small" variant="outlined" />
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Typography variant="body2" color="textSecondary">No divisions found</Typography>
+                                    )}
+                                </Box>
+                            </Stack>
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">Click on a state on the map to view details</Typography>
+                        )}
+                    </Box>
+                </Drawer>
+
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ padding: 3 }}>
                     <TextField
                         size="small"

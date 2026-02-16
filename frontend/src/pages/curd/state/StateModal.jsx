@@ -188,7 +188,7 @@ export default function StateModal({
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>State Polygon (GeoJSON)</InputLabel>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                                 <Button
                                     variant="outlined"
                                     component="label"
@@ -204,6 +204,19 @@ export default function StateModal({
                                 <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {fileName || (state?.polygon ? 'Polygon Exists' : 'No file selected')}
                                 </Typography>
+                                {(fileName || state?.polygon) && (
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        size="small"
+                                        onClick={() => {
+                                            setFormData(prev => ({ ...prev, polygon: null }));
+                                            setFileName('');
+                                        }}
+                                    >
+                                        Delete Polygon
+                                    </Button>
+                                )}
                             </Box>
                         </Stack>
                     </Grid>

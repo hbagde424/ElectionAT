@@ -451,7 +451,7 @@ export default function BlocksModal({
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Block Polygon (GeoJSON)</InputLabel>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                                 <Button
                                     variant="outlined"
                                     component="label"
@@ -464,14 +464,21 @@ export default function BlocksModal({
                                         onChange={handleFileChange}
                                     />
                                 </Button>
-                                {fileName ? (
-                                    <Typography variant="body2">{fileName}</Typography>
-                                ) : (
-                                    block?.polygon && (
-                                        <Typography variant="body2" color="success.main">
-                                            Existing Polygon Present
-                                        </Typography>
-                                    )
+                                <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {fileName || (block?.polygon ? 'Polygon Exists' : 'No file selected')}
+                                </Typography>
+                                {(fileName || block?.polygon) && (
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        size="small"
+                                        onClick={() => {
+                                            setFormData(prev => ({ ...prev, polygon: null }));
+                                            setFileName('');
+                                        }}
+                                    >
+                                        Delete Polygon
+                                    </Button>
                                 )}
                             </Box>
                         </Stack>

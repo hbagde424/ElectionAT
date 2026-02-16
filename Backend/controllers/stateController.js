@@ -49,7 +49,6 @@ exports.getStates = async (req, res, next) => {
     let query = State.find(stateFilter)
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
-      .select('-polygon')
       .sort({ name: 1 });
 
     const states = await query.skip(skip).limit(limit).exec();

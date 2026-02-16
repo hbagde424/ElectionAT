@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
@@ -16,21 +17,22 @@ import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-pa
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
+import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import Map, { Source, Layer } from 'react-map-gl';
+import MapControl from 'components/third-party/map/MapControl';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import CircularProgress from '@mui/material/CircularProgress';
+import { usePermissions } from 'contexts/PermissionContext';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 
 import BlocksModal from './BlockModal';
 import AlertBlocksDelete from './AlertBlockDelete';
 import BlocksView from './BlockView';
+import BlockPolygonUpload from './BlockPolygonUpload';
 
 export default function BlocksListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy } = usePermissions();
 
     const [selectedBlock, setSelectedBlock] = useState(null);
     const [openModal, setOpenModal] = useState(false);
@@ -58,6 +60,16 @@ export default function BlocksListPage() {
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
     const importInputRef = useRef();
+
+    // Map & Drawer state
+    const [blockGeoJSON, setBlockGeoJSON] = useState(null);
+    const [allBlockGeoJSON, setAllBlockGeoJSON] = useState(null);
+    const [mapError, setMapError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerData, setDrawerData] = useState(null);
+    const mapRef = useRef(null);
+    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+    const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
 
     const fetchAllBlocksForFilters = async () => {
         try {
@@ -134,6 +146,97 @@ export default function BlocksListPage() {
         fetchAllBlocksForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
+    // Load block polygons from blocks table - filtered by user hierarchy
+    useEffect(() => {
+        (async () => {
+            try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?limit=10000`, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                
+                if (!json.success || !Array.isArray(json.data)) {
+                    throw new Error('Invalid response format');
+                }
+
+                // Filter blocks based on user hierarchy
+                let blocksToUse = json.data;
+                if (userHierarchy?.block) {
+                    // User has block-level access - show only their block
+                    blocksToUse = json.data.filter(b => String(b._id) === String(userHierarchy.block._id || userHierarchy.block));
+                } else if (userHierarchy?.assembly) {
+                    // User has assembly-level access - show blocks in their assembly
+                    blocksToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+                } else if (userHierarchy?.parliament) {
+                    // User has parliament-level access - show blocks in their parliament
+                    blocksToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+                } else if (userHierarchy?.division) {
+                    // User has division-level access - show blocks in their division
+                    blocksToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+                } else if (userHierarchy?.state) {
+                    // User has state-level access - show blocks in their state
+                    blocksToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+                // If no hierarchy, show all blocks (superAdmin)
+
+                // Extract polygons from blocks that have polygon data
+                const features = [];
+                blocksToUse.forEach(block => {
+                    if (block.polygon) {
+                        let featureToAdd = null;
+                        
+                        if (block.polygon.type === 'Feature') {
+                            featureToAdd = {
+                                ...block.polygon,
+                                properties: {
+                                    ...block.polygon.properties,
+                                    block_id: block._id,
+                                    block_name: block.name,
+                                    block_no: block.block_no
+                                }
+                            };
+                        } else if (block.polygon.type === 'FeatureCollection' && Array.isArray(block.polygon.features)) {
+                            block.polygon.features.forEach(feat => {
+                                features.push({
+                                    ...feat,
+                                    properties: {
+                                        ...feat.properties,
+                                        block_id: block._id,
+                                        block_name: block.name,
+                                        block_no: block.block_no
+                                    }
+                                });
+                            });
+                            return;
+                        }
+                        
+                        if (featureToAdd) {
+                            features.push(featureToAdd);
+                        }
+                    }
+                });
+
+                if (!features.length) {
+                    setMapError('No blocks with polygon data available');
+                    setAllBlockGeoJSON(null);
+                    setBlockGeoJSON(null);
+                } else {
+                    const geoJSON = { type: 'FeatureCollection', features };
+                    setAllBlockGeoJSON(geoJSON);
+                    setBlockGeoJSON(geoJSON);
+                    setMapError('');
+                }
+            } catch (e) {
+                console.error('Failed to load block polygons:', e);
+                setMapError(`Failed to load polygon data: ${e.message}`);
+                setAllBlockGeoJSON(null);
+                setBlockGeoJSON(null);
+            }
+        })();
+    }, [userHierarchy]);
+
     const filterOptions = useFilterOptionsFromData(allBlocks, {
         states: { field: 'state_id', nameField: 'name' },
         divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
@@ -155,6 +258,43 @@ export default function BlocksListPage() {
             month: 'short',
             day: 'numeric'
         });
+    };
+
+    const fetchBlockDetailsByPolygon = async (blockId, blockName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Fetch block by ID
+            let block = null;
+
+            if (blockId) {
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks/${blockId}`, { headers });
+                    const json = await res.json();
+                    if (json?.success && json.data) {
+                        block = json.data;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch block by ID:', e);
+                }
+
+                if (block && block._id) {
+                    setDrawerData({ loading: false, blockName: blockName, blockNo: block.block_no, details: { block } });
+                    setDrawerOpen(true);
+                } else {
+                    setDrawerData({ loading: false, blockName: blockName, details: null, error: 'Block not found' });
+                    setDrawerOpen(true);
+                }
+            } else {
+                setDrawerData({ loading: false, blockName: blockName, details: null, error: 'Invalid block ID' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch block details by polygon:', err);
+            setDrawerData({ loading: false, blockName: blockName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
     };
 
     const columns = useMemo(() => [
@@ -334,7 +474,21 @@ export default function BlocksListPage() {
             accessorKey: 'updated_at',
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
-
+        {
+            header: 'Polygon',
+            accessorKey: 'polygon',
+            cell: ({ getValue }) => {
+                const hasPolygon = !!getValue();
+                return (
+                    <Chip
+                        label={hasPolygon ? 'Yes' : 'No'}
+                        color={hasPolygon ? 'success' : 'default'}
+                        size="small"
+                        variant="outlined"
+                    />
+                );
+            }
+        },
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -563,6 +717,118 @@ export default function BlocksListPage() {
     return (
         <>
             <MainCard content={false}>
+                {/* Block Map section above the table */}
+                <Box sx={{ p: 2, pb: 0 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>Block Map</Typography>
+                    {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
+                    {!blockGeoJSON && !mapError && (
+                        <Alert severity="info" sx={{ mb: 1 }}>Loading map data...</Alert>
+                    )}
+                    <MapContainerStyled sx={{ minHeight: 400 }}>
+                        {mapboxToken ? (
+                            <Map
+                                ref={mapRef}
+                                mapboxAccessToken={mapboxToken}
+                                initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 5 }}
+                                mapStyle="mapbox://styles/mapbox/streets-v12"
+                                interactiveLayerIds={blockGeoJSON ? ['block-fill'] : []}
+                                onClick={(e) => {
+                                    if (!blockGeoJSON) return;
+                                    try {
+                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                        const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                        let features = e.features || [];
+                                        if ((!features || features.length === 0) && map && point) {
+                                            features = map.queryRenderedFeatures([point.x, point.y], { layers: ['block-fill'] }) || [];
+                                        }
+                                        const f = features.find(f => f.layer && f.layer.id === 'block-fill') || features[0];
+                                        if (f) {
+                                            const props = f.properties || {};
+                                            const blockId = props.block_id || '';
+                                            const blockName = props.block_name || '';
+                                            setDrawerData({ loading: true, blockName: blockName, details: null });
+                                            setDrawerOpen(true);
+                                            fetchBlockDetailsByPolygon(blockId, blockName);
+                                        }
+                                    } catch (err) {
+                                        console.warn('Map click handler error:', err);
+                                    }
+                                }}
+                            >
+                                <MapControl />
+                                {blockGeoJSON && (
+                                    <Source id="block-polygons" type="geojson" data={blockGeoJSON}>
+                                        <Layer id="block-fill" type="fill" paint={{ 'fill-color': '#2196F3', 'fill-opacity': 0.22 }} />
+                                        <Layer id="block-outline" type="line" paint={{ 'line-color': '#1976D2', 'line-width': 2 }} />
+                                        <Layer
+                                            id="block-label"
+                                            type="symbol"
+                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'block_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'block_no'], ['get', 'no'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
+                                            paint={{
+                                                'text-color': '#000',
+                                                'text-halo-color': '#ffffff',
+                                                'text-halo-width': 2
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                            </Map>
+                        ) : (
+                            <Alert severity="error">Mapbox token not configured</Alert>
+                        )}
+                    </MapContainerStyled>
+                </Box>
+
+                {/* Drawer for Block Details */}
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
+                        <Typography variant="h6">Block Details</Typography>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 60px)' }}>
+                        {drawerData?.loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : drawerData?.error ? (
+                            <Alert severity="error">{drawerData.error}</Alert>
+                        ) : drawerData?.details ? (
+                            <Stack spacing={2}>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Block Name</Typography>
+                                    <Typography variant="body1">{drawerData.blockName || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Block No</Typography>
+                                    <Typography variant="body1">{drawerData.blockNo || 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                                    <Typography variant="body2">{drawerData.details.block?.description ? drawerData.details.block.description.replace(/<[^>]+>/g, '') : 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Category</Typography>
+                                    <Typography variant="body2">{drawerData.details.block?.category || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">State</Typography>
+                                    <Typography variant="body2">{drawerData.details.block?.state_id?.name || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Division</Typography>
+                                    <Typography variant="body2">{drawerData.details.block?.division_id?.name || 'N/A'}</Typography>
+                                </Box>
+                            </Stack>
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">Click on a block on the map to view details</Typography>
+                        )}
+                    </Box>
+                </Drawer>
+
                 {/* Header: Search + CSV + Add */}
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
@@ -634,6 +900,12 @@ export default function BlocksListPage() {
                             disabled={csvLoading}
                         >
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={() => setOpenPolygonUpload(true)}
+                        >
+                            Upload Polygon
                         </Button>
                         <Button
                             variant="contained"
@@ -891,6 +1163,15 @@ export default function BlocksListPage() {
                 open={openDelete}
                 handleClose={handleDeleteClose}
                 refresh={() => fetchBlocks(pagination.pageIndex, pagination.pageSize)}
+            />
+
+            <BlockPolygonUpload
+                open={openPolygonUpload}
+                onClose={() => setOpenPolygonUpload(false)}
+                onSuccess={() => {
+                    // Refresh blocks if needed
+                    fetchBlocks(pagination.pageIndex, pagination.pageSize);
+                }}
             />
         </>
     );
