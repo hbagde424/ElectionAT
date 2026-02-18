@@ -34,7 +34,7 @@ export default function AlertAssemblyDelete({ id, open, handleClose, refresh }) 
                     <Stack direction="row" spacing={1}>
                         <Chip label="Warning" color="error" size="small" />
                         <Typography variant="body2" color="text.secondary">
-                            All associated data including blocks and related information will be permanently removed.
+                            All associated data will be permanently removed.
                         </Typography>
                     </Stack>
                 </Stack>

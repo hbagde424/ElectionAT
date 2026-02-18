@@ -5,7 +5,6 @@ const Assembly = require('../models/Assembly');
 const Parliament = require('../models/Parliament');
 const Division = require('../models/Division');
 const State = require('../models/state');
-const ElectionYear = require('../models/electionYear');
 
 // Helper to validate ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -18,277 +17,159 @@ exports.getBooths = async (req, res, next) => {
     // Pagination
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit);
-    // If searching, ignore pagination and return all results (set high limit)
-    const isSearching = !!req.query.search;
-    if (isSearching) {
+
+    // If searching or no limit provided, set a high limit
+    if (!!req.query.search || !limit || limit <= 0) {
       limit = 10000;
-      page = 1;
-    } else {
-      if (!limit || limit <= 0) {
-        limit = 10000;
-      }
     }
     const skip = (page - 1) * limit;
 
-    // Enhanced search functionality: search across all table fields including populated references
-    let matchStage = {};
+    // Basic query
+    let query = Booth.find()
+      .populate('block_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+      .sort({ booth_number: 1 });
+
+    // Enhanced search functionality
     if (req.query.search) {
-      const searchTerm = req.query.search.trim();
-
-      // Skip if search term is empty
-      if (!searchTerm) {
-        return res.status(400).json({
-          success: false,
-          message: 'Search term cannot be empty'
-        });
-      }
-
-      const searchRegex = { $regex: searchTerm, $options: 'i' };
-      // If searchTerm is numeric, also add direct numeric match to booth_number
-      const numericSearch = !isNaN(searchTerm) ? parseInt(searchTerm) : null;
-
-      try {
-        // First, find related IDs from referenced collections that match the search
-        const searchPromises = [
-          Block.find({ name: searchRegex }).select('_id').catch(() => []),
-          Assembly.find({ name: searchRegex }).select('_id').catch(() => []),
-          Parliament.find({ name: searchRegex }).select('_id').catch(() => []),
-          Division.find({ name: searchRegex }).select('_id').catch(() => []),
-          State.find({ name: searchRegex }).select('_id').catch(() => [])
-        ];
-
-        // Add election year search only if search term is numeric
-        if (!isNaN(searchTerm)) {
-          searchPromises.push(
-            ElectionYear.find({ year: parseInt(searchTerm) }).select('_id').catch(() => [])
-          );
-        }
-
-        const searchResults = await Promise.all(searchPromises);
-        const [matchingBlocks, matchingAssemblies, matchingParliaments,
-          matchingDivisions, matchingStates, matchingElectionYears = []] = searchResults;
-
-        // Extract just the IDs
-        const blockIds = matchingBlocks.map(b => b._id);
-        const assemblyIds = matchingAssemblies.map(a => a._id);
-        const parliamentIds = matchingParliaments.map(p => p._id);
-        const divisionIds = matchingDivisions.map(d => d._id);
-        const stateIds = matchingStates.map(s => s._id);
-        const electionYearIds = matchingElectionYears.map(y => y._id);
-
-        // Build OR clauses; include numeric booth_number match when applicable
-        const orClauses = [
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      query = query.find({
+        $or: [
           { name: searchRegex },
-          { booth_number: searchRegex },
           { full_address: searchRegex },
-          { description: searchRegex }
-        ];
-        if (numericSearch !== null) {
-          // match numeric field equality as well as string regex
-          orClauses.push({ booth_number: numericSearch });
-        }
-        if (blockIds.length > 0) orClauses.push({ block_id: { $in: blockIds } });
-        if (assemblyIds.length > 0) orClauses.push({ assembly_id: { $in: assemblyIds } });
-        if (parliamentIds.length > 0) orClauses.push({ parliament_id: { $in: parliamentIds } });
-        if (divisionIds.length > 0) orClauses.push({ division_id: { $in: divisionIds } });
-        if (stateIds.length > 0) orClauses.push({ state_id: { $in: stateIds } });
-        if (electionYearIds.length > 0) orClauses.push({ election_year: { $in: electionYearIds } });
+          { booth_number: searchRegex }
+        ]
+      });
+    }
 
-        matchStage = { $or: orClauses };
-      } catch (error) {
-        console.error('Search error:', error);
-        // If search fails, fall back to basic search
-        matchStage = {
-          $or: [
-            { name: searchRegex },
-            { booth_number: searchRegex },
-            { full_address: searchRegex },
-            { description: searchRegex }
-          ]
-        };
+    // Filter by block
+    if (req.query.block) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.block);
+      if (isObjectId) {
+        query = query.where('block_id').equals(req.query.block);
+      } else {
+        const blockDoc = await Block.findOne({ name: req.query.block });
+        if (blockDoc) {
+          query = query.where('block_id').equals(blockDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
       }
     }
 
-
-    // Build the aggregation pipeline
-    const aggregationPipeline = [
-      { $match: matchStage },
-      // Filter by block
-      ...(req.query.block && isValidObjectId(req.query.block) ? [{ $match: { block_id: new mongoose.Types.ObjectId(req.query.block) } }] : []),
-      // Filter by assembly
-      ...(req.query.assembly && isValidObjectId(req.query.assembly) ? [{ $match: { assembly_id: new mongoose.Types.ObjectId(req.query.assembly) } }] : []),
-      // Filter by parliament
-      ...(req.query.parliament && isValidObjectId(req.query.parliament) ? [{ $match: { parliament_id: new mongoose.Types.ObjectId(req.query.parliament) } }] : []),
-      // Filter by division
-      ...(req.query.division && isValidObjectId(req.query.division) ? [
-        { $match: { division_id: new mongoose.Types.ObjectId(req.query.division) } }
-      ] : []),
-      // Filter by state
-      ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: new mongoose.Types.ObjectId(req.query.state) } }] : []),
-      // Filter by election year
-      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: new mongoose.Types.ObjectId(req.query.election_year) } }] : []),
-      // Lookup all references
-      {
-        $lookup: {
-          from: 'blocks',
-          localField: 'block_id',
-          foreignField: '_id',
-          as: 'block_id'
+    // Filter by assembly
+    if (req.query.assembly) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.assembly);
+      if (isObjectId) {
+        query = query.where('assembly_id').equals(req.query.assembly);
+      } else {
+        const assemblyDoc = await Assembly.findOne({ name: req.query.assembly });
+        if (assemblyDoc) {
+          query = query.where('assembly_id').equals(assemblyDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
         }
-      },
-      { $unwind: { path: '$block_id', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'assemblies',
-          localField: 'assembly_id',
-          foreignField: '_id',
-          as: 'assembly_id'
-        }
-      },
-      { $unwind: { path: '$assembly_id', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'parliaments',
-          localField: 'parliament_id',
-          foreignField: '_id',
-          as: 'parliament_id'
-        }
-      },
-      { $unwind: { path: '$parliament_id', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'divisions',
-          localField: 'division_id',
-          foreignField: '_id',
-          as: 'division_id'
-        }
-      },
-      { $unwind: { path: '$division_id', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'states',
-          localField: 'state_id',
-          foreignField: '_id',
-          as: 'state_id'
-        }
-      },
-      { $unwind: { path: '$state_id', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'electionyears',
-          localField: 'election_year',
-          foreignField: '_id',
-          as: 'election_year'
-        }
-      },
-      { $unwind: { path: '$election_year', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'created_by',
-          foreignField: '_id',
-          as: 'created_by'
-        }
-      },
-      { $unwind: { path: '$created_by', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'updated_by',
-          foreignField: '_id',
-          as: 'updated_by'
-        }
-      },
-      { $unwind: { path: '$updated_by', preserveNullAndEmptyArrays: true } }
-    ];
-
-    // Apply user hierarchy restriction when an authenticated user is present
-    // Precedence: booth -> block -> assembly -> parliament -> division -> state
-    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-      const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
-
-      if (boothId) {
-        aggregationPipeline.push({ $match: { _id: new mongoose.Types.ObjectId(boothId) } });
-      } else if (blockId) {
-        aggregationPipeline.push({ $match: { block_id: new mongoose.Types.ObjectId(blockId) } });
-      } else if (assemblyId) {
-        aggregationPipeline.push({ $match: { assembly_id: new mongoose.Types.ObjectId(assemblyId) } });
-      } else if (parliamentId) {
-        aggregationPipeline.push({ $match: { parliament_id: new mongoose.Types.ObjectId(parliamentId) } });
-      } else if (divisionId) {
-        aggregationPipeline.push({ $match: { division_id: new mongoose.Types.ObjectId(divisionId) } });
-      } else if (stateId) {
-        aggregationPipeline.push({ $match: { state_id: new mongoose.Types.ObjectId(stateId) } });
       }
     }
 
-    // Sort and paginate
-    aggregationPipeline.push(
-      { $sort: { booth_number: 1 } },
-      { $skip: skip },
-      { $limit: limit },
-      { $project: { polygon: 0 } }
-    );
-
-    // Execute aggregation
-    const booths = await Booth.aggregate(aggregationPipeline);
-
-    // Get total count for pagination
-    const countPipeline = [
-      { $match: matchStage },
-      // Filter by block
-      ...(req.query.block && isValidObjectId(req.query.block) ? [{ $match: { block_id: new mongoose.Types.ObjectId(req.query.block) } }] : []),
-      // Filter by assembly
-      ...(req.query.assembly && isValidObjectId(req.query.assembly) ? [{ $match: { assembly_id: new mongoose.Types.ObjectId(req.query.assembly) } }] : []),
-      // Filter by parliament
-      ...(req.query.parliament && isValidObjectId(req.query.parliament) ? [{ $match: { parliament_id: new mongoose.Types.ObjectId(req.query.parliament) } }] : []),
-      // Filter by division
-      ...(req.query.division && isValidObjectId(req.query.division) ? [
-        { $match: { division_id: new mongoose.Types.ObjectId(req.query.division) } }
-      ] : []),
-      // Filter by state
-      ...(req.query.state && isValidObjectId(req.query.state) ? [{ $match: { state_id: new mongoose.Types.ObjectId(req.query.state) } }] : []),
-      // Filter by election year
-      ...(req.query.election_year && isValidObjectId(req.query.election_year) ? [{ $match: { election_year: new mongoose.Types.ObjectId(req.query.election_year) } }] : [])
-    ];
-
-    // Apply user hierarchy restriction for count pipeline as well
-    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-      const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
-
-      if (boothId) {
-        countPipeline.push({ $match: { _id: new mongoose.Types.ObjectId(boothId) } });
-      } else if (blockId) {
-        countPipeline.push({ $match: { block_id: new mongoose.Types.ObjectId(blockId) } });
-      } else if (assemblyId) {
-        countPipeline.push({ $match: { assembly_id: new mongoose.Types.ObjectId(assemblyId) } });
-      } else if (parliamentId) {
-        countPipeline.push({ $match: { parliament_id: new mongoose.Types.ObjectId(parliamentId) } });
-      } else if (divisionId) {
-        countPipeline.push({ $match: { division_id: new mongoose.Types.ObjectId(divisionId) } });
-      } else if (stateId) {
-        countPipeline.push({ $match: { state_id: new mongoose.Types.ObjectId(stateId) } });
+    // Filter by parliament
+    if (req.query.parliament) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.parliament);
+      if (isObjectId) {
+        query = query.where('parliament_id').equals(req.query.parliament);
+      } else {
+        const parliamentDoc = await Parliament.findOne({ name: req.query.parliament });
+        if (parliamentDoc) {
+          query = query.where('parliament_id').equals(parliamentDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
       }
     }
 
-    countPipeline.push({ $count: "total" });
+    // Filter by division
+    if (req.query.division) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
+      if (isObjectId) {
+        query = query.where('division_id').equals(req.query.division);
+      } else {
+        const divisionDoc = await Division.findOne({ name: req.query.division });
+        if (divisionDoc) {
+          query = query.where('division_id').equals(divisionDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
+    }
 
-    const totalResult = await Booth.aggregate(countPipeline);
-    const total = totalResult.length > 0 ? totalResult[0].total : 0;
+    // Filter by state
+    if (req.query.state) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state);
+      if (isObjectId) {
+        query = query.where('state_id').equals(req.query.state);
+      } else {
+        const stateDoc = await State.findOne({ name: req.query.state });
+        if (stateDoc) {
+          query = query.where('state_id').equals(stateDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
+    }
+
+    // If userHierarchy exists, restrict by user's scope unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) query = query.where('_id').equals(uh.booth._id);
+      else if (uh.block) query = query.where('block_id').equals(uh.block._id);
+      else if (uh.assembly) query = query.where('assembly_id').equals(uh.assembly._id);
+      else if (uh.parliament) query = query.where('parliament_id').equals(uh.parliament._id);
+      else if (uh.division) query = query.where('division_id').equals(uh.division._id);
+      else if (uh.state) query = query.where('state_id').equals(uh.state._id);
+    }
+
+    const booths = await query.skip(skip).limit(limit).exec();
+    const total = await Booth.countDocuments(query.getFilter());
 
     res.status(200).json({
       success: true,
@@ -303,27 +184,17 @@ exports.getBooths = async (req, res, next) => {
   }
 };
 
-// The rest of your controller methods remain the same...
 // @desc    Get single booth
 // @route   GET /api/booths/:id
 // @access  Public
 exports.getBooth = async (req, res, next) => {
   try {
-    // Validate ObjectId
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid booth ID format'
-      });
-    }
-
     const booth = await Booth.findById(req.params.id)
       .populate('block_id', 'name')
       .populate('assembly_id', 'name')
       .populate('parliament_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('election_year', 'year')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -334,26 +205,19 @@ exports.getBooth = async (req, res, next) => {
       });
     }
 
-    // Enforce user hierarchy: only allow access if booth is within user's scope
-    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-      const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
-
-      const outOfScope = (boothId && booth._id.toString() !== boothId.toString()) ||
-        (blockId && booth.block_id && booth.block_id.toString() !== blockId.toString()) ||
-        (assemblyId && booth.assembly_id && booth.assembly_id.toString() !== assemblyId.toString()) ||
-        (parliamentId && booth.parliament_id && booth.parliament_id.toString() !== parliamentId.toString()) ||
-        (divisionId && booth.division_id && booth.division_id.toString() !== divisionId.toString()) ||
-        (stateId && booth.state_id && booth.state_id.toString() !== stateId.toString());
-
-      if (outOfScope) {
-        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
+    // Enforce user hierarchy for single booth resource
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.booth && booth._id.toString() !== uh.booth._id.toString()) ||
+        (uh.block && booth.block_id?.toString() !== uh.block._id.toString()) ||
+        (uh.assembly && booth.assembly_id?.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && booth.parliament_id?.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && booth.division_id?.toString() !== uh.division._id.toString()) ||
+        (uh.state && booth.state_id?.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
       }
     }
 
@@ -372,20 +236,12 @@ exports.getBooth = async (req, res, next) => {
 exports.createBooth = async (req, res, next) => {
   try {
     // Verify all references exist
-    const [
-      block,
-      assembly,
-      parliament,
-      division,
-      state,
-      electionYear
-    ] = await Promise.all([
+    const [block, assembly, parliament, division, state] = await Promise.all([
       Block.findById(req.body.block_id),
       Assembly.findById(req.body.assembly_id),
       Parliament.findById(req.body.parliament_id),
       Division.findById(req.body.division_id),
-      State.findById(req.body.state_id),
-      ElectionYear.findById(req.body.election_year)
+      State.findById(req.body.state_id)
     ]);
 
     if (!block) {
@@ -403,9 +259,6 @@ exports.createBooth = async (req, res, next) => {
     if (!state) {
       return res.status(400).json({ success: false, message: 'State not found' });
     }
-    if (!electionYear) {
-      return res.status(400).json({ success: false, message: 'Election year not found' });
-    }
 
     // Check if user exists in request
     if (!req.user || !req.user.id) {
@@ -417,8 +270,7 @@ exports.createBooth = async (req, res, next) => {
 
     const boothData = {
       ...req.body,
-      created_by: req.user.id,
-      description: req.body.description || '',
+      created_by: req.user.id
     };
 
     if (req.body.polygon) {
@@ -447,14 +299,6 @@ exports.createBooth = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateBooth = async (req, res, next) => {
   try {
-    // Validate ObjectId
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid booth ID format'
-      });
-    }
-
     let booth = await Booth.findById(req.params.id);
 
     if (!booth) {
@@ -471,7 +315,6 @@ exports.updateBooth = async (req, res, next) => {
     if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
     if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
     if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
-    if (req.body.election_year) verificationPromises.push(ElectionYear.findById(req.body.election_year));
 
     const verificationResults = await Promise.all(verificationPromises);
 
@@ -484,18 +327,13 @@ exports.updateBooth = async (req, res, next) => {
       }
     }
 
-    // Set updated_by to current user
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - user not identified'
-      });
-    }
-    req.body.updated_by = req.user.id;
-    req.body.updated_at = new Date();
-    req.body.description = req.body.description || '';
+    // Set updated_by
+    const updateData = {
+      ...req.body,
+      updated_by: req.user.id,
+      updated_at: Date.now()
+    };
 
-    const updateData = { ...req.body };
     if (req.body.polygon) {
       updateData.polygon = req.body.polygon;
     }
@@ -509,7 +347,6 @@ exports.updateBooth = async (req, res, next) => {
       .populate('parliament_id', 'name')
       .populate('division_id', 'name')
       .populate('state_id', 'name')
-      .populate('election_year', 'year')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -533,14 +370,6 @@ exports.updateBooth = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.deleteBooth = async (req, res, next) => {
   try {
-    // Validate ObjectId
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid booth ID format'
-      });
-    }
-
     const booth = await Booth.findById(req.params.id);
 
     if (!booth) {
@@ -555,154 +384,6 @@ exports.deleteBooth = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {}
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get booths by assembly
-// @route   GET /api/booths/assembly/:assemblyId
-// @access  Public
-exports.getBoothsByAssembly = async (req, res, next) => {
-  try {
-    // Validate ObjectId
-    if (!isValidObjectId(req.params.assemblyId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid assembly ID format'
-      });
-    }
-
-    // Verify assembly exists
-    const assembly = await Assembly.findById(req.params.assemblyId);
-    if (!assembly) {
-      return res.status(404).json({
-        success: false,
-        message: 'Assembly not found'
-      });
-    }
-
-    // Enforce user hierarchy for assembly-scoped listing
-    if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
-      const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
-
-      // If user's scope is narrower than the requested assembly and doesn't match, forbid
-      if (assemblyId && assemblyId.toString() !== req.params.assemblyId) {
-        return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
-      }
-      // If user has booth or block level access, ensure the assembly matches
-      if (boothId || blockId) {
-        const testBooth = await Booth.findOne({ assembly_id: req.params.assemblyId });
-        if (testBooth) {
-          if (boothId && testBooth._id.toString() !== boothId.toString()) {
-            return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
-          }
-          if (blockId && testBooth.block_id.toString() !== blockId.toString()) {
-            return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
-          }
-        }
-      }
-    }
-
-    const booths = await Booth.find({ assembly_id: req.params.assemblyId })
-      .sort({ booth_number: 1 })
-      .populate('block_id', 'name')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .populate('election_year', 'year')
-      .select('-polygon');
-
-    res.status(200).json({
-      success: true,
-      count: booths.length,
-      data: booths
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get booths by block
-// @route   GET /api/booths/block/:blockId
-// @access  Public
-exports.getBoothsByBlock = async (req, res, next) => {
-  try {
-    // Validate ObjectId
-    if (!isValidObjectId(req.params.blockId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid block ID format'
-      });
-    }
-
-    // Verify block exists
-    const block = await Block.findById(req.params.blockId);
-    if (!block) {
-      return res.status(404).json({
-        success: false,
-        message: 'Block not found'
-      });
-    }
-
-    const booths = await Booth.find({ block_id: req.params.blockId })
-      .sort({ booth_number: 1 })
-      .populate('assembly_id', 'name')
-      .populate('created_by', 'username')
-      .populate('election_year', 'year')
-      .select('-polygon');
-
-    res.status(200).json({
-      success: true,
-      count: booths.length,
-      data: booths
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get booths by election year
-// @route   GET /api/booths/year/:yearId
-// @access  Public
-exports.getBoothsByYear = async (req, res, next) => {
-  try {
-    // Validate ObjectId
-    if (!isValidObjectId(req.params.yearId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid election year ID format'
-      });
-    }
-
-    // Verify election year exists
-    const year = await ElectionYear.findById(req.params.yearId);
-    if (!year) {
-      return res.status(404).json({
-        success: false,
-        message: 'Election year not found'
-      });
-    }
-
-    const booths = await Booth.find({ election_year: req.params.yearId })
-      .sort({ booth_number: 1 })
-      .populate('block_id', 'name')
-      .populate('assembly_id', 'name')
-      .populate('created_by', 'username')
-      .populate('election_year', 'year')
-      .select('-polygon');
-
-    res.status(200).json({
-      success: true,
-      count: booths.length,
-      data: booths
     });
   } catch (err) {
     next(err);
@@ -726,9 +407,9 @@ exports.importBooths = async (req, res, next) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        if (!row.name || !row.booth_number || !row.full_address) {
+        if (!row.name && !row.booth_number) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Missing name, booth_number, or full_address' });
+          summary.errors.push({ row: i + 1, message: 'Missing booth name or number' });
           continue;
         }
 
@@ -740,57 +421,25 @@ exports.importBooths = async (req, res, next) => {
           continue;
         }
 
-        // Resolve election year from common variants (id, numeric year, or name)
-        let electionYearDoc = null;
-        const eyVal = row.election_year ?? row.year ?? row.electionYear ?? row.election ?? row.election_year_id ?? row.year_id;
-        if (eyVal !== undefined && eyVal !== null && String(eyVal).trim() !== '') {
-          const eyRaw = String(eyVal).trim();
-          const isObjectId = /^[a-fA-F0-9]{24}$/.test(eyRaw);
-          if (isObjectId) {
-            electionYearDoc = await ElectionYear.findById(eyRaw);
-          }
-          if (!electionYearDoc && !isNaN(Number(eyRaw))) {
-            electionYearDoc = await ElectionYear.findOne({ year: Number(eyRaw) });
-          }
-          if (!electionYearDoc) {
-            electionYearDoc = await ElectionYear.findOne({ name: { $regex: `^${eyRaw}$`, $options: 'i' } });
-          }
-        }
-
-        if (!electionYearDoc) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Missing: election_year not found' });
-          continue;
-        }
-
         // Check for duplicates
-        const existing = await Booth.findOne({
-          booth_number: row.booth_number,
-          assembly_id: geo.assembly._id
-        });
+        const existing = await Booth.findOne({ booth_number: row.booth_number });
         if (existing) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Booth number ${row.booth_number} already exists in this assembly` });
+          summary.errors.push({ row: i + 1, message: `Booth ${row.booth_number} already exists` });
           continue;
         }
 
         const boothData = {
-          name: row.name,
+          name: row.name || `Booth ${row.booth_number}`,
           booth_number: row.booth_number,
-          full_address: row.full_address,
-          latitude: row.latitude || null,
-          longitude: row.longitude || null,
+          full_address: row.full_address || '',
+          latitude: row.latitude || 0,
+          longitude: row.longitude || 0,
           block_id: geo.block._id,
           assembly_id: geo.assembly._id,
           parliament_id: geo.parliament._id,
           division_id: geo.division._id,
           state_id: geo.state._id,
-          election_year: electionYearDoc._id,
-          // Map gender/count fields from common variants (normalized keys from frontend are lowercase_with_underscores)
-          Male_Count: Number(row.male_count ?? row.Male_Count ?? row.MaleCount ?? row.male ?? 0) || 0,
-          Female_Count: Number(row.female_count ?? row.Female_Count ?? row.FemaleCount ?? row.female ?? 0) || 0,
-          others_Count: Number(row.others_count ?? row.others_Count ?? row.othersCount ?? row.others ?? 0) || 0,
-          Total: Number(row.total ?? row.Total ?? row.TotalCount ?? ((Number(row.male_count ?? row.Male_Count ?? 0) || 0) + (Number(row.female_count ?? row.Female_Count ?? 0) || 0) + (Number(row.others_count ?? row.others_Count ?? 0) || 0))) || 0,
           created_by: req.user.id,
           updated_by: req.user.id
         };
@@ -850,23 +499,22 @@ exports.uploadBoothPolygon = async (req, res, next) => {
       if (!feature.properties) continue;
 
       const props = feature.properties;
-      // Try to find booth by different property names
-      const boothNo = props.BOOTH_NO || props.booth_no || props['Booth No'] || props.Booth_No || props.PART_NO || props.part_no;
-      const boothName = props.BOOTH_NAME || props.booth_name || props['Booth Name'] || props.Name || props.NAME || props.name;
+      const boothNumber = props.booth_number || props.BOOTH_NUMBER || props['Booth Number'] || props.BoothNumber;
+      const boothName = props.name || props.NAME || props.Name || props.booth_name || props.BOOTH_NAME;
 
-      if (!boothNo && !boothName) {
-        errors.push('Feature passed without a valid match property (Booth_No, Booth_Name, or Name)');
+      if (!boothNumber && !boothName) {
+        errors.push('Feature passed without a valid match property (booth_number or name)');
         continue;
       }
 
       let booth = null;
 
-      // Try finding by Booth No first if available
-      if (boothNo) {
-        booth = await Booth.findOne({ booth_number: String(boothNo) });
+      // Try finding by booth number first if available
+      if (boothNumber) {
+        booth = await Booth.findOne({ booth_number: Number(boothNumber) });
       }
 
-      // If not found by No, try by Name
+      // If not found by number, try by name
       if (!booth && boothName) {
         booth = await Booth.findOne({
           name: { $regex: new RegExp(`^${boothName}$`, 'i') }
@@ -879,7 +527,7 @@ exports.uploadBoothPolygon = async (req, res, next) => {
         await booth.save();
         updatedCount++;
       } else {
-        errors.push(`Booth not found for: Booth_No=${boothNo}, Name=${boothName}`);
+        errors.push(`Booth not found for: booth_number=${boothNumber}, name=${boothName}`);
       }
     }
 
@@ -902,27 +550,16 @@ exports.uploadBoothPolygon = async (req, res, next) => {
   }
 };
 
+
 // @desc    Get total booths count
 // @route   GET /api/total-booths
 // @access  Public
 exports.getTotalBooths = async (req, res, next) => {
   try {
-    const year = req.query.year;
-    let query = {};
-
-    if (year) {
-      // Find election year by year number
-      const electionYear = await ElectionYear.findOne({ year: parseInt(year) });
-      if (electionYear) {
-        query.election_year = electionYear._id;
-      }
-    }
-
-    const totalBooths = await Booth.countDocuments(query);
-
+    const total = await Booth.countDocuments();
     res.status(200).json({
       success: true,
-      totalBooths
+      total
     });
   } catch (err) {
     next(err);

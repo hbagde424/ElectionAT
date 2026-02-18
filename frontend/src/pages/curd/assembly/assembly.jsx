@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem,
-    Grid, Tooltip, Drawer, Paper, Alert
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import { useNavigate } from 'react-router-dom';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -16,116 +16,123 @@ import ScrollX from 'components/ScrollX';
 import { DebouncedInput, HeaderSort, TablePagination } from 'components/third-party/react-table';
 import IconButton from 'components/@extended/IconButton';
 import EmptyReactTable from 'pages/tables/react-table/empty';
-import CloseIcon from '@mui/icons-material/Close';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import HowToVoteIcon from '@mui/icons-material/HowToVote';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import WorkIcon from '@mui/icons-material/Work';
-import GroupIcon from '@mui/icons-material/Group';
+import { CSVLink } from 'react-csv';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
-import { CSVLink } from 'react-csv';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import CircularProgress from '@mui/material/CircularProgress';
+import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
+import { usePermissions } from 'contexts/PermissionContext';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 
-import AssemblyModal from './AssemblyModal';
+import AssemblyModal from './assemblyModal';
 import AlertAssemblyDelete from './AlertAssemblyDelete';
-import AssemblyView from './AssemblyView';
+import AssemblyView from './assemblyView';
+import AssemblyPolygonUpload from './assemblyPolygonUpload';
 
-export default function AssemblyListPage() {
+export default function assembliesListPage() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { userHierarchy } = usePermissions();
 
     const [selectedAssembly, setSelectedAssembly] = useState(null);
     const [openModal, setOpenModal] = useState(false);
     const [openDelete, setOpenDelete] = useState(false);
-    const [assemblyDeleteId, setAssemblyDeleteId] = useState('');
-    const [assemblies, setAssemblies] = useState([]);
+    const [assemblyDeleteId, setassemblyDeleteId] = useState('');
+    const [assemblies, setassemblies] = useState([]);
+    const [allAssemblies, setallAssemblies] = useState([]);
     const [states, setStates] = useState([]);
     const [divisions, setDivisions] = useState([]);
     const [parliaments, setParliaments] = useState([]);
+    const [assemblies, setAssemblies] = useState([]);
+    const [blocks, setBlocks] = useState([]);
     const [users, setUsers] = useState([]);
     const [pageCount, setPageCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [globalFilter, setGlobalFilter] = useState('');
     const [filters, setFilters] = useState({
-        type: '',
-        category: '',
         state_id: '',
         division_id: '',
         parliament_id: ''
     });
+    const csvLinkRef = useRef();
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const importInputRef = useRef();
 
-    // Map state
-    const [assemblyGeoJSON, setAssemblyGeoJSON] = useState(null);
+    // Map & Drawer state
+    const [assemblyGeoJSON, setassemblyGeoJSON] = useState(null);
+    const [allAssemblyGeoJSON, setallAssemblyGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
-    const [selectedMapAssembly, setSelectedMapAssembly] = useState(null);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+    const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
 
-    const typeOptions = ['Urban', 'Rural', 'Mixed'];
-    const categoryOptions = ['General', 'Reserved', 'Special'];
+    const fetchAllAssembliesForFilters = async () => {
+        try {
+            const data = await fetchAllDataForFilters('/assemblies', {});
+            setallAssemblies(data);
+        } catch (error) {
+            console.error('Failed to fetch all assemblies for filters:', error);
+        }
+    };
 
     const fetchReferenceData = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const commonHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            const [statesRes, divisionsRes, parliamentsRes, usersRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: commonHeaders }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: commonHeaders }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: commonHeaders }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers: commonHeaders })
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, usersRes] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/users`, { headers })
             ]);
 
             const usersData = await usersRes.json();
-            if (usersData && usersData.success) setUsers(usersData.data);
+            if (usersData.success) setUsers(usersData.data);
 
-            const [statesData, divisionsData, parliamentsData] = await Promise.all([
-                statesRes.json().catch(() => null),
-                divisionsRes.json().catch(() => null),
-                parliamentsRes.json().catch(() => null)
+            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData] = await Promise.all([
+                statesRes.json(),
+                divisionsRes.json(),
+                parliamentsRes.json(),
+                assembliesRes.json(),
+                blocksRes.json()
             ]);
 
-            if (statesData && statesData.success) setStates(statesData.data);
-            if (divisionsData && divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData && parliamentsData.success) setParliaments(parliamentsData.data);
+            if (statesData.success) setStates(statesData.data);
+            if (divisionsData.success) setDivisions(divisionsData.data);
+            if (parliamentsData.success) setParliaments(parliamentsData.data);
+            if (assembliesData.success) setAssemblies(assembliesData.data);
+            if (blocksData.success) setBlocks(blocksData.data);
+
         } catch (error) {
             console.error('Failed to fetch reference data:', error);
         }
     };
 
-    const fetchAssemblies = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
+    const fetchassemblies = async (pageIndex, pageSize, globalFilter = '', currentFilters = filters) => {
         setLoading(true);
         try {
             const queryParams = [];
             if (globalFilter) queryParams.push(`search=${encodeURIComponent(globalFilter)}`);
-            if (currentFilters.type) queryParams.push(`type=${encodeURIComponent(currentFilters.type)}`);
-            if (currentFilters.category) queryParams.push(`category=${encodeURIComponent(currentFilters.category)}`);
-            if (currentFilters.state_id) queryParams.push(`state_id=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
             if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
             if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+            if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
+            if (currentFilters.) queryParams.push(`block=${encodeURIComponent(currentFilters.)}`);
 
             const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
-            const url = `${import.meta.env.VITE_APP_API_URL}/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`;
-
             const token = localStorage.getItem('serviceToken');
-            const res = await fetch(url, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?page=${pageIndex + 1}&limit=${pageSize}${queryString}`, { headers });
             const json = await res.json();
-
             if (json.success) {
-                setAssemblies(json.data);
+                setassemblies(json.data);
                 setPageCount(json.pages);
             }
         } catch (error) {
@@ -136,42 +143,108 @@ export default function AssemblyListPage() {
     };
 
     useEffect(() => {
-        // Initial load
-        fetchAssemblies(0, 10); // Default values for first load
+        fetchassemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
         fetchReferenceData();
-        // Load assembly polygons for map
-        (async () => {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                let features = [];
-                if (Array.isArray(data?.features)) features = data.features;
-                else if (Array.isArray(data?.data?.[0]?.features)) features = data.data[0].features;
-                else if (Array.isArray(data) && Array.isArray(data[0]?.features)) features = data[0].features;
-                if (!features.length) {
-                    setMapError('No assembly polygons found');
-                    setAssemblyGeoJSON(null);
-                } else {
-                    setAssemblyGeoJSON({ type: 'FeatureCollection', features });
-                }
-            } catch (e) {
-                console.error('Failed to load assembly polygons:', e);
-                setMapError(`Failed to load assembly polygons: ${e.message}`);
-                setAssemblyGeoJSON(null);
-            }
-        })();
-    }, []); // Empty dependency array for initial load only
-
-    useEffect(() => {
-        // Runs when pagination or filters change
-        if (pagination.pageIndex !== undefined && pagination.pageSize !== undefined) {
-            fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter);
-        }
+        fetchAllAssembliesForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
+    // Load Assembly polygons from assemblies table - filtered by user hierarchy
+    useEffect(() => {
+        (async () => {
+            try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                
+                if (!json.success || !Array.isArray(json.data)) {
+                    throw new Error('Invalid response format');
+                }
+
+                // Filter assemblies based on user hierarchy
+                let assembliesToUse = json.data;
+                if (userHierarchy?.Assembly) {
+                    assembliesToUse = json.data.filter(b => String(b._id) === String(userHierarchy.Assembly._id || userHierarchy.Assembly));
+                } else if (userHierarchy?.block) {
+                    assembliesToUse = json.data.filter(b => String(b.?._id || b.) === String(userHierarchy.block._id || userHierarchy.block));
+                } else if (userHierarchy?.assembly) {
+                    assembliesToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+                } else if (userHierarchy?.parliament) {
+                    assembliesToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+                } else if (userHierarchy?.division) {
+                    assembliesToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+                } else if (userHierarchy?.state) {
+                    assembliesToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+                }
+
+                // Extract polygons from assemblies that have polygon data
+                const features = [];
+                assembliesToUse.forEach(Assembly => {
+                    if (Assembly.polygon) {
+                        let featureToAdd = null;
+                        
+                        if (Assembly.polygon.type === 'Feature') {
+                            featureToAdd = {
+                                ...Assembly.polygon,
+                                properties: {
+                                    ...Assembly.polygon.properties,
+                                    Assembly_id: Assembly._id,
+                                    Assembly_name: Assembly.name,
+                                    Assembly_number: Assembly.Assembly_number
+                                }
+                            };
+                        } else if (Assembly.polygon.type === 'FeatureCollection' && Array.isArray(Assembly.polygon.features)) {
+                            Assembly.polygon.features.forEach(feat => {
+                                features.push({
+                                    ...feat,
+                                    properties: {
+                                        ...feat.properties,
+                                        Assembly_id: Assembly._id,
+                                        Assembly_name: Assembly.name,
+                                        Assembly_number: Assembly.Assembly_number
+                                    }
+                                });
+                            });
+                            return;
+                        }
+                        
+                        if (featureToAdd) {
+                            features.push(featureToAdd);
+                        }
+                    }
+                });
+
+                if (!features.length) {
+                    setMapError('No assemblies with polygon data available');
+                    setallAssemblyGeoJSON(null);
+                    setassemblyGeoJSON(null);
+                } else {
+                    const geoJSON = { type: 'FeatureCollection', features };
+                    setallAssemblyGeoJSON(geoJSON);
+                    setassemblyGeoJSON(geoJSON);
+                    setMapError('');
+                }
+            } catch (e) {
+                console.error('Failed to load Assembly polygons:', e);
+                setMapError(`Failed to load polygon data: ${e.message}`);
+                setallAssemblyGeoJSON(null);
+                setassemblyGeoJSON(null);
+            }
+        })();
+    }, [userHierarchy]);
+
+    const filterOptions = useFilterOptionsFromData(allAssemblies, {
+        states: { field: 'state_id', nameField: 'name' },
+        divisions: { field: 'division_id', nameField: 'name', parentField: 'state_id' },
+        parliaments: { field: 'parliament_id', nameField: 'name', parentField: 'division_id' },
+        assemblies: { field: 'assembly_id', nameField: 'name', parentField: 'parliament_id' },
+        blocks: { field: '', nameField: 'name', parentField: 'assembly_id' }
+    });
+
     const handleDeleteOpen = (id) => {
-        setAssemblyDeleteId(id);
+        setassemblyDeleteId(id);
         setOpenDelete(true);
     };
 
@@ -186,6 +259,42 @@ export default function AssemblyListPage() {
         });
     };
 
+    const fetchAssemblyDetailsByPolygon = async (assemblyId, AssemblyName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            let Assembly = null;
+
+            if (assemblyId) {
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`, { headers });
+                    const json = await res.json();
+                    if (json?.success && json.data) {
+                        Assembly = json.data;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch Assembly by ID:', e);
+                }
+
+                if (Assembly && Assembly._id) {
+                    setDrawerData({ loading: false, AssemblyName: AssemblyName, AssemblyNumber: Assembly.Assembly_number, details: { Assembly } });
+                    setDrawerOpen(true);
+                } else {
+                    setDrawerData({ loading: false, AssemblyName: AssemblyName, details: null, error: 'Assembly not found' });
+                    setDrawerOpen(true);
+                }
+            } else {
+                setDrawerData({ loading: false, AssemblyName: AssemblyName, details: null, error: 'Invalid Assembly ID' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch Assembly details by polygon:', err);
+            setDrawerData({ loading: false, AssemblyName: AssemblyName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: '#',
@@ -197,123 +306,57 @@ export default function AssemblyListPage() {
             }
         },
         {
-            header: 'Name',
+            header: 'Assembly Name',
             accessorKey: 'name',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 200,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
+                <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {getValue()}
                 </Typography>
             )
         },
         {
-            header: 'Assembly NO',
-            accessorKey: 'AC_NO',
+            header: 'Assembly No',
+            accessorKey: 'Assembly_number',
             cell: ({ getValue }) => (
-                <Typography sx={{
-                    maxWidth: 200,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {getValue()}
-                </Typography>
-            )
-        },
-
-        {
-            header: 'Type',
-            accessorKey: 'type',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.toUpperCase() || 'N/A'}
-                    size="small"
-                    variant="outlined"
-                />
+                <Chip label={getValue() || 'N/A'} color="primary" size="small" variant="outlined" />
             )
         },
         {
-            header: 'Category',
-            accessorKey: 'category',
+            header: 'Address',
+            accessorKey: 'full_address',
             cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.toUpperCase() || 'N/A'}
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'State',
-            accessorKey: 'state_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Division',
-            accessorKey: 'division_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="warning"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Parliament',
-            accessorKey: 'parliament_id',
-            cell: ({ getValue }) => (
-                <Chip
-                    label={getValue()?.name || 'N/A'}
-                    color="secondary"
-                    size="small"
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            header: 'Description',
-            accessorKey: 'description',
-            cell: ({ getValue }) => {
-                const html = getValue() || '';
-                // Strip HTML tags for preview, show first 40 chars
-                const text = html.replace(/<[^>]+>/g, '').slice(0, 40);
-                return (
-                    <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={text}>
-                        {text || 'N/A'}
-                    </Typography>
-                );
-            }
-        },
-
-        {
-            header: 'Created By',
-            accessorKey: 'created_by',
-            cell: ({ getValue }) => (
-                <Typography>
-                    {getValue()?.username || 'N/A'}
+                <Typography sx={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {getValue() || 'N/A'}
                 </Typography>
             )
         },
         {
-            header: 'Updated By',
-            accessorKey: 'updated_by',
+            header: 'Male',
+            accessorKey: 'Male_Count',
+            cell: ({ getValue }) => <Typography>{getValue() || 0}</Typography>
+        },
+        {
+            header: 'Female',
+            accessorKey: 'Female_Count',
+            cell: ({ getValue }) => <Typography>{getValue() || 0}</Typography>
+        },
+        {
+            header: 'Total',
+            accessorKey: 'Total',
+            cell: ({ getValue }) => <Chip label={getValue() || 0} color="success" size="small" />
+        },
+        {
+            header: 'Block',
+            accessorKey: '',
             cell: ({ getValue }) => (
-                <Typography>
-                    {getValue()?.username || 'N/A'}
-                </Typography>
+                <Chip label={getValue()?.name || 'N/A'} color="secondary" size="small" variant="outlined" />
+            )
+        },
+        {
+            header: 'Assembly',
+            accessorKey: 'assembly_id',
+            cell: ({ getValue }) => (
+                <Chip label={getValue()?.name || 'N/A'} color="info" size="small" variant="outlined" />
             )
         },
         {
@@ -322,11 +365,15 @@ export default function AssemblyListPage() {
             cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
         },
         {
-            header: 'Updated At',
-            accessorKey: 'updated_at',
-            cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
+            header: 'Polygon',
+            accessorKey: 'polygon',
+            cell: ({ getValue }) => {
+                const hasPolygon = !!getValue();
+                return (
+                    <Chip label={hasPolygon ? 'Yes' : 'No'} color={hasPolygon ? 'success' : 'default'} size="small" variant="outlined" />
+                );
+            }
         },
-
         {
             header: 'Actions',
             meta: { className: 'cell-center' },
@@ -334,27 +381,17 @@ export default function AssemblyListPage() {
                 return (
                     <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
                         <Tooltip title="View Details">
-                            <IconButton
-                                color="secondary"
-                                onClick={() => navigate(`/assembly/${row.original._id}`)}
-                            >
+                            <IconButton color="secondary" onClick={() => navigate(`/assembly/${row.original._id}`)}>
                                 <Eye />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Edit">
-                            <IconButton color="primary" onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedAssembly(row.original);
-                                setOpenModal(true);
-                            }}>
+                            <IconButton color="primary" onClick={(e) => { e.stopPropagation(); setSelectedAssembly(row.original); setOpenModal(true); }}>
                                 <Edit />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete">
-                            <IconButton color="error" onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteOpen(row.original._id);
-                            }}>
+                            <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleDeleteOpen(row.original._id); }}>
                                 <Trash />
                             </IconButton>
                         </Tooltip>
@@ -379,12 +416,11 @@ export default function AssemblyListPage() {
         getRowCanExpand: () => true
     });
 
-    const fetchAllAssembliesForCsv = async () => {
+    const fetchallAssembliesForCsv = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true`, { headers });
             const json = await res.json();
             if (json.success) {
                 return json.data;
@@ -397,8 +433,6 @@ export default function AssemblyListPage() {
 
     const [csvData, setCsvData] = useState([]);
     const [csvLoading, setCsvLoading] = useState(false);
-    const csvLinkRef = useRef();
-    // OTP flow for CSV export
     const {
         otpDialogOpen,
         otpCode,
@@ -410,28 +444,24 @@ export default function AssemblyListPage() {
         verifyOtp,
         closeDialog
     } = useCsvOtp();
-    const [parlCsvData, setParlCsvData] = useState([]);
-    const [parlCsvLoading, setParlCsvLoading] = useState(false);
-    const parlCsvLinkRef = useRef();
-    const importInputRef = useRef();
-    const [importing, setImporting] = useState(false);
-    const [importResult, setImportResult] = useState(null);
 
     const startCsvDownload = async () => {
         setCsvLoading(true);
-        const allData = await fetchAllAssembliesForCsv();
+        const allData = await fetchallAssembliesForCsv();
         setCsvData(allData.map(item => ({
-            Name: item.name,
-            Description: item.description || '',
-            Type: item.type,
-            Category: item.category,
-            State: item.state_id?.name || '',
-            Division: item.division_id?.name || '',
-            Parliament: item.parliament_id?.name || '',
-            'Created By': item.created_by?.username || '',
-            'Updated By': item.updated_by?.username || '',
-            'Created At': item.created_at,
-            'Updated At': item.updated_at
+            'Assembly Name': item.name,
+            'Assembly Number': item.AC_NO || 'N/A',
+            'Description': item.description || '',
+            'Male Count': 0 || 0,
+            'Female Count': 0 || 0,
+            'Others Count': 0 || 0,
+            'Total': 0 || 0,
+            'Block': item.?.name || '',
+            'Assembly': item.assembly_id?.name || '',
+            'Parliament': item.parliament_id?.name || '',
+            'Division': item.division_id?.name || '',
+            'State': item.state_id?.name || '',
+            'Created At': item.created_at
         })));
         setCsvLoading(false);
         setTimeout(() => {
@@ -445,648 +475,374 @@ export default function AssemblyListPage() {
         await requestOtp(startCsvDownload);
     };
 
-    // Rename CSV generator to be started after OTP verification
-    // and provide a wrapper that requests OTP first.
-
-    // Download reference CSV for Parliaments (parliament_no, name, state, division, division_code)
-    const handleDownloadParliamentReference = async () => {
-        setParlCsvLoading(true);
-        try {
-            const token = localStorage.getItem('serviceToken');
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?page=1&limit=10000`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
-            const json = await res.json();
-            if (json?.success && Array.isArray(json.data)) {
-                const divisionCodeMap = new Map(divisions.map(d => [String(d._id), d.division_code]));
-                const rows = json.data.map(p => ({
-                    parliament_no: p.parliament_no,
-                    parliament_name: p.name,
-                    state: p.state_id?.name || '',
-                    division: p.division_id?.name || '',
-                    division_code: divisionCodeMap.get(String(p.division_id?._id)) || ''
-                }));
-                setParlCsvData(rows);
-                setTimeout(() => {
-                    if (parlCsvLinkRef.current) {
-                        parlCsvLinkRef.current.link.click();
-                    }
-                }, 50);
-            }
-        } catch (e) {
-            console.error('Failed to prepare parliaments reference CSV:', e);
-        } finally {
-            setParlCsvLoading(false);
-        }
-    };
-
-    // Download empty Excel template with only headers matching the modal fields
-    // Load xlsx dynamically to avoid breaking the dev server when dependency is absent
     const handleDownloadExcelTemplate = async () => {
-        // Use numeric/code fields instead of database IDs
         try {
             const XLSX = await import('xlsx');
             const templateData = [
                 {
-                    name: 'Gwalior North',
-                    description: 'Example assembly constituency',
-                    AC_NO: '1',
-                    type: 'Urban',
+                    name: 'मानसी',
+                    Assembly_number: '280',
+                    full_address: 'प्राथमिक विद्यालय मानसी',
                     category: 'General',
-                    state_no: '23',
+                    ,
+                    ,
+                    ,
+                    ,
+                    ,
+                    block_no: '1',
+                    AC_NO: '1',
+                    parliament_no: '101',
                     division_code: '1',
-                    parliament_no: '101'
+                    state_no: '23'
                 }
             ];
-            const ws = XLSX.utils.json_to_sheet(templateData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Template');
-            // writeFile triggers browser download when built for web
-            XLSX.writeFile(wb, 'assembly_import_template.xlsx');
-            return;
-        } catch (e) {
-            console.warn('xlsx dynamic import failed, falling back to CSV template:', e && e.message);
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.writeFile(workbook, 'assemblies_template.xlsx');
+        } catch (error) {
+            console.error('Error generating template:', error);
+            alert('Failed to download template. Please try again.');
         }
+    };
 
-        // Fallback: generate CSV template
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        setImportResult(null);
+
         try {
-            const headers = ['name', 'AC_NO', 'description', 'type', 'category', 'division_code', 'parliament_no'];
-            const exampleRow = ['Gwalior North', '1', 'Example assembly constituency', 'Urban', 'General', 'GWL', '101'];
-            const csvContent = headers.join(',') + '\n' + exampleRow.join(',') + '\n';
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'assembly_import_template.csv';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('Failed to generate fallback CSV template:', err);
+            const XLSX = await import('xlsx');
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const normalizedData = jsonData.map((row) => {
+                const normalized = {};
+                Object.keys(row).forEach((key) => {
+                    const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                    normalized[normalizedKey] = row[key];
+                });
+                return normalized;
+            });
+
+            const filteredRows = normalizedData.filter((r) => r.name || r.Assembly_number);
+
+            const token = localStorage.getItem('serviceToken');
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
+                body: JSON.stringify({ rows: filteredRows })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                const created = result.created ?? result.imported ?? 0;
+                const skipped = result.skipped ?? 0;
+                const total = result.total ?? (created + skipped) ?? 0;
+                const errors = result.errors || [];
+                setImportResult({
+                    success: true,
+                    created,
+                    imported: created,
+                    skipped,
+                    total,
+                    errors,
+                    ids: result.ids || []
+                });
+                fetchassemblies(pagination.pageIndex, pagination.pageSize);
+            } else {
+                setImportResult({
+                    success: false,
+                    message: result.message || 'Import failed'
+                });
+            }
+        } catch (error) {
+            setImportResult({
+                success: false,
+                message: error.message || 'Import failed'
+            });
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) {
+                importInputRef.current.value = '';
+            }
         }
     };
 
     if (loading) return <EmptyReactTable />;
 
     const handleFilterApply = () => {
-        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
-        fetchAssemblies(0, pagination.pageSize, globalFilter, filters); // Use page index 0
+        fetchassemblies(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
     };
 
     const handleClearFilter = () => {
         setFilters({
-            type: '',
-            category: '',
             state_id: '',
             division_id: '',
-            parliament_id: ''
+            parliament_id: '',
+            assembly_id: '',
+            : ''
         });
-        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
-        fetchAssemblies(0, pagination.pageSize, globalFilter, {
-            type: '',
-            category: '',
+        fetchassemblies(pagination.pageIndex, pagination.pageSize, globalFilter, {
             state_id: '',
             division_id: '',
-            parliament_id: ''
+            parliament_id: '',
+            assembly_id: '',
+            : ''
         });
-    };
-
-    const applyAssemblyFilter = () => {
-        if (selectedMapAssembly && drawerData?.details?.assembly) {
-            const assembly = drawerData.details.assembly;
-            const newFilters = {
-                type: assembly.type || '',
-                category: assembly.category || '',
-                state_id: assembly.state_id?._id || '',
-                division_id: assembly.division_id?._id || '',
-                parliament_id: assembly.parliament_id?._id || ''
-            };
-            setFilters(newFilters);
-            setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
-            fetchAssemblies(0, pagination.pageSize, globalFilter, newFilters);
-            setDrawerOpen(false);
-
-            // Scroll to table
-            setTimeout(() => {
-                const tableElement = document.querySelector('[role="table"]');
-                if (tableElement) {
-                    tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 300);
-        }
-    };
-
-    const fetchAssemblyDetailsByPolygon = async (acNo, acName) => {
-        try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Find the assembly by AC_NO or name
-            let assembly = null;
-            try {
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?all=true&limit=10000`, { headers });
-                const json = await res.json();
-                if (json.success && Array.isArray(json.data)) {
-                    const acNoStr = String(acNo || '').trim();
-                    const nameStr = String(acName || '').trim().toLowerCase();
-                    assembly = json.data.find(a => String(a.AC_NO || '').trim() === acNoStr)
-                        || json.data.find(a => String(a.name || '').trim().toLowerCase() === nameStr);
-                }
-            } catch (e) {
-                console.warn('Failed to fetch all assemblies for matching:', e);
-            }
-
-            let blocks = [];
-            let booths = [];
-            let visits = [];
-            let workStatuses = [];
-            let winners = [];
-
-            if (assembly && assembly._id) {
-                const assemblyId = assembly._id;
-                const fetches = [
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?assembly=${encodeURIComponent(assemblyId)}&all=true&limit=1000`, { headers }),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/booths?assembly=${encodeURIComponent(assemblyId)}&all=true&limit=10000`, { headers }),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/visits?assembly=${encodeURIComponent(assemblyId)}&all=true`, { headers }),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/work-status?assembly=${encodeURIComponent(assemblyId)}&all=true`, { headers }),
-                    fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${encodeURIComponent(assemblyId)}&all=true`, { headers })
-                ];
-                const [bRes, boothRes, vRes, wsRes, wcRes] = await Promise.allSettled(fetches);
-                const tryJson = async (r) => { try { const j = await r.json(); return j; } catch { return null; } };
-                if (bRes.status === 'fulfilled' && bRes.value.ok) { const j = await tryJson(bRes.value); if (j?.success && Array.isArray(j.data)) blocks = j.data; }
-                if (boothRes.status === 'fulfilled' && boothRes.value.ok) { const j = await tryJson(boothRes.value); if (j?.success && Array.isArray(j.data)) booths = j.data; }
-                if (vRes.status === 'fulfilled' && vRes.value.ok) { const j = await tryJson(vRes.value); if (j?.success && Array.isArray(j.data)) visits = j.data; }
-                if (wsRes.status === 'fulfilled' && wsRes.value.ok) { const j = await tryJson(wsRes.value); if (j?.success && Array.isArray(j.data)) workStatuses = j.data; }
-                if (wcRes.status === 'fulfilled' && wcRes.value.ok) { const j = await tryJson(wcRes.value); if (j?.success && Array.isArray(j.data)) winners = j.data; }
-
-                // Fallback for winners by AC_NO
-                if ((!winners || winners.length === 0) && acNo) {
-                    try {
-                        const wr = await fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?ac_no=${encodeURIComponent(acNo)}&all=true`, { headers });
-                        const wj = await wr.json();
-                        if (wj?.success && Array.isArray(wj.data)) winners = wj.data;
-                    } catch { }
-                }
-
-                // Narrow winners to only those belonging to this assembly (by assembly id or AC No).
-                if (Array.isArray(winners) && winners.length > 0) {
-                    const matchesAssembly = (w) => {
-                        try {
-                            // assembly id checks
-                            const wa = w.assembly_id || w.assembly || (w._source && (w._source.assembly_id || w._source.assembly));
-                            if (wa) {
-                                if (typeof wa === 'object' && (wa._id || wa.id)) {
-                                    if (String(wa._id || wa.id) === String(assembly._id)) return true;
-                                } else if (String(wa) === String(assembly._id)) return true;
-                            }
-                            // candidate nested assembly
-                            if (w.candidate_id && (w.candidate_id.assembly_id || w.candidate_id.assembly)) {
-                                const ca = w.candidate_id.assembly_id || w.candidate_id.assembly;
-                                if (typeof ca === 'object' && (ca._id || ca.id)) {
-                                    if (String(ca._id || ca.id) === String(assembly._id)) return true;
-                                } else if (String(ca) === String(assembly._id)) return true;
-                            }
-                            // AC/AC_NO checks
-                            const acField = w.ac_no || w.AC_NO || w.acNo || (w._source && (w._source.ac_no || w._source.AC_NO)) || w.constituency_no || w.constituency?.AC_NO;
-                            if (acField && String(acField) === String(acNo)) return true;
-                            // candidate nested ac_no
-                            if (w.candidate_id && (w.candidate_id.ac_no || w.candidate_id.AC_NO || w.candidate_id.acNo)) {
-                                const caNo = w.candidate_id.ac_no || w.candidate_id.AC_NO || w.candidate_id.acNo;
-                                if (String(caNo) === String(acNo)) return true;
-                            }
-                        } catch (err) {
-                            // ignore
-                        }
-                        return false;
-                    };
-
-                    const narrowed = winners.filter(matchesAssembly);
-                    if (narrowed.length > 0) winners = narrowed;
-                    else winners = []; // don't show a global list for this assembly if none match
-
-                    // Normalize and deduplicate winners by candidate + year to avoid duplicate display
-                    if (Array.isArray(winners) && winners.length > 0) {
-                        winners = winners.map(w => {
-                            const yearLabel = (w.year_id && typeof w.year_id === 'object') ? (w.year_id.year || w.year_id.name) : w.year_id;
-                            const yearStr = yearLabel != null ? String(yearLabel) : '';
-                            const candidateLabel = w.name || (w.candidate_id && (w.candidate_id.name || w.candidate_id._id)) || w.candidate || '';
-                            return { ...w, _yearLabel: yearStr, _candidateLabel: candidateLabel };
-                        });
-
-                        const seen = new Set();
-                        const deduped = [];
-                        for (const w of winners) {
-                            const key = `${w._candidateLabel}::${w._yearLabel}`;
-                            if (!seen.has(key)) {
-                                seen.add(key);
-                                deduped.push(w);
-                            }
-                        }
-
-                        deduped.sort((a, b) => {
-                            const ay = parseInt(a._yearLabel) || 0;
-                            const by = parseInt(b._yearLabel) || 0;
-                            if (by !== ay) return by - ay;
-                            return (a._candidateLabel || '').localeCompare(b._candidateLabel || '');
-                        });
-
-                        winners = deduped;
-                    }
-                }
-
-                setDrawerData({
-                    loading: false,
-                    acNo,
-                    acName,
-                    details: {
-                        assembly,
-                        blocks,
-                        booths,
-                        visits,
-                        workStatuses,
-                        winners
-                    }
-                });
-                setDrawerOpen(true);
-
-                // Auto-apply filter to table when assembly details are loaded
-                if (assembly) {
-                    const newFilters = {
-                        type: assembly.type || '',
-                        category: assembly.category || '',
-                        state_id: assembly.state_id?._id || '',
-                        division_id: assembly.division_id?._id || '',
-                        parliament_id: assembly.parliament_id?._id || ''
-                    };
-                    setFilters(newFilters);
-                    setPagination({ pageIndex: 0, pageSize: pagination.pageSize });
-                    fetchAssemblies(0, pagination.pageSize, globalFilter, newFilters);
-                }
-            } else {
-                setDrawerData({ loading: false, acNo, acName, details: null, error: 'Assembly not found' });
-                setDrawerOpen(true);
-            }
-        } catch (err) {
-            console.error('Failed to fetch assembly details by polygon:', err);
-            setDrawerData({ loading: false, acNo, acName, details: null, error: err.message });
-            setDrawerOpen(true);
-        }
-    };
-
-    // Handle file import
-    const handleImportFile = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setImporting(true);
-        setImportResult(null);
-        try {
-            const XLSX = await import('xlsx');
-            const data = await file.arrayBuffer();
-            const wb = XLSX.read(data, { type: 'array' });
-            const wsName = wb.SheetNames[0];
-            const ws = wb.Sheets[wsName];
-            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-            // Normalize keys and pick required columns
-            const rows = json.map((r) => {
-                const obj = {};
-                for (const k of Object.keys(r)) obj[k.trim().toLowerCase()] = r[k];
-                return {
-                    name: obj.name ?? '',
-                    AC_NO: obj.ac_no ?? obj.acno ?? obj['ac no'] ?? obj['assembly no'] ?? '',
-                    description: obj.description ?? '',
-                    type: obj.type ?? '',
-                    category: obj.category ?? '',
-                    division_code: obj.division_code ?? obj.division ?? '',
-                    parliament_no: obj.parliament_no ?? obj.parliament ?? ''
-                };
-            });
-
-            // Filter out completely empty rows (no name and no AC_NO)
-            const filtered = rows.filter(r => String(r.name).trim() || String(r.AC_NO).trim());
-
-            const token = localStorage.getItem('serviceToken');
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/import`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ rows: filtered })
-            });
-            const result = await res.json();
-            setImportResult(result);
-            if (result?.success) {
-                // Refresh list after import
-                fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
-            }
-        } catch (err) {
-            setImportResult({ success: false, message: err?.message || String(err) });
-        } finally {
-            setImporting(false);
-            // reset input to allow re-select same file
-            if (importInputRef.current) importInputRef.current.value = '';
-        }
     };
 
     return (
         <>
             <MainCard content={false}>
-                {/* Map section above the table */}
+                {/* Assembly Map section */}
                 <Box sx={{ p: 2, pb: 0 }}>
                     <Typography variant="h6" sx={{ mb: 1 }}>Assembly Map</Typography>
                     {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
-                    {importResult && (
-                        <Alert severity={importResult.success ? 'success' : 'error'} sx={{ mb: 1 }}>
-                            {importResult.success ? (
-                                <span>
-                                    Imported: {importResult.created || 0} / {importResult.total || 0}
-                                    {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
-                                        <> | Errors: {importResult.errors.length}</>
-                                    )}
-                                </span>
-                            ) : (
-                                <span>Import failed: {importResult.message || 'Unknown error'}</span>
-                            )}
-                        </Alert>
+                    {!assemblyGeoJSON && !mapError && (
+                        <Alert severity="info" sx={{ mb: 1 }}>Loading map data...</Alert>
                     )}
-                    <MapContainerStyled>
-                        <Map
-                            ref={mapRef}
-                            mapboxAccessToken={mapboxToken}
-                            initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 6 }}
-                            mapStyle="mapbox://styles/mapbox/streets-v12"
-                            interactiveLayerIds={assemblyGeoJSON ? ['assembly-fill'] : []}
-                            onClick={(e) => {
-                                if (!assemblyGeoJSON) return;
-                                try {
-                                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                                    const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
-                                    let features = e.features || [];
-                                    if ((!features || features.length === 0) && map && point) {
-                                        features = map.queryRenderedFeatures([point.x, point.y], { layers: ['assembly-fill'] }) || [];
+                    <MapContainerStyled sx={{ minHeight: 400 }}>
+                        {mapboxToken ? (
+                            <Map
+                                ref={mapRef}
+                                mapboxAccessToken={mapboxToken}
+                                initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 5 }}
+                                mapStyle="mapbox://styles/mapbox/streets-v12"
+                                interactiveLayerIds={assemblyGeoJSON ? ['Assembly-fill'] : []}
+                                onClick={(e) => {
+                                    if (!assemblyGeoJSON) return;
+                                    try {
+                                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                        const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
+                                        let features = e.features || [];
+                                        if ((!features || features.length === 0) && map && point) {
+                                            features = map.queryRenderedFeatures([point.x, point.y], { layers: ['Assembly-fill'] }) || [];
+                                        }
+                                        const f = features.find(f => f.layer && f.layer.id === 'Assembly-fill') || features[0];
+                                        if (f) {
+                                            const props = f.properties || {};
+                                            const assemblyId = props.Assembly_id || '';
+                                            const AssemblyName = props.Assembly_name || '';
+                                            setDrawerData({ loading: true, AssemblyName: AssemblyName, details: null });
+                                            setDrawerOpen(true);
+                                            fetchAssemblyDetailsByPolygon(assemblyId, AssemblyName);
+                                        }
+                                    } catch (err) {
+                                        console.warn('Map click handler error:', err);
                                     }
-                                    const assemblyFeature = features.find(f => f.layer && f.layer.id === 'assembly-fill') || features[0];
-                                    if (assemblyFeature) {
-                                        const props = assemblyFeature.properties || {};
-                                        const acNo = props.AC_NO || props.ac_no || props.acNo || '';
-                                        const acName = props.AC_NAME || props.name || '';
-                                        setSelectedMapAssembly({ acNo, acName });
-                                        setDrawerData({ loading: true, acNo, acName, details: null });
-                                        setDrawerOpen(true);
-
-                                        // Fetch assembly details and apply filter immediately
-                                        (async () => {
-                                            await fetchAssemblyDetailsByPolygon(acNo, acName);
-                                        })();
-                                    }
-                                } catch (err) {
-                                    console.warn('Map click handler error:', err);
-                                }
-                            }}
-                        >
-                            <MapControl />
-                            {assemblyGeoJSON && (
-                                <Source id="assembly-polygons" type="geojson" data={assemblyGeoJSON}>
-                                    <Layer
-                                        id="assembly-fill"
-                                        type="fill"
-                                        paint={{ 'fill-color': '#8BC34A', 'fill-opacity': 0.25 }}
-                                    />
-                                    <Layer id="assembly-outline" type="line" paint={{ 'line-color': '#4CAF50', 'line-width': 2 }} />
-                                    <Layer
-                                        id="assembly-label"
-                                        type="symbol"
-                                        layout={{ 'text-field': ['concat', ['get', 'AC_NO'], '\n', ['get', 'AC_NAME']], 'text-size': 10, 'text-allow-overlap': true }}
-                                        paint={{ 'text-color': '#333', 'text-halo-color': '#fff', 'text-halo-width': 1 }}
-                                    />
-                                </Source>
-                            )}
-                        </Map>
+                                }}
+                            >
+                                <MapControl />
+                                {assemblyGeoJSON && (
+                                    <Source id="Assembly-polygons" type="geojson" data={assemblyGeoJSON}>
+                                        <Layer id="Assembly-fill" type="fill" paint={{ 'fill-color': '#4CAF50', 'fill-opacity': 0.22 }} />
+                                        <Layer id="Assembly-outline" type="line" paint={{ 'line-color': '#388E3C', 'line-width': 2 }} />
+                                        <Layer
+                                            id="Assembly-label"
+                                            type="symbol"
+                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'Assembly_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'Assembly_number'], ['get', 'no'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
+                                            paint={{
+                                                'text-color': '#000',
+                                                'text-halo-color': '#ffffff',
+                                                'text-halo-width': 2
+                                            }}
+                                        />
+                                    </Source>
+                                )}
+                            </Map>
+                        ) : (
+                            <Alert severity="error">Mapbox token not configured</Alert>
+                        )}
                     </MapContainerStyled>
                 </Box>
-                {/* Header: Search + Actions */}
-                <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={2}
-                    alignItems={{ xs: 'stretch', sm: 'center' }}
-                    justifyContent="space-between"
-                    sx={{ p: 2, gap: 2 }}
-                >
-                    {/* Search Box */}
+
+                {/* Drawer for Assembly Details */}
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
+                        <Typography variant="h6">Assembly Details</Typography>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                    <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 60px)' }}>
+                        {drawerData?.loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : drawerData?.error ? (
+                            <Alert severity="error">{drawerData.error}</Alert>
+                        ) : drawerData?.details ? (
+                            <Stack spacing={2}>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Assembly Name</Typography>
+                                    <Typography variant="body1">{drawerData.AssemblyName || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Assembly Number</Typography>
+                                    <Typography variant="body1">{drawerData.AssemblyNumber || 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Address</Typography>
+                                    <Typography variant="body2">{drawerData.details.Assembly?.full_address || 'N/A'}</Typography>
+                                </Box>
+                                <Divider />
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Voter Count</Typography>
+                                    <Typography variant="body2">Male: {drawerData.details.Assembly?.Male_Count || 0}</Typography>
+                                    <Typography variant="body2">Female: {drawerData.details.Assembly?.Female_Count || 0}</Typography>
+                                    <Typography variant="body2">Total: {drawerData.details.Assembly?.Total || 0}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Block</Typography>
+                                    <Typography variant="body2">{drawerData.details.Assembly?.?.name || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="textSecondary">Assembly</Typography>
+                                    <Typography variant="body2">{drawerData.details.Assembly?.assembly_id?.name || 'N/A'}</Typography>
+                                </Box>
+                            </Stack>
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">Click on a Assembly on the map to view details</Typography>
+                        )}
+                    </Box>
+                </Drawer>
+
+                {/* Header: Search + CSV + Add */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between" sx={{ p: 2 }}>
                     <DebouncedInput
                         value={globalFilter}
                         onFilterChange={setGlobalFilter}
                         placeholder={`Search ${assemblies.length} assemblies...`}
-                        sx={{ width: { xs: '100%', sm: 250 } }}
+                        style={{ flex: 1 }}
                     />
 
-                    {/* Action Buttons */}
-                    <Stack
-                        direction="row"
-                        spacing={1}
-                        flexWrap="wrap"
-                        justifyContent="flex-end"
-                    >
-                                                <CSVLink
-                                                        data={csvData}
-                                                        filename="assemblies_all.csv"
-                                                        style={{ display: 'none' }}
-                                                        ref={csvLinkRef}
-                                                />
-                                                <CSVLink
-                                                        data={parlCsvData}
-                                                        filename="parliaments_reference.csv"
-                                                        style={{ display: 'none' }}
-                                                        ref={parlCsvLinkRef}
-                                                />
-                                                {/* OTP Dialog for CSV export */}
-                                                <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
-                                                    <DialogTitle>Enter OTP to Download CSV</DialogTitle>
-                                                    <DialogContent>
-                                                        <Typography variant="body2" sx={{ mb: 1 }}>
-                                                            OTP sent to: <strong>{maskedDest || '**********'}</strong>
-                                                        </Typography>
-                                                        <TextField
-                                                            autoFocus
-                                                            fullWidth
-                                                            label="OTP"
-                                                            value={otpCode}
-                                                            onChange={(e) => setOtpCode(e.target.value)}
-                                                            disabled={otpLoading}
-                                                            inputProps={{ maxLength: 8 }}
-                                                        />
-                                                        {otpError && (
-                                                            <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
-                                                                {otpError}
-                                                            </Typography>
-                                                        )}
-                                                    </DialogContent>
-                                                    <DialogActions>
-                                                        <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
-                                                        <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode.trim()}>
-                                                            {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
-                                                        </Button>
-                                                    </DialogActions>
-                                                </Dialog>
-                        <Button
-                            variant="outlined"
-                            onClick={handleDownloadExcelTemplate}
-                            size="small"
-                        >
+                    <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="flex-end">
+                        <CSVLink data={csvData} filename="assemblies_all.csv" style={{ display: 'none' }} ref={csvLinkRef} />
+                        <Dialog open={otpDialogOpen} onClose={() => !otpLoading && closeDialog()} maxWidth="xs" fullWidth>
+                            <DialogTitle>Enter OTP to Download CSV</DialogTitle>
+                            <DialogContent>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    OTP sent to: <strong>{maskedDest || '**********'}</strong>
+                                </Typography>
+                                <TextField
+                                    autoFocus
+                                    fullWidth
+                                    label="OTP"
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                    disabled={otpLoading}
+                                    inputProps={{ maxLength: 8 }}
+                                />
+                                {otpError && (
+                                    <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                        {otpError}
+                                    </Typography>
+                                )}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => closeDialog()} disabled={otpLoading}>Cancel</Button>
+                                <Button onClick={() => verifyOtp()} variant="contained" disabled={otpLoading || !otpCode.trim()}>
+                                    {otpLoading ? <CircularProgress size={20} /> : 'Verify & Download'}
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+                        <Button variant="outlined" onClick={handleDownloadExcelTemplate}>
                             Download Excel Template
                         </Button>
-                        <Button
-                            variant="outlined"
-                            onClick={handleDownloadParliamentReference}
-                            size="small"
-                        >
-                            {parlCsvLoading ? 'Preparing Parliaments...' : 'Download Parliament Reference CSV'}
+                        <Button variant="outlined" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                            {importing ? 'Importing...' : 'Import Excel'}
                         </Button>
-                        <Button
-                            variant="outlined"
-                            onClick={() => {
-                                if (importInputRef.current) importInputRef.current.click();
-                            }}
-                            size="small"
-                        >
-                            Import Excel
-                        </Button>
-                        <Button
-                            variant="outlined"
-                            onClick={handleDownloadCsv}
-                            disabled={csvLoading}
-                            size="small"
-                        >
+                        <Button variant="outlined" onClick={handleDownloadCsv} disabled={csvLoading}>
                             {csvLoading ? 'Preparing CSV...' : 'Download All CSV'}
                         </Button>
-                        <Button
-                            variant="contained"
-                            startIcon={<Add />}
-                            onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}
-                            size="small"
-                        >
+                        <Button variant="outlined" onClick={() => setOpenPolygonUpload(true)}>
+                            Upload Polygon
+                        </Button>
+                        <Button variant="contained" startIcon={<Add />} onClick={() => { setSelectedAssembly(null); setOpenModal(true); }}>
                             Add Assembly
                         </Button>
                     </Stack>
+                    {importResult && (
+                        <Alert severity={importResult.success ? 'success' : 'error'} onClose={() => setImportResult(null)} sx={{ mt: 1 }}>
+                            {importResult.success ? (
+                                (() => {
+                                    const created = importResult.created ?? importResult.imported ?? 0;
+                                    const skipped = importResult.skipped ?? 0;
+                                    const total = importResult.total ?? (created + skipped) ?? 0;
+                                    const errorsCount = importResult.errors?.length ?? 0;
+                                    return `Imported: ${created} / ${total} | Skipped: ${skipped} | Errors: ${errorsCount}`;
+                                })()
+                            ) : (
+                                `Import failed: ${importResult.message}`
+                            )}
+                        </Alert>
+                    )}
                 </Stack>
 
                 {/* Filters */}
-                <Stack
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                    sx={{ p: 2, flexWrap: 'wrap', gap: 2 }}
-                >
-                    <TextField
-                        select
-                        label="Type"
-                        value={filters.type}
-                        onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
-                        sx={{ minWidth: 120 }}
-                        size="small"
-                    >
-                        <MenuItem value="">All Types</MenuItem>
-                        {typeOptions.map((option) => (
-                            <MenuItem key={option} value={option}>
-                                {option}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-
-                    <TextField
-                        select
-                        label="Category"
-                        value={filters.category}
-                        onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-                        sx={{ minWidth: 120 }}
-                        size="small"
-                    >
-                        <MenuItem value="">All Categories</MenuItem>
-                        {categoryOptions.map((option) => (
-                            <MenuItem key={option} value={option}>
-                                {option}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-
-                    <TextField
-                        select
-                        label="State"
-                        value={filters.state_id}
-                        onChange={(e) => {
-                            const newStateId = e.target.value;
-                            setFilters((prev) => ({
-                                ...prev,
-                                state_id: newStateId,
-                                division_id: '',
-                                parliament_id: ''
-                            }));
-                        }}
-                        sx={{ minWidth: 120 }}
-                        size="small"
-                    >
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ p: 2, flexWrap: 'wrap' }}>
+                    <TextField select label="State" value={filters.state_id} onChange={(e) => setFilters((prev) => ({ ...prev, state_id: e.target.value, division_id: '', parliament_id: '', assembly_id: '', : '' }))} sx={{ minWidth: 150 }} size="small">
                         <MenuItem value="">All States</MenuItem>
-                        {states.map((state) => (
-                            <MenuItem key={state._id} value={state._id}>
-                                {state.name}
-                            </MenuItem>
+                        {filterOptions.states?.map((state) => (
+                            <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                         ))}
                     </TextField>
 
-                    <TextField
-                        select
-                        label="Division"
-                        value={filters.division_id}
-                        onChange={(e) => {
-                            const newDivisionId = e.target.value;
-                            setFilters((prev) => ({
-                                ...prev,
-                                division_id: newDivisionId,
-                                parliament_id: ''
-                            }));
-                        }}
-                        sx={{ minWidth: 120 }}
-                        size="small"
-                        disabled={!filters.state_id}
-                    >
+                    <TextField select label="Division" value={filters.division_id} onChange={(e) => setFilters((prev) => ({ ...prev, division_id: e.target.value, parliament_id: '', assembly_id: '', : '' }))} sx={{ minWidth: 150 }} size="small" disabled={!filters.state_id}>
                         <MenuItem value="">All Divisions</MenuItem>
-                        {divisions
-                            .filter(d => !filters.state_id || d.state_id?._id === filters.state_id)
-                            .map((d) => (
-                                <MenuItem key={d._id} value={d._id}>
-                                    {d.name}
-                                </MenuItem>
-                            ))}
+                        {filterOptions.divisions?.filter(division => {
+                            const stateId = division.state_id?._id || division.state_id;
+                            return stateId === filters.state_id;
+                        }).map((division) => (
+                            <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
+                        ))}
                     </TextField>
 
-                    <TextField
-                        select
-                        label="Parliament"
-                        value={filters.parliament_id}
-                        onChange={(e) => setFilters((prev) => ({ ...prev, parliament_id: e.target.value }))}
-                        sx={{ minWidth: 120 }}
-                        size="small"
-                        disabled={!filters.division_id}
-                    >
+                    <TextField select label="Parliament" value={filters.parliament_id} onChange={(e) => setFilters((prev) => ({ ...prev, parliament_id: e.target.value, assembly_id: '', : '' }))} sx={{ minWidth: 150 }} size="small" disabled={!filters.division_id}>
                         <MenuItem value="">All Parliaments</MenuItem>
-                        {parliaments
-                            .filter(p => !filters.division_id || p.division_id?._id === filters.division_id)
-                            .map((p) => (
-                                <MenuItem key={p._id} value={p._id}>
-                                    {p.name}
-                                </MenuItem>
-                            ))}
+                        {filterOptions.parliaments?.filter(parliament => {
+                            const divisionId = parliament.division_id?._id || parliament.division_id;
+                            return divisionId === filters.division_id;
+                        }).map((parliament) => (
+                            <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
+                        ))}
                     </TextField>
 
-                    <Button variant="contained" onClick={handleFilterApply} size="small">
-                        Apply
-                    </Button>
-                    <Button variant="outlined" onClick={handleClearFilter} size="small">
-                        Clear
-                    </Button>
+                    <TextField select label="Assembly" value={filters.assembly_id} onChange={(e) => setFilters((prev) => ({ ...prev, assembly_id: e.target.value, : '' }))} sx={{ minWidth: 150 }} size="small" disabled={!filters.parliament_id}>
+                        <MenuItem value="">All Assemblies</MenuItem>
+                        {filterOptions.assemblies?.filter(assembly => {
+                            const parliamentId = assembly.parliament_id?._id || assembly.parliament_id;
+                            return parliamentId === filters.parliament_id;
+                        }).map((assembly) => (
+                            <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField select label="Block" value={filters.} onChange={(e) => setFilters((prev) => ({ ...prev, : e.target.value }))} sx={{ minWidth: 150 }} size="small" disabled={!filters.assembly_id}>
+                        <MenuItem value="">All Blocks</MenuItem>
+                        {filterOptions.blocks?.filter(block => {
+                            const assemblyId = block.assembly_id?._id || block.assembly_id;
+                            return assemblyId === filters.assembly_id;
+                        }).map((block) => (
+                            <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
+                        ))}
+                    </TextField>
+
+                    <Button variant="contained" onClick={handleFilterApply} size="small">Apply</Button>
+                    <Button variant="outlined" onClick={handleClearFilter} size="small">Clear</Button>
                 </Stack>
 
+                {/* Table */}
                 <ScrollX>
                     <TableContainer>
                         <Table>
@@ -1097,12 +853,7 @@ export default function AssemblyListPage() {
                                             <TableCell
                                                 key={header.id}
                                                 onClick={header.column.getToggleSortingHandler()}
-                                                sx={{
-                                                    cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                                                    color: 'white',
-                                                    fontWeight: 'bold',
-                                                    backgroundColor: 'primary.main'
-                                                }}
+                                                sx={{ cursor: header.column.getCanSort() ? 'pointer' : 'default', color: 'white', fontWeight: 'bold', backgroundColor: 'primary.main' }}
                                             >
                                                 <Stack direction="row" spacing={1} alignItems="center">
                                                     <Box>{flexRender(header.column.columnDef.header, header.getContext())}</Box>
@@ -1145,253 +896,41 @@ export default function AssemblyListPage() {
                         />
                     </Box>
                 </ScrollX>
-            </MainCard >
-            {/* Hidden file input for import */}
-            <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                ref={importInputRef}
-                style={{ display: 'none' }}
-                onChange={handleImportFile}
-            />
+            </MainCard>
 
-            {/* Right-side Drawer for clicked assembly info */}
-            <Drawer
-                anchor="right"
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                sx={{
-                    '& .MuiDrawer-paper': {
-                        width: 450,
-                        boxSizing: 'border-box'
-                    }
-                }}
-            >
-                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    {/* Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 2 }}>
-                        <Box>
-                            <Typography variant="h5" fontWeight={700}>Assembly Details</Typography>
-                            <Typography variant="caption" color="text.secondary">Complete information about selected assembly</Typography>
-                        </Box>
-                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                    <Divider />
+            {/* Hidden Import Input */}
+            <input type="file" accept=".xlsx,.xls,.csv" ref={importInputRef} style={{ display: 'none' }} onChange={handleImportFile} />
 
-                    {/* Content */}
-                    <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
-                        {!drawerData && <Typography variant="body2" color="text.secondary">Click an assembly polygon to view details.</Typography>}
-                        {drawerData?.loading && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                                <Typography variant="body2">Loading...</Typography>
-                            </Box>
-                        )}
-
-                        {drawerData?.details && (
-                            <Stack spacing={2}>
-                                {/* Assembly Basic Info */}
-                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.primary.lighter }}>
-                                    <Stack spacing={2}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box
-                                                sx={{
-                                                    width: 72,
-                                                    height: 72,
-                                                    borderRadius: '50%',
-                                                    bgcolor: theme.palette.primary.main,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '1.5rem',
-                                                    color: 'white',
-                                                    fontWeight: 700
-                                                }}
-                                            >
-                                                {drawerData.details.assembly?.AC_NO || drawerData.acNo || '?'}
-                                            </Box>
-                                            <Box sx={{ flex: 1 }}>
-                                                <Typography variant="h6" fontWeight={700} color="primary">
-                                                    {drawerData.details.assembly?.name || drawerData.acName || 'N/A'}
-                                                </Typography>
-                                                <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
-                                                    {drawerData.details.assembly?.type && (
-                                                        <Chip label={drawerData.details.assembly.type} size="small" color="primary" variant="outlined" />
-                                                    )}
-                                                    {drawerData.details.assembly?.category && (
-                                                        <Chip label={drawerData.details.assembly.category} size="small" color="secondary" variant="outlined" />
-                                                    )}
-                                                </Stack>
-                                            </Box>
-                                        </Box>
-                                    </Stack>
-                                </Paper>
-
-                                {/* Location Information */}
-                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.warning.lighter }}>
-                                    <Typography variant="h6" fontWeight={700} color="warning.dark" sx={{ mb: 2 }}>
-                                        <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                        Location Hierarchy
-                                    </Typography>
-                                    <Stack spacing={1.5}>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>State</Typography>
-                                            <Typography variant="body1" fontWeight={600}>{drawerData.details.assembly?.state_id?.name || 'N/A'}</Typography>
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>Division</Typography>
-                                            <Typography variant="body1" fontWeight={600}>{drawerData.details.assembly?.division_id?.name || 'N/A'}</Typography>
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" color="text.secondary" fontWeight={600}>Parliament</Typography>
-                                            <Typography variant="body1" fontWeight={600}>{drawerData.details.assembly?.parliament_id?.name || 'N/A'}</Typography>
-                                        </Box>
-                                    </Stack>
-                                </Paper>
-
-                                {/* Blocks Info */}
-                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.success.lighter }}>
-                                    <Typography variant="h6" fontWeight={700} color="success.dark" sx={{ mb: 2 }}>
-                                        <LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                        Blocks ({drawerData.details.blocks?.length || 0})
-                                    </Typography>
-                                    <Stack spacing={1}>
-                                        {drawerData.details.blocks?.length ? drawerData.details.blocks.slice(0, 8).map(b => (
-                                            <Box key={b._id} sx={{ display: 'flex', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
-                                                <Typography variant="body2" fontWeight={600}>{b.name}</Typography>
-                                            </Box>
-                                        )) : (
-                                            <Typography variant="body2" color="text.secondary">No blocks found</Typography>
-                                        )}
-                                    </Stack>
-                                </Paper>
-
-                                {/* Booths Info */}
-                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.info.lighter }}>
-                                    <Typography variant="h6" fontWeight={700} color="info.dark" sx={{ mb: 2 }}>
-                                        <HowToVoteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                        Booths ({drawerData.details.booths?.length || 0})
-                                    </Typography>
-                                    <Stack spacing={1}>
-                                        {drawerData.details.booths?.length ? drawerData.details.booths.slice(0, 8).map(bt => (
-                                            <Box key={bt._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
-                                                <Typography variant="body2" fontWeight={600}>#{bt.booth_number}</Typography>
-                                                <Typography variant="body2">{bt.name}</Typography>
-                                            </Box>
-                                        )) : (
-                                            <Typography variant="body2" color="text.secondary">No booths found</Typography>
-                                        )}
-                                    </Stack>
-                                </Paper>
-
-                                {/* Work Status */}
-                                {drawerData.details.workStatuses?.length > 0 && (
-                                    <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.secondary.lighter }}>
-                                        <Typography variant="h6" fontWeight={700} color="secondary.dark" sx={{ mb: 2 }}>
-                                            <WorkIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                            Work Status ({drawerData.details.workStatuses.length})
-                                        </Typography>
-                                        <Stack spacing={1}>
-                                            {drawerData.details.workStatuses.slice(0, 5).map(ws => (
-                                                <Box key={ws._id} sx={{ p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
-                                                    <Typography variant="body2" fontWeight={600}>{ws.work_name || 'Work'}</Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Status: {ws.status || 'N/A'} | Budget: ₹{ws.total_budget?.toLocaleString() || 'N/A'}
-                                                    </Typography>
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    </Paper>
-                                )}
-
-                                {/* Winning Candidates */}
-                                <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[100] }}>
-                                    <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-                                        <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                        Winning Candidates ({drawerData.details.winners?.length || 0})
-                                    </Typography>
-                                    <Stack spacing={1}>
-                                        {drawerData.details.winners?.length ? drawerData.details.winners.slice(0, 5).map(w => (
-                                            <Box key={w._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
-                                                <Box>
-                                                    <Typography variant="body2" fontWeight={600}>
-                                                        {w.name || w.candidate_id?.name || 'Candidate'}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Year: {typeof w.year_id === 'object' ? (w.year_id?.year || w.year_id?.name) : w.year_id}
-                                                    </Typography>
-                                                </Box>
-                                                <Chip
-                                                    label={w.party_id?.name || w.party || 'Party'}
-                                                    size="small"
-                                                    color="primary"
-                                                />
-                                            </Box>
-                                        )) : (
-                                            <Typography variant="body2" color="text.secondary">No winners data</Typography>
-                                        )}
-                                    </Stack>
-                                </Paper>
-
-                                {/* Visits Info */}
-                                {drawerData.details.visits?.length > 0 && (
-                                    <Paper elevation={3} sx={{ p: 2.5, backgroundColor: theme.palette.grey[50] }}>
-                                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-                                            <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                            Recent Visits ({drawerData.details.visits.length})
-                                        </Typography>
-                                        <Stack spacing={1}>
-                                            {drawerData.details.visits.slice(0, 5).map(v => (
-                                                <Box key={v._id} sx={{ p: 1, borderRadius: 1, bgcolor: 'background.paper' }}>
-                                                    <Typography variant="body2" fontWeight={600}>
-                                                        {v.candidate_id?.name || 'Candidate'}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {v.date ? new Date(v.date).toLocaleDateString('en-IN') : ''} • {v.locationName || ''}
-                                                    </Typography>
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    </Paper>
-                                )}
-
-                                {/* Apply Filter Button */}
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    fullWidth
-                                    size="large"
-                                    onClick={applyAssemblyFilter}
-                                    sx={{ mt: 2 }}
-                                >
-                                    Apply Filter to Table
-                                </Button>
-                                <Alert severity="info" sx={{ mt: 1 }}>
-                                    This will filter the table below to show only this assembly's data
-                                </Alert>
-                            </Stack>
-                        )}
-                    </Box>
-                </Box>
-            </Drawer>
-
+            {/* Modals */}
             <AssemblyModal
                 open={openModal}
                 modalToggler={setOpenModal}
-                assembly={selectedAssembly}
+                Assembly={selectedAssembly}
                 states={states}
                 divisions={divisions}
                 parliaments={parliaments}
-                refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+                assemblies={assemblies}
+                blocks={blocks}
+                users={users}
+                refresh={() => fetchassemblies(pagination.pageIndex, pagination.pageSize)}
             />
 
             <AlertAssemblyDelete
                 id={assemblyDeleteId}
                 open={openDelete}
                 handleClose={handleDeleteClose}
-                refresh={() => fetchAssemblies(pagination.pageIndex, pagination.pageSize)}
+                refresh={() => fetchassemblies(pagination.pageIndex, pagination.pageSize)}
+            />
+
+            <AssemblyPolygonUpload
+                open={openPolygonUpload}
+                onClose={() => setOpenPolygonUpload(false)}
+                onSuccess={() => {
+                    fetchassemblies(pagination.pageIndex, pagination.pageSize);
+                }}
             />
         </>
     );
 }
+
+

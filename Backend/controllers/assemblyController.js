@@ -1,8 +1,11 @@
+const mongoose = require('mongoose');
 const Assembly = require('../models/Assembly');
-const State = require('../models/state');
-const District = require('../models/District');
-const Division = require('../models/Division');
 const Parliament = require('../models/Parliament');
+const Division = require('../models/Division');
+const State = require('../models/state');
+
+// Helper to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @desc    Get all assemblies
 // @route   GET /api/assemblies
@@ -19,82 +22,47 @@ exports.getAssemblies = async (req, res, next) => {
     }
     const skip = (page - 1) * limit;
 
-    // Build filter object
-    const filter = {};
+    // Basic query
+    let query = Assembly.find()
+      .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('created_by', 'username')
+      .populate('updated_by', 'username')
+      .sort({ AC_NO: 1 });
 
-    // Enhanced search functionality: prefer exact matches when appropriate
+    // Enhanced search functionality
     if (req.query.search) {
-      const raw = String(req.query.search).trim();
-
-      // If search looks like a Mongo ObjectId (24 hex chars), try exact _id match first
-      const isObjectIdLike = /^[a-fA-F0-9]{24}$/.test(raw);
-
-      // If search is numeric only (e.g., AC_NO like '197'), prefer exact AC_NO match
-      const isNumeric = /^\d+$/.test(raw);
-
-      if (isObjectIdLike) {
-        filter._id = raw;
-      } else if (isNumeric) {
-        // exact AC_NO equality first
-        filter.AC_NO = raw;
-      } else {
-        // Fuzzy search across useful string fields
-        const searchRegex = { $regex: raw, $options: 'i' };
-        filter.$or = [
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      query = query.find({
+        $or: [
           { name: searchRegex },
-          { description: searchRegex },
           { AC_NO: searchRegex },
-          { type: searchRegex },
-          { category: searchRegex }
-        ];
-      }
-      console.log('🔎 Assembly search filter applied:', JSON.stringify(filter));
+          { description: searchRegex }
+        ]
+      });
     }
 
-    // Filter by type (case-insensitive)
+    // Filter by type
     if (req.query.type) {
-      filter.type = { $regex: `^${req.query.type}$`, $options: 'i' };
+      query = query.where('type').equals(req.query.type);
     }
 
-    // Filter by category (case-insensitive)
+    // Filter by category
     if (req.query.category) {
-      filter.category = { $regex: `^${req.query.category}$`, $options: 'i' };
+      query = query.where('category').equals(req.query.category);
     }
 
-    // Filter by state
-    if (req.query.state_id) {
-      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state_id);
+    // Filter by parliament
+    if (req.query.parliament) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.parliament);
       if (isObjectId) {
-        filter.state_id = req.query.state_id;
+        query = query.where('parliament_id').equals(req.query.parliament);
       } else {
-        const stateDoc = await State.findOne({ name: req.query.state_id });
-        if (stateDoc) {
-          filter.state_id = stateDoc._id;
+        const parliamentDoc = await Parliament.findOne({ name: req.query.parliament });
+        if (parliamentDoc) {
+          query = query.where('parliament_id').equals(parliamentDoc._id);
         } else {
-          // No such state, return empty result
-          return res.status(200).json({
-            success: true,
-            count: 0,
-            total: 0,
-            page,
-            pages: 0,
-            data: []
-          });
-        }
-      }
-    }
-
-    // Filter by district
-    if (req.query.district) {
-      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.district);
-      if (isObjectId) {
-        filter.district_id = req.query.district;
-      } else {
-        const districtDoc = await District.findOne({ name: req.query.district });
-        if (districtDoc) {
-          filter.district_id = districtDoc._id;
-        } else {
-          // No such district, return empty result
           return res.status(200).json({
             success: true,
             count: 0,
@@ -111,13 +79,12 @@ exports.getAssemblies = async (req, res, next) => {
     if (req.query.division) {
       const isObjectId = /^[a-f\d]{24}$/i.test(req.query.division);
       if (isObjectId) {
-        filter.division_id = req.query.division;
+        query = query.where('division_id').equals(req.query.division);
       } else {
         const divisionDoc = await Division.findOne({ name: req.query.division });
         if (divisionDoc) {
-          filter.division_id = divisionDoc._id;
+          query = query.where('division_id').equals(divisionDoc._id);
         } else {
-          // No such division, return empty result
           return res.status(200).json({
             success: true,
             count: 0,
@@ -130,17 +97,16 @@ exports.getAssemblies = async (req, res, next) => {
       }
     }
 
-    // Filter by parliament
-    if (req.query.parliament) {
-      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.parliament);
+    // Filter by state
+    if (req.query.state) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state);
       if (isObjectId) {
-        filter.parliament_id = req.query.parliament;
+        query = query.where('state_id').equals(req.query.state);
       } else {
-        const parliamentDoc = await Parliament.findOne({ name: req.query.parliament });
-        if (parliamentDoc) {
-          filter.parliament_id = parliamentDoc._id;
+        const stateDoc = await State.findOne({ name: req.query.state });
+        if (stateDoc) {
+          query = query.where('state_id').equals(stateDoc._id);
         } else {
-          // No such parliament, return empty result
           return res.status(200).json({
             success: true,
             count: 0,
@@ -153,41 +119,24 @@ exports.getAssemblies = async (req, res, next) => {
       }
     }
 
-    // If userHierarchy exists, restrict by user's scope (most specific first)
-    if (req.userHierarchy) {
-      if (req.userHierarchy.assembly) {
-        filter._id = req.userHierarchy.assembly._id;
-      } else if (req.userHierarchy.parliament) {
-        filter.parliament_id = req.userHierarchy.parliament._id;
-      } else if (req.userHierarchy.division) {
-        filter.division_id = req.userHierarchy.division._id;
-      } else if (req.userHierarchy.state) {
-        filter.state_id = req.userHierarchy.state._id;
-      }
+    // If userHierarchy exists, restrict by user's scope unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) query = query.where('booth_id').equals(uh.booth._id);
+      else if (uh.block) query = query.where('block_id').equals(uh.block._id);
+      else if (uh.assembly) query = query.where('_id').equals(uh.assembly._id);
+      else if (uh.parliament) query = query.where('parliament_id').equals(uh.parliament._id);
+      else if (uh.division) query = query.where('division_id').equals(uh.division._id);
+      else if (uh.state) query = query.where('state_id').equals(uh.state._id);
     }
 
-    let query = Assembly.find(filter)
-      .populate('state_id', '_id name')
-      .populate('district_id', '_id name')
-      .populate('division_id', '_id name')
-      .populate('parliament_id', '_id name')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username')
-      .select('-polygon')
-      .sort({ name: 1 });
+    // Filter by active status
+    if (req.query.is_active !== undefined) {
+      query = query.where('is_active').equals(req.query.is_active === 'true');
+    }
 
     const assemblies = await query.skip(skip).limit(limit).exec();
-    const total = await Assembly.countDocuments(filter);
-
-    // Diagnostic logging: show a trimmed sample of returned assemblies when search is provided
-    try {
-      if (req.query.search) {
-        console.log('🔎 Assemblies search:', req.query.search, '=> returned', assemblies.length, 'candidates');
-        console.log('🔎 Candidate sample:', assemblies.slice(0, 10).map(a => ({ _id: a._id, AC_NO: a.AC_NO, name: a.name })));
-      }
-    } catch (e) {
-      console.warn('Could not log assembly candidates:', e && e.message);
-    }
+    const total = await Assembly.countDocuments(query.getFilter());
 
     res.status(200).json({
       success: true,
@@ -207,45 +156,32 @@ exports.getAssemblies = async (req, res, next) => {
 // @access  Public
 exports.getAssembly = async (req, res, next) => {
   try {
-    // If userHierarchy exists, ensure user can access this assembly
-    if (req.userHierarchy) {
-      if (req.userHierarchy.assembly && req.userHierarchy.assembly._id.toString() !== req.params.id) {
-        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-      }
-      if (req.userHierarchy.parliament) {
-        const a = await Assembly.findById(req.params.id).select('parliament_id');
-        if (!a || a.parliament_id.toString() !== req.userHierarchy.parliament._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.division) {
-        const a = await Assembly.findById(req.params.id).select('division_id');
-        if (!a || a.division_id.toString() !== req.userHierarchy.division._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.state) {
-        const a = await Assembly.findById(req.params.id).select('state_id');
-        if (!a || a.state_id.toString() !== req.userHierarchy.state._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-    }
-
     const assembly = await Assembly.findById(req.params.id)
-      .populate('state_id', '_id name')
-      .populate('district_id', '_id name')
-      .populate('division_id', '_id name')
-      .populate('parliament_id', '_id name')
+      .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
       .populate('created_by', 'username')
-      .populate('updated_by', 'username'); // Add population of updated_by
-
+      .populate('updated_by', 'username');
 
     if (!assembly) {
       return res.status(404).json({
         success: false,
         message: 'Assembly not found'
       });
+    }
+
+    // Enforce user hierarchy for single assembly resource
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.assembly && assembly._id.toString() !== uh.assembly._id.toString()) ||
+        (uh.parliament && assembly.parliament_id?.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && assembly.division_id?.toString() !== uh.division._id.toString()) ||
+        (uh.state && assembly.state_id?.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({
@@ -262,40 +198,21 @@ exports.getAssembly = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createAssembly = async (req, res, next) => {
   try {
-    // Verify state exists
-    const state = await State.findById(req.body.state_id);
-    if (!state) {
-      return res.status(400).json({
-        success: false,
-        message: 'State not found'
-      });
-    }
+    // Verify all references exist
+    const [parliament, division, state] = await Promise.all([
+      Parliament.findById(req.body.parliament_id),
+      Division.findById(req.body.division_id),
+      State.findById(req.body.state_id)
+    ]);
 
-    // Verify district exists
-    // const district = await District.findById(req.body.district_id);
-    // if (!district) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'District not found'
-    //   });
-    // }
-
-    // Verify division exists
-    const division = await Division.findById(req.body.division_id);
-    if (!division) {
-      return res.status(400).json({
-        success: false,
-        message: 'Division not found'
-      });
-    }
-
-    // Verify parliament exists
-    const parliament = await Parliament.findById(req.body.parliament_id);
     if (!parliament) {
-      return res.status(400).json({
-        success: false,
-        message: 'Parliament not found'
-      });
+      return res.status(400).json({ success: false, message: 'Parliament not found' });
+    }
+    if (!division) {
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
+    if (!state) {
+      return res.status(400).json({ success: false, message: 'State not found' });
     }
 
     // Check if user exists in request
@@ -306,20 +223,10 @@ exports.createAssembly = async (req, res, next) => {
       });
     }
 
-
-    // Only allow fields that are in the schema
     const assemblyData = {
-      name: req.body.name,
-      description: req.body.description || '',
-      AC_NO: req.body.AC_NO,
-      type: req.body.type,
-      category: req.body.category,
-      state_id: req.body.state_id,
-      district_id: req.body.district_id,
-      division_id: req.body.division_id,
-      parliament_id: req.body.parliament_id,
+      ...req.body,
       created_by: req.user.id,
-      updated_by: req.user.id
+      description: req.body.description || ''
     };
 
     if (req.body.polygon) {
@@ -336,7 +243,7 @@ exports.createAssembly = async (req, res, next) => {
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Assembly with this name already exists'
+        message: 'Assembly with this AC_NO already exists'
       });
     }
     next(err);
@@ -356,67 +263,30 @@ exports.updateAssembly = async (req, res, next) => {
         message: 'Assembly not found'
       });
     }
-    // Verify state exists if being updated
-    if (req.body.state_id) {
-      const state = await State.findById(req.body.state_id);
-      if (!state) {
+
+    // Verify all references exist if being updated
+    const verificationPromises = [];
+    if (req.body.parliament_id) verificationPromises.push(Parliament.findById(req.body.parliament_id));
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+
+    const verificationResults = await Promise.all(verificationPromises);
+
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'State not found'
+          message: `${result.modelName} not found`
         });
       }
     }
 
-    // Verify district exists if being updated
-    if (req.body.district_id) {
-      const district = await District.findById(req.body.district_id);
-      if (!district) {
-        return res.status(400).json({
-          success: false,
-          message: 'District not found'
-        });
-      }
-    }
-
-    // Verify division exists if being updated
-    if (req.body.division_id) {
-      const division = await Division.findById(req.body.division_id);
-      if (!division) {
-        return res.status(400).json({
-          success: false,
-          message: 'Division not found'
-        });
-      }
-    }
-
-    // Verify parliament exists if being updated
-    if (req.body.parliament_id) {
-      const parliament = await Parliament.findById(req.body.parliament_id);
-      if (!parliament) {
-        return res.status(400).json({
-          success: false,
-          message: 'Parliament not found'
-        });
-      }
-    }
-
-    // Set updated_by from authenticated user
-    req.body.updated_by = req.user.id;
-
-
-    // Only allow fields that are in the schema
+    // Set updated_by
     const updateData = {
-      name: req.body.name,
-      description: req.body.description || '',
-      AC_NO: req.body.AC_NO,
-      type: req.body.type,
-      category: req.body.category,
-      state_id: req.body.state_id,
-      district_id: req.body.district_id,
-      division_id: req.body.division_id,
-      parliament_id: req.body.parliament_id,
+      ...req.body,
       updated_by: req.user.id,
-      updated_at: new Date()
+      updated_at: Date.now(),
+      description: req.body.description || ''
     };
 
     if (req.body.polygon) {
@@ -427,12 +297,11 @@ exports.updateAssembly = async (req, res, next) => {
       new: true,
       runValidators: true
     })
-      .populate('state_id', 'name')
-      .populate('district_id', 'name')
-      .populate('division_id', 'name')
       .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
       .populate('created_by', 'username')
-      .populate('updated_by', 'username'); // Add population of updated_by
+      .populate('updated_by', 'username');
 
     res.status(200).json({
       success: true,
@@ -442,7 +311,7 @@ exports.updateAssembly = async (req, res, next) => {
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Assembly with this name already exists'
+        message: 'Assembly with this AC_NO already exists'
       });
     }
     next(err);
@@ -474,251 +343,59 @@ exports.deleteAssembly = async (req, res, next) => {
   }
 };
 
-// @desc    Get assemblies by parliament
-// @route   GET /api/assemblies/parliament/:parliamentId
-// @access  Public
-exports.getAssembliesByParliament = async (req, res, next) => {
-  try {
-    // Verify parliament exists
-    const parliament = await Parliament.findById(req.params.parliamentId);
-    if (!parliament) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parliament not found'
-      });
-    }
-
-    // If userHierarchy exists, restrict by user's scope
-    if (req.userHierarchy) {
-      if (req.userHierarchy.assembly) {
-        const a = await Assembly.findById(req.userHierarchy.assembly._id);
-        if (!a || a.parliament_id.toString() !== req.params.parliamentId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.parliament) {
-        if (req.userHierarchy.parliament._id.toString() !== req.params.parliamentId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.division) {
-        // ensure division belongs to the specified parliament (optional DB check)
-        // We'll allow since assemblies under division are okay if division belongs to same state
-      }
-      if (req.userHierarchy.state) {
-        // ensure state is same as requested parliament's state if necessary
-      }
-    }
-
-    const assemblies = await Assembly.find({ parliament_id: req.params.parliamentId })
-      .sort({ name: 1 })
-      .populate('state_id', 'name')
-      .populate('district_id', 'name')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username'); // Add population of updated_by
-
-
-    res.status(200).json({
-      success: true,
-      count: assemblies.length,
-      data: assemblies
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get assemblies by division
-// @route   GET /api/assemblies/division/:divisionId
-// @access  Public
-exports.getAssembliesByDivision = async (req, res, next) => {
-  try {
-    // Verify division exists
-    const division = await Division.findById(req.params.divisionId);
-    if (!division) {
-      return res.status(404).json({
-        success: false,
-        message: 'Division not found'
-      });
-    }
-
-    // If userHierarchy exists, restrict by user's scope
-    if (req.userHierarchy) {
-      if (req.userHierarchy.assembly) {
-        const a = await Assembly.findById(req.userHierarchy.assembly._id);
-        if (!a || a.division_id.toString() !== req.params.divisionId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.parliament) {
-        const a = await Assembly.findById(req.userHierarchy.assembly?._id || req.params.divisionId).select('parliament_id');
-        // best-effort check skipped here
-      }
-      if (req.userHierarchy.division) {
-        if (req.userHierarchy.division._id.toString() !== req.params.divisionId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.state) {
-        if (division.state && division.state.toString() !== req.userHierarchy.state._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-    }
-
-    const assemblies = await Assembly.find({ division_id: req.params.divisionId })
-      .sort({ name: 1 })
-      .populate('state_id', 'name')
-      .populate('district_id', 'name')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username'); // Add population of updated_by
-
-
-    res.status(200).json({
-      success: true,
-      count: assemblies.length,
-      data: assemblies
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Bulk import assemblies (client sends parsed rows)
+// @desc    Import assemblies from Excel
 // @route   POST /api/assemblies/import
-// @access  Private (Admin only)
+// @access  Private/SuperAdmin
 exports.importAssemblies = async (req, res, next) => {
   try {
-    const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
-    if (!rows) {
-      return res.status(400).json({ success: false, message: 'rows array is required in body' });
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No data provided' });
     }
 
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ success: false, message: 'Not authorized' });
-    }
-
-    // Normalize headers and collect lookup keys
-    const toKey = (s) => String(s || '').trim();
-    const toUpper = (s) => String(s || '').trim().toUpperCase();
-    const toTitle = (s) => {
-      const x = String(s || '').trim().toLowerCase();
-      if (x === 'urban' || x === 'rural' || x === 'mixed') return x.charAt(0).toUpperCase() + x.slice(1);
-      if (x === 'general' || x === 'reserved' || x === 'special') return x.charAt(0).toUpperCase() + x.slice(1);
-      return s;
-    };
-
-    const divisionCodes = new Set();
-    const parliamentNos = new Set();
-    for (const r of rows) {
-      const dc = toUpper(r.division_code || r.Division_Code || r.DIVISION_CODE || r.division || r.Division);
-      if (dc) divisionCodes.add(dc);
-      const pnRaw = r.parliament_no ?? r.Parliament_No ?? r.PARLIAMENT_NO ?? r.parliament ?? r.Parliament;
-      if (pnRaw !== undefined && pnRaw !== null && pnRaw !== '') {
-        const pn = Number(String(pnRaw).trim());
-        if (!Number.isNaN(pn)) parliamentNos.add(pn);
-      }
-    }
-
-    // Preload lookups
-    const [divisions, parliaments] = await Promise.all([
-      divisionCodes.size ? Division.find({ division_code: { $in: Array.from(divisionCodes) } }) : [],
-      parliamentNos.size ? Parliament.find({ parliament_no: { $in: Array.from(parliamentNos) } }) : []
-    ]);
-    const divisionByCode = new Map(divisions.map(d => [toUpper(d.division_code), d]));
-    const parliamentByNo = new Map(parliaments.map(p => [Number(p.parliament_no), p]));
-
-    const summary = { total: rows.length, created: 0, skipped: 0, errors: [] };
+    const { resolveGeographicHierarchy, validateHierarchy } = require('./importHelpers');
+    const summary = { total: rows.length, created: 0, skipped: 0, errors: [], ids: [] };
     const created = [];
 
     for (let i = 0; i < rows.length; i++) {
-      const r = rows[i] || {};
+      const row = rows[i];
       try {
-        const name = toKey(r.name ?? r.Name);
-        const AC_NO = toKey(r.AC_NO ?? r.ac_no ?? r.Ac_No);
-        const description = String(r.description ?? r.Description ?? '').trim();
-        const type = toTitle(r.type ?? r.Type);
-        const category = toTitle(r.category ?? r.Category);
-        const division_code = toUpper(r.division_code ?? r.Division_Code ?? r.DIVISION_CODE ?? r.division ?? r.Division);
-        const pnRaw = r.parliament_no ?? r.Parliament_No ?? r.PARLIAMENT_NO ?? r.parliament ?? r.Parliament;
-        const parliament_no = pnRaw !== undefined && pnRaw !== null && pnRaw !== '' ? Number(String(pnRaw).trim()) : NaN;
-
-        if (!name || !AC_NO) {
-          throw new Error('name and AC_NO are required');
-        }
-        if (!type || !['Urban', 'Rural', 'Mixed'].includes(type)) {
-          throw new Error('type must be one of Urban, Rural, Mixed');
-        }
-        if (!category || !['General', 'Reserved', 'Special'].includes(category)) {
-          throw new Error('category must be one of General, Reserved, Special');
-        }
-        if (Number.isNaN(parliament_no)) {
-          throw new Error('parliament_no is required and must be a number');
+        if (!row.name && !row.AC_NO) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: 'Missing assembly name or AC_NO' });
+          continue;
         }
 
-        // Resolve division: prefer code match, fallback to name match
-        let division = division_code ? divisionByCode.get(division_code) : null;
-        if (!division && division_code) {
-          // try matching division by name when code lookup fails
-          const divName = division_code;
-          const divDoc = await Division.findOne({ name: { $regex: `^${divName}$`, $options: 'i' } });
-          if (divDoc) division = divDoc;
+        const geo = await resolveGeographicHierarchy(row);
+        const missingFields = validateHierarchy(geo, ['state', 'division', 'parliament']);
+        if (missingFields.length > 0) {
+          summary.skipped += 1;
+          summary.errors.push({ row: i + 1, message: `Missing: ${missingFields.join(', ')}` });
+          continue;
         }
 
-        // Resolve parliament: prefer numeric match, fallback to name match
-        let parliament = parliamentByNo.get(parliament_no);
-        if (!parliament) {
-          const pNameCandidate = toKey(r.parliament ?? r.Parliament ?? r.parliament_name ?? r.Parliament_Name);
-          if (pNameCandidate) {
-            const pDoc = await Parliament.findOne({ name: { $regex: `^${pNameCandidate}$`, $options: 'i' } });
-            if (pDoc) parliament = pDoc;
-          }
-        }
-
-        if (!parliament) {
-          // If division is known, try a smart fallback: if exactly one parliament exists in that division, use it
-          if (division) {
-            const ps = await Parliament.find({ division_id: division._id }).select('_id name parliament_no division_id');
-            if (Array.isArray(ps) && ps.length === 1) {
-              parliament = ps[0];
-            } else {
-              const nums = (ps || []).map(p => p.parliament_no).filter(v => v !== undefined && v !== null);
-              throw new Error(`Parliament not found for parliament_no=${parliament_no}. In division ${division_code || division.name}, available parliament_no: ${nums.join(', ') || 'none'}`);
-            }
-          } else {
-            throw new Error(`Parliament not found for parliament_no=${parliament_no}. Provide a valid parliament_no or a parliament name in column 'parliament'.`);
-          }
-        }
-
-        // If division provided, ensure it matches parliament's division
-        if (division && String(parliament.division_id) !== String(division._id)) {
-          throw new Error(`Parliament(${parliament.parliament_no || parliament_no}) does not belong to Division(${division_code})`);
-        }
-
-        // Check duplicates on name or AC_NO
-        const existing = await Assembly.findOne({ $or: [{ name }, { AC_NO }] });
+        // Check for duplicates
+        const existing = await Assembly.findOne({ AC_NO: row.AC_NO || row.ac_no });
         if (existing) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Duplicate assembly (name or AC_NO): ${name} / ${AC_NO}` });
+          summary.errors.push({ row: i + 1, message: `Assembly ${row.AC_NO || row.ac_no} already exists` });
           continue;
         }
 
         const assemblyData = {
-          name,
-          description,
-          AC_NO,
-          type,
-          category,
-          state_id: division ? division.state_id : parliament.state_id,
-          district_id: undefined,
-          division_id: division ? division._id : parliament.division_id,
-          parliament_id: parliament._id,
+          name: row.name,
+          AC_NO: row.AC_NO || row.ac_no,
+          type: row.type || 'Urban',
+          category: row.category || 'General',
+          parliament_id: geo.parliament._id,
+          division_id: geo.division._id,
+          state_id: geo.state._id,
           created_by: req.user.id,
           updated_by: req.user.id
         };
 
-        const createdOne = await Assembly.create(assemblyData);
-        created.push(createdOne._id);
+        const assembly = await Assembly.create(assemblyData);
+        created.push(assembly._id);
         summary.created += 1;
       } catch (err) {
         summary.skipped += 1;
@@ -772,13 +449,11 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
       if (!feature.properties) continue;
 
       const props = feature.properties;
-      // Try to find assembly by different property names
-      // Common keys: AC_NO, AC_NAME, AC_NAME_E, name, NAME, etc.
-      const acNo = props.AC_NO || props.ac_no || props['AC NO'];
-      const acName = props.AC_NAME || props.AC_NAME_E || props.ACNAME || props.Name || props.NAME || props.name;
+      const acNo = props.AC_NO || props.ac_no || props['AC No'] || props.OBJECTID;
+      const assemblyName = props.STNAME || props.name || props.NAME || props.Name;
 
-      if (!acNo && !acName) {
-        errors.push('Feature passed without a valid match property (AC_NO or Name)');
+      if (!acNo && !assemblyName) {
+        errors.push('Feature passed without a valid match property (AC_NO or name)');
         continue;
       }
 
@@ -786,13 +461,13 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
 
       // Try finding by AC_NO first if available
       if (acNo) {
-        assembly = await Assembly.findOne({ AC_NO: String(acNo).trim() });
+        assembly = await Assembly.findOne({ AC_NO: String(acNo) });
       }
 
-      // If not found by AC_NO, try by Name
-      if (!assembly && acName) {
+      // If not found by AC_NO, try by name
+      if (!assembly && assemblyName) {
         assembly = await Assembly.findOne({
-          name: { $regex: new RegExp(`^${acName}$`, 'i') }
+          name: { $regex: new RegExp(`^${assemblyName}$`, 'i') }
         });
       }
 
@@ -802,7 +477,7 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
         await assembly.save();
         updatedCount++;
       } else {
-        errors.push(`Assembly not found for: AC_NO=${acNo}, Name=${acName}`);
+        errors.push(`Assembly not found for: AC_NO=${acNo}, name=${assemblyName}`);
       }
     }
 
@@ -820,6 +495,21 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
       errors: errors.length > 0 ? errors : undefined
     });
 
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get total assemblies count
+// @route   GET /api/total-assemblies
+// @access  Public
+exports.getTotalAssemblies = async (req, res, next) => {
+  try {
+    const total = await Assembly.countDocuments();
+    res.status(200).json({
+      success: true,
+      total
+    });
   } catch (err) {
     next(err);
   }

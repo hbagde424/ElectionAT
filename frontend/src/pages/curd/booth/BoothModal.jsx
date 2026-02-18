@@ -1,13 +1,9 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
-    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Box, IconButton, Tooltip, CircularProgress, Typography
+    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl, Box, Typography
 } from '@mui/material';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { useEffect, useState, useContext } from 'react';
 import JWTContext from 'contexts/JWTContext';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 
 export default function BoothModal({
     open,
@@ -18,7 +14,7 @@ export default function BoothModal({
     parliaments,
     assemblies,
     blocks,
-    electionYears,
+    users,
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -28,75 +24,69 @@ export default function BoothModal({
         name: '',
         booth_number: '',
         full_address: '',
-        latitude: '',
-        longitude: '',
+        latitude: 0,
+        longitude: 0,
+        Male_Count: 0,
+        Female_Count: 0,
+        others_Count: 0,
+        Total: 0,
         state_id: '',
         division_id: '',
         parliament_id: '',
         assembly_id: '',
         block_id: '',
-        election_year: '',
-        Male_Count: '',
-        Female_Count: '',
-        others_Count: '',
-        Total: '',
-        description: '',
         polygon: null
     });
     const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
-    const [locationLoading, setLocationLoading] = useState(false);
 
+    // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
     const [filteredAssemblies, setFilteredAssemblies] = useState([]);
     const [filteredBlocks, setFilteredBlocks] = useState([]);
 
     useEffect(() => {
-        if (booth) {
+        if (booth && Array.isArray(states) && states.length > 0) {
             setFormData({
                 name: booth.name || '',
                 booth_number: booth.booth_number || '',
                 full_address: booth.full_address || '',
-                latitude: booth.latitude || '',
-                longitude: booth.longitude || '',
+                latitude: booth.latitude || 0,
+                longitude: booth.longitude || 0,
+                Male_Count: booth.Male_Count || 0,
+                Female_Count: booth.Female_Count || 0,
+                others_Count: booth.others_Count || 0,
+                Total: booth.Total || 0,
                 state_id: booth.state_id?._id?.toString() || booth.state_id?.toString() || '',
                 division_id: booth.division_id?._id?.toString() || booth.division_id?.toString() || '',
                 parliament_id: booth.parliament_id?._id?.toString() || booth.parliament_id?.toString() || '',
                 assembly_id: booth.assembly_id?._id?.toString() || booth.assembly_id?.toString() || '',
-                block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || '',
-                election_year: booth.election_year?._id?.toString() || booth.election_year?.toString() || '',
-                Male_Count: booth.Male_Count || '',
-                Female_Count: booth.Female_Count || '',
-                others_Count: booth.others_Count || '',
-                Total: booth.Total || '',
-                description: booth.description || '',
-                polygon: booth.polygon || null
+                block_id: booth.block_id?._id?.toString() || booth.block_id?.toString() || ''
             });
-        } else {
+        } else if (!booth) {
             setFormData({
                 name: '',
                 booth_number: '',
                 full_address: '',
-                latitude: '',
-                longitude: '',
+                latitude: 0,
+                longitude: 0,
+                Male_Count: 0,
+                Female_Count: 0,
+                others_Count: 0,
+                Total: 0,
                 state_id: '',
                 division_id: '',
                 parliament_id: '',
                 assembly_id: '',
                 block_id: '',
-                election_year: '',
-                Male_Count: '',
-                Female_Count: '',
-                others_Count: '',
-                Total: '',
-                description: '',
                 polygon: null
             });
             setFileName('');
         }
-    }, [booth]);
+    }, [booth, states]);
 
+    // State -> Division
     useEffect(() => {
         if (formData.state_id) {
             const filtered = divisions?.filter(division => {
@@ -126,6 +116,7 @@ export default function BoothModal({
         }
     }, [formData.state_id, divisions]);
 
+    // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
             const filtered = parliaments?.filter(parliament => {
@@ -153,6 +144,7 @@ export default function BoothModal({
         }
     }, [formData.division_id, parliaments]);
 
+    // Parliament -> Assembly
     useEffect(() => {
         if (formData.parliament_id) {
             const filtered = assemblies?.filter(assembly => {
@@ -178,6 +170,7 @@ export default function BoothModal({
         }
     }, [formData.parliament_id, assemblies]);
 
+    // Assembly -> Block
     useEffect(() => {
         if (formData.assembly_id) {
             const filtered = blocks?.filter(block => {
@@ -187,27 +180,25 @@ export default function BoothModal({
             setFilteredBlocks(filtered);
 
             if (formData.block_id && !filtered.find(b => b._id === formData.block_id)) {
-                setFormData(prev => ({ ...prev, block_id: '' }));
+                setFormData(prev => ({
+                    ...prev,
+                    block_id: ''
+                }));
             }
         } else {
             setFilteredBlocks([]);
-            setFormData(prev => ({ ...prev, block_id: '' }));
+            setFormData(prev => ({
+                ...prev,
+                block_id: ''
+            }));
         }
     }, [formData.assembly_id, blocks]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: value
-        }));
-    };
-
-    // For ReactQuill editor
-    const handleDescriptionChange = (value) => {
-        setFormData((prev) => ({
-            ...prev,
-            description: value
+            [name]: type === 'number' ? Number(value) : value
         }));
     };
 
@@ -221,15 +212,12 @@ export default function BoothModal({
             const text = await file.text();
             const json = JSON.parse(text);
 
-            // Extract Feature (keep geometry AND properties)
             let feature = null;
             if (json.type === 'FeatureCollection' && json.features?.length > 0) {
-                // Take the first feature
                 feature = json.features[0];
             } else if (json.type === 'Feature') {
                 feature = json;
             } else if (json.type === 'Polygon' || json.type === 'MultiPolygon') {
-                // If raw geometry, wrap in Feature
                 feature = {
                     type: "Feature",
                     geometry: json,
@@ -250,60 +238,9 @@ export default function BoothModal({
         }
     };
 
-    const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
-
-    // Use browser geolocation to auto-fill coordinates and optionally address
-    const handleUseCurrentLocation = async () => {
-        if (!('geolocation' in navigator)) {
-            // No inline error system here; just log
-            console.error('Geolocation not supported');
-            return;
-        }
-
-        setLocationLoading(true);
-        const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-        const getPosition = () => new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions);
-        });
-
-        try {
-            const position = await getPosition();
-            const { latitude, longitude } = position.coords;
-
-            setFormData(prev => ({ ...prev, latitude, longitude }));
-
-            // Try reverse geocode to fill full_address if empty
-            try {
-                if (MAPBOX_ACCESS_TOKEN) {
-                    const res = await fetch(
-                        `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
-                    );
-                    const data = await res.json();
-                    const place = data?.features?.[0]?.place_name;
-                    if (place && !formData.full_address) {
-                        setFormData(prev => ({ ...prev, full_address: place }));
-                    }
-                }
-            } catch (e) {
-                // Ignore reverse geocode errors
-            }
-        } catch (err) {
-            console.error('Failed to get current location', err);
-        } finally {
-            setLocationLoading(false);
-        }
-    };
-
-
     const handleSubmit = async () => {
         setSubmitted(true);
-        const requiredFields = [
-            'name', 'booth_number', 'full_address',
-            'state_id', 'division_id', 'parliament_id',
-            'assembly_id', 'block_id', 'election_year'
-            // description is optional
-        ];
-
+        const requiredFields = ['name', 'booth_number', 'state_id', 'division_id', 'parliament_id', 'assembly_id', 'block_id'];
         for (const field of requiredFields) {
             if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
                 return;
@@ -326,24 +263,12 @@ export default function BoothModal({
             }
         }
 
-        const userTracking = booth ? { updated_by: String(userId) } : { created_by: String(userId) };
-        // Always send description, even if unchanged or empty
+        const userTracking = booth ? { updated_by: userId } : { created_by: userId };
         const submitData = {
             ...formData,
-            ...userTracking,
-            latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-            longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
-            Male_Count: formData.Male_Count ? parseInt(formData.Male_Count) : 0,
-            Female_Count: formData.Female_Count ? parseInt(formData.Female_Count) : 0,
-            others_Count: formData.others_Count ? parseInt(formData.others_Count) : 0,
-            Total: formData.Total ? parseInt(formData.Total) : 0,
-            description: typeof formData.description === 'string' ? formData.description : ''
+            ...userTracking
         };
-        // Remove undefined lat/lng so backend doesn't get undefined
-        if (!submitData.latitude && submitData.latitude !== 0) delete submitData.latitude;
-        if (!submitData.longitude && submitData.longitude !== 0) delete submitData.longitude;
-        console.log('Submitting booth:', submitData);
-        console.log('Token:', token);
+
         try {
             const res = await fetch(url, {
                 method,
@@ -360,7 +285,7 @@ export default function BoothModal({
             } else {
                 const errorData = await res.json();
                 console.error('Failed to submit booth:', errorData);
-                alert(errorData?.message || 'Failed to save booth. Please check the form data.');
+                alert('Failed to save booth. Please check the form data.');
             }
         } catch (error) {
             console.error('Error submitting booth:', error);
@@ -373,9 +298,6 @@ export default function BoothModal({
             <DialogTitle>{booth ? 'Edit Booth' : 'Add Booth'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {/* Row: Description (Rich Text) */}
-
-                    {/* Row 1: Name and Booth Number */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Booth Name <span style={{ color: 'red' }}>*</span></InputLabel>
@@ -397,6 +319,7 @@ export default function BoothModal({
                             <InputLabel>Booth Number <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="booth_number"
+                                type="number"
                                 value={formData.booth_number}
                                 onChange={handleChange}
                                 fullWidth
@@ -404,61 +327,34 @@ export default function BoothModal({
                                 error={submitted && !formData.booth_number}
                                 helperText={submitted && !formData.booth_number ? 'Booth number is required' : ''}
                                 placeholder="Enter booth number"
+                                inputProps={{ min: 1 }}
                             />
                         </Stack>
                     </Grid>
 
-                    {/* Row 2: Full Address */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Full Address <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <InputLabel>Full Address</InputLabel>
                             <TextField
                                 name="full_address"
                                 value={formData.full_address}
                                 onChange={handleChange}
                                 fullWidth
-                                required
-                                multiline
-                                rows={3}
-                                error={submitted && !formData.full_address}
-                                helperText={submitted && !formData.full_address ? 'Full address is required' : ''}
                                 placeholder="Enter full address"
                             />
                         </Stack>
                     </Grid>
 
-                    {/* Row 3: Latitude and Longitude */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Latitude</InputLabel>
                             <TextField
                                 name="latitude"
+                                type="number"
                                 value={formData.latitude}
                                 onChange={handleChange}
                                 fullWidth
-                                type="number"
                                 placeholder="Enter latitude"
-                                InputProps={{
-                                    endAdornment: (
-                                        <>
-                                            <Tooltip title="Use current location">
-                                                <span>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={handleUseCurrentLocation}
-                                                        disabled={locationLoading}
-                                                        aria-label="Use current location"
-                                                        edge="end"
-                                                        sx={{ mr: 0.5 }}
-                                                    >
-                                                        <MyLocationIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                            {locationLoading && <CircularProgress color="inherit" size={20} />}
-                                        </>
-                                    )
-                                }}
                             />
                         </Stack>
                     </Grid>
@@ -468,92 +364,65 @@ export default function BoothModal({
                             <InputLabel>Longitude</InputLabel>
                             <TextField
                                 name="longitude"
+                                type="number"
                                 value={formData.longitude}
                                 onChange={handleChange}
                                 fullWidth
-                                type="number"
                                 placeholder="Enter longitude"
                             />
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: Demographic Counts */}
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel>Male Count</InputLabel>
                             <TextField
                                 name="Male_Count"
+                                type="number"
                                 value={formData.Male_Count}
                                 onChange={handleChange}
                                 fullWidth
-                                type="number"
                                 inputProps={{ min: 0 }}
-                                placeholder="Enter male count"
                             />
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel>Female Count</InputLabel>
                             <TextField
                                 name="Female_Count"
+                                type="number"
                                 value={formData.Female_Count}
                                 onChange={handleChange}
                                 fullWidth
-                                type="number"
                                 inputProps={{ min: 0 }}
-                                placeholder="Enter female count"
                             />
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Others Count</InputLabel>
-                            <TextField
-                                name="others_Count"
-                                value={formData.others_Count}
-                                onChange={handleChange}
-                                fullWidth
-                                type="number"
-                                inputProps={{ min: 0 }}
-                                placeholder="Enter others count"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={4}>
                         <Stack spacing={1}>
                             <InputLabel>Total Count</InputLabel>
                             <TextField
                                 name="Total"
+                                type="number"
                                 value={formData.Total}
                                 onChange={handleChange}
                                 fullWidth
-                                type="number"
                                 inputProps={{ min: 0 }}
-                                placeholder="Enter total count"
                             />
                         </Stack>
                     </Grid>
 
-                    {/* Row 5: State and Division */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
-                                <Select
-                                    name="state_id"
-                                    value={formData.state_id}
-                                    onChange={handleChange}
-                                    required
-                                >
+                                <Select name="state_id" value={formData.state_id} onChange={handleChange} required>
                                     <MenuItem value="">Select State</MenuItem>
                                     {states?.map((state) => (
-                                        <MenuItem key={state._id} value={state._id}>
-                                            {state.name}
-                                        </MenuItem>
+                                        <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -567,18 +436,10 @@ export default function BoothModal({
                         <Stack spacing={1}>
                             <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
-                                <Select
-                                    name="division_id"
-                                    value={formData.division_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.state_id}
-                                >
+                                <Select name="division_id" value={formData.division_id} onChange={handleChange} required disabled={!formData.state_id}>
                                     <MenuItem value="">Select Division</MenuItem>
                                     {filteredDivisions.map((division) => (
-                                        <MenuItem key={division._id} value={division._id}>
-                                            {division.name}
-                                        </MenuItem>
+                                        <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -588,23 +449,14 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 5: Parliament and Assembly */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Parliament <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.parliament_id}>
-                                <Select
-                                    name="parliament_id"
-                                    value={formData.parliament_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.division_id}
-                                >
+                                <Select name="parliament_id" value={formData.parliament_id} onChange={handleChange} required disabled={!formData.division_id}>
                                     <MenuItem value="">Select Parliament</MenuItem>
                                     {filteredParliaments.map((parliament) => (
-                                        <MenuItem key={parliament._id} value={parliament._id}>
-                                            {parliament.name}
-                                        </MenuItem>
+                                        <MenuItem key={parliament._id} value={parliament._id}>{parliament.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -618,18 +470,10 @@ export default function BoothModal({
                         <Stack spacing={1}>
                             <InputLabel>Assembly <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.assembly_id}>
-                                <Select
-                                    name="assembly_id"
-                                    value={formData.assembly_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.parliament_id}
-                                >
+                                <Select name="assembly_id" value={formData.assembly_id} onChange={handleChange} required disabled={!formData.parliament_id}>
                                     <MenuItem value="">Select Assembly</MenuItem>
                                     {filteredAssemblies.map((assembly) => (
-                                        <MenuItem key={assembly._id} value={assembly._id}>
-                                            {assembly.name}
-                                        </MenuItem>
+                                        <MenuItem key={assembly._id} value={assembly._id}>{assembly.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -639,23 +483,14 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-                    {/* Row 6: Block */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Block <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.block_id}>
-                                <Select
-                                    name="block_id"
-                                    value={formData.block_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!formData.assembly_id}
-                                >
+                                <Select name="block_id" value={formData.block_id} onChange={handleChange} required disabled={!formData.assembly_id}>
                                     <MenuItem value="">Select Block</MenuItem>
                                     {filteredBlocks.map((block) => (
-                                        <MenuItem key={block._id} value={block._id}>
-                                            {block.name}
-                                        </MenuItem>
+                                        <MenuItem key={block._id} value={block._id}>{block.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -665,68 +500,24 @@ export default function BoothModal({
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.election_year}>
-                                <Select
-                                    name="election_year"
-                                    value={formData.election_year}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <MenuItem value="">Select Election Year</MenuItem>
-                                    {electionYears?.map((year) => (
-                                        <MenuItem key={year._id} value={year._id}>
-                                            {year.year}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            {submitted && !formData.election_year && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Election year is required</Box>
-                            )}
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                        <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
-                            <ReactQuill
-                                theme="snow"
-                                value={formData.description}
-                                onChange={handleDescriptionChange}
-                                placeholder="Enter booth description (optional)"
-                                style={{ minHeight: 100 }}
-                            />
-                        </Stack>
-                    </Grid>
-
-                    {/* Polygon Upload */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Booth Polygon (GeoJSON)</InputLabel>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Button
-                                    variant="outlined"
-                                    component="label"
-                                >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                                <Button variant="outlined" component="label">
                                     Upload File
-                                    <input
-                                        type="file"
-                                        hidden
-                                        accept=".json,.geojson"
-                                        onChange={handleFileChange}
-                                    />
+                                    <input type="file" hidden accept=".json,.geojson" onChange={handleFileChange} />
                                 </Button>
-                                {fileName ? (
-                                    <Typography variant="body2">{fileName}</Typography>
-                                ) : (
-                                    booth?.polygon && (
-                                        <Typography variant="body2" color="success.main">
-                                            Existing Polygon Present
-                                        </Typography>
-                                    )
+                                <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {fileName || (booth?.polygon ? 'Polygon Exists' : 'No file selected')}
+                                </Typography>
+                                {(fileName || booth?.polygon) && (
+                                    <Button variant="outlined" color="error" size="small" onClick={() => {
+                                        setFormData(prev => ({ ...prev, polygon: null }));
+                                        setFileName('');
+                                    }}>
+                                        Delete Polygon
+                                    </Button>
                                 )}
                             </Box>
                         </Stack>

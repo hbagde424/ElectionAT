@@ -3,92 +3,86 @@ const mongoose = require('mongoose');
 const boothSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Booth name is required'],
+    trim: true,
+    maxlength: [200, 'Booth name cannot exceed 200 characters']
   },
   booth_number: {
-    type: String,
-    required: true,
-    trim: true
+    type: Number,
+    required: [true, 'Booth number is required'],
+    unique: true,
+    min: [1, 'Booth number must be at least 1']
   },
   full_address: {
     type: String,
-    required: true
+    default: '',
+    trim: true
   },
   latitude: {
-    type: Number
+    type: Number,
+    default: 0
   },
   longitude: {
-    type: Number
-  },
-  block_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Block',
-    required: true
-  },
-  assembly_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Assembly',
-    required: true
-  },
-  parliament_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Parliament',
-    required: true
-  },
-  district_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'District',
-    required: false
-  },
-  division_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Division',
-    required: true
-  },
-  state_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'State',
-    required: true
-  },
-  election_year: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ElectionYear',
-    required: true
+    type: Number,
+    default: 0
   },
   Male_Count: {
     type: Number,
     default: 0,
-    min: 0
+    min: [0, 'Male count cannot be negative']
   },
   Female_Count: {
     type: Number,
     default: 0,
-    min: 0
+    min: [0, 'Female count cannot be negative']
   },
   others_Count: {
     type: Number,
     default: 0,
-    min: 0
+    min: [0, 'Others count cannot be negative']
   },
   Total: {
     type: Number,
     default: 0,
-    min: 0
+    min: [0, 'Total count cannot be negative']
   },
-  description: {
-    type: String,
-    default: ''
-  },
-  updated_by: {
+  block_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: false
+    ref: 'Block',
+    required: [true, 'Block reference is required']
+  },
+  assembly_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Assembly',
+    required: [true, 'Assembly reference is required']
+  },
+  parliament_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parliament',
+    required: [true, 'Parliament reference is required']
+  },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: [true, 'Division reference is required']
+  },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required']
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: [true, 'Creator user reference is required']
+  },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   created_at: {
     type: Date,
@@ -97,16 +91,20 @@ const boothSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  },
-  polygon: {
-    type: mongoose.Schema.Types.Mixed,
-    default: null
   }
 });
 
+// Update timestamp before saving
 boothSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
 
+// Indexes for search and filtering
+boothSchema.index({ name: 'text', full_address: 'text' });
+boothSchema.index({ booth_number: 1 });
+boothSchema.index({ block_id: 1 });
+boothSchema.index({ assembly_id: 1 });
+
+// Guard model registration to avoid OverwriteModelError during hot-reloads or multiple requires
 module.exports = mongoose.models.Booth || mongoose.model('Booth', boothSchema);

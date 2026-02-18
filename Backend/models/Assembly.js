@@ -5,69 +5,66 @@ const assemblySchema = new mongoose.Schema({
     type: String,
     required: [true, 'Assembly name is required'],
     trim: true,
-    maxlength: [100, 'Assembly name cannot exceed 100 characters'],
-    unique: true
-  },
-  description: {
-    type: String,
-    trim: true,
-    default: '' // Rich text (HTML) allowed
+    maxlength: [200, 'Assembly name cannot exceed 200 characters']
   },
   AC_NO: {
     type: String,
-    required: [true, 'Assembly name is required'],
-    trim: true,
-    maxlength: [100, 'Assembly name cannot exceed 100 characters'],
-    unique: true
+    required: [true, 'Assembly constituency number is required'],
+    unique: true,
+    trim: true
   },
   type: {
     type: String,
     enum: {
-      values: ['Urban', 'Rural', 'Mixed'],
-      message: 'Please select valid type (Urban, Rural, Mixed)'
+      values: ['Urban', 'Rural', 'Semi-Urban', 'Tribal'],
+      message: 'Please select valid type (Urban, Rural, Semi-Urban, Tribal)'
     },
-    required: [true, 'Assembly type is required']
+    default: 'Urban'
   },
   category: {
     type: String,
     enum: {
-      values: ['General', 'Reserved', 'Special'],
-      message: 'Please select valid category (General, Reserved, Special)'
+      values: ['General', 'SC', 'ST', 'OBC'],
+      message: 'Please select valid category (General, SC, ST, OBC)'
     },
-    required: [true, 'Assembly category is required'],
     default: 'General'
-  },
-  state_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'State',
-    required: [true, 'State reference is required']
-  },
-  district_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'District',
-    required: [false, 'District reference is required']
-  },
-  division_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Division',
-    required: [true, 'Division reference is required']
   },
   parliament_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Parliament',
     required: [true, 'Parliament reference is required']
   },
+  division_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: [true, 'Division reference is required']
+  },
+  state_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'State',
+    required: [true, 'State reference is required']
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // or 'Admin'
-    required: [true, 'Creator reference is required']
+    ref: 'User',
+    required: [true, 'Creator user reference is required']
   },
   updated_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: false
+    ref: 'User'
   },
-
+  is_active: {
+    type: Boolean,
+    default: true
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -75,27 +72,20 @@ const assemblySchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  },
-  polygon: {
-    type: mongoose.Schema.Types.Mixed,
-    default: null
   }
 });
 
 // Update timestamp before saving
 assemblySchema.pre('save', function (next) {
   this.updated_at = Date.now();
-  if (this.isModified()) {
-    this.updated_by = this._locals?.user?.id; // Will be set from controller
-  }
   next();
 });
 
-// Indexes for better performance
-assemblySchema.index({ name: 'text' });
-assemblySchema.index({ district_id: 1 });
-assemblySchema.index({ division_id: 1 });
+// Indexes for search and filtering
+assemblySchema.index({ name: 'text', AC_NO: 'text' });
+assemblySchema.index({ AC_NO: 1 });
 assemblySchema.index({ parliament_id: 1 });
-assemblySchema.index({ type: 1, category: 1 });
+assemblySchema.index({ state_id: 1 });
 
-module.exports = mongoose.model('Assembly', assemblySchema);
+// Guard model registration to avoid OverwriteModelError during hot-reloads or multiple requires
+module.exports = mongoose.models.Assembly || mongoose.model('Assembly', assemblySchema);

@@ -1,5 +1,6 @@
 {
     "docwriter.progress.trackClasses": true,
     "docwriter.progress.trackTypes": true,
-    "docwriter.style": "GoDoc"
+    "docwriter.style": "GoDoc",
+    "javascript.autoClosingTags": false
 }

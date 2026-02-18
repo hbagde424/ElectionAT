@@ -5,8 +5,6 @@ const {
   createAssembly,
   updateAssembly,
   deleteAssembly,
-  getAssembliesByParliament,
-  getAssembliesByDivision,
   importAssemblies,
   uploadAssemblyPolygon
 } = require('../controllers/assemblyController');
@@ -48,34 +46,34 @@ const router = express.Router();
  *         name: type
  *         schema:
  *           type: string
- *           enum: [Urban, Rural, Mixed]
+ *           enum: [Urban, Rural, Semi-Urban, Tribal]
  *         description: Filter by assembly type
  *       - in: query
  *         name: category
  *         schema:
  *           type: string
- *           enum: [General, Reserved, Special]
+ *           enum: [General, SC, ST, OBC]
  *         description: Filter by assembly category
  *       - in: query
- *         name: state
+ *         name: parliament
  *         schema:
  *           type: string
- *         description: State ID to filter by
- *       - in: query
- *         name: district
- *         schema:
- *           type: string
- *         description: District ID to filter by
+ *         description: Parliament ID to filter by
  *       - in: query
  *         name: division
  *         schema:
  *           type: string
  *         description: Division ID to filter by
  *       - in: query
- *         name: parliament
+ *         name: state
  *         schema:
  *           type: string
- *         description: Parliament ID to filter by
+ *         description: State ID to filter by
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
  *     responses:
  *       200:
  *         description: List of assemblies
@@ -99,7 +97,6 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Assembly'
  */
-// Public: no authentication required for reading assembly data
 router.get('/', getAssemblies);
 
 /**
@@ -124,7 +121,6 @@ router.get('/', getAssemblies);
  *       404:
  *         description: Assembly not found
  */
-// Public: no authentication required for reading assembly data
 router.get('/:id', getAssembly);
 
 /**
@@ -209,77 +205,9 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteAssembly);
 
 /**
  * @swagger
- * /api/assemblies/parliament/{parliamentId}:
- *   get:
- *     summary: Get assemblies by parliament
- *     tags: [Assemblies]
- *     parameters:
- *       - in: path
- *         name: parliamentId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of assemblies for the parliament
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Assembly'
- *       404:
- *         description: Parliament not found
- */
-// Public: no authentication required for reading assembly data
-router.get('/parliament/:parliamentId', getAssembliesByParliament);
-
-/**
- * @swagger
- * /api/assemblies/division/{divisionId}:
- *   get:
- *     summary: Get assemblies by division
- *     tags: [Assemblies]
- *     parameters:
- *       - in: path
- *         name: divisionId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of assemblies for the division
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Assembly'
- *       404:
- *         description: Division not found
- */
-// Public: no authentication required for reading assembly data
-router.get('/division/:divisionId', getAssembliesByDivision);
-
-/**
- * @swagger
  * /api/assemblies/import:
  *   post:
- *     summary: Bulk import assemblies from parsed rows
+ *     summary: Import assemblies from Excel
  *     tags: [Assemblies]
  *     security:
  *       - bearerAuth: []
@@ -292,24 +220,36 @@ router.get('/division/:divisionId', getAssembliesByDivision);
  *             properties:
  *               rows:
  *                 type: array
- *                 description: Array of assembly rows parsed from XLSX/CSV on client
  *                 items:
  *                   type: object
- *                   properties:
- *                     name: { type: string }
- *                     AC_NO: { type: string }
- *                     description: { type: string }
- *                     type: { type: string, enum: [Urban, Rural, Mixed, urban, rural, mixed] }
- *                     category: { type: string, enum: [General, Reserved, Special, general, reserved, special] }
- *                     division_code: { type: string, description: "Division code (e.g., numeric/code)" }
- *                     parliament_no: { type: number, description: "Parliament number" }
  *     responses:
  *       200:
  *         description: Import summary
+ *       401:
+ *         description: Unauthorized
  */
 router.post('/import', protect, authorize('superAdmin'), importAssemblies);
 
-// Protected: requires authentication via serviceToken
+/**
+ * @swagger
+ * /api/assemblies/upload-polygon:
+ *   post:
+ *     summary: Upload assembly polygon (GeoJSON)
+ *     tags: [Assemblies]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Polygon uploaded successfully
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/upload-polygon', protect, authorize('superAdmin'), uploadAssemblyPolygon);
 
 /**
@@ -320,52 +260,57 @@ router.post('/upload-polygon', protect, authorize('superAdmin'), uploadAssemblyP
  *       type: object
  *       required:
  *         - name
- *         - type
- *         - category
- *         - state_id
- *         - district_id
- *         - division_id
+ *         - AC_NO
  *         - parliament_id
+ *         - division_id
+ *         - state_id
  *         - created_by
  *       properties:
  *         name:
  *           type: string
  *           description: Assembly name
- *           example: "42nd Assembly District"
- *         description:
+ *           example: "chhattisgard_assemly"
+ *         AC_NO:
  *           type: string
- *           description: Assembly description (HTML allowed)
- *           example: "<p>This is a <b>rich text</b> description for the assembly.</p>"
+ *           description: Assembly constituency number
+ *           example: "1"
  *         type:
  *           type: string
- *           enum: [Urban, Rural, Mixed]
- *           description: Type of assembly
+ *           enum: [Urban, Rural, Semi-Urban, Tribal]
+ *           description: Assembly type
  *           example: "Urban"
  *         category:
  *           type: string
- *           enum: [General, Reserved, Special]
- *           description: Category of assembly
+ *           enum: [General, SC, ST, OBC]
+ *           description: Assembly category
  *           example: "General"
- *         state_id:
- *           type: string
- *           description: Reference to State
- *           example: "507f1f77bcf86cd799439011"
- *         district_id:
- *           type: string
- *           description: Reference to District
- *           example: "507f1f77bcf86cd799439012"
- *         division_id:
- *           type: string
- *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439013"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *           example: "507f1f77bcf86cd799439014"
+ *           example: "695df6f9378891b2daab0720"
+ *         division_id:
+ *           type: string
+ *           description: Reference to Division
+ *           example: "695df51637891b2daab65aa"
+ *         state_id:
+ *           type: string
+ *           description: Reference to State
+ *           example: "695ddfe612c5383f62b56849"
+ *         description:
+ *           type: string
+ *           description: Assembly description (HTML allowed)
+ *         polygon:
+ *           type: object
+ *           description: GeoJSON polygon data
  *         created_by:
  *           type: string
  *           description: Reference to User who created
- *           example: "507f1f77bcf86cd799439022"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
+ *         is_active:
+ *           type: boolean
+ *           description: Active status
  *         created_at:
  *           type: string
  *           format: date-time

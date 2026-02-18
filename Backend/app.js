@@ -221,7 +221,9 @@ apiRouter.use('/csv-export', csvExportRoutes);
 
 // Public routes - no authentication required
 const { getTotalBooths } = require('./controllers/boothController');
+const { getTotalAssemblies } = require('./controllers/assemblyController');
 apiRouter.get('/total-booths', getTotalBooths);
+apiRouter.get('/total-assemblies', getTotalAssemblies);
 
 // Mount the API router on both /api and /backend/api paths
 app.use('/api', apiRouter);

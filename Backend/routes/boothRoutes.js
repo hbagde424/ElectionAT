@@ -5,11 +5,7 @@ const {
   createBooth,
   updateBooth,
   deleteBooth,
-  getBoothsByAssembly,
-  getBoothsByBlock,
-  getBoothsByYear,
   importBooths,
-  getTotalBooths,
   uploadBoothPolygon
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
@@ -45,7 +41,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for booth names or numbers
+ *         description: Search term for booth names
  *       - in: query
  *         name: block
  *         schema:
@@ -71,11 +67,6 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: State ID to filter by
- *       - in: query
- *         name: election_year
- *         schema:
- *           type: string
- *         description: Election year ID to filter by
  *     responses:
  *       200:
  *         description: List of booths
@@ -99,7 +90,6 @@ const router = express.Router();
  *                   items:
  *                     $ref: '#/components/schemas/Booth'
  */
-// Public: no authentication required for reading booth data
 router.get('/', getBooths);
 
 /**
@@ -124,7 +114,6 @@ router.get('/', getBooths);
  *       404:
  *         description: Booth not found
  */
-// Public: no authentication required for reading booth data
 router.get('/:id', getBooth);
 
 /**
@@ -209,108 +198,6 @@ router.delete('/:id', protect, authorize('superAdmin'), deleteBooth);
 
 /**
  * @swagger
- * /api/booths/assembly/{assemblyId}:
- *   get:
- *     summary: Get booths by assembly
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: assemblyId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of booths for the assembly
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Booth'
- *       404:
- *         description: Assembly not found
- */
-// Public: no authentication required for reading booth data
-router.get('/assembly/:assemblyId', getBoothsByAssembly);
-
-/**
- * @swagger
- * /api/booths/block/{blockId}:
- *   get:
- *     summary: Get booths by block
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: blockId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of booths for the block
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Booth'
- *       404:
- *         description: Block not found
- */
-// Public: no authentication required for reading booth data
-router.get('/block/:blockId', getBoothsByBlock);
-
-/**
- * @swagger
- * /api/booths/year/{yearId}:
- *   get:
- *     summary: Get booths by election year
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: yearId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of booths for the election year
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Booth'
- *       404:
- *         description: Election year not found
- */
-// Public: no authentication required for reading booth data
-router.get('/year/:yearId', getBoothsByYear);
-
-/**
- * @swagger
  * /api/booths/import:
  *   post:
  *     summary: Import booths from Excel
@@ -336,7 +223,26 @@ router.get('/year/:yearId', getBoothsByYear);
  */
 router.post('/import', protect, authorize('superAdmin'), importBooths);
 
-// Protected: requires authentication via serviceToken
+/**
+ * @swagger
+ * /api/booths/upload-polygon:
+ *   post:
+ *     summary: Upload booth polygon (GeoJSON)
+ *     tags: [Booths]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Polygon uploaded successfully
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/upload-polygon', protect, authorize('superAdmin'), uploadBoothPolygon);
 
 /**
@@ -348,67 +254,79 @@ router.post('/upload-polygon', protect, authorize('superAdmin'), uploadBoothPoly
  *       required:
  *         - name
  *         - booth_number
- *         - full_address
  *         - block_id
  *         - assembly_id
  *         - parliament_id
  *         - division_id
  *         - state_id
- *         - election_year
  *         - created_by
  *       properties:
  *         name:
  *           type: string
  *           description: Booth name
- *           example: "Main Polling Booth"
+ *           example: "मानसी"
  *         booth_number:
- *           type: string
- *           description: Booth number/identifier
- *           example: "B-42"
+ *           type: number
+ *           description: Booth number
+ *           example: 280
  *         full_address:
  *           type: string
- *           description: Complete address of the booth
- *           example: "123 Main St, City, State ZIP"
+ *           description: Full address of booth
+ *           example: "प्राथमिक विद्यालय मानसी"
  *         latitude:
  *           type: number
- *           description: GPS latitude coordinate
- *           example: 40.7128
+ *           description: Latitude coordinate
+ *           example: 12
  *         longitude:
  *           type: number
- *           description: GPS longitude coordinate
- *           example: -74.0060
+ *           description: Longitude coordinate
+ *           example: 2
+ *         Male_Count:
+ *           type: number
+ *           description: Male voter count
+ *           example: 273
+ *         Female_Count:
+ *           type: number
+ *           description: Female voter count
+ *           example: 291
+ *         others_Count:
+ *           type: number
+ *           description: Other gender voter count
+ *           example: 0
+ *         Total:
+ *           type: number
+ *           description: Total voter count
+ *           example: 564
  *         block_id:
  *           type: string
  *           description: Reference to Block
- *           example: "507f1f77bcf86cd799439011"
+ *           example: "687a11372bbc144034f228c3"
  *         assembly_id:
  *           type: string
  *           description: Reference to Assembly
- *           example: "507f1f77bcf86cd799439012"
+ *           example: "687a036493d4235d02ea1d1"
  *         parliament_id:
  *           type: string
  *           description: Reference to Parliament
- *           example: "507f1f77bcf86cd799439013"
+ *           example: "687a021993d4235d02ea1d05"
  *         division_id:
  *           type: string
  *           description: Reference to Division
- *           example: "507f1f77bcf86cd799439015"
+ *           example: "685fd2c0267d3d01c364e62f"
  *         state_id:
  *           type: string
  *           description: Reference to State
- *           example: "507f1f77bcf86cd799439016"
- *         election_year:
- *           type: string
- *           description: Reference to Election Year
- *           example: "507f1f77bcf86cd799439017"
- *         description:
- *           type: string
- *           description: Candidate description (HTML allowed)
- *           example: "<p>Some description about the candidate.</p>"
+ *           example: "6825c30edbda2b3debc751ff"
+ *         polygon:
+ *           type: object
+ *           description: GeoJSON polygon data
  *         created_by:
  *           type: string
  *           description: Reference to User who created
- *           example: "507f1f77bcf86cd799439022"
+ *           example: "684ab4dce856ee7296dee255"
+ *         updated_by:
+ *           type: string
+ *           description: Reference to User who last updated
  *         created_at:
  *           type: string
  *           format: date-time
