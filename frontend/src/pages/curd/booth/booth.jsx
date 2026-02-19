@@ -150,92 +150,102 @@ export default function BoothsListPage() {
         fetchAllBoothsForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
-    // Load booth polygons from booths table - filtered by user hierarchy
-    useEffect(() => {
-        (async () => {
-            try {
-                const token = localStorage.getItem('serviceToken');
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const json = await res.json();
-                
-                if (!json.success || !Array.isArray(json.data)) {
-                    throw new Error('Invalid response format');
-                }
+    // Helper function to load and update booth polygons
+    const loadBoothPolygons = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            
+            if (!json.success || !Array.isArray(json.data)) {
+                throw new Error('Invalid response format');
+            }
 
-                // Filter booths based on user hierarchy
-                let boothsToUse = json.data;
-                if (userHierarchy?.booth) {
-                    boothsToUse = json.data.filter(b => String(b._id) === String(userHierarchy.booth._id || userHierarchy.booth));
-                } else if (userHierarchy?.block) {
-                    boothsToUse = json.data.filter(b => String(b.block_id?._id || b.block_id) === String(userHierarchy.block._id || userHierarchy.block));
-                } else if (userHierarchy?.assembly) {
-                    boothsToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
-                } else if (userHierarchy?.parliament) {
-                    boothsToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
-                } else if (userHierarchy?.division) {
-                    boothsToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
-                } else if (userHierarchy?.state) {
-                    boothsToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
-                }
+            // Filter booths based on user hierarchy
+            let boothsToUse = json.data;
+            if (userHierarchy?.booth) {
+                boothsToUse = json.data.filter(b => String(b._id) === String(userHierarchy.booth._id || userHierarchy.booth));
+            } else if (userHierarchy?.block) {
+                boothsToUse = json.data.filter(b => String(b.block_id?._id || b.block_id) === String(userHierarchy.block._id || userHierarchy.block));
+            } else if (userHierarchy?.assembly) {
+                boothsToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+            } else if (userHierarchy?.parliament) {
+                boothsToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+            } else if (userHierarchy?.division) {
+                boothsToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+            } else if (userHierarchy?.state) {
+                boothsToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+            }
 
-                // Extract polygons from booths that have polygon data
-                const features = [];
-                boothsToUse.forEach(booth => {
-                    if (booth.polygon) {
-                        let featureToAdd = null;
-                        
-                        if (booth.polygon.type === 'Feature') {
-                            featureToAdd = {
-                                ...booth.polygon,
+            // Extract polygons from booths that have polygon data
+            const features = [];
+            boothsToUse.forEach(booth => {
+                if (booth.polygon) {
+                    let featureToAdd = null;
+                    
+                    if (booth.polygon.type === 'Feature') {
+                        featureToAdd = {
+                            ...booth.polygon,
+                            properties: {
+                                ...booth.polygon.properties,
+                                booth_id: booth._id,
+                                booth_name: booth.name,
+                                booth_number: booth.booth_number
+                            }
+                        };
+                    } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
+                        booth.polygon.features.forEach(feat => {
+                            features.push({
+                                ...feat,
                                 properties: {
-                                    ...booth.polygon.properties,
+                                    ...feat.properties,
                                     booth_id: booth._id,
                                     booth_name: booth.name,
                                     booth_number: booth.booth_number
                                 }
-                            };
-                        } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
-                            booth.polygon.features.forEach(feat => {
-                                features.push({
-                                    ...feat,
-                                    properties: {
-                                        ...feat.properties,
-                                        booth_id: booth._id,
-                                        booth_name: booth.name,
-                                        booth_number: booth.booth_number
-                                    }
-                                });
                             });
-                            return;
-                        }
-                        
-                        if (featureToAdd) {
-                            features.push(featureToAdd);
-                        }
+                        });
+                        return;
                     }
-                });
-
-                if (!features.length) {
-                    setMapError('No booths with polygon data available');
-                    setAllBoothGeoJSON(null);
-                    setBoothGeoJSON(null);
-                } else {
-                    const geoJSON = { type: 'FeatureCollection', features };
-                    setAllBoothGeoJSON(geoJSON);
-                    setBoothGeoJSON(geoJSON);
-                    setMapError('');
+                    
+                    if (featureToAdd) {
+                        features.push(featureToAdd);
+                    }
                 }
-            } catch (e) {
-                console.error('Failed to load booth polygons:', e);
-                setMapError(`Failed to load polygon data: ${e.message}`);
+            });
+
+            if (!features.length) {
+                setMapError('No booths with polygon data available');
                 setAllBoothGeoJSON(null);
                 setBoothGeoJSON(null);
+            } else {
+                const geoJSON = { type: 'FeatureCollection', features };
+                setAllBoothGeoJSON(geoJSON);
+                setBoothGeoJSON(geoJSON);
+                setMapError('');
             }
-        })();
+        } catch (e) {
+            console.error('Failed to load booth polygons:', e);
+            setMapError(`Failed to load polygon data: ${e.message}`);
+            setAllBoothGeoJSON(null);
+            setBoothGeoJSON(null);
+        }
+    };
+
+    // Load booth polygons on mount and when user hierarchy changes
+    useEffect(() => {
+        loadBoothPolygons();
     }, [userHierarchy]);
+
+    // Reload polygons when booths data changes (after update/delete)
+    useEffect(() => {
+        if (booths.length > 0) {
+            loadBoothPolygons();
+        }
+    }, [booths]);
 
     const filterOptions = useFilterOptionsFromData(allBooths, {
         states: { field: 'state_id', nameField: 'name' },
