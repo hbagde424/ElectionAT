@@ -9,26 +9,26 @@ import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 
-export default function assemblyDetailPage() {
+export default function AssemblyDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [assembly, setassembly] = useState(null);
+    const [assembly, setAssembly] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     useEffect(() => {
-        const fetchassembly = async () => {
+        const fetchAssembly = async () => {
             try {
                 const token = localStorage.getItem('serviceToken');
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblys/${id}`, { headers });
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${id}`, { headers });
                 const json = await res.json();
 
                 if (json.success) {
-                    setassembly(json.data);
+                    setAssembly(json.data);
                 } else {
-                    setError('assembly not found');
+                    setError('Assembly not found');
                 }
             } catch (err) {
                 setError('Failed to fetch assembly details');
@@ -38,7 +38,7 @@ export default function assemblyDetailPage() {
             }
         };
 
-        fetchassembly();
+        fetchAssembly();
     }, [id]);
 
     if (loading) {
@@ -52,9 +52,9 @@ export default function assemblyDetailPage() {
     if (error || !assembly) {
         return (
             <MainCard>
-                <Alert severity="error">{error || 'assembly not found'}</Alert>
+                <Alert severity="error">{error || 'Assembly not found'}</Alert>
                 <Button startIcon={<ArrowLeft />} onClick={() => navigate('/assembly')} sx={{ mt: 2 }}>
-                    Back to assemblys
+                    Back to Assemblies
                 </Button>
             </MainCard>
         );
@@ -71,86 +71,59 @@ export default function assemblyDetailPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h4">{assembly.name}</Typography>
                     <Button startIcon={<ArrowLeft />} onClick={() => navigate('/assembly')}>
-                        Back to assemblys
+                        Back to Assemblies
                     </Button>
                 </Box>
 
                 <Divider />
 
-                {/* Map Section */}
                 {assemblyGeoJSON && mapboxToken && (
                     <Box>
-                        <Typography variant="h6" sx={{ mb: 2 }}>assembly Location</Typography>
+                        <Typography variant="h6" sx={{ mb: 2 }}>Assembly Location</Typography>
                         <MapContainerStyled sx={{ minHeight: 400 }}>
                             <Map
                                 mapboxAccessToken={mapboxToken}
                                 initialViewState={{
-                                    longitude: assembly.longitude || 77.0,
-                                    latitude: assembly.latitude || 23.5,
-                                    zoom: 12
+                                    longitude: 77.0,
+                                    latitude: 23.5,
+                                    zoom: 8
                                 }}
                                 mapStyle="mapbox://styles/mapbox/streets-v12"
                             >
                                 <MapControl />
                                 <Source id="assembly-polygon" type="geojson" data={assemblyGeoJSON}>
-                                    <Layer id="assembly-fill" type="fill" paint={{ 'fill-color': '#4CAF50', 'fill-opacity': 0.3 }} />
-                                    <Layer id="assembly-outline" type="line" paint={{ 'line-color': '#388E3C', 'line-width': 3 }} />
+                                    <Layer id="assembly-fill" type="fill" paint={{ 'fill-color': '#9C27B0', 'fill-opacity': 0.3 }} />
+                                    <Layer id="assembly-outline" type="line" paint={{ 'line-color': '#7B1FA2', 'line-width': 3 }} />
                                 </Source>
                             </Map>
                         </MapContainerStyled>
                     </Box>
                 )}
 
-                {/* Details Section */}
                 <Grid container spacing={3}>
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <Typography variant="subtitle2" color="textSecondary">assembly Number</Typography>
-                            <Chip label={assembly.assembly_number || 'N/A'} color="primary" size="medium" />
+                            <Typography variant="subtitle2" color="textSecondary">AC Number</Typography>
+                            <Chip label={assembly.AC_NO || 'N/A'} color="primary" size="medium" />
                         </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <Typography variant="subtitle2" color="textSecondary">Full Address</Typography>
-                            <Typography variant="body1">{assembly.description || 'N/A'}</Typography>
+                            <Typography variant="subtitle2" color="textSecondary">Type</Typography>
+                            <Chip label={assembly.type || 'N/A'} size="medium" variant="outlined" />
                         </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <Typography variant="subtitle2" color="textSecondary">Coordinates</Typography>
-                            <Typography variant="body2">Latitude: {assembly.latitude || 0}</Typography>
-                            <Typography variant="body2">Longitude: {assembly.longitude || 0}</Typography>
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <Typography variant="subtitle2" color="textSecondary">Voter Statistics</Typography>
-                            <Typography variant="body2">Male: {assembly.type || 0}</Typography>
-                            <Typography variant="body2">Female: {assembly.Fetype || 0}</Typography>
-                            <Typography variant="body2">Others: {assembly.others_Count || 0}</Typography>
-                            <Typography variant="body1" fontWeight="bold">Total: {assembly.Total || 0}</Typography>
+                            <Typography variant="subtitle2" color="textSecondary">Category</Typography>
+                            <Chip label={assembly.category || 'N/A'} color="secondary" size="medium" variant="outlined" />
                         </Stack>
                     </Grid>
 
                     <Grid item xs={12}>
                         <Divider />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <Typography variant="subtitle2" color="textSecondary">Block</Typography>
-                            <Chip label={assembly.parliament_id?.name || 'N/A'} color="secondary" size="medium" variant="outlined" />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={1}>
-                            <Typography variant="subtitle2" color="textSecondary">Assembly</Typography>
-                            <Chip label={assembly.assembly_id?.name || 'N/A'} color="info" size="medium" variant="outlined" />
-                        </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -163,14 +136,25 @@ export default function assemblyDetailPage() {
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <Typography variant="subtitle2" color="textSecondary">Division</Typography>
-                            <Chip label={assembly.division_id?.name || 'N/A'} color="success" size="medium" variant="outlined" />
+                            <Chip label={assembly.division_id?.name || 'N/A'} color="info" size="medium" variant="outlined" />
                         </Stack>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <Typography variant="subtitle2" color="textSecondary">State</Typography>
-                            <Chip label={assembly.state_id?.name || 'N/A'} color="primary" size="medium" variant="outlined" />
+                            <Chip label={assembly.state_id?.name || 'N/A'} color="success" size="medium" variant="outlined" />
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Divider />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                            <Typography variant="body2">{assembly.description ? assembly.description.replace(/<[^>]+>/g, '') : 'N/A'}</Typography>
                         </Stack>
                     </Grid>
 
@@ -214,4 +198,3 @@ export default function assemblyDetailPage() {
         </MainCard>
     );
 }
-

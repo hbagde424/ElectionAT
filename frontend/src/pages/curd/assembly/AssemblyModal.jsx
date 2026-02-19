@@ -3,6 +3,8 @@ import {
     Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl, Box, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import JWTContext from 'contexts/JWTContext';
 
 export default function AssemblyModal({
@@ -32,7 +34,6 @@ export default function AssemblyModal({
     const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
-    // Filtered arrays for cascading dropdowns
     const [filteredDivisions, setFilteredDivisions] = useState([]);
     const [filteredParliaments, setFilteredParliaments] = useState([]);
 
@@ -67,7 +68,6 @@ export default function AssemblyModal({
         }
     }, [assembly, states]);
 
-    // State -> Division
     useEffect(() => {
         if (formData.state_id) {
             const filtered = divisions?.filter(division => {
@@ -93,7 +93,6 @@ export default function AssemblyModal({
         }
     }, [formData.state_id, divisions]);
 
-    // Division -> Parliament
     useEffect(() => {
         if (formData.division_id) {
             const filtered = parliaments?.filter(parliament => {
@@ -122,6 +121,13 @@ export default function AssemblyModal({
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'number' ? Number(value) : value
+        }));
+    };
+
+    const handleDescriptionChange = (value) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: value
         }));
     };
 
@@ -242,6 +248,7 @@ export default function AssemblyModal({
                             <InputLabel>AC Number <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="AC_NO"
+                                type="number"
                                 value={formData.AC_NO}
                                 onChange={handleChange}
                                 fullWidth
@@ -249,6 +256,7 @@ export default function AssemblyModal({
                                 error={submitted && !formData.AC_NO}
                                 helperText={submitted && !formData.AC_NO ? 'AC number is required' : ''}
                                 placeholder="Enter AC number"
+                                inputProps={{ min: 1 }}
                             />
                         </Stack>
                     </Grid>
@@ -263,9 +271,6 @@ export default function AssemblyModal({
                                     ))}
                                 </Select>
                             </FormControl>
-                            {submitted && !formData.type && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Type is required</Box>
-                            )}
                         </Stack>
                     </Grid>
 
@@ -279,9 +284,6 @@ export default function AssemblyModal({
                                     ))}
                                 </Select>
                             </FormControl>
-                            {submitted && !formData.category && (
-                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Category is required</Box>
-                            )}
                         </Stack>
                     </Grid>
 
@@ -338,21 +340,6 @@ export default function AssemblyModal({
 
                     <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Description</InputLabel>
-                            <TextField
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                fullWidth
-                                multiline
-                                rows={3}
-                                placeholder="Enter assembly description"
-                            />
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                        <Stack spacing={1}>
                             <InputLabel>Assembly Polygon (GeoJSON)</InputLabel>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                                 <Button variant="outlined" component="label">
@@ -371,6 +358,18 @@ export default function AssemblyModal({
                                     </Button>
                                 )}
                             </Box>
+                        </Stack>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Stack spacing={1}>
+                            <InputLabel>Description</InputLabel>
+                            <ReactQuill
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                theme="snow"
+                                placeholder="Enter assembly description..."
+                            />
                         </Stack>
                     </Grid>
                 </Grid>

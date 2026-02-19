@@ -1,122 +1,48 @@
-import { Stack, Typography, Divider, Grid, Box, Chip } from '@mui/material';
-import { CalendarTick, User } from 'iconsax-react';
+import { Box, Typography, Grid, Chip, Divider } from '@mui/material';
 
 export default function ParliamentView({ data }) {
-    if (!data) return null;
-
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
-
     return (
-        <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 1 }}>
-            <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                <Typography variant="h6">{data.name || 'Untitled Parliament'}</Typography>
-                <Chip
-                    label={`No: ${data.parliament_no || data['Parliament No'] || 'N/A'}`}
-                    size="small"
-                    color="secondary"
-                    variant="filled"
-                />
-                <Chip
-                    label={data.category ? data.category.charAt(0).toUpperCase() + data.category.slice(1) : 'N/A'}
-                    size="small"
-                    variant="outlined"
-                />
-                <Chip
-                    label={data.regional_type ? data.regional_type.charAt(0).toUpperCase() + data.regional_type.slice(1) : 'N/A'}
-                    size="small"
-                    variant="outlined"
-                />
-            </Stack>
-
-            {data.description && (
-                <Box sx={{ mb: 2 }}>
-                    <Divider sx={{ mb: 1 }} />
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>Description</Typography>
-                    <Box sx={{ bgcolor: '#f9f9f9', borderRadius: 1, p: 2 }}>
-                        <div dangerouslySetInnerHTML={{ __html: data.description }} />
-                    </Box>
-                </Box>
-            )}
-
-            <Divider sx={{ mb: 2 }} />
-
-            <Grid container spacing={3}>
-                {/* Left Column */}
-                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
-                    <Stack spacing={2}>
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <User size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Created By
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {data.created_by?.username || 'N/A'}
-                            </Typography>
-                        </Box>
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <User size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Updated By
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {data.updated_by?.username || 'N/A'}
-                            </Typography>
-                        </Box>
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                                <CalendarTick size="16" />
-                                <Typography variant="subtitle2" color="text.secondary">
-                                    Created At
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body1" fontWeight="medium">
-                                {formatDate(data.created_at)}
-                            </Typography>
-                        </Box>
-                    </Stack>
+        <Box sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Parliament Details</Typography>
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Parliament Name</Typography>
+                    <Typography variant="body1">{data.name || 'N/A'}</Typography>
                 </Grid>
-                {/* Right Column */}
-                <Grid item xs={12} md={6} lg={6} xl={6} sm={12}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>State</Typography>
-                            <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Division</Typography>
-                            <Chip label={data.division_id?.name || 'N/A'} color="warning" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Assembly</Typography>
-                            <Chip label={data.assembly_id?.name || 'N/A'} color="info" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={6} lg={6} xl={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Election Year</Typography>
-                            <Chip label={data.election_year_id?.year || 'N/A'} color="success" size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Category</Typography>
-                            <Chip label={data.category ? data.category.charAt(0).toUpperCase() + data.category.slice(1) : 'N/A'} size="small" />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Regional Type</Typography>
-                            <Chip label={data.regional_type ? data.regional_type.charAt(0).toUpperCase() + data.regional_type.slice(1) : 'N/A'} size="small" />
-                        </Grid>
-                    </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">PC Number</Typography>
+                    <Chip label={data.parliament_no || 'N/A'} color="primary" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Category</Typography>
+                    <Chip label={data.category || 'N/A'} color="secondary" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Regional Type</Typography>
+                    <Chip label={data.regional_type || 'N/A'} size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Division</Typography>
+                    <Chip label={data.division_id?.name || 'N/A'} color="info" size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">State</Typography>
+                    <Chip label={data.state_id?.name || 'N/A'} color="success" size="small" />
+                </Grid>
+                <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                </Grid>
+                <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                    <Typography variant="body2" dangerouslySetInnerHTML={{ __html: data.description || 'No description available' }} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Created By</Typography>
+                    <Typography variant="body2">{data.created_by?.username || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Updated By</Typography>
+                    <Typography variant="body2">{data.updated_by?.username || 'N/A'}</Typography>
                 </Grid>
             </Grid>
         </Box>

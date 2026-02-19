@@ -1,52 +1,32 @@
+const mongoose = require('mongoose');
 const Parliament = require('../models/Parliament');
-const State = require('../models/state');
 const Division = require('../models/Division');
-const User = require('../models/User');
-const ElectionYear = require('../models/electionYear');
+const State = require('../models/state');
+
+// Helper to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // @desc    Get all parliaments
 // @route   GET /api/parliaments
 // @access  Public
 exports.getParliaments = async (req, res, next) => {
   try {
-    // Pagination
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit);
-    // If searching, ignore pagination and return all results (set high limit)
-    const isSearching = !!req.query.search;
-    if (isSearching) {
+
+    if (!!req.query.search || !limit || limit <= 0) {
       limit = 10000;
-      page = 1;
-    } else {
-      if (!limit || limit <= 0) {
-        limit = 10000;
-      }
     }
     const skip = (page - 1) * limit;
 
-    // Basic query
     let query = Parliament.find()
-      .populate('state_id', '_id name')
-      .populate('division_id', '_id name')
-      .populate('election_year_id', '_id year election_type')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username')
-      .select('-polygon')
-      .sort({ name: 1 });
+      .sort({ parliament_no: 1 });
 
-    // If userHierarchy is present (middleware attached), restrict results to user's scope
-    if (req.userHierarchy) {
-      // Prefer most specific allocation available on user's hierarchy
-      if (req.userHierarchy.parliament) {
-        query = query.where('_id').equals(req.userHierarchy.parliament._id);
-      } else if (req.userHierarchy.division) {
-        query = query.where('division_id').equals(req.userHierarchy.division._id);
-      } else if (req.userHierarchy.state) {
-        query = query.where('state_id').equals(req.userHierarchy.state._id);
-      }
-    }
-
-    // Enhanced search functionality: only apply regex to string fields
+    // Enhanced search functionality
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' };
       query = query.find({
@@ -59,32 +39,14 @@ exports.getParliaments = async (req, res, next) => {
       });
     }
 
-    // Filter by category (case-insensitive)
+    // Filter by category
     if (req.query.category) {
-      query = query.find({ category: { $regex: `^${req.query.category}$`, $options: 'i' } });
+      query = query.where('category').equals(req.query.category);
     }
 
-    // Filter by regional type (case-insensitive)
+    // Filter by regional_type
     if (req.query.regional_type) {
-      query = query.find({ regional_type: { $regex: `^${req.query.regional_type}$`, $options: 'i' } });
-    }
-
-    // Filter by state (ObjectId or name, dash-to-space, case-insensitive)
-    if (req.query.state) {
-      let stateValue = req.query.state.replace(/-/g, ' ');
-      const isObjectId = /^[a-f\d]{24}$/i.test(stateValue);
-      let stateId = null;
-      if (isObjectId) {
-        stateId = stateValue;
-      } else {
-        const stateDoc = await State.findOne({ name: { $regex: stateValue, $options: 'i' } });
-        stateId = stateDoc ? stateDoc._id : null;
-      }
-      if (stateId) {
-        query = query.where('state_id').equals(stateId);
-      } else {
-        return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
-      }
+      query = query.where('regional_type').equals(req.query.regional_type);
     }
 
     // Filter by division
@@ -97,7 +59,6 @@ exports.getParliaments = async (req, res, next) => {
         if (divisionDoc) {
           query = query.where('division_id').equals(divisionDoc._id);
         } else {
-          // No such division, return empty result
           return res.status(200).json({
             success: true,
             count: 0,
@@ -108,6 +69,44 @@ exports.getParliaments = async (req, res, next) => {
           });
         }
       }
+    }
+
+    // Filter by state
+    if (req.query.state) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(req.query.state);
+      if (isObjectId) {
+        query = query.where('state_id').equals(req.query.state);
+      } else {
+        const stateDoc = await State.findOne({ name: req.query.state });
+        if (stateDoc) {
+          query = query.where('state_id').equals(stateDoc._id);
+        } else {
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            total: 0,
+            page,
+            pages: 0,
+            data: []
+          });
+        }
+      }
+    }
+
+    // If userHierarchy exists, restrict by user's scope unless superAdmin
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      if (uh.booth) query = query.where('booth_id').equals(uh.booth._id);
+      else if (uh.block) query = query.where('block_id').equals(uh.block._id);
+      else if (uh.assembly) query = query.where('assembly_id').equals(uh.assembly._id);
+      else if (uh.parliament) query = query.where('_id').equals(uh.parliament._id);
+      else if (uh.division) query = query.where('division_id').equals(uh.division._id);
+      else if (uh.state) query = query.where('state_id').equals(uh.state._id);
+    }
+
+    // Filter by active status
+    if (req.query.is_active !== undefined) {
+      query = query.where('is_active').equals(req.query.is_active === 'true');
     }
 
     const parliaments = await query.skip(skip).limit(limit).exec();
@@ -131,32 +130,9 @@ exports.getParliaments = async (req, res, next) => {
 // @access  Public
 exports.getParliament = async (req, res, next) => {
   try {
-    // If userHierarchy exists, ensure they can access this parliament
-    if (req.userHierarchy) {
-      // If user assigned to a parliament, allow only that parish
-      if (req.userHierarchy.parliament && req.userHierarchy.parliament._id.toString() !== req.params.id) {
-        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-      }
-      // If user assigned to a division, ensure this parliament belongs to that division
-      if (req.userHierarchy.division) {
-        const p = await Parliament.findById(req.params.id).select('division_id');
-        if (!p || p.division_id.toString() !== req.userHierarchy.division._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      // If user assigned to a state, ensure this parliament belongs to that state
-      if (req.userHierarchy.state) {
-        const p = await Parliament.findById(req.params.id).select('state_id');
-        if (!p || p.state_id.toString() !== req.userHierarchy.state._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-    }
-
     const parliament = await Parliament.findById(req.params.id)
-      .populate('state_id', '_id name')
-      .populate('division_id', '_id name')
-      .populate('election_year_id', '_id year election_type')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -165,6 +141,19 @@ exports.getParliament = async (req, res, next) => {
         success: false,
         message: 'Parliament not found'
       });
+    }
+
+    // Enforce user hierarchy for single parliament resource
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+      const uh = req.userHierarchy;
+      const outside = (
+        (uh.parliament && parliament._id.toString() !== uh.parliament._id.toString()) ||
+        (uh.division && parliament.division_id?.toString() !== uh.division._id.toString()) ||
+        (uh.state && parliament.state_id?.toString() !== uh.state._id.toString())
+      );
+      if (outside) {
+        return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
+      }
     }
 
     res.status(200).json({
@@ -181,34 +170,19 @@ exports.getParliament = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createParliament = async (req, res, next) => {
   try {
-    // Verify state exists
-    const state = await State.findById(req.body.state_id);
-    if (!state) {
-      return res.status(400).json({
-        success: false,
-        message: 'State not found'
-      });
-    }
+    // Verify all references exist
+    const [division, state] = await Promise.all([
+      Division.findById(req.body.division_id),
+      State.findById(req.body.state_id)
+    ]);
 
-    // Verify division exists
-    const division = await Division.findById(req.body.division_id);
     if (!division) {
-      return res.status(400).json({
-        success: false,
-        message: 'Division not found'
-      });
+      return res.status(400).json({ success: false, message: 'Division not found' });
+    }
+    if (!state) {
+      return res.status(400).json({ success: false, message: 'State not found' });
     }
 
-    // Verify election year exists
-    const electionYear = await ElectionYear.findById(req.body.election_year_id);
-    if (!electionYear) {
-      return res.status(400).json({
-        success: false,
-        message: 'Election year not found'
-      });
-    }
-
-    // Check if user exists in request
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -216,24 +190,29 @@ exports.createParliament = async (req, res, next) => {
       });
     }
 
-
-
     const parliamentData = {
       ...req.body,
-      description: req.body.description || '',
-      created_by: req.user.id
+      created_by: req.user.id,
+      description: req.body.description || ''
     };
 
-    const parliament = new Parliament(parliamentData);
-    parliament._locals = { user: req.user };  // Set user context
-    await parliament.save();
+    if (req.body.polygon) {
+      parliamentData.polygon = req.body.polygon;
+    }
 
+    const parliament = await Parliament.create(parliamentData);
 
     res.status(201).json({
       success: true,
       data: parliament
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parliament with this number already exists'
+      });
+    }
     next(err);
   }
 };
@@ -252,57 +231,39 @@ exports.updateParliament = async (req, res, next) => {
       });
     }
 
-    // Verify state exists if being updated
-    if (req.body.state_id) {
-      const state = await State.findById(req.body.state_id);
-      if (!state) {
+    // Verify all references exist if being updated
+    const verificationPromises = [];
+    if (req.body.division_id) verificationPromises.push(Division.findById(req.body.division_id));
+    if (req.body.state_id) verificationPromises.push(State.findById(req.body.state_id));
+
+    const verificationResults = await Promise.all(verificationPromises);
+
+    for (const result of verificationResults) {
+      if (!result) {
         return res.status(400).json({
           success: false,
-          message: 'State not found'
+          message: `${result.modelName} not found`
         });
       }
     }
-
-    // Verify division exists if being updated
-    if (req.body.division_id) {
-      const division = await Division.findById(req.body.division_id);
-      if (!division) {
-        return res.status(400).json({
-          success: false,
-          message: 'Division not found'
-        });
-      }
-    }
-
-    // Verify election year exists if being updated
-    if (req.body.election_year_id) {
-      const electionYear = await ElectionYear.findById(req.body.election_year_id);
-      if (!electionYear) {
-        return res.status(400).json({
-          success: false,
-          message: 'Election year not found'
-        });
-      }
-    }
-
-    // Set updated_by from authenticated user
-    req.body.updated_by = req.user.id;
-
-    // Set user in locals for pre-save hook
-    parliament._locals = { user: req.user };
-    req.body.updated_at = new Date();
 
     const updateData = {
       ...req.body,
+      updated_by: req.user.id,
       description: req.body.description || '',
+      updated_at: Date.now()
     };
+
+    if (req.body.polygon) {
+      updateData.polygon = req.body.polygon;
+    }
+
     parliament = await Parliament.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     })
-      .populate('state_id', 'name')
       .populate('division_id', 'name')
-      .populate('election_year_id', 'year election_type')
+      .populate('state_id', 'name')
       .populate('created_by', 'username')
       .populate('updated_by', 'username');
 
@@ -311,6 +272,12 @@ exports.updateParliament = async (req, res, next) => {
       data: parliament
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parliament with this number already exists'
+      });
+    }
     next(err);
   }
 };
@@ -340,111 +307,6 @@ exports.deleteParliament = async (req, res, next) => {
   }
 };
 
-// @desc    Get parliaments by state
-// @route   GET /api/parliaments/state/:stateId
-// @access  Public
-exports.getParliamentsByState = async (req, res, next) => {
-  try {
-    // Verify state exists
-    const state = await State.findById(req.params.stateId);
-    if (!state) {
-      return res.status(404).json({
-        success: false,
-        message: 'State not found'
-      });
-    }
-
-    // If userHierarchy exists, restrict by user's scope
-    if (req.userHierarchy) {
-      if (req.userHierarchy.parliament) {
-        // user is attached to a specific parliament
-        const p = await Parliament.findById(req.userHierarchy.parliament._id);
-        if (!p || p.state_id.toString() !== req.params.stateId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.division) {
-        // ensure user's division matches requested state (division belongs to state)
-        if (req.userHierarchy.division.state && req.userHierarchy.division.state.toString() !== req.params.stateId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.state) {
-        if (req.userHierarchy.state._id.toString() !== req.params.stateId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-    }
-
-    const parliaments = await Parliament.find({ state_id: req.params.stateId })
-      .sort({ name: 1 })
-      .populate('division_id', 'name')
-      .populate('election_year_id', 'year election_type')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
-
-    res.status(200).json({
-      success: true,
-      count: parliaments.length,
-      data: parliaments
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// @desc    Get parliaments by division
-// @route   GET /api/parliaments/division/:divisionId
-// @access  Public
-exports.getParliamentsByDivision = async (req, res, next) => {
-  try {
-    // Verify division exists
-    const division = await Division.findById(req.params.divisionId);
-    if (!division) {
-      return res.status(404).json({
-        success: false,
-        message: 'Division not found'
-      });
-    }
-
-    // If userHierarchy exists, restrict by user's scope
-    if (req.userHierarchy) {
-      if (req.userHierarchy.parliament) {
-        const p = await Parliament.findById(req.userHierarchy.parliament._id);
-        if (!p || p.division_id.toString() !== req.params.divisionId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.division) {
-        if (req.userHierarchy.division._id.toString() !== req.params.divisionId) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-      if (req.userHierarchy.state) {
-        // If user only has state-level access, ensure the division belongs to that state
-        if (division.state && division.state.toString() !== req.userHierarchy.state._id.toString()) {
-          return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
-        }
-      }
-    }
-
-    const parliaments = await Parliament.find({ division_id: req.params.divisionId })
-      .sort({ name: 1 })
-      .populate('state_id', 'name')
-      .populate('election_year_id', 'year election_type')
-      .populate('created_by', 'username')
-      .populate('updated_by', 'username');
-
-    res.status(200).json({
-      success: true,
-      count: parliaments.length,
-      data: parliaments
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 // @desc    Import parliaments from Excel
 // @route   POST /api/parliaments/import
 // @access  Private/SuperAdmin
@@ -462,9 +324,9 @@ exports.importParliaments = async (req, res, next) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        if (!row.name || !row.parliament_no) {
+        if (!row.name) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Missing name or parliament_no' });
+          summary.errors.push({ row: i + 1, message: 'Missing parliament name' });
           continue;
         }
 
@@ -473,22 +335,6 @@ exports.importParliaments = async (req, res, next) => {
         if (missingFields.length > 0) {
           summary.skipped += 1;
           summary.errors.push({ row: i + 1, message: `Missing: ${missingFields.join(', ')}` });
-          continue;
-        }
-
-        // Resolve Election Year
-        let electionYearId = null;
-        if (row.election_year) {
-          const yearVal = Number(row.election_year);
-          if (!isNaN(yearVal)) {
-            const ey = await ElectionYear.findOne({ year: yearVal });
-            if (ey) electionYearId = ey._id;
-          }
-        }
-
-        if (!electionYearId) {
-          summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Election year '${row.election_year}' not found or invalid` });
           continue;
         }
 
@@ -503,12 +349,10 @@ exports.importParliaments = async (req, res, next) => {
         const parliamentData = {
           name: row.name,
           parliament_no: row.parliament_no,
-          description: row.description || '',
-          category: (row.category || 'general').toLowerCase(),
-          regional_type: (row.regional_type || 'mixed').toLowerCase(),
+          category: row.category || 'General',
+          regional_type: row.regional_type || 'Urban',
           division_id: geo.division._id,
           state_id: geo.state._id,
-          election_year_id: electionYearId,
           created_by: req.user.id,
           updated_by: req.user.id
         };
@@ -568,30 +412,34 @@ exports.uploadParliamentPolygon = async (req, res, next) => {
       if (!feature.properties) continue;
 
       const props = feature.properties;
-      // Try to find parliament by name variants
-      const parliamentName = props.PC_NAME || props.PC_NAME_E || props.PCNAME || props.Name || props.NAME || props.name;
+      const parliamentNo = props.parliament_no || props.PC_NO || props.OBJECTID;
+      const parliamentName = props.STNAME || props.name || props.Name || props.NAME;
 
-      // Note: Parliament matching might need "Parliament No" or "PC_NO" if names are ambiguous, 
-      // but usually names are unique within a state. Since this is a global upload, 
-      // ideally we iterate and try to match.
-
-      if (!parliamentName) {
-        errors.push('Feature passed without a valid name property (PC_NAME, PC_NAME_E, name)');
+      if (!parliamentNo && !parliamentName) {
+        errors.push('Feature passed without a valid match property (parliament_no or name)');
         continue;
       }
 
-      // Case-insensitive search
-      const parliament = await Parliament.findOne({
-        name: { $regex: new RegExp(`^${parliamentName}$`, 'i') }
-      });
+      let parliament = null;
+
+      // Try finding by parliament_no first if available
+      if (parliamentNo) {
+        parliament = await Parliament.findOne({ parliament_no: Number(parliamentNo) });
+      }
+
+      // If not found by parliament_no, try by name
+      if (!parliament && parliamentName) {
+        parliament = await Parliament.findOne({
+          name: { $regex: new RegExp(`^${parliamentName}$`, 'i') }
+        });
+      }
 
       if (parliament) {
-        // Update parliament with polygon feature
         parliament.polygon = feature;
         await parliament.save();
         updatedCount++;
       } else {
-        errors.push(`Parliament not found for: ${parliamentName}`);
+        errors.push(`Parliament not found for: parliament_no=${parliamentNo}, name=${parliamentName}`);
       }
     }
 
@@ -609,6 +457,21 @@ exports.uploadParliamentPolygon = async (req, res, next) => {
       errors: errors.length > 0 ? errors : undefined
     });
 
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get total parliaments count
+// @route   GET /api/total-parliaments
+// @access  Public
+exports.getTotalParliaments = async (req, res, next) => {
+  try {
+    const total = await Parliament.countDocuments();
+    res.status(200).json({
+      success: true,
+      total
+    });
   } catch (err) {
     next(err);
   }

@@ -20,40 +20,19 @@ export default function AssemblyView({ data }) {
             <Grid item xs={12} sm={6}>
                 <Stack spacing={1}>
                     <Typography variant="subtitle2" color="textSecondary">Type</Typography>
-                    <Chip label={data.type || 'N/A'} color="secondary" size="small" variant="outlined" />
+                    <Chip label={data.type || 'N/A'} size="small" variant="outlined" />
                 </Stack>
             </Grid>
 
             <Grid item xs={12} sm={6}>
                 <Stack spacing={1}>
                     <Typography variant="subtitle2" color="textSecondary">Category</Typography>
-                    <Chip label={data.category || 'N/A'} color="info" size="small" variant="outlined" />
-                </Stack>
-            </Grid>
-
-            <Grid item xs={12}>
-                <Stack spacing={1}>
-                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
-                    <Typography variant="body2">{data.description || 'N/A'}</Typography>
+                    <Chip label={data.category || 'N/A'} color="secondary" size="small" variant="outlined" />
                 </Stack>
             </Grid>
 
             <Grid item xs={12}>
                 <Divider />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-                <Stack spacing={1}>
-                    <Typography variant="subtitle2" color="textSecondary">State</Typography>
-                    <Chip label={data.state_id?.name || 'N/A'} color="primary" size="small" variant="outlined" />
-                </Stack>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-                <Stack spacing={1}>
-                    <Typography variant="subtitle2" color="textSecondary">Division</Typography>
-                    <Chip label={data.division_id?.name || 'N/A'} color="success" size="small" variant="outlined" />
-                </Stack>
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -65,8 +44,33 @@ export default function AssemblyView({ data }) {
 
             <Grid item xs={12} sm={6}>
                 <Stack spacing={1}>
+                    <Typography variant="subtitle2" color="textSecondary">Division</Typography>
+                    <Chip label={data.division_id?.name || 'N/A'} color="info" size="small" variant="outlined" />
+                </Stack>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+                <Stack spacing={1}>
+                    <Typography variant="subtitle2" color="textSecondary">State</Typography>
+                    <Chip label={data.state_id?.name || 'N/A'} color="success" size="small" variant="outlined" />
+                </Stack>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+                <Stack spacing={1}>
                     <Typography variant="subtitle2" color="textSecondary">Polygon</Typography>
                     <Chip label={data.polygon ? 'Available' : 'Not Available'} color={data.polygon ? 'success' : 'default'} size="small" />
+                </Stack>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12}>
+                <Stack spacing={1}>
+                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                    <Typography variant="body2">{data.description ? data.description.replace(/<[^>]+>/g, '') : 'N/A'}</Typography>
                 </Stack>
             </Grid>
 

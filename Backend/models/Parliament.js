@@ -5,13 +5,13 @@ const parliamentSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Parliament name is required'],
     trim: true,
-    maxlength: [100, 'Name cannot exceed 100 characters']
+    maxlength: [200, 'Parliament name cannot exceed 200 characters']
   },
   parliament_no: {
     type: Number,
     required: [true, 'Parliament number is required'],
     unique: true,
-    min: [1, 'Parliament number must be greater than 0']
+    min: [1, 'Parliament number must be at least 1']
   },
   description: {
     type: String,
@@ -29,34 +29,41 @@ const parliamentSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: [true, 'Category is required'],
     enum: {
-      values: ['reserved', 'special', 'general'],
-      message: 'Category must be either reserved, special, or general'
-    }
+      values: ['General', 'SC', 'ST', 'OBC'],
+      message: 'Please select valid category (General, SC, ST, OBC)'
+    },
+    default: 'General'
   },
   regional_type: {
     type: String,
-    required: [true, 'Regional type is required'],
     enum: {
-      values: ['urban', 'rural', 'mixed'],
-      message: 'Regional type must be either urban, rural, or mixed'
-    }
+      values: ['Urban', 'Rural', 'Semi-Urban', 'Tribal'],
+      message: 'Please select valid regional type (Urban, Rural, Semi-Urban, Tribal)'
+    },
+    default: 'Urban'
   },
   election_year_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ElectionYear',
-    required: [true, 'Election year reference is required']
+    default: null
+  },
+  polygon: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: [true, 'Creator user reference is required']
   },
   updated_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: false
+    ref: 'User'
+  },
+  is_active: {
+    type: Boolean,
+    default: true
   },
   created_at: {
     type: Date,
@@ -65,35 +72,19 @@ const parliamentSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  },
-  polygon: {
-    type: mongoose.Schema.Types.Mixed,
-    default: null
   }
-}, {
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
 });
 
-// Update timestamp and updated_by before saving
+// Update timestamp before saving
 parliamentSchema.pre('save', function (next) {
   this.updated_at = Date.now();
-
-  // Set updated_by only if document is NOT new (i.e., it's an update)
-  if (!this.isNew && this.isModified()) {
-    this.updated_by = this._locals.user?.id;
-  }
-
   next();
 });
 
-
-// Indexes for better performance
-parliamentSchema.index({ name: 1 });
-parliamentSchema.index({ state_id: 1 });
+// Indexes for search and filtering
+parliamentSchema.index({ name: 'text' });
+parliamentSchema.index({ parliament_no: 1 });
 parliamentSchema.index({ division_id: 1 });
-parliamentSchema.index({ category: 1 });
-parliamentSchema.index({ regional_type: 1 });
-parliamentSchema.index({ election_year_id: 1 });
 
-module.exports = mongoose.model('Parliament', parliamentSchema);
+// Guard model registration to avoid OverwriteModelError during hot-reloads or multiple requires
+module.exports = mongoose.models.Parliament || mongoose.model('Parliament', parliamentSchema);

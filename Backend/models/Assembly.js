@@ -8,10 +8,10 @@ const assemblySchema = new mongoose.Schema({
     maxlength: [200, 'Assembly name cannot exceed 200 characters']
   },
   AC_NO: {
-    type: String,
+    type: Number,
     required: [true, 'Assembly constituency number is required'],
     unique: true,
-    trim: true
+    min: [1, 'AC number must be at least 1']
   },
   type: {
     type: String,
@@ -82,10 +82,9 @@ assemblySchema.pre('save', function (next) {
 });
 
 // Indexes for search and filtering
-assemblySchema.index({ name: 'text', AC_NO: 'text' });
+assemblySchema.index({ name: 'text' });
 assemblySchema.index({ AC_NO: 1 });
 assemblySchema.index({ parliament_id: 1 });
-assemblySchema.index({ state_id: 1 });
 
 // Guard model registration to avoid OverwriteModelError during hot-reloads or multiple requires
 module.exports = mongoose.models.Assembly || mongoose.model('Assembly', assemblySchema);

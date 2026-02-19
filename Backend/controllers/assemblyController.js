@@ -12,17 +12,14 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // @access  Public
 exports.getAssemblies = async (req, res, next) => {
   try {
-    // Pagination
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit);
 
-    // If searching or no limit provided, set a high limit
     if (!!req.query.search || !limit || limit <= 0) {
       limit = 10000;
     }
     const skip = (page - 1) * limit;
 
-    // Basic query
     let query = Assembly.find()
       .populate('parliament_id', 'name')
       .populate('division_id', 'name')
@@ -37,8 +34,9 @@ exports.getAssemblies = async (req, res, next) => {
       query = query.find({
         $or: [
           { name: searchRegex },
-          { AC_NO: searchRegex },
-          { description: searchRegex }
+          { description: searchRegex },
+          { type: searchRegex },
+          { category: searchRegex }
         ]
       });
     }
@@ -215,7 +213,6 @@ exports.createAssembly = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'State not found' });
     }
 
-    // Check if user exists in request
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -243,7 +240,7 @@ exports.createAssembly = async (req, res, next) => {
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Assembly with this AC_NO already exists'
+        message: 'Assembly with this AC number already exists'
       });
     }
     next(err);
@@ -281,12 +278,11 @@ exports.updateAssembly = async (req, res, next) => {
       }
     }
 
-    // Set updated_by
     const updateData = {
       ...req.body,
       updated_by: req.user.id,
-      updated_at: Date.now(),
-      description: req.body.description || ''
+      description: req.body.description || '',
+      updated_at: Date.now()
     };
 
     if (req.body.polygon) {
@@ -311,7 +307,7 @@ exports.updateAssembly = async (req, res, next) => {
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Assembly with this AC_NO already exists'
+        message: 'Assembly with this AC number already exists'
       });
     }
     next(err);
@@ -360,9 +356,9 @@ exports.importAssemblies = async (req, res, next) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        if (!row.name && !row.AC_NO) {
+        if (!row.name) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: 'Missing assembly name or AC_NO' });
+          summary.errors.push({ row: i + 1, message: 'Missing assembly name' });
           continue;
         }
 
@@ -378,7 +374,7 @@ exports.importAssemblies = async (req, res, next) => {
         const existing = await Assembly.findOne({ AC_NO: row.AC_NO || row.ac_no });
         if (existing) {
           summary.skipped += 1;
-          summary.errors.push({ row: i + 1, message: `Assembly ${row.AC_NO || row.ac_no} already exists` });
+          summary.errors.push({ row: i + 1, message: `Assembly AC_NO ${row.AC_NO || row.ac_no} already exists` });
           continue;
         }
 
@@ -449,8 +445,8 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
       if (!feature.properties) continue;
 
       const props = feature.properties;
-      const acNo = props.AC_NO || props.ac_no || props['AC No'] || props.OBJECTID;
-      const assemblyName = props.STNAME || props.name || props.NAME || props.Name;
+      const acNo = props.AC_NO || props.ac_no || props.OBJECTID;
+      const assemblyName = props.STNAME || props.name || props.Name || props.NAME;
 
       if (!acNo && !assemblyName) {
         errors.push('Feature passed without a valid match property (AC_NO or name)');
@@ -461,7 +457,7 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
 
       // Try finding by AC_NO first if available
       if (acNo) {
-        assembly = await Assembly.findOne({ AC_NO: String(acNo) });
+        assembly = await Assembly.findOne({ AC_NO: Number(acNo) });
       }
 
       // If not found by AC_NO, try by name
@@ -472,7 +468,6 @@ exports.uploadAssemblyPolygon = async (req, res, next) => {
       }
 
       if (assembly) {
-        // Update assembly with polygon feature
         assembly.polygon = feature;
         await assembly.save();
         updatedCount++;

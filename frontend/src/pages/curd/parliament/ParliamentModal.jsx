@@ -1,12 +1,11 @@
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
-    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl,
-    Chip, Box, Typography
+    Grid, Stack, TextField, InputLabel, Select, MenuItem, FormControl, Box, Typography
 } from '@mui/material';
 import { useEffect, useState, useContext } from 'react';
-import JWTContext from 'contexts/JWTContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import JWTContext from 'contexts/JWTContext';
 
 export default function ParliamentModal({
     open,
@@ -14,8 +13,7 @@ export default function ParliamentModal({
     parliament,
     states,
     divisions,
-    assemblies,
-    electionYears,
+    users,
     refresh
 }) {
     const contextValue = useContext(JWTContext);
@@ -24,56 +22,47 @@ export default function ParliamentModal({
     const [formData, setFormData] = useState({
         name: '',
         parliament_no: '',
-        category: 'general',
-        regional_type: 'urban',
+        category: 'General',
+        regional_type: 'Urban',
         state_id: '',
         division_id: '',
-        assembly_id: '',
-        election_year_id: '',
         description: '',
         polygon: null
     });
     const [fileName, setFileName] = useState('');
     const [submitted, setSubmitted] = useState(false);
-    const [filteredDivisions, setFilteredDivisions] = useState([]);
-    const [filteredAssemblies, setFilteredAssemblies] = useState([]);
 
-    const categoryOptions = ['general', 'reserved', 'special'];
-    const regionalTypeOptions = ['urban', 'rural', 'mixed'];
+    const [filteredDivisions, setFilteredDivisions] = useState([]);
+
+    const categoryOptions = ['General', 'SC', 'ST', 'OBC'];
+    const regionalTypeOptions = ['Urban', 'Rural', 'Semi-Urban', 'Tribal'];
 
     useEffect(() => {
-        if (parliament) {
+        if (parliament && Array.isArray(states) && states.length > 0) {
             setFormData({
                 name: parliament.name || '',
-                parliament_no: parliament.parliament_no || parliament['Parliament No'] || '',
-                category: parliament.category ? parliament.category.toLowerCase() : 'general',
-                regional_type: parliament.regional_type ? parliament.regional_type.toLowerCase() : 'urban',
+                parliament_no: parliament.parliament_no || '',
+                category: parliament.category || 'General',
+                regional_type: parliament.regional_type || 'Urban',
                 state_id: parliament.state_id?._id?.toString() || parliament.state_id?.toString() || '',
                 division_id: parliament.division_id?._id?.toString() || parliament.division_id?.toString() || '',
-                assembly_id: parliament.assembly_id?._id?.toString() || parliament.assembly_id?.toString() || '',
-                election_year_id: parliament.election_year_id?._id?.toString() || parliament.election_year_id?.toString() || '',
                 description: parliament.description || ''
             });
-        } else {
+        } else if (!parliament) {
             setFormData({
                 name: '',
                 parliament_no: '',
-                category: 'general',
-                regional_type: 'urban',
+                category: 'General',
+                regional_type: 'Urban',
                 state_id: '',
                 division_id: '',
-                assembly_id: '',
-                election_year_id: '',
-                assembly_id: '',
-                election_year_id: '',
                 description: '',
                 polygon: null
             });
             setFileName('');
         }
-    }, [parliament]);
+    }, [parliament, states]);
 
-    // State -> Division
     useEffect(() => {
         if (formData.state_id) {
             const filtered = divisions?.filter(division => {
@@ -85,54 +74,28 @@ export default function ParliamentModal({
             if (formData.division_id && !filtered.find(d => d._id === formData.division_id)) {
                 setFormData(prev => ({
                     ...prev,
-                    division_id: '',
-                    assembly_id: ''
+                    division_id: ''
                 }));
             }
         } else {
             setFilteredDivisions([]);
             setFormData(prev => ({
                 ...prev,
-                division_id: '',
-                assembly_id: ''
+                division_id: ''
             }));
         }
     }, [formData.state_id, divisions]);
 
-    // Division -> Assembly
-    useEffect(() => {
-        if (formData.division_id) {
-            const filtered = assemblies?.filter(assembly => {
-                const assemblyDivisionId = assembly.division_id?._id || assembly.division_id;
-                return assemblyDivisionId === formData.division_id;
-            }) || [];
-            setFilteredAssemblies(filtered);
-
-            if (formData.assembly_id && !filtered.find(a => a._id === formData.assembly_id)) {
-                setFormData(prev => ({
-                    ...prev,
-                    assembly_id: ''
-                }));
-            }
-        } else {
-            setFilteredAssemblies([]);
-            setFormData(prev => ({
-                ...prev,
-                assembly_id: ''
-            }));
-        }
-    }, [formData.division_id, assemblies]);
-
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
+        const { name, value, type } = e.target;
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: type === 'number' ? Number(value) : value
         }));
     };
 
     const handleDescriptionChange = (value) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             description: value
         }));
@@ -148,15 +111,12 @@ export default function ParliamentModal({
             const text = await file.text();
             const json = JSON.parse(text);
 
-            // Extract Feature (keep geometry AND properties)
             let feature = null;
             if (json.type === 'FeatureCollection' && json.features?.length > 0) {
-                // Take the first feature
                 feature = json.features[0];
             } else if (json.type === 'Feature') {
                 feature = json;
             } else if (json.type === 'Polygon' || json.type === 'MultiPolygon') {
-                // If raw geometry, wrap in Feature
                 feature = {
                     type: "Feature",
                     geometry: json,
@@ -179,9 +139,11 @@ export default function ParliamentModal({
 
     const handleSubmit = async () => {
         setSubmitted(true);
-        const requiredFields = ['name', 'parliament_no', 'category', 'regional_type', 'state_id', 'division_id'];
+        const requiredFields = ['name', 'parliament_no', 'state_id', 'division_id'];
         for (const field of requiredFields) {
-            if (!formData[field]) return;
+            if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')) {
+                return;
+            }
         }
 
         const method = parliament ? 'PUT' : 'POST';
@@ -196,13 +158,14 @@ export default function ParliamentModal({
                 const localUser = JSON.parse(localStorage.getItem('user') || '{}');
                 userId = localUser._id || localUser.id;
             } catch (e) {
-                console.error('Failed to parse user from localStorage:', e);
+                console.error('Failed to parse localStorage user:', e);
             }
         }
 
+        const userTracking = parliament ? { updated_by: userId } : { created_by: userId };
         const submitData = {
             ...formData,
-            ...(parliament ? { updated_by: userId } : { created_by: userId })
+            ...userTracking
         };
 
         try {
@@ -234,8 +197,7 @@ export default function ParliamentModal({
             <DialogTitle>{parliament ? 'Edit Parliament' : 'Add Parliament'}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} mt={1}>
-                    {/* Row 1: Name */}
-                    <Grid item xs={12}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Parliament Name <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
@@ -245,42 +207,37 @@ export default function ParliamentModal({
                                 fullWidth
                                 required
                                 error={submitted && !formData.name}
-                                helperText={submitted && !formData.name ? 'Name is required' : ''}
+                                helperText={submitted && !formData.name ? 'Parliament name is required' : ''}
+                                placeholder="Enter parliament name"
                             />
                         </Stack>
                     </Grid>
 
-                    {/* Parliament Number */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
-                            <InputLabel>Parliament Number <span style={{ color: 'red' }}>*</span></InputLabel>
+                            <InputLabel>PC Number <span style={{ color: 'red' }}>*</span></InputLabel>
                             <TextField
                                 name="parliament_no"
+                                type="number"
                                 value={formData.parliament_no}
                                 onChange={handleChange}
                                 fullWidth
                                 required
-                                type="number"
                                 error={submitted && !formData.parliament_no}
-                                helperText={submitted && !formData.parliament_no ? 'Parliament number is required' : ''}
+                                helperText={submitted && !formData.parliament_no ? 'PC number is required' : ''}
+                                placeholder="Enter PC number"
+                                inputProps={{ min: 1 }}
                             />
                         </Stack>
                     </Grid>
 
-                    {/* Row 2: Category and Regional Type */}
                     <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Category <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.category}>
-                                <Select
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleChange}
-                                >
-                                    {categoryOptions.map(option => (
-                                        <MenuItem key={option} value={option}>
-                                            {option.charAt(0).toUpperCase() + option.slice(1)}
-                                        </MenuItem>
+                                <Select name="category" value={formData.category} onChange={handleChange} required>
+                                    {categoryOptions.map((category) => (
+                                        <MenuItem key={category} value={category}>{category}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -291,84 +248,72 @@ export default function ParliamentModal({
                         <Stack spacing={1}>
                             <InputLabel>Regional Type <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.regional_type}>
-                                <Select
-                                    name="regional_type"
-                                    value={formData.regional_type}
-                                    onChange={handleChange}
-                                >
-                                    {regionalTypeOptions.map(option => (
-                                        <MenuItem key={option} value={option}>
-                                            {option.charAt(0).toUpperCase() + option.slice(1)}
-                                        </MenuItem>
+                                <Select name="regional_type" value={formData.regional_type} onChange={handleChange} required>
+                                    {regionalTypeOptions.map((type) => (
+                                        <MenuItem key={type} value={type}>{type}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
                         </Stack>
                     </Grid>
 
-                    {/* Row 3: State, Division and Election Year */}
-                    <Grid item xs={12} sm={4}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>State <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.state_id}>
-                                <Select
-                                    name="state_id"
-                                    value={formData.state_id}
-                                    onChange={handleChange}
-                                >
+                                <Select name="state_id" value={formData.state_id} onChange={handleChange} required>
                                     <MenuItem value="">Select State</MenuItem>
-                                    {states?.map(state => (
-                                        <MenuItem key={state._id} value={state._id}>
-                                            {state.name}
-                                        </MenuItem>
+                                    {states?.map((state) => (
+                                        <MenuItem key={state._id} value={state._id}>{state.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
+                            {submitted && !formData.state_id && (
+                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>State is required</Box>
+                            )}
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={4}>
+                    <Grid item xs={12} sm={6}>
                         <Stack spacing={1}>
                             <InputLabel>Division <span style={{ color: 'red' }}>*</span></InputLabel>
                             <FormControl fullWidth required error={submitted && !formData.division_id}>
-                                <Select
-                                    name="division_id"
-                                    value={formData.division_id}
-                                    onChange={handleChange}
-                                    disabled={!formData.state_id}
-                                >
+                                <Select name="division_id" value={formData.division_id} onChange={handleChange} required disabled={!formData.state_id}>
                                     <MenuItem value="">Select Division</MenuItem>
-                                    {filteredDivisions.map(division => (
-                                        <MenuItem key={division._id} value={division._id}>
-                                            {division.name}
-                                        </MenuItem>
+                                    {filteredDivisions.map((division) => (
+                                        <MenuItem key={division._id} value={division._id}>{division.name}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
+                            {submitted && !formData.division_id && (
+                                <Box sx={{ color: 'error.main', fontSize: 12, mt: 0.5 }}>Division is required</Box>
+                            )}
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} sm={4}>
+                    <Grid item xs={12}>
                         <Stack spacing={1}>
-                            <InputLabel>Election Year <span style={{ color: 'red' }}>*</span></InputLabel>
-                            <FormControl fullWidth required error={submitted && !formData.election_year_id}>
-                                <Select
-                                    name="election_year_id"
-                                    value={formData.election_year_id}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="">Select Election Year</MenuItem>
-                                    {electionYears?.map(electionYear => (
-                                        <MenuItem key={electionYear._id} value={electionYear._id}>
-                                            {electionYear.year}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            <InputLabel>Parliament Polygon (GeoJSON)</InputLabel>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                                <Button variant="outlined" component="label">
+                                    Upload File
+                                    <input type="file" hidden accept=".json,.geojson" onChange={handleFileChange} />
+                                </Button>
+                                <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {fileName || (parliament?.polygon ? 'Polygon Exists' : 'No file selected')}
+                                </Typography>
+                                {(fileName || parliament?.polygon) && (
+                                    <Button variant="outlined" color="error" size="small" onClick={() => {
+                                        setFormData(prev => ({ ...prev, polygon: null }));
+                                        setFileName('');
+                                    }}>
+                                        Delete Polygon
+                                    </Button>
+                                )}
+                            </Box>
                         </Stack>
                     </Grid>
 
-                    {/* Row 4: Description */}
                     <Grid item xs={12}>
                         <Stack spacing={1}>
                             <InputLabel>Description</InputLabel>
@@ -376,48 +321,18 @@ export default function ParliamentModal({
                                 value={formData.description}
                                 onChange={handleDescriptionChange}
                                 theme="snow"
-                                placeholder="Enter description..."
+                                placeholder="Enter parliament description..."
                             />
                         </Stack>
                     </Grid>
-
-                    {/* Row 5: GeoJSON Upload */}
-                    <Grid item xs={12}>
-                        <Stack spacing={1}>
-                            <InputLabel>Parliament Polygon (GeoJSON)</InputLabel>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Button
-                                    variant="outlined"
-                                    component="label"
-                                >
-                                    Upload File
-                                    <input
-                                        type="file"
-                                        hidden
-                                        accept=".json,.geojson"
-                                        onChange={handleFileChange}
-                                    />
-                                </Button>
-                                {fileName ? (
-                                    <Typography variant="body2">{fileName}</Typography>
-                                ) : (
-                                    parliament?.polygon && (
-                                        <Typography variant="body2" color="success.main">
-                                            Existing Polygon Present
-                                        </Typography>
-                                    )
-                                )}
-                            </Box>
-                        </Stack>
-                    </Grid>
                 </Grid>
-            </DialogContent >
+            </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => modalToggler(false)}>Cancel</Button>
                 <Button variant="contained" onClick={handleSubmit}>
                     {parliament ? 'Update' : 'Submit'}
                 </Button>
             </DialogActions>
-        </Dialog >
+        </Dialog>
     );
 }

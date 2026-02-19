@@ -1,65 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    Box,
-    Container,
-    Typography,
-    Grid,
-    CardContent,
-    Stack,
-    Divider,
-    Button,
-    IconButton,
-    LinearProgress,
-    Alert,
-    Breadcrumbs,
-    Link
+    Box, Typography, Grid, Chip, Divider, Button, Stack, Card, CardContent, Alert, CircularProgress
 } from '@mui/material';
-import { ArrowBack, Description } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { ArrowLeft, Edit } from 'iconsax-react';
 import MainCard from 'components/MainCard';
-import axiosServices from 'utils/axios';
-import DetailRenderer from 'components/DetailRenderer';
-import PolygonMap from 'components/PolygonMap';
 
-const ParliamentDetailPage = () => {
-    const theme = useTheme();
-    const navigate = useNavigate();
+export default function ParliamentDetailPage() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [parliament, setParliament] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchParliamentDetails();
+        const fetchParliament = async () => {
+            try {
+                const token = localStorage.getItem('serviceToken');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments/${id}`, { headers });
+                const json = await res.json();
+
+                if (json.success) {
+                    setParliament(json.data);
+                } else {
+                    setError(json.message || 'Failed to fetch parliament details');
+                }
+            } catch (err) {
+                console.error('Error fetching parliament:', err);
+                setError('An error occurred while fetching parliament details');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchParliament();
     }, [id]);
 
-    const fetchParliamentDetails = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('serviceToken');
-            const response = await axiosServices.get(`/parliaments/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+    if (loading) {
+        return (
+            <MainCard>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                    <CircularProgress />
+                </Box>
+            </MainCard>
+        );
+    }
 
-            if (response.data.success) {
-                setParliament(response.data.data);
-                setError(null);
-            } else {
-                setError('Failed to fetch parliament details');
-            }
-        } catch (err) {
-            console.error('Error fetching parliament details:', err);
-            setError('Error loading parliament details. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (error || !parliament) {
+        return (
+            <MainCard>
+                <Alert severity="error">{error || 'Parliament not found'}</Alert>
+                <Button startIcon={<ArrowLeft />} onClick={() => navigate('/parliament')} sx={{ mt: 2 }}>
+                    Back to Parliaments
+                </Button>
+            </MainCard>
+        );
+    }
 
-    const formatDateTime = (dateString) => {
+    const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleString('en-US', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -68,74 +69,95 @@ const ParliamentDetailPage = () => {
         });
     };
 
-    const handleBack = () => navigate('/parliament');
-
-    if (loading) {
-        return (
-            <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <LinearProgress />
-                <Box sx={{ mt: 2 }}>
-                    <Typography>Loading parliament details...</Typography>
-                </Box>
-            </Container>
-        );
-    }
-
-    if (error) {
-        return (
-            <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Parliaments</Button>
-            </Container>
-        );
-    }
-
-    if (!parliament) {
-        return (
-            <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <Alert severity="warning" sx={{ mb: 2 }}>Parliament not found</Alert>
-                <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBack />}>Back to Parliaments</Button>
-            </Container>
-        );
-    }
-
     return (
-        <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
-            <Box sx={{ mb: 3 }}>
-                <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                    <IconButton onClick={handleBack} sx={{ color: theme.palette.primary.main }}><ArrowBack /></IconButton>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="h4" component="h1">Parliament Details</Typography>
-                        <Typography variant="body2" color="text.secondary">{formatDateTime(parliament.created_at)}</Typography>
-                    </Box>
-                </Stack>
+        <MainCard>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                <Button startIcon={<ArrowLeft />} onClick={() => navigate('/parliament')}>
+                    Back to Parliaments
+                </Button>
+                <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/parliament`)}>
+                    Edit Parliament
+                </Button>
+            </Stack>
 
-                <Breadcrumbs aria-label="breadcrumb">
-                    <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Dashboard</Link>
-                    <Link underline="hover" color="inherit" href="#" onClick={(e) => { e.preventDefault(); navigate('/parliament'); }}>Parliaments</Link>
-                    <Typography color="text.primary">{parliament.name}</Typography>
-                </Breadcrumbs>
-            </Box>
-
-            <MainCard>
+            <Card>
                 <CardContent>
+                    <Typography variant="h4" sx={{ mb: 3 }}>{parliament.name}</Typography>
+
                     <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <DetailRenderer data={parliament} />
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">PC Number</Typography>
+                            <Chip label={parliament.parliament_no || 'N/A'} color="primary" sx={{ mt: 0.5 }} />
                         </Grid>
-                        <Grid item xs={12}>
-                            <Typography variant="h6" sx={{ mb: 2 }}>Parliament Map</Typography>
-                            <PolygonMap 
-                                polygon={parliament.polygon} 
-                                mapboxToken={mapboxToken}
-                                height={400}
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Category</Typography>
+                            <Chip label={parliament.category || 'N/A'} color="secondary" sx={{ mt: 0.5 }} />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Regional Type</Typography>
+                            <Chip label={parliament.regional_type || 'N/A'} sx={{ mt: 0.5 }} />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Division</Typography>
+                            <Chip label={parliament.division_id?.name || 'N/A'} color="info" sx={{ mt: 0.5 }} />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">State</Typography>
+                            <Chip label={parliament.state_id?.name || 'N/A'} color="success" sx={{ mt: 0.5 }} />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Polygon Status</Typography>
+                            <Chip
+                                label={parliament.polygon ? 'Available' : 'Not Available'}
+                                color={parliament.polygon ? 'success' : 'default'}
+                                sx={{ mt: 0.5 }}
                             />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Divider sx={{ my: 2 }} />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="textSecondary">Description</Typography>
+                            <Typography
+                                variant="body1"
+                                sx={{ mt: 1 }}
+                                dangerouslySetInnerHTML={{ __html: parliament.description || 'No description available' }}
+                            />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Divider sx={{ my: 2 }} />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Created By</Typography>
+                            <Typography variant="body1">{parliament.created_by?.username || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Created At</Typography>
+                            <Typography variant="body1">{formatDate(parliament.created_at)}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Updated By</Typography>
+                            <Typography variant="body1">{parliament.updated_by?.username || 'N/A'}</Typography>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Updated At</Typography>
+                            <Typography variant="body1">{formatDate(parliament.updated_at)}</Typography>
                         </Grid>
                     </Grid>
                 </CardContent>
-            </MainCard>
-        </Container>
+            </Card>
+        </MainCard>
     );
-};
-
-export default ParliamentDetailPage;
+}
