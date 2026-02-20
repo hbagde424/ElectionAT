@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Collapse
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
@@ -60,13 +61,100 @@ export default function AssembliesListPage() {
 
     // Map & Drawer state
     const [assemblyGeoJSON, setAssemblyGeoJSON] = useState(null);
-    const [allAssemblyGeoJSON, setAllAssemblyGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
     const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
+    const [expandedSections, setExpandedSections] = useState({});
+    const [assemblyDataMap, setAssemblyDataMap] = useState({}); // Map assembly_id to assembly data
+
+    const toggleSection = (sectionName) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionName]: !prev[sectionName]
+        }));
+    };
+
+    const renderDataSection = (title, data, sectionKey, bgColor, borderColor, textColor) => {
+        if (!data?.count || data.count === 0) return null;
+        
+        const getDisplayValue = (value) => {
+            if (value === null || value === undefined) return 'N/A';
+            if (typeof value === 'object') {
+                // If it's a populated object with name/title/description, show that
+                if (value.name) return value.name;
+                if (value.title) return value.title;
+                if (value.description) return value.description;
+                if (value.username) return value.username;
+                // Otherwise skip ID objects
+                return null;
+            }
+            return String(value).substring(0, 100);
+        };
+
+        const filterAndFormatData = (item) => {
+            const fieldsToSkip = ['_id', 'id', 'created_by', 'updated_by', 'created_at', 'updated_at', 'createdAt', 'updatedAt', '__v', 'assembly_id'];
+            
+            return Object.entries(item)
+                .filter(([key, value]) => {
+                    // Skip if key contains 'id' or is in skip list
+                    if (key.includes('_id') || key.includes('Id') || fieldsToSkip.includes(key)) return false;
+                    // Skip internal fields
+                    if (key.startsWith('_')) return false;
+                    // Skip if value is an object (unless it has a name/title)
+                    if (typeof value === 'object' && !value?.name && !value?.title && !value?.description && !value?.username) return false;
+                    return true;
+                })
+                .slice(0, 8)
+                .map(([key, value]) => ({
+                    key: key.replace(/_/g, ' ').toUpperCase(),
+                    value: getDisplayValue(value)
+                }))
+                .filter(item => item.value !== null);
+        };
+        
+        return (
+            <Box key={sectionKey} sx={{ backgroundColor: bgColor, borderRadius: 1, borderLeft: `4px solid ${borderColor}`, overflow: 'hidden', mt: 2 }}>
+                <Box
+                    onClick={() => toggleSection(sectionKey)}
+                    sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: bgColor, opacity: 0.8 } }}
+                >
+                    <Typography variant="subtitle2" sx={{ color: textColor, fontWeight: 600 }}>{title} ({data.count})</Typography>
+                    <ExpandMoreIcon sx={{ transform: expandedSections[sectionKey] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                </Box>
+                <Collapse in={expandedSections[sectionKey]}>
+                    <Box sx={{ p: 2, pt: 0, borderTop: `1px solid ${borderColor}` }}>
+                        {data.data.map((item, idx) => {
+                            const formattedData = filterAndFormatData(item);
+                            return (
+                                <Box key={idx} sx={{ mb: 2, pb: 1.5, borderBottom: idx < data.data.length - 1 ? `1px solid ${bgColor}` : 'none' }}>
+                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, display: 'block', mb: 1 }}>Record {idx + 1}</Typography>
+                                    <Stack spacing={0.75} sx={{ mt: 0.5 }}>
+                                        {formattedData.length > 0 ? (
+                                            formattedData.map(({ key, value }) => (
+                                                <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, wordBreak: 'break-word' }}>
+                                                        {key}:
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333', wordBreak: 'break-word' }}>
+                                                        {value}
+                                                    </Typography>
+                                                </Box>
+                                            ))
+                                        ) : (
+                                            <Typography variant="caption" sx={{ color: '#999' }}>No data available</Typography>
+                                        )}
+                                    </Stack>
+                                </Box>
+                            );
+                        })}
+                    </Box>
+                </Collapse>
+            </Box>
+        );
+    };
 
     const fetchAllAssembliesForFilters = async () => {
         try {
@@ -152,6 +240,13 @@ export default function AssembliesListPage() {
                 throw new Error('Invalid response format');
             }
 
+            // Create a map of assembly data for quick lookup
+            const assemblyMap = {};
+            json.data.forEach(assembly => {
+                assemblyMap[assembly._id] = assembly;
+            });
+            setAssemblyDataMap(assemblyMap);
+
             let assembliesToUse = json.data;
             if (userHierarchy?.assembly) {
                 assembliesToUse = json.data.filter(a => String(a._id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
@@ -172,10 +267,7 @@ export default function AssembliesListPage() {
                         featureToAdd = {
                             ...assembly.polygon,
                             properties: {
-                                ...assembly.polygon.properties,
-                                assembly_id: assembly._id,
-                                assembly_name: assembly.name,
-                                AC_NO: assembly.AC_NO
+                                assembly_id: assembly._id
                             }
                         };
                     } else if (assembly.polygon.type === 'FeatureCollection' && Array.isArray(assembly.polygon.features)) {
@@ -183,10 +275,7 @@ export default function AssembliesListPage() {
                             features.push({
                                 ...feat,
                                 properties: {
-                                    ...feat.properties,
-                                    assembly_id: assembly._id,
-                                    assembly_name: assembly.name,
-                                    AC_NO: assembly.AC_NO
+                                    assembly_id: assembly._id
                                 }
                             });
                         });
@@ -201,18 +290,15 @@ export default function AssembliesListPage() {
 
             if (!features.length) {
                 setMapError('No assemblies with polygon data available');
-                setAllAssemblyGeoJSON(null);
                 setAssemblyGeoJSON(null);
             } else {
                 const geoJSON = { type: 'FeatureCollection', features };
-                setAllAssemblyGeoJSON(geoJSON);
                 setAssemblyGeoJSON(geoJSON);
                 setMapError('');
             }
         } catch (e) {
             console.error('Failed to load assembly polygons:', e);
             setMapError(`Failed to load polygon data: ${e.message}`);
-            setAllAssemblyGeoJSON(null);
             setAssemblyGeoJSON(null);
         }
     };
@@ -254,24 +340,21 @@ export default function AssembliesListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            let assembly = null;
-
             if (assemblyId) {
                 try {
-                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`, { headers });
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}/related-data`, { headers });
                     const json = await res.json();
+                    console.log('Assembly Related Data:', json);
                     if (json?.success && json.data) {
-                        assembly = json.data;
+                        setDrawerData({ loading: false, assemblyName: assemblyName, acNo: json.data.assembly?.AC_NO, details: json.data });
+                        setDrawerOpen(true);
+                    } else {
+                        setDrawerData({ loading: false, assemblyName: assemblyName, details: null, error: 'Assembly data not found' });
+                        setDrawerOpen(true);
                     }
                 } catch (e) {
-                    console.warn('Failed to fetch assembly by ID:', e);
-                }
-
-                if (assembly && assembly._id) {
-                    setDrawerData({ loading: false, assemblyName: assemblyName, acNo: assembly.AC_NO, details: { assembly } });
-                    setDrawerOpen(true);
-                } else {
-                    setDrawerData({ loading: false, assemblyName: assemblyName, details: null, error: 'Assembly not found' });
+                    console.warn('Failed to fetch assembly related data:', e);
+                    setDrawerData({ loading: false, assemblyName: assemblyName, details: null, error: 'Failed to fetch assembly data' });
                     setDrawerOpen(true);
                 }
             } else {
@@ -601,7 +684,8 @@ export default function AssembliesListPage() {
                                         if (f) {
                                             const props = f.properties || {};
                                             const assemblyId = props.assembly_id || '';
-                                            const assemblyName = props.assembly_name || '';
+                                            const assemblyData = assemblyDataMap[assemblyId];
+                                            const assemblyName = assemblyData?.name || '';
                                             setDrawerData({ loading: true, assemblyName: assemblyName, details: null });
                                             setDrawerOpen(true);
                                             fetchAssemblyDetailsByPolygon(assemblyId, assemblyName);
@@ -616,18 +700,67 @@ export default function AssembliesListPage() {
                                     <Source id="assembly-polygons" type="geojson" data={assemblyGeoJSON}>
                                         <Layer id="assembly-fill" type="fill" paint={{ 'fill-color': '#9C27B0', 'fill-opacity': 0.22 }} />
                                         <Layer id="assembly-outline" type="line" paint={{ 'line-color': '#7B1FA2', 'line-width': 2 }} />
-                                        <Layer
-                                            id="assembly-label"
-                                            type="symbol"
-                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'assembly_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'AC_NO'], ['get', 'no'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
-                                            paint={{
-                                                'text-color': '#000',
-                                                'text-halo-color': '#ffffff',
-                                                'text-halo-width': 2
-                                            }}
-                                        />
                                     </Source>
                                 )}
+                                {/* Labels from CRUD assembly data */}
+                                {assemblyGeoJSON && assemblyDataMap && (() => {
+                                    const labelFeatures = [];
+                                    assemblyGeoJSON.features.forEach((feature) => {
+                                        const assemblyId = feature.properties?.assembly_id;
+                                        const assemblyData = assemblyDataMap[assemblyId];
+                                        if (!assemblyData || !feature.geometry) return;
+                                        
+                                        let center = null;
+                                        if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates.length > 0) {
+                                            const coords = feature.geometry.coordinates[0];
+                                            if (coords.length > 0) {
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                center = [(Math.min(...lngs) + Math.max(...lngs)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+                                            }
+                                        } else if (feature.geometry.type === 'MultiPolygon' && feature.geometry.coordinates.length > 0) {
+                                            const coords = feature.geometry.coordinates[0][0];
+                                            if (coords && coords.length > 0) {
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                center = [(Math.min(...lngs) + Math.max(...lngs)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+                                            }
+                                        }
+                                        
+                                        if (center) {
+                                            labelFeatures.push({ 
+                                                type: 'Feature', 
+                                                geometry: { type: 'Point', coordinates: center }, 
+                                                properties: { 
+                                                    name: assemblyData.name || '', 
+                                                    acNo: String(assemblyData.AC_NO || '') 
+                                                } 
+                                            });
+                                        }
+                                    });
+                                    
+                                    return labelFeatures.length > 0 ? (
+                                        <Source id="assembly-labels-source" type="geojson" data={{ type: 'FeatureCollection', features: labelFeatures }}>
+                                            <Layer 
+                                                id="assembly-label-layer" 
+                                                type="symbol" 
+                                                layout={{ 
+                                                    'text-field': ['concat', ['get', 'name'], '\n', ['get', 'acNo']], 
+                                                    'text-size': 10, 
+                                                    'text-allow-overlap': false, 
+                                                    'text-anchor': 'center', 
+                                                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                                                    'text-offset': [0, 0]
+                                                }} 
+                                                paint={{ 
+                                                    'text-color': '#000', 
+                                                    'text-halo-color': '#ffffff', 
+                                                    'text-halo-width': 2 
+                                                }} 
+                                            />
+                                        </Source>
+                                    ) : null;
+                                })()}
                             </Map>
                         ) : (
                             <Alert severity="error">Mapbox token not configured</Alert>
@@ -635,24 +768,101 @@ export default function AssembliesListPage() {
                     </MapContainerStyled>
                 </Box>
 
-                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
-                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
-                        <Typography variant="h6">Assembly Details</Typography>
-                        <IconButton onClick={() => setDrawerOpen(false)} size="small"><CloseIcon /></IconButton>
+                {/* Drawer for Assembly Details */}
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 500 } } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f5f5f5' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>Assembly Details</Typography>
+                        <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                            <CloseIcon />
+                        </IconButton>
                     </Box>
                     <Box sx={{ p: 2, overflowY: 'auto', height: 'calc(100% - 60px)' }}>
                         {drawerData?.loading ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><CircularProgress /></Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <CircularProgress />
+                            </Box>
                         ) : drawerData?.error ? (
                             <Alert severity="error">{drawerData.error}</Alert>
                         ) : drawerData?.details ? (
                             <Stack spacing={2}>
-                                <Box><Typography variant="subtitle2" color="textSecondary">Assembly Name</Typography><Typography variant="body1">{drawerData.assemblyName || 'N/A'}</Typography></Box>
-                                <Box><Typography variant="subtitle2" color="textSecondary">AC Number</Typography><Typography variant="body1">{drawerData.acNo || 'N/A'}</Typography></Box>
-                                <Divider />
-                                <Box><Typography variant="subtitle2" color="textSecondary">Type</Typography><Typography variant="body2">{drawerData.details.assembly?.type || 'N/A'}</Typography></Box>
-                                <Box><Typography variant="subtitle2" color="textSecondary">Category</Typography><Typography variant="body2">{drawerData.details.assembly?.category || 'N/A'}</Typography></Box>
-                                <Box><Typography variant="subtitle2" color="textSecondary">Parliament</Typography><Typography variant="body2">{drawerData.details.assembly?.parliament_id?.name || 'N/A'}</Typography></Box>
+                                {/* Basic Assembly Info */}
+                                <Box sx={{ p: 2, backgroundColor: '#e3f2fd', borderRadius: 1, borderLeft: '4px solid #1976d2' }}>
+                                    <Typography variant="subtitle2" sx={{ color: '#1565c0', fontWeight: 600, mb: 1 }}>Basic Information</Typography>
+                                    <Stack spacing={1}>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Assembly Name</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{drawerData.details.assembly?.name || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>AC Number</Typography>
+                                            <Chip label={drawerData.details.assembly?.AC_NO || 'N/A'} size="small" color="primary" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Type</Typography>
+                                            <Typography variant="body2">{drawerData.details.assembly?.type || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Category</Typography>
+                                            <Typography variant="body2">{drawerData.details.assembly?.category || 'N/A'}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </Box>
+
+                                {/* Hierarchy Info */}
+                                <Box sx={{ p: 2, backgroundColor: '#f3e5f5', borderRadius: 1, borderLeft: '4px solid #7b1fa2' }}>
+                                    <Typography variant="subtitle2" sx={{ color: '#6a1b9a', fontWeight: 600, mb: 1 }}>Hierarchy</Typography>
+                                    <Stack spacing={1}>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>State</Typography>
+                                            <Chip label={drawerData.details.assembly?.state_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Division</Typography>
+                                            <Chip label={drawerData.details.assembly?.division_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Parliament</Typography>
+                                            <Chip label={drawerData.details.assembly?.parliament_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                    </Stack>
+                                </Box>
+
+                                {/* Related Data Sections */}
+                                {renderDataSection('Blocks', drawerData.details.blocks, 'blocks', '#e8f5e9', '#388e3c', '#2e7d32')}
+                                {renderDataSection('Booths', drawerData.details.booths, 'booths', '#fff3e0', '#f57c00', '#e65100')}
+                                {renderDataSection('Demographics', drawerData.details.boothDemographics, 'demographics', '#fce4ec', '#c2185b', '#880e4f')}
+                                {renderDataSection('Election Stats', drawerData.details.boothElectionStats, 'electionStats', '#e0f2f1', '#00796b', '#004d40')}
+                                {renderDataSection('Infrastructure', drawerData.details.boothInfrastructure, 'infrastructure', '#f1f8e9', '#689f38', '#33691e')}
+                                {renderDataSection('Party Presence', drawerData.details.boothPartyPresence, 'partyPresence', '#ede7f6', '#512da8', '#311b92')}
+                                {renderDataSection('Volunteers', drawerData.details.boothVolunteers, 'volunteers', '#fbe9e7', '#d84315', '#bf360c')}
+                                {renderDataSection('Booth Votes', drawerData.details.boothVotes, 'boothVotes', '#e3f2fd', '#1976d2', '#0d47a1')}
+                                {renderDataSection('Booth Admins', drawerData.details.boothAdmins, 'boothAdmins', '#f3e5f5', '#7b1fa2', '#4a148c')}
+                                {renderDataSection('Active Parties', drawerData.details.activeParties, 'activeParties', '#fff8e1', '#f57f17', '#f57c00')}
+                                {renderDataSection('Election Types', drawerData.details.electionTypes, 'electionTypes', '#e0f2f1', '#00897b', '#004d40')}
+                                {renderDataSection('Coding', drawerData.details.coding, 'coding', '#f1f8e9', '#558b2f', '#33691e')}
+                                {renderDataSection('Caste Lists', drawerData.details.casteLists, 'casteLists', '#fce4ec', '#ad1457', '#880e4f')}
+                                {renderDataSection('Events', drawerData.details.events, 'events', '#e8eaf6', '#3949ab', '#1a237e')}
+                                {renderDataSection('Genders', drawerData.details.genders, 'genders', '#f3e5f5', '#6a1b9a', '#4a148c')}
+                                {renderDataSection('Falliya', drawerData.details.falliya, 'falliya', '#fff3e0', '#e65100', '#bf360c')}
+                                {renderDataSection('BLA', drawerData.details.bla, 'bla', '#e0f2f1', '#00695c', '#004d40')}
+                                {renderDataSection('BLO', drawerData.details.blo, 'blo', '#f1f8e9', '#689f38', '#33691e')}
+                                {renderDataSection('Local Issues', drawerData.details.localIssues, 'localIssues', '#fce4ec', '#c2185b', '#880e4f')}
+                                {renderDataSection('Local News', drawerData.details.localNews, 'localNews', '#e3f2fd', '#1976d2', '#0d47a1')}
+                                {renderDataSection('Local Dynamics', drawerData.details.localDynamics, 'localDynamics', '#f3e5f5', '#7b1fa2', '#4a148c')}
+                                {renderDataSection('Influencers', drawerData.details.influencers, 'influencers', '#fff8e1', '#f57f17', '#f57c00')}
+                                {renderDataSection('Governments', drawerData.details.governments, 'governments', '#e0f2f1', '#00897b', '#004d40')}
+                                {renderDataSection('Party Activities', drawerData.details.partyActivities, 'partyActivities', '#f1f8e9', '#558b2f', '#33691e')}
+                                {renderDataSection('Panchayats', drawerData.details.panchayats, 'panchayats', '#fce4ec', '#ad1457', '#880e4f')}
+                                {renderDataSection('Villages', drawerData.details.villages, 'villages', '#e8eaf6', '#3949ab', '#1a237e')}
+                                {renderDataSection('Samitis', drawerData.details.samitis, 'samitis', '#f3e5f5', '#6a1b9a', '#4a148c')}
+                                {renderDataSection('Visits', drawerData.details.visits, 'visits', '#fff3e0', '#e65100', '#bf360c')}
+                                {renderDataSection('Voting Trends', drawerData.details.votingTrends, 'votingTrends', '#e0f2f1', '#00695c', '#004d40')}
+                                {renderDataSection('Winning Parties', drawerData.details.winningParties, 'winningParties', '#f1f8e9', '#689f38', '#33691e')}
+                                {renderDataSection('Winning Candidates', drawerData.details.winningCandidates, 'winningCandidates', '#fce4ec', '#c2185b', '#880e4f')}
+                                {renderDataSection('Work Status', drawerData.details.workStatus, 'workStatus', '#e3f2fd', '#1976d2', '#0d47a1')}
+                                {renderDataSection('Parliament Votes', drawerData.details.parliamentVotes, 'parliamentVotes', '#f3e5f5', '#7b1fa2', '#4a148c')}
+                                {renderDataSection('Block Votes', drawerData.details.blockVotes, 'blockVotes', '#fff8e1', '#f57f17', '#f57c00')}
+                                {renderDataSection('Districts', drawerData.details.districts, 'districts', '#e0f2f1', '#00897b', '#004d40')}
                             </Stack>
                         ) : (
                             <Typography variant="body2" color="textSecondary">Click on an assembly on the map to view details</Typography>

@@ -6,7 +6,8 @@ const {
   updateAssembly,
   deleteAssembly,
   importAssemblies,
-  uploadAssemblyPolygon
+  uploadAssemblyPolygon,
+  getAssemblyRelatedData
 } = require('../controllers/assemblyController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -21,6 +22,7 @@ const router = express.Router();
 
 router.get('/', getAssemblies);
 router.get('/:id', getAssembly);
+router.get('/:id/related-data', getAssemblyRelatedData);
 router.post('/', protect, authorize('superAdmin'), createAssembly);
 router.put('/:id', protect, authorize('superAdmin'), updateAssembly);
 router.delete('/:id', protect, authorize('superAdmin'), deleteAssembly);

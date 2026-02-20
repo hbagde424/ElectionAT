@@ -6,7 +6,8 @@ const {
   updateBooth,
   deleteBooth,
   importBooths,
-  uploadBoothPolygon
+  uploadBoothPolygon,
+  getBoothRelatedData
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -115,6 +116,26 @@ router.get('/', getBooths);
  *         description: Booth not found
  */
 router.get('/:id', getBooth);
+
+/**
+ * @swagger
+ * /api/booths/{id}/related-data:
+ *   get:
+ *     summary: Get all booth-related data from different tables
+ *     tags: [Booths]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: All booth-related data
+ *       404:
+ *         description: Booth not found
+ */
+router.get('/:id/related-data', getBoothRelatedData);
 
 /**
  * @swagger

@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Button, Stack, Box, Typography, Divider, Chip, MenuItem, TextField, Tooltip, Alert,
-    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Drawer
+    Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Drawer, Collapse
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -69,12 +70,94 @@ export default function DivisionListPage() {
 
     // Map & Drawer state
     const [divisionGeoJSON, setDivisionGeoJSON] = useState(null);
-    const [allDivisionGeoJSON, setAllDivisionGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+    const [expandedSections, setExpandedSections] = useState({});
+    const [divisionDataMap, setDivisionDataMap] = useState({});
+
+    const toggleSection = (sectionName) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionName]: !prev[sectionName]
+        }));
+    };
+
+    const renderDataSection = (title, data, sectionKey, bgColor, borderColor, textColor) => {
+        if (!data?.count || data.count === 0) return null;
+        
+        const getDisplayValue = (value) => {
+            if (value === null || value === undefined) return 'N/A';
+            if (typeof value === 'object') {
+                if (value.name) return value.name;
+                if (value.title) return value.title;
+                if (value.description) return value.description;
+                if (value.username) return value.username;
+                return null;
+            }
+            return String(value).substring(0, 100);
+        };
+
+        const filterAndFormatData = (item) => {
+            const fieldsToSkip = ['_id', 'id', 'created_by', 'updated_by', 'created_at', 'updated_at', 'createdAt', 'updatedAt', '__v', 'division_id'];
+            
+            return Object.entries(item)
+                .filter(([key, value]) => {
+                    if (key.includes('_id') || key.includes('Id') || fieldsToSkip.includes(key)) return false;
+                    if (key.startsWith('_')) return false;
+                    if (typeof value === 'object' && !value?.name && !value?.title && !value?.description && !value?.username) return false;
+                    return true;
+                })
+                .slice(0, 8)
+                .map(([key, value]) => ({
+                    key: key.replace(/_/g, ' ').toUpperCase(),
+                    value: getDisplayValue(value)
+                }))
+                .filter(item => item.value !== null);
+        };
+        
+        return (
+            <Box key={sectionKey} sx={{ backgroundColor: bgColor, borderRadius: 1, borderLeft: `4px solid ${borderColor}`, overflow: 'hidden', mt: 2 }}>
+                <Box
+                    onClick={() => toggleSection(sectionKey)}
+                    sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: bgColor, opacity: 0.8 } }}
+                >
+                    <Typography variant="subtitle2" sx={{ color: textColor, fontWeight: 600 }}>{title} ({data.count})</Typography>
+                    <ExpandMoreIcon sx={{ transform: expandedSections[sectionKey] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                </Box>
+                <Collapse in={expandedSections[sectionKey]}>
+                    <Box sx={{ p: 2, pt: 0, borderTop: `1px solid ${borderColor}` }}>
+                        {data.data.map((item, idx) => {
+                            const formattedData = filterAndFormatData(item);
+                            return (
+                                <Box key={idx} sx={{ mb: 2, pb: 1.5, borderBottom: idx < data.data.length - 1 ? `1px solid ${bgColor}` : 'none' }}>
+                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, display: 'block', mb: 1 }}>Record {idx + 1}</Typography>
+                                    <Stack spacing={0.75} sx={{ mt: 0.5 }}>
+                                        {formattedData.length > 0 ? (
+                                            formattedData.map(({ key, value }) => (
+                                                <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, wordBreak: 'break-word' }}>
+                                                        {key}:
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333', wordBreak: 'break-word' }}>
+                                                        {value}
+                                                    </Typography>
+                                                </Box>
+                                            ))
+                                        ) : (
+                                            <Typography variant="caption" sx={{ color: '#999' }}>No data available</Typography>
+                                        )}
+                                    </Stack>
+                                </Box>
+                            );
+                        })}
+                    </Box>
+                </Collapse>
+            </Box>
+        );
+    };
 
     // Download all divisions for CSV
     const startCsvDownload = async () => {
@@ -256,6 +339,79 @@ export default function DivisionListPage() {
         }
     };
 
+    // Helper function to load and update division polygons
+    const loadDivisionPolygons = async () => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            
+            if (!json.success || !Array.isArray(json.data)) {
+                throw new Error('Invalid response format');
+            }
+
+            // Create a map of division data for quick lookup
+            const divisionMap = {};
+            json.data.forEach(division => {
+                divisionMap[division._id] = division;
+            });
+            setDivisionDataMap(divisionMap);
+
+            let divisionsToUse = json.data;
+            if (userHierarchy?.division) {
+                divisionsToUse = json.data.filter(d => String(d._id) === String(userHierarchy.division._id || userHierarchy.division));
+            } else if (userHierarchy?.state) {
+                divisionsToUse = json.data.filter(d => String(d.state_id?._id || d.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+            }
+
+            const features = [];
+            divisionsToUse.forEach(division => {
+                if (division.polygon) {
+                    let featureToAdd = null;
+                    
+                    if (division.polygon.type === 'Feature') {
+                        featureToAdd = {
+                            ...division.polygon,
+                            properties: {
+                                division_id: division._id
+                            }
+                        };
+                    } else if (division.polygon.type === 'FeatureCollection' && Array.isArray(division.polygon.features)) {
+                        division.polygon.features.forEach(feat => {
+                            features.push({
+                                ...feat,
+                                properties: {
+                                    division_id: division._id
+                                }
+                            });
+                        });
+                        return;
+                    }
+                    
+                    if (featureToAdd) {
+                        features.push(featureToAdd);
+                    }
+                }
+            });
+
+            if (!features.length) {
+                setMapError('No divisions with polygon data available');
+                setDivisionGeoJSON(null);
+            } else {
+                const geoJSON = { type: 'FeatureCollection', features };
+                setDivisionGeoJSON(geoJSON);
+                setMapError('');
+            }
+        } catch (e) {
+            console.error('Failed to load division polygons:', e);
+            setMapError(`Failed to load polygon data: ${e.message}`);
+            setDivisionGeoJSON(null);
+        }
+    };
+
     const filterOptions = useFilterOptionsFromData(allDivisions, {
         states: { field: 'state_id', nameField: 'name' }
     });
@@ -268,152 +424,13 @@ export default function DivisionListPage() {
 
     // Load division polygons from divisions table - filtered by user hierarchy
     useEffect(() => {
-        (async () => {
-            try {
-                const token = localStorage.getItem('serviceToken');
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?all=true&limit=10000`, { headers });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const json = await res.json();
-                
-                if (!json.success || !Array.isArray(json.data)) {
-                    throw new Error('Invalid response format');
-                }
-
-                // Filter divisions based on user hierarchy
-                let divisionsToUse = json.data;
-                if (userHierarchy?.division) {
-                    // User has division-level access - show only their division
-                    divisionsToUse = json.data.filter(d => String(d._id) === String(userHierarchy.division._id || userHierarchy.division));
-                } else if (userHierarchy?.state) {
-                    // User has state-level access - show only their state's divisions
-                    divisionsToUse = json.data.filter(d => String(d.state_id?._id || d.state_id) === String(userHierarchy.state._id || userHierarchy.state));
-                }
-                // If no hierarchy, show all divisions (superAdmin)
-
-                // Extract polygons from divisions that have polygon data
-                const features = [];
-                divisionsToUse.forEach(division => {
-                    if (division.polygon) {
-                        // Handle both Feature and FeatureCollection formats
-                        let featureToAdd = null;
-                        
-                        if (division.polygon.type === 'Feature') {
-                            // Single Feature
-                            featureToAdd = {
-                                ...division.polygon,
-                                properties: {
-                                    ...division.polygon.properties,
-                                    division_id: division._id,
-                                    division_name: division.name,
-                                    division_code: division.division_code
-                                }
-                            };
-                        } else if (division.polygon.type === 'FeatureCollection' && Array.isArray(division.polygon.features)) {
-                            // FeatureCollection - add all features
-                            division.polygon.features.forEach(feat => {
-                                features.push({
-                                    ...feat,
-                                    properties: {
-                                        ...feat.properties,
-                                        division_id: division._id,
-                                        division_name: division.name,
-                                        division_code: division.division_code
-                                    }
-                                });
-                            });
-                            return; // Skip the single feature add below
-                        }
-                        
-                        if (featureToAdd) {
-                            features.push(featureToAdd);
-                        }
-                    }
-                });
-
-                if (!features.length) {
-                    setMapError('No divisions with polygon data available');
-                    setAllDivisionGeoJSON(null);
-                    setDivisionGeoJSON(null);
-                } else {
-                    const geoJSON = { type: 'FeatureCollection', features };
-                    setAllDivisionGeoJSON(geoJSON);
-                    setDivisionGeoJSON(geoJSON);
-                    setMapError(''); // Clear any previous errors
-                }
-            } catch (e) {
-                console.error('Failed to load division polygons:', e);
-                setMapError(`Failed to load polygon data: ${e.message}`);
-                setAllDivisionGeoJSON(null);
-                setDivisionGeoJSON(null);
-            }
-        })();
+        loadDivisionPolygons();
     }, [userHierarchy]);
-
-    // Filter polygons based on current table data
-    useEffect(() => {
-        if (!allDivisionGeoJSON) {
-            return;
-        }
-
-        // Show all polygons on map, not just current page
-        setDivisionGeoJSON(allDivisionGeoJSON);
-    }, [allDivisionGeoJSON]);
 
     // Reset to first page when searching or filtering
     useEffect(() => {
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     }, [globalFilter, stateFilter]);
-
-    const fetchDivisionDetailsByPolygon = async (divisionId, divisionName) => {
-        try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch division by ID
-            let division = null;
-            let blocks = [];
-            let assemblies = [];
-
-            if (divisionId) {
-                try {
-                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/${divisionId}`, { headers });
-                    const json = await res.json();
-                    if (json?.success && json.data) {
-                        division = json.data;
-                    }
-                } catch (e) {
-                    console.warn('Failed to fetch division by ID:', e);
-                }
-
-                if (division && division._id) {
-                    const did = division._id;
-                    const fetches = [
-                        fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?division=${encodeURIComponent(did)}&all=true&limit=10000`, { headers }),
-                        fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?division=${encodeURIComponent(did)}&all=true&limit=10000`, { headers })
-                    ];
-                    const [bRes, aRes] = await Promise.allSettled(fetches);
-                    const tryJson = async (r) => { try { const j = await r.json(); return j; } catch { return null; } };
-                    if (bRes.status === 'fulfilled' && bRes.value.ok) { const j = await tryJson(bRes.value); if (j?.success && Array.isArray(j.data)) blocks = j.data; }
-                    if (aRes.status === 'fulfilled' && aRes.value.ok) { const j = await tryJson(aRes.value); if (j?.success && Array.isArray(j.data)) assemblies = j.data; }
-
-                    setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: { division, blocks, assemblies } });
-                    setDrawerOpen(true);
-                } else {
-                    setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: null, error: 'Division not found' });
-                    setDrawerOpen(true);
-                }
-            } else {
-                setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: null, error: 'Invalid division ID' });
-                setDrawerOpen(true);
-            }
-        } catch (err) {
-            console.error('Failed to fetch division details by polygon:', err);
-            setDrawerData({ loading: false, divisionCode: divisionName, divisionName: divisionName, details: null, error: err.message });
-            setDrawerOpen(true);
-        }
-    };
 
     const handleDeleteOpen = (id) => {
         setDivisionDeleteId(id);
@@ -429,6 +446,39 @@ export default function DivisionListPage() {
             month: 'short',
             day: 'numeric'
         });
+    };
+
+    const fetchDivisionDetailsByPolygon = async (divisionId, divisionName) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            if (divisionId) {
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/${divisionId}/related-data`, { headers });
+                    const json = await res.json();
+                    console.log('Division Related Data:', json);
+                    if (json?.success && json.data) {
+                        setDrawerData({ loading: false, divisionName: divisionName, divisionCode: json.data.division?.division_code, details: json.data });
+                        setDrawerOpen(true);
+                    } else {
+                        setDrawerData({ loading: false, divisionName: divisionName, details: null, error: 'Division data not found' });
+                        setDrawerOpen(true);
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch division related data:', e);
+                    setDrawerData({ loading: false, divisionName: divisionName, details: null, error: 'Failed to fetch division data' });
+                    setDrawerOpen(true);
+                }
+            } else {
+                setDrawerData({ loading: false, divisionName: divisionName, details: null, error: 'Invalid division ID' });
+                setDrawerOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch division details by polygon:', err);
+            setDrawerData({ loading: false, divisionName: divisionName, details: null, error: err.message });
+            setDrawerOpen(true);
+        }
     };
 
     const columns = useMemo(() => [
@@ -622,8 +672,9 @@ export default function DivisionListPage() {
                                         if (f) {
                                             const props = f.properties || {};
                                             const divisionId = props.division_id || '';
-                                            const divisionName = props.division_name || '';
-                                            setDrawerData({ loading: true, divisionCode: divisionName, divisionName: divisionName, details: null });
+                                            const divisionData = divisionDataMap[divisionId];
+                                            const divisionName = divisionData?.name || '';
+                                            setDrawerData({ loading: true, divisionName: divisionName, details: null });
                                             setDrawerOpen(true);
                                             fetchDivisionDetailsByPolygon(divisionId, divisionName);
                                         }
@@ -637,18 +688,67 @@ export default function DivisionListPage() {
                                     <Source id="division-polygons" type="geojson" data={divisionGeoJSON}>
                                         <Layer id="division-fill" type="fill" paint={{ 'fill-color': '#4CAF50', 'fill-opacity': 0.22 }} />
                                         <Layer id="division-outline" type="line" paint={{ 'line-color': '#388E3C', 'line-width': 2 }} />
-                                        <Layer
-                                            id="division-label"
-                                            type="symbol"
-                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'division_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'division_code'], ['get', 'code'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
-                                            paint={{
-                                                'text-color': '#000',
-                                                'text-halo-color': '#ffffff',
-                                                'text-halo-width': 2
-                                            }}
-                                        />
                                     </Source>
                                 )}
+                                {/* Labels from CRUD division data */}
+                                {divisionGeoJSON && divisionDataMap && (() => {
+                                    const labelFeatures = [];
+                                    divisionGeoJSON.features.forEach((feature) => {
+                                        const divisionId = feature.properties?.division_id;
+                                        const divisionData = divisionDataMap[divisionId];
+                                        if (!divisionData || !feature.geometry) return;
+                                        
+                                        let center = null;
+                                        if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates.length > 0) {
+                                            const coords = feature.geometry.coordinates[0];
+                                            if (coords.length > 0) {
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                center = [(Math.min(...lngs) + Math.max(...lngs)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+                                            }
+                                        } else if (feature.geometry.type === 'MultiPolygon' && feature.geometry.coordinates.length > 0) {
+                                            const coords = feature.geometry.coordinates[0][0];
+                                            if (coords && coords.length > 0) {
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                center = [(Math.min(...lngs) + Math.max(...lngs)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+                                            }
+                                        }
+                                        
+                                        if (center) {
+                                            labelFeatures.push({ 
+                                                type: 'Feature', 
+                                                geometry: { type: 'Point', coordinates: center }, 
+                                                properties: { 
+                                                    name: divisionData.name || '', 
+                                                    divisionCode: String(divisionData.division_code || '') 
+                                                } 
+                                            });
+                                        }
+                                    });
+                                    
+                                    return labelFeatures.length > 0 ? (
+                                        <Source id="division-labels-source" type="geojson" data={{ type: 'FeatureCollection', features: labelFeatures }}>
+                                            <Layer 
+                                                id="division-label-layer" 
+                                                type="symbol" 
+                                                layout={{ 
+                                                    'text-field': ['concat', ['get', 'name'], '\n', ['get', 'divisionCode']], 
+                                                    'text-size': 10, 
+                                                    'text-allow-overlap': false, 
+                                                    'text-anchor': 'center', 
+                                                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                                                    'text-offset': [0, 0]
+                                                }} 
+                                                paint={{ 
+                                                    'text-color': '#000', 
+                                                    'text-halo-color': '#ffffff', 
+                                                    'text-halo-width': 2 
+                                                }} 
+                                            />
+                                        </Source>
+                                    ) : null;
+                                })()}
                             </Map>
                         ) : (
                             <Alert severity="error">Mapbox token not configured</Alert>
@@ -657,7 +757,7 @@ export default function DivisionListPage() {
                 </Box>
 
                 {/* Drawer for Division Details */}
-                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 500 } } }}>
                     <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
                         <Typography variant="h6">Division Details</Typography>
                         <IconButton onClick={() => setDrawerOpen(false)} size="small">
@@ -672,50 +772,89 @@ export default function DivisionListPage() {
                         ) : drawerData?.error ? (
                             <Alert severity="error">{drawerData.error}</Alert>
                         ) : drawerData?.details ? (
-                            <Stack spacing={2}>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Division Code</Typography>
-                                    <Typography variant="body1">{drawerData.divisionCode || 'N/A'}</Typography>
+                            <Stack spacing={0}>
+                                {/* Basic Information Section */}
+                                <Box sx={{ backgroundColor: '#E3F2FD', borderRadius: 1, borderLeft: '4px solid #1976D2', overflow: 'hidden', mt: 0 }}>
+                                    <Box
+                                        onClick={() => toggleSection('basicInfo')}
+                                        sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#E3F2FD', opacity: 0.8 } }}
+                                    >
+                                        <Typography variant="subtitle2" sx={{ color: '#1565C0', fontWeight: 600 }}>Basic Information</Typography>
+                                        <ExpandMoreIcon sx={{ transform: expandedSections['basicInfo'] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                    </Box>
+                                    <Collapse in={expandedSections['basicInfo']}>
+                                        <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #1976D2' }}>
+                                            <Stack spacing={0.75}>
+                                                <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600 }}>NAME:</Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333' }}>{drawerData.details.division?.name || 'N/A'}</Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600 }}>CODE:</Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333' }}>{drawerData.details.division?.division_code || 'N/A'}</Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600 }}>DESCRIPTION:</Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333' }}>{drawerData.details.division?.description ? drawerData.details.division.description.replace(/<[^>]+>/g, '').substring(0, 100) : 'N/A'}</Typography>
+                                                </Box>
+                                            </Stack>
+                                        </Box>
+                                    </Collapse>
                                 </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Division Name</Typography>
-                                    <Typography variant="body1">{drawerData.divisionName || 'N/A'}</Typography>
+
+                                {/* Hierarchy Section */}
+                                <Box sx={{ backgroundColor: '#F3E5F5', borderRadius: 1, borderLeft: '4px solid #7B1FA2', overflow: 'hidden', mt: 2 }}>
+                                    <Box
+                                        onClick={() => toggleSection('hierarchy')}
+                                        sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#F3E5F5', opacity: 0.8 } }}
+                                    >
+                                        <Typography variant="subtitle2" sx={{ color: '#6A1B9A', fontWeight: 600 }}>Hierarchy</Typography>
+                                        <ExpandMoreIcon sx={{ transform: expandedSections['hierarchy'] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                    </Box>
+                                    <Collapse in={expandedSections['hierarchy']}>
+                                        <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #7B1FA2' }}>
+                                            <Stack spacing={0.75}>
+                                                <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600 }}>STATE:</Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333' }}>{drawerData.details.division?.state_id?.name || 'N/A'}</Typography>
+                                                </Box>
+                                            </Stack>
+                                        </Box>
+                                    </Collapse>
                                 </Box>
-                                <Divider />
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">State</Typography>
-                                    <Typography variant="body1">{drawerData.details.division?.state_id?.name || 'N/A'}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Description</Typography>
-                                    <Typography variant="body2">{drawerData.details.division?.description ? drawerData.details.division.description.replace(/<[^>]+>/g, '') : 'N/A'}</Typography>
-                                </Box>
-                                <Divider />
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Blocks ({drawerData.details.blocks?.length || 0})</Typography>
-                                    {drawerData.details.blocks && drawerData.details.blocks.length > 0 ? (
-                                        <Stack spacing={1}>
-                                            {drawerData.details.blocks.map((block) => (
-                                                <Chip key={block._id} label={block.name} size="small" variant="outlined" />
-                                            ))}
-                                        </Stack>
-                                    ) : (
-                                        <Typography variant="body2" color="textSecondary">No blocks found</Typography>
-                                    )}
-                                </Box>
-                                <Divider />
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Assemblies ({drawerData.details.assemblies?.length || 0})</Typography>
-                                    {drawerData.details.assemblies && drawerData.details.assemblies.length > 0 ? (
-                                        <Stack spacing={1}>
-                                            {drawerData.details.assemblies.map((assembly) => (
-                                                <Chip key={assembly._id} label={assembly.name} size="small" variant="outlined" color="primary" />
-                                            ))}
-                                        </Stack>
-                                    ) : (
-                                        <Typography variant="body2" color="textSecondary">No assemblies found</Typography>
-                                    )}
-                                </Box>
+
+                                {/* Related Data Sections */}
+                                {renderDataSection('Assemblies', drawerData.details.assemblies, 'assemblies', '#E8F5E9', '#388E3C', '#1B5E20')}
+                                {renderDataSection('Blocks', drawerData.details.blocks, 'blocks', '#FFF3E0', '#F57C00', '#E65100')}
+                                {renderDataSection('Booths', drawerData.details.booths, 'booths', '#FCE4EC', '#C2185B', '#880E4F')}
+                                {renderDataSection('Parliaments', drawerData.details.parliaments, 'parliaments', '#E0F2F1', '#00796B', '#004D40')}
+                                {renderDataSection('Districts', drawerData.details.districts, 'districts', '#F1F8E9', '#558B2F', '#33691E')}
+                                {renderDataSection('BLOs', drawerData.details.blos, 'blos', '#EDE7F6', '#512DA8', '#311B92')}
+                                {renderDataSection('Assembly Votes', drawerData.details.assemblyVotes, 'assemblyVotes', '#E3F2FD', '#1976D2', '#0D47A1')}
+                                {renderDataSection('Block Votes', drawerData.details.blockVotes, 'blockVotes', '#F3E5F5', '#7B1FA2', '#4A148C')}
+                                {renderDataSection('Booth Votes', drawerData.details.boothVotes, 'boothVotes', '#FFF3E0', '#F57C00', '#E65100')}
+                                {renderDataSection('Parliament Votes', drawerData.details.parliamentVotes, 'parliamentVotes', '#E0F2F1', '#00796B', '#004D40')}
+                                {renderDataSection('Election Types', drawerData.details.electionTypes, 'electionTypes', '#F1F8E9', '#558B2F', '#33691E')}
+                                {renderDataSection('Winning Candidates', drawerData.details.winningCandidates, 'winningCandidates', '#EDE7F6', '#512DA8', '#311B92')}
+                                {renderDataSection('Winning Parties', drawerData.details.winningParties, 'winningParties', '#E8F5E9', '#388E3C', '#1B5E20')}
+                                {renderDataSection('Booth Demographics', drawerData.details.boothDemographics, 'boothDemographics', '#FCE4EC', '#C2185B', '#880E4F')}
+                                {renderDataSection('Booth Surveys', drawerData.details.boothSurveys, 'boothSurveys', '#E0F2F1', '#00796B', '#004D40')}
+                                {renderDataSection('Booth Volunteers', drawerData.details.boothVolunteers, 'boothVolunteers', '#F1F8E9', '#558B2F', '#33691E')}
+                                {renderDataSection('Caste Lists', drawerData.details.casteLists, 'casteLists', '#EDE7F6', '#512DA8', '#311B92')}
+                                {renderDataSection('Genders', drawerData.details.genders, 'genders', '#E3F2FD', '#1976D2', '#0D47A1')}
+                                {renderDataSection('BLAs', drawerData.details.blas, 'blas', '#F3E5F5', '#7B1FA2', '#4A148C')}
+                                {renderDataSection('Falliya', drawerData.details.falliya, 'falliya', '#FFF3E0', '#F57C00', '#E65100')}
+                                {renderDataSection('Coding', drawerData.details.coding, 'coding', '#E0F2F1', '#00796B', '#004D40')}
+                                {renderDataSection('Influencers', drawerData.details.influencers, 'influencers', '#F1F8E9', '#558B2F', '#33691E')}
+                                {renderDataSection('Events', drawerData.details.events, 'events', '#EDE7F6', '#512DA8', '#311B92')}
+                                {renderDataSection('Party Activities', drawerData.details.partyActivities, 'partyActivities', '#E8F5E9', '#388E3C', '#1B5E20')}
+                                {renderDataSection('Visits', drawerData.details.visits, 'visits', '#FCE4EC', '#C2185B', '#880E4F')}
+                                {renderDataSection('Panchayats', drawerData.details.panchayats, 'panchayats', '#E0F2F1', '#00796B', '#004D40')}
+                                {renderDataSection('Villages', drawerData.details.villages, 'villages', '#F1F8E9', '#558B2F', '#33691E')}
+                                {renderDataSection('Local Issues', drawerData.details.localIssues, 'localIssues', '#EDE7F6', '#512DA8', '#311B92')}
+                                {renderDataSection('Samitis', drawerData.details.samitis, 'samitis', '#E3F2FD', '#1976D2', '#0D47A1')}
+                                {renderDataSection('Voting Trends', drawerData.details.votingTrends, 'votingTrends', '#F3E5F5', '#7B1FA2', '#4A148C')}
+                                {renderDataSection('Work Status', drawerData.details.workStatus, 'workStatus', '#FFF3E0', '#F57C00', '#E65100')}
                             </Stack>
                         ) : (
                             <Typography variant="body2" color="textSecondary">Click on a division on the map to view details</Typography>

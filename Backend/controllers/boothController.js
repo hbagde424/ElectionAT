@@ -522,8 +522,14 @@ exports.uploadBoothPolygon = async (req, res, next) => {
       }
 
       if (booth) {
-        // Update booth with polygon feature
-        booth.polygon = feature;
+        // Update booth with polygon feature - only keep booth_id in properties
+        booth.polygon = {
+          type: feature.type,
+          geometry: feature.geometry,
+          properties: {
+            booth_id: booth._id
+          }
+        };
         await booth.save();
         updatedCount++;
       } else {
@@ -560,6 +566,188 @@ exports.getTotalBooths = async (req, res, next) => {
     res.status(200).json({
       success: true,
       total
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get all booth-related data from all tables
+// @route   GET /api/booths/:id/related-data
+// @access  Public
+exports.getBoothRelatedData = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booth ID'
+      });
+    }
+
+    const booth = await Booth.findById(id)
+      .populate('block_id', 'name')
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('created_by', 'username');
+
+    if (!booth) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booth not found'
+      });
+    }
+
+    // Fetch all related data from all tables with booth_id
+    const BoothDemographics = require('../models/boothDemographics');
+    const BoothElectionStats = require('../models/boothElectionStats');
+    const BoothInfrastructure = require('../models/boothInfrastructure');
+    const BoothPartyPresence = require('../models/boothPartyPresence');
+    const BoothPartyVoteShare = require('../models/boothPartyVoteShare');
+    const BoothSurvey = require('../models/BoothSurvey');
+    const BoothVolunteers = require('../models/boothVolunteers');
+    const BoothVotes = require('../models/boothVotes');
+    const BoothAdmin = require('../models/boothAdmin');
+    const ActiveParty = require('../models/ActiveParty');
+    const ElectionType = require('../models/electionType');
+    const Coding = require('../models/coding');
+    const CasteList = require('../models/CasteList');
+    const Event = require('../models/Event');
+    const Gender = require('../models/gender');
+    const Falliya = require('../models/Falliya');
+    const BLA = require('../models/BLA');
+    const BLO = require('../models/BLO');
+    const LocalIssue = require('../models/LocalIssue');
+    const LocalNews = require('../models/LocalNews');
+    const LocalDynamics = require('../models/localDynamics');
+    const Influencer = require('../models/influencer');
+    const Government = require('../models/government');
+    const PartyActivity = require('../models/partyActivity');
+    const Panchayat = require('../models/Panchayat');
+    const Village = require('../models/Village');
+    const Samiti = require('../models/Samiti');
+    const Visit = require('../models/Visit');
+    const VotingTrends = require('../models/votingTrends');
+    const WinningParty = require('../models/WinningParty');
+    const WorkStatus = require('../models/WorkStatus');
+    const ParliamentVotes = require('../models/parliamentVotes');
+    const BlockVotes = require('../models/blockVotes');
+    const AssemblyVotes = require('../models/assemblyVotes');
+
+    const [
+      demographics,
+      electionStats,
+      infrastructure,
+      partyPresence,
+      partyVoteShare,
+      surveys,
+      volunteers,
+      votes,
+      admins,
+      activeParties,
+      electionTypes,
+      coding,
+      casteLists,
+      events,
+      genders,
+      falliya,
+      bla,
+      blo,
+      localIssues,
+      localNews,
+      localDynamics,
+      influencers,
+      governments,
+      partyActivities,
+      panchayats,
+      villages,
+      samitis,
+      visits,
+      votingTrends,
+      winningParties,
+      workStatus,
+      parliamentVotes,
+      blockVotes,
+      assemblyVotes
+    ] = await Promise.all([
+      BoothDemographics.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothElectionStats.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothInfrastructure.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothPartyPresence.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothPartyVoteShare.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothSurvey.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothVolunteers.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothVotes.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BoothAdmin.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      ActiveParty.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      ElectionType.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Coding.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      CasteList.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Event.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Gender.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Falliya.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BLA.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BLO.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      LocalIssue.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      LocalNews.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      LocalDynamics.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Influencer.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Government.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      PartyActivity.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Panchayat.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Village.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Samiti.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      Visit.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      VotingTrends.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      WinningParty.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      WorkStatus.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      ParliamentVotes.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      BlockVotes.find({ booth_id: id }).populate('booth_id', 'name').limit(100),
+      AssemblyVotes.find({ booth_id: id }).populate('booth_id', 'name').limit(100)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        booth,
+        demographics: { count: demographics.length, data: demographics },
+        electionStats: { count: electionStats.length, data: electionStats },
+        infrastructure: { count: infrastructure.length, data: infrastructure },
+        partyPresence: { count: partyPresence.length, data: partyPresence },
+        partyVoteShare: { count: partyVoteShare.length, data: partyVoteShare },
+        surveys: { count: surveys.length, data: surveys },
+        volunteers: { count: volunteers.length, data: volunteers },
+        votes: { count: votes.length, data: votes },
+        admins: { count: admins.length, data: admins },
+        activeParties: { count: activeParties.length, data: activeParties },
+        electionTypes: { count: electionTypes.length, data: electionTypes },
+        coding: { count: coding.length, data: coding },
+        casteLists: { count: casteLists.length, data: casteLists },
+        events: { count: events.length, data: events },
+        genders: { count: genders.length, data: genders },
+        falliya: { count: falliya.length, data: falliya },
+        bla: { count: bla.length, data: bla },
+        blo: { count: blo.length, data: blo },
+        localIssues: { count: localIssues.length, data: localIssues },
+        localNews: { count: localNews.length, data: localNews },
+        localDynamics: { count: localDynamics.length, data: localDynamics },
+        influencers: { count: influencers.length, data: influencers },
+        governments: { count: governments.length, data: governments },
+        partyActivities: { count: partyActivities.length, data: partyActivities },
+        panchayats: { count: panchayats.length, data: panchayats },
+        villages: { count: villages.length, data: villages },
+        samitis: { count: samitis.length, data: samitis },
+        visits: { count: visits.length, data: visits },
+        votingTrends: { count: votingTrends.length, data: votingTrends },
+        winningParties: { count: winningParties.length, data: winningParties },
+        workStatus: { count: workStatus.length, data: workStatus },
+        parliamentVotes: { count: parliamentVotes.length, data: parliamentVotes },
+        blockVotes: { count: blockVotes.length, data: blockVotes },
+        assemblyVotes: { count: assemblyVotes.length, data: assemblyVotes }
+      }
     });
   } catch (err) {
     next(err);

@@ -7,7 +7,8 @@ const {
   deleteParliament,
   importParliaments,
   uploadParliamentPolygon,
-  getTotalParliaments
+  getTotalParliaments,
+  getParliamentRelatedData
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -23,6 +24,7 @@ const router = express.Router();
 router.get('/', getParliaments);
 router.get('/total', getTotalParliaments);
 router.get('/:id', getParliament);
+router.get('/:id/related-data', getParliamentRelatedData);
 router.post('/', protect, authorize('superAdmin'), createParliament);
 router.put('/:id', protect, authorize('superAdmin'), updateParliament);
 router.delete('/:id', protect, authorize('superAdmin'), deleteParliament);

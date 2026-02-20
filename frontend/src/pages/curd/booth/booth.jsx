@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Tooltip, Alert, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Collapse
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
 import { useNavigate } from 'react-router-dom';
@@ -64,13 +65,100 @@ export default function BoothsListPage() {
 
     // Map & Drawer state
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
-    const [allBoothGeoJSON, setAllBoothGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
     const [openPolygonUpload, setOpenPolygonUpload] = useState(false);
+    const [expandedSections, setExpandedSections] = useState({});
+    const [boothDataMap, setBoothDataMap] = useState({}); // Map booth_id to booth data
+
+    const toggleSection = (sectionName) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionName]: !prev[sectionName]
+        }));
+    };
+
+    const renderDataSection = (title, data, sectionKey, bgColor, borderColor, textColor) => {
+        if (!data?.count || data.count === 0) return null;
+        
+        const getDisplayValue = (value) => {
+            if (value === null || value === undefined) return 'N/A';
+            if (typeof value === 'object') {
+                // If it's a populated object with name/title/description, show that
+                if (value.name) return value.name;
+                if (value.title) return value.title;
+                if (value.description) return value.description;
+                if (value.username) return value.username;
+                // Otherwise skip ID objects
+                return null;
+            }
+            return String(value).substring(0, 100);
+        };
+
+        const filterAndFormatData = (item) => {
+            const fieldsToSkip = ['_id', 'id', 'created_by', 'updated_by', 'created_at', 'updated_at', 'createdAt', 'updatedAt', '__v', 'booth_id'];
+            
+            return Object.entries(item)
+                .filter(([key, value]) => {
+                    // Skip if key contains 'id' or is in skip list
+                    if (key.includes('_id') || key.includes('Id') || fieldsToSkip.includes(key)) return false;
+                    // Skip internal fields
+                    if (key.startsWith('_')) return false;
+                    // Skip if value is an object (unless it has a name/title)
+                    if (typeof value === 'object' && !value?.name && !value?.title && !value?.description && !value?.username) return false;
+                    return true;
+                })
+                .slice(0, 8)
+                .map(([key, value]) => ({
+                    key: key.replace(/_/g, ' ').toUpperCase(),
+                    value: getDisplayValue(value)
+                }))
+                .filter(item => item.value !== null);
+        };
+        
+        return (
+            <Box key={sectionKey} sx={{ backgroundColor: bgColor, borderRadius: 1, borderLeft: `4px solid ${borderColor}`, overflow: 'hidden', mt: 2 }}>
+                <Box
+                    onClick={() => toggleSection(sectionKey)}
+                    sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: bgColor, opacity: 0.8 } }}
+                >
+                    <Typography variant="subtitle2" sx={{ color: textColor, fontWeight: 600 }}>{title} ({data.count})</Typography>
+                    <ExpandMoreIcon sx={{ transform: expandedSections[sectionKey] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                </Box>
+                <Collapse in={expandedSections[sectionKey]}>
+                    <Box sx={{ p: 2, pt: 0, borderTop: `1px solid ${borderColor}` }}>
+                        {data.data.map((item, idx) => {
+                            const formattedData = filterAndFormatData(item);
+                            return (
+                                <Box key={idx} sx={{ mb: 2, pb: 1.5, borderBottom: idx < data.data.length - 1 ? `1px solid ${bgColor}` : 'none' }}>
+                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, display: 'block', mb: 1 }}>Record {idx + 1}</Typography>
+                                    <Stack spacing={0.75} sx={{ mt: 0.5 }}>
+                                        {formattedData.length > 0 ? (
+                                            formattedData.map(({ key, value }) => (
+                                                <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 1, alignItems: 'flex-start' }}>
+                                                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, wordBreak: 'break-word' }}>
+                                                        {key}:
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: '#333', wordBreak: 'break-word' }}>
+                                                        {value}
+                                                    </Typography>
+                                                </Box>
+                                            ))
+                                        ) : (
+                                            <Typography variant="caption" sx={{ color: '#999' }}>No data available</Typography>
+                                        )}
+                                    </Stack>
+                                </Box>
+                            );
+                        })}
+                    </Box>
+                </Collapse>
+            </Box>
+        );
+    };
 
     const fetchAllBoothsForFilters = async () => {
         try {
@@ -164,6 +252,13 @@ export default function BoothsListPage() {
                 throw new Error('Invalid response format');
             }
 
+            // Create a map of booth data for quick lookup
+            const boothMap = {};
+            json.data.forEach(booth => {
+                boothMap[booth._id] = booth;
+            });
+            setBoothDataMap(boothMap);
+
             // Filter booths based on user hierarchy
             let boothsToUse = json.data;
             if (userHierarchy?.booth) {
@@ -190,10 +285,7 @@ export default function BoothsListPage() {
                         featureToAdd = {
                             ...booth.polygon,
                             properties: {
-                                ...booth.polygon.properties,
-                                booth_id: booth._id,
-                                booth_name: booth.name,
-                                booth_number: booth.booth_number
+                                booth_id: booth._id
                             }
                         };
                     } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
@@ -201,10 +293,7 @@ export default function BoothsListPage() {
                             features.push({
                                 ...feat,
                                 properties: {
-                                    ...feat.properties,
-                                    booth_id: booth._id,
-                                    booth_name: booth.name,
-                                    booth_number: booth.booth_number
+                                    booth_id: booth._id
                                 }
                             });
                         });
@@ -219,18 +308,15 @@ export default function BoothsListPage() {
 
             if (!features.length) {
                 setMapError('No booths with polygon data available');
-                setAllBoothGeoJSON(null);
                 setBoothGeoJSON(null);
             } else {
                 const geoJSON = { type: 'FeatureCollection', features };
-                setAllBoothGeoJSON(geoJSON);
                 setBoothGeoJSON(geoJSON);
                 setMapError('');
             }
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
             setMapError(`Failed to load polygon data: ${e.message}`);
-            setAllBoothGeoJSON(null);
             setBoothGeoJSON(null);
         }
     };
@@ -276,24 +362,21 @@ export default function BoothsListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            let booth = null;
-
             if (boothId) {
                 try {
-                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothId}`, { headers });
+                    const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothId}/related-data`, { headers });
                     const json = await res.json();
+                    console.log('Booth Related Data:', json);
                     if (json?.success && json.data) {
-                        booth = json.data;
+                        setDrawerData({ loading: false, boothName: boothName, boothNumber: json.data.booth?.booth_number, details: json.data });
+                        setDrawerOpen(true);
+                    } else {
+                        setDrawerData({ loading: false, boothName: boothName, details: null, error: 'Booth data not found' });
+                        setDrawerOpen(true);
                     }
                 } catch (e) {
-                    console.warn('Failed to fetch booth by ID:', e);
-                }
-
-                if (booth && booth._id) {
-                    setDrawerData({ loading: false, boothName: boothName, boothNumber: booth.booth_number, details: { booth } });
-                    setDrawerOpen(true);
-                } else {
-                    setDrawerData({ loading: false, boothName: boothName, details: null, error: 'Booth not found' });
+                    console.warn('Failed to fetch booth related data:', e);
+                    setDrawerData({ loading: false, boothName: boothName, details: null, error: 'Failed to fetch booth data' });
                     setDrawerOpen(true);
                 }
             } else {
@@ -658,18 +741,67 @@ export default function BoothsListPage() {
                                     <Source id="booth-polygons" type="geojson" data={boothGeoJSON}>
                                         <Layer id="booth-fill" type="fill" paint={{ 'fill-color': '#4CAF50', 'fill-opacity': 0.22 }} />
                                         <Layer id="booth-outline" type="line" paint={{ 'line-color': '#388E3C', 'line-width': 2 }} />
-                                        <Layer
-                                            id="booth-label"
-                                            type="symbol"
-                                            layout={{ 'text-field': ['concat', ['coalesce', ['get', 'booth_name'], ['get', 'name'], ''], '\n', ['coalesce', ['get', 'booth_number'], ['get', 'no'], '']], 'text-size': 10, 'text-allow-overlap': true, 'text-anchor': 'center' }}
-                                            paint={{
-                                                'text-color': '#000',
-                                                'text-halo-color': '#ffffff',
-                                                'text-halo-width': 2
-                                            }}
-                                        />
                                     </Source>
                                 )}
+                                {/* Labels from CRUD booth data */}
+                                {boothGeoJSON && boothDataMap && (() => {
+                                    const labelFeatures = [];
+                                    boothGeoJSON.features.forEach((feature) => {
+                                        const boothId = feature.properties?.booth_id;
+                                        const boothData = boothDataMap[boothId];
+                                        if (!boothData || !feature.geometry) return;
+                                        
+                                        let center = null;
+                                        if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates.length > 0) {
+                                            const coords = feature.geometry.coordinates[0];
+                                            if (coords.length > 0) {
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                center = [(Math.min(...lngs) + Math.max(...lngs)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+                                            }
+                                        } else if (feature.geometry.type === 'MultiPolygon' && feature.geometry.coordinates.length > 0) {
+                                            const coords = feature.geometry.coordinates[0][0];
+                                            if (coords && coords.length > 0) {
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                center = [(Math.min(...lngs) + Math.max(...lngs)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+                                            }
+                                        }
+                                        
+                                        if (center) {
+                                            labelFeatures.push({ 
+                                                type: 'Feature', 
+                                                geometry: { type: 'Point', coordinates: center }, 
+                                                properties: { 
+                                                    name: boothData.name || '', 
+                                                    number: String(boothData.booth_number || '') 
+                                                } 
+                                            });
+                                        }
+                                    });
+                                    
+                                    return labelFeatures.length > 0 ? (
+                                        <Source id="booth-labels-source" type="geojson" data={{ type: 'FeatureCollection', features: labelFeatures }}>
+                                            <Layer 
+                                                id="booth-label-layer" 
+                                                type="symbol" 
+                                                layout={{ 
+                                                    'text-field': ['concat', ['get', 'name'], '\n', ['get', 'number']], 
+                                                    'text-size': 10, 
+                                                    'text-allow-overlap': false, 
+                                                    'text-anchor': 'center', 
+                                                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                                                    'text-offset': [0, 0]
+                                                }} 
+                                                paint={{ 
+                                                    'text-color': '#000', 
+                                                    'text-halo-color': '#ffffff', 
+                                                    'text-halo-width': 2 
+                                                }} 
+                                            />
+                                        </Source>
+                                    ) : null;
+                                })()}
                             </Map>
                         ) : (
                             <Alert severity="error">Mapbox token not configured</Alert>
@@ -678,9 +810,9 @@ export default function BoothsListPage() {
                 </Box>
 
                 {/* Drawer for Booth Details */}
-                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 400 } }}>
-                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
-                        <Typography variant="h6">Booth Details</Typography>
+                <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 500 } } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f5f5f5' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>Booth Details</Typography>
                         <IconButton onClick={() => setDrawerOpen(false)} size="small">
                             <CloseIcon />
                         </IconButton>
@@ -694,34 +826,262 @@ export default function BoothsListPage() {
                             <Alert severity="error">{drawerData.error}</Alert>
                         ) : drawerData?.details ? (
                             <Stack spacing={2}>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Booth Name</Typography>
-                                    <Typography variant="body1">{drawerData.boothName || 'N/A'}</Typography>
+                                {/* Basic Booth Info */}
+                                <Box sx={{ p: 2, backgroundColor: '#e3f2fd', borderRadius: 1, borderLeft: '4px solid #1976d2' }}>
+                                    <Typography variant="subtitle2" sx={{ color: '#1565c0', fontWeight: 600, mb: 1 }}>Basic Information</Typography>
+                                    <Stack spacing={1}>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Booth Name</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{drawerData.details.booth?.name || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Booth Number</Typography>
+                                            <Chip label={drawerData.details.booth?.booth_number || 'N/A'} size="small" color="primary" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Address</Typography>
+                                            <Typography variant="body2">{drawerData.details.booth?.full_address || 'N/A'}</Typography>
+                                        </Box>
+                                    </Stack>
                                 </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Booth Number</Typography>
-                                    <Typography variant="body1">{drawerData.boothNumber || 'N/A'}</Typography>
+
+                                {/* Hierarchy Info */}
+                                <Box sx={{ p: 2, backgroundColor: '#f3e5f5', borderRadius: 1, borderLeft: '4px solid #7b1fa2' }}>
+                                    <Typography variant="subtitle2" sx={{ color: '#6a1b9a', fontWeight: 600, mb: 1 }}>Hierarchy</Typography>
+                                    <Stack spacing={1}>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>State</Typography>
+                                            <Chip label={drawerData.details.booth?.state_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Division</Typography>
+                                            <Chip label={drawerData.details.booth?.division_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Parliament</Typography>
+                                            <Chip label={drawerData.details.booth?.parliament_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Assembly</Typography>
+                                            <Chip label={drawerData.details.booth?.assembly_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Block</Typography>
+                                            <Chip label={drawerData.details.booth?.block_id?.name || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
+                                    </Stack>
                                 </Box>
-                                <Divider />
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Address</Typography>
-                                    <Typography variant="body2">{drawerData.details.booth?.full_address || 'N/A'}</Typography>
+
+                                {/* Voter Demographics */}
+                                <Box sx={{ p: 2, backgroundColor: '#e8f5e9', borderRadius: 1, borderLeft: '4px solid #388e3c' }}>
+                                    <Typography variant="subtitle2" sx={{ color: '#2e7d32', fontWeight: 600, mb: 1 }}>Voter Demographics</Typography>
+                                    <Stack spacing={1}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Male</Typography>
+                                            <Chip label={drawerData.details.booth?.Male_Count || 0} size="small" color="info" />
+                                        </Box>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Female</Typography>
+                                            <Chip label={drawerData.details.booth?.Female_Count || 0} size="small" color="warning" />
+                                        </Box>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Others</Typography>
+                                            <Chip label={drawerData.details.booth?.others_Count || 0} size="small" />
+                                        </Box>
+                                        <Divider sx={{ my: 1 }} />
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#fff9c4', p: 1, borderRadius: 0.5 }}>
+                                            <Typography variant="caption" sx={{ color: '#666', fontWeight: 600 }}>Total</Typography>
+                                            <Chip label={drawerData.details.booth?.Total || 0} size="small" color="success" />
+                                        </Box>
+                                    </Stack>
                                 </Box>
-                                <Divider />
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Voter Count</Typography>
-                                    <Typography variant="body2">Male: {drawerData.details.booth?.Male_Count || 0}</Typography>
-                                    <Typography variant="body2">Female: {drawerData.details.booth?.Female_Count || 0}</Typography>
-                                    <Typography variant="body2">Total: {drawerData.details.booth?.Total || 0}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Block</Typography>
-                                    <Typography variant="body2">{drawerData.details.booth?.block_id?.name || 'N/A'}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="subtitle2" color="textSecondary">Assembly</Typography>
-                                    <Typography variant="body2">{drawerData.details.booth?.assembly_id?.name || 'N/A'}</Typography>
-                                </Box>
+
+                                {/* Related Data Sections - Demographics */}
+                                {drawerData.details.demographics?.count > 0 && (
+                                    <Box sx={{ backgroundColor: '#fff3e0', borderRadius: 1, borderLeft: '4px solid #f57c00', overflow: 'hidden' }}>
+                                        <Box
+                                            onClick={() => toggleSection('demographics')}
+                                            sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#ffe0b2' } }}
+                                        >
+                                            <Typography variant="subtitle2" sx={{ color: '#e65100', fontWeight: 600 }}>Demographics ({drawerData.details.demographics.count})</Typography>
+                                            <ExpandMoreIcon sx={{ transform: expandedSections.demographics ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                        </Box>
+                                        <Collapse in={expandedSections.demographics}>
+                                            <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #ffb74d' }}>
+                                                {drawerData.details.demographics.data.map((item, idx) => (
+                                                    <Box key={idx} sx={{ mb: 1.5, pb: 1.5, borderBottom: idx < drawerData.details.demographics.data.length - 1 ? '1px solid #ffe0b2' : 'none' }}>
+                                                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Record {idx + 1}</Typography>
+                                                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                                                            {Object.entries(item).filter(([key]) => !key.startsWith('_')).slice(0, 5).map(([key, value]) => (
+                                                                <Typography key={key} variant="caption" sx={{ color: '#555' }}>
+                                                                    <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value).substring(0, 30) : String(value).substring(0, 50)}
+                                                                </Typography>
+                                                            ))}
+                                                        </Stack>
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        </Collapse>
+                                    </Box>
+                                )}
+
+                                {/* Election Stats */}
+                                {drawerData.details.electionStats?.count > 0 && (
+                                    <Box sx={{ backgroundColor: '#fce4ec', borderRadius: 1, borderLeft: '4px solid #c2185b', overflow: 'hidden', mt: 2 }}>
+                                        <Box
+                                            onClick={() => toggleSection('electionStats')}
+                                            sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#f8bbd0' } }}
+                                        >
+                                            <Typography variant="subtitle2" sx={{ color: '#880e4f', fontWeight: 600 }}>Election Stats ({drawerData.details.electionStats.count})</Typography>
+                                            <ExpandMoreIcon sx={{ transform: expandedSections.electionStats ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                        </Box>
+                                        <Collapse in={expandedSections.electionStats}>
+                                            <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #f48fb1' }}>
+                                                {drawerData.details.electionStats.data.map((item, idx) => (
+                                                    <Box key={idx} sx={{ mb: 1.5, pb: 1.5, borderBottom: idx < drawerData.details.electionStats.data.length - 1 ? '1px solid #fce4ec' : 'none' }}>
+                                                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Record {idx + 1}</Typography>
+                                                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                                                            {Object.entries(item).filter(([key]) => !key.startsWith('_')).slice(0, 5).map(([key, value]) => (
+                                                                <Typography key={key} variant="caption" sx={{ color: '#555' }}>
+                                                                    <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value).substring(0, 30) : String(value).substring(0, 50)}
+                                                                </Typography>
+                                                            ))}
+                                                        </Stack>
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        </Collapse>
+                                    </Box>
+                                )}
+
+                                {/* Infrastructure */}
+                                {drawerData.details.infrastructure?.count > 0 && (
+                                    <Box sx={{ backgroundColor: '#e0f2f1', borderRadius: 1, borderLeft: '4px solid #00796b', overflow: 'hidden', mt: 2 }}>
+                                        <Box
+                                            onClick={() => toggleSection('infrastructure')}
+                                            sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#b2dfdb' } }}
+                                        >
+                                            <Typography variant="subtitle2" sx={{ color: '#004d40', fontWeight: 600 }}>Infrastructure ({drawerData.details.infrastructure.count})</Typography>
+                                            <ExpandMoreIcon sx={{ transform: expandedSections.infrastructure ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                        </Box>
+                                        <Collapse in={expandedSections.infrastructure}>
+                                            <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #80cbc4' }}>
+                                                {drawerData.details.infrastructure.data.map((item, idx) => (
+                                                    <Box key={idx} sx={{ mb: 1.5, pb: 1.5, borderBottom: idx < drawerData.details.infrastructure.data.length - 1 ? '1px solid #e0f2f1' : 'none' }}>
+                                                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Record {idx + 1}</Typography>
+                                                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                                                            {Object.entries(item).filter(([key]) => !key.startsWith('_')).slice(0, 5).map(([key, value]) => (
+                                                                <Typography key={key} variant="caption" sx={{ color: '#555' }}>
+                                                                    <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value).substring(0, 30) : String(value).substring(0, 50)}
+                                                                </Typography>
+                                                            ))}
+                                                        </Stack>
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        </Collapse>
+                                    </Box>
+                                )}
+
+                                {/* Party Presence */}
+                                {drawerData.details.partyPresence?.count > 0 && (
+                                    <Box sx={{ backgroundColor: '#f1f8e9', borderRadius: 1, borderLeft: '4px solid #689f38', overflow: 'hidden', mt: 2 }}>
+                                        <Box
+                                            onClick={() => toggleSection('partyPresence')}
+                                            sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#dcedc8' } }}
+                                        >
+                                            <Typography variant="subtitle2" sx={{ color: '#33691e', fontWeight: 600 }}>Party Presence ({drawerData.details.partyPresence.count})</Typography>
+                                            <ExpandMoreIcon sx={{ transform: expandedSections.partyPresence ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                        </Box>
+                                        <Collapse in={expandedSections.partyPresence}>
+                                            <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #c5e1a5' }}>
+                                                {drawerData.details.partyPresence.data.map((item, idx) => (
+                                                    <Box key={idx} sx={{ mb: 1.5, pb: 1.5, borderBottom: idx < drawerData.details.partyPresence.data.length - 1 ? '1px solid #f1f8e9' : 'none' }}>
+                                                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Record {idx + 1}</Typography>
+                                                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                                                            {Object.entries(item).filter(([key]) => !key.startsWith('_')).slice(0, 5).map(([key, value]) => (
+                                                                <Typography key={key} variant="caption" sx={{ color: '#555' }}>
+                                                                    <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value).substring(0, 30) : String(value).substring(0, 50)}
+                                                                </Typography>
+                                                            ))}
+                                                        </Stack>
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        </Collapse>
+                                    </Box>
+                                )}
+
+                                {/* Volunteers */}
+                                {drawerData.details.volunteers?.count > 0 && (
+                                    <Box sx={{ backgroundColor: '#ede7f6', borderRadius: 1, borderLeft: '4px solid #512da8', overflow: 'hidden', mt: 2 }}>
+                                        <Box
+                                            onClick={() => toggleSection('volunteers')}
+                                            sx={{ p: 2, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { backgroundColor: '#d1c4e9' } }}
+                                        >
+                                            <Typography variant="subtitle2" sx={{ color: '#311b92', fontWeight: 600 }}>Volunteers ({drawerData.details.volunteers.count})</Typography>
+                                            <ExpandMoreIcon sx={{ transform: expandedSections.volunteers ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                                        </Box>
+                                        <Collapse in={expandedSections.volunteers}>
+                                            <Box sx={{ p: 2, pt: 0, borderTop: '1px solid #ce93d8' }}>
+                                                {drawerData.details.volunteers.data.map((item, idx) => (
+                                                    <Box key={idx} sx={{ mb: 1.5, pb: 1.5, borderBottom: idx < drawerData.details.volunteers.data.length - 1 ? '1px solid #ede7f6' : 'none' }}>
+                                                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>Record {idx + 1}</Typography>
+                                                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                                                            {Object.entries(item).filter(([key]) => !key.startsWith('_')).slice(0, 5).map(([key, value]) => (
+                                                                <Typography key={key} variant="caption" sx={{ color: '#555' }}>
+                                                                    <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value).substring(0, 30) : String(value).substring(0, 50)}
+                                                                </Typography>
+                                                            ))}
+                                                        </Stack>
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        </Collapse>
+                                    </Box>
+                                )}
+
+                                {/* Votes */}
+                                {renderDataSection('Votes', drawerData.details.votes, 'votes', '#e1f5fe', '#0277bd', '#01579b')}
+
+                                {/* Booth Admins */}
+                                {renderDataSection('Booth Admins', drawerData.details.admins, 'admins', '#ffebee', '#d32f2f', '#b71c1c')}
+
+                                {/* Other Data Categories - All Expandable */}
+                                {renderDataSection('Genders', drawerData.details.genders, 'genders', '#f3e5f5', '#9c27b0', '#6a1b9a')}
+                                {renderDataSection('BLA', drawerData.details.bla, 'bla', '#ffebee', '#c62828', '#b71c1c')}
+                                {renderDataSection('BLO', drawerData.details.blo, 'blo', '#f1f8e9', '#558b2f', '#33691e')}
+                                {renderDataSection('Local Issues', drawerData.details.localIssues, 'localIssues', '#fff3e0', '#f57f17', '#e65100')}
+                                {renderDataSection('Winning Parties', drawerData.details.winningParties, 'winningParties', '#e0f2f1', '#009688', '#004d40')}
+                                {renderDataSection('Active Parties', drawerData.details.activeParties, 'activeParties', '#e8eaf6', '#3f51b5', '#1a237e')}
+
+                                {/* All Other Data Categories - Expandable */}
+                                {renderDataSection('Election Types', drawerData.details.electionTypes, 'electionTypes', '#f1f8e9', '#558b2f', '#33691e')}
+                                {renderDataSection('Coding', drawerData.details.coding, 'coding', '#fce4ec', '#e91e63', '#880e4f')}
+                                {renderDataSection('Caste Lists', drawerData.details.casteLists, 'casteLists', '#fff3e0', '#ff6f00', '#e65100')}
+                                {renderDataSection('Events', drawerData.details.events, 'events', '#e0f2f1', '#009688', '#004d40')}
+                                {renderDataSection('Falliya', drawerData.details.falliya, 'falliya', '#e1f5fe', '#0288d1', '#01579b')}
+                                {renderDataSection('Local News', drawerData.details.localNews, 'localNews', '#e8f5e9', '#2e7d32', '#1b5e20')}
+                                {renderDataSection('Local Dynamics', drawerData.details.localDynamics, 'localDynamics', '#ede7f6', '#512da8', '#311b92')}
+                                {renderDataSection('Influencers', drawerData.details.influencers, 'influencers', '#fce4ec', '#c2185b', '#880e4f')}
+                                {renderDataSection('Governments', drawerData.details.governments, 'governments', '#e0f2f1', '#00796b', '#004d40')}
+                                {renderDataSection('Party Activities', drawerData.details.partyActivities, 'partyActivities', '#f1f8e9', '#689f38', '#33691e')}
+                                {renderDataSection('Panchayats', drawerData.details.panchayats, 'panchayats', '#e1f5fe', '#0277bd', '#01579b')}
+                                {renderDataSection('Villages', drawerData.details.villages, 'villages', '#f3e5f5', '#7b1fa2', '#6a1b9a')}
+                                {renderDataSection('Samitis', drawerData.details.samitis, 'samitis', '#fff3e0', '#f57c00', '#e65100')}
+                                {renderDataSection('Visits', drawerData.details.visits, 'visits', '#fce4ec', '#e91e63', '#880e4f')}
+                                {renderDataSection('Voting Trends', drawerData.details.votingTrends, 'votingTrends', '#e8eaf6', '#3f51b5', '#1a237e')}
+                                {renderDataSection('Work Status', drawerData.details.workStatus, 'workStatus', '#f1f8e9', '#558b2f', '#33691e')}
+                                {renderDataSection('Parliament Votes', drawerData.details.parliamentVotes, 'parliamentVotes', '#ffebee', '#d32f2f', '#b71c1c')}
+                                {renderDataSection('Block Votes', drawerData.details.blockVotes, 'blockVotes', '#e1f5fe', '#0277bd', '#01579b')}
+                                {renderDataSection('Assembly Votes', drawerData.details.assemblyVotes, 'assemblyVotes', '#f3e5f5', '#7b1fa2', '#6a1b9a')}
+                                {renderDataSection('Party Vote Share', drawerData.details.partyVoteShare, 'partyVoteShare', '#fff3e0', '#ff6f00', '#e65100')}
+
+
+                                {/* No Related Data Message */}
+                                {Object.values(drawerData.details).every(item => !item?.count || item.count === 0) && (
+                                    <Alert severity="info">No related data found for this booth</Alert>
+                                )}
                             </Stack>
                         ) : (
                             <Typography variant="body2" color="textSecondary">Click on a booth on the map to view details</Typography>

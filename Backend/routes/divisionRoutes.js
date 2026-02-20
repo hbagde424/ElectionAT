@@ -7,7 +7,8 @@ const {
   deleteDivision,
   getDivisionsByState,
   importDivisions,
-  uploadDivisionPolygon
+  uploadDivisionPolygon,
+  getDivisionRelatedData
 } = require('../controllers/divisionController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -101,6 +102,9 @@ router.get('/', getDivisions);
 // Move state route above id route to avoid route parameter conflicts
 // Public: no authentication required for reading division data
 router.get('/state/:stateId', getDivisionsByState);
+
+// Public: no authentication required for reading division data
+router.get('/:id/related-data', getDivisionRelatedData);
 
 // Public: no authentication required for reading division data
 router.get('/:id', getDivision);

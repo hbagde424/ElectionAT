@@ -476,3 +476,130 @@ exports.getTotalParliaments = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get all parliament-related data from all tables
+// @route   GET /api/parliaments/:id/related-data
+// @access  Public
+exports.getParliamentRelatedData = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid parliament ID'
+      });
+    }
+
+    const parliament = await Parliament.findById(id)
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('created_by', 'username');
+
+    if (!parliament) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parliament not found'
+      });
+    }
+
+    // Fetch all related data from tables with parliament_id
+    const Assembly = require('../models/Assembly');
+    const District = require('../models/District');
+    const Samiti = require('../models/Samiti');
+    const Visit = require('../models/Visit');
+    const WinningParty = require('../models/WinningParty');
+    const WinningCandidate = require('../models/winningCandidate');
+    const WorkStatus = require('../models/WorkStatus');
+    const VotingTrends = require('../models/votingTrends');
+    const Village = require('../models/Village');
+    const PartyActivity = require('../models/partyActivity');
+    const ParliamentCandidate = require('../models/ParliamentCandidate');
+    const ParliamentVotes = require('../models/parliamentVotes');
+    const Panchayat = require('../models/Panchayat');
+    const LocalIssue = require('../models/LocalIssue');
+    const Influencer = require('../models/influencer');
+    const Government = require('../models/government');
+    const Gender = require('../models/gender');
+    const Falliya = require('../models/Falliya');
+    const Event = require('../models/Event');
+    const ElectionType = require('../models/electionType');
+    const CasteList = require('../models/CasteList');
+
+    const [
+      assemblies,
+      districts,
+      samitis,
+      visits,
+      winningParties,
+      winningCandidates,
+      workStatus,
+      votingTrends,
+      villages,
+      partyActivities,
+      parliamentCandidates,
+      parliamentVotes,
+      panchayats,
+      localIssues,
+      influencers,
+      governments,
+      genders,
+      falliya,
+      events,
+      electionTypes,
+      casteLists
+    ] = await Promise.all([
+      Assembly.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      District.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Samiti.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Visit.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      WinningParty.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      WinningCandidate.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      WorkStatus.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      VotingTrends.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Village.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      PartyActivity.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      ParliamentCandidate.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      ParliamentVotes.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Panchayat.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      LocalIssue.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Influencer.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Government.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Gender.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Falliya.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      Event.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      ElectionType.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      CasteList.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        parliament,
+        assemblies: { count: assemblies.length, data: assemblies },
+        districts: { count: districts.length, data: districts },
+        samitis: { count: samitis.length, data: samitis },
+        visits: { count: visits.length, data: visits },
+        winningParties: { count: winningParties.length, data: winningParties },
+        winningCandidates: { count: winningCandidates.length, data: winningCandidates },
+        workStatus: { count: workStatus.length, data: workStatus },
+        votingTrends: { count: votingTrends.length, data: votingTrends },
+        villages: { count: villages.length, data: villages },
+        partyActivities: { count: partyActivities.length, data: partyActivities },
+        parliamentCandidates: { count: parliamentCandidates.length, data: parliamentCandidates },
+        parliamentVotes: { count: parliamentVotes.length, data: parliamentVotes },
+        panchayats: { count: panchayats.length, data: panchayats },
+        localIssues: { count: localIssues.length, data: localIssues },
+        influencers: { count: influencers.length, data: influencers },
+        governments: { count: governments.length, data: governments },
+        genders: { count: genders.length, data: genders },
+        falliya: { count: falliya.length, data: falliya },
+        events: { count: events.length, data: events },
+        electionTypes: { count: electionTypes.length, data: electionTypes },
+        casteLists: { count: casteLists.length, data: casteLists }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
