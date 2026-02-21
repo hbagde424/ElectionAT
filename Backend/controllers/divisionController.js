@@ -2,6 +2,7 @@ const Division = require('../models/Division');
 const State = require('../models/state');
 const User = require('../models/User'); // Make sure to import your User model
 const ErrorResponse = require('../utils/errorResponse');
+const { autoLinkDivisionData, autoLinkByHierarchy } = require('./divisionAutoLinkHelper');
 
 // Helper function for consistent population
 const populateDivision = (query) => {
@@ -170,6 +171,10 @@ exports.createDivision = async (req, res, next) => {
     const division = await Division.create(divisionData);
     const populatedDivision = await populateDivision(Division.findById(division._id));
 
+    // Auto-link related data to this division
+    await autoLinkDivisionData(division._id, division.name);
+    await autoLinkByHierarchy(division._id);
+
     res.status(201).json({
       success: true,
       data: populatedDivision
@@ -222,6 +227,10 @@ exports.updateDivision = async (req, res, next) => {
     });
 
     const populatedDivision = await populateDivision(Division.findById(division._id));
+
+    // Auto-link related data to this division (in case name changed or new data was added)
+    await autoLinkDivisionData(division._id, division.name);
+    await autoLinkByHierarchy(division._id);
 
     res.status(200).json({
       success: true,
@@ -639,6 +648,61 @@ exports.getDivisionRelatedData = async (req, res, next) => {
         votingTrends: { count: votingTrends.length, data: votingTrends },
         workStatus: { count: workStatus.length, data: workStatus }
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get division polygons as GeoJSON
+// @route   GET /api/divisions/polygons
+// @access  Public
+exports.getDivisionPolygons = async (req, res, next) => {
+  try {
+    const divisions = await Division.find({ polygon: { $ne: null } })
+      .select('name division_code state_id polygon')
+      .populate('state_id', 'name');
+    
+    if (!divisions || divisions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No division polygons found'
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = divisions.map(division => {
+      if (division.polygon && division.polygon.type === 'Feature') {
+        return {
+          ...division.polygon,
+          properties: {
+            ...division.polygon.properties,
+            _id: division._id,
+            name: division.name,
+            DIVISION_NAME: division.name,
+            division_code: division.division_code,
+            ST_NAME: division.state_id?.name || ''
+          }
+        };
+      } else if (division.polygon && division.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: division._id,
+            name: division.name,
+            DIVISION_NAME: division.name,
+            division_code: division.division_code,
+            ST_NAME: division.state_id?.name || ''
+          },
+          geometry: division.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      type: 'FeatureCollection',
+      features
     });
   } catch (err) {
     next(err);

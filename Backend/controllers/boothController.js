@@ -753,3 +753,152 @@ exports.getBoothRelatedData = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get booth polygons as GeoJSON
+// @route   GET /api/booths/polygons
+// @access  Public
+exports.getBoothPolygons = async (req, res, next) => {
+  try {
+    const Booth = require('../models/booth');
+    const booths = await Booth.find({ polygon: { $ne: null } })
+      .select('name booth_number block_id assembly_id parliament_id polygon')
+      .populate('block_id', 'name block_no')
+      .populate('assembly_id', 'name AC_NO')
+      .populate('parliament_id', 'name parliament_no');
+    
+    if (!booths || booths.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No booth polygons found'
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = booths.map(booth => {
+      if (booth.polygon && booth.polygon.type === 'Feature') {
+        return {
+          ...booth.polygon,
+          properties: {
+            ...booth.polygon.properties,
+            _id: booth._id,
+            BoothId: booth._id,
+            name: booth.name,
+            BoothName: booth.name,
+            BoothNo: booth.booth_number,
+            booth_number: booth.booth_number,
+            BlockNumber: booth.block_id?.block_no || '',
+            AC_NO: booth.assembly_id?.AC_NO || '',
+            acNo: booth.assembly_id?.AC_NO || ''
+          }
+        };
+      } else if (booth.polygon && booth.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: booth._id,
+            BoothId: booth._id,
+            name: booth.name,
+            BoothName: booth.name,
+            BoothNo: booth.booth_number,
+            booth_number: booth.booth_number,
+            BlockNumber: booth.block_id?.block_no || '',
+            AC_NO: booth.assembly_id?.AC_NO || '',
+            acNo: booth.assembly_id?.AC_NO || ''
+          },
+          geometry: booth.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      features
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get booth polygons by block number
+// @route   GET /api/booths/polygons/block/:blockNumber
+// @access  Public
+exports.getBoothPolygonsByBlock = async (req, res, next) => {
+  try {
+    const Booth = require('../models/booth');
+    const Block = require('../models/block');
+    
+    const blockNumber = req.params.blockNumber;
+    const block = await Block.findOne({ block_no: blockNumber });
+    
+    if (!block) {
+      return res.status(404).json({
+        success: false,
+        message: `Block not found: ${blockNumber}`
+      });
+    }
+
+    const booths = await Booth.find({ 
+      block_id: block._id,
+      polygon: { $ne: null } 
+    })
+      .select('name booth_number block_id assembly_id parliament_id polygon')
+      .populate('block_id', 'name block_no')
+      .populate('assembly_id', 'name AC_NO')
+      .populate('parliament_id', 'name parliament_no');
+    
+    if (!booths || booths.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No booth polygons found for block: ${blockNumber}`
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = booths.map(booth => {
+      if (booth.polygon && booth.polygon.type === 'Feature') {
+        return {
+          ...booth.polygon,
+          properties: {
+            ...booth.polygon.properties,
+            _id: booth._id,
+            BoothId: booth._id,
+            name: booth.name,
+            BoothName: booth.name,
+            BoothNo: booth.booth_number,
+            booth_number: booth.booth_number,
+            BlockNumber: booth.block_id?.block_no || '',
+            AC_NO: booth.assembly_id?.AC_NO || '',
+            acNo: booth.assembly_id?.AC_NO || '',
+            AC_NAME: booth.assembly_id?.name || ''
+          }
+        };
+      } else if (booth.polygon && booth.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: booth._id,
+            BoothId: booth._id,
+            name: booth.name,
+            BoothName: booth.name,
+            BoothNo: booth.booth_number,
+            booth_number: booth.booth_number,
+            BlockNumber: booth.block_id?.block_no || '',
+            AC_NO: booth.assembly_id?.AC_NO || '',
+            acNo: booth.assembly_id?.AC_NO || '',
+            AC_NAME: booth.assembly_id?.name || ''
+          },
+          geometry: booth.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      features
+    });
+  } catch (err) {
+    next(err);
+  }
+};

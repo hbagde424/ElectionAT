@@ -700,3 +700,160 @@ exports.getAssemblyRelatedData = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get assembly polygons as GeoJSON
+// @route   GET /api/assemblies/polygons
+// @access  Public
+exports.getAssemblyPolygons = async (req, res, next) => {
+  try {
+    const Assembly = require('../models/Assembly');
+    const assemblies = await Assembly.find({ polygon: { $ne: null } })
+      .select('name AC_NO parliament_id division_id state_id polygon')
+      .populate('parliament_id', 'name parliament_no')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
+    
+    if (!assemblies || assemblies.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No assembly polygons found'
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = assemblies.map(assembly => {
+      if (assembly.polygon && assembly.polygon.type === 'Feature') {
+        return {
+          ...assembly.polygon,
+          properties: {
+            ...assembly.polygon.properties,
+            _id: assembly._id,
+            name: assembly.name,
+            AC_NAME: assembly.name,
+            AC_NO: assembly.AC_NO,
+            PC_NAME: assembly.parliament_id?.name || '',
+            DIVISION_NAME: assembly.division_id?.name || '',
+            ST_NAME: assembly.state_id?.name || ''
+          }
+        };
+      } else if (assembly.polygon && assembly.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: assembly._id,
+            name: assembly.name,
+            AC_NAME: assembly.name,
+            AC_NO: assembly.AC_NO,
+            PC_NAME: assembly.parliament_id?.name || '',
+            DIVISION_NAME: assembly.division_id?.name || '',
+            ST_NAME: assembly.state_id?.name || ''
+          },
+          geometry: assembly.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      data: [{
+        type: 'FeatureCollection',
+        features
+      }]
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get assembly polygons by parliament ID
+// @route   GET /api/assemblies/polygons/parliament/:parliamentId
+// @access  Public
+exports.getAssemblyPolygonsByParliament = async (req, res, next) => {
+  try {
+    const Assembly = require('../models/Assembly');
+    const Parliament = require('../models/Parliament');
+    
+    const parliamentId = req.params.parliamentId;
+    
+    // Try to find parliament by ID first, then by parliament_no, then by name
+    let parliament = await Parliament.findById(parliamentId);
+    if (!parliament) {
+      // Try by parliament_no if it's a number
+      parliament = await Parliament.findOne({ parliament_no: parseInt(parliamentId) || parliamentId });
+    }
+    if (!parliament) {
+      // Try by name
+      parliament = await Parliament.findOne({ name: { $regex: new RegExp(`^${parliamentId}$`, 'i') } });
+    }
+    
+    if (!parliament) {
+      return res.status(404).json({
+        success: false,
+        message: `Parliament not found: ${parliamentId}`
+      });
+    }
+
+    const assemblies = await Assembly.find({ 
+      parliament_id: parliament._id,
+      polygon: { $ne: null } 
+    })
+      .select('name AC_NO parliament_id division_id state_id polygon')
+      .populate('parliament_id', 'name parliament_no')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
+    
+    if (!assemblies || assemblies.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No assembly polygons found for parliament: ${parliamentId}`
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = assemblies.map(assembly => {
+      if (assembly.polygon && assembly.polygon.type === 'Feature') {
+        return {
+          ...assembly.polygon,
+          properties: {
+            ...assembly.polygon.properties,
+            _id: assembly._id,
+            name: assembly.name,
+            AC_NAME: assembly.name,
+            AC_NO: assembly.AC_NO,
+            PC_NAME: assembly.parliament_id?.name || '',
+            DIVISION_NAME: assembly.division_id?.name || '',
+            ST_NAME: assembly.state_id?.name || '',
+            DIST_NAME: assembly.state_id?.name || ''
+          }
+        };
+      } else if (assembly.polygon && assembly.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: assembly._id,
+            name: assembly.name,
+            AC_NAME: assembly.name,
+            AC_NO: assembly.AC_NO,
+            PC_NAME: assembly.parliament_id?.name || '',
+            DIVISION_NAME: assembly.division_id?.name || '',
+            ST_NAME: assembly.state_id?.name || '',
+            DIST_NAME: assembly.state_id?.name || ''
+          },
+          geometry: assembly.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      data: [{
+        type: 'FeatureCollection',
+        features
+      }]
+    });
+  } catch (err) {
+    next(err);
+  }
+};

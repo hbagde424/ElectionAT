@@ -7,7 +7,9 @@ const {
   deleteAssembly,
   importAssemblies,
   uploadAssemblyPolygon,
-  getAssemblyRelatedData
+  getAssemblyRelatedData,
+  getAssemblyPolygons,
+  getAssemblyPolygonsByParliament
 } = require('../controllers/assemblyController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -21,6 +23,8 @@ const router = express.Router();
  */
 
 router.get('/', getAssemblies);
+router.get('/polygons', getAssemblyPolygons);
+router.get('/polygons/parliament/:parliamentId', getAssemblyPolygonsByParliament);
 router.get('/:id', getAssembly);
 router.get('/:id/related-data', getAssemblyRelatedData);
 router.post('/', protect, authorize('superAdmin'), createAssembly);

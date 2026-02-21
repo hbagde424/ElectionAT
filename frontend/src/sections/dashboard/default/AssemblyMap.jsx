@@ -80,8 +80,8 @@ function AssemblyMap({ themes, selectedYear = '', onAssemblySelect, ...other }) 
         }
 
         const [assemblyResponse, candidatesResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`, { headers: { Authorization: `Bearer ${token}` } })
+          fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/polygons`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?limit=10000`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
 
         if (!assemblyResponse.ok) throw new Error('Failed to fetch assembly data');

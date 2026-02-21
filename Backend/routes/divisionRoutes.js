@@ -8,7 +8,8 @@ const {
   getDivisionsByState,
   importDivisions,
   uploadDivisionPolygon,
-  getDivisionRelatedData
+  getDivisionRelatedData,
+  getDivisionPolygons
 } = require('../controllers/divisionController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -74,6 +75,8 @@ const router = express.Router();
  */
 // Protected: requires authentication via serviceToken
 router.post('/upload-polygon', protect, authorize('superAdmin'), uploadDivisionPolygon);
+// Public: Get division polygons as GeoJSON
+router.get('/polygons', getDivisionPolygons);
 // Public: no authentication required for reading division data
 router.get('/', getDivisions);
 

@@ -350,3 +350,58 @@ exports.uploadStatePolygon = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get state polygons as GeoJSON
+// @route   GET /api/states/polygons
+// @access  Public
+exports.getStatePolygons = async (req, res, next) => {
+  try {
+    const states = await State.find({ polygon: { $ne: null } }).select('name state_no polygon');
+    
+    if (!states || states.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No state polygons found'
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = states.map(state => {
+      // If polygon is already a Feature, use it; otherwise wrap it
+      if (state.polygon && state.polygon.type === 'Feature') {
+        return {
+          ...state.polygon,
+          properties: {
+            ...state.polygon.properties,
+            _id: state._id,
+            name: state.name,
+            Name: state.name,
+            state_no: state.state_no
+          }
+        };
+      } else if (state.polygon && state.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: state._id,
+            name: state.name,
+            Name: state.name,
+            state_no: state.state_no
+          },
+          geometry: state.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      data: [{
+        type: 'FeatureCollection',
+        features
+      }]
+    });
+  } catch (err) {
+    next(err);
+  }
+};

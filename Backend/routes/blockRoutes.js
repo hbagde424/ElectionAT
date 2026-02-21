@@ -9,7 +9,9 @@ const {
   getBlocksByParliament,
   toggleBlockActive,
   importBlocks,
-  uploadBlockPolygon
+  uploadBlockPolygon,
+  getBlockPolygons,
+  getBlockPolygonsByAssembly
 } = require('../controllers/blockController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -22,6 +24,17 @@ const router = express.Router();
  *   name: Blocks
  *   description: Block management
  */
+
+// IMPORTANT: Specific routes MUST come before generic routes to avoid parameter conflicts
+// GET /api/blocks/polygons - must come before GET /api/blocks/:id
+router.get('/polygons', getBlockPolygons);
+router.get('/polygons/assembly/:assemblyId', getBlockPolygonsByAssembly);
+
+// GET /api/blocks/assembly/:assemblyId - must come before GET /api/blocks/:id
+router.get('/assembly/:assemblyId', getBlocksByAssembly);
+
+// GET /api/blocks/parliament/:parliamentId - must come before GET /api/blocks/:id
+router.get('/parliament/:parliamentId', getBlocksByParliament);
 
 /**
  * @swagger
@@ -155,7 +168,6 @@ router.get('/:id', getBlock);
  *         description: Not authorized
  */
 router.post('/', protect, authorize('superAdmin'), createBlock);
-// router.post('/', protect, authorize('superAdmin'), createBlock);
 
 /**
  * @swagger
@@ -212,74 +224,6 @@ router.put('/:id', protect, authorize('superAdmin'), updateBlock);
  *         description: Block not found
  */
 router.delete('/:id', protect, authorize('superAdmin'), deleteBlock);
-
-/**
- * @swagger
- * /api/blocks/assembly/{assemblyId}:
- *   get:
- *     summary: Get blocks by assembly
- *     tags: [Blocks]
- *     parameters:
- *       - in: path
- *         name: assemblyId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of blocks for the assembly
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Block'
- *       404:
- *         description: Assembly not found
- */
-// Public: no authentication required for reading block data
-router.get('/assembly/:assemblyId', getBlocksByAssembly);
-
-/**
- * @swagger
- * /api/blocks/parliament/{parliamentId}:
- *   get:
- *     summary: Get blocks by parliament
- *     tags: [Blocks]
- *     parameters:
- *       - in: path
- *         name: parliamentId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of blocks for the parliament
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Block'
- *       404:
- *         description: Parliament not found
- */
-// Public: no authentication required for reading block data
-router.get('/parliament/:parliamentId', getBlocksByParliament);
 
 /**
  * @swagger

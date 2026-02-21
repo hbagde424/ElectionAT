@@ -658,3 +658,164 @@ exports.uploadBlockPolygon = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get block polygons as GeoJSON
+// @route   GET /api/blocks/polygons
+// @access  Public
+exports.getBlockPolygons = async (req, res, next) => {
+  try {
+    const Block = require('../models/block');
+    const blocks = await Block.find({ polygon: { $ne: null } })
+      .select('name block_no assembly_id parliament_id division_id state_id polygon')
+      .populate('assembly_id', 'name AC_NO')
+      .populate('parliament_id', 'name parliament_no')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
+    
+    if (!blocks || blocks.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No block polygons found'
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = blocks.map(block => {
+      if (block.polygon && block.polygon.type === 'Feature') {
+        return {
+          ...block.polygon,
+          properties: {
+            ...block.polygon.properties,
+            _id: block._id,
+            uuid: block._id,
+            name: block.name,
+            BlockName: block.name,
+            BlockNumber: block.block_no,
+            block_no: block.block_no,
+            AC_NO: block.assembly_id?.AC_NO || '',
+            AC_NAME: block.assembly_id?.name || '',
+            DIST_NAME: block.state_id?.name || '',
+            ST_NAME: block.state_id?.name || ''
+          }
+        };
+      } else if (block.polygon && block.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: block._id,
+            uuid: block._id,
+            name: block.name,
+            BlockName: block.name,
+            BlockNumber: block.block_no,
+            block_no: block.block_no,
+            AC_NO: block.assembly_id?.AC_NO || '',
+            AC_NAME: block.assembly_id?.name || '',
+            DIST_NAME: block.state_id?.name || '',
+            ST_NAME: block.state_id?.name || ''
+          },
+          geometry: block.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      data: [{
+        type: 'FeatureCollection',
+        features
+      }]
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get block polygons by assembly ID
+// @route   GET /api/blocks/polygons/assembly/:assemblyId
+// @access  Public
+exports.getBlockPolygonsByAssembly = async (req, res, next) => {
+  try {
+    const Block = require('../models/block');
+    const Assembly = require('../models/Assembly');
+    
+    const assemblyId = req.params.assemblyId;
+    const assembly = await Assembly.findById(assemblyId);
+    
+    if (!assembly) {
+      return res.status(404).json({
+        success: false,
+        message: `Assembly not found: ${assemblyId}`
+      });
+    }
+
+    const blocks = await Block.find({ 
+      assembly_id: assembly._id,
+      polygon: { $ne: null } 
+    })
+      .select('name block_no assembly_id parliament_id division_id state_id polygon')
+      .populate('assembly_id', 'name AC_NO')
+      .populate('parliament_id', 'name parliament_no')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
+    
+    if (!blocks || blocks.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No block polygons found for assembly: ${assemblyId}`
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = blocks.map(block => {
+      if (block.polygon && block.polygon.type === 'Feature') {
+        return {
+          ...block.polygon,
+          properties: {
+            ...block.polygon.properties,
+            _id: block._id,
+            uuid: block._id,
+            name: block.name,
+            BlockName: block.name,
+            BlockNumber: block.block_no,
+            block_no: block.block_no,
+            AC_NO: block.assembly_id?.AC_NO || '',
+            AC_NAME: block.assembly_id?.name || '',
+            DIST_NAME: block.state_id?.name || '',
+            ST_NAME: block.state_id?.name || '',
+            BoothName: block.name
+          }
+        };
+      } else if (block.polygon && block.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: block._id,
+            uuid: block._id,
+            name: block.name,
+            BlockName: block.name,
+            BlockNumber: block.block_no,
+            block_no: block.block_no,
+            AC_NO: block.assembly_id?.AC_NO || '',
+            AC_NAME: block.assembly_id?.name || '',
+            DIST_NAME: block.state_id?.name || '',
+            ST_NAME: block.state_id?.name || '',
+            BoothName: block.name
+          },
+          geometry: block.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json({
+      success: true,
+      data: [{
+        type: 'FeatureCollection',
+        features
+      }]
+    });
+  } catch (err) {
+    next(err);
+  }
+};

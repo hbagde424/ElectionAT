@@ -8,7 +8,9 @@ const {
   importParliaments,
   uploadParliamentPolygon,
   getTotalParliaments,
-  getParliamentRelatedData
+  getParliamentRelatedData,
+  getParliamentPolygons,
+  getParliamentPolygonsByDivision
 } = require('../controllers/parliamentController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -22,6 +24,8 @@ const router = express.Router();
  */
 
 router.get('/', getParliaments);
+router.get('/polygons', getParliamentPolygons);
+router.get('/polygons/name/:divisionName', getParliamentPolygonsByDivision);
 router.get('/total', getTotalParliaments);
 router.get('/:id', getParliament);
 router.get('/:id/related-data', getParliamentRelatedData);

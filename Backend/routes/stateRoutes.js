@@ -5,7 +5,8 @@ const {
   createState,
   updateState,
   deleteState,
-  uploadStatePolygon
+  uploadStatePolygon,
+  getStatePolygons
 } = require('../controllers/stateController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -66,6 +67,8 @@ const router = express.Router();
  */
 // Protected: requires authentication via serviceToken
 router.post('/upload-polygon', protect, authorize('superAdmin'), uploadStatePolygon);
+// Public: Get state polygons as GeoJSON
+router.get('/polygons', getStatePolygons);
 // Public: no authentication required for reading state data
 router.get('/', getStates);
 

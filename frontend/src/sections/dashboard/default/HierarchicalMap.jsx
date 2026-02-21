@@ -726,7 +726,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadStateData = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/state-polygons`);
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/polygons`);
             if (!response.ok) {
                 throw new Error('Failed to fetch state data');
             }
@@ -775,7 +775,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadDivisionData = async (stateId) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/division-polygons`);
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/polygons`);
             if (!response.ok) {
                 throw new Error('Failed to fetch division data');
             }
@@ -852,7 +852,7 @@ function HierarchicalMap({ onRegionClick }) {
             
             console.log(`� Normalized division name: "${normalizedDivisionName}"`);
             
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliament-polygons/name/${encodeURIComponent(normalizedDivisionName)}`;
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliaments/polygons/name/${encodeURIComponent(normalizedDivisionName)}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -869,20 +869,25 @@ function HierarchicalMap({ onRegionClick }) {
                 
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: parliamentData.features.map(feature => ({
-                        type: 'Feature',
-                        properties: {
-                            id: feature.properties.PC_NAME.toLowerCase().replace(/\s+/g, '-'),
-                            name: feature.properties.PC_NAME,
-                            displayName: `${feature.properties.PC_NO}-${feature.properties.PC_NAME}`,
-                            pcNo: feature.properties.PC_NO,
-                            stateCode: feature.properties.ST_CODE,
-                            stateName: feature.properties.ST_NAME,
-                            parliamentId: feature.properties.PC_ID,
-                            divisionName: divisionName
-                        },
-                        geometry: feature.geometry
-                    }))
+                    features: parliamentData.features.map(feature => {
+                        const parliamentId = feature.properties._id || feature.properties.PC_ID;
+                        return {
+                            type: 'Feature',
+                            properties: {
+                                _id: parliamentId,
+                                id: parliamentId,
+                                PC_ID: parliamentId,
+                                name: feature.properties.PC_NAME,
+                                displayName: `${feature.properties.PC_NO}-${feature.properties.PC_NAME}`,
+                                pcNo: feature.properties.PC_NO,
+                                stateCode: feature.properties.ST_CODE,
+                                stateName: feature.properties.ST_NAME,
+                                parliamentId: parliamentId,
+                                divisionName: divisionName
+                            },
+                            geometry: feature.geometry
+                        };
+                    })
                 };
 
                 showBoundaries(transformedData, 'parliamentary');
@@ -1036,7 +1041,7 @@ function HierarchicalMap({ onRegionClick }) {
     const loadAssemblyData = async (vsCode) => {
         try {
             console.log('🔍 Loading assembly data for parliament code:', vsCode);
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/assembly-polygons/parliament/${vsCode}`;
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies/polygons/parliament/${vsCode}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -1060,7 +1065,8 @@ function HierarchicalMap({ onRegionClick }) {
                         return {
                             type: 'Feature',
                             properties: {
-                                id: feature.properties.AC_NO.toString(), // Use AC_NO instead of PC_ID for assembly ID
+                                _id: feature.properties._id,
+                                id: feature.properties._id,
                                 name: feature.properties.AC_NAME,
                                 displayName: `${feature.properties.AC_NO}-${feature.properties.AC_NAME} `,
                                 acNo: feature.properties.AC_NO.toString(),
@@ -1091,7 +1097,7 @@ function HierarchicalMap({ onRegionClick }) {
     const loadBlockData = async (assemblyId) => {
         try {
             console.log('🔍 Loading block data for assembly AC_NO:', assemblyId);
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`;
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/blocks/polygons/assembly/${assemblyId}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -1288,7 +1294,7 @@ function HierarchicalMap({ onRegionClick }) {
     const loadBoothData = async (BlockNumber, AC_NO = null) => {
         try {
             console.log('🔍 Loading booth data for BlockNumber:', BlockNumber, 'AC_NO:', AC_NO);
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${BlockNumber}`;
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block-number/${BlockNumber}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -1930,6 +1936,7 @@ function HierarchicalMap({ onRegionClick }) {
 
     // Function to fetch comprehensive parliament data
     const fetchParliamentData = async (parliamentId, parliamentName = null) => {
+        let parliamentData = {}; // Initialize at function level
         try {
             console.log('🔍 fetchParliamentData called with:', { parliamentId, parliamentName });
             
@@ -1942,7 +1949,6 @@ function HierarchicalMap({ onRegionClick }) {
                 parliamentResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?search=${encodeURIComponent(parliamentId)}`);
             }
             
-            let parliamentData = {};
             if (parliamentResponse.ok) {
                 const result = await parliamentResponse.json();
                 if (result.success) {
@@ -1989,7 +1995,7 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             // Fetch gender stats for parliament
-            const parliamentObjectId = parliamentData._id;
+            const parliamentObjectId = parliamentData?._id;
             
             // If we couldn't fetch parliament data, skip the rest
             if (!parliamentObjectId) {
@@ -2949,14 +2955,37 @@ function HierarchicalMap({ onRegionClick }) {
                 }
                 break;
             case 'parliamentary':
-                loadAssemblyData(feature.properties.pcNo);
+                console.log('🖱️ Double-click on parliament:', feature.properties.name);
+                console.log('📋 Parliament properties:', feature.properties);
+                console.log('🔍 Checking for IDs - _id:', feature.properties._id, 'id:', feature.properties.id, 'PC_ID:', feature.properties.PC_ID);
+                let parliamentId = feature.properties._id || feature.properties.id || feature.properties.PC_ID;
+                console.log('🔢 Using Parliament ID:', parliamentId);
+                
+                // If no ID found, try to use parliament number as fallback
+                if (!parliamentId) {
+                    parliamentId = feature.properties.parliament_no || feature.properties.PC_NO || feature.properties.pcNo;
+                    console.warn('⚠️ No _id found, using parliament_no as fallback:', parliamentId);
+                }
+                
+                if (!parliamentId) {
+                    console.error('❌ No parliament ID or number found in properties:', feature.properties);
+                    alert('Error: Parliament ID not found. Please try again.');
+                    break;
+                }
+                loadAssemblyData(parliamentId);
                 setCurrentLevel('assembly');
                 break;
             case 'assembly':
                 console.log('🖱️ Double-click on assembly:', feature.properties.name);
                 console.log('📋 Assembly properties:', feature.properties);
-                console.log('🔢 Using AC_NO:', feature.properties.acNo);
-                loadBlockData(feature.properties.acNo);
+                console.log('🔢 Using Assembly ID:', feature.properties._id || feature.properties.id);
+                const assemblyId = feature.properties._id || feature.properties.id;
+                if (!assemblyId) {
+                    console.error('❌ No assembly ID found in properties:', feature.properties);
+                    alert('Error: Assembly ID not found. Please try again.');
+                    break;
+                }
+                loadBlockData(assemblyId);
                 setCurrentLevel('block');
                 break;
             case 'block':

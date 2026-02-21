@@ -603,3 +603,148 @@ exports.getParliamentRelatedData = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get parliament polygons as GeoJSON
+// @route   GET /api/parliaments/polygons
+// @access  Public
+exports.getParliamentPolygons = async (req, res, next) => {
+  try {
+    const Parliament = require('../models/Parliament');
+    const parliaments = await Parliament.find({ polygon: { $ne: null } })
+      .select('name parliament_no division_id state_id polygon')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
+    
+    if (!parliaments || parliaments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No parliament polygons found'
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = parliaments.map(parliament => {
+      if (parliament.polygon && parliament.polygon.type === 'Feature') {
+        return {
+          ...parliament.polygon,
+          properties: {
+            ...parliament.polygon.properties,
+            _id: parliament._id,
+            PC_ID: parliament._id,
+            name: parliament.name,
+            PC_NAME: parliament.name,
+            PC_NO: parliament.parliament_no,
+            parliament_no: parliament.parliament_no,
+            DIVISION_NAME: parliament.division_id?.name || '',
+            ST_NAME: parliament.state_id?.name || ''
+          }
+        };
+      } else if (parliament.polygon && parliament.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: parliament._id,
+            PC_ID: parliament._id,
+            name: parliament.name,
+            PC_NAME: parliament.name,
+            PC_NO: parliament.parliament_no,
+            parliament_no: parliament.parliament_no,
+            DIVISION_NAME: parliament.division_id?.name || '',
+            ST_NAME: parliament.state_id?.name || ''
+          },
+          geometry: parliament.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json([{
+      type: 'FeatureCollection',
+      features
+    }]);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get parliament polygons by division name
+// @route   GET /api/parliaments/polygons/division/:divisionName
+// @access  Public
+exports.getParliamentPolygonsByDivision = async (req, res, next) => {
+  try {
+    const Parliament = require('../models/Parliament');
+    const Division = require('../models/Division');
+    
+    const divisionName = req.params.divisionName;
+    const division = await Division.findOne({ 
+      name: { $regex: new RegExp(`^${divisionName}$`, 'i') } 
+    });
+    
+    if (!division) {
+      return res.status(404).json({
+        success: false,
+        message: `Division not found: ${divisionName}`
+      });
+    }
+
+    const parliaments = await Parliament.find({ 
+      division_id: division._id,
+      polygon: { $ne: null } 
+    })
+      .select('name parliament_no division_id state_id polygon')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name');
+    
+    if (!parliaments || parliaments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No parliament polygons found for division: ${divisionName}`
+      });
+    }
+
+    // Transform to GeoJSON FeatureCollection
+    const features = parliaments.map(parliament => {
+      if (parliament.polygon && parliament.polygon.type === 'Feature') {
+        return {
+          ...parliament.polygon,
+          properties: {
+            ...parliament.polygon.properties,
+            _id: parliament._id,
+            PC_ID: parliament._id,
+            name: parliament.name,
+            PC_NAME: parliament.name,
+            PC_NO: parliament.parliament_no,
+            parliament_no: parliament.parliament_no,
+            DIVISION_NAME: parliament.division_id?.name || '',
+            ST_NAME: parliament.state_id?.name || '',
+            ST_CODE: parliament.state_id?._id || ''
+          }
+        };
+      } else if (parliament.polygon && parliament.polygon.geometry) {
+        return {
+          type: 'Feature',
+          properties: {
+            _id: parliament._id,
+            PC_ID: parliament._id,
+            name: parliament.name,
+            PC_NAME: parliament.name,
+            PC_NO: parliament.parliament_no,
+            parliament_no: parliament.parliament_no,
+            DIVISION_NAME: parliament.division_id?.name || '',
+            ST_NAME: parliament.state_id?.name || '',
+            ST_CODE: parliament.state_id?._id || ''
+          },
+          geometry: parliament.polygon.geometry
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+
+    res.status(200).json([{
+      type: 'FeatureCollection',
+      features
+    }]);
+  } catch (err) {
+    next(err);
+  }
+};
