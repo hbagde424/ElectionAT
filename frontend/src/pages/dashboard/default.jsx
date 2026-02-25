@@ -81,12 +81,10 @@ import { preload } from 'swr';
 
 // Assets & Styles
 import HierarchicalMap from 'sections/dashboard/default/HierarchicalMap';
-import AssemblyMap from 'sections/dashboard/default/AssemblyMap';
-import ChangeTheme from 'sections/maps/change-theme copy';
-// import ParliamentMap from 'sections/dashboard/default/ParliamentMap';
-import ParliamentMap from 'sections/maps/change-themeparliament';
-// import BlockMap from 'sections/maps/block-map';
-import BoothMap from 'sections/maps/booth-map';
+import AssemblyMapDashboard from 'sections/dashboard/default/AssemblyMapDashboard';
+import ParliamentMapDashboard from 'sections/dashboard/default/ParliamentMapDashboard';
+import BlockMapDashboard from 'sections/dashboard/default/BlockMapDashboard';
+import BoothMapDashboard from 'sections/dashboard/default/BoothMapDashboard';
 import DistrictMap from 'sections/dashboard/default/DistrictMap';
 import MainCard from 'components/MainCard';
 import ScrollX from 'components/ScrollX';
@@ -1085,7 +1083,7 @@ export default function DashboardDefault() {
                 <Tab label="Assembly Map" value="2" />
                 <Tab label="Parliament Map" value="3" />
                 <Tab label="District Map" value="4" />
-                {/* <Tab label="Block Map" value="5" /> */}
+                <Tab label="Block Map" value="5" />
                 <Tab label="Booth Map" value="6" />
               </Tabs>
             </Box>
@@ -1093,19 +1091,10 @@ export default function DashboardDefault() {
               <HierarchicalMap onRegionClick={handleMapClick} />
             </TabPanel>
             <TabPanel value="2" sx={{ p: 0 }}>
-              <MainCard title="Assembly Map">
-                <MapContainerStyled>
-                  <AssemblyMap onAssemblySelect={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
-                </MapContainerStyled>
-              </MainCard>
+              <AssemblyMapDashboard />
             </TabPanel>
             <TabPanel value="3" sx={{ p: 0 }}>
-              {/* <ParliamentMap onRegionClick={handleMapClick} /> */}
-              <MainCard title="Parliament Map">
-                <MapContainerStyled>
-                  <ParliamentMap onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
-                </MapContainerStyled>
-              </MainCard>
+              <ParliamentMapDashboard />
             </TabPanel>
             <TabPanel value="4" sx={{ p: 0 }}>
               <MainCard title="District Map">
@@ -1114,19 +1103,11 @@ export default function DashboardDefault() {
                 </MapContainerStyled>
               </MainCard>
             </TabPanel>
-            {/* <TabPanel value="5" sx={{ p: 0 }}>
-              <MainCard title="Block Map">
-                <MapContainerStyled>
-                  <BlockMap onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
-                </MapContainerStyled>
-              </MainCard>
-            </TabPanel> */}
+            <TabPanel value="5" sx={{ p: 0 }}>
+              <BlockMapDashboard />
+            </TabPanel>
             <TabPanel value="6" sx={{ p: 0 }}>
-              <MainCard title="Booth Map">
-                <MapContainerStyled>
-                  <BoothMap onRegionClick={handleMapClick} {...mapConfiguration} themes={MAPBOX_THEMES} />
-                </MapContainerStyled>
-              </MainCard>
+              <BoothMapDashboard />
             </TabPanel>
           </TabContext>
         </MainCard>
