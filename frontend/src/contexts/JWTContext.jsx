@@ -119,6 +119,9 @@ export const JWTProvider = ({ children }) => {
       // Store user data in localStorage for PermissionContext
       localStorage.setItem('user', JSON.stringify(user));
 
+      // Dispatch custom event to notify PermissionContext of user change
+      window.dispatchEvent(new CustomEvent('userChanged', { detail: { user } }));
+
       dispatch({
         type: LOGIN,
         payload: {
@@ -165,6 +168,10 @@ export const JWTProvider = ({ children }) => {
   const logout = () => {
     setSession(null);
     localStorage.removeItem('user'); // Remove user data from localStorage
+    
+    // Dispatch custom event to notify PermissionContext of logout
+    window.dispatchEvent(new CustomEvent('userChanged', { detail: { user: null } }));
+    
     dispatch({ type: LOGOUT });
   };
 

@@ -24,6 +24,7 @@ import MapControl from 'components/third-party/map/MapControl';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useCsvOtp } from 'hooks/useCsvOtp';
+import { filterAssembliesByHierarchy } from 'utils/hierarchyUtils';
 
 import AssemblyModal from './AssemblyModal';
 import AlertAssemblyDelete from './AlertAssemblyDelete';
@@ -247,16 +248,7 @@ export default function AssembliesListPage() {
             });
             setAssemblyDataMap(assemblyMap);
 
-            let assembliesToUse = json.data;
-            if (userHierarchy?.assembly) {
-                assembliesToUse = json.data.filter(a => String(a._id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
-            } else if (userHierarchy?.parliament) {
-                assembliesToUse = json.data.filter(a => String(a.parliament_id?._id || a.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
-            } else if (userHierarchy?.division) {
-                assembliesToUse = json.data.filter(a => String(a.division_id?._id || a.division_id) === String(userHierarchy.division._id || userHierarchy.division));
-            } else if (userHierarchy?.state) {
-                assembliesToUse = json.data.filter(a => String(a.state_id?._id || a.state_id) === String(userHierarchy.state._id || userHierarchy.state));
-            }
+            let assembliesToUse = filterAssembliesByHierarchy(json.data, userHierarchy);
 
             const features = [];
             assembliesToUse.forEach(assembly => {

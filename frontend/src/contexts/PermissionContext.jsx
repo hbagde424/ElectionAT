@@ -43,12 +43,12 @@ export const PermissionProvider = ({ children }) => {
     const getCurrentUser = () => {
         try {
             const userData = localStorage.getItem('user');
-            // console.log('🔍 Raw user data from localStorage:', userData);
+            console.log('Raw user data from localStorage:', userData);
             const user = userData ? JSON.parse(userData) : null;
-            // console.log('🔍 Parsed user data:', user);
+            console.log('Parsed user data:', user);
             return user;
         } catch (err) {
-            console.error('❌ Error parsing user data:', err);
+            console.error('Error parsing user data:', err);
             return null;
         }
     };
@@ -62,17 +62,70 @@ export const PermissionProvider = ({ children }) => {
     useEffect(() => {
         // Slight delay to ensure auth context/localStorage is ready
         const timer = setTimeout(() => {
-            fetchUserPermissions();
-            fetchUserHierarchy();
+            console.log('Calling fetchUserPermissions and fetchUserHierarchy');
+            if (mountedRef.current) setLoading(true);
+            Promise.all([
+                fetchUserPermissions(),
+                fetchUserHierarchy()
+            ]).then(() => {
+                console.log('Both fetchUserPermissions and fetchUserHierarchy completed');
+                if (mountedRef.current) setLoading(false);
+            }).catch(err => {
+                console.error('Error in permission/hierarchy fetch:', err);
+                if (mountedRef.current) setLoading(false);
+            });
         }, 100);
 
         return () => clearTimeout(timer);
     }, []);
 
+    // Listen for storage changes (when user logs in/out from another tab or when login updates localStorage)
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'user' || e.key === 'serviceToken') {
+                console.log('🔄 Storage changed, refreshing permissions and hierarchy');
+                if (mountedRef.current) setLoading(true);
+                Promise.all([
+                    fetchUserPermissions(),
+                    fetchUserHierarchy()
+                ]).then(() => {
+                    console.log('✅ Permissions and hierarchy refreshed after storage change');
+                    if (mountedRef.current) setLoading(false);
+                }).catch(err => {
+                    console.error('Error refreshing after storage change:', err);
+                    if (mountedRef.current) setLoading(false);
+                });
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    // Listen for custom userChanged event (when user logs in/out in same tab)
+    useEffect(() => {
+        const handleUserChanged = (e) => {
+            console.log('🔄 User changed event received, refreshing permissions and hierarchy');
+            if (mountedRef.current) setLoading(true);
+            Promise.all([
+                fetchUserPermissions(),
+                fetchUserHierarchy()
+            ]).then(() => {
+                console.log('✅ Permissions and hierarchy refreshed after user change');
+                if (mountedRef.current) setLoading(false);
+            }).catch(err => {
+                console.error('Error refreshing after user change:', err);
+                if (mountedRef.current) setLoading(false);
+            });
+        };
+
+        window.addEventListener('userChanged', handleUserChanged);
+        return () => window.removeEventListener('userChanged', handleUserChanged);
+    }, []);
+
     const fetchUserPermissions = async () => {
 
         try {
-            if (mountedRef.current) setLoading(true);
             const currentUser = getCurrentUser();
             const userId = getCurrentUserId(currentUser);
 
@@ -80,7 +133,6 @@ export const PermissionProvider = ({ children }) => {
 
             if (!currentUser || !userId) {
                 console.log('❌ No userId found, skipping permission fetch');
-                if (mountedRef.current) setLoading(false);
                 return;
             }
 
@@ -167,9 +219,6 @@ export const PermissionProvider = ({ children }) => {
                     setError('Using fallback permissions - no user found');
                 }
             }
-        } finally {
-            // console.log('🏁 fetchUserPermissions completed');
-            if (mountedRef.current) setLoading(false);
         }
     };
 
@@ -227,13 +276,18 @@ export const PermissionProvider = ({ children }) => {
                 return;
             }
 
+            console.log('📚 Starting fetchUserHierarchy for userId:', userId);
+            console.log('📚 Current user data:', currentUser);
+
             // First try to get UserHierarchy
             try {
                 const response = await axiosServices.get(`/user-hierarchy/${userId}`);
                 const hierarchyData = response?.data?.data ?? response?.data ?? null;
+                console.log('📚 UserHierarchy API response:', hierarchyData);
                 if (hierarchyData && Object.keys(hierarchyData).length > 0) {
                     if (mountedRef.current) setUserHierarchy(hierarchyData);
                     console.log('📚 userHierarchy from UserHierarchy model:', hierarchyData);
+                    console.log('📚 Assembly ID from hierarchy:', hierarchyData.assembly);
                     return;
                 }
             } catch (err) {
@@ -241,11 +295,20 @@ export const PermissionProvider = ({ children }) => {
             }
 
             // If no UserHierarchy found, check if user has hierarchical IDs in User model
+            console.log('📚 Checking User model for hierarchy IDs...');
+            console.log('📚 state_ids:', currentUser.state_ids);
+            console.log('📚 division_ids:', currentUser.division_ids);
+            console.log('📚 parliament_ids:', currentUser.parliament_ids);
+            console.log('📚 assembly_ids:', currentUser.assembly_ids);
+            console.log('📚 block_ids:', currentUser.block_ids);
+            console.log('📚 booth_ids:', currentUser.booth_ids);
+
             if (currentUser.state_ids?.length > 0 || currentUser.division_ids?.length > 0 ||
                 currentUser.parliament_ids?.length > 0 || currentUser.assembly_ids?.length > 0 ||
                 currentUser.block_ids?.length > 0 || currentUser.booth_ids?.length > 0) {
 
                 // Create a mock hierarchy object from User model data
+                // Note: These are already IDs (strings), not objects
                 const mockHierarchy = {
                     user: userId,
                     state: currentUser.state_ids?.[0] || null,
@@ -258,6 +321,8 @@ export const PermissionProvider = ({ children }) => {
 
                 if (mountedRef.current) setUserHierarchy(mockHierarchy);
                 console.log('📚 userHierarchy from User model:', mockHierarchy);
+                console.log('📚 Assembly ID from User model:', mockHierarchy.assembly);
+                console.log('📚 Assembly ID type:', typeof mockHierarchy.assembly);
             } else {
                 if (mountedRef.current) setUserHierarchy(null);
                 console.log('📚 No hierarchy restrictions found');
