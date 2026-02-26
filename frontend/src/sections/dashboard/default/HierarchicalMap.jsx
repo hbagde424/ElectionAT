@@ -5,6 +5,22 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faExpand, faCompress, faArrowLeft, faTimes } from '@fortawesome/free-solid-svg-icons';
 import MainCard from 'components/MainCard';
 import { useNavigate } from 'react-router-dom';
+import { usePermissions } from 'contexts/PermissionContext';
+import { 
+    filterAssembliesByHierarchy,
+    filterParliamentsByHierarchy,
+    filterDivisionsByHierarchy,
+    extractId
+} from 'utils/hierarchyUtils';
+
+// Fix Leaflet marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
+});
+
 import { 
     Drawer, 
     Box, 
@@ -306,6 +322,7 @@ function HierarchicalMap({ onRegionClick }) {
     const boothLookupRef = useRef({}); // in-memory lookup: booth_number -> booth data
     const prefetchingBlocksRef = useRef(new Set());
     const navigate = useNavigate();
+    const { userHierarchy } = usePermissions();
     const theme = useTheme();
     const [currentLevel, setCurrentLevel] = useState('state');
     const [selectedFeature, setSelectedFeature] = useState(null);
@@ -732,7 +749,34 @@ function HierarchicalMap({ onRegionClick }) {
             }
             const responseData = await response.json();
             if (responseData.success && responseData.data && responseData.data.length > 0) {
-                const stateData = responseData.data[0];
+                let stateData = responseData.data[0];
+
+                // Apply hierarchy filtering at state level
+                if (userHierarchy?.state) {
+                    const userStateId = extractId(userHierarchy.state);
+                    console.log('🔐 User has state restriction. State ID:', userStateId);
+                    
+                    // Filter features by state
+                    stateData = {
+                        ...stateData,
+                        features: stateData.features.filter(feature => {
+                            const featureStateId = extractId(feature.properties._id || feature.properties.id);
+                            const featureStateName = (feature.properties.Name || '').toLowerCase().replace(/\s+/g, '-');
+                            
+                            const matches = featureStateId === userStateId || featureStateName === userStateId;
+                            if (matches) {
+                                console.log(`✅ State matched: ${feature.properties.Name}`);
+                            }
+                            return matches;
+                        })
+                    };
+                    
+                    if (stateData.features.length === 0) {
+                        console.warn('⚠️ No states found matching user hierarchy');
+                        alert('No states available for your access level');
+                        return;
+                    }
+                }
 
                 // Validate MultiPolygon structure
                 const validatedStateData = {
@@ -769,75 +813,159 @@ function HierarchicalMap({ onRegionClick }) {
                 alert('No state data available');
             }
         } catch (error) {
-
+            console.error('❌ Error loading state data:', error);
         }
     };
 
     const loadDivisionData = async (stateId) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/polygons`);
+            console.log('🔍 Loading divisions for state:', stateId);
+            console.log('👤 User hierarchy:', userHierarchy);
+            
+            // Fetch all divisions (like parliament page does)
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/polygons`, { headers });
             if (!response.ok) {
                 throw new Error('Failed to fetch division data');
             }
             const responseData = await response.json();
 
-            if (responseData.features && responseData.features.length > 0) {
-                const divisionGroups = responseData.features.reduce((groups, feature) => {
-                    const division = (feature.properties.DIVISION_NAME || feature.properties.DIVISION_NAME)?.toUpperCase();
-
-                    if (!groups[division]) {
-                        groups[division] = {
-                            type: 'Feature',
-                            properties: {
-                                id: division.toLowerCase().replace(/\s+/g, '-'),
-                                name: division,
-                                DIVISION_CODE: feature.properties.DIVISION_CODE,
-                                ST_NAME: feature.properties.ST_NAME,
-                                districts: new Set([feature.properties.District]),
-                                parliaments: new Set([feature.properties.Parliament]),
-                                vsCodes: new Set([feature.properties.VS_Code])
-                            },
-                            geometry: {
-                                type: 'MultiPolygon',
-                                coordinates: []
-                            }
-                        };
-                    } else {
-                        groups[division].properties.districts.add(feature.properties.District);
-                        groups[division].properties.parliaments.add(feature.properties.Parliament);
-                        groups[division].properties.vsCodes.add(feature.properties.VS_Code);
-                    }
-
-                    if (feature.geometry?.coordinates) {
-                        if (feature.geometry.type === 'MultiPolygon') {
-                            groups[division].geometry.coordinates.push(...feature.geometry.coordinates);
-                        } else if (feature.geometry.type === 'Polygon') {
-                            groups[division].geometry.coordinates.push([feature.geometry.coordinates]);
-                        }
-                    }
-                    return groups;
-                }, {});
-
-                const transformedData = {
-                    type: 'FeatureCollection',
-                    features: Object.values(divisionGroups).map(division => ({
-                        ...division,
-                        properties: {
-                            ...division.properties,
-                            districts: Array.from(division.properties.districts),
-                            parliaments: Array.from(division.properties.parliaments),
-                            vsCodes: Array.from(division.properties.vsCodes),
-                            parliamentarySeats: division.properties.parliaments.size
-                        }
-                    }))
-                };
-
-                showBoundaries(transformedData, 'division');
-            } else {
-
+            if (!responseData.features || responseData.features.length === 0) {
+                console.error('❌ No division features found in response');
+                alert('No division data available');
+                return;
             }
-        } catch (error) {
 
+            console.log(`📦 Total divisions available: ${responseData.features.length}`);
+            
+            // Apply hierarchy filtering (like parliament page does)
+            let featuresToUse = responseData.features;
+            
+            if (userHierarchy?.division) {
+                // If user has division-level access, show only that division
+                const userDivisionId = extractId(userHierarchy.division);
+                console.log('🔐 User has division restriction. Division ID:', userDivisionId);
+                
+                featuresToUse = responseData.features.filter(f => {
+                    const divisionId = extractId(f.properties._id || f.properties.id);
+                    const matches = String(divisionId) === String(userDivisionId);
+                    
+                    if (matches) {
+                        console.log(`✅ Division matched: ${f.properties.DIVISION_NAME} (ID: ${divisionId})`);
+                    }
+                    return matches;
+                });
+                
+                console.log(`🔐 After division filtering: ${featuresToUse.length} divisions`);
+            } 
+            else if (userHierarchy?.state) {
+                // If user has state-level access, show all divisions in that state
+                const userStateId = extractId(userHierarchy.state);
+                console.log('🔐 User has state restriction. State ID:', userStateId);
+                
+                featuresToUse = responseData.features.filter(f => {
+                    const divisionStateId = extractId(f.properties.state_id);
+                    const matches = String(divisionStateId) === String(userStateId);
+                    
+                    if (matches) {
+                        console.log(`✅ State matched: ${f.properties.DIVISION_NAME} (State ID: ${divisionStateId})`);
+                    }
+                    return matches;
+                });
+                
+                console.log(`🔐 After state filtering: ${featuresToUse.length} divisions`);
+            }
+            else if (stateId) {
+                // If no hierarchy restriction, filter by state parameter
+                const stateIdLower = stateId.toLowerCase().replace(/\s+/g, '-');
+                const stateNameNormalized = stateId.toLowerCase();
+                
+                featuresToUse = responseData.features.filter(f => {
+                    const featureState = (f.properties.ST_NAME || '').toLowerCase();
+                    const featureStateSlug = featureState.replace(/\s+/g, '-');
+                    
+                    const matches = featureState === stateNameNormalized || 
+                                   featureStateSlug === stateIdLower ||
+                                   featureState.includes(stateNameNormalized) ||
+                                   stateNameNormalized.includes(featureState);
+                    
+                    if (matches) {
+                        console.log(`✅ Matched division: ${f.properties.DIVISION_NAME} with state: ${f.properties.ST_NAME}`);
+                    }
+                    return matches;
+                });
+                
+                console.log(`✅ Filtered ${featuresToUse.length} divisions for state: ${stateId}`);
+            }
+
+            if (featuresToUse.length === 0) {
+                console.warn('⚠️ No divisions found');
+                console.log('📋 Available states in data:', [...new Set(responseData.features.map(f => f.properties.ST_NAME))]);
+                alert('No divisions found for your access level');
+                return;
+            }
+
+            // Group divisions by name (for aggregating multi-part divisions)
+            const divisionGroups = featuresToUse.reduce((groups, feature) => {
+                const divisionName = feature.properties.DIVISION_NAME || feature.properties.division_name || 'Unknown';
+                const divisionKey = divisionName.toUpperCase();
+
+                if (!groups[divisionKey]) {
+                    groups[divisionKey] = {
+                        type: 'Feature',
+                        properties: {
+                            id: divisionName.toLowerCase().replace(/\s+/g, '-'),
+                            name: divisionName,
+                            DIVISION_NAME: divisionName,
+                            DIVISION_CODE: feature.properties.DIVISION_CODE || feature.properties.division_code,
+                            ST_NAME: feature.properties.ST_NAME,
+                            _id: feature.properties._id,
+                            districts: new Set([feature.properties.District]),
+                            parliaments: new Set([feature.properties.Parliament]),
+                            vsCodes: new Set([feature.properties.VS_Code])
+                        },
+                        geometry: {
+                            type: 'MultiPolygon',
+                            coordinates: []
+                        }
+                    };
+                } else {
+                    if (feature.properties.District) groups[divisionKey].properties.districts.add(feature.properties.District);
+                    if (feature.properties.Parliament) groups[divisionKey].properties.parliaments.add(feature.properties.Parliament);
+                    if (feature.properties.VS_Code) groups[divisionKey].properties.vsCodes.add(feature.properties.VS_Code);
+                }
+
+                if (feature.geometry?.coordinates) {
+                    if (feature.geometry.type === 'MultiPolygon') {
+                        groups[divisionKey].geometry.coordinates.push(...feature.geometry.coordinates);
+                    } else if (feature.geometry.type === 'Polygon') {
+                        groups[divisionKey].geometry.coordinates.push([feature.geometry.coordinates]);
+                    }
+                }
+                return groups;
+            }, {});
+
+            const transformedData = {
+                type: 'FeatureCollection',
+                features: Object.values(divisionGroups).map(division => ({
+                    ...division,
+                    properties: {
+                        ...division.properties,
+                        districts: Array.from(division.properties.districts),
+                        parliaments: Array.from(division.properties.parliaments),
+                        vsCodes: Array.from(division.properties.vsCodes),
+                        parliamentarySeats: division.properties.parliaments.size
+                    }
+                }))
+            };
+
+            console.log(`✅ Showing ${transformedData.features.length} divisions on map`);
+            showBoundaries(transformedData, 'division');
+        } catch (error) {
+            console.error('❌ Error loading division data:', error);
+            alert('Error loading division data: ' + error.message);
         }
     };
 
@@ -850,7 +978,7 @@ function HierarchicalMap({ onRegionClick }) {
             // Database has inconsistent casing - only "INDORE" is all caps, rest are proper case
             const normalizedDivisionName = divisionName === 'Indore' ? 'INDORE' : divisionName;
             
-            console.log(`� Normalized division name: "${normalizedDivisionName}"`);
+            console.log(`📍 Normalized division name: "${normalizedDivisionName}"`);
             
             const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliaments/polygons/name/${encodeURIComponent(normalizedDivisionName)}`;
             console.log('🌐 API URL:', apiUrl);
@@ -867,7 +995,7 @@ function HierarchicalMap({ onRegionClick }) {
                 const parliamentData = responseData[0];
                 console.log(`✅ Found ${parliamentData.features.length} parliamentary constituencies`);
                 
-                const transformedData = {
+                let transformedData = {
                     type: 'FeatureCollection',
                     features: parliamentData.features.map(feature => {
                         const parliamentId = feature.properties._id || feature.properties.PC_ID;
@@ -889,6 +1017,23 @@ function HierarchicalMap({ onRegionClick }) {
                         };
                     })
                 };
+
+                // Apply hierarchy filtering
+                if (userHierarchy && transformedData.features.length > 0) {
+                    const filteredFeatures = filterParliamentsByHierarchy(
+                        transformedData.features.map(f => ({
+                            _id: f.properties._id,
+                            name: f.properties.name,
+                            parliament_no: f.properties.pcNo,
+                            division_id: { name: divisionName }
+                        })),
+                        userHierarchy
+                    );
+                    
+                    const filteredIds = new Set(filteredFeatures.map(f => f._id));
+                    transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));
+                    console.log(`🔒 After hierarchy filtering: ${transformedData.features.length} parliaments`);
+                }
 
                 showBoundaries(transformedData, 'parliamentary');
                 setCurrentLevel('parliamentary');
@@ -1056,7 +1201,7 @@ function HierarchicalMap({ onRegionClick }) {
             if (assemblies && assemblies.data && assemblies.data[0] && assemblies.data[0].type === "FeatureCollection" && assemblies.data[0].features && assemblies.data[0].features.length > 0) {
                 console.log(`✅ Found ${assemblies.data[0].features.length} assembly constituencies`);
                 
-                const transformedData = {
+                let transformedData = {
                     type: 'FeatureCollection',
                     features: assemblies.data[0].features.map(feature => {
                         const acNoValue = feature.properties.AC_NO;
@@ -1080,6 +1225,23 @@ function HierarchicalMap({ onRegionClick }) {
                         };
                     })
                 };
+
+                // Apply hierarchy filtering
+                if (userHierarchy && transformedData.features.length > 0) {
+                    const filteredFeatures = filterAssembliesByHierarchy(
+                        transformedData.features.map(f => ({
+                            _id: f.properties._id,
+                            name: f.properties.name,
+                            AC_NO: f.properties.acNo,
+                            parliament_id: { name: f.properties.pcName }
+                        })),
+                        userHierarchy
+                    );
+                    
+                    const filteredIds = new Set(filteredFeatures.map(f => f._id));
+                    transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));
+                    console.log(`🔒 After hierarchy filtering: ${transformedData.features.length} assemblies`);
+                }
 
                 showBoundaries(transformedData, 'assembly');
                 setCurrentLevel('assembly');
@@ -1488,6 +1650,14 @@ function HierarchicalMap({ onRegionClick }) {
     const showBoundaries = (data, level) => {
         resetLayer();
 
+        // Validate data before rendering
+        if (!data || !data.features || data.features.length === 0) {
+            console.error('❌ showBoundaries: Invalid data structure', data);
+            return;
+        }
+
+        console.log(`✅ showBoundaries called for level: ${level}, features count: ${data.features.length}`);
+
         const style = (feature) => {
             let color = '#477fcdff';
             let weight = 2;
@@ -1778,7 +1948,21 @@ function HierarchicalMap({ onRegionClick }) {
         }).addTo(mapInstanceRef.current);
 
         // Fit bounds to show all features
-        mapInstanceRef.current.fitBounds(currentLayerRef.current.getBounds());
+        if (mapInstanceRef.current && currentLayerRef.current) {
+            try {
+                const bounds = currentLayerRef.current.getBounds();
+                if (bounds.isValid()) {
+                    mapInstanceRef.current.fitBounds(bounds);
+                    console.log(`✅ Map bounds fitted for level: ${level}`);
+                } else {
+                    console.warn('⚠️ Invalid bounds for level:', level);
+                }
+            } catch (err) {
+                console.error('❌ Error fitting bounds:', err);
+            }
+        } else {
+            console.error('❌ Map instance or layer not available');
+        }
     };
 
     // Function to fetch comprehensive state data
@@ -2938,7 +3122,12 @@ function HierarchicalMap({ onRegionClick }) {
         
         switch (level) {
             case 'state':
-                loadDivisionData(feature.properties.id);
+                // Pass state name for filtering divisions - use both id and name for better matching
+                const stateId = feature.properties.id || feature.properties.name || feature.properties.Name;
+                const stateName = feature.properties.name || feature.properties.Name;
+                console.log('🖱️ Double-click on state:', { stateId, stateName });
+                // Pass the state name (e.g., "Madhya Pradesh") for better matching with ST_NAME in divisions
+                loadDivisionData(stateName || stateId);
                 setCurrentLevel('division');
                 break;
             case 'division':
@@ -3788,6 +3977,7 @@ function HierarchicalMap({ onRegionClick }) {
                     <div
                         style={{
                             height: '600px',
+                            width: '100%',
                             position: 'relative'
                         }}
                         className="map-container"

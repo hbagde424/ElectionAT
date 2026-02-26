@@ -10,7 +10,16 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
     // err.value may be undefined in some cases; fall back to request params or a placeholder
-    const idVal = (err.value !== undefined && err.value !== null) ? err.value : (req && req.params && Object.keys(req.params).length ? JSON.stringify(req.params) : 'unknown');
+    let idVal = 'unknown';
+    if (err.value !== undefined && err.value !== null) {
+      idVal = String(err.value).substring(0, 100); // Limit to 100 chars to prevent string length errors
+    } else if (req && req.params && Object.keys(req.params).length) {
+      try {
+        idVal = JSON.stringify(req.params).substring(0, 100);
+      } catch (e) {
+        idVal = 'invalid params';
+      }
+    }
     const message = `Resource not found / invalid id: ${idVal}`;
     error = new ErrorResponse(message, 404);
   }

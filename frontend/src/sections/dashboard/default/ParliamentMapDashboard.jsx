@@ -7,6 +7,7 @@ import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 import IconButton from 'components/@extended/IconButton';
 import { usePermissions } from 'contexts/PermissionContext';
+import { filterParliamentsByHierarchy } from 'utils/hierarchyUtils';
 
 export default function ParliamentMapDashboard() {
     const { userHierarchy } = usePermissions();
@@ -214,8 +215,11 @@ export default function ParliamentMapDashboard() {
             });
             setParliamentDataMap(parliamentMap);
 
+            // Apply hierarchy filtering
+            let parliamentsToUse = filterParliamentsByHierarchy(json.data, userHierarchy);
+
             const features = [];
-            json.data.forEach(parliament => {
+            parliamentsToUse.forEach(parliament => {
                 if (parliament.polygon) {
                     if (parliament.polygon.type === 'Feature') {
                         features.push({

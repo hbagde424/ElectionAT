@@ -70,17 +70,30 @@ exports.getWinningCandidates = async (req, res, next) => {
         }
 
         // Default for all=true (no year): return fully populated list used by tables/CSV
-        const list = await WinningCandidate.find(matchStage)
-          .populate('candidate_id')
-          .populate('party_id')
-          .populate('year_id')
-          .populate('assembly_id')
-          .populate('state_id')
-          .populate('division_id')
-          .populate('parliament_id')
-          .lean();
+        // Apply a reasonable limit to prevent "Invalid string length" errors from massive datasets
+        const maxRecords = parseInt(req.query.maxRecords) || 10000;
+        
+        // For large datasets, use selective population to avoid string length errors
+        // Only populate essential fields with limited projection
+        let list = await WinningCandidate.find(matchStage)
+          .populate('candidate_id', 'name')
+          .populate('party_id', 'name')
+          .populate('year_id', 'year')
+          .populate('assembly_id', 'name AC_NO')
+          .populate('state_id', 'name')
+          .populate('division_id', 'name')
+          .populate('parliament_id', 'name')
+          .select('candidate_id party_id year_id assembly_id state_id division_id parliament_id total_votes margin voting_percentage poll_percentage type')
+          .limit(maxRecords)
+          .exec();
 
-        return res.status(200).json({ success: true, data: list, total: list.length });
+        // Convert to plain objects
+        if (list && Array.isArray(list)) {
+          list = list.map(doc => doc.toObject ? doc.toObject() : doc);
+        }
+
+        const total = await WinningCandidate.countDocuments(matchStage);
+        return res.status(200).json({ success: true, data: list, total, returned: list.length, limited: list.length < total });
       } catch (err) {
         console.error('Error processing all=true request:', err);
         return res.status(500).json({ success: false, message: 'Failed to fetch winning candidates', error: err.message });
@@ -201,9 +214,14 @@ exports.getWinningCandidates = async (req, res, next) => {
 
       // Execute query with proper error handling
       if (req.query.all === 'true') {
-        winningCandidates = await query.lean().exec();
+        winningCandidates = await query.exec();
       } else {
-        winningCandidates = await query.skip(skip).limit(limit).lean().exec();
+        winningCandidates = await query.skip(skip).limit(limit).exec();
+      }
+
+      // Convert to plain objects if needed
+      if (winningCandidates && Array.isArray(winningCandidates)) {
+        winningCandidates = winningCandidates.map(doc => doc.toObject ? doc.toObject() : doc);
       }
 
       console.log('Query executed successfully. Found records:', winningCandidates?.length || 0);
@@ -228,6 +246,7 @@ exports.getWinningCandidates = async (req, res, next) => {
           year: !!sampleRecord.year_id,
           candidate: !!sampleRecord.candidate_id
         });
+        console.log('Sample division_id:', JSON.stringify(sampleRecord.division_id, null, 2));
       }
 
       res.status(200).json({
@@ -1425,6 +1444,11 @@ exports.importWinningCandidates = async (req, res, next) => {
           const boothNo = parseNum(row.booth_number) || parseNum(row.booth_no) || null;
           if (boothNo && assembly) booth = await Booth.findOne({ assembly_id: assembly ? assembly._id : undefined, booth_number: boothNo }) || await Booth.findOne({ booth_no: boothNo });
           if (!booth && row.booth_name) booth = await Booth.findOne({ name: new RegExp('^' + escapeRegex(row.booth_name.trim()) + '$', 'i') });
+        }
+
+        // Fallback: if division not found, get it from assembly's division_id
+        if (!division && assembly && assembly.division_id) {
+          division = await Division.findById(assembly.division_id);
         }
 
         // build payload

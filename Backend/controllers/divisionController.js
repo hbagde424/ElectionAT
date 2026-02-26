@@ -681,7 +681,8 @@ exports.getDivisionPolygons = async (req, res, next) => {
             name: division.name,
             DIVISION_NAME: division.name,
             division_code: division.division_code,
-            ST_NAME: division.state_id?.name || ''
+            ST_NAME: division.state_id?.name || '',
+            state_id: division.state_id?._id || division.state_id || ''
           }
         };
       } else if (division.polygon && division.polygon.geometry) {
@@ -692,7 +693,8 @@ exports.getDivisionPolygons = async (req, res, next) => {
             name: division.name,
             DIVISION_NAME: division.name,
             division_code: division.division_code,
-            ST_NAME: division.state_id?.name || ''
+            ST_NAME: division.state_id?.name || '',
+            state_id: division.state_id?._id || division.state_id || ''
           },
           geometry: division.polygon.geometry
         };
